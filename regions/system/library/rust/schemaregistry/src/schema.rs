@@ -28,6 +28,7 @@ pub enum SchemaType {
 
 impl SchemaType {
     /// Confluent Schema Registry API で使用する文字列表現を返す。
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             SchemaType::Avro => "AVRO",
@@ -97,7 +98,7 @@ pub(crate) struct SchemaVersionResponse {
     pub schema_type: String,
 }
 
-/// 文字列から SchemaType へ変換する。
+/// 文字列から `SchemaType` へ変換する。
 ///
 /// 大文字小文字を区別しない。不明な文字列の場合は Avro を返す。
 pub(crate) fn parse_schema_type(s: &str) -> SchemaType {

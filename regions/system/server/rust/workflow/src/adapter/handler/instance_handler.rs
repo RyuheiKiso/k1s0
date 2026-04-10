@@ -18,11 +18,9 @@ use super::dto::{
     InstanceStatusResponse, ListInstancesQuery,
 };
 
-/// Claims が存在する場合は tenant_id を返し、存在しない場合は "system" を返す
+/// Claims が存在する場合は `tenant_id` を返し、存在しない場合は "system" を返す
 fn tenant_id_from_claims(claims: Option<&Claims>) -> String {
-    claims
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+    claims.map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 /// POST /api/v1/workflows/:id/execute
@@ -76,7 +74,7 @@ pub async fn execute_workflow(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_NOT_FOUND",
-                &format!("workflow not found: {}", id),
+                &format!("workflow not found: {id}"),
             )),
         )
             .into_response(),
@@ -85,7 +83,7 @@ pub async fn execute_workflow(
             StatusCode::CONFLICT,
             Json(error_json(
                 "SYS_WORKFLOW_DISABLED",
-                &format!("workflow is disabled: {}", id),
+                &format!("workflow is disabled: {id}"),
             )),
         )
             .into_response(),
@@ -94,7 +92,7 @@ pub async fn execute_workflow(
             StatusCode::BAD_REQUEST,
             Json(error_json(
                 "SYS_WORKFLOW_NO_STEPS",
-                &format!("workflow has no steps: {}", id),
+                &format!("workflow has no steps: {id}"),
             )),
         )
             .into_response(),
@@ -116,7 +114,10 @@ pub async fn get_instance_status(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = GetInstanceInput { tenant_id, id: id.clone() };
+    let input = GetInstanceInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.get_instance_uc.execute(&input).await {
         Ok(inst) => {
@@ -142,7 +143,7 @@ pub async fn get_instance_status(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
-                &format!("instance not found: {}", id),
+                &format!("instance not found: {id}"),
             )),
         )
             .into_response(),
@@ -227,7 +228,10 @@ pub async fn get_instance(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = GetInstanceInput { tenant_id, id: id.clone() };
+    let input = GetInstanceInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.get_instance_uc.execute(&input).await {
         Ok(inst) => {
@@ -253,7 +257,7 @@ pub async fn get_instance(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
-                &format!("instance not found: {}", id),
+                &format!("instance not found: {id}"),
             )),
         )
             .into_response(),
@@ -298,7 +302,7 @@ pub async fn cancel_instance(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
-                &format!("instance not found: {}", id),
+                &format!("instance not found: {id}"),
             )),
         )
             .into_response(),
@@ -307,7 +311,7 @@ pub async fn cancel_instance(
             StatusCode::CONFLICT,
             Json(error_json(
                 "SYS_WORKFLOW_INSTANCE_INVALID_STATUS",
-                &format!("cannot cancel instance with status: {}", status),
+                &format!("cannot cancel instance with status: {status}"),
             )),
         )
             .into_response(),

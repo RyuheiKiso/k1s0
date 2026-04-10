@@ -47,12 +47,14 @@ impl From<GrpcError> for Status {
 fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> ProtoTimestamp {
     ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     }
 }
 
 fn from_proto_timestamp(ts: ProtoTimestamp) -> chrono::DateTime<chrono::Utc> {
-    chrono::DateTime::<chrono::Utc>::from_timestamp(ts.seconds, ts.nanos as u32)
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    chrono::DateTime::<chrono::Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0))
         .unwrap_or_else(chrono::Utc::now)
 }
 
@@ -80,25 +82,22 @@ fn json_to_prost_value(value: &serde_json::Value) -> prost_types::Value {
 }
 
 fn json_to_prost_struct(value: &serde_json::Value) -> prost_types::Struct {
-    match value {
-        serde_json::Value::Object(map) => {
-            let fields: BTreeMap<String, prost_types::Value> = map
-                .iter()
-                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
-                .collect();
-            prost_types::Struct { fields }
-        }
-        _ => {
-            let mut fields = BTreeMap::new();
-            fields.insert("value".to_string(), json_to_prost_value(value));
-            prost_types::Struct { fields }
-        }
+    if let serde_json::Value::Object(map) = value {
+        let fields: BTreeMap<String, prost_types::Value> = map
+            .iter()
+            .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+            .collect();
+        prost_types::Struct { fields }
+    } else {
+        let mut fields = BTreeMap::new();
+        fields.insert("value".to_string(), json_to_prost_value(value));
+        prost_types::Struct { fields }
     }
 }
 
 fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
+    // NullValue と None は同じ返り値のためアームを統合する
     match &value.kind {
-        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
         Some(prost_types::value::Kind::BoolValue(v)) => serde_json::Value::Bool(*v),
         Some(prost_types::value::Kind::NumberValue(v)) => serde_json::json!(*v),
         Some(prost_types::value::Kind::StringValue(v)) => serde_json::Value::String(v.clone()),
@@ -106,7 +105,7 @@ fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
             serde_json::Value::Array(list.values.iter().map(prost_value_to_json).collect())
         }
         Some(prost_types::value::Kind::StructValue(v)) => prost_struct_to_json(v),
-        None => serde_json::Value::Null,
+        Some(prost_types::value::Kind::NullValue(_)) | None => serde_json::Value::Null,
     }
 }
 
@@ -131,10 +130,9 @@ fn json_bytes_to_prost_struct(bytes: &[u8]) -> Option<prost_types::Struct> {
 fn prost_struct_to_json_bytes(payload: Option<prost_types::Struct>) -> Result<Vec<u8>, Status> {
     let payload = payload
         .as_ref()
-        .map(prost_struct_to_json)
-        .unwrap_or_else(|| serde_json::json!({}));
+        .map_or_else(|| serde_json::json!({}), prost_struct_to_json);
     serde_json::to_vec(&payload)
-        .map_err(|e| Status::invalid_argument(format!("invalid payload: {}", e)))
+        .map_err(|e| Status::invalid_argument(format!("invalid payload: {e}")))
 }
 
 fn to_proto_job(job: JobData) -> ProtoJob {
@@ -174,8 +172,7 @@ fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
         .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 pub struct SchedulerServiceTonic {
@@ -183,6 +180,7 @@ pub struct SchedulerServiceTonic {
 }
 
 impl SchedulerServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<SchedulerGrpcService>) -> Self {
         Self { inner }
     }
@@ -244,10 +242,7 @@ impl SchedulerService for SchedulerServiceTonic {
         // CRIT-005 対応: JWT Claims からテナント ID を取得する
         let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_jobs(ListJobsRequest {
@@ -261,7 +256,8 @@ impl SchedulerService for SchedulerServiceTonic {
         Ok(Response::new(ProtoListJobsResponse {
             jobs: resp.jobs.into_iter().map(to_proto_job).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -403,10 +399,7 @@ impl SchedulerService for SchedulerServiceTonic {
         request: Request<ProtoListExecutionsRequest>,
     ) -> Result<Response<ProtoListExecutionsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_executions(ListExecutionsRequest {
@@ -426,7 +419,8 @@ impl SchedulerService for SchedulerServiceTonic {
                 .map(to_proto_execution)
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,

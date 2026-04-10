@@ -1,18 +1,18 @@
 //! External integration tests for k1s0-telemetry.
 //!
 //! Inline tests (src/tests.rs) already cover:
-//! - TelemetryConfig creation with/without trace endpoint
-//! - parse_log_level variants
-//! - trace_request! / trace_grpc_call! macros
+//! - `TelemetryConfig` creation with/without trace endpoint
+//! - `parse_log_level` variants
+//! - `trace_request`! / `trace_grpc_call`! macros
 //! - Metrics initialization, recording, gather
-//! - TelemetryMiddleware / GrpcInterceptor creation and recording
+//! - `TelemetryMiddleware` / `GrpcInterceptor` creation and recording
 //! - shutdown
 //!
 //! These external tests focus on:
-//! - ErrorSeverity classification edge cases (mixed keywords, chaining)
+//! - `ErrorSeverity` classification edge cases (mixed keywords, chaining)
 //! - Metrics RED pattern end-to-end (record multiple + gather + verify output)
 //! - Metrics DB/Kafka/Cache recording
-//! - TelemetryConfig field boundary values
+//! - `TelemetryConfig` field boundary values
 #![allow(clippy::unwrap_used)]
 
 use k1s0_telemetry::error_classifier::{classify_error, ErrorSeverity};
@@ -79,7 +79,7 @@ fn classify_empty_error_message() {
 fn error_severity_debug_and_clone() {
     let s = ErrorSeverity::Transient;
     let cloned = s;
-    assert_eq!(format!("{:?}", cloned), "Transient");
+    assert_eq!(format!("{cloned:?}"), "Transient");
 
     assert_eq!(ErrorSeverity::Permanent, ErrorSeverity::Permanent);
     assert_ne!(ErrorSeverity::Transient, ErrorSeverity::Permanent);
@@ -102,7 +102,7 @@ fn telemetry_config_zero_sample_rate() {
         log_level: "info".to_string(),
         log_format: "json".to_string(),
     };
-    assert_eq!(cfg.sample_rate, 0.0);
+    assert!(cfg.sample_rate.abs() < f64::EPSILON);
 }
 
 // log_format に "text" を設定した TelemetryConfig が正しく保持されることを確認する。
@@ -119,7 +119,7 @@ fn telemetry_config_text_log_format() {
         log_format: "text".to_string(),
     };
     assert_eq!(cfg.log_format, "text");
-    assert_eq!(cfg.sample_rate, 0.5);
+    assert!((cfg.sample_rate - 0.5_f64).abs() < f64::EPSILON);
 }
 
 // ===========================================================================

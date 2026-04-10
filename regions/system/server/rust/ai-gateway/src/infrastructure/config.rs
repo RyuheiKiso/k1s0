@@ -147,6 +147,7 @@ fn default_conn_max_lifetime() -> String {
 
 impl DatabaseConfig {
     /// PostgreSQL接続URLを生成する。戻り値はパスワードを含むためログに出力しないこと。
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -164,7 +165,7 @@ impl DatabaseConfig {
 /// LLMプロバイダー設定
 #[derive(Debug, Clone, Deserialize)]
 pub struct LlmConfig {
-    /// OpenAI互換APIのベースURL
+    /// `OpenAI互換APIのベースURL`
     pub base_url: String,
     /// APIキー
     pub api_key: String,
@@ -174,7 +175,7 @@ pub struct LlmConfig {
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct RedisConfig {
-    /// Redis接続URL（例: redis://localhost:6379）
+    /// Redis接続URL（例: <redis://localhost:6379>）
     pub url: String,
 }
 

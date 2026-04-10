@@ -116,6 +116,8 @@ pub struct NotificationLog {
     #[prost(message, optional, tag="15")]
     pub created_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
+// プロトバッファ自動生成コード: channel_type は Channel のプロトフィールド名として必要
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Channel {
     #[prost(string, tag="1")]
@@ -221,6 +223,8 @@ pub struct DeleteChannelResponse {
     #[prost(string, tag="2")]
     pub message: ::prost::alloc::string::String,
 }
+// プロトバッファ自動生成コード: subject_template/body_template は Template のプロトフィールド名として必要
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Template {
     #[prost(string, tag="1")]

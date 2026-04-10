@@ -47,6 +47,13 @@ pub fn run_non_interactive(name: Option<String>) -> Result<()> {
         bail!("'{project_name}' は既に存在します。別の名前を指定してください。");
     }
 
+    // MED-007 監査対応: 作成先の絶対パスを実行前に明示してユーザーの混乱を防ぐ
+    // Path::new(".") はプロセスの cwd に解決されるため、ここで事前に表示する
+    let output_dir = std::env::current_dir()
+        .map(|d| d.join(&project_name))
+        .map_or_else(|_| project_name.clone(), |p| p.display().to_string());
+    println!("プロジェクトを '{output_dir}' に作成します...");
+
     // 非インタラクティブモードのデフォルト設定: git_init=false, sparse_checkout=false, 全Tier
     let config = InitConfig {
         project_name: project_name.clone(),
@@ -56,7 +63,7 @@ pub fn run_non_interactive(name: Option<String>) -> Result<()> {
     };
 
     execute_init(&config)?;
-    println!("\nプロジェクト '{project_name}' の初期化が完了しました。");
+    println!("\nプロジェクト '{project_name}' の初期化が完了しました。\n作成先: {output_dir}");
     Ok(())
 }
 
@@ -231,8 +238,13 @@ fn print_confirmation(config: &InitConfig) {
         .iter()
         .map(k1s0_core::commands::init::Tier::display)
         .collect();
+    // MED-007 監査対応: 作成先の絶対パスを確認画面に表示してどこに生成されるかを明示する
+    let output_dir = std::env::current_dir()
+        .map(|d| d.join(&config.project_name))
+        .map_or_else(|_| config.project_name.clone(), |p| p.display().to_string());
     println!("\n[確認] 以下の内容で初期化します。よろしいですか？");
     println!("    プロジェクト名: {}", config.project_name);
+    println!("    作成先パス:     {output_dir}");
     println!(
         "    Git 初期化:     {}",
         if config.git_init {

@@ -8,6 +8,7 @@ pub struct Bulkhead {
 }
 
 impl Bulkhead {
+    #[must_use]
     pub fn new(max_concurrent: usize, max_wait: Duration) -> Self {
         let config = k1s0_bulkhead::BulkheadConfig {
             max_concurrent_calls: max_concurrent,

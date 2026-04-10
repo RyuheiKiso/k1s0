@@ -14,6 +14,7 @@ pub struct Bulkhead {
 }
 
 impl Bulkhead {
+    #[must_use]
     pub fn new(config: BulkheadConfig) -> Self {
         let semaphore = Arc::new(Semaphore::new(config.max_concurrent_calls));
         let metrics = BulkheadMetricsRecorder::new();
@@ -25,28 +26,20 @@ impl Bulkhead {
     }
 
     pub async fn acquire(&self) -> Result<OwnedSemaphorePermit, BulkheadError> {
-        match tokio::time::timeout(
+        // HIGH-001 監査対応: matchをif letに変換してClippyの警告を解消
+        if let Ok(Ok(permit)) = tokio::time::timeout(
             self.config.max_wait_duration,
             self.semaphore.clone().acquire_owned(),
         )
         .await
         {
-            Ok(Ok(permit)) => {
-                self.metrics.record_acquire();
-                Ok(permit)
-            }
-            Ok(Err(_)) => {
-                self.metrics.record_rejection();
-                Err(BulkheadError::Full {
-                    max_concurrent: self.config.max_concurrent_calls,
-                })
-            }
-            Err(_) => {
-                self.metrics.record_rejection();
-                Err(BulkheadError::Full {
-                    max_concurrent: self.config.max_concurrent_calls,
-                })
-            }
+            self.metrics.record_acquire();
+            Ok(permit)
+        } else {
+            self.metrics.record_rejection();
+            Err(BulkheadError::Full {
+                max_concurrent: self.config.max_concurrent_calls,
+            })
         }
     }
 

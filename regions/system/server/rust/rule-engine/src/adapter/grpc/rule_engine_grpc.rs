@@ -65,6 +65,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct RuleEngineGrpcService {
     create_rule_uc: Arc<CreateRuleUseCase>,
     get_rule_uc: Arc<GetRuleUseCase>,
@@ -117,7 +119,7 @@ impl RuleEngineGrpcService {
 
     pub async fn get_rule(&self, id: String) -> Result<RuleData, GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {id}")))?;
         let rule = self
             .get_rule_uc
             .execute(&uid)
@@ -125,7 +127,7 @@ impl RuleEngineGrpcService {
             .map_err(|e| match e {
                 GetRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?
-            .ok_or_else(|| GrpcError::NotFound(format!("rule not found: {}", id)))?;
+            .ok_or_else(|| GrpcError::NotFound(format!("rule not found: {id}")))?;
         Ok(to_rule_data(rule))
     }
 
@@ -136,13 +138,14 @@ impl RuleEngineGrpcService {
         rule_set_id: Option<String>,
         domain: Option<String>,
     ) -> Result<(Vec<RuleData>, u64, i32, i32, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(0) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(0) };
 
         let rule_set_uuid =
             match rule_set_id.as_deref() {
                 Some(id) => Some(Uuid::parse_str(id).map_err(|_| {
-                    GrpcError::InvalidArgument(format!("invalid rule_set_id: {}", id))
+                    GrpcError::InvalidArgument(format!("invalid rule_set_id: {id}"))
                 })?),
                 None => None,
             };
@@ -163,14 +166,16 @@ impl RuleEngineGrpcService {
         Ok((
             output.rules.into_iter().map(to_rule_data).collect(),
             output.total_count,
-            output.page as i32,
-            output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            i32::try_from(output.page).unwrap_or(i32::MAX),
+            i32::try_from(output.page_size).unwrap_or(i32::MAX),
             output.has_next,
         ))
     }
 
     pub async fn create_rule(
         &self,
+        tenant_id: String,
         name: String,
         description: String,
         priority: i32,
@@ -181,18 +186,19 @@ impl RuleEngineGrpcService {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&when_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid when_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid when_json: {e}")))?
         };
         let then_result: serde_json::Value = if then_json.is_empty() {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&then_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid then_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid then_json: {e}")))?
         };
 
         let rule = self
             .create_rule_uc
             .execute(&CreateRuleInput {
+                tenant_id,
                 name,
                 description,
                 priority,
@@ -202,10 +208,10 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 CreateRuleError::AlreadyExists(name) => {
-                    GrpcError::AlreadyExists(format!("rule already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("rule already exists: {name}"))
                 }
-                CreateRuleError::Validation(msg) => GrpcError::InvalidArgument(msg),
-                CreateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
+                // Validation と InvalidCondition は同じエラーに変換するためアームを統合する
+                CreateRuleError::Validation(msg) | CreateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
                 CreateRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -222,19 +228,19 @@ impl RuleEngineGrpcService {
         enabled: Option<bool>,
     ) -> Result<RuleData, GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {id}")))?;
 
         let when_condition = match when_json {
             Some(bytes) if !bytes.is_empty() => Some(
                 serde_json::from_slice(&bytes)
-                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid when_json: {}", e)))?,
+                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid when_json: {e}")))?,
             ),
             _ => None,
         };
         let then_result = match then_json {
             Some(bytes) if !bytes.is_empty() => Some(
                 serde_json::from_slice(&bytes)
-                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid then_json: {}", e)))?,
+                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid then_json: {e}")))?,
             ),
             _ => None,
         };
@@ -252,10 +258,10 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 UpdateRuleError::NotFound(id) => {
-                    GrpcError::NotFound(format!("rule not found: {}", id))
+                    GrpcError::NotFound(format!("rule not found: {id}"))
                 }
-                UpdateRuleError::Validation(msg) => GrpcError::InvalidArgument(msg),
-                UpdateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
+                // Validation と InvalidCondition は同じエラーに変換するためアームを統合する
+                UpdateRuleError::Validation(msg) | UpdateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
                 UpdateRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -264,24 +270,24 @@ impl RuleEngineGrpcService {
 
     pub async fn delete_rule(&self, id: String) -> Result<(bool, String), GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule id: {id}")))?;
 
         self.delete_rule_uc
             .execute(&uid)
             .await
             .map_err(|e| match e {
                 DeleteRuleError::NotFound(id) => {
-                    GrpcError::NotFound(format!("rule not found: {}", id))
+                    GrpcError::NotFound(format!("rule not found: {id}"))
                 }
                 DeleteRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
-        Ok((true, format!("rule {} deleted", id)))
+        Ok((true, format!("rule {id} deleted")))
     }
 
     pub async fn get_rule_set(&self, id: String) -> Result<RuleSetData, GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {id}")))?;
         let rs = self
             .get_rule_set_uc
             .execute(&uid)
@@ -289,7 +295,7 @@ impl RuleEngineGrpcService {
             .map_err(|e| match e {
                 GetRuleSetError::Internal(msg) => GrpcError::Internal(msg),
             })?
-            .ok_or_else(|| GrpcError::NotFound(format!("rule set not found: {}", id)))?;
+            .ok_or_else(|| GrpcError::NotFound(format!("rule set not found: {id}")))?;
         Ok(to_rule_set_data(rs))
     }
 
@@ -299,8 +305,9 @@ impl RuleEngineGrpcService {
         page_size: i32,
         domain: Option<String>,
     ) -> Result<(Vec<RuleSetData>, u64, i32, i32, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(0) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(0) };
 
         let output = self
             .list_rule_sets_uc
@@ -317,14 +324,18 @@ impl RuleEngineGrpcService {
         Ok((
             output.rule_sets.into_iter().map(to_rule_set_data).collect(),
             output.total_count,
-            output.page as i32,
-            output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            i32::try_from(output.page).unwrap_or(i32::MAX),
+            i32::try_from(output.page_size).unwrap_or(i32::MAX),
             output.has_next,
         ))
     }
 
+    // RuleSet 作成には proto 由来のフィールドが多くなるため引数制限を緩める
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_rule_set(
         &self,
+        tenant_id: String,
         name: String,
         description: String,
         domain: String,
@@ -336,7 +347,7 @@ impl RuleEngineGrpcService {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&default_result_json).map_err(|e| {
-                GrpcError::InvalidArgument(format!("invalid default_result_json: {}", e))
+                GrpcError::InvalidArgument(format!("invalid default_result_json: {e}"))
             })?
         };
 
@@ -348,6 +359,7 @@ impl RuleEngineGrpcService {
         let rs = self
             .create_rule_set_uc
             .execute(&CreateRuleSetInput {
+                tenant_id,
                 name,
                 description,
                 domain,
@@ -358,7 +370,7 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 CreateRuleSetError::AlreadyExists(name) => {
-                    GrpcError::AlreadyExists(format!("rule set already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("rule set already exists: {name}"))
                 }
                 CreateRuleSetError::Validation(msg) => GrpcError::InvalidArgument(msg),
                 CreateRuleSetError::Internal(msg) => GrpcError::Internal(msg),
@@ -377,12 +389,12 @@ impl RuleEngineGrpcService {
         enabled: Option<bool>,
     ) -> Result<RuleSetData, GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {id}")))?;
 
         let default_result = match default_result_json {
             Some(bytes) if !bytes.is_empty() => {
                 Some(serde_json::from_slice(&bytes).map_err(|e| {
-                    GrpcError::InvalidArgument(format!("invalid default_result_json: {}", e))
+                    GrpcError::InvalidArgument(format!("invalid default_result_json: {e}"))
                 })?)
             }
             _ => None,
@@ -412,7 +424,7 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 UpdateRuleSetError::NotFound(id) => {
-                    GrpcError::NotFound(format!("rule set not found: {}", id))
+                    GrpcError::NotFound(format!("rule set not found: {id}"))
                 }
                 UpdateRuleSetError::Validation(msg) => GrpcError::InvalidArgument(msg),
                 UpdateRuleSetError::Internal(msg) => GrpcError::Internal(msg),
@@ -423,19 +435,19 @@ impl RuleEngineGrpcService {
 
     pub async fn delete_rule_set(&self, id: String) -> Result<(bool, String), GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {id}")))?;
 
         self.delete_rule_set_uc
             .execute(&uid)
             .await
             .map_err(|e| match e {
                 DeleteRuleSetError::NotFound(id) => {
-                    GrpcError::NotFound(format!("rule set not found: {}", id))
+                    GrpcError::NotFound(format!("rule set not found: {id}"))
                 }
                 DeleteRuleSetError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
-        Ok((true, format!("rule set {} deleted", id)))
+        Ok((true, format!("rule set {id} deleted")))
     }
 
     pub async fn publish_rule_set(
@@ -443,7 +455,7 @@ impl RuleEngineGrpcService {
         id: String,
     ) -> Result<(String, u32, u32, DateTime<Utc>), GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {id}")))?;
 
         let output = self
             .publish_rule_set_uc
@@ -451,7 +463,7 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 PublishRuleSetError::NotFound(id) => {
-                    GrpcError::NotFound(format!("rule set not found: {}", id))
+                    GrpcError::NotFound(format!("rule set not found: {id}"))
                 }
                 PublishRuleSetError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -469,7 +481,7 @@ impl RuleEngineGrpcService {
         id: String,
     ) -> Result<(String, u32, u32, DateTime<Utc>), GrpcError> {
         let uid = Uuid::parse_str(&id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid rule set id: {id}")))?;
 
         let output = self
             .rollback_rule_set_uc
@@ -477,10 +489,10 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 RollbackRuleSetError::NotFound(id) => {
-                    GrpcError::NotFound(format!("rule set not found: {}", id))
+                    GrpcError::NotFound(format!("rule set not found: {id}"))
                 }
                 RollbackRuleSetError::NoPreviousVersion(v) => GrpcError::FailedPrecondition(
-                    format!("no previous version to rollback: current version is {}", v),
+                    format!("no previous version to rollback: current version is {v}"),
                 ),
                 RollbackRuleSetError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -495,6 +507,7 @@ impl RuleEngineGrpcService {
 
     pub async fn evaluate(
         &self,
+        tenant_id: String,
         rule_set: String,
         input_json: Vec<u8>,
         context_json: Vec<u8>,
@@ -504,17 +517,18 @@ impl RuleEngineGrpcService {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&input_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid input_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid input_json: {e}")))?
         };
         let context: serde_json::Value = if context_json.is_empty() {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&context_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid context_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid context_json: {e}")))?
         };
 
         self.evaluate_uc
             .execute(&EvaluateInput {
+                tenant_id,
                 rule_set,
                 input,
                 context,
@@ -523,10 +537,10 @@ impl RuleEngineGrpcService {
             .await
             .map_err(|e| match e {
                 EvaluateError::RuleSetNotFound(name) => {
-                    GrpcError::NotFound(format!("rule set not found: {}", name))
+                    GrpcError::NotFound(format!("rule set not found: {name}"))
                 }
-                EvaluateError::EvaluationError(msg) => GrpcError::Internal(msg),
-                EvaluateError::Internal(msg) => GrpcError::Internal(msg),
+                // EvaluationError と Internal は同じエラーに変換するためアームを統合する
+                EvaluateError::EvaluationError(msg) | EvaluateError::Internal(msg) => GrpcError::Internal(msg),
             })
     }
 }
@@ -554,7 +568,11 @@ fn to_rule_set_data(rs: RuleSet) -> RuleSetData {
         domain: rs.domain,
         evaluation_mode: rs.evaluation_mode.as_str().to_string(),
         default_result_json: serde_json::to_vec(&rs.default_result).unwrap_or_default(),
-        rule_ids: rs.rule_ids.iter().map(|id| id.to_string()).collect(),
+        rule_ids: rs
+            .rule_ids
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect(),
         current_version: rs.current_version,
         enabled: rs.enabled,
         created_at: rs.created_at,

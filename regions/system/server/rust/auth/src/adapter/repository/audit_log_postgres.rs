@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use crate::domain::entity::audit_log::{AuditLog, AuditLogSearchParams};
 use crate::domain::repository::AuditLogRepository;
 
-/// AuditLogPostgresRepository は AuditLogRepository の PostgreSQL 実装。
+/// `AuditLogPostgresRepository` は `AuditLogRepository` の `PostgreSQL` 実装。
 pub struct AuditLogPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -14,6 +14,7 @@ pub struct AuditLogPostgresRepository {
 
 impl AuditLogPostgresRepository {
     #[allow(dead_code)]
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -21,6 +22,7 @@ impl AuditLogPostgresRepository {
         }
     }
 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -35,14 +37,14 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         let start = std::time::Instant::now();
 
         let result = sqlx::query(
-            r#"
+            r"
             INSERT INTO auth.audit_logs (
                 id, event_type, user_id, ip_address, user_agent,
                 resource, resource_id, action, result,
                 detail, trace_id, created_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            "#,
+            ",
         )
         .bind(log.id)
         .bind(&log.event_type)
@@ -123,9 +125,9 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         // ページネーション用の ORDER BY / LIMIT / OFFSET を追加する
         data_qb
             .push(" ORDER BY created_at DESC LIMIT ")
-            .push_bind(params.page_size as i64)
+            .push_bind(i64::from(params.page_size))
             .push(" OFFSET ")
-            .push_bind(offset as i64);
+            .push_bind(i64::from(offset));
 
         let start = std::time::Instant::now();
         let rows: Vec<AuditLogRow> = data_qb
@@ -135,13 +137,13 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("search", "audit_logs", start.elapsed().as_secs_f64());
         }
-        let logs: Vec<AuditLog> = rows.into_iter().map(|r| r.into()).collect();
+        let logs: Vec<AuditLog> = rows.into_iter().map(std::convert::Into::into).collect();
 
         Ok((logs, total_count))
     }
 }
 
-/// AuditLogRow は DB から取得した行を表す中間構造体。
+/// `AuditLogRow` は DB から取得した行を表す中間構造体。
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct AuditLogRow {
     pub id: uuid::Uuid,

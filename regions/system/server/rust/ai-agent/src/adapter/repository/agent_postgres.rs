@@ -9,14 +9,15 @@ use sqlx::PgPool;
 use crate::domain::entity::AgentDefinition;
 use crate::domain::repository::AgentRepository;
 
-/// AgentPostgresRepository はPostgreSQLベースのエージェントリポジトリ実装
+/// `AgentPostgresRepository` `はPostgreSQLベースのエージェントリポジトリ実装`
 pub struct AgentPostgresRepository {
     /// データベースコネクションプール
     pool: Arc<PgPool>,
 }
 
 impl AgentPostgresRepository {
-    /// 新しいAgentPostgresRepositoryを生成する
+    /// `新しいAgentPostgresRepositoryを生成する`
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -33,7 +34,7 @@ impl AgentRepository for AgentPostgresRepository {
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     /// すべてのエージェント定義を取得する
@@ -44,7 +45,7 @@ impl AgentRepository for AgentPostgresRepository {
         .fetch_all(self.pool.as_ref())
         .await?;
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     /// エージェント定義をUPSERTで保存する
@@ -72,7 +73,7 @@ impl AgentRepository for AgentPostgresRepository {
     }
 }
 
-/// データベース行からAgentDefinitionへのマッピング用構造体
+/// `データベース行からAgentDefinitionへのマッピング用構造体`
 #[derive(sqlx::FromRow)]
 struct AgentRow {
     id: String,

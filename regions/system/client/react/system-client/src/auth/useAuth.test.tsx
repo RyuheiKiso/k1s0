@@ -8,6 +8,8 @@ function createMockAuthValue(overrides: Partial<AuthContextValue> = {}): AuthCon
   return {
     user: null,
     isAuthenticated: false,
+    // CRIT-003 監査対応: AuthContextValue の loading フィールドを追加（型整合性確保）
+    loading: false,
     login: vi.fn(),
     logout: vi.fn(),
     ...overrides,
@@ -57,8 +59,9 @@ describe('useAuth', () => {
   });
 
   it('AuthProvider の外で使用するとエラーになる', () => {
+    // HIGH-012 監査対応: DOCS-MED-005 でデフォルトエラーメッセージが英語に統一されたためテストを更新
     expect(() => {
       renderHook(() => useAuth());
-    }).toThrow('useAuth は AuthProvider の内部で使用する必要があります');
+    }).toThrow('useAuth must be used within an AuthProvider');
   });
 });

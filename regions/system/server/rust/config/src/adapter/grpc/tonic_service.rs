@@ -15,8 +15,8 @@ use crate::proto::k1s0::system::config::v1 as pb;
 /// JWT Claims がない場合（dev モード / 認証バイパス）のシステムテナントフォールバック UUID。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
-/// STATIC-CRITICAL-001: gRPC リクエスト extensions から tenant_id を抽出する。
-/// Claims が未設定または tenant_id が空文字の場合はシステムテナントにフォールバックする。
+/// STATIC-CRITICAL-001: gRPC リクエスト extensions から `tenant_id` を抽出する。
+/// Claims が未設定または `tenant_id` が空文字の場合はシステムテナントにフォールバックする。
 fn extract_tenant_id<B>(request: &Request<B>) -> Uuid {
     request
         .extensions()
@@ -49,6 +49,7 @@ pub struct ConfigServiceTonic {
 }
 
 impl ConfigServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<ConfigGrpcService>) -> Self {
         Self { inner }
     }
@@ -130,9 +131,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::GetConfigSchemaRequest>,
     ) -> Result<Response<pb::GetConfigSchemaResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .get_config_schema(request.into_inner())
+            .get_config_schema(&tenant_id.to_string(), request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -142,9 +145,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::UpsertConfigSchemaRequest>,
     ) -> Result<Response<pb::UpsertConfigSchemaResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .upsert_config_schema(request.into_inner())
+            .upsert_config_schema(&tenant_id.to_string(), request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -152,11 +157,13 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
 
     async fn list_config_schemas(
         &self,
-        _request: Request<pb::ListConfigSchemasRequest>,
+        request: Request<pb::ListConfigSchemasRequest>,
     ) -> Result<Response<pb::ListConfigSchemasResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .list_config_schemas()
+            .list_config_schemas(&tenant_id.to_string())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -188,7 +195,7 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
                     .as_ref()
                     .map(|(value, _)| value.clone())
                     .unwrap_or_default();
-                let old_version = previous.as_ref().map(|(_, version)| *version).unwrap_or(0);
+                let old_version = previous.as_ref().map_or(0, |(_, version)| *version);
                 let new_is_deleted = serde_json::from_slice::<serde_json::Value>(&new_value)
                     .map(|v| v.is_null())
                     .unwrap_or(false);

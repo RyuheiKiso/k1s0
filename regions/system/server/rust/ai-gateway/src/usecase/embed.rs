@@ -28,7 +28,7 @@ pub struct EmbedOutput {
 /// エンベディングユースケースのエラー
 #[derive(Debug, thiserror::Error)]
 pub enum EmbedError {
-    #[error("LLMリクエストエラー: {0}")]
+    #[error("LLM request error: {0}")]
     LlmError(String),
 }
 
@@ -40,6 +40,7 @@ pub struct EmbedUseCase {
 
 impl EmbedUseCase {
     /// 新しいエンベディングユースケースを生成する。
+    #[must_use]
     pub fn new(llm_client: Arc<LlmClient>) -> Self {
         Self { llm_client }
     }

@@ -24,6 +24,7 @@ impl Default for InMemoryWorkflowDefinitionRepository {
 }
 
 impl InMemoryWorkflowDefinitionRepository {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -32,12 +33,20 @@ impl InMemoryWorkflowDefinitionRepository {
 #[async_trait::async_trait]
 impl WorkflowDefinitionRepository for InMemoryWorkflowDefinitionRepository {
     // tenant_id はインメモリ実装では使用しないが、トレイトシグネチャに合わせて受け取る
-    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         let defs = self.definitions.read().await;
         Ok(defs.get(id).cloned())
     }
 
-    async fn find_by_name(&self, _tenant_id: &str, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         let defs = self.definitions.read().await;
         Ok(defs.values().find(|d| d.name == name).cloned())
     }
@@ -55,17 +64,26 @@ impl WorkflowDefinitionRepository for InMemoryWorkflowDefinitionRepository {
         } else {
             defs.values().cloned().collect()
         };
-        let total = results.len() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(results.len()).unwrap_or(u64::MAX);
         Ok((results, total))
     }
 
-    async fn create(&self, _tenant_id: &str, definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    async fn create(
+        &self,
+        _tenant_id: &str,
+        definition: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         let mut defs = self.definitions.write().await;
         defs.insert(definition.id.clone(), definition.clone());
         Ok(())
     }
 
-    async fn update(&self, _tenant_id: &str, definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    async fn update(
+        &self,
+        _tenant_id: &str,
+        definition: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         let mut defs = self.definitions.write().await;
         defs.insert(definition.id.clone(), definition.clone());
         Ok(())
@@ -90,6 +108,7 @@ impl Default for InMemoryWorkflowInstanceRepository {
 }
 
 impl InMemoryWorkflowInstanceRepository {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -98,7 +117,11 @@ impl InMemoryWorkflowInstanceRepository {
 #[async_trait::async_trait]
 impl WorkflowInstanceRepository for InMemoryWorkflowInstanceRepository {
     // tenant_id はインメモリ実装では使用しないが、トレイトシグネチャに合わせて受け取る
-    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowInstance>> {
         let instances = self.instances.read().await;
         Ok(instances.get(id).cloned())
     }
@@ -124,7 +147,8 @@ impl WorkflowInstanceRepository for InMemoryWorkflowInstanceRepository {
             })
             .cloned()
             .collect();
-        let total = results.len() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(results.len()).unwrap_or(u64::MAX);
         Ok((results, total))
     }
 
@@ -154,6 +178,7 @@ impl Default for InMemoryWorkflowTaskRepository {
 }
 
 impl InMemoryWorkflowTaskRepository {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -190,7 +215,8 @@ impl WorkflowTaskRepository for InMemoryWorkflowTaskRepository {
             })
             .cloned()
             .collect();
-        let total = results.len() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(results.len()).unwrap_or(u64::MAX);
         Ok((results, total))
     }
 

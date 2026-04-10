@@ -10,10 +10,13 @@ use crate::usecase::set_secret::{SetSecretInput, SetSecretUseCase};
 
 // --- gRPC Request/Response Types (手動定義) ---
 
+/// MED-011 対応: `tenant_id` を gRPC 層から use case 層（アクセスログ記録）へ伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct GetSecretRequest {
     pub path: String,
     pub version: Option<i64>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,10 +28,13 @@ pub struct GetSecretResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct SetSecretRequest {
     pub path: String,
     pub data: HashMap<String, String>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,10 +44,13 @@ pub struct SetSecretResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct RotateSecretRequest {
     pub path: String,
     pub data: HashMap<String, String>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,10 +60,13 @@ pub struct RotateSecretResponse {
     pub rotated: bool,
 }
 
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct DeleteSecretRequest {
     pub path: String,
     pub versions: Vec<i64>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,9 +82,12 @@ pub struct ListSecretsResponse {
     pub keys: Vec<String>,
 }
 
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct GetSecretMetadataRequest {
     pub path: String,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -128,8 +143,35 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// --- Key Path バリデーション ---
+
+/// ADR-0109 対応: `key_path` がリクエスト元テナントのパスプレフィックスで始まることを検証する。
+/// `tenant_id` が Some `で空でない場合、key_path` は必ず "{`tenant_id`}/" で始まらなければならない。
+/// これにより RLS の代替として vault-db のテナント境界を application 層で強制する。
+// Option<&str> の方が &Option<String> よりも慣用的（Clippy: ref_option）
+fn validate_key_path_for_tenant(path: &str, tenant_id: Option<&str>) -> Result<(), GrpcError> {
+    if let Some(tid) = tenant_id {
+        if !tid.is_empty() {
+            let expected_prefix = format!("{tid}/");
+            if !path.starts_with(&expected_prefix) {
+                tracing::error!(
+                    key_path = %path,
+                    tenant_id = %tid,
+                    "key_path がテナントプレフィックスで始まっていません（ADR-0109 テナント分離違反）"
+                );
+                return Err(GrpcError::PermissionDenied(format!(
+                    "key_path '{path}' はテナント '{tid}' のパスプレフィックス '{expected_prefix}' で始まる必要があります"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 // --- VaultGrpcService ---
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct VaultGrpcService {
     get_secret_uc: Arc<GetSecretUseCase>,
     set_secret_uc: Arc<SetSecretUseCase>,
@@ -140,6 +182,7 @@ pub struct VaultGrpcService {
 }
 
 impl VaultGrpcService {
+    #[must_use]
     pub fn new(
         get_secret_uc: Arc<GetSecretUseCase>,
         set_secret_uc: Arc<SetSecretUseCase>,
@@ -162,9 +205,13 @@ impl VaultGrpcService {
         if req.path.trim().is_empty() {
             return Err(GrpcError::InvalidArgument("path is required".to_string()));
         }
+        // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
+        // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
         let input = GetSecretInput {
             path: req.path.clone(),
             version: req.version,
+            tenant_id: req.tenant_id.clone(),
         };
 
         match self.get_secret_uc.execute(&input).await {
@@ -189,9 +236,13 @@ impl VaultGrpcService {
     }
 
     pub async fn set_secret(&self, req: SetSecretRequest) -> Result<SetSecretResponse, GrpcError> {
+        // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         let input = SetSecretInput {
             path: req.path,
             data: req.data,
+            // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
+            tenant_id: req.tenant_id,
         };
 
         match self.set_secret_uc.execute(&input).await {
@@ -208,11 +259,15 @@ impl VaultGrpcService {
         &self,
         req: RotateSecretRequest,
     ) -> Result<RotateSecretResponse, GrpcError> {
+        // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         let output = self
             .rotate_secret_uc
             .execute(&RotateSecretInput {
                 path: req.path,
                 data: req.data,
+                // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -231,9 +286,13 @@ impl VaultGrpcService {
         &self,
         req: DeleteSecretRequest,
     ) -> Result<DeleteSecretResponse, GrpcError> {
+        // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         let input = DeleteSecretInput {
             path: req.path,
             versions: req.versions,
+            // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
+            tenant_id: req.tenant_id,
         };
 
         match self.delete_secret_uc.execute(&input).await {
@@ -257,22 +316,27 @@ impl VaultGrpcService {
         &self,
         req: GetSecretMetadataRequest,
     ) -> Result<GetSecretMetadataResponse, GrpcError> {
+        // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
+        // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
         let secret = self
             .get_secret_uc
             .execute(&GetSecretInput {
                 path: req.path.clone(),
                 version: None,
+                tenant_id: req.tenant_id.clone(),
             })
             .await
             .map_err(|e| match e {
                 GetSecretError::NotFound(path) => GrpcError::NotFound(path),
-                _ => GrpcError::Internal(e.to_string()),
+                GetSecretError::Internal(_) => GrpcError::Internal(e.to_string()),
             })?;
 
         Ok(GetSecretMetadataResponse {
             path: secret.path,
             current_version: secret.current_version,
-            version_count: secret.versions.len() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version_count: i32::try_from(secret.versions.len()).unwrap_or(i32::MAX),
             created_at: secret.created_at,
             updated_at: secret.updated_at,
         })
@@ -380,8 +444,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_secret_success() {
         let mut mock_store = MockSecretStore::new();
+        // ADR-0109: key_path は "{tenant_id}/{remaining}" の形式である必要がある
         let data = HashMap::from([("password".to_string(), "s3cret".to_string())]);
-        let secret = Secret::new("app/db".to_string(), data);
+        let secret = Secret::new("test-tenant/app/db".to_string(), data);
 
         mock_store
             .expect_get()
@@ -390,15 +455,35 @@ mod tests {
         let svc = make_service(mock_store, default_audit());
         let resp = svc
             .get_secret(GetSecretRequest {
-                path: "app/db".to_string(),
+                path: "test-tenant/app/db".to_string(),
                 version: None,
+                tenant_id: Some("test-tenant".to_string()),
             })
             .await
             .unwrap();
 
-        assert_eq!(resp.path, "app/db");
+        assert_eq!(resp.path, "test-tenant/app/db");
         assert_eq!(resp.version, 1);
         assert_eq!(resp.data["password"], "s3cret");
+    }
+
+    #[tokio::test]
+    async fn test_get_secret_invalid_tenant_prefix() {
+        // ADR-0109: tenant_id と key_path のプレフィックスが一致しない場合は PermissionDenied を返す
+        let mock_store = MockSecretStore::new();
+        let svc = make_service(mock_store, default_audit());
+        let result = svc
+            .get_secret(GetSecretRequest {
+                path: "other-tenant/app/db".to_string(),
+                version: None,
+                tenant_id: Some("test-tenant".to_string()),
+            })
+            .await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GrpcError::PermissionDenied(_) => {}
+            e => unreachable!("unexpected error: {:?}", e),
+        }
     }
 
     #[tokio::test]
@@ -413,6 +498,7 @@ mod tests {
             .get_secret(GetSecretRequest {
                 path: "nonexistent".to_string(),
                 version: None,
+                tenant_id: None,
             })
             .await;
 
@@ -427,9 +513,10 @@ mod tests {
     async fn test_set_secret_success() {
         let mut mock_store = MockSecretStore::new();
         mock_store.expect_set().returning(|_, _| Ok(2));
+        // ADR-0109: key_path は "{tenant_id}/{remaining}" の形式である必要がある
         mock_store
             .expect_get()
-            .withf(|path, version| path == "app/db" && *version == Some(2))
+            .withf(|path, version| path == "test-tenant/app/db" && *version == Some(2))
             .returning(|path, _| {
                 Ok(Secret::new(
                     path.to_string(),
@@ -444,13 +531,14 @@ mod tests {
         let svc = make_service(mock_store, default_audit());
         let resp = svc
             .set_secret(SetSecretRequest {
-                path: "app/db".to_string(),
+                path: "test-tenant/app/db".to_string(),
                 data: HashMap::from([("password".to_string(), "new".to_string())]),
+                tenant_id: Some("test-tenant".to_string()),
             })
             .await
             .unwrap();
 
-        assert_eq!(resp.path, "app/db");
+        assert_eq!(resp.path, "test-tenant/app/db");
         assert_eq!(resp.version, 2);
     }
 
@@ -460,10 +548,12 @@ mod tests {
         mock_store.expect_delete().returning(|_, _| Ok(()));
 
         let svc = make_service(mock_store, default_audit());
+        // ADR-0109: key_path は "{tenant_id}/{remaining}" の形式である必要がある
         let result = svc
             .delete_secret(DeleteSecretRequest {
-                path: "app/db".to_string(),
+                path: "test-tenant/app/db".to_string(),
                 versions: vec![1],
+                tenant_id: Some("test-tenant".to_string()),
             })
             .await;
 
@@ -482,6 +572,7 @@ mod tests {
             .delete_secret(DeleteSecretRequest {
                 path: "nonexistent".to_string(),
                 versions: vec![],
+                tenant_id: None,
             })
             .await;
 

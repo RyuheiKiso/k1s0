@@ -17,7 +17,8 @@ pub struct GrpcAuthLayer {
 }
 
 impl GrpcAuthLayer {
-    /// 新しいgRPC認証レイヤーを生成する。
+    /// `新しいgRPC認証レイヤーを生成する`。
+    #[must_use]
     pub fn new(auth_state: Option<AuthState>) -> Self {
         Self { auth_state }
     }
@@ -63,24 +64,20 @@ where
 
         Box::pin(async move {
             if let Some(auth_state) = auth_state {
-                let token = match extract_bearer_token(&req) {
-                    Some(token) => token,
-                    None => {
-                        return Ok(unauthenticated_response(
-                            "SYS_AUTH_MISSING_TOKEN",
-                            "Authorization metadata with Bearer token is required",
-                        ));
-                    }
+                // HIGH-001 監査対応: let...elseパターンに変換
+                let Some(token) = extract_bearer_token(&req) else {
+                    return Ok(unauthenticated_response(
+                        "SYS_AUTH_MISSING_TOKEN",
+                        "Authorization metadata with Bearer token is required",
+                    ));
                 };
 
-                let claims = match auth_state.verifier.verify_token(&token).await {
-                    Ok(claims) => claims,
-                    Err(_) => {
-                        return Ok(unauthenticated_response(
-                            "SYS_AUTH_TOKEN_INVALID",
-                            "Token validation failed",
-                        ));
-                    }
+                // HIGH-001 監査対応: let...elseパターンに変換
+                let Ok(claims) = auth_state.verifier.verify_token(&token).await else {
+                    return Ok(unauthenticated_response(
+                        "SYS_AUTH_TOKEN_INVALID",
+                        "Token validation failed",
+                    ));
                 };
 
                 req.extensions_mut().insert(claims);

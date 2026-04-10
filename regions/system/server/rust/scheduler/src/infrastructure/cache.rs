@@ -1,5 +1,5 @@
-/// JobCache はスケジューラジョブのインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きでジョブをキャッシュする。
+/// `JobCache` はスケジューラジョブのインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きでジョブをキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,11 +13,12 @@ pub struct JobCache {
 }
 
 impl JobCache {
-    /// 新しい JobCache を作成する。
+    /// 新しい `JobCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -26,7 +27,8 @@ impl JobCache {
         Self { inner }
     }
 
-    /// デフォルト設定 (max 1000, TTL 120秒) で JobCache を作成する。
+    /// デフォルト設定 (max 1000, TTL 120秒) で `JobCache` を作成する。
+    #[must_use]
     pub fn default_config() -> Self {
         Self::new(1000, 120)
     }
@@ -42,7 +44,7 @@ impl JobCache {
     /// キーはジョブの ID から自動生成する。
     #[allow(dead_code)]
     pub async fn insert(&self, job: Arc<SchedulerJob>) {
-        let key = job.id.to_string();
+        let key = job.id.clone();
         self.inner.insert(key, job).await;
     }
 
@@ -53,8 +55,9 @@ impl JobCache {
     }
 
     /// すべてのキャッシュエントリを削除する。
+    // async は不要（.await 呼び出しがないため同期関数に変換する）
     #[allow(dead_code)]
-    pub async fn invalidate_all(&self) {
+    pub fn invalidate_all(&self) {
         self.inner.invalidate_all();
     }
 }
@@ -142,7 +145,8 @@ mod tests {
         cache.insert(job1).await;
         cache.insert(job2).await;
 
-        cache.invalidate_all().await;
+        // invalidate_all は同期関数のため .await 不要
+        cache.invalidate_all();
 
         assert!(cache.get(&id1).await.is_none());
         assert!(cache.get(&id2).await.is_none());
@@ -152,6 +156,7 @@ mod tests {
     async fn test_insert_overwrites_existing_job() {
         let cache = JobCache::new(100, 60);
 
+        // テナント分離対応: tenant_id フィールドをテスト用固定値で初期化する
         let job_v1 = Arc::new(SchedulerJob {
             id: format!("job_{}", uuid::Uuid::new_v4().simple()),
             name: "overwrite-job".to_string(),
@@ -166,8 +171,10 @@ mod tests {
             last_run_at: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            tenant_id: "test-tenant".to_string(),
         });
 
+        // テナント分離対応: tenant_id フィールドをテスト用固定値で初期化する
         let job_v2 = Arc::new(SchedulerJob {
             id: job_v1.id.clone(),
             name: "overwrite-job".to_string(),
@@ -182,6 +189,7 @@ mod tests {
             last_run_at: None,
             created_at: job_v1.created_at,
             updated_at: Utc::now(),
+            tenant_id: "test-tenant".to_string(),
         });
 
         cache.insert(job_v1.clone()).await;

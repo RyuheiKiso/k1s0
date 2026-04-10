@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::team::Team;
 use crate::domain::repository::TeamRepository;
 
-/// GetTeamError はチーム取得に関するエラーを表す。
+/// `GetTeamError` はチーム取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetTeamError {
     #[error("team not found: {0}")]
@@ -15,7 +15,7 @@ pub enum GetTeamError {
     Internal(String),
 }
 
-/// GetTeamUseCase はチーム取得ユースケース。
+/// `GetTeamUseCase` はチーム取得ユースケース。
 pub struct GetTeamUseCase {
     team_repo: Arc<dyn TeamRepository>,
 }

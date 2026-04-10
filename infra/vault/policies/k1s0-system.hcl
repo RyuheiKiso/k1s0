@@ -12,3 +12,18 @@ path "secret/data/k1s0/system/common/*" {
 path "secret/metadata/k1s0/system/common/*" {
   capabilities = ["read", "list"]
 }
+
+# MEDIUM-INFRA-001 監査対応: システムリース更新権限を追加する
+# 長時間稼働するサービスでリース期限切れによる接続断を防止する
+path "sys/leases/renew" {
+  capabilities = ["update"]
+}
+
+# 自身のトークン情報確認と更新のための権限
+path "auth/token/lookup-self" {
+  capabilities = ["read"]
+}
+
+path "auth/token/renew-self" {
+  capabilities = ["update"]
+}

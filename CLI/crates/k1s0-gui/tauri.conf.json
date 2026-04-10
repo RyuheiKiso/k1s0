@@ -5,11 +5,11 @@
   "build": {
     "beforeBuildCommand": {
       "cwd": "ui",
-      "script": "npm run build"
+      "script": "pnpm run build"
     },
     "beforeDevCommand": {
       "cwd": "ui",
-      "script": "npm run dev"
+      "script": "pnpm run dev"
     },
     "devUrl": "http://localhost:1420",
     "frontendDist": "ui/dist"

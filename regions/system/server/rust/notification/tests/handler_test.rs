@@ -37,9 +37,14 @@ impl StubChannelRepo {
     }
 }
 
+/// MEDIUM-RUST-001 監査対応: StubChannelRepo もトレイト変更に追従する。
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         Ok(self
             .channels
             .read()
@@ -48,11 +53,12 @@ impl NotificationChannelRepository for StubChannelRepo {
             .find(|c| c.id == id)
             .cloned())
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         Ok(self.channels.read().await.clone())
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_type: Option<String>,
@@ -73,7 +79,7 @@ impl NotificationChannelRepository for StubChannelRepo {
         }
         Ok(())
     }
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut channels = self.channels.write().await;
         let before = channels.len();
         channels.retain(|c| c.id != id);
@@ -97,9 +103,10 @@ impl StubTemplateRepo {
     }
 }
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationTemplateRepository for StubTemplateRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         Ok(self
             .templates
             .read()
@@ -108,11 +115,12 @@ impl NotificationTemplateRepository for StubTemplateRepo {
             .find(|t| t.id == id)
             .cloned())
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationTemplate>> {
         Ok(self.templates.read().await.clone())
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_type: Option<String>,
@@ -132,7 +140,7 @@ impl NotificationTemplateRepository for StubTemplateRepo {
         }
         Ok(())
     }
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut templates = self.templates.write().await;
         let before = templates.len();
         templates.retain(|t| t.id != id);
@@ -156,12 +164,13 @@ impl StubLogRepo {
     }
 }
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationLogRepository for StubLogRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationLog>> {
         Ok(self.logs.read().await.iter().find(|l| l.id == id).cloned())
     }
-    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str, _tenant_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         Ok(self
             .logs
             .read()
@@ -173,6 +182,7 @@ impl NotificationLogRepository for StubLogRepo {
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_id: Option<String>,
@@ -226,6 +236,7 @@ fn build_state() -> AppState {
         delete_template_uc: Arc::new(DeleteTemplateUseCase::new(template_repo.clone())),
         metrics,
         auth_state: None,
+        db_pool: None,
     }
 }
 
@@ -242,13 +253,14 @@ async fn healthz_returns_ok() {
     assert_eq!(resp.json::<serde_json::Value>()["status"], "ok");
 }
 
-/// GET /readyz は 200 {"status":"ready"} を返す
+/// GET /readyz は 200 {"status":"healthy"} を返す（ADR-0068 対応: "ready" → "healthy" に統一済み）
 #[tokio::test]
 async fn readyz_returns_ready() {
     let server = TestServer::new(router(build_state())).unwrap();
     let resp = server.get("/readyz").await;
     resp.assert_status_ok();
-    assert_eq!(resp.json::<serde_json::Value>()["status"], "ready");
+    // ADR-0068 対応: status は "ready" ではなく "healthy" に統一されている
+    assert_eq!(resp.json::<serde_json::Value>()["status"], "healthy");
 }
 
 /// GET /api/v1/channels は空リストを返す（認証なしモード）

@@ -73,11 +73,17 @@ impl TestServiceRepository {
 
 #[async_trait::async_trait]
 impl ServiceRepository for TestServiceRepository {
-    async fn list(&self, _filters: ServiceListFilters) -> anyhow::Result<Vec<Service>> {
+    /// CRIT-004 監査対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn list(
+        &self,
+        _tenant_id: &str,
+        _filters: ServiceListFilters,
+    ) -> anyhow::Result<Vec<Service>> {
         Ok(self.services.read().await.clone())
     }
 
-    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Service>> {
+    /// CRIT-004 監査対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn find_by_id(&self, _tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Service>> {
         Ok(self
             .services
             .read()
@@ -87,12 +93,14 @@ impl ServiceRepository for TestServiceRepository {
             .cloned())
     }
 
-    async fn create(&self, service: &Service) -> anyhow::Result<Service> {
+    /// CRIT-004 監査対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn create(&self, _tenant_id: &str, service: &Service) -> anyhow::Result<Service> {
         self.services.write().await.push(service.clone());
         Ok(service.clone())
     }
 
-    async fn update(&self, service: &Service) -> anyhow::Result<Service> {
+    /// CRIT-004 監査対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn update(&self, _tenant_id: &str, service: &Service) -> anyhow::Result<Service> {
         let mut services = self.services.write().await;
         if let Some(existing) = services.iter_mut().find(|s| s.id == service.id) {
             *existing = service.clone();
@@ -102,14 +110,17 @@ impl ServiceRepository for TestServiceRepository {
         }
     }
 
-    async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
+    /// CRIT-004 監査対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn delete(&self, _tenant_id: &str, id: Uuid) -> anyhow::Result<()> {
         let mut services = self.services.write().await;
         services.retain(|s| s.id != id);
         Ok(())
     }
 
+    /// CRIT-004 監査対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
     async fn search(
         &self,
+        _tenant_id: &str,
         query: Option<String>,
         _tags: Option<Vec<String>>,
         _tier: Option<ServiceTier>,

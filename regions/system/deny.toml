@@ -5,19 +5,51 @@
 # Windows 環境ではシンボリックリンクの扱いが困難なため、ルートのファイルをコピーして配置する。
 # 内容はルートの deny.toml と同一であり、変更時は両方を更新すること。
 
+# LOW-010 対応: 未メンテクレートの記録
+# 以下のクレートは更新が停止しているが、移行コストを考慮して現時点では維持する。
+# 移行先が安定したタイミングで順次更新すること。
+#
+# proc-macro-error 1.0.4:
+#   未メンテ（最終更新 2021年）。proc-macro-error2 への移行を推奨。
+#   影響: derive マクロ生成コード。本番動作への直接影響なし。
+#
+# rustls-pemfile 2.2.0:
+#   未メンテ。rustls-pemfile 3.x への移行を推奨。
+#   影響: TLS 証明書/鍵のパース処理。API 互換性確認後に移行する。
+
 [advisories]
 # 既知の脆弱性アドバイザリのうち、現時点で修正版が存在しないものを許可リストに登録する
 # 各エントリには影響範囲・修正方針・追跡 URL を記載すること
 ignore = [
-    # MED-1 監査対応: RUSTSEC-2023-0071 は rsa >= 0.9.6 で修正済み。
-    # Cargo.lock 確認結果: 現在 rsa = 0.9.10 が使用されており本脆弱性は解消されている。
-    # このエントリは解消済みのため削除した（2026-03-29）。
+    # HIGH-018対応: RUSTSEC-2023-0071 rsa クレートの Marvin Attack（タイミング攻撃）
+    # 公式アドバイザリは「修正版なし（No fixed upgrade is available）」であり、
+    # rsa >= 0.9.6 で修正済みという記述は誤りであったため修正する。
+    # リスク: TLS 等の RSA 復号を行う箇所でのタイミングサイドチャネル（CWE-208）
+    # 対応方針: rsa クレートの使用箇所を最小化し、本番環境では RSA 復号を使用しない設計を維持する
+    # 参照: https://rustsec.org/advisories/RUSTSEC-2023-0071
+    # 次回レビュー日: 2026-07-10（四半期レビューで修正版リリースを確認すること）
+    { id = "RUSTSEC-2023-0071", reason = "公式修正版なし。RSA復号は使用しない設計で影響を限定する" },
 
     # RUSTSEC-2025-0111: tokio-tar (testcontainers 経由、テスト専用依存)
     # テスト実行時のみ利用されるため本番環境への影響はない
-    # testcontainers のバージョンアップで解消予定
+    # LOW-004 監査対応: 解消目標日を明記する
+    # 解消目標: 2026-06-30（四半期レビューで再評価、testcontainers アップデートで解消予定）
     # 追跡: https://rustsec.org/advisories/RUSTSEC-2025-0111.html
     "RUSTSEC-2025-0111",
+
+    # HIGH-020 監査対応: RUSTSEC-2026-0002 lru 0.12.x の Stacked Borrows 違反（未定義動作）
+    # 現時点で修正版が存在しない（lru クレートのメンテナ対応待ち）
+    # 使用箇所: rule-engine-server のルールキャッシュ（正規表現コンパイル結果のキャッシュ）のみ
+    # リスク: Miri/Stacked Borrows 検証の違反であり、実際の安全性バグとは異なる可能性が高い
+    # 代替クレート評価状況: quick_cache（github.com/arthurprs/quick-cache）および moka（github.com/moka-rs/moka）を候補として検討中
+    #   - quick_cache: LRU 互換 API があり移行コストが低い。Stacked Borrows 問題なし
+    #   - moka: 高機能（TTL/TLI サポート）だが API が異なり移行コストが高め
+    #   - 次回評価日: 2026-07-10（四半期レビューで移行可否を判断すること）
+    # 解消目標: 2026-09-30 または修正版リリース時
+    { id = "RUSTSEC-2026-0002", reason = "修正版なし。rule-engine のキャッシュのみで使用。代替クレート評価中" },
+
+    # LOW-008 監査対応: RUSTSEC-2026-0049 を削除する
+    # rustls-webpki 0.103.10+ での修正を適用済みのため ignore エントリは不要となった
 ]
 
 [licenses]

@@ -6,8 +6,6 @@ package usecase
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"log/slog"
 	"net/url"
 	"time"
@@ -16,6 +14,7 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	// MED-013 監査対応: generateRandomHex を util.GenerateRandomHex に移行して重複実装を解消する
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
@@ -38,6 +37,10 @@ type AuthOAuthClient interface {
 
 	// ExtractClaims は JWKS 署名検証済みの ID トークンから subject と realm roles を返す。
 	ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error)
+
+	// ExtractFullClaims は JWKS 署名検証済みの ID トークンから全クレームを返す。
+	// MEDIUM-GO-001 監査対応: tenant_id を含む全クレームを取得してテナント分離を実現する。
+	ExtractFullClaims(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error)
 
 	// LogoutURL は IdP のエンドセッションエンドポイント URL を返す。
 	LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
@@ -110,8 +113,9 @@ type LogoutInput struct {
 
 // LogoutOutput は Logout ユースケースの出力。
 type LogoutOutput struct {
-	// IdPLogoutURL は IdP のエンドセッション URL。空文字の場合は IdP ログアウト不要。
-	IdPLogoutURL string
+	// IDPLogoutURL は IdP のエンドセッション URL。空文字の場合は IdP ログアウト不要。
+	// LOW-005 監査対応: Go 命名規約（acronym は全大文字）に準拠して IdPLogoutURL → IDPLogoutURL に修正。
+	IDPLogoutURL string
 	// FallbackURI は IdP ログアウト URL が構築できなかった場合のフォールバック URI。
 	FallbackURI string
 }
@@ -192,7 +196,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 	}
 
 	// CSRF 攻撃防止のためのランダム state を生成する
-	state, err := generateRandomHex(32)
+	state, err := util.GenerateRandomHex(32)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_STATE_ERROR", Err: err}
 	}
@@ -295,29 +299,33 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_TOKEN_EXCHANGE_FAILED", Err: err}
 	}
 
-	// JWKS 署名検証付きで ID トークンから subject と realm roles を取得する
-	subject, roles, err := uc.oauthClient.ExtractClaims(ctx, tokenResp.IDToken)
+	// MEDIUM-GO-001 監査対応: JWKS 署名検証付きで ID トークンから全クレームを取得する。
+	// tenant_id クレームを含む全クレームを一括取得し、セッションに格納してテナント分離を実現する。
+	idTokenClaims, err := uc.oauthClient.ExtractFullClaims(ctx, tokenResp.IDToken)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_ID_TOKEN_INVALID", Err: err}
 	}
 
 	// セッションに紐づく CSRF トークンを生成する
-	csrfToken, err := generateRandomHex(32)
+	csrfToken, err := util.GenerateRandomHex(32)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
 	}
 
 	// セッションデータを構築してストアに保存する
 	now := time.Now()
-	sessData := &session.SessionData{
+	sessData := &session.Data{
 		AccessToken:        tokenResp.AccessToken,
 		RefreshToken:       tokenResp.RefreshToken,
 		IDToken:            tokenResp.IDToken,
 		ExpiresAt:          now.Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
 		CSRFToken:          csrfToken,
 		CSRFTokenCreatedAt: now.Unix(), // H-12 監査対応: CSRF トークンの TTL 検証用に生成時刻を記録する
-		Subject:            subject,
-		Roles:              roles,
+		Subject:            idTokenClaims.Subject,
+		Roles:              idTokenClaims.Roles,
+		// MEDIUM-GO-001 監査対応: tenant_id クレームをセッションに格納する。
+		// プロキシハンドラーが X-Tenant-ID ヘッダーとして上流に転送し、テナント分離を実現する。
+		TenantID:           idTokenClaims.TenantID,
 	}
 	// M-17 監査対応: セッションの絶対有効期限を設定する。
 	// スライディングウィンドウで TTL が延長されても、この期限を超えたセッションは無効化される。
@@ -388,7 +396,7 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 	if sess != nil && sess.IDToken != "" {
 		logoutURL, err := uc.oauthClient.LogoutURL(sess.IDToken, input.PostLogoutURI)
 		if err == nil {
-			output.IdPLogoutURL = logoutURL
+			output.IDPLogoutURL = logoutURL
 		}
 	}
 
@@ -424,36 +432,36 @@ func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput
 	}
 
 	// H-003 監査対応: CSRF トークンの生成から csrfRefreshThreshold（25分）を超えた場合は再生成する。
-	// CSRFTokenCreatedAt == 0 の旧形式セッションは再生成をスキップする（後方互換性のため）。
+	// MED-001 監査対応: CSRFTokenCreatedAt > 0 の後方互換ガードを削除した。
+	// CSRFTokenCreatedAt = 0 の旧セッションは 1970-01-01 起算となり TTL 超過と判定され再生成される。
+	// csrf_middleware.go も同様に全セッションに対して TTL チェックを行うよう統一済み。
 	csrfToken := sess.CSRFToken
-	if sess.CSRFTokenCreatedAt > 0 {
-		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
-		if csrfAge > csrfRefreshThreshold {
-			// 新しい CSRF トークンを生成してセッションを更新する
-			newCSRFToken, err := generateRandomHex(32)
-			if err != nil {
-				return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
-			}
-			sess.CSRFToken = newCSRFToken
-			sess.CSRFTokenCreatedAt = time.Now().Unix()
-			// セッションストアにトークン更新を反映する（TTL はセッション TTL のデフォルト値を維持する）
-			// TTL は SessionCheckInput に含まれないため 0 を渡すと一部ストアで問題が起きる可能性があるため
-			// Update は TTL を受け取るが、ここでは残存 TTL を再設定するため sessionTTL 相当のデフォルト値を使用する。
-			// セッション自体の有効期間は SessionMiddleware の Touch で管理されるため、
-			// ここでは実際のアクセストークン有効期限（ExpiresAt）までを TTL として渡す。
-			remainingTTL := time.Until(time.Unix(sess.ExpiresAt, 0))
-			if remainingTTL <= 0 {
-				remainingTTL = 30 * time.Minute
-			}
-			if updateErr := uc.sessionStore.Update(ctx, input.SessionID, sess, remainingTTL); updateErr != nil {
-				// セッション更新失敗は警告ログを出力して処理を続行する（旧トークンを返す）
-				slog.WarnContext(ctx, "CSRF トークン再生成後のセッション更新に失敗しました（旧トークンを返します）",
-					"error", updateErr,
-				)
-				csrfToken = sess.CSRFToken
-			} else {
-				csrfToken = newCSRFToken
-			}
+	csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
+	if csrfAge > csrfRefreshThreshold {
+		// 新しい CSRF トークンを生成してセッションを更新する
+		newCSRFToken, err := util.GenerateRandomHex(32)
+		if err != nil {
+			return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
+		}
+		sess.CSRFToken = newCSRFToken
+		sess.CSRFTokenCreatedAt = time.Now().Unix()
+		// セッションストアにトークン更新を反映する（TTL はセッション TTL のデフォルト値を維持する）
+		// TTL は SessionCheckInput に含まれないため 0 を渡すと一部ストアで問題が起きる可能性があるため
+		// Update は TTL を受け取るが、ここでは残存 TTL を再設定するため sessionTTL 相当のデフォルト値を使用する。
+		// セッション自体の有効期間は SessionMiddleware の Touch で管理されるため、
+		// ここでは実際のアクセストークン有効期限（ExpiresAt）までを TTL として渡す。
+		remainingTTL := time.Until(time.Unix(sess.ExpiresAt, 0))
+		if remainingTTL <= 0 {
+			remainingTTL = 30 * time.Minute
+		}
+		if updateErr := uc.sessionStore.Update(ctx, input.SessionID, sess, remainingTTL); updateErr != nil {
+			// セッション更新失敗は警告ログを出力して処理を続行する（旧トークンを返す）
+			slog.WarnContext(ctx, "CSRF トークン再生成後のセッション更新に失敗しました（旧トークンを返します）",
+				"error", updateErr,
+			)
+			csrfToken = sess.CSRFToken
+		} else {
+			csrfToken = newCSRFToken
 		}
 	}
 
@@ -535,15 +543,6 @@ func (e *AuthUseCaseError) Error() string {
 // Unwrap は元のエラーを返す（errors.Is/As で辿れるようにする）。
 func (e *AuthUseCaseError) Unwrap() error {
 	return e.Err
-}
-
-// generateRandomHex はバイト長 n のランダムな hex エンコード文字列を生成する。
-func generateRandomHex(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
 
 // isAllowedRedirectScheme はモバイルリダイレクト先 URL のスキームを検証する。

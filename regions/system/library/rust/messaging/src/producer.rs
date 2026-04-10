@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::error::MessagingError;
 use crate::event::EventEnvelope;
 
-/// EventProducer は Kafka イベントの発行インターフェース。
+/// `EventProducer` は Kafka イベントの発行インターフェース。
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 #[async_trait]
 pub trait EventProducer: Send + Sync {
@@ -14,7 +14,7 @@ pub trait EventProducer: Send + Sync {
     async fn publish_batch(&self, envelopes: Vec<EventEnvelope>) -> Result<(), MessagingError>;
 }
 
-/// NoOpEventProducer はテスト・スタブ用の何もしないプロデューサー実装。
+/// `NoOpEventProducer` はテスト・スタブ用の何もしないプロデューサー実装。
 pub struct NoOpEventProducer;
 
 /// InMemoryEventProducer はテスト用のインメモリプロデューサー実装。

@@ -4,7 +4,7 @@ use crate::domain::entity::{Algorithm, RateLimitDecision};
 use crate::domain::repository::{RateLimitRepository, RateLimitStateStore};
 use crate::domain::service::RateLimitDomainService;
 
-/// CheckRateLimitError はレートリミットチェックに関するエラー。
+/// `CheckRateLimitError` はレートリミットチェックに関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum CheckRateLimitError {
     #[error("rule not found: {0}")]
@@ -22,7 +22,7 @@ pub enum CheckRateLimitError {
     Internal(String),
 }
 
-/// CheckRateLimitUseCase はレートリミットチェックユースケース。
+/// `CheckRateLimitUseCase` はレートリミットチェックユースケース。
 pub struct CheckRateLimitUseCase {
     rule_repo: Arc<dyn RateLimitRepository>,
     state_store: Arc<dyn RateLimitStateStore>,
@@ -63,7 +63,7 @@ impl CheckRateLimitUseCase {
         }
     }
 
-    /// STATIC-CRITICAL-001 監査対応: tenant_id をキーにテナントごとにレートリミット状態を分離する。
+    /// STATIC-CRITICAL-001 監査対応: `tenant_id` をキーにテナントごとにレートリミット状態を分離する。
     pub async fn execute(
         &self,
         tenant_id: &str,
@@ -108,7 +108,7 @@ impl CheckRateLimitUseCase {
 
         // Redis キー: ratelimit:{tenant_id}:{scope}:{identifier}
         // STATIC-CRITICAL-001: テナントIDプレフィックスでテナント間のレートリミット状態を分離する
-        let redis_key = format!("ratelimit:{}:{}:{}", tenant_id, scope, identifier);
+        let redis_key = format!("ratelimit:{tenant_id}:{scope}:{identifier}");
 
         // マッチするルールがある場合はそのアルゴリズムを使用、なければトークンバケット
         let algorithm = RateLimitDomainService::resolve_algorithm(matched_rule);

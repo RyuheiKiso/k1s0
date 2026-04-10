@@ -3,6 +3,47 @@
 ローカル開発環境の Docker Volume に関する運用手順を定義する。
 特に DB スキーマ変更時の対応手順を記載する（MED-06 監査対応）。
 
+## 起動コマンドの注意事項（CRIT-002 / CRIT-003 / HIGH-003 対応）
+
+### 常に `just local-up` を使用すること
+
+`docker compose up` を直接実行すると、以下の問題が発生する（外部技術監査 CRIT-002/003/HIGH-003）：
+
+| 問題 | 症状 | 原因 |
+|------|------|------|
+| CRIT-002 | config-rust が `Restarting` 状態で起動ループ | `--build` 省略で `dev-auth-bypass` 未コンパイルイメージが使用される |
+| CRIT-003 | featureflag-rust が `unhealthy` になる | `--build` 省略で migration 006（UUID→TEXT）対応前のイメージが使用される |
+| HIGH-003 | 複数サービスが DB スキーマ不在で unhealthy | `migrate-all` が実行されず DB スキーマが未初期化のまま起動する |
+
+**正しい起動方法**:
+
+```bash
+# ✅ 推奨: --build と migrate-all が自動適用される
+just local-up
+
+# ❌ 非推奨: --build が省略され古いイメージが使われる可能性がある
+docker compose up -d
+```
+
+`just local-up` の内部処理（3フェーズ）:
+1. **Phase 1**: `docker compose up --build --profile infra` でインフラ起動
+2. **Phase 1.5**: `just migrate-all` で全 DB マイグレーション実行
+3. **Phase 2**: `docker compose up --build --profile system ...` で全サービス起動
+
+`docker compose up` を直接使用する場合は、以下の全オプションを明示すること:
+
+```bash
+# 手動起動（非推奨）: 全オプションを明示する必要がある
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra --profile system up -d --build
+
+# マイグレーションも手動で実行が必要
+just migrate-all
+```
+
+---
+
 ## データベーススキーマ変更後の Volume 再作成手順（MED-06 監査対応）
 
 ### 背景

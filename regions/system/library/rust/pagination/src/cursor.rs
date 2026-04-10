@@ -23,12 +23,13 @@ pub struct CursorMeta {
 const SEPARATOR: char = '|';
 
 /// Encode a sort key and id into a base64 cursor string.
+#[must_use]
 pub fn encode_cursor(sort_key: &str, id: &str) -> String {
-    let combined = format!("{}{}{}", sort_key, SEPARATOR, id);
+    let combined = format!("{sort_key}{SEPARATOR}{id}");
     URL_SAFE_NO_PAD.encode(combined.as_bytes())
 }
 
-/// Decode a base64 cursor string into (sort_key, id).
+/// Decode a base64 cursor string into (`sort_key`, id).
 pub fn decode_cursor(cursor: &str) -> Result<(String, String), PerPageValidationError> {
     let bytes = URL_SAFE_NO_PAD
         .decode(cursor)

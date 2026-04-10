@@ -234,11 +234,98 @@ fn print_confirmation(scope: &DepsScope, output: &DepsOutputFormat) {
     println!("    出力: {output_str}");
 }
 
+/// MED-008/HIGH-008 監査対応: 非インタラクティブモード用の deps コマンド実行関数。
+/// `--scope` / `--tier` / `--output` / `--output-path` フラグで対話プロンプトをスキップして直接実行する。
+///
+/// # 使用例（CI/CD）
+///
+/// ```bash
+/// # 全サービスをターミナルに出力
+/// k1s0-cli deps --scope all --output terminal
+///
+/// # system tier を Mermaid ファイルに出力
+/// k1s0-cli deps --scope tier --tier system --output mermaid --output-path docs/diagrams/system.md
+///
+/// # --non-interactive で実行（すべてのデフォルト値を使用）
+/// k1s0-cli --non-interactive deps
+/// ```
+///
+/// # Errors
+///
+/// - `--scope tier` を指定したが `--tier` が未指定の場合にエラーを返す
+/// - `--output mermaid` または `--output both` を指定したが `--output-path` が未指定の場合にエラーを返す
+/// - グラフ生成に失敗した場合にエラーを返す
+// MED-006 監査対応: CLI 引数パーサーから所有権付きで渡されるため needless_pass_by_value を抑制する
+#[allow(clippy::needless_pass_by_value)]
+pub fn run_non_interactive(
+    scope_str: Option<String>,
+    tier: Option<String>,
+    output_str: Option<String>,
+    output_path: Option<std::path::PathBuf>,
+) -> Result<()> {
+    let scope = match scope_str.as_deref() {
+        Some("all") | None => DepsScope::All,
+        Some("tier") => {
+            let t = tier.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "--scope tier を指定する場合は --tier も必須です（例: --tier system）"
+                )
+            })?;
+            DepsScope::Tier(t)
+        }
+        Some("services") => {
+            anyhow::bail!(
+                "--scope services はサービス名の指定が必要です。非インタラクティブモードでは \
+                --scope all または --scope tier を使用してください。"
+            )
+        }
+        Some(other) => {
+            anyhow::bail!("不明なスコープ: '{other}'。'all' / 'tier' を指定してください。")
+        }
+    };
+
+    let output = match output_str.as_deref() {
+        Some("mermaid") => {
+            let path = output_path
+                .unwrap_or_else(|| std::path::PathBuf::from("docs/diagrams/dependency-map.md"));
+            DepsOutputFormat::Mermaid(path)
+        }
+        Some("both") => {
+            let path = output_path
+                .unwrap_or_else(|| std::path::PathBuf::from("docs/diagrams/dependency-map.md"));
+            DepsOutputFormat::Both(path)
+        }
+        Some("terminal") | None => DepsOutputFormat::Terminal,
+        Some(other) => {
+            anyhow::bail!(
+                "不明な出力形式: '{other}'。'terminal' / 'mermaid' / 'both' を指定してください。"
+            )
+        }
+    };
+
+    let config = DepsConfig {
+        scope,
+        output,
+        no_cache: false,
+    };
+    execute_command(&config)
+}
+
 /// 依存関係マップコマンドを実行する。
 fn execute_command(config: &DepsConfig) -> Result<()> {
     println!("\n依存関係を解析しています...");
 
     let result = execute_deps(config)?;
+
+    // CLI-003 監査対応: サービスが 0 件の場合はリポジトリルート以外から実行している可能性がある。
+    // 原因が不明なまま「0 件」と報告するのではなく、明示的なエラー案内を表示する。
+    if result.services.is_empty() {
+        eprintln!(
+            "\n警告: サービスが検出されませんでした。\n\
+             リポジトリルート（CLAUDE.md が存在するディレクトリ）から実行してください。\n\
+             または K1S0_ROOT 環境変数でリポジトリルートを明示的に指定してください。"
+        );
+    }
 
     match &config.output {
         DepsOutputFormat::Terminal => {

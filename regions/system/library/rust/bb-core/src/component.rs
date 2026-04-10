@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ComponentError;
 
-/// ComponentStatus はコンポーネントの現在の状態を表す。
+/// `ComponentStatus` はコンポーネントの現在の状態を表す。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComponentStatus {
     Uninitialized,
@@ -16,7 +16,7 @@ pub enum ComponentStatus {
 }
 
 /// Component はビルディングブロックの基本インターフェース。
-/// すべてのビルディングブロック（PubSub, StateStore 等）はこのトレイトを実装する。
+/// すべてのビルディングブロック（`PubSub`, `StateStore` 等）はこのトレイトを実装する。
 #[async_trait]
 pub trait Component: Send + Sync {
     /// コンポーネント名を返す。

@@ -135,6 +135,9 @@ pub fn run() {
     ensure_dev_server();
 
     tauri::Builder::default()
+        // MEDIUM-009 監査対応: localStorage に代わる安全なストレージとして Tauri Store を使用する。
+        // OS アプリデータディレクトリに保存されるため、WebView からの直接アクセスが不可能になる。
+        .plugin(tauri_plugin_store::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             commands::get_config,
             commands::execute_init,

@@ -13,6 +13,7 @@ pub struct MemberPostgresRepository {
 }
 
 impl MemberPostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -73,9 +74,18 @@ impl From<ProvisioningJobRow> for ProvisioningJob {
     }
 }
 
+/// CRITICAL-RUST-001 監査対応: `MemberRepository` の `PostgreSQL` 実装。
+/// migration 008 で追加した RLS ポリシーに対応する。
 #[async_trait]
 impl MemberRepository for MemberPostgresRepository {
     async fn find_by_tenant(&self, tenant_id: &Uuid) -> anyhow::Result<Vec<TenantMember>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // tenant_members の RLS ポリシーは tenant_id で照合する（migration 008 対応）。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         let rows: Vec<MemberRow> = sqlx::query_as(
             "SELECT id, tenant_id, user_id, role, joined_at \
              FROM tenant.tenant_members WHERE tenant_id = $1 ORDER BY joined_at ASC",
@@ -91,6 +101,12 @@ impl MemberRepository for MemberPostgresRepository {
         tenant_id: &Uuid,
         user_id: &Uuid,
     ) -> anyhow::Result<Option<TenantMember>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         let row: Option<MemberRow> = sqlx::query_as(
             "SELECT id, tenant_id, user_id, role, joined_at \
              FROM tenant.tenant_members WHERE tenant_id = $1 AND user_id = $2",
@@ -103,6 +119,12 @@ impl MemberRepository for MemberPostgresRepository {
     }
 
     async fn add(&self, member: &TenantMember) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(member.tenant_id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         sqlx::query(
             "INSERT INTO tenant.tenant_members (id, tenant_id, user_id, role, joined_at) \
              VALUES ($1, $2, $3, $4, $5)",
@@ -118,6 +140,12 @@ impl MemberRepository for MemberPostgresRepository {
     }
 
     async fn remove(&self, tenant_id: &Uuid, user_id: &Uuid) -> anyhow::Result<bool> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         let result =
             sqlx::query("DELETE FROM tenant.tenant_members WHERE tenant_id = $1 AND user_id = $2")
                 .bind(tenant_id)
@@ -133,6 +161,12 @@ impl MemberRepository for MemberPostgresRepository {
         user_id: &Uuid,
         role: &str,
     ) -> anyhow::Result<Option<TenantMember>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         let result = sqlx::query_as::<_, MemberRow>(
             "UPDATE tenant.tenant_members SET role = $3 WHERE tenant_id = $1 AND user_id = $2 \
              RETURNING id, tenant_id, user_id, role, joined_at",

@@ -11,7 +11,8 @@ server:
 database:
   host: "localhost"
   port: 5432
-  name: "k1s0"
+  # CRITICAL-002 対応: master-maintenance 専用 DB に変更（01-create-databases.sql と一致）
+  name: "k1s0_master_maintenance"
   schema: "master_maintenance"
   user: "k1s0"
   password: "${DB_PASSWORD}"
@@ -60,7 +61,8 @@ observability:
 database:
   host: "localhost"
   port: 5432
-  name: "k1s0_system"
+  # CRITICAL-002 対応: master-maintenance 専用 DB に変更（01-create-databases.sql と一致）
+  name: "k1s0_master_maintenance"
   schema: "master_maintenance"
   user: "app"
   password: ""

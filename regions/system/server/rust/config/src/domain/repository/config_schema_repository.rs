@@ -2,24 +2,30 @@ use async_trait::async_trait;
 
 use crate::domain::entity::config_schema::ConfigSchema;
 
-/// ConfigSchemaRepository は設定スキーマの永続化のためのリポジトリトレイト。
+/// `ConfigSchemaRepository` は設定スキーマの永続化のためのリポジトリトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ConfigSchemaRepository: Send + Sync {
-    /// service_name で設定スキーマを取得する。
+    // CRITICAL-RUST-001 監査対応: RLS テナント分離のため tenant_id を全メソッドに追加する。
+    /// `service_name` とテナントIDで設定スキーマを取得する。
     async fn find_by_service_name(
         &self,
         service_name: &str,
+        tenant_id: &str,
     ) -> anyhow::Result<Option<ConfigSchema>>;
 
-    /// namespace プレフィックスに一致するスキーマを取得する。
-    /// 指定された namespace がスキーマの namespace_prefix で始まるものを返す。
-    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>>;
+    /// namespace プレフィックスに一致するスキーマをテナントIDで絞り込んで取得する。
+    /// 指定された namespace がスキーマの `namespace_prefix` で始まるものを返す。
+    async fn find_by_namespace(
+        &self,
+        namespace: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>>;
 
-    /// 全ての設定スキーマを一覧取得する。
-    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>>;
+    /// 指定テナントの全ての設定スキーマを一覧取得する。
+    async fn list_all(&self, tenant_id: &str) -> anyhow::Result<Vec<ConfigSchema>>;
 
-    /// 設定スキーマを作成または更新する（upsert）。
+    /// `設定スキーマを作成または更新する（upsert）。schema.tenant_id` を使用する。
     async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema>;
 }
 
@@ -34,10 +40,11 @@ mod tests {
     async fn test_mock_find_by_service_name() {
         let mut mock = MockConfigSchemaRepository::new();
         mock.expect_find_by_service_name()
-            .withf(|name| name == "auth-server")
-            .returning(|_| {
+            .withf(|name, _tenant| name == "auth-server")
+            .returning(|_, _| {
                 Ok(Some(ConfigSchema {
                     id: Uuid::new_v4(),
+                    tenant_id: "test-tenant".to_string(),
                     service_name: "auth-server".to_string(),
                     namespace_prefix: "system.auth".to_string(),
                     schema_json: serde_json::json!({"categories": []}),
@@ -47,7 +54,10 @@ mod tests {
                 }))
             });
 
-        let result = mock.find_by_service_name("auth-server").await.unwrap();
+        let result = mock
+            .find_by_service_name("auth-server", "test-tenant")
+            .await
+            .unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().service_name, "auth-server");
     }
@@ -55,9 +65,13 @@ mod tests {
     #[tokio::test]
     async fn test_mock_find_by_service_name_not_found() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_find_by_service_name().returning(|_| Ok(None));
+        mock.expect_find_by_service_name()
+            .returning(|_, _| Ok(None));
 
-        let result = mock.find_by_service_name("nonexistent").await.unwrap();
+        let result = mock
+            .find_by_service_name("nonexistent", "test-tenant")
+            .await
+            .unwrap();
         assert!(result.is_none());
     }
 
@@ -68,6 +82,7 @@ mod tests {
 
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
+            tenant_id: "test-tenant".to_string(),
             service_name: "auth-server".to_string(),
             namespace_prefix: "system.auth".to_string(),
             schema_json: serde_json::json!({"categories": []}),

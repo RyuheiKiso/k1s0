@@ -49,6 +49,10 @@ async-trait = {workspace = true}
 rand = "0.8"
 # MED-12 監査対応: ランダムバイト列を URL-safe Base64 文字列にエンコードするために使用する
 base64 = "0.22"
+# HIGH-003 監査対応: Redis キー名のトークンを SHA-256 ハッシュ化してキー名からトークン値を逆算できなくする（CWE-312対応）
+sha2 = "0.10"
+# HIGH-003 監査対応: SHA-256 ハッシュバイト列を16進数文字列に変換するために使用する
+hex = "0.4"
 
 # Logging / Tracing
 tracing = {workspace = true}

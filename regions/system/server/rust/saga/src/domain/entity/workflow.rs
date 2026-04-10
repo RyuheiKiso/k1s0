@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-/// WorkflowDefinition はSagaワークフロー定義。
+/// `WorkflowDefinition` はSagaワークフロー定義。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowDefinition {
     pub name: String,
@@ -16,7 +16,7 @@ pub struct WorkflowDefinition {
     pub steps: Vec<WorkflowStep>,
 }
 
-/// WorkflowStep はワークフローの1ステップを表す。
+/// `WorkflowStep` はワークフローの1ステップを表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowStep {
     pub name: String,
@@ -47,7 +47,7 @@ fn default_total_timeout_secs() -> u64 {
     300
 }
 
-/// RetryConfig はリトライ設定を表す。
+/// `RetryConfig` はリトライ設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryConfig {
     #[serde(default = "default_max_attempts")]
@@ -88,31 +88,33 @@ impl WorkflowDefinition {
         }
         for (i, step) in self.steps.iter().enumerate() {
             if step.name.is_empty() {
-                anyhow::bail!("step {} name must not be empty", i);
+                anyhow::bail!("step {i} name must not be empty");
             }
             if step.service.is_empty() {
-                anyhow::bail!("step {} service must not be empty", i);
+                anyhow::bail!("step {i} service must not be empty");
             }
             if step.method.is_empty() {
-                anyhow::bail!("step {} method must not be empty", i);
+                anyhow::bail!("step {i} method must not be empty");
             }
         }
         Ok(())
     }
 
-    /// 指定ステップのタイムアウト期間を返す。execute_saga usecase でのタイムアウト計算に使用する。
+    /// `指定ステップのタイムアウト期間を返す。execute_saga` usecase でのタイムアウト計算に使用する。
     // H-02 監査対応: タイムアウト計算の将来実装に備えて保持する
     #[allow(dead_code)]
+    #[must_use]
     pub fn timeout_duration(&self, step_idx: usize) -> Duration {
-        self.steps
-            .get(step_idx)
-            .map(|s| Duration::from_secs(s.timeout_secs))
-            .unwrap_or_else(|| Duration::from_secs(30))
+        self.steps.get(step_idx).map_or_else(
+            || Duration::from_secs(30),
+            |s| Duration::from_secs(s.timeout_secs),
+        )
     }
 }
 
 impl RetryConfig {
     /// 指定リトライ回数のバックオフ遅延を計算する。
+    #[must_use]
     pub fn delay_for_attempt(&self, attempt: u32) -> Duration {
         let base_ms = self.initial_interval_ms;
         let delay_ms = base_ms * 2u64.pow(attempt);

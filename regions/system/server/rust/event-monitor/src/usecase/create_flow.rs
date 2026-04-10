@@ -3,8 +3,11 @@ use std::sync::Arc;
 use crate::domain::entity::flow_definition::{FlowDefinition, FlowSlo, FlowStep};
 use crate::domain::repository::FlowDefinitionRepository;
 
+/// `フロー定義作成ユースケースの入力。tenant_id` はテナント分離に使用する。
 #[derive(Debug, Clone)]
 pub struct CreateFlowInput {
+    /// テナント識別子（gRPC メタデータ "x-tenant-id" から取得）
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub domain: String,
@@ -56,7 +59,9 @@ impl CreateFlowUseCase {
             return Err(CreateFlowError::AlreadyExists(input.name.clone()));
         }
 
+        // tenant_id を伝播してテナント分離を保証する
         let flow = FlowDefinition::new(
+            input.tenant_id.clone(),
             input.name.clone(),
             input.description.clone(),
             input.domain.clone(),
@@ -89,6 +94,7 @@ mod tests {
 
         let uc = CreateFlowUseCase::new(Arc::new(mock));
         let input = CreateFlowInput {
+            tenant_id: "system".to_string(),
             name: "task_flow".to_string(),
             description: "test".to_string(),
             domain: "service.task".to_string(),
@@ -117,6 +123,7 @@ mod tests {
 
         let uc = CreateFlowUseCase::new(Arc::new(mock));
         let input = CreateFlowInput {
+            tenant_id: "system".to_string(),
             name: "existing".to_string(),
             description: "test".to_string(),
             domain: "service.task".to_string(),

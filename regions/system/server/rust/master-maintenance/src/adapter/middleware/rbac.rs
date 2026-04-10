@@ -30,13 +30,14 @@ async fn rbac_check(
     if !check_system_permission(roles, action) {
         return Err(AppError::forbidden(
             "SYS_AUTH_PERMISSION_DENIED",
-            &format!("Insufficient permissions for action: {}", action),
+            &format!("Insufficient permissions for action: {action}"),
         ));
     }
 
     Ok(next.run(req).await)
 }
 
+#[must_use]
 pub fn has_action_permission(
     roles: &[String],
     action: &str,
@@ -60,6 +61,7 @@ pub fn has_action_permission(
         .is_some_and(|domain| check_domain_permission(roles, domain, action))
 }
 
+#[must_use]
 pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     for role in roles {
         match role.as_str() {
@@ -80,6 +82,7 @@ pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     false
 }
 
+#[must_use]
 pub fn check_table_permission(roles: &[String], table: &TableDefinition, action: &str) -> bool {
     let required_roles = match action {
         "read" => &table.read_roles,
@@ -94,6 +97,7 @@ pub fn check_table_permission(roles: &[String], table: &TableDefinition, action:
             .any(|role| roles.iter().any(|r| r == role))
 }
 
+#[must_use]
 pub fn check_domain_permission(roles: &[String], domain: &str, action: &str) -> bool {
     for role in roles {
         // sys_admin は全ドメインアクセス可
@@ -115,15 +119,15 @@ pub fn check_domain_permission(roles: &[String], domain: &str, action: &str) -> 
 }
 
 fn matches_domain_admin_role(role: &str, domain: &str) -> bool {
-    role == format!("{}_admin", domain) || role == format!("biz_{}_admin", domain)
+    role == format!("{domain}_admin") || role == format!("biz_{domain}_admin")
 }
 
 fn matches_domain_write_role(role: &str, domain: &str) -> bool {
-    role == format!("{}_operator", domain) || role == format!("biz_{}_manager", domain)
+    role == format!("{domain}_operator") || role == format!("biz_{domain}_manager")
 }
 
 fn matches_domain_read_role(role: &str, domain: &str) -> bool {
-    role == format!("{}_auditor", domain) || role == format!("biz_{}_viewer", domain)
+    role == format!("{domain}_auditor") || role == format!("biz_{domain}_viewer")
 }
 
 #[cfg(test)]

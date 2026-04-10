@@ -88,6 +88,7 @@ fn default_conn_max_lifetime_secs() -> u64 {
 
 impl DatabaseConfig {
     // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
@@ -144,7 +145,7 @@ pub struct KafkaConfig {
     pub security_protocol: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_kafka_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -182,9 +183,9 @@ impl Default for ValidatorConfig {
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)
-            .map_err(|e| anyhow::anyhow!("Failed to read config file {}: {}", path, e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to read config file {path}: {e}"))?;
         let config: Self = serde_yaml::from_str(&content)
-            .map_err(|e| anyhow::anyhow!("Failed to parse config file: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse config file: {e}"))?;
         Ok(config)
     }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::app::App;
 use crate::domain::repository::AppRepository;
 
-/// ListAppsUseCase はアプリ一覧取得ユースケース。
+/// `ListAppsUseCase` はアプリ一覧取得ユースケース。
 pub struct ListAppsUseCase {
     app_repo: Arc<dyn AppRepository>,
 }
@@ -13,12 +13,14 @@ impl ListAppsUseCase {
         Self { app_repo }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         category: Option<String>,
         search: Option<String>,
     ) -> anyhow::Result<Vec<App>> {
-        self.app_repo.list(category, search).await
+        self.app_repo.list(tenant_id, category, search).await
     }
 }
 
@@ -31,7 +33,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_apps_success() {
         let mut mock = MockAppRepository::new();
-        mock.expect_list().returning(|_, _| {
+        mock.expect_list().returning(|_, _, _| {
             Ok(vec![App {
                 id: "cli".to_string(),
                 name: "k1s0 CLI".to_string(),
@@ -44,7 +46,7 @@ mod tests {
         });
 
         let uc = ListAppsUseCase::new(Arc::new(mock));
-        let result = uc.execute(None, None).await.unwrap();
+        let result = uc.execute("tenant-1", None, None).await.unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, "cli");
     }
@@ -52,11 +54,11 @@ mod tests {
     #[tokio::test]
     async fn test_list_apps_empty() {
         let mut mock = MockAppRepository::new();
-        mock.expect_list().returning(|_, _| Ok(vec![]));
+        mock.expect_list().returning(|_, _, _| Ok(vec![]));
 
         let uc = ListAppsUseCase::new(Arc::new(mock));
         let result = uc
-            .execute(Some("nonexistent".to_string()), None)
+            .execute("tenant-1", Some("nonexistent".to_string()), None)
             .await
             .unwrap();
         assert!(result.is_empty());

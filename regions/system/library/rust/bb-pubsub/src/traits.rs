@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::PubSubError;
 
-/// PubSub メッセージ。
+/// `PubSub` メッセージ。
 #[derive(Debug, Clone)]
 pub struct Message {
     pub topic: String,
@@ -19,7 +19,7 @@ pub trait MessageHandler: Send + Sync {
     async fn handle(&self, message: Message) -> Result<(), PubSubError>;
 }
 
-/// PubSub はパブリッシュ・サブスクライブ機能の抽象インターフェース。
+/// `PubSub` はパブリッシュ・サブスクライブ機能の抽象インターフェース。
 /// Component トレイトを拡張する。
 #[async_trait]
 pub trait PubSub: k1s0_bb_core::Component {

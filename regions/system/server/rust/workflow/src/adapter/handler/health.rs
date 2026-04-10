@@ -13,7 +13,7 @@ pub async fn healthz() -> impl IntoResponse {
 
 /// readiness probe: DB 接続確認を行い、サービスがリクエスト受付可能かを返す。
 /// CRITICAL-003 監査対応: Docker Compose の healthcheck および Kubernetes readinessProbe として使用する。
-/// ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
+/// ADR-0068 対応: "`ready"/"not_ready`" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
 /// DB が設定されている場合は SELECT 1 で疎通確認し、失敗時は 503 を返す。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
@@ -26,16 +26,21 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 "timestamp": timestamp
             }))
             .into_response(),
-            Err(e) => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    // ADR-0068 対応: "not_ready" から "unhealthy" に変更する
-                    "status": "unhealthy",
-                    "checks": { "database": format!("error: {}", e) },
-                    "timestamp": timestamp
-                })),
-            )
-                .into_response(),
+            Err(e) => {
+                // MED-001 対応: エラー詳細を tracing::error! でログ出力する
+                // .is_ok() パターンではエラーが無音で握り潰されるため、障害診断が困難になる
+                tracing::error!(error = %e, "readyz: DB health check failed");
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({
+                        // ADR-0068 対応: "not_ready" から "unhealthy" に変更する
+                        "status": "unhealthy",
+                        "checks": { "database": "error" },
+                        "timestamp": timestamp
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         Json(serde_json::json!({

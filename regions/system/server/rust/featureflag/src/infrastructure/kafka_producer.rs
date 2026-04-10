@@ -3,7 +3,7 @@ use rdkafka::producer::FutureProducer;
 
 use crate::infrastructure::config::KafkaConfig;
 
-/// FlagChangedEvent はフィーチャーフラグ変更時に Kafka へ発行するイベント。
+/// `FlagChangedEvent` はフィーチャーフラグ変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
 pub struct FlagChangedEvent {
     pub event_type: String,
@@ -14,7 +14,7 @@ pub struct FlagChangedEvent {
     pub timestamp: String, // ISO 8601
 }
 
-/// FlagEventPublisher はフラグ変更イベント配信のためのトレイト。
+/// `FlagEventPublisher` はフラグ変更イベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait FlagEventPublisher: Send + Sync {
@@ -33,7 +33,7 @@ pub trait FlagEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopFlagEventPublisher はイベントを発行しないスタブ実装。
+/// `NoopFlagEventPublisher` はイベントを発行しないスタブ実装。
 pub struct NoopFlagEventPublisher;
 
 #[async_trait]
@@ -54,7 +54,7 @@ impl FlagEventPublisher for NoopFlagEventPublisher {
     }
 }
 
-/// KafkaFlagProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaFlagProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaFlagProducer {
     producer: FutureProducer,
     topic: String,
@@ -62,7 +62,7 @@ pub struct KafkaFlagProducer {
 }
 
 impl KafkaFlagProducer {
-    /// 新しい KafkaFlagProducer を作成する。
+    /// 新しい `KafkaFlagProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -86,6 +86,7 @@ impl KafkaFlagProducer {
     }
 
     /// メトリクスを設定する。
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -96,6 +97,7 @@ impl KafkaFlagProducer {
 
     /// 配信先トピック名を返す。
     #[allow(dead_code)]
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
@@ -132,7 +134,7 @@ impl FlagEventPublisher for KafkaFlagProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish flag changed event: {}", err))?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish flag changed event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);
@@ -146,7 +148,7 @@ impl FlagEventPublisher for KafkaFlagProducer {
         self.producer
             .client()
             .fetch_metadata(None, std::time::Duration::from_secs(3))
-            .map_err(|e| anyhow::anyhow!("kafka metadata fetch failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("kafka metadata fetch failed: {e}"))?;
         Ok(())
     }
 

@@ -26,21 +26,27 @@ struct StubSchemaRepo;
 
 #[async_trait]
 impl ApiSchemaRepository for StubSchemaRepo {
-    async fn find_by_name(&self, _name: &str) -> anyhow::Result<Option<ApiSchema>> {
+    // テスト用スタブ: tenant_id を受け取るが実際には使用しない
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        _name: &str,
+    ) -> anyhow::Result<Option<ApiSchema>> {
         Ok(None)
     }
     async fn find_all(
         &self,
+        _tenant_id: &str,
         _schema_type: Option<String>,
         _page: u32,
         _page_size: u32,
     ) -> anyhow::Result<(Vec<ApiSchema>, u64)> {
         Ok((vec![], 0))
     }
-    async fn create(&self, _schema: &ApiSchema) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, _schema: &ApiSchema) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn update(&self, _schema: &ApiSchema) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, _schema: &ApiSchema) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -52,31 +58,38 @@ struct StubVersionRepo;
 
 #[async_trait]
 impl ApiSchemaVersionRepository for StubVersionRepo {
+    // テスト用スタブ: tenant_id を受け取るが実際には使用しない
     async fn find_by_name_and_version(
         &self,
+        _tenant_id: &str,
         _name: &str,
         _version: u32,
     ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         Ok(None)
     }
-    async fn find_latest_by_name(&self, _name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
+    async fn find_latest_by_name(
+        &self,
+        _tenant_id: &str,
+        _name: &str,
+    ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         Ok(None)
     }
     async fn find_all_by_name(
         &self,
+        _tenant_id: &str,
         _name: &str,
         _page: u32,
         _page_size: u32,
     ) -> anyhow::Result<(Vec<ApiSchemaVersion>, u64)> {
         Ok((vec![], 0))
     }
-    async fn create(&self, _version: &ApiSchemaVersion) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, _version: &ApiSchemaVersion) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _name: &str, _version: u32) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, _name: &str, _version: u32) -> anyhow::Result<bool> {
         Ok(false)
     }
-    async fn count_by_name(&self, _name: &str) -> anyhow::Result<u64> {
+    async fn count_by_name(&self, _tenant_id: &str, _name: &str) -> anyhow::Result<u64> {
         Ok(0)
     }
 }
@@ -123,6 +136,8 @@ fn make_test_app() -> axum::Router {
         )),
         metrics,
         auth_state: None,
+        // テスト環境ではDB接続プールは不要
+        db_pool: None,
     };
 
     router(state)
@@ -207,6 +222,8 @@ async fn test_unauthorized_without_token() {
         )),
         metrics,
         auth_state: Some(auth_state),
+        // テスト環境ではDB接続プールは不要
+        db_pool: None,
     };
 
     let app = router(state);

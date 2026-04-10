@@ -46,7 +46,12 @@ impl StubSchemaRepository {
 
 #[async_trait]
 impl ApiSchemaRepository for StubSchemaRepository {
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<ApiSchema>> {
+    // テナントスコープで検索するスタブ実装（テスト用のためテナント分離は省略）
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<ApiSchema>> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -56,6 +61,7 @@ impl ApiSchemaRepository for StubSchemaRepository {
 
     async fn find_all(
         &self,
+        _tenant_id: &str,
         schema_type: Option<String>,
         page: u32,
         page_size: u32,
@@ -86,7 +92,7 @@ impl ApiSchemaRepository for StubSchemaRepository {
         Ok((page_items, total))
     }
 
-    async fn create(&self, schema: &ApiSchema) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, schema: &ApiSchema) -> anyhow::Result<()> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -94,7 +100,7 @@ impl ApiSchemaRepository for StubSchemaRepository {
         Ok(())
     }
 
-    async fn update(&self, schema: &ApiSchema) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, schema: &ApiSchema) -> anyhow::Result<()> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -140,8 +146,10 @@ impl StubVersionRepository {
 
 #[async_trait]
 impl ApiSchemaVersionRepository for StubVersionRepository {
+    // テナントスコープで検索するスタブ実装（テスト用のためテナント分離は省略）
     async fn find_by_name_and_version(
         &self,
+        _tenant_id: &str,
         name: &str,
         version: u32,
     ) -> anyhow::Result<Option<ApiSchemaVersion>> {
@@ -155,7 +163,11 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
             .cloned())
     }
 
-    async fn find_latest_by_name(&self, name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
+    async fn find_latest_by_name(
+        &self,
+        _tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -169,6 +181,7 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
 
     async fn find_all_by_name(
         &self,
+        _tenant_id: &str,
         name: &str,
         page: u32,
         page_size: u32,
@@ -193,7 +206,7 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
         Ok((page_items, total))
     }
 
-    async fn create(&self, version: &ApiSchemaVersion) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, version: &ApiSchemaVersion) -> anyhow::Result<()> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -201,7 +214,7 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
         Ok(())
     }
 
-    async fn delete(&self, name: &str, version: u32) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, name: &str, version: u32) -> anyhow::Result<bool> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -211,7 +224,7 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
         Ok(versions.len() < len_before)
     }
 
-    async fn count_by_name(&self, name: &str) -> anyhow::Result<u64> {
+    async fn count_by_name(&self, _tenant_id: &str, name: &str) -> anyhow::Result<u64> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -314,6 +327,7 @@ mod register_schema {
 
     fn default_input() -> RegisterSchemaInput {
         RegisterSchemaInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             description: "Tenant management API".to_string(),
             schema_type: SchemaType::OpenApi,
@@ -372,6 +386,7 @@ mod register_schema {
         let uc = RegisterSchemaUseCase::new(schema_repo.clone(), version_repo);
 
         let input = RegisterSchemaInput {
+            tenant_id: "tenant-a".to_string(),
             name: "proto-api".to_string(),
             description: "Protobuf API".to_string(),
             schema_type: SchemaType::Protobuf,
@@ -454,6 +469,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo.clone(), version_repo.clone());
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: openapi_content_v2_compatible(),
             registered_by: "user-001".to_string(),
@@ -481,6 +497,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo, version_repo);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: openapi_content_v2_breaking(),
             registered_by: "user-001".to_string(),
@@ -508,6 +525,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo, version_repo);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "grpc-api".to_string(),
             content: protobuf_content_v2_breaking(),
             registered_by: "user-001".to_string(),
@@ -533,6 +551,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo, version_repo);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: openapi_content_v2_compatible(),
             registered_by: "user-001".to_string(),
@@ -554,6 +573,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo, version_repo);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "new-api".to_string(),
             content: openapi_content_v1(),
             registered_by: "user-001".to_string(),
@@ -570,6 +590,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo, version_repo);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             content: "openapi: 3.0.3".to_string(),
             registered_by: "user-001".to_string(),
@@ -588,6 +609,7 @@ mod register_version {
         let uc = RegisterVersionUseCase::new(schema_repo, version_repo);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: "openapi: 3.0.3".to_string(),
             registered_by: "user-001".to_string(),
@@ -608,6 +630,7 @@ mod register_version {
             RegisterVersionUseCase::with_publisher(schema_repo, version_repo.clone(), publisher);
 
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: "openapi: 3.0.3\nversion: 2".to_string(),
             registered_by: "user-001".to_string(),
@@ -637,7 +660,7 @@ mod get_schema {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1]));
         let uc = GetSchemaUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("tenant-api").await;
+        let result = uc.execute("tenant-a", "tenant-api").await;
         assert!(result.is_ok());
 
         let output = result.unwrap();
@@ -657,7 +680,7 @@ mod get_schema {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = GetSchemaUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("tenant-api").await.unwrap();
+        let result = uc.execute("tenant-a", "tenant-api").await.unwrap();
         assert_eq!(result.latest_content.unwrap().version, 3);
     }
 
@@ -667,7 +690,7 @@ mod get_schema {
         let version_repo = Arc::new(StubVersionRepository::new());
         let uc = GetSchemaUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("tenant-a", "nonexistent").await;
         assert!(matches!(
             result,
             Err(GetSchemaError::NotFound(ref name)) if name == "nonexistent"
@@ -680,7 +703,7 @@ mod get_schema {
         let version_repo = Arc::new(StubVersionRepository::new());
         let uc = GetSchemaUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("any").await;
+        let result = uc.execute("tenant-a", "any").await;
         assert!(matches!(result, Err(GetSchemaError::Internal(_))));
     }
 }
@@ -701,7 +724,7 @@ mod get_schema_version {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v2]));
         let uc = GetSchemaVersionUseCase::new(version_repo);
 
-        let result = uc.execute("tenant-api", 2).await;
+        let result = uc.execute("tenant-a", "tenant-api", 2).await;
         assert!(result.is_ok());
         let version = result.unwrap();
         assert_eq!(version.name, "tenant-api");
@@ -713,7 +736,7 @@ mod get_schema_version {
         let version_repo = Arc::new(StubVersionRepository::new());
         let uc = GetSchemaVersionUseCase::new(version_repo);
 
-        let result = uc.execute("tenant-api", 99).await;
+        let result = uc.execute("tenant-a", "tenant-api", 99).await;
         assert!(matches!(
             result,
             Err(GetSchemaVersionError::NotFound { ref name, version }) if name == "tenant-api" && version == 99
@@ -725,7 +748,7 @@ mod get_schema_version {
         let version_repo = Arc::new(StubVersionRepository::failing());
         let uc = GetSchemaVersionUseCase::new(version_repo);
 
-        let result = uc.execute("any", 1).await;
+        let result = uc.execute("tenant-a", "any", 1).await;
         assert!(matches!(result, Err(GetSchemaVersionError::Internal(_))));
     }
 }
@@ -751,6 +774,7 @@ mod list_schemas {
         let uc = ListSchemasUseCase::new(schema_repo);
 
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 1,
             page_size: 20,
@@ -772,6 +796,7 @@ mod list_schemas {
         let uc = ListSchemasUseCase::new(schema_repo);
 
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: Some("openapi".to_string()),
             page: 1,
             page_size: 20,
@@ -793,6 +818,7 @@ mod list_schemas {
         let uc = ListSchemasUseCase::new(schema_repo);
 
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 1,
             page_size: 2,
@@ -814,6 +840,7 @@ mod list_schemas {
         let uc = ListSchemasUseCase::new(schema_repo);
 
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 3,
             page_size: 2,
@@ -830,6 +857,7 @@ mod list_schemas {
         let uc = ListSchemasUseCase::new(schema_repo);
 
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 1,
             page_size: 20,
@@ -846,6 +874,7 @@ mod list_schemas {
         let uc = ListSchemasUseCase::new(schema_repo);
 
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 1,
             page_size: 20,
@@ -876,6 +905,7 @@ mod list_versions {
         let uc = ListVersionsUseCase::new(schema_repo, version_repo);
 
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             page: 1,
             page_size: 20,
@@ -897,6 +927,7 @@ mod list_versions {
         let uc = ListVersionsUseCase::new(schema_repo, version_repo);
 
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "api-a".to_string(),
             page: 1,
             page_size: 20,
@@ -913,6 +944,7 @@ mod list_versions {
         let uc = ListVersionsUseCase::new(schema_repo, version_repo);
 
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             page: 1,
             page_size: 20,
@@ -931,6 +963,7 @@ mod list_versions {
         let uc = ListVersionsUseCase::new(schema_repo, version_repo);
 
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "any".to_string(),
             page: 1,
             page_size: 20,
@@ -960,6 +993,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: openapi_content_v2_compatible(),
             base_version: None,
@@ -984,6 +1018,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: openapi_content_v2_breaking(),
             base_version: None,
@@ -1009,6 +1044,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: openapi_content_v2_breaking(),
             base_version: Some(2),
@@ -1028,6 +1064,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "grpc-api".to_string(),
             content: protobuf_content_v2_breaking(),
             base_version: None,
@@ -1043,6 +1080,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             content: "openapi: 3.0.3".to_string(),
             base_version: None,
@@ -1062,6 +1100,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             content: "openapi: 3.0.3".to_string(),
             base_version: None,
@@ -1080,6 +1119,7 @@ mod check_compatibility {
         let uc = CheckCompatibilityUseCase::new(schema_repo, version_repo);
 
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "any".to_string(),
             content: "openapi: 3.0.3".to_string(),
             base_version: None,
@@ -1113,6 +1153,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -1145,6 +1186,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -1161,6 +1203,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             from_version: Some(3),
             to_version: Some(2),
@@ -1176,6 +1219,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -1195,6 +1239,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "tenant-api".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -1210,6 +1255,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "any".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -1231,6 +1277,7 @@ mod get_diff {
         let uc = GetDiffUseCase::new(schema_repo, version_repo);
 
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "grpc-api".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -1262,7 +1309,9 @@ mod delete_version {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
 
-        let result = uc.execute("tenant-api", 1, Some("admin".to_string())).await;
+        let result = uc
+            .execute("tenant-a", "tenant-api", 1, Some("admin".to_string()))
+            .await;
         assert!(result.is_ok());
 
         // Verify version deleted
@@ -1285,7 +1334,7 @@ mod delete_version {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1]));
         let uc = DeleteVersionUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("tenant-api", 1, None).await;
+        let result = uc.execute("tenant-a", "tenant-api", 1, None).await;
         assert!(matches!(
             result,
             Err(DeleteVersionError::CannotDeleteLatest(ref name)) if name == "tenant-api"
@@ -1298,7 +1347,7 @@ mod delete_version {
         let version_repo = Arc::new(StubVersionRepository::new());
         let uc = DeleteVersionUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("nonexistent", 1, None).await;
+        let result = uc.execute("tenant-a", "nonexistent", 1, None).await;
         assert!(matches!(
             result,
             Err(DeleteVersionError::SchemaNotFound(ref name)) if name == "nonexistent"
@@ -1316,7 +1365,7 @@ mod delete_version {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = DeleteVersionUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("tenant-api", 99, None).await;
+        let result = uc.execute("tenant-a", "tenant-api", 99, None).await;
         assert!(matches!(
             result,
             Err(DeleteVersionError::VersionNotFound { ref name, version }) if name == "tenant-api" && version == 99
@@ -1329,7 +1378,7 @@ mod delete_version {
         let version_repo = Arc::new(StubVersionRepository::new());
         let uc = DeleteVersionUseCase::new(schema_repo, version_repo);
 
-        let result = uc.execute("any", 1, None).await;
+        let result = uc.execute("tenant-a", "any", 1, None).await;
         assert!(matches!(result, Err(DeleteVersionError::Internal(_))));
     }
 
@@ -1344,7 +1393,7 @@ mod delete_version {
         let publisher = Arc::new(StubEventPublisher::failing());
         let uc = DeleteVersionUseCase::with_publisher(schema_repo, version_repo.clone(), publisher);
 
-        let result = uc.execute("tenant-api", 1, None).await;
+        let result = uc.execute("tenant-a", "tenant-api", 1, None).await;
         assert!(
             result.is_ok(),
             "delete should succeed even if publisher fails"
@@ -1384,6 +1433,7 @@ mod lifecycle {
         // 1. Register a new schema
         let register_uc = RegisterSchemaUseCase::new(schema_repo.clone(), version_repo.clone());
         let reg_input = RegisterSchemaInput {
+            tenant_id: "tenant-a".to_string(),
             name: "lifecycle-api".to_string(),
             description: "Lifecycle test API".to_string(),
             schema_type: SchemaType::OpenApi,
@@ -1396,13 +1446,16 @@ mod lifecycle {
 
         // 2. Get the schema
         let get_uc = GetSchemaUseCase::new(schema_repo.clone(), version_repo.clone());
-        let schema_output = get_uc.execute("lifecycle-api").await.unwrap();
+        // テナント分離のため tenant_id を渡す
+        let schema_output = get_uc.execute("tenant-a", "lifecycle-api").await.unwrap();
         assert_eq!(schema_output.schema.name, "lifecycle-api");
         assert_eq!(schema_output.schema.latest_version, 1);
 
         // 3. Check compatibility before registering v2
         let compat_uc = CheckCompatibilityUseCase::new(schema_repo.clone(), version_repo.clone());
         let compat_input = CheckCompatibilityInput {
+            // テナント分離のため tenant_id を設定
+            tenant_id: "tenant-a".to_string(),
             name: "lifecycle-api".to_string(),
             content: openapi_content_v2_compatible(),
             base_version: None,
@@ -1413,6 +1466,8 @@ mod lifecycle {
         // 4. Register v2 (compatible change)
         let version_uc = RegisterVersionUseCase::new(schema_repo.clone(), version_repo.clone());
         let ver_input = RegisterVersionInput {
+            // テナント分離のため tenant_id を設定
+            tenant_id: "tenant-a".to_string(),
             name: "lifecycle-api".to_string(),
             content: openapi_content_v2_compatible(),
             registered_by: "admin".to_string(),
@@ -1425,6 +1480,8 @@ mod lifecycle {
         let list_uc = ListSchemasUseCase::new(schema_repo.clone());
         let list_output = list_uc
             .execute(&ListSchemasInput {
+                // テナント分離のため tenant_id を設定
+                tenant_id: "tenant-a".to_string(),
                 schema_type: None,
                 page: 1,
                 page_size: 20,
@@ -1437,6 +1494,8 @@ mod lifecycle {
         let list_ver_uc = ListVersionsUseCase::new(schema_repo.clone(), version_repo.clone());
         let list_ver_output = list_ver_uc
             .execute(&ListVersionsInput {
+                // テナント分離のため tenant_id を設定
+                tenant_id: "tenant-a".to_string(),
                 name: "lifecycle-api".to_string(),
                 page: 1,
                 page_size: 20,
@@ -1447,13 +1506,19 @@ mod lifecycle {
 
         // 7. Get specific version
         let get_ver_uc = GetSchemaVersionUseCase::new(version_repo.clone());
-        let ver = get_ver_uc.execute("lifecycle-api", 2).await.unwrap();
+        // テナント分離のため tenant_id を渡す
+        let ver = get_ver_uc
+            .execute("tenant-a", "lifecycle-api", 2)
+            .await
+            .unwrap();
         assert_eq!(ver.version, 2);
 
         // 8. Get diff between v1 and v2
         let diff_uc = GetDiffUseCase::new(schema_repo.clone(), version_repo.clone());
         let diff_output = diff_uc
             .execute(&GetDiffInput {
+                // テナント分離のため tenant_id を設定
+                tenant_id: "tenant-a".to_string(),
                 name: "lifecycle-api".to_string(),
                 from_version: Some(1),
                 to_version: Some(2),
@@ -1465,6 +1530,8 @@ mod lifecycle {
 
         // 9. Register v3 with breaking change
         let ver_input_v3 = RegisterVersionInput {
+            // テナント分離のため tenant_id を設定
+            tenant_id: "tenant-a".to_string(),
             name: "lifecycle-api".to_string(),
             content: openapi_content_v2_breaking(),
             registered_by: "admin".to_string(),
@@ -1475,16 +1542,22 @@ mod lifecycle {
 
         // 10. Delete v1
         let delete_uc = DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
-        let delete_result = delete_uc.execute("lifecycle-api", 1, None).await;
+        // テナント分離のため tenant_id を渡す
+        let delete_result = delete_uc
+            .execute("tenant-a", "lifecycle-api", 1, None)
+            .await;
         assert!(delete_result.is_ok());
 
         // 11. Verify deletion
-        let get_deleted = get_ver_uc.execute("lifecycle-api", 1).await;
+        // テナント分離のため tenant_id を渡す
+        let get_deleted = get_ver_uc.execute("tenant-a", "lifecycle-api", 1).await;
         assert!(get_deleted.is_err());
 
         // 12. Verify remaining versions
         let remaining = list_ver_uc
             .execute(&ListVersionsInput {
+                // テナント分離のため tenant_id を設定
+                tenant_id: "tenant-a".to_string(),
                 name: "lifecycle-api".to_string(),
                 page: 1,
                 page_size: 20,

@@ -13,3 +13,6 @@ resources:
   - network-policies/
   - limit-ranges/
   - resource-quotas/
+  # K8S-LOW-001 監査対応: storage-classes.yaml を CI/CD パイプラインで確実に適用するため追加する。
+  # 手動 kubectl apply では漏れるリスクがあるため kustomization.yaml で一元管理する。
+  - storage/

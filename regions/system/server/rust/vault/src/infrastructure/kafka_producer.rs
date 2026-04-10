@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 
-/// VaultAccessEvent は vault アクセス時に Kafka へ発行するイベント。
+/// `VaultAccessEvent` は vault アクセス時に Kafka へ発行するイベント。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VaultAccessEvent {
     pub key_path: String,
@@ -14,7 +14,7 @@ pub struct VaultAccessEvent {
     pub timestamp: String, // ISO 8601
 }
 
-/// VaultSecretRotatedEvent はシークレットローテーション通知イベント。
+/// `VaultSecretRotatedEvent` はシークレットローテーション通知イベント。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct VaultSecretRotatedEvent {
     pub key_path: String,
@@ -24,7 +24,7 @@ pub struct VaultSecretRotatedEvent {
     pub timestamp: String, // ISO 8601
 }
 
-/// KafkaConfig は Kafka 接続の設定を表す。
+/// `KafkaConfig` は Kafka 接続の設定を表す。
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
@@ -39,13 +39,13 @@ pub struct KafkaConfig {
     pub topics: TopicsConfig,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// SaslConfig は SASL 認証の設定を表す。
+/// `SaslConfig` は SASL 認証の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SaslConfig {
     #[serde(default)]
@@ -67,7 +67,7 @@ impl Default for SaslConfig {
     }
 }
 
-/// TopicsConfig はトピック設定を表す。
+/// `TopicsConfig` はトピック設定を表す。
 #[allow(dead_code)]
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
@@ -77,7 +77,7 @@ pub struct TopicsConfig {
     pub subscribe: Vec<String>,
 }
 
-/// VaultEventPublisher は vault アクセスイベント配信のためのトレイト。
+/// `VaultEventPublisher` は vault アクセスイベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait VaultEventPublisher: Send + Sync {
@@ -87,7 +87,7 @@ pub trait VaultEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopVaultEventPublisher はイベントを破棄する実装（開発/テスト用）。
+/// `NoopVaultEventPublisher` はイベントを破棄する実装（開発/テスト用）。
 pub struct NoopVaultEventPublisher;
 
 #[async_trait]
@@ -105,7 +105,7 @@ impl VaultEventPublisher for NoopVaultEventPublisher {
     }
 }
 
-/// KafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     access_topic: String,
@@ -114,7 +114,7 @@ pub struct KafkaProducer {
 }
 
 impl KafkaProducer {
-    /// 新しい KafkaProducer を作成する。
+    /// 新しい `KafkaProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -158,6 +158,7 @@ impl KafkaProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -167,11 +168,13 @@ impl KafkaProducer {
     }
 
     /// 配信先トピック名を返す。
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.access_topic
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn rotation_topic(&self) -> &str {
         &self.rotation_topic
     }
@@ -193,7 +196,7 @@ impl VaultEventPublisher for KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault access event: {}", err))?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault access event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.access_topic);
@@ -216,9 +219,7 @@ impl VaultEventPublisher for KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish vault rotation event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault rotation event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.rotation_topic);

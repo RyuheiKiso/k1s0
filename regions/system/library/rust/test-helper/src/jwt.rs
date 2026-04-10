@@ -34,6 +34,7 @@ pub struct JwtTestHelper {
 }
 
 impl JwtTestHelper {
+    #[must_use]
     pub fn new_hs256(secret: &str) -> Self {
         Self {
             secret: secret.to_string(),
@@ -41,11 +42,13 @@ impl JwtTestHelper {
     }
 
     /// Backward-compatible alias.
+    #[must_use]
     pub fn new(secret: &str) -> Self {
         Self::new_hs256(secret)
     }
 
     /// 管理者トークンを生成する。
+    #[must_use]
     pub fn create_admin_token(&self) -> String {
         let claims = TestClaims {
             sub: "admin".to_string(),
@@ -56,6 +59,7 @@ impl JwtTestHelper {
     }
 
     /// ユーザートークンを生成する。
+    #[must_use]
     pub fn create_user_token(&self, user_id: &str, roles: Vec<String>) -> String {
         let claims = TestClaims {
             sub: user_id.to_string(),
@@ -68,16 +72,21 @@ impl JwtTestHelper {
     /// カスタムクレームでトークンを生成する。
     ///
     /// テスト用簡易 JWT: header.payload.signature の形式。
+    ///
+    /// # Panics
+    /// クレームの JSON シリアライズに失敗した場合にパニックする（通常は発生しない）。
+    #[must_use]
     pub fn create_token(&self, claims: &TestClaims) -> String {
         let header = base64url_encode(r#"{"alg":"HS256","typ":"JWT"}"#.as_bytes());
         let payload_json = serde_json::to_string(claims).expect("claims serialization");
         let payload = base64url_encode(payload_json.as_bytes());
-        let signing_input = format!("{}.{}", header, payload);
+        let signing_input = format!("{header}.{payload}");
         let signature = base64url_encode(format!("{}:{}", signing_input, self.secret).as_bytes());
-        format!("{}.{}", signing_input, signature)
+        format!("{signing_input}.{signature}")
     }
 
     /// トークンのペイロードをデコードしてクレームを返す。
+    #[must_use]
     pub fn decode_claims(&self, token: &str) -> Option<TestClaims> {
         let parts: Vec<&str> = token.split('.').collect();
         if parts.len() != 3 {
@@ -88,13 +97,16 @@ impl JwtTestHelper {
     }
 }
 
+/// LOW-008: Base64URLエンコード。マスク後のインデックスは必ず0..=63の範囲であり、u8→charは常に安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
 fn base64url_encode(data: &[u8]) -> String {
     use std::fmt::Write;
-    let mut result = String::new();
+    // Base64URL エンコードテーブル（RFC 4648 §5 準拠）
     static TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut result = String::new();
     let mut i = 0;
     while i + 2 < data.len() {
-        let n = ((data[i] as u32) << 16) | ((data[i + 1] as u32) << 8) | (data[i + 2] as u32);
+        let n = (u32::from(data[i]) << 16) | (u32::from(data[i + 1]) << 8) | u32::from(data[i + 2]);
         let _ = write!(
             result,
             "{}{}{}{}",
@@ -107,7 +119,7 @@ fn base64url_encode(data: &[u8]) -> String {
     }
     let remaining = data.len() - i;
     if remaining == 2 {
-        let n = ((data[i] as u32) << 16) | ((data[i + 1] as u32) << 8);
+        let n = (u32::from(data[i]) << 16) | (u32::from(data[i + 1]) << 8);
         let _ = write!(
             result,
             "{}{}{}",
@@ -116,7 +128,7 @@ fn base64url_encode(data: &[u8]) -> String {
             TABLE[(n >> 6 & 63) as usize] as char,
         );
     } else if remaining == 1 {
-        let n = (data[i] as u32) << 16;
+        let n = u32::from(data[i]) << 16;
         let _ = write!(
             result,
             "{}{}",
@@ -134,9 +146,9 @@ fn base64url_decode(input: &str) -> Option<Vec<u8>> {
     let mut bits: u32 = 0;
     for &b in bytes {
         let val = match b {
-            b'A'..=b'Z' => (b - b'A') as u32,
-            b'a'..=b'z' => (b - b'a' + 26) as u32,
-            b'0'..=b'9' => (b - b'0' + 52) as u32,
+            b'A'..=b'Z' => u32::from(b - b'A'),
+            b'a'..=b'z' => u32::from(b - b'a' + 26),
+            b'0'..=b'9' => u32::from(b - b'0' + 52),
             b'-' => 62,
             b'_' => 63,
             b'=' => continue,
@@ -146,7 +158,8 @@ fn base64url_decode(input: &str) -> Option<Vec<u8>> {
         bits += 6;
         if bits >= 8 {
             bits -= 8;
-            data.push((buf >> bits) as u8);
+            // LOW-008: 安全な型変換（上位24ビットは0のため切り捨て安全）
+            data.push(u8::try_from((buf >> bits) & 0xFF).unwrap_or(0));
             buf &= (1 << bits) - 1;
         }
     }

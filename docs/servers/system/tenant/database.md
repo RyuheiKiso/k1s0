@@ -120,6 +120,29 @@ CREATE INDEX IF NOT EXISTS idx_tenant_members_user_id ON tenant.tenant_members (
 | `005_add_owner_id.down.sql` | カラム削除 |
 | `006_change_owner_id_type.up.sql` | owner_id 型を VARCHAR(255) → UUID に変更（auth.users.id との型統一） |
 | `006_change_owner_id_type.down.sql` | owner_id 型を UUID → VARCHAR(255) に戻す |
+| `007_conditional_unique.up.sql` | 条件付き UNIQUE 制約追加 |
+| `008_add_rls_policies.up.sql` | tenants / tenant_members に RLS ポリシー追加（USING 句のみ） |
+| `009_fix_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加（HIGH-DB-004 対応） |
+
+---
+
+## マルチテナント対応（HIGH-DB-004）
+
+`tenants` / `tenant_members` の RLS ポリシーに WITH CHECK を追加（migration 009）。
+
+```sql
+-- tenants
+CREATE POLICY tenant_isolation_policy ON tenant.tenants
+    AS RESTRICTIVE
+    USING (id::TEXT = current_setting('app.current_tenant_id', true))
+    WITH CHECK (id::TEXT = current_setting('app.current_tenant_id', true));
+
+-- tenant_members
+CREATE POLICY tenant_member_isolation_policy ON tenant.tenant_members
+    AS RESTRICTIVE
+    USING (tenant_id::TEXT = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id::TEXT = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

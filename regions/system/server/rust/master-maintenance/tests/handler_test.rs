@@ -634,13 +634,15 @@ async fn healthz_returns_ok() {
     assert_eq!(resp.json::<serde_json::Value>()["status"], "ok");
 }
 
-/// GET /readyz はスタブリポジトリで "ready" を返す
+/// GET /readyz はスタブリポジトリで "healthy" を返す
+/// （master-maintenance の readyz は DB 接続確認後 "healthy"/"unhealthy" を返す設計）
 #[tokio::test]
 async fn readyz_returns_ready() {
     let server = TestServer::new(router(build_state())).unwrap();
     let resp = server.get("/readyz").await;
     resp.assert_status_ok();
-    assert_eq!(resp.json::<serde_json::Value>()["status"], "ready");
+    // db_pool が None の場合 "healthy" を返す（DB チェックなし）
+    assert_eq!(resp.json::<serde_json::Value>()["status"], "healthy");
 }
 
 /// GET /api/v1/tables は認証なしの場合 401 を返す（auth 保護確認）

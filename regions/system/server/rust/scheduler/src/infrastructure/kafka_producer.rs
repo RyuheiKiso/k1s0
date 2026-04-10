@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::entity::scheduler_job::SchedulerJob;
 
-/// SchedulerEventPublisher はスケジューライベント配信のためのトレイト。
+/// `SchedulerEventPublisher` はスケジューライベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SchedulerEventPublisher: Send + Sync {
@@ -21,7 +21,7 @@ pub trait SchedulerEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopSchedulerEventPublisher はイベント発行を行わないデフォルト実装。
+/// `NoopSchedulerEventPublisher` はイベント発行を行わないデフォルト実装。
 pub struct NoopSchedulerEventPublisher;
 
 #[async_trait]
@@ -43,7 +43,7 @@ impl SchedulerEventPublisher for NoopSchedulerEventPublisher {
     }
 }
 
-/// KafkaSchedulerProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaSchedulerProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaSchedulerProducer {
     producer: rdkafka::producer::FutureProducer,
     topic_executed: String,
@@ -52,7 +52,7 @@ pub struct KafkaSchedulerProducer {
 }
 
 impl KafkaSchedulerProducer {
-    /// 新しい KafkaSchedulerProducer を作成する。
+    /// 新しい `KafkaSchedulerProducer` を作成する。
     pub fn new(config: &super::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -76,6 +76,7 @@ impl KafkaSchedulerProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -96,9 +97,9 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
         use std::time::Duration;
 
         let event = serde_json::json!({
-            "job_id": job.id.to_string(),
+            "job_id": job.id.clone(),
             "job_name": job.name,
-            "execution_id": execution.id.to_string(),
+            "execution_id": execution.id.clone(),
             "status": execution.status,
             "started_at": execution.started_at.to_rfc3339(),
             "finished_at": execution.finished_at.map(|t| t.to_rfc3339()),
@@ -106,7 +107,7 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
         });
 
         let payload = serde_json::to_vec(&event)?;
-        let key = job.id.to_string();
+        let key = job.id.clone();
 
         let record = FutureRecord::to(&self.topic_executed)
             .key(&key)
@@ -116,7 +117,7 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish scheduler executed event: {}", err)
+                anyhow::anyhow!("failed to publish scheduler executed event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {
@@ -131,7 +132,7 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
         use std::time::Duration;
 
         let event = serde_json::json!({
-            "job_id": job.id.to_string(),
+            "job_id": job.id.clone(),
             "job_name": job.name,
             "cron_expression": job.cron_expression,
             "status": job.status,
@@ -139,7 +140,7 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
         });
 
         let payload = serde_json::to_vec(&event)?;
-        let key = job.id.to_string();
+        let key = job.id.clone();
 
         let record = FutureRecord::to(&self.topic_created)
             .key(&key)
@@ -149,7 +150,7 @@ impl SchedulerEventPublisher for KafkaSchedulerProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish scheduler created event: {}", err)
+                anyhow::anyhow!("failed to publish scheduler created event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {

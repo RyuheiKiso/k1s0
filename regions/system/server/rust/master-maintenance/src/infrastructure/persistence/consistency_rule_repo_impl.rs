@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::domain::entity::consistency_rule::ConsistencyRule;
 use crate::domain::entity::rule_condition::RuleCondition;
 use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
@@ -10,6 +12,7 @@ pub struct ConsistencyRulePostgresRepository {
 }
 
 impl ConsistencyRulePostgresRepository {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -30,17 +33,18 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         let mut bind_values: Vec<String> = Vec::new();
 
         if let Some(tid) = table_id {
-            query.push_str(&format!(" AND source_table_id = ${}", param_idx));
+            // format! を避け write! でアロケーションを削減する
+            write!(query, " AND source_table_id = ${param_idx}").ok();
             bind_values.push(tid.to_string());
             param_idx += 1;
         }
         if let Some(rt) = rule_type {
-            query.push_str(&format!(" AND rule_type = ${}", param_idx));
+            write!(query, " AND rule_type = ${param_idx}").ok();
             bind_values.push(rt.to_string());
             param_idx += 1;
         }
         if let Some(sev) = severity {
-            query.push_str(&format!(" AND severity = ${}", param_idx));
+            write!(query, " AND severity = ${param_idx}").ok();
             bind_values.push(sev.to_string());
         }
         query.push_str(" ORDER BY name");
@@ -56,7 +60,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         }
 
         let rows = q.fetch_all(&self.pool).await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ConsistencyRule>> {
@@ -67,7 +71,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn find_by_table_id(
@@ -93,7 +97,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
             .fetch_all(&self.pool)
             .await?
         };
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn create(
@@ -104,12 +108,12 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         let mut tx = self.pool.begin().await?;
 
         let rule_row = sqlx::query_as::<_, ConsistencyRuleRow>(
-            r#"INSERT INTO master_maintenance.consistency_rules
+            r"INSERT INTO master_maintenance.consistency_rules
                (id, name, description, rule_type, severity, is_active, source_table_id,
                 evaluation_timing, error_message_template, zen_rule_json, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                -- 明示的カラム指定によるクエリ安全性の確保
-               RETURNING id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at"#,
+               RETURNING id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at",
         )
         .bind(rule.id)
         .bind(&rule.name)
@@ -127,10 +131,10 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
 
         for cond in conditions {
             sqlx::query(
-                r#"INSERT INTO master_maintenance.rule_conditions
+                r"INSERT INTO master_maintenance.rule_conditions
                    (id, rule_id, condition_order, left_table_id, left_column, operator,
                     right_table_id, right_column, right_value, logical_connector)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
             )
             .bind(cond.id)
             .bind(cond.rule_id)
@@ -152,7 +156,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
 
     async fn update(&self, id: Uuid, rule: &ConsistencyRule) -> anyhow::Result<ConsistencyRule> {
         let row = sqlx::query_as::<_, ConsistencyRuleRow>(
-            r#"UPDATE master_maintenance.consistency_rules SET
+            r"UPDATE master_maintenance.consistency_rules SET
                name = $2,
                description = $3,
                rule_type = $4,
@@ -163,7 +167,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
                zen_rule_json = $9,
                updated_at = now()
                -- 明示的カラム指定によるクエリ安全性の確保
-               WHERE id = $1 RETURNING id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at"#,
+               WHERE id = $1 RETURNING id, name, description, rule_type, severity, is_active, source_table_id, evaluation_timing, error_message_template, zen_rule_json, created_by, created_at, updated_at",
         )
         .bind(id)
         .bind(&rule.name)
@@ -193,10 +197,10 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
 
         for cond in conditions {
             sqlx::query(
-                r#"INSERT INTO master_maintenance.rule_conditions
+                r"INSERT INTO master_maintenance.rule_conditions
                    (id, rule_id, condition_order, left_table_id, left_column, operator,
                     right_table_id, right_column, right_value, logical_connector)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
             )
             .bind(cond.id)
             .bind(cond.rule_id)
@@ -244,7 +248,7 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         .bind(rule_id)
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 }
 

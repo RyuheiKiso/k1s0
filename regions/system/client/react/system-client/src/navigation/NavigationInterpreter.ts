@@ -1,11 +1,47 @@
 import type React from 'react';
 import { parse as parseYaml } from 'yaml';
+import { z } from 'zod';
 import type {
   NavigationResponse,
   NavigationRoute,
   NavigationGuard,
   ComponentRegistry,
 } from './types';
+
+// HIGH-FE-003 対応: NavigationResponse の zod スキーマ定義。
+// サーバーから受け取ったナビゲーション設定の実行時型検証を行い、
+// 不正なスキーマによるランタイムエラーを早期に検出する。
+const NavigationGuardSchema = z.object({
+  id: z.string(),
+  type: z.enum(['auth_required', 'role_required', 'redirect_if_authenticated']),
+  redirect_to: z.string(),
+  roles: z.array(z.string()).optional(),
+});
+
+// NavigationRoute は再帰的な構造を持つため lazy() で定義する
+const NavigationRouteSchema: z.ZodType<NavigationRoute> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    path: z.string(),
+    component_id: z.string().optional(),
+    guards: z.array(z.string()).optional(),
+    transition: z.enum(['fade', 'slide', 'modal']).optional(),
+    redirect_to: z.string().optional(),
+    children: z.array(NavigationRouteSchema).optional(),
+    params: z.array(
+      z.object({
+        name: z.string(),
+        type: z.enum(['string', 'int', 'uuid']),
+      })
+    ).optional(),
+  })
+);
+
+// NavigationResponse のトップレベルスキーマ
+const NavigationResponseSchema = z.object({
+  routes: z.array(NavigationRouteSchema),
+  guards: z.array(NavigationGuardSchema),
+});
 
 export interface NavigationConfig {
   mode: 'remote' | 'local';
@@ -46,16 +82,20 @@ export class NavigationInterpreter {
       return this.parseNavigation(text);
     }
     const res = await fetch(this.config.remoteUrl ?? '/api/v1/navigation');
-    return res.json() as Promise<NavigationResponse>;
+    // HIGH-FE-003 対応: サーバーからの JSON レスポンスを zod で実行時検証する。
+    // 不正なスキーマが返された場合は ZodError をスローして呼び出し元に通知する。
+    return NavigationResponseSchema.parse(await res.json());
   }
 
   private parseNavigation(text: string): NavigationResponse {
     const trimmed = text.trim();
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      return JSON.parse(trimmed) as NavigationResponse;
+      // HIGH-FE-003 対応: JSON パース後に zod で実行時検証する
+      return NavigationResponseSchema.parse(JSON.parse(trimmed));
     }
 
-    return parseYaml(trimmed) as NavigationResponse;
+    // HIGH-FE-003 対応: YAML パース後に zod で実行時検証する
+    return NavigationResponseSchema.parse(parseYaml(trimmed));
   }
 
   private buildRouter(nav: NavigationResponse): RouterResult {

@@ -28,6 +28,8 @@ use crate::domain::entity::policy_bundle::PolicyBundle;
 use crate::domain::repository::PolicyBundleRepository;
 use crate::domain::repository::PolicyRepository;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -49,7 +51,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -239,7 +241,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -272,7 +274,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// CreatePolicy / UpdatePolicy / DeletePolicy / CreateBundle は write、それ以外は read。
+/// `CreatePolicy` / `UpdatePolicy` / `DeletePolicy` / `CreateBundle` は write、それ以外は read。
 fn policy_grpc_action(method: &str) -> &'static str {
     match method {
         "CreatePolicy" | "UpdatePolicy" | "DeletePolicy" | "CreateBundle" => "write",
@@ -296,22 +298,26 @@ impl InMemoryPolicyRepository {
 
 #[async_trait::async_trait]
 impl PolicyRepository for InMemoryPolicyRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Policy>> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_by_id(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<Option<Policy>> {
         let policies = self.policies.read().await;
         Ok(policies.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<Policy>> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<Policy>> {
         let policies = self.policies.read().await;
         Ok(policies.values().cloned().collect())
     }
 
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_all_paginated(
         &self,
         page: u32,
         page_size: u32,
         bundle_id: Option<Uuid>,
         enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         let policies = self.policies.read().await;
         let mut filtered: Vec<Policy> = policies
@@ -330,12 +336,14 @@ impl PolicyRepository for InMemoryPolicyRepository {
             .cloned()
             .collect();
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        let total = filtered.len() as u64;
-        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(page.saturating_sub(1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<Policy> = filtered
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }
@@ -352,12 +360,14 @@ impl PolicyRepository for InMemoryPolicyRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut policies = self.policies.write().await;
         Ok(policies.remove(id).is_some())
     }
 
-    async fn exists_by_name(&self, name: &str) -> anyhow::Result<bool> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn exists_by_name(&self, name: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let policies = self.policies.read().await;
         Ok(policies.values().any(|p| p.name == name))
     }
@@ -379,23 +389,31 @@ impl InMemoryPolicyBundleRepository {
 
 #[async_trait::async_trait]
 impl PolicyBundleRepository for InMemoryPolicyBundleRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<PolicyBundle>> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_by_id(
+        &self,
+        id: &Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<PolicyBundle>> {
         let bundles = self.bundles.read().await;
         Ok(bundles.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<PolicyBundle>> {
         let bundles = self.bundles.read().await;
         Ok(bundles.values().cloned().collect())
     }
 
+    /// `InMemory実装`: バンドルを作成する。
     async fn create(&self, bundle: &PolicyBundle) -> anyhow::Result<()> {
         let mut bundles = self.bundles.write().await;
         bundles.insert(bundle.id, bundle.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut bundles = self.bundles.write().await;
         Ok(bundles.remove(id).is_some())
     }

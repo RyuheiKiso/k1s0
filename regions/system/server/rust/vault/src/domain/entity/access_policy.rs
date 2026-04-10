@@ -12,11 +12,13 @@ pub struct SpiffeAccessPolicy {
 impl SpiffeAccessPolicy {
     /// パスがこのポリシーのパターンに一致するか判定する。
     /// `*` は単一セグメント、`**` は複数セグメントにマッチ。
+    #[must_use]
     pub fn matches_path(&self, path: &str) -> bool {
         Self::glob_match(&self.secret_path_pattern, path)
     }
 
     /// 指定された SPIFFE ID がこのポリシーで許可されているか判定する。
+    #[must_use]
     pub fn is_allowed(&self, spiffe_id: &str) -> bool {
         self.allowed_spiffe_ids.iter().any(|id| id == spiffe_id)
     }

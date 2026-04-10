@@ -264,6 +264,20 @@ plugins:
           - Strict-Transport-Security:max-age=31536000; includeSubDomains
 ```
 
+#### セキュリティヘッダー設計方針（MED-003 監査対応）
+
+> **設計決定**: Rust/Go サービス自身はセキュリティヘッダーを付与しない。
+
+Rust サービスへの全外部リクエストは Kong 経由で処理され、`response-transformer` プラグインが全レスポンスにセキュリティヘッダーを付与する。Rust サービスへの内部直接アクセスは以下の理由から許容リスクと判断している:
+
+| 対策 | 説明 |
+|---|---|
+| NetworkPolicy | `infra/kubernetes/network-policies/` で各サービスへの ingress を Kong および同 tier サービスのみに制限 |
+| Istio PeerAuthentication | サービスメッシュ内の mTLS で認証されていない通信を遮断 |
+| 内部 API 設計 | Rust サービスのエンドポイントはブラウザから直接アクセスされない設計（SPA → Kong → Rust） |
+
+**将来的な強化オプション**: `k1s0-server-common` ライブラリに `tower` ミドルウェアとしてセキュリティヘッダーレイヤーを追加することで、Kong バイパス時のリスクをさらに低減可能。Kong 依存度を下げる段階でその実装を検討する。
+
 #### File Log プラグイン
 
 ```yaml

@@ -15,7 +15,7 @@ struct Entry {
     etag: String,
 }
 
-/// InMemoryStateStore はテスト・開発用のインメモリ StateStore 実装。
+/// `InMemoryStateStore` はテスト・開発用のインメモリ `StateStore` 実装。
 pub struct InMemoryStateStore {
     name: String,
     status: RwLock<ComponentStatus>,
@@ -38,7 +38,7 @@ impl Component for InMemoryStateStore {
         &self.name
     }
 
-    fn component_type(&self) -> &str {
+    fn component_type(&self) -> &'static str {
         "statestore"
     }
 

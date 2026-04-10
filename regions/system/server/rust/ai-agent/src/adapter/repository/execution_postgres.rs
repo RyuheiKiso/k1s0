@@ -9,14 +9,15 @@ use sqlx::PgPool;
 use crate::domain::entity::{Execution, ExecutionStatus, ExecutionStep};
 use crate::domain::repository::ExecutionRepository;
 
-/// ExecutionPostgresRepository はPostgreSQLベースの実行リポジトリ実装
+/// `ExecutionPostgresRepository` `はPostgreSQLベースの実行リポジトリ実装`
 pub struct ExecutionPostgresRepository {
     /// データベースコネクションプール
     pool: Arc<PgPool>,
 }
 
 impl ExecutionPostgresRepository {
-    /// 新しいExecutionPostgresRepositoryを生成する
+    /// `新しいExecutionPostgresRepositoryを生成する`
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -33,7 +34,7 @@ impl ExecutionRepository for ExecutionPostgresRepository {
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     /// 実行をUPSERTで保存する
@@ -69,7 +70,7 @@ impl ExecutionRepository for ExecutionPostgresRepository {
         .fetch_all(self.pool.as_ref())
         .await?;
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 }
 
@@ -90,9 +91,8 @@ struct ExecutionRow {
 
 impl From<ExecutionRow> for Execution {
     fn from(row: ExecutionRow) -> Self {
-        // ステータス文字列をEnumに変換する
+        // HIGH-001 監査対応: ステータス文字列をEnumに変換する（同一ボディのアームをORで結合）
         let status = match row.status.as_str() {
-            "pending" => ExecutionStatus::Pending,
             "running" => ExecutionStatus::Running,
             "completed" => ExecutionStatus::Completed,
             "failed" => ExecutionStatus::Failed,

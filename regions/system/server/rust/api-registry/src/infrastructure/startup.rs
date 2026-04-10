@@ -20,6 +20,8 @@ use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository}
 use crate::proto::k1s0::system::apiregistry::v1::api_registry_service_server::ApiRegistryServiceServer;
 use crate::usecase;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -42,7 +44,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -186,11 +188,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for api-registry");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -252,7 +250,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     // gRPC server
     let grpc_port = cfg.server.grpc_port;
-    let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
+    let grpc_addr: SocketAddr = format!("0.0.0.0:{grpc_port}").parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
@@ -266,7 +264,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server

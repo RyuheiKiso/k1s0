@@ -3,9 +3,12 @@ use std::sync::Arc;
 use crate::domain::entity::notification_template::NotificationTemplate;
 use crate::domain::repository::NotificationTemplateRepository;
 
+/// テンプレート更新の入力パラメータ。tenant_id でテナント分離を強制する。
 #[derive(Debug, Clone)]
 pub struct UpdateTemplateInput {
     pub id: String,
+    /// RLS テナント分離に使用するテナント識別子
+    pub tenant_id: String,
     pub name: Option<String>,
     pub subject_template: Option<String>,
     pub body_template: Option<String>,
@@ -33,9 +36,10 @@ impl UpdateTemplateUseCase {
         &self,
         input: &UpdateTemplateInput,
     ) -> Result<NotificationTemplate, UpdateTemplateError> {
+        // テナントスコープで既存テンプレートを取得する
         let mut template = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.id, &input.tenant_id)
             .await
             .map_err(|e| UpdateTemplateError::Internal(e.to_string()))?
             .ok_or_else(|| UpdateTemplateError::NotFound(input.id.clone()))?;
@@ -70,6 +74,7 @@ mod tests {
     async fn success() {
         let mut mock = MockNotificationTemplateRepository::new();
         let template = NotificationTemplate::new(
+            "tenant_a".to_string(),
             "welcome".to_string(),
             "email".to_string(),
             Some("Welcome".to_string()),
@@ -81,14 +86,15 @@ mod tests {
         mock.expect_find_by_id()
             .withf({
                 let template_id = template_id.clone();
-                move |id| id == template_id.as_str()
+                move |id, _tenant_id| id == template_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_template.clone())));
+            .returning(move |_, _| Ok(Some(return_template.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateTemplateUseCase::new(Arc::new(mock));
         let input = UpdateTemplateInput {
             id: template_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             name: Some("updated-welcome".to_string()),
             subject_template: None,
             body_template: Some("Updated body".to_string()),
@@ -104,11 +110,12 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockNotificationTemplateRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateTemplateUseCase::new(Arc::new(mock));
         let input = UpdateTemplateInput {
             id: "tpl_missing".to_string(),
+            tenant_id: "tenant_a".to_string(),
             name: None,
             subject_template: None,
             body_template: None,

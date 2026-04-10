@@ -5,10 +5,15 @@ use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::{AccessLogRepository, SecretStore};
 use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublisher};
 
+/// MED-011 対応: `tenant_id` をアクセスログに記録するために追加。
+/// Vault シークレットストア自体はキーパス規約（{service}/{tenant}/key）でテナント分離するが
+/// アクセスログのテナント属性は JWT Claims から取得する必要がある（ADR-0056 フェーズ3）。
 #[derive(Debug, Clone)]
 pub struct SetSecretInput {
     pub path: String,
     pub data: HashMap<String, String>,
+    /// gRPC 層で Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -47,7 +52,10 @@ impl SetSecretUseCase {
 
         match result {
             Ok(version) => {
-                let log = SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, true);
+                // MED-011 対応: アクセスログに tenant_id を設定する。
+                let mut log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, true);
+                log.tenant_id = input.tenant_id.clone();
                 let _ = self.audit.record(&log).await;
                 let _ = self
                     .event_publisher
@@ -71,8 +79,7 @@ impl SetSecretUseCase {
                     .map(|sv| sv.created_at)
                     .ok_or_else(|| {
                         SetSecretError::Internal(format!(
-                            "failed to resolve created_at for version {}",
-                            version
+                            "failed to resolve created_at for version {version}"
                         ))
                     })?;
 
@@ -82,8 +89,10 @@ impl SetSecretUseCase {
                 })
             }
             Err(e) => {
+                // MED-011 対応: エラー時のアクセスログにも tenant_id を設定する。
                 let mut log =
                     SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, false);
+                log.tenant_id = input.tenant_id.clone();
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
                 let _ = self
@@ -144,6 +153,7 @@ mod tests {
         let input = SetSecretInput {
             path: "app/db/password".to_string(),
             data: HashMap::from([("password".to_string(), "s3cret".to_string())]),
+            tenant_id: Some("test-tenant".to_string()),
         };
 
         let result = uc.execute(&input).await;
@@ -170,6 +180,7 @@ mod tests {
         let input = SetSecretInput {
             path: "app/db/password".to_string(),
             data: HashMap::from([("password".to_string(), "s3cret".to_string())]),
+            tenant_id: None,
         };
 
         let result = uc.execute(&input).await;

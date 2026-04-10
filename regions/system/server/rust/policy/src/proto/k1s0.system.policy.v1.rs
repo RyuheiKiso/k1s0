@@ -178,7 +178,7 @@ pub mod policy_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with PolicyServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `PolicyServiceServer`.
     #[async_trait]
     pub trait PolicyService: std::marker::Send + std::marker::Sync + 'static {
         async fn evaluate_policy(

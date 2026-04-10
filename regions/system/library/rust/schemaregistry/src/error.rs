@@ -1,4 +1,4 @@
-/// SchemaRegistryError は Schema Registry 操作に関するエラーを表す。
+/// `SchemaRegistryError` は Schema Registry 操作に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum SchemaRegistryError {
     /// HTTP リクエストが失敗した。

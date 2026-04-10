@@ -10,40 +10,40 @@ use tracing::{debug, instrument};
 use crate::adapter::middleware::auth_middleware::Claims;
 
 /// LOW-014 監査対応: JWT 検証エラーを種別ごとに区別する型付きエラー。
-/// auth_middleware.rs がこの型でマッチし、クライアントに適切なエラーコードを返す。
-/// - TokenExpired: 期限切れ → SYS_AUTH_TOKEN_EXPIRED
-/// - InvalidSignature: 署名不正 → SYS_AUTH_TOKEN_INVALID_SIGNATURE
-/// - InvalidIssuer/Audience: クレーム不一致 → SYS_AUTH_TOKEN_CLAIMS_INVALID
-/// - JwksFetchFailed: JWKS 取得失敗 → SYS_AUTH_JWKS_UNAVAILABLE
-/// - MalformedToken: その他の不正フォーマット → SYS_AUTH_TOKEN_MALFORMED
+/// `auth_middleware.rs` がこの型でマッチし、クライアントに適切なエラーコードを返す。
+/// - `TokenExpired`: 期限切れ → `SYS_AUTH_TOKEN_EXPIRED`
+/// - `InvalidSignature`: 署名不正 → `SYS_AUTH_TOKEN_INVALID_SIGNATURE`
+/// - InvalidIssuer/Audience: クレーム不一致 → `SYS_AUTH_TOKEN_CLAIMS_INVALID`
+/// - `JwksFetchFailed`: JWKS 取得失敗 → `SYS_AUTH_JWKS_UNAVAILABLE`
+/// - `MalformedToken`: その他の不正フォーマット → `SYS_AUTH_TOKEN_MALFORMED`
 #[derive(Debug, thiserror::Error)]
 pub enum JwtVerifyError {
     /// トークンの有効期限が切れている（`exp` クレームが現在時刻より過去）
-    #[error("JWTトークンの有効期限が切れています")]
+    #[error("Token has expired")]
     TokenExpired,
 
     /// RSA 署名が JWKS の公開鍵と一致しない（改ざん・偽造の可能性）
-    #[error("JWT署名が無効です")]
+    #[error("Invalid JWT signature")]
     InvalidSignature,
 
     /// `iss` クレームが設定値と不一致
-    #[error("JWTのissuerが無効です")]
+    #[error("Invalid JWT issuer")]
     InvalidIssuer,
 
     /// `aud` クレームが設定値と不一致
-    #[error("JWTのaudienceが無効です")]
+    #[error("Invalid JWT audience")]
     InvalidAudience,
 
     /// JWKS エンドポイントへの接続・取得に失敗（認証サービスの一時障害等）
-    #[error("JWKSフェッチ失敗: {0}")]
+    #[error("JWKS fetch failed: {0}")]
     JwksFetchFailed(String),
 
     /// ヘッダー/クレームのデコード失敗・鍵不一致等、上記以外のトークン不正
-    #[error("JWT形式が不正です: {0}")]
+    #[error("Malformed JWT: {0}")]
     MalformedToken(String),
 }
 
-/// JwksVerifier は JWKS エンドポイントから公開鍵を取得し、JWT の署名を検証する。
+/// `JwksVerifier` は JWKS エンドポイントから公開鍵を取得し、JWT の署名を検証する。
 /// 公開鍵は内部にキャッシュし、TTL 経過後に再取得する。
 /// issuer/audience が設定されている場合は JWT のクレームを検証し、不一致時はエラーを返す。
 pub struct JwksVerifier {
@@ -78,8 +78,8 @@ struct Jwk {
 }
 
 impl JwksVerifier {
-    /// 新しい JwksVerifier を生成する。
-    /// issuer/audience は AuthConfig から取得し、設定値がある場合のみ JWT クレームを検証する。
+    /// 新しい `JwksVerifier` を生成する。
+    /// issuer/audience は `AuthConfig` から取得し、設定値がある場合のみ JWT クレームを検証する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(jwks_url: String) -> anyhow::Result<Self> {
         // HTTPクライアントを構築する（タイムアウト10秒）
@@ -87,7 +87,7 @@ impl JwksVerifier {
         let http_client = Client::builder()
             .timeout(Duration::from_secs(10))
             .build()
-            .map_err(|e| anyhow::anyhow!("HTTPクライアントの構築に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("HTTPクライアントの構築に失敗: {e}"))?;
         Ok(Self {
             jwks_url,
             http_client,
@@ -99,15 +99,17 @@ impl JwksVerifier {
     }
 
     /// JWKS キャッシュの TTL を設定する。
-    /// config の cache_ttl_secs を渡すことで、設定ファイルの値をキャッシュ有効期限に反映する。
+    /// config の `cache_ttl_secs` を渡すことで、設定ファイルの値をキャッシュ有効期限に反映する。
     /// デフォルト値は 600 秒（10 分）。
+    #[must_use]
     pub fn with_cache_ttl(mut self, ttl_secs: u64) -> Self {
         self.cache_ttl = Duration::from_secs(ttl_secs);
         self
     }
 
     /// issuer/audience 検証を設定する。
-    /// AuthConfig の値を渡すことで JWT クレームの厳密な検証が有効になる。
+    /// `AuthConfig` の値を渡すことで JWT クレームの厳密な検証が有効になる。
+    #[must_use]
     pub fn with_issuer_audience(
         mut self,
         issuer: Option<String>,
@@ -128,7 +130,7 @@ impl JwksVerifier {
         let keys = self.get_jwks().await?;
 
         let header = decode_header(token)
-            .map_err(|e| JwtVerifyError::MalformedToken(format!("invalid JWT header: {}", e)))?;
+            .map_err(|e| JwtVerifyError::MalformedToken(format!("invalid JWT header: {e}")))?;
 
         // kid でマッチする鍵を選択。kid が無い場合は最初の RSA 鍵を使用
         let jwk = match &header.kid {
@@ -147,7 +149,7 @@ impl JwksVerifier {
             .ok_or_else(|| JwtVerifyError::MalformedToken("JWK missing 'e'".to_string()))?;
 
         let decoding_key = DecodingKey::from_rsa_components(n, e)
-            .map_err(|e| JwtVerifyError::MalformedToken(format!("invalid RSA key: {}", e)))?;
+            .map_err(|e| JwtVerifyError::MalformedToken(format!("invalid RSA key: {e}")))?;
 
         let mut validation = Validation::new(Algorithm::RS256);
         validation.validate_exp = true;
@@ -185,7 +187,7 @@ impl JwksVerifier {
                     JwtVerifyError::MalformedToken("JWT not yet valid (nbf)".to_string())
                 }
                 // その他（デコードエラー、鍵長不正等）
-                _ => JwtVerifyError::MalformedToken(format!("JWT verification failed: {}", e)),
+                _ => JwtVerifyError::MalformedToken(format!("JWT verification failed: {e}")),
             }
         })?;
 

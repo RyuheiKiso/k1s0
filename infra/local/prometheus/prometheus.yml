@@ -1,5 +1,10 @@
 # Prometheus scrape configuration for local development
-# docker-compose の observability プロファイルで使用
+#
+# MED-012 監査対応: このファイルは Docker を使わずに Prometheus をローカルで直接実行する
+# 場合の参照設定である（`prometheus --config.file=infra/local/prometheus/prometheus.yml`）。
+# Docker Compose (observability プロファイル) は infra/docker/prometheus/prometheus.yaml を
+# コンテナにマウントして使用するため、このファイルは docker-compose では利用されない。
+# kafka-jmx.yml は MED-012 対応で infra/docker/prometheus/ に移動された。
 #
 # LOW-003 監査対応（本番環境セキュリティ注意）:
 # このファイルはローカル開発環境専用であり認証設定が含まれていない。
@@ -15,7 +20,12 @@ global:
 
 scrape_configs:
   # Prometheus 自身のメトリクス
+  # HIGH-003 監査対応: web.yml で Basic Auth が有効化されているため、
+  # セルフスクレイプにも basic_auth を設定して 401 エラーを防止する。
   - job_name: "prometheus"
+    basic_auth:
+      username: prometheus_admin
+      password: prometheus_admin
     static_configs:
       - targets: ["localhost:9090"]
 
@@ -43,9 +53,11 @@ scrape_configs:
   #     - targets: ["redis-exporter:9121"]
 
   # BFF プロキシ（system 層）のメトリクス
+  # MED-001 監査対応: bff-proxy は /metrics を公開ポート(8080)ではなく
+  # 内部ポート(9090)で提供する（HIGH-GO-001 対応済み）。
   - job_name: "bff-proxy"
     static_configs:
-      - targets: ["bff-proxy:8080"]
+      - targets: ["bff-proxy:9090"]
     metrics_path: /metrics
 
   # GraphQL ゲートウェイ（system 層）のメトリクス

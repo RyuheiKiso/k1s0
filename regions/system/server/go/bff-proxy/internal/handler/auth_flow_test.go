@@ -27,6 +27,8 @@ type mockOAuthClient struct {
 	authCodeURLFn         func(state, codeChallenge string) (string, error)
 	exchangeCodeFn        func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
 	extractClaimsFn       func(ctx context.Context, idToken string) (string, []string, error)
+	// extractFullClaimsFn は ExtractFullClaims の振る舞いを定義する（CRIT-002 監査対応）。
+	extractFullClaimsFn   func(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error)
 	logoutURLFn           func(idTokenHint, postLogoutRedirectURI string) (string, error)
 	discoveryCacheCleared bool
 }
@@ -51,6 +53,19 @@ func (m *mockOAuthClient) LogoutURL(idTokenHint, postLogoutRedirectURI string) (
 	return m.logoutURLFn(idTokenHint, postLogoutRedirectURI)
 }
 
+// ExtractFullClaims は JWKS 署名検証済み ID トークンから IDTokenClaims 全体を返すモック実装。
+// CRIT-002 監査対応: AuthOAuthClient インターフェースの ExtractFullClaims メソッドを実装する。
+func (m *mockOAuthClient) ExtractFullClaims(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error) {
+	if m.extractFullClaimsFn != nil {
+		return m.extractFullClaimsFn(ctx, idToken)
+	}
+	return &oauth.IDTokenClaims{
+		Subject:  "default-subject",
+		Roles:    []string{"user"},
+		TenantID: "default-tenant",
+	}, nil
+}
+
 // ClearDiscoveryCache は OIDC discovery キャッシュクリアのモック実装。
 // 呼び出されたことを記録する。
 func (m *mockOAuthClient) ClearDiscoveryCache() {
@@ -60,7 +75,7 @@ func (m *mockOAuthClient) ClearDiscoveryCache() {
 // mockSessionStore は session.Store と session.ExchangeCodeStore の両インターフェースのテスト用モック。
 // インメモリの map でセッションおよび交換コードを管理する（H-5 監査対応）。
 type mockSessionStore struct {
-	sessions      map[string]*session.SessionData
+	sessions      map[string]*session.Data
 	exchangeCodes map[string]*session.ExchangeCodeData
 	counter       int
 	ecCounter     int
@@ -69,13 +84,13 @@ type mockSessionStore struct {
 // newMockSessionStore はテスト用のセッションストアを生成する。
 func newMockSessionStore() *mockSessionStore {
 	return &mockSessionStore{
-		sessions:      make(map[string]*session.SessionData),
+		sessions:      make(map[string]*session.Data),
 		exchangeCodes: make(map[string]*session.ExchangeCodeData),
 	}
 }
 
 // Create はセッションデータを保存し、連番の ID を返す。
-func (m *mockSessionStore) Create(_ context.Context, data *session.SessionData, _ time.Duration) (string, error) {
+func (m *mockSessionStore) Create(_ context.Context, data *session.Data, _ time.Duration) (string, error) {
 	m.counter++
 	id := fmt.Sprintf("test-session-id-%d", m.counter)
 	m.sessions[id] = data
@@ -83,7 +98,7 @@ func (m *mockSessionStore) Create(_ context.Context, data *session.SessionData, 
 }
 
 // Get は指定 ID のセッションデータを取得する。
-func (m *mockSessionStore) Get(_ context.Context, id string) (*session.SessionData, error) {
+func (m *mockSessionStore) Get(_ context.Context, id string) (*session.Data, error) {
 	if s, ok := m.sessions[id]; ok {
 		return s, nil
 	}
@@ -91,7 +106,7 @@ func (m *mockSessionStore) Get(_ context.Context, id string) (*session.SessionDa
 }
 
 // Update は指定 ID のセッションデータを更新する。
-func (m *mockSessionStore) Update(_ context.Context, id string, data *session.SessionData, _ time.Duration) error {
+func (m *mockSessionStore) Update(_ context.Context, id string, data *session.Data, _ time.Duration) error {
 	m.sessions[id] = data
 	return nil
 }
@@ -137,17 +152,17 @@ type errOnCreateSessionStore struct {
 }
 
 // Create は常にエラーを返してセッション保存失敗をシミュレートする。
-func (m *errOnCreateSessionStore) Create(_ context.Context, _ *session.SessionData, _ time.Duration) (string, error) {
+func (m *errOnCreateSessionStore) Create(_ context.Context, _ *session.Data, _ time.Duration) (string, error) {
 	return "", m.err
 }
 
 // Get は常に nil を返す（テストで呼ばれることはないが Store インターフェースを満たすために実装する）。
-func (m *errOnCreateSessionStore) Get(_ context.Context, _ string) (*session.SessionData, error) {
+func (m *errOnCreateSessionStore) Get(_ context.Context, _ string) (*session.Data, error) {
 	return nil, nil
 }
 
 // Update はセッション更新の空実装（テストで呼ばれることはない）。
-func (m *errOnCreateSessionStore) Update(_ context.Context, _ string, _ *session.SessionData, _ time.Duration) error {
+func (m *errOnCreateSessionStore) Update(_ context.Context, _ string, _ *session.Data, _ time.Duration) error {
 	return nil
 }
 
@@ -350,7 +365,7 @@ func TestLogout_WithSession(t *testing.T) {
 
 	store := newMockSessionStore()
 	// セッションを事前に作成
-	store.sessions["existing-session"] = &session.SessionData{
+	store.sessions["existing-session"] = &session.Data{
 		AccessToken: "access-token",
 		IDToken:     "id-token-for-logout",
 		Subject:     "user-001",
@@ -400,11 +415,13 @@ func TestSession_Valid(t *testing.T) {
 	mock := &mockOAuthClient{}
 	store := newMockSessionStore()
 	// 有効なセッションを事前に作成する
-	store.sessions["valid-session"] = &session.SessionData{
-		AccessToken: "access-token-123",
-		Subject:     "user-sub-001",
-		CSRFToken:   "csrf-token-abc",
-		ExpiresAt:   time.Now().Add(1 * time.Hour).Unix(),
+	store.sessions["valid-session"] = &session.Data{
+		AccessToken:        "access-token-123",
+		Subject:            "user-sub-001",
+		CSRFToken:          "csrf-token-abc",
+		// MED-001 監査対応: CSRFTokenCreatedAt=0 だと TTL 超過で再生成される。現在時刻を設定して防ぐ。
+		CSRFTokenCreatedAt: time.Now().Unix(),
+		ExpiresAt:          time.Now().Add(1 * time.Hour).Unix(),
 	}
 
 	h := newTestAuthHandler(mock, store)
@@ -475,7 +492,7 @@ func TestSession_Expired(t *testing.T) {
 	mock := &mockOAuthClient{}
 	store := newMockSessionStore()
 	// 期限切れのセッションを事前に作成する
-	store.sessions["expired-session"] = &session.SessionData{
+	store.sessions["expired-session"] = &session.Data{
 		AccessToken: "access-token-expired",
 		Subject:     "user-sub-002",
 		CSRFToken:   "csrf-token-xyz",
@@ -675,7 +692,7 @@ func TestExchange_Valid(t *testing.T) {
 	store := newMockSessionStore()
 
 	// 実セッションを事前作成する
-	store.sessions["real-session-id"] = &session.SessionData{
+	store.sessions["real-session-id"] = &session.Data{
 		AccessToken: "access-token-real",
 		Subject:     "user-sub-exchange",
 		CSRFToken:   "csrf-exchange-123",
@@ -835,9 +852,10 @@ func TestCallback_IDTokenInvalid(t *testing.T) {
 				ExpiresIn:    3600,
 			}, nil
 		},
-		// ExtractClaims は ID トークンの署名検証失敗をシミュレートする
-		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
-			return "", nil, errors.New("jwks: signature verification failed")
+		// ExtractFullClaims は ID トークンの署名検証失敗をシミュレートする
+		// CRIT-002 監査対応: Callback ユースケースが ExtractFullClaims を使用するため extractFullClaimsFn を設定する
+		extractFullClaimsFn: func(_ context.Context, idToken string) (*oauth.IDTokenClaims, error) {
+			return nil, errors.New("jwks: signature verification failed")
 		},
 	}
 

@@ -8,20 +8,27 @@ pub struct EvaluationContext {
 }
 
 impl EvaluationContext {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// ユーザー ID を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_user_id(mut self, user_id: impl Into<String>) -> Self {
         self.user_id = Some(user_id.into());
         self
     }
 
+    /// テナント ID を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_tenant_id(mut self, tenant_id: impl Into<String>) -> Self {
         self.tenant_id = Some(tenant_id.into());
         self
     }
 
+    /// 任意の属性を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_attribute(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.attributes.insert(key.into(), value.into());
         self

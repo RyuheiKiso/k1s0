@@ -34,7 +34,7 @@ pub struct EmbedResponse {
 }
 
 /// LLMクライアント。
-/// OpenAI互換APIへのHTTPリクエストを管理する。
+/// `OpenAI互換APIへのHTTPリクエストを管理する`。
 pub struct LlmClient {
     /// HTTPクライアント
     client: reqwest::Client,
@@ -47,6 +47,11 @@ pub struct LlmClient {
 impl LlmClient {
     /// 新しいLLMクライアントを生成する。
     /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
+    ///
+    /// # Panics
+    ///
+    /// TLSの初期化に失敗した場合にパニックする。
+    #[must_use]
     pub fn new(base_url: String, api_key: String) -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -60,7 +65,7 @@ impl LlmClient {
     }
 
     /// テキスト補完リクエストを送信する。
-    /// OpenAI互換の /chat/completions エンドポイントを呼び出す。
+    /// `OpenAI互換の` /chat/completions エンドポイントを呼び出す。
     pub async fn complete(
         &self,
         model: &str,
@@ -89,7 +94,7 @@ impl LlmClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("LLM API error: status={}, body={}", status, body);
+            anyhow::bail!("LLM API error: status={status}, body={body}");
         }
 
         let body: OpenAiChatResponse = response.json().await?;
@@ -108,7 +113,7 @@ impl LlmClient {
     }
 
     /// エンベディングリクエストを送信する。
-    /// OpenAI互換の /embeddings エンドポイントを呼び出す。
+    /// `OpenAI互換の` /embeddings エンドポイントを呼び出す。
     pub async fn embed(&self, model: &str, inputs: &[String]) -> anyhow::Result<EmbedResponse> {
         let url = format!("{}/embeddings", self.base_url);
 
@@ -131,7 +136,7 @@ impl LlmClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("LLM API error: status={}, body={}", status, body);
+            anyhow::bail!("LLM API error: status={status}, body={body}");
         }
 
         let body: OpenAiEmbeddingResponse = response.json().await?;
@@ -144,39 +149,39 @@ impl LlmClient {
 
 // --- OpenAI互換APIレスポンス構造体 ---
 
-/// OpenAI Chat Completionレスポンス
+/// `OpenAI` Chat Completionレスポンス
 #[derive(Debug, Deserialize)]
 struct OpenAiChatResponse {
     choices: Vec<OpenAiChoice>,
     usage: OpenAiUsage,
 }
 
-/// OpenAI選択肢
+/// `OpenAI選択肢`
 #[derive(Debug, Deserialize)]
 struct OpenAiChoice {
     message: OpenAiMessage,
 }
 
-/// OpenAIメッセージ
+/// `OpenAIメッセージ`
 #[derive(Debug, Deserialize)]
 struct OpenAiMessage {
     content: String,
 }
 
-/// OpenAI使用量
+/// `OpenAI使用量`
 #[derive(Debug, Deserialize)]
 struct OpenAiUsage {
     prompt_tokens: i32,
     completion_tokens: i32,
 }
 
-/// OpenAI Embeddingレスポンス
+/// `OpenAI` Embeddingレスポンス
 #[derive(Debug, Deserialize)]
 struct OpenAiEmbeddingResponse {
     data: Vec<OpenAiEmbeddingData>,
 }
 
-/// OpenAI Embeddingデータ
+/// `OpenAI` Embeddingデータ
 #[derive(Debug, Deserialize)]
 struct OpenAiEmbeddingData {
     embedding: Vec<f32>,

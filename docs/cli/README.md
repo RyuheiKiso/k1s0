@@ -30,7 +30,7 @@ cargo install --path CLI/crates/k1s0-cli
 | `k1s0 migrate` | 必須 | 対話的確認ステップがあるため TTY が必要 |
 | `k1s0 doctor` | 不要 | `scripts/doctor.sh` を直接実行するため非TTY で動作可能 |
 | `k1s0 validate` | 必須 | M-025 監査対応: `select_prompt` を使用するため非インタラクティブモードでは実行不可（TTY 必須） |
-| `k1s0 deps` | 不要 | JSON 出力モードあり、CI での使用可能 |
+| `k1s0 deps` | 必須 | 対話的フローのため TTY が必要。非TTY 環境では `select_prompt` エラーとなる。将来的に `--scope=all --output=mermaid` フラグ対応を予定 |
 
 TTY が割り当てられていない環境（CI/CD 等）でインタラクティブコマンドを実行すると、
 `K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません` エラーが返される。
@@ -75,6 +75,17 @@ k1s0 doctor
 export K1S0_ROOT=/path/to/k1s0
 k1s0 doctor
 ```
+
+### Windows 対応（HIGH-003 監査対応）
+
+Windows 環境では `canonicalize()` が返すパスに `\\?\` プレフィックスやバックスラッシュが含まれるため、
+そのまま bash に渡すとスクリプトの実行に失敗する。`to_bash_path()` 関数により以下の変換を行う:
+
+- `\\?\` プレフィックスを除去
+- ドライブレター変換: `C:\work\...` → `/c/work/...`
+- バックスラッシュをスラッシュに置換
+
+Git Bash / MSYS2 / WSL いずれの環境でも動作する。
 
 ### 現在の制限事項（MED-10 監査対応）
 

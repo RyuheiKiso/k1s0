@@ -103,6 +103,25 @@ CREATE INDEX IF NOT EXISTS idx_search_documents_content ON search.search_documen
 | `002_create_search_indices.down.sql` | テーブル削除 |
 | `003_create_search_documents.up.sql` | search_documents テーブル・search_vector トリガー作成 |
 | `003_create_search_documents.down.sql` | テーブル削除 |
+| `004_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id VARCHAR(255) NOT NULL` と RLS ポリシー追加 |
+| `005_alter_tenant_id_to_text.up.sql` | `tenant_id` を TEXT 型に変更、UNIQUE(name) → UNIQUE(tenant_id, name)、AS RESTRICTIVE + WITH CHECK 追加（CRITICAL-DB-002 + HIGH-DB-007 対応） |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-002 / HIGH-DB-007）
+
+`search_indices` / `search_documents` の `tenant_id` を TEXT 型に統一（migration 005）。
+
+- `search_indices`: UNIQUE(name) を UNIQUE(tenant_id, name) に変更
+
+```sql
+ALTER TABLE search.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE search.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON search.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

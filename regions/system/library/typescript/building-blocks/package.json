@@ -19,7 +19,10 @@
     "vitest": "^4.1.0"
   },
   "overrides": {
-    "rollup": ">=4.59.0"
+    "rollup": ">=4.59.0",
+    "picomatch": ">=4.0.2",
+    "brace-expansion": ">=2.0.1",
+    "lodash": ">=4.17.21"
   },
   "exports": {
     ".": {

@@ -4,7 +4,7 @@ use aes_gcm::aead::rand_core::RngCore;
 use aes_gcm::aead::{Aead, KeyInit, OsRng, Payload};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 
-/// MasterKey は vault の暗号化/復号化に使用するマスター鍵を保持する。
+/// `MasterKey` は vault の暗号化/復号化に使用するマスター鍵を保持する。
 /// AES-256-GCM を使用し、各暗号化操作で一意の 12 バイト nonce を生成する。
 #[derive(Debug)]
 pub struct MasterKey {
@@ -16,27 +16,26 @@ impl MasterKey {
     /// 本番環境ではゼロ鍵での起動を拒否する。
     pub fn from_env() -> anyhow::Result<Self> {
         let environment = std::env::var("APP_ENVIRONMENT").unwrap_or_default();
-        let key_hex = match std::env::var("VAULT_MASTER_KEY") {
-            Ok(key) => key,
-            Err(_) => {
-                // 本番・ステージング環境では VAULT_MASTER_KEY が必須
-                // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
-                let env_lower = environment.to_lowercase();
-                if env_lower == "production" || env_lower == "staging" {
-                    return Err(anyhow::anyhow!(
-                        "VAULT_MASTER_KEY 環境変数は本番・ステージング環境では必須です"
-                    ));
-                }
-                // 開発環境: 起動ごとにランダムな鍵を生成（再起動でデータ復号不可になる点に注意）
-                // ゼロ鍵は既知の弱い鍵であるため使用しない
-                tracing::warn!(
-                    "VAULT_MASTER_KEY が設定されていません。開発環境用にランダム鍵を生成します（再起動で暗号化データが失われます）"
-                );
-                let mut key_bytes = [0u8; 32];
-                // aes_gcm クレートが依存する rand_core の OsRng で安全な乱数を生成する
-                OsRng.fill_bytes(&mut key_bytes);
-                hex::encode(key_bytes)
+        let key_hex = if let Ok(key) = std::env::var("VAULT_MASTER_KEY") {
+            key
+        } else {
+            // 本番・ステージング環境では VAULT_MASTER_KEY が必須
+            // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
+            let env_lower = environment.to_lowercase();
+            if env_lower == "production" || env_lower == "staging" {
+                return Err(anyhow::anyhow!(
+                    "VAULT_MASTER_KEY 環境変数は本番・ステージング環境では必須です"
+                ));
             }
+            // 開発環境: 起動ごとにランダムな鍵を生成（再起動でデータ復号不可になる点に注意）
+            // ゼロ鍵は既知の弱い鍵であるため使用しない
+            tracing::warn!(
+                "VAULT_MASTER_KEY が設定されていません。開発環境用にランダム鍵を生成します（再起動で暗号化データが失われます）"
+            );
+            let mut key_bytes = [0u8; 32];
+            // aes_gcm クレートが依存する rand_core の OsRng で安全な乱数を生成する
+            OsRng.fill_bytes(&mut key_bytes);
+            hex::encode(key_bytes)
         };
         let key_bytes = hex::decode(&key_hex)?;
         if key_bytes.len() != 32 {
@@ -59,8 +58,14 @@ impl MasterKey {
         let nonce = Nonce::from_slice(&nonce_bytes);
         // CRIT-003 監査対応: AAD を Payload に含めて暗号化し、認証タグがコンテキストを保証する
         let ciphertext = cipher
-            .encrypt(nonce, Payload { msg: plaintext, aad })
-            .map_err(|e| anyhow::anyhow!("encryption failed: {}", e))?;
+            .encrypt(
+                nonce,
+                Payload {
+                    msg: plaintext,
+                    aad,
+                },
+            )
+            .map_err(|e| anyhow::anyhow!("encryption failed: {e}"))?;
         Ok((ciphertext, nonce_bytes.to_vec()))
     }
 
@@ -73,26 +78,14 @@ impl MasterKey {
         let nonce = Nonce::from_slice(nonce);
         // CRIT-003 監査対応: AAD を Payload に含めて復号することでコンテキスト認証を実施する
         cipher
-            .decrypt(nonce, Payload { msg: ciphertext, aad })
-            .map_err(|e| anyhow::anyhow!("decryption failed: {}", e))
-    }
-
-    /// 暗号文と nonce から平文データを復号化する（レガシーフォールバック付き）。
-    /// CRIT-003 Phase A: AAD あり（新形式）で復号を試み、失敗した場合は
-    /// AAD なし（旧形式）でフォールバックして後方互換性を確保する。
-    /// Phase B（全データを新形式で再暗号化完了後）にこの関数を削除して decrypt に統一すること。
-    pub fn decrypt_with_legacy_fallback(
-        &self,
-        ciphertext: &[u8],
-        nonce: &[u8],
-        aad: &[u8],
-    ) -> anyhow::Result<Vec<u8>> {
-        // まず新形式（AAD あり）で復号を試みる
-        self.decrypt(ciphertext, nonce, aad).or_else(|_| {
-            // CRIT-003 Phase A: 旧形式（AAD なし）のデータへのフォールバック
-            // このパスが実行される場合は Phase B（バッチ再暗号化）が未完了
-            self.decrypt(ciphertext, nonce, b"")
-        })
+            .decrypt(
+                nonce,
+                Payload {
+                    msg: ciphertext,
+                    aad,
+                },
+            )
+            .map_err(|e| anyhow::anyhow!("decryption failed: {e}"))
     }
 }
 
@@ -185,35 +178,6 @@ mod tests {
 
         // 異なる AAD では復号が失敗することを確認する（認証タグ検証失敗）
         assert!(master.decrypt(&ciphertext, &nonce, wrong_aad).is_err());
-    }
-
-    /// CRIT-003 Phase A: レガシーフォールバックにより旧形式（AAD なし）データを復号できることを確認する。
-    /// 旧形式データに新形式 AAD を指定しても decrypt_with_legacy_fallback が内部でリトライする。
-    #[test]
-    fn test_legacy_fallback_decrypts_old_format() {
-        let master = make_test_key();
-        let plaintext = b"legacy encrypted secret";
-        // 旧形式: AAD なし（空バイト列）で暗号化する
-        let (ciphertext, nonce) = master.encrypt(plaintext, b"").unwrap();
-        // 新形式 AAD を指定してもフォールバックで復号できることを確認する
-        let decrypted = master
-            .decrypt_with_legacy_fallback(&ciphertext, &nonce, b"vault/my-service/db-password")
-            .unwrap();
-        assert_eq!(decrypted, plaintext);
-    }
-
-    /// CRIT-003 Phase A: 新形式（AAD あり）で暗号化されたデータは
-    /// decrypt_with_legacy_fallback が最初の試行で正常に復号することを確認する。
-    #[test]
-    fn test_legacy_fallback_decrypts_new_format_with_correct_aad() {
-        let master = make_test_key();
-        let plaintext = b"new format encrypted secret";
-        let aad = b"vault/my-service/db-password";
-        let (ciphertext, nonce) = master.encrypt(plaintext, aad).unwrap();
-        let decrypted = master
-            .decrypt_with_legacy_fallback(&ciphertext, &nonce, aad)
-            .unwrap();
-        assert_eq!(decrypted, plaintext);
     }
 
     #[test]

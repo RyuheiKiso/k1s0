@@ -7,8 +7,14 @@ rule_files:
   - /etc/prometheus/alerting_rules.yaml
 
 scrape_configs:
-  # Prometheus 自身
+  # Prometheus 自身のメトリクス
+  # HIGH-003 監査対応: web.yml で Basic Auth が有効化されているため、
+  # セルフスクレイプにも basic_auth を設定して 401 エラーを防止する。
+  # MEDIUM-003 対応: ハードコードパスワードを廃止。docker-compose.yaml のシークレット/volume でパスワードファイルをマウントする
   - job_name: prometheus
+    basic_auth:
+      username: prometheus_admin
+      password_file: /run/secrets/prometheus_admin_password
     static_configs:
       - targets: ["localhost:9090"]
 
@@ -53,9 +59,11 @@ scrape_configs:
     metrics_path: /metrics
 
   # bff-proxy (Go)
+  # MED-001 監査対応: bff-proxy は /metrics を公開ポート(8080)ではなく
+  # 内部ポート(9090)で提供する（HIGH-GO-001 対応済み）。Prometheus はポート 9090 をスクレイプすること。
   - job_name: bff-proxy-go
     static_configs:
-      - targets: ["bff-proxy:8080"]
+      - targets: ["bff-proxy:9090"]
         labels:
           service: bff-proxy
           tier: system
@@ -320,6 +328,24 @@ scrape_configs:
       - targets: ["kong:8100"]
     metrics_path: /metrics
 
+  # PostgreSQL エクスポーター（各DBのメトリクス収集）
+  # HIGH-012 監査対応: postgres-exporter サービスから DB 接続数・クエリ統計等を収集する
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: postgres
+          tier: infra
+
+  # Redis エクスポーター（キャッシュ・セッション用 Redis のメトリクス収集）
+  # HIGH-012 監査対応: redis-exporter サービスからメモリ使用量・コマンド統計等を収集する
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: redis
+          tier: infra
+
   # Kafka メトリクス（JMX Exporter 経由）
   # LOW-002 監査対応: Kafka ブローカーポート 9092 ではなく JMX Exporter の HTTP ポート 9101 を使用する。
   # kafka-jmx-exporter サービスが Kafka の JMX ポート 9999 に接続してメトリクスを収集・変換する。
@@ -329,4 +355,28 @@ scrape_configs:
         labels:
           service: kafka
           tier: infra
+    metrics_path: /metrics
+
+  # HashiCorp Vault インフラのメトリクス収集 (HIGH-INFRA-005 監査対応)
+  # /v1/sys/metrics エンドポイントから Prometheus 形式でメトリクスを取得する
+  # telemetry.prometheus_retention_time を Vault 設定で有効化する必要がある
+  - job_name: hashicorp-vault
+    metrics_path: /v1/sys/metrics
+    params:
+      format: ['prometheus']
+    static_configs:
+      - targets: ['vault:8200']
+        labels:
+          service: hashicorp-vault
+          tier: infra
+
+  # AI ゲートウェイ・エージェントのメトリクス収集 (HIGH-INFRA-006 監査対応)
+  # experimental-ai プロファイルで起動している場合のみ有効
+  # ai-gateway-rust と ai-agent-rust は REST ポート 8080 で /metrics を公開する
+  - job_name: ai-services
+    static_configs:
+      - targets: ['ai-gateway-rust:8080', 'ai-agent-rust:8080']
+        labels:
+          tier: system
+          lang: rust
     metrics_path: /metrics

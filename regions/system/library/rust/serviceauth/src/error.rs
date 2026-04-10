@@ -1,6 +1,6 @@
 //! サービス間認証エラー定義。
 
-/// ServiceAuthError はサービス間認証処理で発生するエラーを表す。
+/// `ServiceAuthError` はサービス間認証処理で発生するエラーを表す。
 #[derive(thiserror::Error, Debug)]
 pub enum ServiceAuthError {
     /// トークン取得に失敗した。

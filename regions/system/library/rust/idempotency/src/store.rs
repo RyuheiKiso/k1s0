@@ -78,6 +78,8 @@ pub struct RedisIdempotencyStore {
 }
 
 impl RedisIdempotencyStore {
+    // redis フィーチャー無効時は .await が存在しないが、有効時には存在するため allow を付与する
+    #[allow(clippy::unused_async)]
     pub async fn new(redis_url: impl Into<String>) -> Result<Self, IdempotencyError> {
         let redis_url = redis_url.into();
         if redis_url.trim().is_empty() {
@@ -367,8 +369,10 @@ pub struct PostgresIdempotencyStore {
 }
 
 impl PostgresIdempotencyStore {
-    /// 接続プールの最大接続数を指定して新しい PostgresIdempotencyStore を生成する。
-    /// max_connections が None の場合はデフォルト値 (10) を使用する。
+    /// 接続プールの最大接続数を指定して新しい `PostgresIdempotencyStore` を生成する。
+    /// `max_connections` が None の場合はデフォルト値 (10) を使用する。
+    // postgres フィーチャー無効時は .await が存在しないが、有効時には存在するため allow を付与する
+    #[allow(clippy::unused_async)]
     pub async fn new(
         database_url: impl Into<String>,
         max_connections: Option<u32>,

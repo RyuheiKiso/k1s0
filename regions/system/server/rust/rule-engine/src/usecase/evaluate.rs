@@ -8,6 +8,8 @@ use crate::domain::service::condition_parser::ConditionParser;
 
 #[derive(Debug, Clone)]
 pub struct EvaluateInput {
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加。JWT/ヘッダーから抽出したテナント ID を渡す。
+    pub tenant_id: String,
     pub rule_set: String, // "{domain}.{name}" format
     pub input: serde_json::Value,
     pub context: serde_json::Value,
@@ -93,18 +95,21 @@ impl EvaluateUseCase {
         let evaluation_id = Uuid::new_v4();
 
         // L-002 監査対応: evaluate_rules が async になったため .await が必要
-        let (matched_rules, result, default_applied) = self.evaluate_rules(
-            &rules,
-            &rule_set.evaluation_mode,
-            &input.input,
-            &rule_set.default_result,
-        ).await?;
+        let (matched_rules, result, default_applied) = self
+            .evaluate_rules(
+                &rules,
+                &rule_set.evaluation_mode,
+                &input.input,
+                &rule_set.default_result,
+            )
+            .await?;
 
         // Log evaluation (unless dry_run)
         if !input.dry_run {
             let input_hash = Self::hash_input(&input.input);
             let log = EvaluationLog {
                 id: evaluation_id,
+                tenant_id: input.tenant_id.clone(),
                 rule_set_name: input.rule_set.clone(),
                 rule_set_version: rule_set.current_version,
                 matched_rule_id: matched_rules.first().map(|m| m.id),
@@ -134,15 +139,14 @@ impl EvaluateUseCase {
         let parts: Vec<&str> = rule_set_ref.splitn(2, '.').collect();
         if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
             return Err(EvaluateError::EvaluationError(format!(
-                "rule_set must be in '{{domain}}.{{name}}' format, got: '{}'",
-                rule_set_ref
+                "rule_set must be in '{{domain}}.{{name}}' format, got: '{rule_set_ref}'"
             )));
         }
         Ok((parts[0].to_string(), parts[1].to_string()))
     }
 
     /// ルール評価ループ。ConditionEvaluator のキャッシュを再利用するためインスタンスメソッドとする
-    /// L-002 監査対応: ConditionEvaluator::evaluate が async になったため async fn にする
+    /// L-002 監査対応: `ConditionEvaluator::evaluate` が async になったため async fn にする
     async fn evaluate_rules(
         &self,
         rules: &[Rule],
@@ -199,7 +203,12 @@ impl EvaluateUseCase {
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    // format_collect: fold + write! でアロケーションを減らす
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut acc, b| {
+        write!(acc, "{b:02x}").expect("write to String never fails");
+        acc
+    })
 }
 
 mod hex {
@@ -220,6 +229,7 @@ mod tests {
 
     fn make_rule_set(mode: EvaluationMode) -> RuleSet {
         let mut rs = RuleSet::new(
+            "system".to_string(),
             "discount".to_string(),
             "Discount rules".to_string(),
             "sales".to_string(),
@@ -238,6 +248,7 @@ mod tests {
         result: serde_json::Value,
     ) -> Rule {
         Rule::new(
+            "system".to_string(),
             name.to_string(),
             "desc".to_string(),
             priority,
@@ -268,6 +279,7 @@ mod tests {
         );
         let result = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "no-dot-here".to_string(),
                 input: serde_json::json!({}),
                 context: serde_json::json!({}),
@@ -291,6 +303,7 @@ mod tests {
         );
         let result = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "sales.discount".to_string(),
                 input: serde_json::json!({}),
                 context: serde_json::json!({}),
@@ -329,6 +342,7 @@ mod tests {
         let uc = make_uc(rs_mock, r_mock, log_mock);
         let output = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "sales.discount".to_string(),
                 input: serde_json::json!({"amount": 150}),
                 context: serde_json::json!({}),
@@ -368,6 +382,7 @@ mod tests {
         let uc = make_uc(rs_mock, r_mock, MockEvaluationLogRepository::new());
         let output = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "sales.discount".to_string(),
                 input: serde_json::json!({"amount": 50}), // 100未満なのでマッチしない
                 context: serde_json::json!({}),

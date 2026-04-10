@@ -11,7 +11,7 @@ static TOPIC_NAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .expect("トピック名正規表現のコンパイルに失敗")
 });
 
-/// TopicConfig はトピック作成・管理の設定を表す。
+/// `TopicConfig` はトピック作成・管理の設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TopicConfig {
     /// トピック名（命名規則: k1s0.{tier}.{domain}.{event-type}.{version}）
@@ -36,6 +36,7 @@ fn default_partitions() -> u32 {
 /// - system tier: 6 パーティション
 /// - business tier: 6 パーティション
 /// - service tier / その他: 3 パーティション
+#[must_use]
 pub fn default_partitions_for_tier(tier: &str) -> u32 {
     match tier {
         "system" | "business" => 6,
@@ -51,7 +52,7 @@ fn default_retention_ms() -> i64 {
     7 * 24 * 60 * 60 * 1000 // 7日
 }
 
-/// TopicPartitionInfo はトピックのパーティション情報を表す。
+/// `TopicPartitionInfo` はトピックのパーティション情報を表す。
 #[derive(Debug, Clone)]
 pub struct TopicPartitionInfo {
     pub topic: String,
@@ -75,12 +76,12 @@ impl TopicConfig {
         TOPIC_NAME_REGEX
             .captures(&self.name)
             .and_then(|caps| caps.get(1))
-            .map(|m| m.as_str())
-            .unwrap_or("")
+            .map_or("", |m| m.as_str())
     }
 
-    /// トピック名から tier を判定し、tier 別デフォルトパーティション数を設定した TopicConfig を返す。
+    /// トピック名から tier を判定し、tier 別デフォルトパーティション数を設定した `TopicConfig` を返す。
     /// パーティション数が明示指定されていない（デフォルト値 3 のまま）場合に tier 別の値で上書きする。
+    #[must_use]
     pub fn with_tier_defaults(mut self) -> Self {
         let tier = self.tier().to_string();
         if !tier.is_empty() {

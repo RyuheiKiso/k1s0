@@ -72,9 +72,13 @@ impl CircuitBreakerMetricsRecorder {
     }
 
     pub fn snapshot(&self) -> CircuitBreakerMetrics {
+        // HIGH-001 監査対応: u64→u32 の切り捨て変換をセーフキャストに変更する
+        // カウンタが u32::MAX（約43億）を超える場合は上限値に固定する
         CircuitBreakerMetrics {
-            failure_count: self.failure_count.load(Ordering::Relaxed) as u32,
-            success_count: self.success_count.load(Ordering::Relaxed) as u32,
+            failure_count: u32::try_from(self.failure_count.load(Ordering::Relaxed))
+                .unwrap_or(u32::MAX),
+            success_count: u32::try_from(self.success_count.load(Ordering::Relaxed))
+                .unwrap_or(u32::MAX),
             state: code_to_state(self.state_code.load(Ordering::Relaxed)).to_string(),
         }
     }

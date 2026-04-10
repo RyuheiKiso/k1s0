@@ -32,6 +32,7 @@ pub struct ExportRecordsOutput {
 }
 
 impl ExportRecordsOutput {
+    #[must_use]
     pub fn as_json(&self) -> Value {
         serde_json::json!({
             "table": self.table,
@@ -75,12 +76,13 @@ impl ImportExportUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         let columns = self.column_repo.find_by_table_id(table.id).await?;
-        let records = self.parse_import_records(data, &columns)?;
+        let records = Self::parse_import_records(data, &columns)?;
 
-        let total_rows = records.len() as i32;
+        // LOW-008: 安全な型変換（インポート行数は i32 範囲内が前提）
+        let total_rows = i32::try_from(records.len()).unwrap_or(i32::MAX);
 
         // Create import job with "processing" status
         let initial_job = ImportJob {
@@ -162,7 +164,7 @@ impl ImportExportUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         let columns = self.column_repo.find_by_table_id(table.id).await?;
         let export_columns: Vec<ColumnDefinition> = columns
@@ -184,12 +186,12 @@ impl ImportExportUseCase {
         let file = match normalized_format {
             "json" => None,
             "csv" => Some(ExportedFile {
-                file_name: format!("{}.csv", table_name),
+                file_name: format!("{table_name}.csv"),
                 content_type: "text/csv; charset=utf-8",
                 bytes: Self::export_as_csv(&export_columns, &records)?.into_bytes(),
             }),
             "xlsx" => Some(ExportedFile {
-                file_name: format!("{}.xlsx", table_name),
+                file_name: format!("{table_name}.xlsx"),
                 content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 bytes: Self::export_as_xlsx(&export_columns, &records)?,
             }),
@@ -220,8 +222,7 @@ impl ImportExportUseCase {
         let extension = file_name
             .rsplit('.')
             .next()
-            .map(|value| value.to_ascii_lowercase())
-            .unwrap_or_else(|| "csv".to_string());
+            .map_or_else(|| "csv".to_string(), str::to_ascii_lowercase);
 
         let data = match extension.as_str() {
             "csv" => serde_json::json!({
@@ -231,17 +232,17 @@ impl ImportExportUseCase {
             }),
             "xlsx" | "xls" | "xlsm" | "xlsb" | "ods" => serde_json::json!({
                 "file_name": file_name,
-                "records": self.parse_excel_records(content)?,
+                "records": Self::parse_excel_records(content)?,
             }),
-            other => anyhow::bail!("unsupported import file extension: {}", other),
+            other => anyhow::bail!("unsupported import file extension: {other}"),
         };
 
         self.import_records(table_name, &data, started_by, domain_scope)
             .await
     }
 
+    /// インポートデータからレコードを解析する（自己参照不要のため関連関数として定義）。
     fn parse_import_records(
-        &self,
         data: &Value,
         columns: &[crate::domain::entity::column_definition::ColumnDefinition],
     ) -> anyhow::Result<Vec<Value>> {
@@ -259,14 +260,14 @@ impl ImportExportUseCase {
                     .get("content")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| anyhow::anyhow!("'content' field must be a CSV string"))?;
-                self.parse_csv_records(content, columns)
+                Self::parse_csv_records(content, columns)
             }
-            other => anyhow::bail!("unsupported import format: {}", other),
+            other => anyhow::bail!("unsupported import format: {other}"),
         }
     }
 
+    /// CSV レコードを解析して JSON Value の Vec に変換する（自己参照不要のため関連関数として定義）。
     fn parse_csv_records(
-        &self,
         content: &str,
         columns: &[crate::domain::entity::column_definition::ColumnDefinition],
     ) -> anyhow::Result<Vec<Value>> {
@@ -299,7 +300,8 @@ impl ImportExportUseCase {
         Ok(records)
     }
 
-    fn parse_excel_records(&self, content: &[u8]) -> anyhow::Result<Vec<Value>> {
+    /// Excel レコードを解析して JSON Value の Vec に変換する（自己参照不要のため関連関数として定義）。
+    fn parse_excel_records(content: &[u8]) -> anyhow::Result<Vec<Value>> {
         let cursor = Cursor::new(content.to_vec());
         let mut workbook = open_workbook_auto_from_rs(cursor)?;
         let sheet_name = workbook
@@ -313,7 +315,7 @@ impl ImportExportUseCase {
             .next()
             .ok_or_else(|| anyhow::anyhow!("worksheet is empty"))?
             .iter()
-            .map(|cell| cell.to_string())
+            .map(std::string::ToString::to_string)
             .collect();
 
         if headers.is_empty() {
@@ -396,7 +398,8 @@ impl ImportExportUseCase {
 
             records.extend(result.records);
 
-            if records.len() as i64 >= total {
+            // LOW-008: 安全な型変換（records.len() は i64 範囲内が前提）
+            if i64::try_from(records.len()).unwrap_or(i64::MAX) >= total {
                 break;
             }
 
@@ -411,7 +414,8 @@ impl ImportExportUseCase {
         let worksheet = workbook.add_worksheet();
 
         for (column_index, column) in columns.iter().enumerate() {
-            worksheet.write_string(0, column_index as u16, &column.column_name)?;
+            // LOW-008: 安全な型変換（列インデックスは u16 範囲内が前提）
+            worksheet.write_string(0, u16::try_from(column_index).unwrap_or(u16::MAX), &column.column_name)?;
         }
 
         for (row_index, record) in records.iter().enumerate() {
@@ -420,8 +424,10 @@ impl ImportExportUseCase {
                 .ok_or_else(|| anyhow::anyhow!("record must be a JSON object"))?;
             for (column_index, column) in columns.iter().enumerate() {
                 worksheet.write_string(
-                    (row_index + 1) as u32,
-                    column_index as u16,
+                    // LOW-008: 安全な型変換（行インデックスは u32 範囲内が前提）
+                    u32::try_from(row_index + 1).unwrap_or(u32::MAX),
+                    // LOW-008: 安全な型変換（列インデックスは u16 範囲内が前提）
+                    u16::try_from(column_index).unwrap_or(u16::MAX),
                     stringify_csv_value(object.get(&column.column_name).unwrap_or(&Value::Null)),
                 )?;
             }
@@ -441,7 +447,7 @@ fn normalize_export_format(format: Option<&str>) -> anyhow::Result<&'static str>
         "" | "json" => Ok("json"),
         "csv" => Ok("csv"),
         "xlsx" | "xls" => Ok("xlsx"),
-        other => anyhow::bail!("unsupported export format: {}", other),
+        other => anyhow::bail!("unsupported export format: {other}"),
     }
 }
 
@@ -464,7 +470,7 @@ fn parse_scalar_value(value: &str, data_type: &str) -> anyhow::Result<Value> {
         "integer" => Value::Number(value.parse::<i64>()?.into()),
         "decimal" => serde_json::Number::from_f64(value.parse::<f64>()?)
             .map(Value::Number)
-            .ok_or_else(|| anyhow::anyhow!("invalid decimal value: {}", value))?,
+            .ok_or_else(|| anyhow::anyhow!("invalid decimal value: {value}"))?,
         "boolean" => Value::Bool(value.parse::<bool>()?),
         "jsonb" => serde_json::from_str(value)?,
         _ => Value::String(value.to_string()),
@@ -485,9 +491,9 @@ fn excel_cell_to_json(cell: &calamine::Data) -> Value {
     match cell {
         calamine::Data::Empty => Value::Null,
         calamine::Data::Int(value) => Value::Number((*value).into()),
-        calamine::Data::Float(value) => serde_json::Number::from_f64(*value)
-            .map(Value::Number)
-            .unwrap_or(Value::Null),
+        calamine::Data::Float(value) => {
+            serde_json::Number::from_f64(*value).map_or(Value::Null, Value::Number)
+        }
         calamine::Data::String(value) => Value::String(value.clone()),
         calamine::Data::Bool(value) => Value::Bool(*value),
         calamine::Data::DateTimeIso(value) | calamine::Data::DurationIso(value) => {

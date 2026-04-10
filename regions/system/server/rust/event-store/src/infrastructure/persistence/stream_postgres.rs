@@ -4,30 +4,34 @@ use sqlx::PgPool;
 use crate::domain::entity::event::EventStream;
 use crate::domain::repository::EventStreamRepository;
 
-/// StreamPostgresRepository は PostgreSQL 実装のイベントストリームリポジトリ。
+/// `StreamPostgresRepository` は `PostgreSQL` 実装のイベントストリームリポジトリ。
+/// テナント分離のため、全クエリの前に `set_config` でテナント ID を設定し RLS を有効化する（ADR-0106）。
 pub struct StreamPostgresRepository {
     pool: PgPool,
 }
 
 impl StreamPostgresRepository {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     /// トランザクション内でイベントストリームを作成する内部ヘルパー。
     /// 呼び出し元のトランザクション（tx）を受け取り、INSERTを実行する。
-    pub async fn create_in_tx<'a>(
+    /// `tenant_id` カラムを明示指定してテナント分離を保証する。
+    pub async fn create_in_tx(
         stream: &EventStream,
-        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO eventstore.event_streams
-                (id, aggregate_type, current_version, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
-            "#,
+                (id, tenant_id, aggregate_type, current_version, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ",
         )
         .bind(&stream.id)
+        .bind(&stream.tenant_id)
         .bind(&stream.aggregate_type)
         .bind(stream.current_version)
         .bind(stream.created_at)
@@ -40,17 +44,17 @@ impl StreamPostgresRepository {
 
     /// トランザクション内でイベントストリームのバージョンを更新する内部ヘルパー。
     /// 呼び出し元のトランザクション（tx）を受け取り、UPDATEを実行する。
-    pub async fn update_version_in_tx<'a>(
+    pub async fn update_version_in_tx(
         id: &str,
         new_version: i64,
-        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query(
-            r#"
+            r"
             UPDATE eventstore.event_streams
             SET current_version = $2, updated_at = NOW()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(new_version)
@@ -61,9 +65,12 @@ impl StreamPostgresRepository {
     }
 }
 
+/// `PostgreSQL` の `event_streams` テーブル行をマッピングする内部構造体。
+/// `tenant_id` カラムを含む（migration 006 で追加）。
 #[derive(sqlx::FromRow)]
 struct EventStreamRow {
     id: String,
+    tenant_id: String,
     aggregate_type: String,
     current_version: i64,
     created_at: chrono::DateTime<chrono::Utc>,
@@ -74,6 +81,7 @@ impl From<EventStreamRow> for EventStream {
     fn from(row: EventStreamRow) -> Self {
         EventStream {
             id: row.id,
+            tenant_id: row.tenant_id,
             aggregate_type: row.aggregate_type,
             current_version: row.current_version,
             created_at: row.created_at,
@@ -84,56 +92,85 @@ impl From<EventStreamRow> for EventStream {
 
 #[async_trait]
 impl EventStreamRepository for StreamPostgresRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<EventStream>> {
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
+    async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<EventStream>> {
+        // テナントIDをセッション変数に設定して RLS を有効化する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let row = sqlx::query_as::<_, EventStreamRow>(
-            r#"
-            SELECT id, aggregate_type, current_version, created_at, updated_at
+            r"
+            SELECT id, tenant_id, aggregate_type, current_version, created_at, updated_at
             FROM eventstore.event_streams
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         Ok(row.map(Into::into))
     }
 
-    async fn list_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<EventStream>, u64)> {
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
+    async fn list_all(
+        &self,
+        tenant_id: &str,
+        page: u32,
+        page_size: u32,
+    ) -> anyhow::Result<(Vec<EventStream>, u64)> {
+        // テナントIDをセッション変数に設定して RLS を有効化する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM eventstore.event_streams")
-            .fetch_one(&self.pool)
+            .fetch_one(&mut *tx)
             .await?;
 
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
-        let offset = ((page - 1) * page_size) as i64;
+        let offset = i64::from((page - 1) * page_size);
 
         let rows = sqlx::query_as::<_, EventStreamRow>(
-            r#"
-            SELECT id, aggregate_type, current_version, created_at, updated_at
+            r"
+            SELECT id, tenant_id, aggregate_type, current_version, created_at, updated_at
             FROM eventstore.event_streams
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2
-            "#,
+            ",
         )
-        .bind(page_size as i64)
+        .bind(i64::from(page_size))
         .bind(offset)
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
 
+        tx.commit().await?;
+
         let streams: Vec<EventStream> = rows.into_iter().map(Into::into).collect();
-        Ok((streams, total as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((streams, u64::try_from(total).unwrap_or(0)))
     }
 
+    /// テナント ID を含む `EventStream` を INSERT する。
+    /// `tenant_id` カラムはエンティティから取得して挿入する（テナント分離保証）。
     async fn create(&self, stream: &EventStream) -> anyhow::Result<()> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO eventstore.event_streams
-                (id, aggregate_type, current_version, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5)
-            "#,
+                (id, tenant_id, aggregate_type, current_version, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ",
         )
         .bind(&stream.id)
+        .bind(&stream.tenant_id)
         .bind(&stream.aggregate_type)
         .bind(stream.current_version)
         .bind(stream.created_at)
@@ -144,27 +181,52 @@ impl EventStreamRepository for StreamPostgresRepository {
         Ok(())
     }
 
-    async fn update_version(&self, id: &str, new_version: i64) -> anyhow::Result<()> {
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
+    async fn update_version(
+        &self,
+        tenant_id: &str,
+        id: &str,
+        new_version: i64,
+    ) -> anyhow::Result<()> {
+        // テナントIDをセッション変数に設定して RLS を有効化する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         sqlx::query(
-            r#"
+            r"
             UPDATE eventstore.event_streams
             SET current_version = $2, updated_at = NOW()
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .bind(new_version)
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
+    async fn delete(&self, tenant_id: &str, id: &str) -> anyhow::Result<bool> {
+        // テナントIDをセッション変数に設定して RLS を有効化する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let result = sqlx::query("DELETE FROM eventstore.event_streams WHERE id = $1")
             .bind(id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
+
+        tx.commit().await?;
 
         Ok(result.rows_affected() > 0)
     }

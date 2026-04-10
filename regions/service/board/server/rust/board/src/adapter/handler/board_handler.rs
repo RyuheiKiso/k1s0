@@ -52,7 +52,7 @@ pub async fn list_board_columns(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let filter = BoardColumnFilter {
@@ -73,7 +73,7 @@ pub async fn get_board_column(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let col = state
@@ -96,7 +96,7 @@ pub async fn increment_column(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let col = state.increment_column_uc.execute(tenant_id, &req).await.map_err(map_err)?;
@@ -111,7 +111,7 @@ pub async fn decrement_column(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let col = state.decrement_column_uc.execute(tenant_id, &req).await.map_err(map_err)?;
@@ -127,7 +127,7 @@ pub async fn update_wip_limit(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     req.column_id = column_id;

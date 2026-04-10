@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::ConfigRepository;
 
-/// DeleteConfigError は設定値削除に関するエラーを表す。
+/// `DeleteConfigError` は設定値削除に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteConfigError {
     #[error("config not found: {0}/{1}")]
@@ -14,7 +14,7 @@ pub enum DeleteConfigError {
     Internal(String),
 }
 
-/// DeleteConfigUseCase は設定値削除ユースケース。
+/// `DeleteConfigUseCase` は設定値削除ユースケース。
 pub struct DeleteConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
 }
@@ -25,7 +25,7 @@ impl DeleteConfigUseCase {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープで設定値を削除する。
-    /// deleted_by は削除実行者を表す（監査ログ用）。
+    /// `deleted_by` は削除実行者を表す（監査ログ用）。
     pub async fn execute(
         &self,
         tenant_id: Uuid,

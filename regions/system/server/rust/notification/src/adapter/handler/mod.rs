@@ -41,6 +41,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -48,6 +49,8 @@ impl AppState {
 }
 
 /// Build the REST API router.
+// ルーター構築は全エンドポイントを定義するため行数が多くなる
+#[allow(clippy::too_many_lines)]
 pub fn router(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/healthz", get(health::healthz))

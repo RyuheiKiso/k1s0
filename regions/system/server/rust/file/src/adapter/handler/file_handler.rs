@@ -66,16 +66,20 @@ pub async fn upload_file(
         }) => {
             let err = ErrorResponse::new(
                 codes::file::size_exceeded(),
-                format!("file size exceeds limit: {} > {}", actual, max),
+                format!("file size exceeds limit: {actual} > {max}"),
             );
             (StatusCode::PAYLOAD_TOO_LARGE, Json(err)).into_response()
         }
         Err(crate::usecase::generate_upload_url::GenerateUploadUrlError::Internal(msg)) => {
+            // HIGH-010 監査対応: 内部エラー詳細はログに記録し、クライアントには汎用メッセージを返す
             if is_storage_error_message(&msg) {
-                let err = ErrorResponse::new(codes::file::storage_error(), &msg);
+                tracing::error!(error = %msg, "storage error during upload URL generation");
+                let err = ErrorResponse::new(codes::file::storage_error(), "storage backend error");
                 (StatusCode::BAD_GATEWAY, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new(codes::file::upload_failed(), &msg);
+                tracing::error!(error = %msg, "internal error during upload URL generation");
+                let err =
+                    ErrorResponse::new(codes::file::upload_failed(), "upload initiation failed");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -90,12 +94,9 @@ pub async fn get_file(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
-    let claims = match claims {
-        Some(axum::extract::Extension(c)) => c,
-        None => {
-            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
-            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
-        }
+    let Some(axum::extract::Extension(claims)) = claims else {
+        let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
+        return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
     };
 
     // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
@@ -120,15 +121,14 @@ pub async fn get_file(
                 // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
                 // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
                 // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
-                let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                    &file.storage_path,
-                ) {
-                    Some(tid) => tid,
-                    None => {
-                        tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
-                        let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
-                        return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                    }
+                let Some(resource_tenant_id) =
+                    crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                        &file.storage_path,
+                    )
+                else {
+                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
                 };
                 if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                     resource_tenant_id,
@@ -172,7 +172,12 @@ pub async fn get_file(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::get_file_metadata::GetFileMetadataError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::get_failed(), &msg);
+            // HIGH-010 監査対応: 内部エラーをログに記録し、汎用メッセージを返す
+            tracing::error!(error = %msg, "internal error fetching file metadata");
+            let err = ErrorResponse::new(
+                codes::file::get_failed(),
+                "failed to retrieve file metadata",
+            );
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -220,12 +225,9 @@ pub async fn delete_file(
 ) -> impl IntoResponse {
     // CRIT-02 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
     // このエンドポイントは認証が必須であり、JWTミドルウェアが何らかの理由でスキップされた場合も保護する
-    let claims = match claims {
-        Some(axum::extract::Extension(c)) => c,
-        None => {
-            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
-            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
-        }
+    let Some(axum::extract::Extension(claims)) = claims else {
+        let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
+        return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
     };
 
     // テナントIDをヘッダーから取得する（CRIT-01 でテナント条件付き DELETE に使用）
@@ -242,15 +244,14 @@ pub async fn delete_file(
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
-            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                &file.storage_path,
-            ) {
-                Some(tid) => tid,
-                None => {
-                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
-                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            let Some(resource_tenant_id) =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
+            else {
+                tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -294,7 +295,9 @@ pub async fn delete_file(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::delete_file::DeleteFileError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
+            // HIGH-010 監査対応: 内部エラーをログに記録し、汎用メッセージを返す
+            tracing::error!(error = %msg, "internal error during file deletion");
+            let err = ErrorResponse::new(codes::file::delete_failed(), "file deletion failed");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -320,15 +323,14 @@ pub async fn delete_file_admin(
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
-            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                &file.storage_path,
-            ) {
-                Some(tid) => tid,
-                None => {
-                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
-                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            let Some(resource_tenant_id) =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
+            else {
+                tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -357,7 +359,9 @@ pub async fn delete_file_admin(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::delete_file::DeleteFileError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
+            // HIGH-010 監査対応: 内部エラーをログに記録し、汎用メッセージを返す
+            tracing::error!(error = %msg, "internal error during file deletion");
+            let err = ErrorResponse::new(codes::file::delete_failed(), "file deletion failed");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -374,12 +378,9 @@ pub async fn complete_upload(
     use crate::usecase::complete_upload::CompleteUploadInput;
 
     // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
-    let claims = match claims {
-        Some(axum::extract::Extension(c)) => c,
-        None => {
-            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
-            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
-        }
+    let Some(axum::extract::Extension(claims)) = claims else {
+        let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
+        return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
     };
 
     // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
@@ -405,15 +406,14 @@ pub async fn complete_upload(
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
-            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                &file.storage_path,
-            ) {
-                Some(tid) => tid,
-                None => {
-                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
-                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            let Some(resource_tenant_id) =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
+            else {
+                tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -444,7 +444,10 @@ pub async fn complete_upload(
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
         Err(crate::usecase::complete_upload::CompleteUploadError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::complete_failed(), &msg);
+            // HIGH-010 監査対応: 内部エラーをログに記録し、汎用メッセージを返す
+            tracing::error!(error = %msg, "internal error completing upload");
+            let err =
+                ErrorResponse::new(codes::file::complete_failed(), "upload completion failed");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -458,12 +461,9 @@ pub async fn download_url(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
-    let claims = match claims {
-        Some(axum::extract::Extension(c)) => c,
-        None => {
-            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
-            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
-        }
+    let Some(axum::extract::Extension(claims)) = claims else {
+        let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
+        return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
     };
 
     // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
@@ -489,15 +489,14 @@ pub async fn download_url(
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
-            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                &file.storage_path,
-            ) {
-                Some(tid) => tid,
-                None => {
-                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
-                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            let Some(resource_tenant_id) =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
+            else {
+                tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -537,11 +536,17 @@ pub async fn download_url(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::Internal(msg)) => {
+            // HIGH-010 監査対応: 内部エラーをログに記録し、汎用メッセージを返す
             if is_storage_error_message(&msg) {
-                let err = ErrorResponse::new(codes::file::storage_error(), &msg);
+                tracing::error!(error = %msg, "storage error generating download URL");
+                let err = ErrorResponse::new(codes::file::storage_error(), "storage backend error");
                 (StatusCode::BAD_GATEWAY, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new(codes::file::download_url_failed(), &msg);
+                tracing::error!(error = %msg, "internal error generating download URL");
+                let err = ErrorResponse::new(
+                    codes::file::download_url_failed(),
+                    "download URL generation failed",
+                );
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -559,12 +564,9 @@ pub async fn update_file_tags(
     use crate::usecase::update_file_tags::UpdateFileTagsInput;
 
     // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
-    let claims = match claims {
-        Some(axum::extract::Extension(c)) => c,
-        None => {
-            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
-            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
-        }
+    let Some(axum::extract::Extension(claims)) = claims else {
+        let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
+        return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
     };
 
     // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
@@ -590,15 +592,14 @@ pub async fn update_file_tags(
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
-            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                &file.storage_path,
-            ) {
-                Some(tid) => tid,
-                None => {
-                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
-                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
-                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
-                }
+            let Some(resource_tenant_id) =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
+            else {
+                tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                return (StatusCode::FORBIDDEN, Json(err)).into_response();
             };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -632,7 +633,10 @@ pub async fn update_file_tags(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::update_file_tags::UpdateFileTagsError::Internal(msg)) => {
-            let err = ErrorResponse::new(codes::file::tags_update_failed(), &msg);
+            // HIGH-010 監査対応: 内部エラーをログに記録し、汎用メッセージを返す
+            tracing::error!(error = %msg, "internal error updating file tags");
+            let err =
+                ErrorResponse::new(codes::file::tags_update_failed(), "file tags update failed");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

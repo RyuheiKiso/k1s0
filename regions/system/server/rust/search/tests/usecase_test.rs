@@ -71,7 +71,8 @@ impl StubSearchRepository {
 
 #[async_trait]
 impl SearchRepository for StubSearchRepository {
-    async fn create_index(&self, index: &SearchIndex) -> anyhow::Result<()> {
+    // テナント分離対応: 各メソッドに _tenant_id 引数を追加する（CRIT-002 対応）
+    async fn create_index(&self, index: &SearchIndex, _tenant_id: &str) -> anyhow::Result<()> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -79,7 +80,11 @@ impl SearchRepository for StubSearchRepository {
         Ok(())
     }
 
-    async fn find_index(&self, name: &str) -> anyhow::Result<Option<SearchIndex>> {
+    async fn find_index(
+        &self,
+        name: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<SearchIndex>> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -87,7 +92,7 @@ impl SearchRepository for StubSearchRepository {
         Ok(indices.iter().find(|i| i.name == name).cloned())
     }
 
-    async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()> {
+    async fn index_document(&self, doc: &SearchDocument, _tenant_id: &str) -> anyhow::Result<()> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -98,7 +103,7 @@ impl SearchRepository for StubSearchRepository {
         Ok(())
     }
 
-    async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
+    async fn search(&self, query: &SearchQuery, _tenant_id: &str) -> anyhow::Result<SearchResult> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -170,7 +175,12 @@ impl SearchRepository for StubSearchRepository {
         })
     }
 
-    async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -180,7 +190,7 @@ impl SearchRepository for StubSearchRepository {
         Ok(docs.len() < len_before)
     }
 
-    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+    async fn list_indices(&self, _tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -236,9 +246,11 @@ impl SearchEventPublisher for StubSearchEventPublisher {
 // ---------------------------------------------------------------------------
 
 fn make_index(name: &str) -> SearchIndex {
+    // テスト用ヘルパー: テナント IDは "tenant-a" を固定値として使用する
     SearchIndex::new(
         name.to_string(),
         serde_json::json!({"fields": ["title", "body"]}),
+        "tenant-a".to_string(),
     )
 }
 
@@ -264,6 +276,7 @@ async fn create_index_success() {
     let input = CreateIndexInput {
         name: "products".to_string(),
         mapping: serde_json::json!({"fields": ["name", "description", "price"]}),
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -285,6 +298,7 @@ async fn create_index_already_exists() {
     let input = CreateIndexInput {
         name: "products".to_string(),
         mapping: serde_json::json!({}),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -302,6 +316,7 @@ async fn create_index_repo_error() {
     let input = CreateIndexInput {
         name: "products".to_string(),
         mapping: serde_json::json!({}),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -327,6 +342,7 @@ async fn create_index_with_complex_mapping() {
     let input = CreateIndexInput {
         name: "advanced-products".to_string(),
         mapping: mapping.clone(),
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -344,6 +360,7 @@ async fn create_multiple_indices() {
         let input = CreateIndexInput {
             name: name.to_string(),
             mapping: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         };
         uc.execute(&input).await.unwrap();
     }
@@ -367,6 +384,7 @@ async fn index_document_success() {
         id: "doc-1".to_string(),
         index_name: "products".to_string(),
         content: serde_json::json!({"name": "Widget", "price": 9.99}),
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -395,6 +413,7 @@ async fn index_document_index_not_found() {
         id: "doc-1".to_string(),
         index_name: "nonexistent".to_string(),
         content: serde_json::json!({}),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -414,6 +433,7 @@ async fn index_document_repo_error() {
         id: "doc-1".to_string(),
         index_name: "products".to_string(),
         content: serde_json::json!({}),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -434,6 +454,7 @@ async fn index_document_publisher_error() {
         id: "doc-1".to_string(),
         index_name: "products".to_string(),
         content: serde_json::json!({"name": "Widget"}),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -455,6 +476,7 @@ async fn index_multiple_documents() {
             id: format!("doc-{}", i),
             index_name: "products".to_string(),
             content: serde_json::json!({"name": format!("Product {}", i)}),
+            tenant_id: "tenant-a".to_string(),
         };
         uc.execute(&input).await.unwrap();
     }
@@ -475,6 +497,7 @@ async fn index_document_upsert_same_id() {
         id: "doc-1".to_string(),
         index_name: "products".to_string(),
         content: serde_json::json!({"name": "Widget v1"}),
+        tenant_id: "tenant-a".to_string(),
     };
     uc.execute(&input1).await.unwrap();
 
@@ -482,6 +505,7 @@ async fn index_document_upsert_same_id() {
         id: "doc-1".to_string(),
         index_name: "products".to_string(),
         content: serde_json::json!({"name": "Widget v2"}),
+        tenant_id: "tenant-a".to_string(),
     };
     uc.execute(&input2).await.unwrap();
 
@@ -527,6 +551,7 @@ async fn search_success_with_hits() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -558,6 +583,7 @@ async fn search_empty_query_returns_all() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -585,6 +611,7 @@ async fn search_no_hits() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -604,6 +631,7 @@ async fn search_index_not_found() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -625,6 +653,7 @@ async fn search_repo_error() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -659,6 +688,7 @@ async fn search_with_pagination() {
         size: 3,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -675,6 +705,7 @@ async fn search_with_pagination() {
         size: 3,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result2 = uc.execute(&input2).await.unwrap();
 
@@ -689,6 +720,7 @@ async fn search_with_pagination() {
         size: 3,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result3 = uc.execute(&input3).await.unwrap();
 
@@ -732,6 +764,7 @@ async fn search_with_filters() {
         size: 10,
         filters,
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -777,6 +810,7 @@ async fn search_with_facets() {
         size: 10,
         filters: HashMap::new(),
         facets: vec!["category".to_string()],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -807,6 +841,7 @@ async fn search_case_insensitive() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -834,6 +869,7 @@ async fn search_only_in_specified_index() {
         size: 10,
         filters: HashMap::new(),
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
 
@@ -858,6 +894,7 @@ async fn delete_document_success() {
     let input = DeleteDocumentInput {
         index_name: "products".to_string(),
         doc_id: "doc-1".to_string(),
+        tenant_id: "tenant-a".to_string(),
     };
     let result = uc.execute(&input).await.unwrap();
     assert!(result);
@@ -875,6 +912,7 @@ async fn delete_document_not_found() {
     let input = DeleteDocumentInput {
         index_name: "products".to_string(),
         doc_id: "nonexistent".to_string(),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -895,6 +933,7 @@ async fn delete_document_repo_error() {
     let input = DeleteDocumentInput {
         index_name: "products".to_string(),
         doc_id: "doc-1".to_string(),
+        tenant_id: "tenant-a".to_string(),
     };
     let err = uc.execute(&input).await.unwrap_err();
 
@@ -920,6 +959,7 @@ async fn delete_document_only_removes_target() {
     let input = DeleteDocumentInput {
         index_name: "products".to_string(),
         doc_id: "doc-1".to_string(),
+        tenant_id: "tenant-a".to_string(),
     };
     uc.execute(&input).await.unwrap();
 
@@ -937,7 +977,8 @@ async fn list_indices_empty() {
     let repo = Arc::new(StubSearchRepository::new());
     let uc = ListIndicesUseCase::new(repo);
 
-    let result = uc.execute().await.unwrap();
+    // テナント IDを渡して list_indices を呼び出す（CRIT-002 対応）
+    let result = uc.execute("tenant-a").await.unwrap();
     assert!(result.is_empty());
 }
 
@@ -951,7 +992,7 @@ async fn list_indices_with_results() {
     let repo = Arc::new(StubSearchRepository::with_indices(indices));
     let uc = ListIndicesUseCase::new(repo);
 
-    let result = uc.execute().await.unwrap();
+    let result = uc.execute("tenant-a").await.unwrap();
     assert_eq!(result.len(), 3);
 
     let names: Vec<&str> = result.iter().map(|i| i.name.as_str()).collect();
@@ -965,7 +1006,7 @@ async fn list_indices_repo_error() {
     let repo = Arc::new(StubSearchRepository::with_error("db error"));
     let uc = ListIndicesUseCase::new(repo);
 
-    let err = uc.execute().await.unwrap_err();
+    let err = uc.execute("tenant-a").await.unwrap_err();
 
     match err {
         ListIndicesError::Internal(msg) => assert!(msg.contains("db error")),
@@ -981,16 +1022,17 @@ async fn search_crud_workflow() {
     let repo = Arc::new(StubSearchRepository::new());
     let publisher = Arc::new(StubSearchEventPublisher::new());
 
-    // 1. Create index
+    // 1. Create index（CRIT-002 対応: tenant_id を必ず渡す）
     let create_uc = CreateIndexUseCase::new(repo.clone());
     let create_input = CreateIndexInput {
         name: "products".to_string(),
         mapping: serde_json::json!({"fields": ["name", "category"]}),
+        tenant_id: "tenant-a".to_string(),
     };
     let created_index = create_uc.execute(&create_input).await.unwrap();
     assert_eq!(created_index.name, "products");
 
-    // 2. Index documents
+    // 2. Index documents（CRIT-002 対応: tenant_id を必ず渡す）
     let index_uc = IndexDocumentUseCase::new(repo.clone(), publisher.clone());
     let docs_data = vec![
         (
@@ -1011,11 +1053,12 @@ async fn search_crud_workflow() {
             id: id.to_string(),
             index_name: "products".to_string(),
             content: content.clone(),
+            tenant_id: "tenant-a".to_string(),
         };
         index_uc.execute(&input).await.unwrap();
     }
 
-    // 3. Search with query
+    // 3. Search with query（CRIT-002 対応: tenant_id を必ず渡す）
     let search_uc = SearchUseCase::new(repo.clone());
     let search_input = SearchInput {
         index_name: "products".to_string(),
@@ -1024,12 +1067,13 @@ async fn search_crud_workflow() {
         size: 10,
         filters: HashMap::new(),
         facets: vec!["category".to_string()],
+        tenant_id: "tenant-a".to_string(),
     };
     let search_result = search_uc.execute(&search_input).await.unwrap();
     assert_eq!(search_result.total, 2);
     assert!(search_result.facets.contains_key("category"));
 
-    // 4. Search with filter
+    // 4. Search with filter（CRIT-002 対応: tenant_id を必ず渡す）
     let mut filters = HashMap::new();
     filters.insert("category".to_string(), "tools".to_string());
     let filter_input = SearchInput {
@@ -1039,15 +1083,17 @@ async fn search_crud_workflow() {
         size: 10,
         filters,
         facets: vec![],
+        tenant_id: "tenant-a".to_string(),
     };
     let filter_result = search_uc.execute(&filter_input).await.unwrap();
     assert_eq!(filter_result.total, 2);
 
-    // 5. Delete a document
+    // 5. Delete a document（CRIT-002 対応: tenant_id を必ず渡す）
     let delete_uc = DeleteDocumentUseCase::new(repo.clone());
     let delete_input = DeleteDocumentInput {
         index_name: "products".to_string(),
         doc_id: "doc-1".to_string(),
+        tenant_id: "tenant-a".to_string(),
     };
     delete_uc.execute(&delete_input).await.unwrap();
 
@@ -1055,9 +1101,9 @@ async fn search_crud_workflow() {
     let search_after = search_uc.execute(&search_input).await.unwrap();
     assert_eq!(search_after.total, 1);
 
-    // 7. List indices
+    // 7. List indices（CRIT-002 対応: tenant_id を必ず渡す）
     let list_uc = ListIndicesUseCase::new(repo.clone());
-    let indices = list_uc.execute().await.unwrap();
+    let indices = list_uc.execute("tenant-a").await.unwrap();
     assert_eq!(indices.len(), 1);
     assert_eq!(indices[0].name, "products");
 
@@ -1071,12 +1117,13 @@ async fn search_cross_index_isolation() {
     let repo = Arc::new(StubSearchRepository::new());
     let publisher = Arc::new(StubSearchEventPublisher::new());
 
-    // Create two indices
+    // Create two indices（CRIT-002 対応: tenant_id を必ず渡す）
     let create_uc = CreateIndexUseCase::new(repo.clone());
     create_uc
         .execute(&CreateIndexInput {
             name: "products".to_string(),
             mapping: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -1084,17 +1131,19 @@ async fn search_cross_index_isolation() {
         .execute(&CreateIndexInput {
             name: "users".to_string(),
             mapping: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
 
-    // Index docs in different indices
+    // Index docs in different indices（CRIT-002 対応: tenant_id を必ず渡す）
     let index_uc = IndexDocumentUseCase::new(repo.clone(), publisher);
     index_uc
         .execute(&IndexDocumentInput {
             id: "p-1".to_string(),
             index_name: "products".to_string(),
             content: serde_json::json!({"name": "Widget"}),
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -1103,11 +1152,12 @@ async fn search_cross_index_isolation() {
             id: "u-1".to_string(),
             index_name: "users".to_string(),
             content: serde_json::json!({"name": "Widget Fan"}),
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
 
-    // Search in products only
+    // Search in products only（CRIT-002 対応: tenant_id を必ず渡す）
     let search_uc = SearchUseCase::new(repo.clone());
     let result = search_uc
         .execute(&SearchInput {
@@ -1117,6 +1167,7 @@ async fn search_cross_index_isolation() {
             size: 10,
             filters: HashMap::new(),
             facets: vec![],
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -1124,12 +1175,13 @@ async fn search_cross_index_isolation() {
     assert_eq!(result.total, 1);
     assert_eq!(result.hits[0].id, "p-1");
 
-    // Delete from products doesn't affect users
+    // Delete from products doesn't affect users（CRIT-002 対応: tenant_id を必ず渡す）
     let delete_uc = DeleteDocumentUseCase::new(repo.clone());
     delete_uc
         .execute(&DeleteDocumentInput {
             index_name: "products".to_string(),
             doc_id: "p-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -1142,6 +1194,7 @@ async fn search_cross_index_isolation() {
             size: 10,
             filters: HashMap::new(),
             facets: vec![],
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();

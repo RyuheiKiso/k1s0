@@ -50,6 +50,8 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
+  # HIGH-005 監査対応: メモリ過負荷時の HPA スケーリングに使用する（設計書定義: 60%）
+  targetMemoryUtilizationPercentage: 60
 
 pdb:
   enabled: true
@@ -185,9 +187,11 @@ podAnnotations: {}
 labels:
   tier: system
 
+# MED-001 監査対応: bff-proxy は /metrics を内部ポート(9090)で提供するため
+# port を 9090 に設定する。公開ポート(8080)はユーザートラフィック専用。
 metrics:
   enabled: true
-  port: 8080
+  port: 9090
   path: /metrics
 
 serviceMonitor:

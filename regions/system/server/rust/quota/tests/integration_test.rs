@@ -2,6 +2,7 @@
 // クォータサーバーの統合テスト。
 // router の初期化と基本的なエンドポイントの動作を検証する。
 
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -30,23 +31,29 @@ struct StubQuotaPolicyRepo;
 
 #[async_trait]
 impl QuotaPolicyRepository for StubQuotaPolicyRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
+    // テナントスコープでIDによるポリシー検索（テスト用スタブ）
+    async fn find_by_id(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
         Ok(None)
     }
+    // テナントスコープでフィルタ付きポリシー一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
         _page: u32,
         _page_size: u32,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
         Ok((vec![], 0))
     }
+    // ポリシーを新規作成（テスト用スタブ）
     async fn create(&self, _policy: &QuotaPolicy) -> anyhow::Result<()> {
         Ok(())
     }
+    // ポリシーを更新（テスト用スタブ）
     async fn update(&self, _policy: &QuotaPolicy) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    // テナントスコープでポリシーを削除（テスト用スタブ）
+    async fn delete(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }
@@ -58,20 +65,30 @@ struct StubQuotaUsageRepo;
 
 #[async_trait]
 impl QuotaUsageRepository for StubQuotaUsageRepo {
-    async fn get_usage(&self, _quota_id: &str) -> anyhow::Result<Option<u64>> {
+    // テナントスコープで使用量を取得（テスト用スタブ）
+    async fn get_usage(&self, _quota_id: &str, _tenant_id: &str) -> anyhow::Result<Option<u64>> {
         Ok(None)
     }
-    async fn increment(&self, _quota_id: &str, _amount: u64) -> anyhow::Result<u64> {
+    // テナントスコープで使用量を増分（テスト用スタブ）
+    async fn increment(
+        &self,
+        _quota_id: &str,
+        _amount: u64,
+        _tenant_id: &str,
+    ) -> anyhow::Result<u64> {
         Ok(0)
     }
-    async fn reset(&self, _quota_id: &str) -> anyhow::Result<()> {
+    // テナントスコープで使用量をリセット（テスト用スタブ）
+    async fn reset(&self, _quota_id: &str, _tenant_id: &str) -> anyhow::Result<()> {
         Ok(())
     }
+    // テナントスコープでアトミックなcheck-and-increment操作（テスト用スタブ）
     async fn check_and_increment(
         &self,
         _quota_id: &str,
         _amount: u64,
         _limit: u64,
+        _tenant_id: &str,
     ) -> anyhow::Result<CheckAndIncrementResult> {
         Ok(CheckAndIncrementResult {
             used: 0,
@@ -120,6 +137,10 @@ fn make_test_app() -> axum::Router {
         )),
         metrics,
         auth_state: Some(auth_state),
+        // DB プールはテスト環境では不要のため None を設定する
+        db_pool: None,
+        // cron ヘルスフラグはテスト環境では常に true として初期化する
+        cron_healthy: Arc::new(AtomicBool::new(true)),
     };
     router(state)
 }

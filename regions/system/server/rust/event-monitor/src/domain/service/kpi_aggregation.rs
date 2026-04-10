@@ -4,39 +4,56 @@ use crate::domain::entity::flow_kpi::FlowKpi;
 pub struct KpiAggregationService;
 
 impl KpiAggregationService {
+    // LOW-008: KPI 集計では i64/usize → f64 への精度損失は許容される（件数・時間の浮動小数点演算）
+    #[must_use]
+    #[allow(clippy::cast_precision_loss)]
     pub fn aggregate(instances: &[FlowInstance]) -> FlowKpi {
         if instances.is_empty() {
             return FlowKpi::default();
         }
 
-        let total_started = instances.len() as i64;
-        let total_completed = instances
-            .iter()
-            .filter(|i| i.status == FlowInstanceStatus::Completed)
-            .count() as i64;
-        let total_failed = instances
-            .iter()
-            .filter(|i| {
-                i.status == FlowInstanceStatus::Failed || i.status == FlowInstanceStatus::Timeout
-            })
-            .count() as i64;
-        let total_in_progress = instances
-            .iter()
-            .filter(|i| i.status == FlowInstanceStatus::InProgress)
-            .count() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total_started = i64::try_from(instances.len()).unwrap_or(i64::MAX);
+        let total_completed = i64::try_from(
+            instances
+                .iter()
+                .filter(|i| i.status == FlowInstanceStatus::Completed)
+                .count(),
+        )
+        .unwrap_or(i64::MAX);
+        let total_failed = i64::try_from(
+            instances
+                .iter()
+                .filter(|i| {
+                    i.status == FlowInstanceStatus::Failed
+                        || i.status == FlowInstanceStatus::Timeout
+                })
+                .count(),
+        )
+        .unwrap_or(i64::MAX);
+        let total_in_progress = i64::try_from(
+            instances
+                .iter()
+                .filter(|i| i.status == FlowInstanceStatus::InProgress)
+                .count(),
+        )
+        .unwrap_or(i64::MAX);
 
+        // LOW-008: 安全な型変換（精度損失は許容範囲内、KPI 集計用途）
         let completion_rate = if total_started > 0 {
             total_completed as f64 / total_started as f64
         } else {
             0.0
         };
 
+        // LOW-008: 安全な型変換（i64 → f64 は精度損失許容、duration_ms は通常小さい値）
         let mut durations: Vec<f64> = instances
             .iter()
             .filter_map(|i| i.duration_ms.map(|d| d as f64 / 1000.0))
             .collect();
         durations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
+        // LOW-008: 安全な型変換（usize → f64 は精度損失許容、要素数は通常小さい値）
         let avg_duration_seconds = if durations.is_empty() {
             0.0
         } else {
@@ -62,6 +79,9 @@ impl KpiAggregationService {
     }
 }
 
+// LOW-008: この関数内では f64 → usize の変換が発生するが、
+// index は [0, sorted.len()-1] の範囲で非負かつ有限であることが保証されている。
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_precision_loss)]
 fn percentile(sorted: &[f64], p: f64) -> f64 {
     if sorted.is_empty() {
         return 0.0;
@@ -69,12 +89,16 @@ fn percentile(sorted: &[f64], p: f64) -> f64 {
     if sorted.len() == 1 {
         return sorted[0];
     }
+    // LOW-008: 安全な型変換（usize → f64 は精度損失許容、要素数は通常小さい値）
     let index = p * (sorted.len() - 1) as f64;
-    let lower = index.floor() as usize;
-    let upper = index.ceil() as usize;
+    // LOW-008: floor/ceil は [0, len-1] の範囲で非負かつ有限。
+    // f64 -> usize は符号喪失・切り捨てのリスクがあるため、0.0 以上であることを保証してからキャストする。
+    let lower = index.floor().max(0.0) as usize;
+    let upper = index.ceil().max(0.0) as usize;
     if lower == upper {
         sorted[lower]
     } else {
+        // LOW-008: 安全な型変換（usize → f64 は精度損失許容）
         let frac = index - lower as f64;
         sorted[lower] * (1.0 - frac) + sorted[upper] * frac
     }
@@ -89,6 +113,7 @@ mod tests {
     fn make_instance(status: FlowInstanceStatus, duration_ms: Option<i64>) -> FlowInstance {
         FlowInstance {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             flow_id: Uuid::new_v4(),
             correlation_id: "corr".to_string(),
             status,

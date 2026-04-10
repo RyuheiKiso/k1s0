@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::repository::config_schema_repository::ConfigSchemaRepository;
 
-/// ListConfigSchemasError は設定スキーマ一覧取得に関するエラーを表す。
+/// `ListConfigSchemasError` は設定スキーマ一覧取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum ListConfigSchemasError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// ListConfigSchemasUseCase は全設定スキーマ一覧取得ユースケース。
+/// `ListConfigSchemasUseCase` は全設定スキーマ一覧取得ユースケース。
 pub struct ListConfigSchemasUseCase {
     schema_repo: Arc<dyn ConfigSchemaRepository>,
 }
@@ -20,10 +20,14 @@ impl ListConfigSchemasUseCase {
         Self { schema_repo }
     }
 
-    /// 全ての設定スキーマを一覧取得する。
-    pub async fn execute(&self) -> Result<Vec<ConfigSchema>, ListConfigSchemasError> {
+    /// 指定テナントの全ての設定スキーマを一覧取得する。
+    // CRITICAL-RUST-001 監査対応: テナント分離のために tenant_id 引数を追加する。
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+    ) -> Result<Vec<ConfigSchema>, ListConfigSchemasError> {
         self.schema_repo
-            .list_all()
+            .list_all(tenant_id)
             .await
             .map_err(|e| ListConfigSchemasError::Internal(e.to_string()))
     }
@@ -40,10 +44,11 @@ mod tests {
     #[tokio::test]
     async fn test_list_config_schemas_success() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_list_all().returning(|| {
+        mock.expect_list_all().returning(|_| {
             Ok(vec![
                 ConfigSchema {
                     id: Uuid::new_v4(),
+                    tenant_id: "test-tenant".to_string(),
                     service_name: "auth-server".to_string(),
                     namespace_prefix: "system.auth".to_string(),
                     schema_json: serde_json::json!({"categories": []}),
@@ -53,6 +58,7 @@ mod tests {
                 },
                 ConfigSchema {
                     id: Uuid::new_v4(),
+                    tenant_id: "test-tenant".to_string(),
                     service_name: "config-server".to_string(),
                     namespace_prefix: "system.config".to_string(),
                     schema_json: serde_json::json!({"categories": []}),
@@ -64,7 +70,7 @@ mod tests {
         });
 
         let uc = ListConfigSchemasUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("test-tenant").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 2);
     }
@@ -72,10 +78,10 @@ mod tests {
     #[tokio::test]
     async fn test_list_config_schemas_empty() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_list_all().returning(|| Ok(vec![]));
+        mock.expect_list_all().returning(|_| Ok(vec![]));
 
         let uc = ListConfigSchemasUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("test-tenant").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -84,10 +90,10 @@ mod tests {
     async fn test_list_config_schemas_internal_error() {
         let mut mock = MockConfigSchemaRepository::new();
         mock.expect_list_all()
-            .returning(|| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_| Err(anyhow::anyhow!("connection refused")));
 
         let uc = ListConfigSchemasUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("test-tenant").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

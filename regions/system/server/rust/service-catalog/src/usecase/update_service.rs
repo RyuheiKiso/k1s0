@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::service::{Service, ServiceLifecycle, ServiceTier};
 use crate::domain::repository::ServiceRepository;
 
-/// UpdateServiceError はサービス更新に関するエラーを表す。
+/// `UpdateServiceError` はサービス更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateServiceError {
     #[error("service not found: {0}")]
@@ -19,7 +19,7 @@ pub enum UpdateServiceError {
     Internal(String),
 }
 
-/// UpdateServiceInput はサービス更新の入力データ。
+/// `UpdateServiceInput` はサービス更新の入力データ。
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 pub struct UpdateServiceInput {
     pub name: Option<String>,
@@ -33,7 +33,7 @@ pub struct UpdateServiceInput {
     pub metadata: Option<serde_json::Value>,
 }
 
-/// UpdateServiceUseCase はサービス更新ユースケース。
+/// `UpdateServiceUseCase` はサービス更新ユースケース。
 pub struct UpdateServiceUseCase {
     service_repo: Arc<dyn ServiceRepository>,
 }
@@ -43,12 +43,14 @@ impl UpdateServiceUseCase {
         Self { service_repo }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         id: Uuid,
         input: UpdateServiceInput,
     ) -> Result<Service, UpdateServiceError> {
-        let mut service = match self.service_repo.find_by_id(id).await {
+        let mut service = match self.service_repo.find_by_id(tenant_id, id).await {
             Ok(Some(s)) => s,
             Ok(None) => return Err(UpdateServiceError::NotFound(id)),
             Err(e) => return Err(UpdateServiceError::Internal(e.to_string())),
@@ -90,7 +92,7 @@ impl UpdateServiceUseCase {
         service.updated_at = Utc::now();
 
         self.service_repo
-            .update(&service)
+            .update(tenant_id, &service)
             .await
             .map_err(|e| UpdateServiceError::Internal(e.to_string()))
     }
@@ -130,12 +132,13 @@ mod tests {
         let svc_clone = svc.clone();
         let mut mock = MockServiceRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(svc_clone.clone())));
-        mock.expect_update().returning(|svc| Ok(svc.clone()));
+            .returning(move |_, _| Ok(Some(svc_clone.clone())));
+        mock.expect_update().returning(|_, svc| Ok(svc.clone()));
 
         let uc = UpdateServiceUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                "tenant-1",
                 id,
                 UpdateServiceInput {
                     name: Some("updated-name".to_string()),
@@ -162,11 +165,12 @@ mod tests {
         let svc = make_service(id);
         let mut mock = MockServiceRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(svc.clone())));
+            .returning(move |_, _| Ok(Some(svc.clone())));
 
         let uc = UpdateServiceUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                "tenant-1",
                 id,
                 UpdateServiceInput {
                     name: Some("  ".to_string()),
@@ -188,11 +192,12 @@ mod tests {
     #[tokio::test]
     async fn test_update_service_not_found() {
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateServiceUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                "tenant-1",
                 Uuid::new_v4(),
                 UpdateServiceInput {
                     name: Some("new-name".to_string()),

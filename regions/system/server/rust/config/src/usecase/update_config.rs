@@ -9,7 +9,7 @@ use crate::domain::service::ConfigDomainService;
 use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
 use crate::usecase::watch_config::ConfigChangeEvent;
 
-/// UpdateConfigError は設定値更新に関するエラーを表す。
+/// `UpdateConfigError` は設定値更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateConfigError {
     #[error("config not found: {0}/{1}")]
@@ -28,8 +28,8 @@ pub enum UpdateConfigError {
     Internal(String),
 }
 
-/// UpdateConfigInput は設定値更新のリクエストを表す。
-/// STATIC-CRITICAL-001 監査対応: tenant_id フィールドを追加。
+/// `UpdateConfigInput` は設定値更新のリクエストを表す。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` フィールドを追加。
 #[derive(Debug, Clone)]
 pub struct UpdateConfigInput {
     /// テナント識別子（JWT Claims から抽出）
@@ -42,7 +42,7 @@ pub struct UpdateConfigInput {
     pub updated_by: String,
 }
 
-/// UpdateConfigUseCase は設定値更新ユースケース。
+/// `UpdateConfigUseCase` は設定値更新ユースケース。
 pub struct UpdateConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
     config_schema_repo: Option<Arc<dyn ConfigSchemaRepository>>,
@@ -64,7 +64,7 @@ impl UpdateConfigUseCase {
     /// スキーマリポジトリ付きのコンストラクタ。
     /// Kafka 通知ありのコンストラクタ。
     /// broadcast watch sender ありのコンストラクタ。
-    /// watch_sender を指定すると、更新成功後に ConfigChangeEvent が全購読者に送信される。
+    /// `watch_sender` を指定すると、更新成功後に `ConfigChangeEvent` が全購読者に送信される。
     pub fn new_with_watch(
         config_repo: Arc<dyn ConfigRepository>,
         watch_sender: tokio::sync::broadcast::Sender<ConfigChangeEvent>,
@@ -92,6 +92,7 @@ impl UpdateConfigUseCase {
     }
 
     /// スキーマリポジトリを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_schema_repo(mut self, schema_repo: Arc<dyn ConfigSchemaRepository>) -> Self {
         self.config_schema_repo = Some(schema_repo);
         self
@@ -101,6 +102,8 @@ impl UpdateConfigUseCase {
     /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
     /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
     /// 監査ログも記録する（ベストエフォート）。
+    // DB操作・Kafkaイベント発行・監査ログ記録を含むため行数が多い
+    #[allow(clippy::too_many_lines)]
     pub async fn execute(
         &self,
         input: &UpdateConfigInput,
@@ -119,8 +122,12 @@ impl UpdateConfigUseCase {
         }
 
         // スキーマ検証（設定済みの場合のみ）
+        // CRITICAL-RUST-001 監査対応: tenant_id を渡して RLS テナント分離を保証する。
         if let Some(ref schema_repo) = self.config_schema_repo {
-            if let Ok(Some(schema)) = schema_repo.find_by_namespace(&input.namespace).await {
+            if let Ok(Some(schema)) = schema_repo
+                .find_by_namespace(&input.namespace, &input.tenant_id.to_string())
+                .await
+            {
                 validate_value_against_schema(&input.key, &input.value, &schema.schema_json)?;
             }
         }
@@ -228,15 +235,15 @@ fn validate_value_against_schema(
     value: &serde_json::Value,
     schema_json: &serde_json::Value,
 ) -> Result<(), UpdateConfigError> {
-    let categories = match schema_json.get("categories").and_then(|c| c.as_array()) {
-        Some(cats) => cats,
-        None => return Ok(()),
+    // カテゴリーリストが存在しない場合はバリデーションをスキップする
+    let Some(categories) = schema_json.get("categories").and_then(|c| c.as_array()) else {
+        return Ok(());
     };
 
     for category in categories {
-        let fields = match category.get("fields").and_then(|f| f.as_array()) {
-            Some(f) => f,
-            None => continue,
+        // フィールドリストが存在しないカテゴリーはスキップする
+        let Some(fields) = category.get("fields").and_then(|f| f.as_array()) else {
+            continue;
         };
         for field in fields {
             let field_key = field.get("key").and_then(|k| k.as_str()).unwrap_or("");
@@ -253,8 +260,7 @@ fn validate_value_against_schema(
             };
             if !type_ok {
                 return Err(UpdateConfigError::SchemaValidation(format!(
-                    "field '{}' expected type '{}', got {:?}",
-                    key, field_type, value
+                    "field '{key}' expected type '{field_type}', got {value:?}"
                 )));
             }
             return Ok(());

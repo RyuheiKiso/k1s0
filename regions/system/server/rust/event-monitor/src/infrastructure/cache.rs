@@ -12,6 +12,7 @@ pub struct KpiCache {
 }
 
 impl KpiCache {
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -41,10 +42,10 @@ impl KpiCache {
 }
 
 /// フロー定義のインメモリキャッシュ。
-/// Kafka メッセージ処理ごとの find_all() による N+1 クエリを防止する。
+/// Kafka メッセージ処理ごとの `find_all()` による N+1 クエリを防止する。
 /// TTL 経過後に自動的にキャッシュが無効化され、次のアクセスで再取得する。
 pub struct FlowDefinitionCache {
-    /// "all_flows" キーで全フロー定義リストをキャッシュする
+    /// "`all_flows`" キーで全フロー定義リストをキャッシュする
     inner: Cache<String, Arc<Vec<FlowDefinition>>>,
 }
 
@@ -53,8 +54,9 @@ const ALL_FLOWS_KEY: &str = "all_flows";
 
 impl FlowDefinitionCache {
     /// 新しいフロー定義キャッシュを生成する。
-    /// max_capacity: キャッシュエントリの最大数
-    /// ttl_secs: エントリの有効期限（秒）
+    /// `max_capacity`: キャッシュエントリの最大数
+    /// `ttl_secs`: エントリの有効期限（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)

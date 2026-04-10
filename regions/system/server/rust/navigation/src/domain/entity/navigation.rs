@@ -10,6 +10,8 @@ pub struct NavigationConfig {
 }
 
 /// ルートガード定義。
+// HIGH-001 監査対応: guard_type フィールドは API 契約上の命名であり struct_field_names を許容する
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Guard {
     pub id: String,

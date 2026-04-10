@@ -5,16 +5,13 @@ pub struct QuotaDomainService;
 impl QuotaDomainService {
     pub fn parse_subject_type(raw: &str) -> Result<SubjectType, String> {
         SubjectType::from_str(raw).ok_or_else(|| {
-            format!(
-                "subject_type must be one of: tenant, user, api_key, got: {}",
-                raw
-            )
+            format!("subject_type must be one of: tenant, user, api_key, got: {raw}")
         })
     }
 
     pub fn parse_period(raw: &str) -> Result<Period, String> {
         Period::from_str(raw)
-            .ok_or_else(|| format!("period must be one of: daily, monthly, got: {}", raw))
+            .ok_or_else(|| format!("period must be one of: daily, monthly, got: {raw}"))
     }
 
     pub fn validate_limit(limit: u64) -> Result<(), String> {
@@ -33,8 +30,11 @@ impl QuotaDomainService {
         Ok(())
     }
 
+    #[must_use]
     pub fn usage(limit: u64, used: u64) -> (u64, f64) {
         let remaining = limit.saturating_sub(used);
+        // LOW-008: u64 → f64 の精度損失は許容（クォータ使用率の近似値計算のため）
+        #[allow(clippy::cast_precision_loss)]
         let usage_percent = if limit == 0 {
             100.0
         } else {

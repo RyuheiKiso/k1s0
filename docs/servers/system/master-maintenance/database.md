@@ -400,3 +400,22 @@ CREATE INDEX idx_import_jobs_table ON master_maintenance.import_jobs(table_id, s
 | `002_create_master_maintenance_tables.down.sql` | テーブル削除 |
 | `003_add_domain_scope.up.sql` | domain_scope カラム追加・ユニーク制約変更 |
 | `003_add_domain_scope.down.sql` | domain_scope カラム削除 |
+| `004_add_updated_at_trigger.up.sql` | updated_at 自動更新トリガー追加 |
+| `005_add_table_rbac_roles.up.sql` | RBAC ロールカラム追加 |
+| `006_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id TEXT NOT NULL` と RLS ポリシー（FORCE / AS RESTRICTIVE / WITH CHECK）を追加（CRITICAL-DB-001 対応） |
+| `006_add_tenant_id_rls.down.sql` | `tenant_id` カラムと RLS ポリシー削除 |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-001）
+
+全テーブル（`table_definitions` / `column_definitions` / `table_relationships` / `consistency_rules` / `rule_conditions` / `display_configs` / `change_logs` / `import_jobs`）に `tenant_id TEXT NOT NULL` カラムと RLS ポリシーを追加（migration 006）。
+
+```sql
+ALTER TABLE master_maintenance.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE master_maintenance.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON master_maintenance.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```

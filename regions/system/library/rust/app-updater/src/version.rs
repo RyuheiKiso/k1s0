@@ -7,6 +7,7 @@ use crate::model::{AppVersionInfo, UpdateType};
 /// セマンティックバージョニング（major.minor.patch）に基づいて比較し、
 /// `Ordering::Less`・`Ordering::Equal`・`Ordering::Greater` を返す。
 /// プレリリースサフィックス（例: "-beta"）は無視して数値のみで比較する。
+#[must_use]
 pub fn compare_versions(left: &str, right: &str) -> Ordering {
     let left_parts = normalize_version(left);
     let right_parts = normalize_version(right);
@@ -16,7 +17,8 @@ pub fn compare_versions(left: &str, right: &str) -> Ordering {
         let left_value = left_parts.get(index).copied().unwrap_or(0);
         let right_value = right_parts.get(index).copied().unwrap_or(0);
         match left_value.cmp(&right_value) {
-            Ordering::Equal => continue,
+            // Equal の場合は次のインデックスに進むため continue は不要
+            Ordering::Equal => {}
             other => return other,
         }
     }
@@ -29,6 +31,7 @@ pub fn compare_versions(left: &str, right: &str) -> Ordering {
 /// - 現在バージョンが最低バージョンを下回る、または `mandatory` フラグが true → `Mandatory`
 /// - 現在バージョンが最新バージョンを下回る → `Optional`
 /// - それ以外 → `None`
+#[must_use]
 pub fn determine_update_type(current_version: &str, version_info: &AppVersionInfo) -> UpdateType {
     if compare_versions(current_version, &version_info.minimum_version) == Ordering::Less
         || version_info.mandatory
@@ -50,7 +53,7 @@ fn normalize_version(version: &str) -> Vec<u32> {
     version
         .split('.')
         .map(|segment| {
-            let numeric: String = segment.chars().filter(|c| c.is_ascii_digit()).collect();
+            let numeric: String = segment.chars().filter(char::is_ascii_digit).collect();
             numeric.parse::<u32>().unwrap_or(0)
         })
         .collect()

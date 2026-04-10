@@ -17,6 +17,7 @@ pub struct WorkflowInstance {
 }
 
 impl WorkflowInstance {
+    #[must_use]
     pub fn new(
         id: String,
         workflow_id: String,
@@ -42,6 +43,7 @@ impl WorkflowInstance {
         }
     }
 
+    #[must_use]
     pub fn is_cancellable(&self) -> bool {
         matches!(self.status.as_str(), "pending" | "running")
     }

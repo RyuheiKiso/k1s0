@@ -93,7 +93,53 @@ docker compose --profile infra --profile observability up -d
 
 ---
 
-## 3. WSL2 のファイルシステム（I/O 遅延）
+## 3. Docker Desktop が並列大規模ビルドでクラッシュする（HIGH-004 監査対応）
+
+### 症状
+
+- `docker build --no-cache` を複数サービス同時に実行すると dockerd が停止する
+- `\\.\pipe\dockerDesktopLinuxEngine` パイプが5分以上待機しても作成されない
+- `docker ps` で `Error: 500 Internal Server Error` が返る
+
+### 原因
+
+29サービス分の `--no-cache` 並列ビルドは CPU・メモリ・I/O を大量消費する。WSL2 バックエンドのリソース制限またはビルドキャッシュが溢れることで dockerd が強制終了する。
+
+### 対処
+
+**1. WSL2 リソースを増強する**（`%USERPROFILE%\.wslconfig`）:
+
+```ini
+[wsl2]
+memory=12GB
+processors=8
+swap=8GB
+```
+
+変更後は `wsl --shutdown` で WSL2 を再起動する。
+
+**2. 並列ビルドを制限する**:
+
+```bash
+# --no-cache は個別サービスに限定し、全サービス同時実行を避ける
+docker compose build --no-cache auth-server
+docker compose build --no-cache config-server
+# ... サービスごとに順次実行する
+```
+
+**3. Docker Builder のキャッシュを最適化する**:
+
+```bash
+# ビルドキャッシュを定期的にクリアしてディスク・メモリ消費を抑える
+docker builder prune --filter until=48h
+```
+
+**4. Docker Desktop の再起動**:
+クラッシュ後は Docker Desktop を完全終了（タスクバーアイコン右クリック → Quit Docker Desktop）して再起動すること。
+
+---
+
+## 4. WSL2 のファイルシステム（I/O 遅延）
 
 ### 症状
 
@@ -184,7 +230,72 @@ cp .env.example .env
 
 ---
 
-## 5. Docker グループ権限
+## 5. Windows Hyper-V によるポート排除（gRPC ポート競合）
+
+### 症状
+
+- `docker compose up` で gRPC サービス（event-monitor/master-maintenance/navigation/policy/rule-engine/session）のポートが `bind: address already in use` になる
+- Windows の Hyper-V が特定ポート帯を動的に予約しているため、50174-50273 や 50279-50378 のポートが使用できない
+
+### 原因
+
+Windows 上で Hyper-V または WSL2 が動作していると、Hyper-V の動的ポート予約メカニズムがランダムなポート帯を排除リストに登録する。この排除リストに k1s0 の gRPC ポートが含まれると `bind` に失敗する。
+
+CRIT-002 監査対応: 元々 50300-50305 を使用していたが、Hyper-V の排除範囲 50279-50378 と重複するため、50400-50405 に移動した。
+
+### 確認方法
+
+```powershell
+# Hyper-V の動的ポート排除範囲を確認する（PowerShell で実行）
+netsh int ipv4 show excludedportrange protocol=tcp
+```
+
+出力例（排除範囲が 50279-50378 を含む場合）:
+```
+プロトコル tcp の除外ポート範囲
+
+開始ポート    終了ポート
+----------    ----------
+...
+50174         50273
+50279         50378        ← このため 50300-50305 は使用不可
+...
+```
+
+### 対処
+
+k1s0 はすでに CRIT-002 対応として gRPC ポートを 50400-50405 に移動済み。
+排除範囲が 50400 以上まで拡張した場合は `.env.dev` の以下の変数を変更すること:
+
+```bash
+EVENT_MONITOR_GRPC_HOST_PORT=50400    # 変更が必要な場合は別ポートへ
+MASTER_MAINTENANCE_GRPC_HOST_PORT=50401
+NAVIGATION_GRPC_HOST_PORT=50402
+POLICY_GRPC_HOST_PORT=50403
+RULE_ENGINE_GRPC_HOST_PORT=50404
+SESSION_GRPC_HOST_PORT=50405
+```
+
+### CRIT-003: K8s API サーバーポート競合（Windows Hyper-V）
+
+Hyper-V の排除範囲が kubectl 通信ポート（6443）や K8s API サーバーポートと重複することがある。
+
+```powershell
+# K8s 関連ポートが排除されているか確認する
+netsh int ipv4 show excludedportrange protocol=tcp | findstr /r "6443\|6440\|6450"
+```
+
+排除されている場合は以下を試みる:
+
+```powershell
+# Hyper-V を一時停止してポート排除をリセットする（管理者権限で実行）
+net stop winnat
+net start winnat
+```
+
+---
+
+## 6. Docker グループ権限
 
 ### 症状
 
@@ -487,7 +598,10 @@ wsl --shutdown  → Docker Desktop を手動で起動
 
 ---
 
-## 11. Windows Hyper-V 動的ポート除外による gRPC 起動失敗（HIGH-1 監査対応）
+## 11. Windows Hyper-V 動的ポート除外による gRPC 起動失敗（HIGH-1 / CRIT-002 監査対応）
+
+> **最新情報**: 「5. Windows Hyper-V によるポート排除（gRPC ポート競合）」も参照すること。
+> CRIT-002 監査対応で gRPC ポートは 50300 帯から **50400-50405** 帯に移動済み（2026-04-06）。
 
 ### 症状
 
@@ -507,7 +621,7 @@ An attempt was made to access a socket in a way forbidden by its access permissi
 
 ### 原因
 
-Windows の Hyper-V は起動時に TCP ポートを動的に予約・除外する。この範囲には一般的に 50060-50159 が含まれる。以前のデフォルト gRPC ポート（50060-50065）がこの範囲と重複していた。
+Windows の Hyper-V は起動時に TCP ポートを動的に予約・除外する。確認された排除範囲: 50174-50273 / 50279-50378。
 
 除外範囲を確認するには:
 
@@ -517,18 +631,18 @@ netsh int ipv4 show excludedportrange protocol=tcp
 
 ### 対処
 
-**現行バージョン（ADR-0040 対応済み）**: デフォルト gRPC ポートは 50200-50205 に変更済みのため、通常は発生しない。
+**現行バージョン（ADR-0040 + CRIT-002 対応済み）**: デフォルト gRPC ポートは 50400-50405 に変更済みのため、通常は発生しない。
 
-ただし、古い `.env` ファイルや環境変数オーバーライドで 50060-50159 の値を指定している場合は、以下のように 50200 帯に変更する:
+古い `.env` ファイルや環境変数オーバーライドで旧ポート（50200-50205 または 50300-50305）を指定している場合は、`.env.dev` を最新版に更新すること:
 
 ```bash
-# .env.dev または環境変数で明示的に設定する場合
-export EVENT_MONITOR_GRPC_HOST_PORT=50200
-export MASTER_MAINTENANCE_GRPC_HOST_PORT=50201
-export NAVIGATION_GRPC_HOST_PORT=50202
-export POLICY_GRPC_HOST_PORT=50203
-export RULE_ENGINE_GRPC_HOST_PORT=50204
-export SESSION_GRPC_HOST_PORT=50205
+# .env.dev の現行設定（CRIT-002 対応後）
+EVENT_MONITOR_GRPC_HOST_PORT=50400
+MASTER_MAINTENANCE_GRPC_HOST_PORT=50401
+NAVIGATION_GRPC_HOST_PORT=50402
+POLICY_GRPC_HOST_PORT=50403
+RULE_ENGINE_GRPC_HOST_PORT=50404
+SESSION_GRPC_HOST_PORT=50405
 ```
 
 ---
@@ -735,29 +849,57 @@ done
 
 ---
 
-## stale Docker イメージ問題（HIGH-002 / HIGH-003 / HIGH-006 対応）
+## stale Docker イメージ問題（CRIT-002 / CRIT-003 / HIGH-002 / HIGH-003 / HIGH-006 対応）
 
 ### 症状
 
 - ソースコードを変更したのに稼働中コンテナに反映されない
 - readyz が 404 を返す（例: featureflag の `/readyz` エンドポイント）
 - healthz が旧バージョンのレスポンスを返す
+- `config-rust` が `Error: auth configuration is required` で起動ループする（`Restarting` 状態）
+- `featureflag-rust` が `503 Service Unavailable` を返し続け `unhealthy` になる
 
 ### 原因
 
 稼働中の Docker コンテナが古いイメージを使用している。`docker ps` で `CREATED` 列を確認し、数時間〜数日前になっていれば stale image の可能性が高い。
 
+`docker compose up`（just を使わず直接）を実行した場合、`--build` オプションが省略されるため新しいコードが反映されない。
+
+**具体的な症状別原因**:
+
+| 症状 | 根本原因 |
+|------|---------|
+| config-rust が起動ループ（CRIT-002） | `dev-auth-bypass` feature フラグを含まないイメージが起動している |
+| featureflag-rust が unhealthy（CRIT-003） | migration 006（UUID→TEXT）対応前の古いイメージが動作している |
+| マイグレーション未実行でサービス unhealthy（HIGH-003） | `just local-up` を使わず `docker compose up` を直接実行した |
+
 ### 対処
 
+**最も確実な方法（推奨）**: `just local-up` を使用する
+
 ```bash
-# 対象サービスを特定してリビルド・再起動する
-docker compose --env-file .env.dev \
-  -f docker-compose.yaml -f docker-compose.dev.yaml \
-  build featureflag-rust graphql-gateway-rust event-store-rust event-monitor-rust && \
-docker compose --env-file .env.dev \
-  -f docker-compose.yaml -f docker-compose.dev.yaml \
-  up -d --force-recreate featureflag-rust graphql-gateway-rust event-store-rust event-monitor-rust
+# just local-up は --build と migrate-all が自動適用される
+just local-up
 ```
+
+`just local-up` は `just local-up-dev` のエイリアスであり、以下を自動実行する:
+1. **Phase 1**: インフラサービスを `--build` 付きで起動
+2. **Phase 1.5**: `just migrate-all`（DB マイグレーション）を自動実行
+3. **Phase 2**: 全サービスを `--build` 付きで起動
+
+**特定サービスのみ再ビルドする場合**:
+
+```bash
+# config-rust と featureflag-rust のみ再ビルド・再起動する
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  build config-rust featureflag-rust && \
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --force-recreate config-rust featureflag-rust
+```
+
+**注意**: `docker compose up` を直接実行することは推奨しない。`--build` と `--env-file .env.dev` と `-f docker-compose.dev.yaml` の全てを手動で指定しなければならず、漏れると上記の CRIT-002/003 症状が発生する。
 
 ### stale image の検出
 
@@ -765,6 +907,46 @@ docker compose --env-file .env.dev \
 # 長時間起動しているコンテナを確認する（24 時間以上が目安）
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}" | sort
 ```
+
+---
+
+## ghcr.io レジストリアクセス拒否（HIGH-002 対応）
+
+### 症状
+
+```
+Error response from daemon: Head "https://ghcr.io/v2/prometheus/jmx-exporter/manifests/1.0.1":
+denied: denied
+```
+
+または
+
+```
+Error response from daemon: pull access denied for ghcr.io/prometheus/jmx-exporter,
+repository does not exist or may require 'docker login'
+```
+
+### 原因
+
+GitHub Container Registry（ghcr.io）への認証が未設定。ghcr.io はパブリックイメージでも Docker ログインが必要な場合がある。
+
+### 対処
+
+```bash
+# GitHub Personal Access Token（read:packages スコープ）でログインする
+# GITHUB_TOKEN 環境変数が設定済みの場合
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
+
+# 対話的にログインする場合（パスワード欄に Personal Access Token を入力）
+docker login ghcr.io
+```
+
+**Personal Access Token の作成方法**:
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. `read:packages` スコープを選択して生成
+3. 上記コマンドのパスワード欄に貼り付け
+
+ログイン後、`docker compose pull` または `just local-up` を再実行する。
 
 ---
 

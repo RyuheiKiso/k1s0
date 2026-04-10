@@ -32,6 +32,7 @@ impl FeatureFlagDomainService {
         Ok(())
     }
 
+    #[must_use]
     pub fn evaluate(
         flag: &FeatureFlag,
         context: &EvaluationContext,
@@ -69,7 +70,7 @@ impl FeatureFlagDomainService {
         match attribute {
             "user_id" => context.user_id.as_deref(),
             "tenant_id" => context.tenant_id.as_deref(),
-            key => context.attributes.get(key).map(|v| v.as_str()),
+            key => context.attributes.get(key).map(std::string::String::as_str),
         }
     }
 
@@ -80,7 +81,7 @@ impl FeatureFlagDomainService {
             "in" => rule
                 .value
                 .split(',')
-                .map(|s| s.trim())
+                .map(str::trim)
                 .any(|expected| !expected.is_empty() && expected == actual_value),
             _ => false,
         }
@@ -105,7 +106,9 @@ impl FeatureFlagDomainService {
             .as_deref()
             .or(context.tenant_id.as_deref())
             .unwrap_or("anonymous");
-        let bucket = (Self::stable_hash(seed) % (total_weight as u64)) as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total_weight_u64 = u64::try_from(total_weight).unwrap_or(0);
+        let bucket = i64::try_from(Self::stable_hash(seed) % total_weight_u64).unwrap_or(0);
 
         let mut cumulative = 0i64;
         for variant in weighted {

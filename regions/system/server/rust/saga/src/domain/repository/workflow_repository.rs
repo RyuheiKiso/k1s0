@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::workflow::WorkflowDefinition;
 
-/// WorkflowRepository はワークフロー定義のリポジトリトレイト。
+/// `WorkflowRepository` はワークフロー定義のリポジトリトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait WorkflowRepository: Send + Sync {

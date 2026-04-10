@@ -25,6 +25,8 @@ type mockAuthOAuthClient struct {
 	exchangeCodeFn func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
 	// extractClaimsFn は ExtractClaims 呼び出しの振る舞いを定義する。
 	extractClaimsFn func(ctx context.Context, idToken string) (string, []string, error)
+	// extractFullClaimsFn は ExtractFullClaims 呼び出しの振る舞いを定義する（CRIT-002 監査対応）。
+	extractFullClaimsFn func(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error)
 	// logoutURLFn は LogoutURL 呼び出しの振る舞いを定義する。
 	logoutURLFn func(idTokenHint, postLogoutRedirectURI string) (string, error)
 	// discoveryCacheCleared は ClearDiscoveryCache が呼ばれたかどうかの記録フラグ。
@@ -68,6 +70,19 @@ func (m *mockAuthOAuthClient) LogoutURL(idTokenHint, postLogoutRedirectURI strin
 	return "https://idp.example.com/logout?redirect=" + postLogoutRedirectURI, nil
 }
 
+// ExtractFullClaims は JWKS 署名検証済み ID トークンから IDTokenClaims 全体を返すモック実装。
+// CRIT-002 監査対応: AuthOAuthClient インターフェースの ExtractFullClaims メソッドを実装する。
+func (m *mockAuthOAuthClient) ExtractFullClaims(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error) {
+	if m.extractFullClaimsFn != nil {
+		return m.extractFullClaimsFn(ctx, idToken)
+	}
+	return &oauth.IDTokenClaims{
+		Subject:  "default-subject",
+		Roles:    []string{"user"},
+		TenantID: "default-tenant",
+	}, nil
+}
+
 // ClearDiscoveryCache は OIDC discovery キャッシュクリアのモック実装。
 // 呼び出されたことを記録する。
 func (m *mockAuthOAuthClient) ClearDiscoveryCache() {
@@ -79,13 +94,13 @@ func (m *mockAuthOAuthClient) ClearDiscoveryCache() {
 // H-5 監査対応: ExchangeCodeStore インターフェースを実装し、交換コード専用の操作を提供する。
 type mockSessionStoreForAuth struct {
 	// sessions はインメモリのセッションデータストア。
-	sessions map[string]*session.SessionData
+	sessions map[string]*session.Data
 	// exchangeCodes はインメモリの交換コードデータストア（H-5 監査対応）。
 	exchangeCodes map[string]*session.ExchangeCodeData
 	// counter は Create のたびにインクリメントされる連番（一意な ID 生成用）。
 	counter int
 	// createFn は Create の振る舞いを上書きする。nil の場合はデフォルト動作。
-	createFn func(ctx context.Context, data *session.SessionData, ttl time.Duration) (string, error)
+	createFn func(ctx context.Context, data *session.Data, ttl time.Duration) (string, error)
 	// exchangeCodeCounter は CreateExchangeCode のたびにインクリメントされる連番。
 	exchangeCodeCounter int
 }
@@ -93,13 +108,13 @@ type mockSessionStoreForAuth struct {
 // newMockSessionStoreForAuth はテスト用インメモリセッションストアを生成する。
 func newMockSessionStoreForAuth() *mockSessionStoreForAuth {
 	return &mockSessionStoreForAuth{
-		sessions:      make(map[string]*session.SessionData),
+		sessions:      make(map[string]*session.Data),
 		exchangeCodes: make(map[string]*session.ExchangeCodeData),
 	}
 }
 
 // Create はセッションデータを保存し、連番の ID を返す。createFn が設定されていればそちらに委譲する。
-func (m *mockSessionStoreForAuth) Create(ctx context.Context, data *session.SessionData, ttl time.Duration) (string, error) {
+func (m *mockSessionStoreForAuth) Create(ctx context.Context, data *session.Data, ttl time.Duration) (string, error) {
 	if m.createFn != nil {
 		return m.createFn(ctx, data, ttl)
 	}
@@ -110,7 +125,7 @@ func (m *mockSessionStoreForAuth) Create(ctx context.Context, data *session.Sess
 }
 
 // Get は指定 ID のセッションデータを取得する。存在しない場合は nil を返す。
-func (m *mockSessionStoreForAuth) Get(_ context.Context, id string) (*session.SessionData, error) {
+func (m *mockSessionStoreForAuth) Get(_ context.Context, id string) (*session.Data, error) {
 	if s, ok := m.sessions[id]; ok {
 		return s, nil
 	}
@@ -118,7 +133,7 @@ func (m *mockSessionStoreForAuth) Get(_ context.Context, id string) (*session.Se
 }
 
 // Update はセッションデータを更新する。
-func (m *mockSessionStoreForAuth) Update(_ context.Context, id string, data *session.SessionData, _ time.Duration) error {
+func (m *mockSessionStoreForAuth) Update(_ context.Context, id string, data *session.Data, _ time.Duration) error {
 	m.sessions[id] = data
 	return nil
 }
@@ -505,8 +520,8 @@ func TestLogout_Success(t *testing.T) {
 		t.Fatal("Logout は非 nil 出力を期待したが nil が返った")
 	}
 	// IdP ログアウト URL が返されること
-	if out.IdPLogoutURL == "" {
-		t.Error("IdPLogoutURL が空")
+	if out.IDPLogoutURL == "" {
+		t.Error("IDPLogoutURL が空")
 	}
 	// セッションが削除されていること
 	if _, exists := store.sessions["logout-session-id"]; exists {
@@ -537,8 +552,8 @@ func TestLogout_NoSession(t *testing.T) {
 		t.Fatal("Logout は非 nil 出力を期待したが nil が返った")
 	}
 	// セッションなし: IdP ログアウト URL は空（セッションデータなし）
-	if out.IdPLogoutURL != "" {
-		t.Errorf("IdPLogoutURL: want empty（セッションなし）, got %q", out.IdPLogoutURL)
+	if out.IDPLogoutURL != "" {
+		t.Errorf("IDPLogoutURL: want empty（セッションなし）, got %q", out.IDPLogoutURL)
 	}
 	// フォールバック URI が返されること
 	if out.FallbackURI != "https://app.example.com" {
@@ -546,9 +561,9 @@ func TestLogout_NoSession(t *testing.T) {
 	}
 }
 
-// TestLogout_IdPLogoutURLError は IdP ログアウト URL の構築が失敗した場合に
+// TestLogout_IDPLogoutURLError は IdP ログアウト URL の構築が失敗した場合に
 // フォールバック URI が返されることを検証する。
-func TestLogout_IdPLogoutURLError(t *testing.T) {
+func TestLogout_IDPLogoutURLError(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{
 		logoutURLFn: func(_, _ string) (string, error) {
 			return "", errors.New("idp logout url error")
@@ -569,9 +584,9 @@ func TestLogout_IdPLogoutURLError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Logout は nil エラーを期待したが %v が返った", err)
 	}
-	// IdP ログアウト URL 構築失敗時: IdPLogoutURL は空
-	if out.IdPLogoutURL != "" {
-		t.Errorf("IdPLogoutURL: want empty（構築失敗）, got %q", out.IdPLogoutURL)
+	// IdP ログアウト URL 構築失敗時: IDPLogoutURL は空
+	if out.IDPLogoutURL != "" {
+		t.Errorf("IDPLogoutURL: want empty（構築失敗）, got %q", out.IDPLogoutURL)
 	}
 	// フォールバック URI が返されること
 	if out.FallbackURI != "https://app.example.com/fallback" {
@@ -664,7 +679,7 @@ func TestCheckSession_Expired(t *testing.T) {
 // JSON シリアライズで null ではなく [] になることを保証する。
 func TestCheckSession_RolesNilToEmpty(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	sess := &session.SessionData{
+	sess := &session.Data{
 		Subject:   "nil-roles-subject",
 		CSRFToken: "nil-roles-csrf",
 		ExpiresAt: time.Now().Add(time.Hour).Unix(),
@@ -819,7 +834,7 @@ func TestCheckSession_CSRFRefresh_WhenThresholdExceeded(t *testing.T) {
 
 	// 26分前に作成された CSRF トークン（csrfRefreshThreshold=25分 を超えている）
 	oldCSRFToken := "old-csrf-token-abc123"
-	sessionID, err := store.Create(context.Background(), &session.SessionData{
+	sessionID, err := store.Create(context.Background(), &session.Data{
 		AccessToken:        "access-token",
 		CSRFToken:          oldCSRFToken,
 		CSRFTokenCreatedAt: time.Now().Add(-26 * time.Minute).Unix(),
@@ -864,7 +879,7 @@ func TestCheckSession_CSRFRefresh_SkippedWhenFresh(t *testing.T) {
 
 	// 5分前に作成された CSRF トークン（しきい値以内）
 	originalCSRFToken := "fresh-csrf-token-xyz456"
-	sessionID, err := store.Create(context.Background(), &session.SessionData{
+	sessionID, err := store.Create(context.Background(), &session.Data{
 		AccessToken:        "access-token",
 		CSRFToken:          originalCSRFToken,
 		CSRFTokenCreatedAt: time.Now().Add(-5 * time.Minute).Unix(),
@@ -886,18 +901,19 @@ func TestCheckSession_CSRFRefresh_SkippedWhenFresh(t *testing.T) {
 	}
 }
 
-// TestCheckSession_CSRFRefresh_SkippedForLegacySession は CSRFTokenCreatedAt=0 の旧形式セッションで
-// 再生成がスキップされることを検証する（H-003 後方互換性確認）。
-func TestCheckSession_CSRFRefresh_SkippedForLegacySession(t *testing.T) {
+// TestCheckSession_CSRFRefresh_LegacySessionGetsRegenerated は CSRFTokenCreatedAt=0 の旧形式セッションで
+// CSRF トークンが再生成されることを検証する。
+// MED-001 監査対応: 後方互換ガードを削除し、旧形式セッションも TTL 超過として再生成する。
+func TestCheckSession_CSRFRefresh_LegacySessionGetsRegenerated(t *testing.T) {
 	store := newMockSessionStoreForAuth()
 	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0)
 
-	// CSRFTokenCreatedAt=0 の旧形式セッション（後方互換性のためにスキップ）
+	// CSRFTokenCreatedAt=0 の旧形式セッション（MED-001 対応: 1970-01-01 起算で TTL 超過と判定される）
 	legacyCSRFToken := "legacy-csrf-token"
-	sessionID, err := store.Create(context.Background(), &session.SessionData{
+	sessionID, err := store.Create(context.Background(), &session.Data{
 		AccessToken:        "access-token",
 		CSRFToken:          legacyCSRFToken,
-		CSRFTokenCreatedAt: 0, // 旧形式: 生成時刻未設定
+		CSRFTokenCreatedAt: 0, // 旧形式: 生成時刻未設定 → TTL 超過と判定され再生成される
 		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
 		Subject:            "user-3",
 	}, 30*time.Minute)
@@ -910,8 +926,11 @@ func TestCheckSession_CSRFRefresh_SkippedForLegacySession(t *testing.T) {
 		t.Fatalf("CheckSession は nil エラーを期待したが %v が返った", err)
 	}
 
-	// CSRFTokenCreatedAt=0 の場合は再生成をスキップし、元のトークンを返す
-	if out.CSRFToken != legacyCSRFToken {
-		t.Errorf("旧形式セッションの CSRF トークンが変更された: want %q, got %q", legacyCSRFToken, out.CSRFToken)
+	// MED-001 監査対応: CSRFTokenCreatedAt=0 は TTL 超過と判定され、新しいトークンに再生成される
+	if out.CSRFToken == legacyCSRFToken {
+		t.Errorf("旧形式セッションの CSRF トークンが再生成されなかった: got %q（変更されるべき）", out.CSRFToken)
+	}
+	if out.CSRFToken == "" {
+		t.Error("再生成後の CSRF トークンが空文字")
 	}
 }

@@ -13,6 +13,7 @@ pub struct DefinitionPostgresRepository {
 }
 
 impl DefinitionPostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -35,12 +36,13 @@ impl TryFrom<DefinitionRow> for WorkflowDefinition {
 
     fn try_from(r: DefinitionRow) -> anyhow::Result<Self> {
         let steps: Vec<WorkflowStep> = serde_json::from_value(r.steps)
-            .map_err(|e| anyhow::anyhow!("failed to deserialize steps: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("failed to deserialize steps: {e}"))?;
         Ok(WorkflowDefinition {
-            id: r.id.to_string(),
+            id: r.id.clone(),
             name: r.name,
             description: r.description,
-            version: r.version as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version: u32::try_from(r.version).unwrap_or(0),
             enabled: r.enabled,
             steps,
             created_at: r.created_at,
@@ -52,7 +54,11 @@ impl TryFrom<DefinitionRow> for WorkflowDefinition {
 #[async_trait]
 impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからSELECTを実行する
-    async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    async fn find_by_id(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
         // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
@@ -78,7 +84,11 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
     }
 
     // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してから名前検索を実行する
-    async fn find_by_name(&self, tenant_id: &str, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    async fn find_by_name(
+        &self,
+        tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
         // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
@@ -111,8 +121,8 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<WorkflowDefinition>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
@@ -163,7 +173,8 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
             .map(TryInto::try_into)
             .collect::<anyhow::Result<Vec<_>>>()?;
 
-        Ok((definitions, count.0 as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((definitions, u64::try_from(count.0).unwrap_or(0)))
     }
 
     // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからINSERTを実行する
@@ -188,7 +199,8 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
         .bind(&definition.description)
         .bind(&steps_json)
         .bind(definition.enabled)
-        .bind(definition.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(definition.version).unwrap_or(i32::MAX))
         .bind(definition.created_at)
         .bind(definition.updated_at)
         .bind(tenant_id)
@@ -221,7 +233,8 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
         .bind(&definition.description)
         .bind(&steps_json)
         .bind(definition.enabled)
-        .bind(definition.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(definition.version).unwrap_or(i32::MAX))
         .execute(&mut *tx)
         .await?;
 

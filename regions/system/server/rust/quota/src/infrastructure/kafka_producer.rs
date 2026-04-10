@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-/// QuotaExceededEvent はクォータ超過時に Kafka へ発行するイベント。
+/// `QuotaExceededEvent` はクォータ超過時に Kafka へ発行するイベント。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuotaExceededEvent {
     pub event_type: String, // "QUOTA_EXCEEDED"
@@ -15,7 +15,7 @@ pub struct QuotaExceededEvent {
     pub reset_at: String,
 }
 
-/// QuotaThresholdReachedEvent はクォータ閾値到達時に Kafka へ発行するイベント。
+/// `QuotaThresholdReachedEvent` はクォータ閾値到達時に Kafka へ発行するイベント。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuotaThresholdReachedEvent {
     pub event_type: String, // "QUOTA_THRESHOLD_REACHED"
@@ -30,7 +30,7 @@ pub struct QuotaThresholdReachedEvent {
     pub reached_at: String, // ISO 8601
 }
 
-/// QuotaEventPublisher はクォータイベント配信のためのトレイト。
+/// `QuotaEventPublisher` はクォータイベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait QuotaEventPublisher: Send + Sync {
@@ -43,7 +43,7 @@ pub trait QuotaEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopQuotaEventPublisher は何もしないデフォルト実装。
+/// `NoopQuotaEventPublisher` は何もしないデフォルト実装。
 pub struct NoopQuotaEventPublisher;
 
 #[async_trait]
@@ -67,7 +67,7 @@ impl QuotaEventPublisher for NoopQuotaEventPublisher {
     }
 }
 
-/// KafkaQuotaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaQuotaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaQuotaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic_exceeded: String,
@@ -76,7 +76,7 @@ pub struct KafkaQuotaProducer {
 }
 
 impl KafkaQuotaProducer {
-    /// 新しい KafkaQuotaProducer を作成する。
+    /// 新しい `KafkaQuotaProducer` を作成する。
     pub fn new(
         brokers: &str,
         security_protocol: &str,
@@ -105,6 +105,7 @@ impl KafkaQuotaProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -130,9 +131,7 @@ impl QuotaEventPublisher for KafkaQuotaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish quota exceeded event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish quota exceeded event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic_exceeded);
@@ -159,7 +158,7 @@ impl QuotaEventPublisher for KafkaQuotaProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish quota threshold reached event: {}", err)
+                anyhow::anyhow!("failed to publish quota threshold reached event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {

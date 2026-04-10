@@ -59,9 +59,29 @@ enum Commands {
     /// イベントコードを生成する
     Events,
     /// バリデーションを実行する
-    Validate,
+    Validate {
+        /// バリデーション対象ファイルのパス（省略時はインタラクティブモード）
+        #[arg(long, value_name = "FILE")]
+        file: Option<std::path::PathBuf>,
+        /// バリデーション種別: "config-schema" | "navigation"（--file と併用時に必須）
+        #[arg(long = "type", value_name = "TYPE")]
+        validate_type: Option<String>,
+    },
     /// 依存関係マップを表示する
-    Deps,
+    Deps {
+        /// 解析スコープ: "all"（デフォルト）| "tier" | "services"
+        #[arg(long, value_name = "SCOPE")]
+        scope: Option<String>,
+        /// Tier 指定（--scope tier 時に必須）: "system" | "business" | "service"
+        #[arg(long, value_name = "TIER")]
+        tier: Option<String>,
+        /// 出力形式: "terminal"（デフォルト）| "mermaid" | "both"
+        #[arg(long, value_name = "OUTPUT")]
+        output: Option<String>,
+        /// Mermaid 出力先ファイルパス（--output mermaid / both 時に必須）
+        #[arg(long, value_name = "PATH")]
+        output_path: Option<std::path::PathBuf>,
+    },
     /// テンプレートマイグレーションを実行する
     TemplateMigrate,
     /// 開発環境を診断する
@@ -163,8 +183,24 @@ fn main() {
             Commands::ConfigTypes => commands::generate_config_types::run(),
             Commands::Navigation => commands::generate_navigation::run(),
             Commands::Events => commands::generate_events::run(),
-            Commands::Validate => commands::validate::run(),
-            Commands::Deps => commands::deps::run(),
+            Commands::Validate {
+                file,
+                validate_type,
+            } => commands::validate::run_with_args(file, validate_type),
+            // MED-008/HIGH-008 監査対応: --scope 等のフラグが指定された場合、または非インタラクティブモードの場合は
+            // 対話プロンプトをスキップして直接実行する。フラグなし TTY 環境では従来の対話フローを使用する。
+            Commands::Deps {
+                scope,
+                tier,
+                output,
+                output_path,
+            } => {
+                if non_interactive || scope.is_some() || output.is_some() {
+                    commands::deps::run_non_interactive(scope, tier, output, output_path)
+                } else {
+                    commands::deps::run()
+                }
+            }
             Commands::TemplateMigrate => commands::template_migrate::run(),
             Commands::Doctor => {
                 // 開発環境診断スクリプトを実行する
@@ -190,7 +226,9 @@ fn main() {
                         } else {
                             "bash"
                         };
-                        match std::process::Command::new(shell).arg(&script_path).status() {
+                        // HIGH-003 監査対応: Windows パスを bash 互換パスに変換する
+                        let bash_script = to_bash_path(&script_path);
+                        match std::process::Command::new(shell).arg(&bash_script).status() {
                             Err(e) => Err(anyhow::anyhow!(
                                 "doctor.sh の実行に失敗しました（シェル: {shell}）: {e}"
                             )),
@@ -318,6 +356,30 @@ fn find_doctor_script() -> Option<PathBuf> {
     }
 
     None
+}
+
+/// Windows 環境でのみ有効。PathBuf を MSYS/Git Bash が解釈できる Unix 形式に変換する。
+/// 例: C:\work\github\k1s0\scripts\doctor.sh → /c/work/github/k1s0/scripts/doctor.sh
+/// \\?\ プレフィックス（canonicalize が付与する）も除去する。
+#[cfg(target_os = "windows")]
+fn to_bash_path(p: &std::path::Path) -> String {
+    let s = p.to_string_lossy();
+    // \\?\ プレフィックスを除去する
+    let s = s.strip_prefix(r"\\?\").unwrap_or(&s);
+    // ドライブレターを変換する: C:\ → /c/
+    if s.len() >= 3 && s.as_bytes()[1] == b':' {
+        let drive = s.as_bytes()[0].to_ascii_lowercase() as char;
+        let rest = s[2..].replace('\\', "/");
+        format!("/{drive}{rest}")
+    } else {
+        s.replace('\\', "/")
+    }
+}
+
+/// Windows 以外の環境では PathBuf を文字列にそのまま変換する。
+#[cfg(not(target_os = "windows"))]
+fn to_bash_path(p: &std::path::Path) -> String {
+    p.to_string_lossy().to_string()
 }
 
 // ============================================================================

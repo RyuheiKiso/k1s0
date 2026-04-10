@@ -28,18 +28,24 @@ use k1s0_notification_server::usecase::{
 // --- テストダブル: チャネルリポジトリ ---
 
 /// テスト用のチャネルリポジトリ。全メソッドが空の結果を返す。
+/// MEDIUM-RUST-001 監査対応: トレイト変更に追従する。
 struct StubChannelRepo;
 
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        _id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         Ok(None)
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         Ok(vec![])
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_type: Option<String>,
@@ -53,7 +59,7 @@ impl NotificationChannelRepository for StubChannelRepo {
     async fn update(&self, _channel: &NotificationChannel) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }
@@ -63,16 +69,18 @@ impl NotificationChannelRepository for StubChannelRepo {
 /// テスト用のログリポジトリ。全メソッドが空の結果を返す。
 struct StubLogRepo;
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationLogRepository for StubLogRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationLog>> {
         Ok(None)
     }
-    async fn find_by_channel_id(&self, _channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, _channel_id: &str, _tenant_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         Ok(vec![])
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_id: Option<String>,
@@ -93,16 +101,18 @@ impl NotificationLogRepository for StubLogRepo {
 /// テスト用のテンプレートリポジトリ。全メソッドが空の結果を返す。
 struct StubTemplateRepo;
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationTemplateRepository for StubTemplateRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         Ok(None)
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationTemplate>> {
         Ok(vec![])
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_type: Option<String>,
@@ -115,7 +125,7 @@ impl NotificationTemplateRepository for StubTemplateRepo {
     async fn update(&self, _template: &NotificationTemplate) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }
@@ -163,6 +173,7 @@ fn make_test_app() -> axum::Router {
         delete_template_uc: Arc::new(DeleteTemplateUseCase::new(template_repo.clone())),
         metrics,
         auth_state: Some(auth_state),
+        db_pool: None,
     };
     router(state)
 }

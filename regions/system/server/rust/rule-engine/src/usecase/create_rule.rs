@@ -9,6 +9,8 @@ use crate::infrastructure::kafka_producer::{
 
 #[derive(Debug, Clone)]
 pub struct CreateRuleInput {
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加。JWT/ヘッダーから抽出したテナント ID を渡す。
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub priority: i32,
@@ -75,6 +77,7 @@ impl CreateRuleUseCase {
         }
 
         let rule = Rule::new(
+            input.tenant_id.clone(),
             input.name.clone(),
             input.description.clone(),
             input.priority,
@@ -115,6 +118,7 @@ mod tests {
 
         let uc = CreateRuleUseCase::new(Arc::new(mock));
         let input = CreateRuleInput {
+            tenant_id: "system".to_string(),
             name: "test-rule".to_string(),
             description: "Test rule".to_string(),
             priority: 10,
@@ -135,6 +139,7 @@ mod tests {
 
         let uc = CreateRuleUseCase::new(Arc::new(mock));
         let input = CreateRuleInput {
+            tenant_id: "system".to_string(),
             name: "existing".to_string(),
             description: "".to_string(),
             priority: 10,
@@ -150,6 +155,7 @@ mod tests {
         let mock = MockRuleRepository::new();
         let uc = CreateRuleUseCase::new(Arc::new(mock));
         let input = CreateRuleInput {
+            tenant_id: "system".to_string(),
             name: "test".to_string(),
             description: "".to_string(),
             priority: 0,
@@ -165,6 +171,7 @@ mod tests {
         let mock = MockRuleRepository::new();
         let uc = CreateRuleUseCase::new(Arc::new(mock));
         let input = CreateRuleInput {
+            tenant_id: "system".to_string(),
             name: "test".to_string(),
             description: "".to_string(),
             priority: 10,

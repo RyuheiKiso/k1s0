@@ -30,7 +30,7 @@ impl CreateBundleUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: bundle.tenant_id を設定してから create を呼び出す。
+    /// CRIT-005 対応: `bundle.tenant_id` を設定してから create を呼び出す。
     pub async fn execute(
         &self,
         input: &CreateBundleInput,

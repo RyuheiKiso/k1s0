@@ -39,7 +39,12 @@ impl CreateAppUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: CreateAppInput) -> Result<App, CreateAppError> {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        input: CreateAppInput,
+    ) -> Result<App, CreateAppError> {
         if input.name.trim().is_empty() {
             return Err(CreateAppError::ValidationError(
                 "name must not be empty".to_string(),
@@ -63,7 +68,7 @@ impl CreateAppUseCase {
         };
 
         self.repo
-            .create(&app)
+            .create(tenant_id, &app)
             .await
             .map_err(|e| CreateAppError::Internal(e.to_string()))
     }
@@ -78,7 +83,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_app_success() {
         let mut mock = MockAppRepository::new();
-        mock.expect_create().returning(|app| Ok(app.clone()));
+        mock.expect_create().returning(|_, app| Ok(app.clone()));
 
         let uc = CreateAppUseCase::new(Arc::new(mock));
         let input = CreateAppInput {
@@ -87,7 +92,7 @@ mod tests {
             category: "tools".to_string(),
             icon_url: None,
         };
-        let result = uc.execute(input).await.unwrap();
+        let result = uc.execute("tenant-1", input).await.unwrap();
         assert_eq!(result.name, "Test App");
         assert_eq!(result.category, "tools");
     }
@@ -102,7 +107,7 @@ mod tests {
             category: "tools".to_string(),
             icon_url: None,
         };
-        let result = uc.execute(input).await;
+        let result = uc.execute("tenant-1", input).await;
         assert!(matches!(result, Err(CreateAppError::ValidationError(_))));
     }
 
@@ -116,7 +121,7 @@ mod tests {
             category: " ".to_string(),
             icon_url: None,
         };
-        let result = uc.execute(input).await;
+        let result = uc.execute("tenant-1", input).await;
         assert!(matches!(result, Err(CreateAppError::ValidationError(_))));
     }
 }

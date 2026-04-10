@@ -11,10 +11,14 @@ use crate::usecase;
 
 use crate::adapter::handler::{self, AppState};
 use crate::adapter::middleware::auth::AuthState;
-use crate::adapter::middleware::grpc_auth::GrpcAuthLayer;
+// HIGH-004 対応: server-common の共通 GrpcAuthLayer を使用する
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
 use crate::infrastructure::config::{Config, DatabaseConfig};
 use crate::MIGRATOR;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // 1. Telemetry
     let config_path =
@@ -37,7 +41,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // 2. Config
     info!("starting {}", cfg.app.name);
@@ -257,7 +261,12 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server listening on {}", grpc_addr);
     let grpc_metrics = metrics.clone();
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone());
+    // HIGH-004 対応: server-common の GrpcAuthLayer に action_mapper を注入する
+    let grpc_auth_layer = GrpcAuthLayer::new(
+        auth_state.clone(),
+        Tier::System,
+        crate::adapter::middleware::grpc_auth::action_mapper,
+    );
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let mut rest_shutdown_rx = shutdown_rx.clone();
     let mut grpc_shutdown_rx = shutdown_rx.clone();
@@ -270,7 +279,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown_rx.changed().await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // 12. Start REST server
@@ -284,7 +293,7 @@ pub async fn run() -> anyhow::Result<()> {
     let shutdown_future = async move {
         k1s0_server_common::shutdown::shutdown_signal()
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
     };
@@ -295,7 +304,7 @@ pub async fn run() -> anyhow::Result<()> {
         }
         result = rest_future => {
             if let Err(e) = result {
-                return Err(anyhow::anyhow!("REST server error: {}", e));
+                return Err(anyhow::anyhow!("REST server error: {e}"));
             }
         }
         result = grpc_future => {

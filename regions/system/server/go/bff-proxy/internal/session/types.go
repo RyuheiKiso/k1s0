@@ -2,8 +2,10 @@ package session
 
 import "time"
 
-// SessionData represents a user session stored in Redis.
-type SessionData struct {
+// Data はRedisに格納するユーザーセッションを表す。
+// revive の "stutter" 命名規約（§3.2 監査対応）に準拠するため SessionData から Data に改名した。
+// 旧名称 SessionData は削除済み。新しいコードでは session.Data を使用すること。
+type Data struct {
 	// AccessToken is the OAuth2 bearer token for upstream API calls.
 	AccessToken string `json:"access_token"`
 
@@ -35,25 +37,26 @@ type SessionData struct {
 	// AbsoluteExpiry はセッションの絶対有効期限（Unix タイムスタンプ）（M-17 監査対応）。
 	// スライディングウィンドウで TTL が延長されても、この時刻を超えたセッションは無効化される。
 	AbsoluteExpiry int64 `json:"absolute_expiry,omitempty"`
+
+	// TenantID は JWT クレームから取得したテナント識別子（MEDIUM-GO-001 監査対応）。
+	// セッション作成時（Callback）に ID トークンの tenant_id クレームから取得してセッションに格納する。
+	// アップストリームへのリクエスト時に X-Tenant-ID ヘッダーとして転送し、テナント分離を実現する。
+	TenantID string `json:"tenant_id,omitempty"`
 }
 
-// IsExpired returns true when the access token has expired.
-func (s *SessionData) IsExpired() bool {
+// IsExpired はアクセストークンが期限切れかどうかを返す。
+func (s *Data) IsExpired() bool {
 	return time.Now().Unix() > s.ExpiresAt
 }
 
 // IsAbsoluteExpired はセッションの絶対有効期限を超過しているかを返す（M-17 監査対応）。
 // AbsoluteExpiry が設定されていない（0）場合は期限切れとみなさない。
-func (s *SessionData) IsAbsoluteExpired() bool {
+func (s *Data) IsAbsoluteExpired() bool {
 	if s.AbsoluteExpiry == 0 {
 		return false
 	}
 	return time.Now().Unix() > s.AbsoluteExpiry
 }
-
-// Data は SessionData の Go 命名規約準拠の短縮エイリアス（§3.2 監査対応: stutter 命名を解消）。
-// 新しいコードでは session.Data を使用すること。
-type Data = SessionData
 
 // ExchangeCodeData はモバイルフロー用ワンタイム交換コードのデータを表す。
 // SessionData.AccessToken にセッション ID を格納する意味論的誤用を解消するため（H-5 監査対応）、

@@ -10,7 +10,7 @@ use crate::domain::entity::Tenant;
 use crate::domain::repository::TenantRepository;
 
 /// テナント検索結果のインメモリキャッシュ。
-/// find_by_id / find_by_name の結果をキャッシュし、DB 負荷を軽減する。
+/// `find_by_id` / `find_by_name` の結果をキャッシュし、DB 負荷を軽減する。
 /// create/update 操作時にキャッシュを無効化して整合性を保つ。
 pub struct CachedTenantRepository {
     /// 委譲先の実際のリポジトリ実装
@@ -60,7 +60,7 @@ impl CachedTenantRepository {
         }
     }
 
-    /// IDキャッシュとnameキャッシュの両方にテナントを格納する。
+    /// `IDキャッシュとnameキャッシュの両方にテナントを格納する`。
     async fn populate_caches(&self, tenant: &Tenant) {
         let arc_tenant = Arc::new(tenant.clone());
         self.id_cache.insert(tenant.id, arc_tenant.clone()).await;

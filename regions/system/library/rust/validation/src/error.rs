@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-/// ValidationError represents a single field-level validation failure.
+/// `ValidationError` represents a single field-level validation failure.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidationError {
     pub field: String,
@@ -30,25 +30,29 @@ impl Display for ValidationError {
 
 impl std::error::Error for ValidationError {}
 
-/// ValidationErrors is a collection of field-level validation failures.
+/// `ValidationErrors` is a collection of field-level validation failures.
 #[derive(Debug, Default, Clone)]
 pub struct ValidationErrors {
     errors: Vec<ValidationError>,
 }
 
 impl ValidationErrors {
+    #[must_use]
     pub fn new() -> Self {
         Self { errors: Vec::new() }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.errors.is_empty()
     }
 
+    #[must_use]
     pub fn has_errors(&self) -> bool {
         !self.is_empty()
     }
 
+    #[must_use]
     pub fn get_errors(&self) -> &[ValidationError] {
         &self.errors
     }

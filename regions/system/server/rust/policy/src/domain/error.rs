@@ -28,7 +28,7 @@ pub enum PolicyError {
     Internal(String),
 }
 
-/// PolicyError から ServiceError への変換実装
+/// `PolicyError` から `ServiceError` への変換実装
 impl From<PolicyError> for ServiceError {
     fn from(err: PolicyError) -> Self {
         match err {

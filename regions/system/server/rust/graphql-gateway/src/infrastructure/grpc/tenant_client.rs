@@ -10,14 +10,22 @@ use crate::domain::model::{Tenant, TenantStatus};
 use crate::domain::port::TenantPort;
 use crate::infrastructure::config::BackendConfig;
 
-/// gRPC レスポンスの中間表現。GraphQL の TenantConnection に変換前の生データ。
+/// gRPC レスポンスの中間表現。GraphQL の `TenantConnection` に変換前の生データ。
 pub struct TenantPage {
     pub nodes: Vec<Tenant>,
     pub total_count: i64,
     pub has_next: bool,
 }
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -42,13 +50,13 @@ pub struct TenantGrpcClient {
     client: TenantServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl TenantGrpcClient {
     /// proto の Tenant メッセージをドメインモデルの Tenant に変換する。
-    /// C-002 監査対応: proto の全フィールド（display_name, plan, owner_id, settings, db_schema, keycloak_realm）をマッピングする。
+    /// C-002 監査対応: proto `の全フィールド（display_name`, plan, `owner_id`, settings, `db_schema`, `keycloak_realm）をマッピングする`。
     /// 空文字列は Option フィールドに対して None に変換することで、GraphQL スキーマの nullable 型と整合させる。
     fn tenant_from_proto(t: ProtoTenant) -> Tenant {
         Tenant {
@@ -59,16 +67,28 @@ impl TenantGrpcClient {
             plan: t.plan,
             owner_id: t.owner_id,
             // 空文字列の場合は None に変換する（proto の optional フィールドと GraphQL nullable の整合）
-            settings: if t.settings.is_empty() { None } else { Some(t.settings) },
-            db_schema: if t.db_schema.is_empty() { None } else { Some(t.db_schema) },
-            keycloak_realm: if t.keycloak_realm.is_empty() { None } else { Some(t.keycloak_realm) },
+            settings: if t.settings.is_empty() {
+                None
+            } else {
+                Some(t.settings)
+            },
+            db_schema: if t.db_schema.is_empty() {
+                None
+            } else {
+                Some(t.db_schema)
+            },
+            keycloak_realm: if t.keycloak_realm.is_empty() {
+                None
+            } else {
+                Some(t.keycloak_realm)
+            },
             created_at: timestamp_to_rfc3339(t.created_at),
             updated_at: timestamp_to_rfc3339(t.updated_at),
         }
     }
 
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -95,7 +115,7 @@ impl TenantGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("tenant gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("tenant gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 
@@ -107,14 +127,12 @@ impl TenantGrpcClient {
 
         match self.client.clone().get_tenant(request).await {
             Ok(resp) => {
-                let t = match resp.into_inner().tenant {
-                    Some(t) => t,
-                    None => return Ok(None),
-                };
+                // let-else: Noneの場合は早期リターン
+                let Some(t) = resp.into_inner().tenant else { return Ok(None) };
                 Ok(Some(Self::tenant_from_proto(t)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("TenantService.GetTenant failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("TenantService.GetTenant failed: {e}")),
         }
     }
 
@@ -129,7 +147,7 @@ impl TenantGrpcClient {
             .clone()
             .list_tenants(request)
             .await
-            .map_err(|e| anyhow::anyhow!("TenantService.ListTenants failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("TenantService.ListTenants failed: {e}"))?
             .into_inner();
 
         let nodes = resp
@@ -140,8 +158,7 @@ impl TenantGrpcClient {
 
         let (total_count, has_next) = resp
             .pagination
-            .map(|p| (p.total_count, p.has_next))
-            .unwrap_or((0, false));
+            .map_or((0, false), |p| (p.total_count, p.has_next));
 
         Ok(TenantPage {
             nodes,
@@ -150,7 +167,7 @@ impl TenantGrpcClient {
         })
     }
 
-    /// DataLoader 向け: 複数 ID をまとめて取得（ListTenants + クライアント側フィルタ）
+    /// `DataLoader` 向け: 複数 ID をまとめて取得（ListTenants + クライアント側フィルタ）
     pub async fn list_tenants_by_ids(&self, ids: &[String]) -> anyhow::Result<Vec<Tenant>> {
         if ids.is_empty() {
             return Ok(vec![]);
@@ -178,7 +195,7 @@ impl TenantGrpcClient {
     }
 
     /// テナント作成 gRPC リクエストを送信する。
-    /// C-003 監査対応: display_name, owner_id, plan を個別引数として受け取り、proto の CreateTenantRequest にマッピングする。
+    /// C-003 監査対応: `display_name`, `owner_id`, plan を個別引数として受け取り、proto の `CreateTenantRequest` にマッピングする。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn create_tenant(
         &self,
@@ -199,7 +216,7 @@ impl TenantGrpcClient {
             .clone()
             .create_tenant(request)
             .await
-            .map_err(|e| anyhow::anyhow!("TenantService.CreateTenant failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("TenantService.CreateTenant failed: {e}"))?
             .into_inner()
             .tenant
             .ok_or_else(|| anyhow::anyhow!("empty tenant in response"))?;
@@ -207,8 +224,8 @@ impl TenantGrpcClient {
         Ok(Self::tenant_from_proto(t))
     }
 
-    /// CRIT-007 対応: display_name と plan を proto UpdateTenantRequest に直接渡す
-    /// status 変更は suspend_tenant/activate_tenant/delete_tenant で対応する
+    /// CRIT-007 対応: `display_name` と plan を proto `UpdateTenantRequest` に直接渡す
+    /// status 変更は `suspend_tenant/activate_tenant/delete_tenant` で対応する
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_tenant(
         &self,
@@ -228,10 +245,10 @@ impl TenantGrpcClient {
                     },
                 ))
                 .await
-                .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {}", e))?
+                .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {e}"))?
                 .into_inner()
                 .tenant
-                .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
+                .ok_or_else(|| anyhow::anyhow!("tenant not found: {id}"))?;
             return Ok(Self::tenant_from_proto(current));
         }
 
@@ -245,10 +262,10 @@ impl TenantGrpcClient {
                 },
             ))
             .await
-            .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {e}"))?
             .into_inner()
             .tenant
-            .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
+            .ok_or_else(|| anyhow::anyhow!("tenant not found: {id}"))?;
 
         let updated = self
             .client
@@ -262,7 +279,7 @@ impl TenantGrpcClient {
                 },
             ))
             .await
-            .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {e}"))?
             .into_inner()
             .tenant
             .ok_or_else(|| anyhow::anyhow!("empty tenant in update response"))?;
@@ -270,8 +287,8 @@ impl TenantGrpcClient {
         Ok(Self::tenant_from_proto(updated))
     }
 
-    /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。
-    /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
+    /// `WatchTenant` Server-Side Streaming を購読し、変更イベントを Tenant として返す。
+    /// .`expect()` によるパニックを排除し、接続失敗時は `anyhow::Error` として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_tenant(
         &self,
@@ -327,7 +344,8 @@ impl TenantPort for TenantGrpcClient {
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }

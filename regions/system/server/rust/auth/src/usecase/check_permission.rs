@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::repository::UserRepository;
 use crate::domain::service::{AuthDomainService, RolePermissionTable};
 
-/// CheckPermissionInput はパーミッション確認の入力。
+/// `CheckPermissionInput` はパーミッション確認の入力。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CheckPermissionInput {
     #[serde(default)]
@@ -13,7 +13,7 @@ pub struct CheckPermissionInput {
     pub resource: String,
 }
 
-/// CheckPermissionOutput はパーミッション確認の出力。
+/// `CheckPermissionOutput` はパーミッション確認の出力。
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct CheckPermissionOutput {
     pub allowed: bool,
@@ -21,7 +21,7 @@ pub struct CheckPermissionOutput {
     pub reason: String,
 }
 
-/// CheckPermissionUseCase はパーミッション確認ユースケース。
+/// `CheckPermissionUseCase` はパーミッション確認ユースケース。
 #[derive(Default)]
 pub struct CheckPermissionUseCase {
     user_repo: Option<Arc<dyn UserRepository>>,
@@ -30,6 +30,7 @@ pub struct CheckPermissionUseCase {
 
 impl CheckPermissionUseCase {
     #[allow(dead_code)]
+    #[must_use]
     pub fn new() -> Self {
         Self {
             user_repo: None,

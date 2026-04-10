@@ -7,11 +7,13 @@ pub struct ValidationResult {
 }
 
 impl ValidationResult {
+    #[must_use]
     pub fn is_ok(&self) -> bool {
         self.errors.is_empty()
     }
 }
 
+#[must_use]
 pub fn validate_generated(output_dir: &Path) -> ValidationResult {
     let mut result = ValidationResult {
         errors: vec![],

@@ -81,7 +81,7 @@ impl ManageTableDefinitionsUseCase {
         self.table_repo.update(name, input, domain_scope).await
     }
 
-    /// テーブルを削除する。テーブル定義が見つからない場合は TableNotFound を返す。
+    /// テーブルを削除する。テーブル定義が見つからない場合は `TableNotFound` を返す。
     pub async fn delete_table(
         &self,
         name: &str,
@@ -104,7 +104,7 @@ impl ManageTableDefinitionsUseCase {
             .map_err(MasterMaintenanceError::from)
     }
 
-    /// テーブルの JSON スキーマを生成して返す。テーブルが見つからない場合は TableNotFound を返す。
+    /// テーブルの JSON スキーマを生成して返す。テーブルが見つからない場合は `TableNotFound` を返す。
     pub async fn get_table_schema(
         &self,
         name: &str,

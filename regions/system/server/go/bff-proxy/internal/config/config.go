@@ -46,6 +46,11 @@ type AppConfig struct {
 type ServerConfig struct {
 	Host            string `yaml:"host" validate:"required"`
 	Port            int    `yaml:"port" validate:"required,min=1,max=65535"`
+	// HIGH-GO-001 監査対応: /metrics エンドポイントをクラスター内部専用ポートに分離する。
+	// 公開ルーターに /metrics を露出させると認証なしで内部メトリクスが取得可能になるリスクがある。
+	// デフォルト 9090 ポートで内部サーバーを起動し、Prometheus スクレイプ専用にする。
+	// 0 または未設定の場合は 9090 をデフォルト値として使用する。
+	InternalPort    int    `yaml:"internal_port"`
 	ReadTimeout     string `yaml:"read_timeout"`
 	WriteTimeout    string `yaml:"write_timeout"`
 	ShutdownTimeout string `yaml:"shutdown_timeout"`
@@ -215,7 +220,10 @@ func (c *BFFConfig) AllowedUpstreamHosts() map[string]bool {
 }
 
 // Load reads the base YAML configuration and optionally merges an environment overlay.
-// 未知フィールドが含まれる場合はエラーを返し、設定ミスを早期に検出する。
+// ARCH-003 監査対応: KnownFields(true) を廃止してフォワード互換性を確保する。
+// 旧バイナリが新しい config フィールドを含む YAML を読み込んでもクラッシュしなくなる（CRIT-001 再発防止）。
+// 必須フィールドの欠落は validate:"required" タグと Validate() で検出するため、保護水準は維持される。
+// タイポによる未知フィールドの誤り検出は lint/schema 検証ツール（yamllint 等）で補うこと。
 func Load(basePath string, envPath ...string) (*BFFConfig, error) {
 	data, err := os.ReadFile(basePath)
 	if err != nil {
@@ -223,9 +231,8 @@ func Load(basePath string, envPath ...string) (*BFFConfig, error) {
 	}
 
 	var cfg BFFConfig
-	// 未知フィールドを拒否する: タイポや廃止フィールドの混入を防ぐ
+	// 未知フィールドを寛容に受け入れる（フォワード互換性）
 	baseDecoder := yaml.NewDecoder(bytes.NewReader(data))
-	baseDecoder.KnownFields(true)
 	if err := baseDecoder.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
@@ -235,9 +242,8 @@ func Load(basePath string, envPath ...string) (*BFFConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read env config: %w", err)
 		}
-		// 環境オーバーレイでも未知フィールドを拒否する
+		// 環境オーバーレイも同様にフォワード互換で読み込む
 		envDecoder := yaml.NewDecoder(bytes.NewReader(envData))
-		envDecoder.KnownFields(true)
 		if err := envDecoder.Decode(&cfg); err != nil {
 			return nil, fmt.Errorf("failed to merge env config: %w", err)
 		}

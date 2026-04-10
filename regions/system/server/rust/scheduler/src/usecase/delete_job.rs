@@ -31,7 +31,7 @@ impl DeleteJobUseCase {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブを削除する。
     pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<(), DeleteJobError> {
         let _job = self
             .repo
@@ -148,9 +148,8 @@ mod tests {
         let mut mock_exec = MockSchedulerExecutionRepository::new();
         let id = "job_running".to_string();
         let running_id = id.clone();
-        mock.expect_find_by_id().returning(|job_id, _| {
-            Ok(Some(make_test_job(job_id)))
-        });
+        mock.expect_find_by_id()
+            .returning(|job_id, _| Ok(Some(make_test_job(job_id))));
         mock_exec.expect_find_by_job_id().returning(move |_| {
             Ok(vec![SchedulerExecution {
                 id: "exec_running".to_string(),

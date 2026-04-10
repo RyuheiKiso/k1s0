@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::claims::Claims;
 use crate::infrastructure::TokenVerifier;
 
-/// AuthError はトークン検証に関するエラーを表す。
+/// `AuthError` はトークン検証に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
     #[error("invalid token: {0}")]
@@ -23,7 +23,7 @@ pub enum AuthError {
     VerificationFailed(String),
 }
 
-/// ValidateTokenUseCase は JWT トークン検証ユースケース。
+/// `ValidateTokenUseCase` は JWT トークン検証ユースケース。
 pub struct ValidateTokenUseCase {
     verifier: Arc<dyn TokenVerifier>,
     expected_issuer: String,

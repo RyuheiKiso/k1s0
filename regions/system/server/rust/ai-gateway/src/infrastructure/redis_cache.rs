@@ -13,8 +13,8 @@ pub struct RedisCache {
 
 #[allow(dead_code)]
 impl RedisCache {
-    /// 新しいRedisCacheを生成する。
-    /// url: Redis接続URL（例: redis://localhost:6379）
+    /// `新しいRedisCacheを生成する`。
+    /// url: Redis接続URL（例: <redis://localhost:6379>）
     pub fn new(url: &str) -> anyhow::Result<Self> {
         let client = redis::Client::open(url)?;
         Ok(Self { client })

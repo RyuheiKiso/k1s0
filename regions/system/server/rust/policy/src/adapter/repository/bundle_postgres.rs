@@ -8,12 +8,13 @@ use uuid::Uuid;
 use crate::domain::entity::policy_bundle::PolicyBundle;
 use crate::domain::repository::PolicyBundleRepository;
 
-/// PostgreSQL 実装の PolicyBundleRepository。
+/// `PostgreSQL` 実装の `PolicyBundleRepository`。
 pub struct BundlePostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl BundlePostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -128,11 +129,12 @@ impl PolicyBundleRepository for BundlePostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let result = sqlx::query("DELETE FROM policy.policy_bundles WHERE id = $1 AND tenant_id = $2")
-            .bind(id)
-            .bind(tenant_id)
-            .execute(&mut *tx)
-            .await?;
+        let result =
+            sqlx::query("DELETE FROM policy.policy_bundles WHERE id = $1 AND tenant_id = $2")
+                .bind(id)
+                .bind(tenant_id)
+                .execute(&mut *tx)
+                .await?;
 
         tx.commit().await?;
         Ok(result.rows_affected() > 0)

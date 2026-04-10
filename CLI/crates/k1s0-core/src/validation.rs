@@ -14,12 +14,24 @@ static NAME_RE: OnceLock<regex::Regex> = OnceLock::new();
 ///
 /// 名前バリデーション用の静的正規表現の初期化に失敗した場合にパニックする。
 /// 正規表現はコンパイル時に検証済みのため、通常はパニックしない。
+// MED-005 対応: OnceLock::get_or_init 内の .expect() は静的正規表現の初期化失敗時にのみ発生し、
+// コンパイル時に検証済みであるため unwrap_used の許可が必要。
+#[allow(clippy::unwrap_used)]
 pub fn validate_name(name: &str) -> Result<(), String> {
     // LOW-CLI-002 対応: バリデーション違反の理由を具体的に示すエラーメッセージに改善する
 
     // 空文字チェック
     if name.is_empty() {
         return Err("名前を入力してください。".into());
+    }
+
+    // 最大長チェック: OS のパス長制限を考慮し 64 文字を上限とする
+    // プロジェクト名はディレクトリ名として使用されるため、OS パス長の余裕を確保する
+    if name.len() > 64 {
+        return Err(format!(
+            "名前は64文字以内で入力してください（現在 {} 文字）。",
+            name.len()
+        ));
     }
 
     // 先頭・末尾のハイフンチェック（正規表現より先に判定して具体的なメッセージを返す）
@@ -68,29 +80,43 @@ mod tests {
         assert!(validate_name("dot.name").is_err());
         assert!(validate_name("-").is_err());
         assert!(validate_name("--").is_err());
+        // MED-006 対応: 64文字超過はエラー
+        assert!(validate_name(&"a".repeat(65)).is_err());
+    }
+
+    /// MED-006 対応: 64文字制限のバリデーションを確認する
+    #[test]
+    fn test_validate_name_max_length() {
+        // 64文字はOK
+        assert!(validate_name(&"a".repeat(64)).is_ok());
+        // 65文字はエラー
+        let err = validate_name(&"a".repeat(65)).expect_err("65文字の名前はエラーになるべき");
+        assert!(err.contains("64文字以内"));
+        assert!(err.contains("65 文字"));
     }
 
     /// LOW-CLI-002 対応: エラーメッセージが具体的な違反理由を示すことを確認する
     #[test]
     fn test_validate_name_error_messages() {
         // 空文字
-        let err = validate_name("").unwrap_err();
+        let err = validate_name("").expect_err("空文字はエラーになるべき");
         assert_eq!(err, "名前を入力してください。");
 
         // 先頭ハイフン
-        let err = validate_name("-task").unwrap_err();
+        let err = validate_name("-task").expect_err("先頭ハイフンはエラーになるべき");
         assert_eq!(err, "名前の先頭と末尾にハイフンは使用できません。");
 
         // 末尾ハイフン
-        let err = validate_name("task-").unwrap_err();
+        let err = validate_name("task-").expect_err("末尾ハイフンはエラーになるべき");
         assert_eq!(err, "名前の先頭と末尾にハイフンは使用できません。");
 
         // 使用不可文字（大文字）
-        let err = validate_name("Task").unwrap_err();
+        let err = validate_name("Task").expect_err("大文字を含む名前はエラーになるべき");
         assert_eq!(err, "英小文字・ハイフン・数字のみ使用できます。");
 
         // 使用不可文字（アンダースコア）
-        let err = validate_name("task_api").unwrap_err();
+        let err =
+            validate_name("task_api").expect_err("アンダースコアを含む名前はエラーになるべき");
         assert_eq!(err, "英小文字・ハイフン・数字のみ使用できます。");
     }
 }

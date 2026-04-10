@@ -7,7 +7,7 @@ use tower::{Layer, Service};
 use crate::context::{CorrelationContext, CorrelationHeaders};
 use crate::id::{CorrelationId, TraceId};
 
-/// CorrelationLayer は Tower Layer として、リクエストに相関IDを注入・伝播する。
+/// `CorrelationLayer` は Tower Layer として、リクエストに相関IDを注入・伝播する。
 ///
 /// # 使用例
 ///
@@ -22,6 +22,7 @@ use crate::id::{CorrelationId, TraceId};
 pub struct CorrelationLayer;
 
 impl CorrelationLayer {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
@@ -35,7 +36,7 @@ impl<S> Layer<S> for CorrelationLayer {
     }
 }
 
-/// CorrelationService は CorrelationLayer が生成する Tower Service で、
+/// `CorrelationService` は `CorrelationLayer` が生成する Tower Service で、
 /// リクエストから相関ID・トレースIDを抽出し、レスポンスヘッダーに設定する。
 #[derive(Clone)]
 pub struct CorrelationService<S> {
@@ -142,7 +143,7 @@ mod tests {
     use std::convert::Infallible;
     use tower::{ServiceBuilder, ServiceExt};
 
-    /// テスト用の echo サービス - extensions から CorrelationContext を取得してレスポンスに含める
+    /// テスト用の echo サービス - extensions から `CorrelationContext` を取得してレスポンスに含める
     async fn echo_service(req: Request<String>) -> Result<Response<String>, Infallible> {
         let ctx = req.extensions().get::<CorrelationContext>().cloned();
         let body = match ctx {

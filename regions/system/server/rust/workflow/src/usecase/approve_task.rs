@@ -9,7 +9,9 @@ use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
 use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
 // B-MEDIUM-02 監査対応: postgres_support を adapter/repository レイヤーからインポートする
-use crate::adapter::repository::postgres_support::{insert_task_tx, update_instance_tx, update_task_tx};
+use crate::adapter::repository::postgres_support::{
+    insert_task_tx, update_instance_tx, update_task_tx,
+};
 use tracing::warn;
 
 // RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
@@ -86,6 +88,8 @@ impl ApproveTaskUseCase {
         }
     }
 
+    // タスク承認ロジックはトランザクション・状態機械・イベント発行を含むため行数が多い
+    #[allow(clippy::too_many_lines)]
     pub async fn execute(
         &self,
         input: &ApproveTaskInput,

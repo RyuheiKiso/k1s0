@@ -130,9 +130,22 @@ class AuthNotifier extends Notifier<AuthState> {
         _csrfToken = data['csrf_token'] as String?;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
-    } catch (_) {
+    } catch (e) {
       // 非同期操作完了後、プロバイダーが既に破棄されていれば何もしない
       if (!ref.mounted) return;
+      // HIGH-019対応: 5xxエラーとネットワークエラーを区別する
+      // 401/403はセッション失効として未認証状態に遷移する
+      // 5xxサーバーエラーやネットワークエラーの場合は現在の認証状態を維持する
+      if (e is DioException) {
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 401 || statusCode == 403) {
+          // セッション失効・認証エラーの場合は未認証状態に遷移する
+          state = const AuthUnauthenticated();
+        }
+        // 5xxエラーやネットワークエラー（statusCode == null を含む）の場合は状態を維持する
+        return;
+      }
+      // DioException 以外の予期しない例外は未認証状態として扱う
       state = const AuthUnauthenticated();
     }
   }
@@ -204,8 +217,8 @@ class AuthNotifier extends Notifier<AuthState> {
         if (!ref.mounted) return;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
-    // M-010 監査対応: エラーを分類してデバッグ情報を保持する
-    on PlatformException catch (e) {
+    // try ブロックの閉じ括弧（CRIT-005 修正: 欠落していた } を追加）
+    } on PlatformException catch (e) {
       // ユーザーキャンセルと認証失敗を区別する
       if (e.code == 'CANCELED') {
         debugPrint('User cancelled login');
@@ -238,10 +251,13 @@ class AuthNotifier extends Notifier<AuthState> {
         // clearSession() は非同期メソッドのため await が必須
         await _sessionCookieInterceptor.clearSession();
       }
-      // MED-009 監査対応: async 処理後に Provider が dispose されている場合、
-      // state 更新で例外が発生するため ref.mounted チェックを追加する。
-      if (!ref.mounted) return;
-      state = const AuthUnauthenticated();
+      // MED-012: finally ブロック内での return は Dart の control_flow_in_finally 警告対象のため
+      // 条件を肯定形に変換して return を除去する。
+      // async 処理後に Provider が dispose されている場合、state 更新で例外が発生するため
+      // ref.mounted チェックで安全に state 更新を行う。
+      if (ref.mounted) {
+        state = const AuthUnauthenticated();
+      }
     }
   }
 }

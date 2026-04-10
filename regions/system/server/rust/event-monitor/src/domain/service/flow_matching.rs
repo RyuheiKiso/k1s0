@@ -6,6 +6,7 @@ use crate::domain::entity::flow_definition::FlowDefinition;
 pub struct FlowMatchingService;
 
 impl FlowMatchingService {
+    #[must_use]
     pub fn match_event(
         event: &EventRecord,
         flow_definitions: &[FlowDefinition],
@@ -25,7 +26,8 @@ impl FlowMatchingService {
                     None => true, // skip source check when no filter specified
                 };
                 if step.event_type == event.event_type && source_matches {
-                    return Some((flow.id, index as i32));
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    return Some((flow.id, i32::try_from(index).unwrap_or(i32::MAX)));
                 }
             }
         }
@@ -44,6 +46,7 @@ mod tests {
         let now = Utc::now();
         FlowDefinition {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             name: name.to_string(),
             description: String::new(),
             domain: "service.task".to_string(),
@@ -70,6 +73,7 @@ mod tests {
 
     fn make_event(event_type: &str, source: &str) -> EventRecord {
         EventRecord::new(
+            "system".to_string(),
             "corr-1".to_string(),
             event_type.to_string(),
             source.to_string(),
@@ -136,6 +140,7 @@ mod tests {
         );
         // Event with different domain
         let event = EventRecord::new(
+            "system".to_string(),
             "corr-1".to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),
@@ -152,6 +157,7 @@ mod tests {
         let now = Utc::now();
         let flow = FlowDefinition {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             name: "any_source_flow".to_string(),
             description: String::new(),
             domain: "service.task".to_string(),

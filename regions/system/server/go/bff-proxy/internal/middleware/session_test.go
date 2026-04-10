@@ -16,24 +16,24 @@ import (
 
 // testStore is an in-memory session store for middleware tests.
 type testStore struct {
-	sessions map[string]*session.SessionData
+	sessions map[string]*session.Data
 	touched  map[string]time.Duration
 }
 
 func newTestStore() *testStore {
 	return &testStore{
-		sessions: make(map[string]*session.SessionData),
+		sessions: make(map[string]*session.Data),
 		touched:  make(map[string]time.Duration),
 	}
 }
 
-func (s *testStore) Create(_ context.Context, data *session.SessionData, _ time.Duration) (string, error) {
+func (s *testStore) Create(_ context.Context, data *session.Data, _ time.Duration) (string, error) {
 	id := "test-id"
 	s.sessions[id] = data
 	return id, nil
 }
 
-func (s *testStore) Get(_ context.Context, id string) (*session.SessionData, error) {
+func (s *testStore) Get(_ context.Context, id string) (*session.Data, error) {
 	d, ok := s.sessions[id]
 	if !ok {
 		return nil, nil
@@ -41,7 +41,7 @@ func (s *testStore) Get(_ context.Context, id string) (*session.SessionData, err
 	return d, nil
 }
 
-func (s *testStore) Update(_ context.Context, id string, data *session.SessionData, _ time.Duration) error {
+func (s *testStore) Update(_ context.Context, id string, data *session.Data, _ time.Duration) error {
 	s.sessions[id] = data
 	return nil
 }
@@ -89,7 +89,7 @@ func TestSessionMiddleware_InvalidSession(t *testing.T) {
 
 func TestSessionMiddleware_ValidSession(t *testing.T) {
 	store := newTestStore()
-	store.sessions["valid-session"] = &session.SessionData{
+	store.sessions["valid-session"] = &session.Data{
 		AccessToken: "token-123",
 		CSRFToken:   "csrf-abc",
 		// ExpiresAt を未来に設定して IsExpired() が false を返すようにする
@@ -122,7 +122,7 @@ func TestSessionMiddleware_ValidSession(t *testing.T) {
 // Finding 11: ExpiresAt が過去の場合はミドルウェアで拒否する（Redis TTL のみに依存しない）。
 func TestSessionMiddleware_ExpiredSession(t *testing.T) {
 	store := newTestStore()
-	store.sessions["expired-session"] = &session.SessionData{
+	store.sessions["expired-session"] = &session.Data{
 		AccessToken: "expired-token",
 		ExpiresAt:   time.Now().Add(-1 * time.Hour).Unix(),
 	}
@@ -145,7 +145,7 @@ func TestSessionMiddleware_ExpiredSession(t *testing.T) {
 // ハンドラーが呼ばれ session_needs_refresh フラグが設定されることを確認する。
 func TestSessionMiddleware_ExpiredSessionWithRefreshToken(t *testing.T) {
 	store := newTestStore()
-	store.sessions["expired-refresh-session"] = &session.SessionData{
+	store.sessions["expired-refresh-session"] = &session.Data{
 		AccessToken:  "expired-token",
 		RefreshToken: "refresh-token-123",
 		ExpiresAt:    time.Now().Add(-1 * time.Hour).Unix(),
@@ -180,7 +180,7 @@ func TestSessionMiddleware_ExpiredSessionWithRefreshToken(t *testing.T) {
 
 func TestSessionMiddleware_SlidingTTL(t *testing.T) {
 	store := newTestStore()
-	store.sessions["sliding-session"] = &session.SessionData{
+	store.sessions["sliding-session"] = &session.Data{
 		AccessToken: "token",
 		// ExpiresAt を未来に設定して IsExpired() が false を返すようにする
 		ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),

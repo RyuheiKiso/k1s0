@@ -40,58 +40,81 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 			return
 		}
 
-		// SessionMiddleware がセットしたセッションをコンテキストから取得する。
-		// これにより、SessionMiddleware の後に実行される場合は冗長な store.Get() を回避できる。
-		sess, ok := GetSessionData(c)
+		// セッションをコンテキストまたはストアから取得する（失敗時は中断済み）。
+		sess, ok := resolveCSRFSession(c, store, sessionCookie)
 		if !ok {
-			// フォールバック: SessionMiddleware が未実行の場合はストアから直接取得する。
-			sessionID, err := c.Cookie(sessionCookie)
-			if err != nil || sessionID == "" {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"error":      "BFF_CSRF_NO_SESSION",
-					"message":    "Session not found",
-					"request_id": GetRequestID(c),
-				})
-				return
-			}
-
-			sess, err = store.Get(c.Request.Context(), sessionID)
-			if err != nil || sess == nil {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"error":      "BFF_CSRF_INVALID_SESSION",
-					"message":    "Invalid session",
-					"request_id": GetRequestID(c),
-				})
-				return
-			}
-		}
-
-		csrfHeader := c.GetHeader(headerName)
-		// タイミング攻撃を防止するため、定数時間比較を使用する。
-		// 通常の文字列比較（==）は一致しない最初の文字で早期リターンするため、
-		// 応答時間の差からトークンの内容を推測される可能性がある。
-		if csrfHeader == "" || subtle.ConstantTimeCompare([]byte(csrfHeader), []byte(sess.CSRFToken)) != 1 {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":      "BFF_CSRF_MISMATCH",
-				"message":    "CSRF token mismatch",
-				"request_id": GetRequestID(c),
-			})
 			return
 		}
 
-		// MED-013 監査対応: 旧セッション互換バイパス条件（CSRFTokenCreatedAt > 0）を削除した。
-		// 2026-07-01 の削除期限が到来したため、TTL チェックを全セッションに対して常に行う。
-		// CSRFTokenCreatedAt = 0 の古いセッションは TTL 超過とみなされ再認証が要求される。
-		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
-		if csrfAge > CSRFTokenTTL {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"error":      "BFF_CSRF_EXPIRED",
-				"message":    "CSRF token expired",
-				"request_id": GetRequestID(c),
-			})
+		// CSRF トークンの一致チェックと TTL 検証を行う（失敗時は中断済み）。
+		if !checkCSRFValidity(c, sess, headerName) {
 			return
 		}
 
 		c.Next()
 	}
+}
+
+// resolveCSRFSession は gin.Context からセッションを取得する。
+// SessionMiddleware が先行していればコンテキストキャッシュを使用し、
+// そうでない場合はストアから直接取得する。取得に失敗した場合は 403 を返し false を返す。
+func resolveCSRFSession(c *gin.Context, store session.Store, sessionCookie string) (*session.Data, bool) {
+	// SessionMiddleware がセットしたセッションをコンテキストから取得する。
+	// これにより、SessionMiddleware の後に実行される場合は冗長な store.Get() を回避できる。
+	if sess, ok := GetSessionData(c); ok {
+		return sess, true
+	}
+
+	// フォールバック: SessionMiddleware が未実行の場合はストアから直接取得する。
+	sessionID, err := c.Cookie(sessionCookie)
+	if err != nil || sessionID == "" {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":      "BFF_CSRF_NO_SESSION",
+			"message":    "Session not found",
+			"request_id": GetRequestID(c),
+		})
+		return nil, false
+	}
+
+	sess, err := store.Get(c.Request.Context(), sessionID)
+	if err != nil || sess == nil {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":      "BFF_CSRF_INVALID_SESSION",
+			"message":    "Invalid session",
+			"request_id": GetRequestID(c),
+		})
+		return nil, false
+	}
+	return sess, true
+}
+
+// checkCSRFValidity はリクエストヘッダーの CSRF トークンをセッションと照合し、TTL を検証する。
+// 不一致または期限切れの場合は 403 を返し false を返す。
+func checkCSRFValidity(c *gin.Context, sess *session.Data, headerName string) bool {
+	csrfHeader := c.GetHeader(headerName)
+	// タイミング攻撃を防止するため、定数時間比較を使用する。
+	// 通常の文字列比較（==）は一致しない最初の文字で早期リターンするため、
+	// 応答時間の差からトークンの内容を推測される可能性がある。
+	if csrfHeader == "" || subtle.ConstantTimeCompare([]byte(csrfHeader), []byte(sess.CSRFToken)) != 1 {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":      "BFF_CSRF_MISMATCH",
+			"message":    "CSRF token mismatch",
+			"request_id": GetRequestID(c),
+		})
+		return false
+	}
+
+	// MED-013 監査対応: 旧セッション互換バイパス条件（CSRFTokenCreatedAt > 0）を削除した。
+	// 2026-07-01 の削除期限が到来したため、TTL チェックを全セッションに対して常に行う。
+	// CSRFTokenCreatedAt = 0 の古いセッションは TTL 超過とみなされ再認証が要求される。
+	csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
+	if csrfAge > CSRFTokenTTL {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"error":      "BFF_CSRF_EXPIRED",
+			"message":    "CSRF token expired",
+			"request_id": GetRequestID(c),
+		})
+		return false
+	}
+	return true
 }

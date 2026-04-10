@@ -190,8 +190,8 @@ void main() {
 
 | 言語 | カバレッジ目標 | 計測ツール | CI での閾値チェック |
 | --- | --- | --- | --- |
-| Rust | **70%** | cargo-tarpaulin | `ci.yaml` の `coverage-rust` ジョブで計測、PR コメントにレポート |
-| Go | **70%** | go test -coverprofile | CI ジョブ内で閾値チェック |
+| Rust | **75%** | cargo-tarpaulin | `ci.yaml` の `coverage-rust` ジョブで計測、PR コメントにレポート |
+| Go | **75%** | go test -coverprofile | CI ジョブ内で閾値チェック |
 | TypeScript | **80%** | vitest --coverage (v8) | CI ジョブ内で閾値チェック |
 | Dart | **80%** | flutter test --coverage | CI ジョブ内で閾値チェック |
 

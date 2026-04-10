@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::event::OutboxEvent;
 
-/// OutboxEventSource はアウトボックスイベントの取得元インターフェース。
+/// `OutboxEventSource` はアウトボックスイベントの取得元インターフェース。
 ///
 /// 各サービスのリポジトリトレイトがこのトレイトを実装する。
 /// fetch と mark を分離することで、at-least-once（最低1回）配信を実現する。
@@ -22,7 +22,7 @@ pub trait OutboxEventSource: Send + Sync {
     async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
 }
 
-/// OutboxEventHandler はイベント種別ごとの変換・パブリッシュロジックを抽象化する。
+/// `OutboxEventHandler` はイベント種別ごとの変換・パブリッシュロジックを抽象化する。
 ///
 /// 各サービスが自身の Protobuf 型へ変換し Kafka へ publish するロジックを実装する。
 #[async_trait]
@@ -32,11 +32,11 @@ pub trait OutboxEventHandler: Send + Sync {
     async fn handle_event(&self, event: &OutboxEvent) -> anyhow::Result<bool>;
 }
 
-/// OutboxEventFetcher はリポジトリ層の outbox 操作を抽象化するトレイト。
+/// `OutboxEventFetcher` はリポジトリ層の outbox 操作を抽象化するトレイト。
 ///
-/// 各サービスのリポジトリトレイトには他のメソッド（find_by_id 等）も含まれるため、
-/// OutboxEventSource を直接実装するのは困難。
-/// このトレイトを使えば、リポジトリを OutboxEventSource として簡単にラップできる。
+/// `各サービスのリポジトリトレイトには他のメソッド（find_by_id` 等）も含まれるため、
+/// `OutboxEventSource` を直接実装するのは困難。
+/// このトレイトを使えば、リポジトリを `OutboxEventSource` として簡単にラップできる。
 #[async_trait]
 pub trait OutboxEventFetcher: Send + Sync {
     /// 未パブリッシュのイベントを取得する（mark は行わない）。
@@ -46,10 +46,10 @@ pub trait OutboxEventFetcher: Send + Sync {
     async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
 }
 
-/// RepositoryOutboxSource は OutboxEventFetcher を OutboxEventSource にアダプトする。
+/// `RepositoryOutboxSource` は `OutboxEventFetcher` を `OutboxEventSource` にアダプトする。
 ///
-/// 各サービスで重複していた *OutboxSource 構造体と OutboxEventSource impl を共通化する。
-/// リポジトリが OutboxEventFetcher を実装していれば、このアダプタで OutboxEventSource に変換できる。
+/// 各サービスで重複していた *`OutboxSource` 構造体と `OutboxEventSource` impl を共通化する。
+/// リポジトリが `OutboxEventFetcher` を実装していれば、このアダプタで `OutboxEventSource` に変換できる。
 /// dyn Trait を受け取れるよう ?Sized バウンドを指定。
 pub struct RepositoryOutboxSource<R: OutboxEventFetcher + ?Sized> {
     /// イベント取得元リポジトリ
@@ -57,7 +57,7 @@ pub struct RepositoryOutboxSource<R: OutboxEventFetcher + ?Sized> {
 }
 
 impl<R: OutboxEventFetcher + ?Sized> RepositoryOutboxSource<R> {
-    /// 新しい RepositoryOutboxSource を生成する。
+    /// 新しい `RepositoryOutboxSource` を生成する。
     pub fn new(repo: Arc<R>) -> Self {
         Self { repo }
     }
@@ -65,19 +65,19 @@ impl<R: OutboxEventFetcher + ?Sized> RepositoryOutboxSource<R> {
 
 #[async_trait]
 impl<R: OutboxEventFetcher + ?Sized + 'static> OutboxEventSource for RepositoryOutboxSource<R> {
-    /// リポジトリの fetch_unpublished_events に委譲する
+    /// リポジトリの `fetch_unpublished_events` に委譲する
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
         self.repo.fetch_unpublished_events(limit).await
     }
 
-    /// リポジトリの mark_events_published に委譲する
+    /// リポジトリの `mark_events_published` に委譲する
     async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()> {
         self.repo.mark_events_published(ids).await
     }
 }
 
-/// OutboxEventPoller のファクトリ関数。
-/// OutboxEventFetcher を実装するリポジトリから簡単にポーラーを構築する。
+/// `OutboxEventPoller` のファクトリ関数。
+/// `OutboxEventFetcher` を実装するリポジトリから簡単にポーラーを構築する。
 /// dyn Trait を受け取れるよう ?Sized バウンドを指定。
 pub fn new_poller<R: OutboxEventFetcher + ?Sized + 'static>(
     repo: Arc<R>,
@@ -89,10 +89,10 @@ pub fn new_poller<R: OutboxEventFetcher + ?Sized + 'static>(
     OutboxEventPoller::new(source, handler, poll_interval, batch_size)
 }
 
-/// OutboxEventPoller はアウトボックスイベントの汎用ポーリングエンジン。
+/// `OutboxEventPoller` はアウトボックスイベントの汎用ポーリングエンジン。
 ///
-/// 各サービスで重複していた run ループ + poll_and_publish ロジックを共通化する。
-/// イベントの取得は OutboxEventSource、変換・パブリッシュは OutboxEventHandler に委譲する。
+/// 各サービスで重複していた run ループ + `poll_and_publish` ロジックを共通化する。
+/// イベントの取得は OutboxEventSource、変換・パブリッシュは `OutboxEventHandler` に委譲する。
 pub struct OutboxEventPoller {
     /// イベント取得元（リポジトリ）
     source: Arc<dyn OutboxEventSource>,
@@ -105,7 +105,7 @@ pub struct OutboxEventPoller {
 }
 
 impl OutboxEventPoller {
-    /// 新しい OutboxEventPoller を生成する。
+    /// 新しい `OutboxEventPoller` を生成する。
     pub fn new(
         source: Arc<dyn OutboxEventSource>,
         handler: Arc<dyn OutboxEventHandler>,
@@ -121,10 +121,11 @@ impl OutboxEventPoller {
     }
 
     /// バックグラウンドタスクとしてポーリングを開始する。
-    /// shutdown_rx でシャットダウンシグナルを受信したら停止する。
+    /// `shutdown_rx` でシャットダウンシグナルを受信したら停止する。
     pub async fn run(&self, mut shutdown_rx: tokio::sync::watch::Receiver<bool>) {
+        // LOW-008: 安全な型変換（オーバーフロー防止）
         tracing::info!(
-            poll_interval_ms = self.poll_interval.as_millis() as u64,
+            poll_interval_ms = u64::try_from(self.poll_interval.as_millis()).unwrap_or(u64::MAX),
             batch_size = self.batch_size,
             "outbox poller started"
         );

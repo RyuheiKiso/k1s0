@@ -22,6 +22,7 @@ pub struct SchedulerJob {
 }
 
 impl SchedulerJob {
+    #[must_use]
     pub fn new(name: String, cron_expression: String, payload: serde_json::Value) -> Self {
         let now = Utc::now();
         Self {
@@ -43,6 +44,7 @@ impl SchedulerJob {
     }
 
     /// cron 式から次回実行時刻を計算する。
+    #[must_use]
     pub fn next_run_at(&self) -> Option<DateTime<Utc>> {
         let cron_6field = to_6field_cron(&self.cron_expression);
         let tz = parse_timezone(&self.timezone)?;
@@ -59,22 +61,25 @@ impl SchedulerJob {
 fn to_6field_cron(expr: &str) -> String {
     let parts: Vec<&str> = expr.split_whitespace().collect();
     if parts.len() == 5 {
-        format!("0 {}", expr)
+        format!("0 {expr}")
     } else {
         expr.to_string()
     }
 }
 
 /// cron 式を検証する。cron クレートでパース可能かどうかで判定する。
+#[must_use]
 pub fn validate_cron(expr: &str) -> bool {
     let cron_6field = to_6field_cron(expr);
     cron::Schedule::from_str(&cron_6field).is_ok()
 }
 
+#[must_use]
 pub fn validate_timezone(timezone: &str) -> bool {
     parse_timezone(timezone).is_some()
 }
 
+#[must_use]
 pub fn parse_timezone(timezone: &str) -> Option<Tz> {
     timezone.parse::<Tz>().ok()
 }

@@ -6,12 +6,13 @@ use crate::domain::entity::saga_state::{SagaState, SagaStatus};
 use crate::domain::entity::saga_step_log::{SagaStepLog, StepAction, StepStatus};
 use crate::domain::repository::saga_repository::{SagaListParams, SagaRepository};
 
-/// SagaPostgresRepository はPostgreSQL実装のSagaリポジトリ。
+/// `SagaPostgresRepository` `はPostgreSQL実装のSagaリポジトリ`。
 pub struct SagaPostgresRepository {
     pool: PgPool,
 }
 
 impl SagaPostgresRepository {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -30,11 +31,11 @@ impl SagaRepository for SagaPostgresRepository {
             .await?;
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO saga.saga_states
                 (id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, tenant_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            "#,
+            ",
         )
         .bind(state.saga_id)
         .bind(&state.workflow_name)
@@ -69,11 +70,11 @@ impl SagaRepository for SagaPostgresRepository {
             .await?;
 
         sqlx::query(
-            r#"
+            r"
             UPDATE saga.saga_states
             SET current_step = $2, status = $3, payload = $4, error_message = $5, updated_at = NOW()
             WHERE id = $1 AND tenant_id = $6
-            "#,
+            ",
         )
         .bind(state.saga_id)
         .bind(state.current_step)
@@ -86,11 +87,11 @@ impl SagaRepository for SagaPostgresRepository {
 
         // saga_step_logs にも tenant_id を挿入する
         sqlx::query(
-            r#"
+            r"
             INSERT INTO saga.saga_step_logs
                 (id, saga_id, step_index, step_name, action, status, request_payload, response_payload, error_message, tenant_id, started_at, completed_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            "#,
+            ",
         )
         .bind(log.id)
         .bind(log.saga_id)
@@ -129,11 +130,11 @@ impl SagaRepository for SagaPostgresRepository {
             .await?;
 
         sqlx::query(
-            r#"
+            r"
             UPDATE saga.saga_states
             SET status = $2, error_message = $3, updated_at = NOW()
             WHERE id = $1 AND tenant_id = $4
-            "#,
+            ",
         )
         .bind(saga_id)
         .bind(status.to_string())
@@ -147,7 +148,11 @@ impl SagaRepository for SagaPostgresRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, saga_id: Uuid, tenant_id: &str) -> anyhow::Result<Option<SagaState>> {
+    async fn find_by_id(
+        &self,
+        saga_id: Uuid,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<SagaState>> {
         // CRIT-005 対応: トランザクション内で tenant_id をセッション変数に設定してから SELECT する
         let mut tx = self.pool.begin().await?;
 
@@ -157,11 +162,11 @@ impl SagaRepository for SagaPostgresRepository {
             .await?;
 
         let row = sqlx::query_as::<_, SagaStateRow>(
-            r#"
+            r"
             SELECT id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, tenant_id, created_at, updated_at
             FROM saga.saga_states
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(saga_id)
         .fetch_optional(&mut *tx)
@@ -169,10 +174,14 @@ impl SagaRepository for SagaPostgresRepository {
 
         tx.commit().await?;
 
-        row.map(|r| r.try_into()).transpose()
+        row.map(std::convert::TryInto::try_into).transpose()
     }
 
-    async fn find_step_logs(&self, saga_id: Uuid, tenant_id: &str) -> anyhow::Result<Vec<SagaStepLog>> {
+    async fn find_step_logs(
+        &self,
+        saga_id: Uuid,
+        tenant_id: &str,
+    ) -> anyhow::Result<Vec<SagaStepLog>> {
         // CRIT-005 対応: トランザクション内で tenant_id をセッション変数に設定してから SELECT する
         let mut tx = self.pool.begin().await?;
 
@@ -182,12 +191,12 @@ impl SagaRepository for SagaPostgresRepository {
             .await?;
 
         let rows = sqlx::query_as::<_, StepLogRow>(
-            r#"
+            r"
             SELECT id, saga_id, step_index, step_name, action, status, request_payload, response_payload, error_message, started_at, completed_at
             FROM saga.saga_step_logs
             WHERE saga_id = $1
             ORDER BY step_index, started_at
-            "#,
+            ",
         )
         .bind(saga_id)
         .fetch_all(&mut *tx)
@@ -195,7 +204,9 @@ impl SagaRepository for SagaPostgresRepository {
 
         tx.commit().await?;
 
-        rows.into_iter().map(|r| r.try_into()).collect()
+        rows.into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect()
     }
 
     /// Saga 一覧を取得する。
@@ -216,7 +227,9 @@ impl SagaRepository for SagaPostgresRepository {
         let page_size = params.page_size.max(1);
 
         // カウントクエリを QueryBuilder で構築する（keyset/OFFSET 共通）
-        let mut count_qb = sqlx::QueryBuilder::new("SELECT COUNT(*)::int4 FROM saga.saga_states WHERE tenant_id = ");
+        let mut count_qb = sqlx::QueryBuilder::new(
+            "SELECT COUNT(*)::int4 FROM saga.saga_states WHERE tenant_id = ",
+        );
         count_qb.push_bind(&params.tenant_id);
 
         if let Some(ref wn) = params.workflow_name {
@@ -276,12 +289,12 @@ impl SagaRepository for SagaPostgresRepository {
             }
             // keyset ページネーション: ORDER BY created_at DESC, id DESC
             data_qb.push(" ORDER BY created_at DESC, id DESC LIMIT ");
-            data_qb.push_bind(page_size as i64);
+            data_qb.push_bind(i64::from(page_size));
         } else {
             // OFFSET ページネーション（後方互換）
-            let offset = ((page - 1) * page_size) as i64;
+            let offset = i64::from((page - 1) * page_size);
             data_qb.push(" ORDER BY created_at DESC LIMIT ");
-            data_qb.push_bind(page_size as i64);
+            data_qb.push_bind(i64::from(page_size));
             data_qb.push(" OFFSET ");
             data_qb.push_bind(offset);
         }
@@ -293,38 +306,49 @@ impl SagaRepository for SagaPostgresRepository {
 
         tx.commit().await?;
 
-        let sagas: anyhow::Result<Vec<SagaState>> =
-            rows.into_iter().map(|r| r.try_into()).collect();
+        let sagas: anyhow::Result<Vec<SagaState>> = rows
+            .into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect();
 
         Ok((sagas?, total))
     }
 
     /// 未完了Sagaを検索する。一度に大量のSagaをロードしないようLIMITで件数を制限する。
-    /// CRIT-005 注意: このメソッドは起動時リカバリ目的のため全テナント横断で実行する。
-    /// tenant_id セッション変数を設定しないので RLS は NULL 比較になり全行がフィルタされる。
-    /// 将来的には管理者ロール（RLS バイパス）の DB 接続を使用する実装に移行すること。
+    ///
+    /// HIGH-008 / ADR-0106 対応: このメソッドは起動時リカバリ目的のため全テナント横断で実行する。
+    /// 設計上の意図:
+    ///   - `set_config('app.current_tenant_id', ...)` は呼び出さない。これは意図的な設計である。
+    ///   - RLS を通過するため、このメソッドを呼び出す DB ロールは
+    ///     `BYPASS ROW LEVEL SECURITY` 権限を持つ管理者専用ロールでなければならない。
+    ///   - 接続プール（self.pool）は起動時に管理者ロールの認証情報で構成すること。
+    ///     通常のサービスロール（RLS 適用済み）で呼び出した場合は全行がフィルタされ
+    ///     リカバリが機能しないため、Helm / Secret の設定で必ず管理者ロールを使用すること。
+    ///   - 将来的には ADR-0106 の方針に従い、管理者専用 DB コネクションプールを
+    ///     別途構築してこのメソッドに渡す実装に移行する。
     async fn find_incomplete(&self) -> anyhow::Result<Vec<SagaState>> {
-        // 全テナント横断アクセスのため一時的に RLS をセッション変数で回避する
-        // app.current_tenant_id を空文字列に設定すると NULL 比較となりフィルタされるため、
-        // 代わりに FORCE RLS を無効化したサービスロールを使用する想定だが
-        // 現実装では pool 接続ユーザーが既に RLS バイパス権限を持つ DB ロールを使用していることを前提とする
+        // 全テナント横断アクセスのため set_config は呼ばない（意図的設計）
+        // 接続ユーザーが BYPASS ROW LEVEL SECURITY 権限を持つ管理者ロールを使用することを前提とする
+        // （通常のサービスロールで呼び出した場合は全行フィルタされリカバリが機能しないため注意）
         let rows = sqlx::query_as::<_, SagaStateRow>(
-            r#"
+            r"
             SELECT id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, tenant_id, created_at, updated_at
             FROM saga.saga_states
             WHERE status IN ('STARTED', 'RUNNING', 'COMPENSATING')
             ORDER BY created_at
             LIMIT 100
-            "#,
+            ",
         )
         .fetch_all(&self.pool)
         .await?;
 
-        rows.into_iter().map(|r| r.try_into()).collect()
+        rows.into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect()
     }
 }
 
-/// SagaStateRow はDB行からのマッピング用。
+/// `SagaStateRow` はDB行からのマッピング用。
 #[derive(sqlx::FromRow)]
 struct SagaStateRow {
     id: Uuid,
@@ -360,7 +384,7 @@ impl TryFrom<SagaStateRow> for SagaState {
     }
 }
 
-/// StepLogRow はDB行からのマッピング用。
+/// `StepLogRow` はDB行からのマッピング用。
 #[derive(sqlx::FromRow)]
 struct StepLogRow {
     id: Uuid,
@@ -383,14 +407,14 @@ impl TryFrom<StepLogRow> for SagaStepLog {
         let action = match row.action.as_str() {
             "EXECUTE" => StepAction::Execute,
             "COMPENSATE" => StepAction::Compensate,
-            other => anyhow::bail!("invalid step action: {}", other),
+            other => anyhow::bail!("invalid step action: {other}"),
         };
         let status = match row.status.as_str() {
             "SUCCESS" => StepStatus::Success,
             "FAILED" => StepStatus::Failed,
             "TIMEOUT" => StepStatus::Timeout,
             "SKIPPED" => StepStatus::Skipped,
-            other => anyhow::bail!("invalid step status: {}", other),
+            other => anyhow::bail!("invalid step status: {other}"),
         };
 
         Ok(SagaStepLog {

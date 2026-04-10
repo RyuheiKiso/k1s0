@@ -33,29 +33,32 @@ pub struct PlatformQuery {
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn get_latest(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<String>,
     Query(params): Query<PlatformQuery>,
 ) -> impl IntoResponse {
     let platform = match params.platform {
-        Some(platform) => match platform.parse::<Platform>() {
-            Ok(platform) => Some(platform),
-            Err(_) => {
+        Some(platform) => {
+            if let Ok(platform) = platform.parse::<Platform>() {
+                Some(platform)
+            } else {
                 let err = ErrorResponse::new(
                     "SYS_APPS_INVALID_PLATFORM",
                     "Invalid platform. Use: windows, linux, macos",
                 );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
-        },
+        }
         None => None,
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));
 
     match state
         .get_latest_uc
-        .execute(&id, platform.as_ref(), arch.as_deref())
+        .execute(&claims.tenant_id, &id, platform.as_ref(), arch.as_deref())
         .await
     {
         Ok(version) => (StatusCode::OK, Json(version)).into_response(),
@@ -100,23 +103,26 @@ pub async fn download_version(
     Extension(claims): Extension<Claims>,
 ) -> impl IntoResponse {
     let platform = match params.platform {
-        Some(platform) => match platform.parse::<Platform>() {
-            Ok(platform) => Some(platform),
-            Err(_) => {
+        Some(platform) => {
+            if let Ok(platform) = platform.parse::<Platform>() {
+                Some(platform)
+            } else {
                 let err = ErrorResponse::new(
                     "SYS_APPS_INVALID_PLATFORM",
                     "Invalid platform. Use: windows, linux, macos",
                 );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
-        },
+        }
         None => None,
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));
 
+    // CRIT-004 監査対応: tenant_id を RLS セッション変数設定のために渡す。
     match state
         .generate_download_url_uc
         .execute(
+            &claims.tenant_id,
             &id,
             &version,
             platform.as_ref(),

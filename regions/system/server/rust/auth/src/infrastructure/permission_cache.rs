@@ -7,6 +7,7 @@ pub struct PermissionCache {
 }
 
 impl PermissionCache {
+    #[must_use]
     pub fn new(ttl_secs: u64, max_capacity: u64) -> Self {
         Self {
             cache: Cache::builder()
@@ -24,8 +25,9 @@ impl PermissionCache {
         self.cache.insert(key, allowed).await;
     }
 
+    #[must_use]
     pub fn make_key(user_id: &str, resource: &str, action: &str) -> String {
-        format!("{}:{}:{}", user_id, resource, action)
+        format!("{user_id}:{resource}:{action}")
     }
 }
 

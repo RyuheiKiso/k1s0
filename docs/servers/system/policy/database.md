@@ -104,6 +104,26 @@ CREATE INDEX IF NOT EXISTS idx_policy_bundles_name ON policy.policy_bundles (nam
 | `003_create_policy_bundles.down.sql` | テーブル削除 |
 | `004_add_bundle_id.up.sql` | policies に bundle_id カラム追加 |
 | `004_add_bundle_id.down.sql` | カラム削除 |
+| `005_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id VARCHAR(255) NOT NULL` と RLS ポリシー追加 |
+| `006_add_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `007_alter_tenant_id_to_text.up.sql` | `tenant_id` を TEXT 型に変更、UNIQUE(name) → UNIQUE(tenant_id, name)（CRITICAL-DB-002 + HIGH-DB-007 対応） |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-002 / HIGH-DB-007）
+
+`policies` / `policy_bundles` の `tenant_id` を TEXT 型に統一（migration 007）。
+
+- `policies`: UNIQUE(name) を UNIQUE(tenant_id, name) に変更
+
+```sql
+ALTER TABLE policy.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE policy.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON policy.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

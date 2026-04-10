@@ -2,7 +2,7 @@ use sqlx::PgPool;
 
 use super::config::DatabaseConfig;
 
-/// PostgreSQL 接続プールを作成する。
+/// `PostgreSQL` 接続プールを作成する。
 pub async fn connect(cfg: &DatabaseConfig) -> anyhow::Result<PgPool> {
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(cfg.max_connections)

@@ -28,7 +28,7 @@ pub enum SchedulerError {
     Internal(String),
 }
 
-/// SchedulerError から ServiceError への変換実装
+/// `SchedulerError` から `ServiceError` への変換実装
 impl From<SchedulerError> for ServiceError {
     fn from(err: SchedulerError) -> Self {
         match err {

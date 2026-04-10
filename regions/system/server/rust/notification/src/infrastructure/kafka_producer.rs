@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::domain::entity::notification_log::NotificationLog;
 use crate::infrastructure::config::KafkaConfig;
 
-/// NotificationSentEvent は通知配信完了時に Kafka へ発行するイベント。
+/// `NotificationSentEvent` は通知配信完了時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NotificationSentEvent {
     pub notification_id: String,
@@ -13,7 +13,7 @@ pub struct NotificationSentEvent {
     pub timestamp: String, // ISO 8601
 }
 
-/// NotificationEventPublisher は通知配信イベントの Kafka 発行トレイト。
+/// `NotificationEventPublisher` は通知配信イベントの Kafka 発行トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait NotificationEventPublisher: Send + Sync {
@@ -22,7 +22,7 @@ pub trait NotificationEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopNotificationEventPublisher は何もしないダミー実装。
+/// `NoopNotificationEventPublisher` は何もしないダミー実装。
 /// Kafka 未設定時のフォールバックに使用する。
 pub struct NoopNotificationEventPublisher;
 
@@ -37,7 +37,7 @@ impl NotificationEventPublisher for NoopNotificationEventPublisher {
     }
 }
 
-/// KafkaNotificationProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaNotificationProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaNotificationProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -45,7 +45,7 @@ pub struct KafkaNotificationProducer {
 }
 
 impl KafkaNotificationProducer {
-    /// 新しい KafkaNotificationProducer を作成する。
+    /// 新しい `KafkaNotificationProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -70,6 +70,7 @@ impl KafkaNotificationProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -79,6 +80,7 @@ impl KafkaNotificationProducer {
     }
 
     /// 配信先トピック名を返す。
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
@@ -91,15 +93,15 @@ impl NotificationEventPublisher for KafkaNotificationProducer {
         use std::time::Duration;
 
         let event = NotificationSentEvent {
-            notification_id: log.id.to_string(),
-            channel_id: log.channel_id.to_string(),
+            notification_id: log.id.clone(),
+            channel_id: log.channel_id.clone(),
             recipient: log.recipient.clone(),
             status: log.status.clone(),
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
         let payload = serde_json::to_vec(&event)?;
-        let key = log.id.to_string();
+        let key = log.id.clone();
 
         let record = FutureRecord::to(&self.topic).key(&key).payload(&payload);
 
@@ -107,7 +109,7 @@ impl NotificationEventPublisher for KafkaNotificationProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish notification sent event: {}", err)
+                anyhow::anyhow!("failed to publish notification sent event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {
@@ -180,6 +182,7 @@ mod tests {
     fn make_test_log() -> NotificationLog {
         NotificationLog {
             id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
+            tenant_id: "test_tenant".to_string(),
             channel_id: format!("ch_{}", uuid::Uuid::new_v4().simple()),
             template_id: None,
             recipient: "user@example.com".to_string(),

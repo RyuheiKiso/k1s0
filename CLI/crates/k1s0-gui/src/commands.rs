@@ -1,3 +1,6 @@
+// MED-006 監査対応: コメント内の識別子バッククォート（doc_markdown）は日本語混在の説明コメントに適用しない
+#![allow(clippy::doc_markdown)]
+
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -147,21 +150,25 @@ fn resolve_workspace_path(workspace_root: &Path, path: &str) -> Result<PathBuf, 
 }
 
 /// L-018 監査対応: コマンド実行コンテキスト。
-/// グローバルな作業ディレクトリ（cwd）を変更する代わりに、コンテキストとして workspace_root を保持する。
-/// 子プロセス起動時は Command::current_dir() でスコープを絞り、スレッドセーフを確保する。
+/// グローバルな作業ディレクトリ（cwd）を変更する代わりに、コンテキストとして `workspace_root` を保持する。
+/// 子プロセス起動時は `Command::current_dir()` でスコープを絞り、スレッドセーフを確保する。
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {
     /// コマンドを実行するワークスペースルートの絶対パス
+    // MED-006 監査対応: 将来のコマンド追加時に使用するため dead_code を抑制する
+    #[allow(dead_code)]
     pub workspace_root: PathBuf,
 }
 
 impl ExecutionContext {
-    /// ワークスペースルートパスから ExecutionContext を構築する。
+    /// ワークスペースルートパスから `ExecutionContext` を構築する。
     pub fn new(workspace_root: PathBuf) -> Self {
         Self { workspace_root }
     }
 
     /// ワークスペース内の相対パスを絶対パスに解決する。
+    // MED-006 監査対応: 将来のコマンド追加時に使用するため dead_code を抑制する
+    #[allow(dead_code)]
     pub fn resolve(&self, relative: &str) -> PathBuf {
         self.workspace_root.join(relative)
     }
@@ -975,6 +982,8 @@ pub fn execute_template_migration(plan: TemplateMigrationPlan) -> Result<(), Str
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn list_template_migration_backups(project_dir: String) -> Result<Vec<String>, String> {
+    // MED-014 監査対応: バックアップ一覧は認証済みユーザーのみ参照可能とする
+    ensure_authenticated()?;
     // project_dir のパストラバーサル防止: resolve_workspace_path でワークスペース外参照を拒否する
     let workspace_root = resolve_workspace_root_from_option(None)?;
     let project_path = resolve_workspace_path(&workspace_root, &project_dir)?;

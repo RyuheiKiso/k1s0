@@ -1,23 +1,25 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// CorrelationId は業務上の相関 ID を表す。
+/// `CorrelationId` は業務上の相関 ID を表す。
 /// 同一業務トランザクションを跨ぐリクエストの追跡に使用する。
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CorrelationId(String);
 
 impl CorrelationId {
-    /// 新しい CorrelationId を UUID v4 で生成する。
+    /// 新しい `CorrelationId` を UUID v4 で生成する。
+    #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4().to_string())
     }
 
-    /// 既存の文字列から CorrelationId を生成する。
+    /// 既存の文字列から `CorrelationId` を生成する。
     pub fn from_string(s: impl Into<String>) -> Self {
         Self(s.into())
     }
 
     /// 文字列として取得する。
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -35,20 +37,21 @@ impl std::fmt::Display for CorrelationId {
     }
 }
 
-/// TraceId は OpenTelemetry のトレース ID を表す。
+/// `TraceId` は OpenTelemetry のトレース ID を表す。
 /// 16 バイト（32文字の16進数）の形式で管理する。
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TraceId(String);
 
 impl TraceId {
-    /// 新しい TraceId を生成する（UUID ベース）。
+    /// 新しい `TraceId` を生成する（UUID ベース）。
+    #[must_use]
     pub fn new() -> Self {
         let uuid = Uuid::new_v4();
         // UUID のハイフンを除いた32文字の16進数
         Self(uuid.simple().to_string())
     }
 
-    /// 既存のトレース ID 文字列から TraceId を生成する。
+    /// 既存のトレース ID 文字列から `TraceId` を生成する。
     pub fn from_string(s: impl Into<String>) -> Option<Self> {
         let s = s.into();
         if s.len() == 32 && s.chars().all(|c| c.is_ascii_hexdigit()) {
@@ -58,6 +61,7 @@ impl TraceId {
         }
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -106,7 +110,7 @@ mod tests {
     #[test]
     fn test_correlation_id_display() {
         let id = CorrelationId::from_string("test-id-001");
-        assert_eq!(format!("{}", id), "test-id-001");
+        assert_eq!(format!("{id}"), "test-id-001");
     }
 
     // 新しく生成した TraceId が 32 文字の16進数文字列であることを確認する。
@@ -174,7 +178,7 @@ mod tests {
     fn test_trace_id_display() {
         let raw = "4bf92f3577b34da6a3ce929d0e0e4736";
         let id = TraceId::from_string(raw).unwrap();
-        assert_eq!(format!("{}", id), raw);
+        assert_eq!(format!("{id}"), raw);
     }
 
     // Default 実装で生成した TraceId が有効な32文字16進数であることを確認する。

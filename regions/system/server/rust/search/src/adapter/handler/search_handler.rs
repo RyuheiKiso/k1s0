@@ -33,6 +33,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -41,11 +42,10 @@ impl AppState {
 
 /// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
-fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id(claims: Option<&Extension<Claims>>) -> String {
     claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -120,7 +120,7 @@ pub async fn search(
     Json(req): Json<SearchRequest>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     if req.index_name.trim().is_empty() {
         return error_response_with_details(
@@ -185,7 +185,7 @@ pub async fn search(
         Err(SearchError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
             "SYS_SEARCH_INDEX_NOT_FOUND",
-            format!("index not found: {}", name),
+            format!("index not found: {name}"),
         )
         .into_response(),
         Err(SearchError::Internal(msg)) => {
@@ -211,7 +211,7 @@ pub async fn index_document(
     Json(req): Json<IndexDocumentRequest>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     if req.id.trim().is_empty() || req.index_name.trim().is_empty() {
         let mut details = Vec::new();
@@ -249,7 +249,7 @@ pub async fn index_document(
         Err(IndexDocumentError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
             "SYS_SEARCH_INDEX_NOT_FOUND",
-            format!("index not found: {}", name),
+            format!("index not found: {name}"),
         )
         .into_response(),
         Err(IndexDocumentError::Internal(msg)) => {
@@ -277,7 +277,7 @@ pub async fn create_index(
     use crate::usecase::create_index::CreateIndexInput;
 
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     if req.name.trim().is_empty() {
         return error_response_with_details(
@@ -334,7 +334,7 @@ pub async fn list_indices(
     claims: Option<Extension<Claims>>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     match state.list_indices_uc.execute(&tenant_id).await {
         Ok(indices) => {
@@ -368,14 +368,14 @@ pub async fn list_indices(
     }
 }
 
-/// DELETE /api/v1/search/index/:index_name/:doc_id - Delete a document from an index
+/// DELETE /`api/v1/search/index/:index_name/:doc_id` - Delete a document from an index
 pub async fn delete_document_from_index(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path((index_name, doc_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = DeleteDocumentInput {
         index_name,
@@ -388,7 +388,7 @@ pub async fn delete_document_from_index(
         Err(DeleteDocumentError::NotFound(_, id)) => error_response(
             StatusCode::NOT_FOUND,
             "SYS_SEARCH_DOCUMENT_NOT_FOUND",
-            format!("document not found: {}", id),
+            format!("document not found: {id}"),
         )
         .into_response(),
         Err(DeleteDocumentError::Internal(msg)) => {

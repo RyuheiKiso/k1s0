@@ -5,11 +5,11 @@ use crate::ServiceError;
 /// Tier はロールチェックのスコープを表現する。
 #[derive(Debug, Clone, Copy)]
 pub enum Tier {
-    /// System tier: sys_admin / sys_operator / sys_auditor
+    /// System tier: `sys_admin` / `sys_operator` / `sys_auditor`
     System,
-    /// Business tier: biz_admin / biz_operator / biz_auditor + sys_admin fallback
+    /// Business tier: `biz_admin` / `biz_operator` / `biz_auditor` + `sys_admin` fallback
     Business,
-    /// Service tier: svc_admin / svc_operator / svc_viewer + sys_admin fallback
+    /// Service tier: `svc_admin` / `svc_operator` / `svc_viewer` + `sys_admin` fallback
     Service,
 }
 
@@ -17,7 +17,7 @@ pub enum Tier {
 type RbacFuture =
     std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, ServiceError>> + Send>>;
 
-/// RBAC ミドルウェアを返す。axum の from_fn で使用する。
+/// RBAC ミドルウェアを返す。axum の `from_fn` で使用する。
 pub fn require_permission(
     tier: Tier,
     _resource: &'static str,
@@ -42,7 +42,7 @@ async fn rbac_check(
     if !check_permission(tier, roles, action) {
         return Err(ServiceError::forbidden(
             "AUTH",
-            format!("Insufficient permissions for action: {}", action),
+            format!("Insufficient permissions for action: {action}"),
         ));
     }
 
@@ -50,6 +50,7 @@ async fn rbac_check(
 }
 
 /// ロールベースの権限チェック。Tier に応じてロールプレフィックスを切り替える。
+#[must_use]
 pub fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
     for role in roles {
         match tier {

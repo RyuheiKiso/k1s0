@@ -74,7 +74,8 @@ impl SearchClient for InMemorySearchClient {
     ) -> Result<IndexResult, SearchError> {
         let mut docs = self.documents.lock().await;
         let entry = docs.entry(index.to_string()).or_default();
-        let version = entry.len() as i64 + 1;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let version = i64::try_from(entry.len()).unwrap_or(i64::MAX).saturating_add(1);
         let id = doc.id.clone();
         entry.push(doc);
         Ok(IndexResult { id, version })
@@ -117,11 +118,13 @@ impl SearchClient for InMemorySearchClient {
                         .unwrap_or(false)
                 })
             })
-            .skip(query.page as usize * query.size as usize)
-            .take(query.size as usize)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .skip(usize::try_from(query.page).unwrap_or(0) * usize::try_from(query.size).unwrap_or(0))
+            .take(usize::try_from(query.size).unwrap_or(usize::MAX))
             .map(|doc| serde_json::to_value(doc).unwrap())
             .collect();
-        let total = hits.len() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(hits.len()).unwrap_or(u64::MAX);
         let mut facets = HashMap::new();
         for facet_field in &query.facets {
             facets.insert(

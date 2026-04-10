@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// SchemaManager はテーブル・カラム・リレーションシップの物理スキーマ操作を抽象化するトレイト。
+/// `SchemaManager` はテーブル・カラム・リレーションシップの物理スキーマ操作を抽象化するトレイト。
 /// テスト時にスタブ実装で差し替えられるように定義する。
 #[async_trait]
 pub trait SchemaManager: Send + Sync {
@@ -51,11 +51,27 @@ pub trait SchemaManager: Send + Sync {
     ) -> anyhow::Result<()>;
 }
 
+/// RUST-002 監査対応: `on_delete` を enum 型で定義し、型安全性を確保する
+enum OnDeleteAction {
+    Cascade,
+    Restrict,
+}
+
+impl OnDeleteAction {
+    fn as_sql(&self) -> &'static str {
+        match self {
+            Self::Cascade => "CASCADE",
+            Self::Restrict => "RESTRICT",
+        }
+    }
+}
+
 pub struct PhysicalSchemaManager {
     pool: PgPool,
 }
 
 impl PhysicalSchemaManager {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -81,7 +97,7 @@ impl PhysicalSchemaManager {
 
     pub async fn delete_table(&self, table: &TableDefinition) -> anyhow::Result<()> {
         let qualified_table = qualified_table_name(table)?;
-        let sql = format!("DROP TABLE IF EXISTS {} CASCADE", qualified_table);
+        let sql = format!("DROP TABLE IF EXISTS {qualified_table} CASCADE");
         sqlx::query(&sql).execute(&self.pool).await?;
         Ok(())
     }
@@ -168,29 +184,19 @@ impl PhysicalSchemaManager {
         if existing.default_value != input.default_value {
             let sql = if let Some(default_sql) = default_value_sql(input)? {
                 format!(
-                    "ALTER TABLE {} ALTER COLUMN {} SET DEFAULT {}",
-                    qualified_table, quoted_column, default_sql
+                    "ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} SET DEFAULT {default_sql}"
                 )
             } else {
-                format!(
-                    "ALTER TABLE {} ALTER COLUMN {} DROP DEFAULT",
-                    qualified_table, quoted_column
-                )
+                format!("ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} DROP DEFAULT")
             };
             sqlx::query(&sql).execute(&self.pool).await?;
         }
 
         if existing.is_nullable != input.is_nullable.unwrap_or(existing.is_nullable) {
             let sql = if input.is_nullable.unwrap_or(existing.is_nullable) {
-                format!(
-                    "ALTER TABLE {} ALTER COLUMN {} DROP NOT NULL",
-                    qualified_table, quoted_column
-                )
+                format!("ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} DROP NOT NULL")
             } else {
-                format!(
-                    "ALTER TABLE {} ALTER COLUMN {} SET NOT NULL",
-                    qualified_table, quoted_column
-                )
+                format!("ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} SET NOT NULL")
             };
             sqlx::query(&sql).execute(&self.pool).await?;
         }
@@ -225,15 +231,11 @@ impl PhysicalSchemaManager {
         validate_identifier(&relationship.target_column)?;
         let target_table_name = qualified_table_name(target_table)?;
         let constraint_name = relationship_constraint_name(relationship.id);
-        // RUST-002 監査対応: on_delete を enum 型で定義し、将来の変更でバリデーション漏れが
-        // 発生しないよう型安全性を確保する。文字列リテラルをそのまま使わない。
-        enum OnDeleteAction { Cascade, Restrict }
-        impl OnDeleteAction {
-            fn as_sql(&self) -> &'static str {
-                match self { Self::Cascade => "CASCADE", Self::Restrict => "RESTRICT" }
-            }
-        }
-        let on_delete = if relationship.is_cascade_delete { OnDeleteAction::Cascade } else { OnDeleteAction::Restrict };
+        let on_delete = if relationship.is_cascade_delete {
+            OnDeleteAction::Cascade
+        } else {
+            OnDeleteAction::Restrict
+        };
         let sql = format!(
             "ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {} ({}) ON DELETE {}",
             source_table_name,
@@ -276,7 +278,7 @@ impl PhysicalSchemaManager {
     }
 }
 
-/// PhysicalSchemaManager に SchemaManager トレイトを実装する。
+/// `PhysicalSchemaManager` に `SchemaManager` トレイトを実装する。
 #[async_trait]
 impl SchemaManager for PhysicalSchemaManager {
     async fn create_table(&self, input: &CreateTableDefinition) -> anyhow::Result<()> {
@@ -346,12 +348,32 @@ fn quote_identifier(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
+/// `PostgreSQL` 識別子の最大長（バイト数）。
+/// `PostgreSQL` は識別子を NAMEDATALEN-1 = 63 バイトに切り詰めるため、
+/// それを超える識別子は予期しない重複の原因となる。
+const PG_MAX_IDENTIFIER_LEN: usize = 63;
+
+/// 識別子が `PostgreSQL` の命名規則に従っているか検証する。
+/// CRITICAL-RUST-002 監査対応:
+/// - 空文字禁止
+/// - ASCII英数字とアンダースコアのみ許可（動的 DDL の SQL インジェクション対策）
+/// - `PostgreSQL` の最大識別子長（63 バイト）を超えてはならない
 fn validate_identifier(name: &str) -> anyhow::Result<()> {
     if name.is_empty() {
         anyhow::bail!("identifier cannot be empty");
     }
+    // CRITICAL-RUST-002 監査対応: PostgreSQL 最大識別子長チェック（63 バイト制限）
+    // UTF-8 でも識別子は ASCII 文字のみ許可するため len() == byte 数
+    if name.len() > PG_MAX_IDENTIFIER_LEN {
+        anyhow::bail!(
+            "identifier '{}' exceeds PostgreSQL maximum length of {} bytes (got {})",
+            name,
+            PG_MAX_IDENTIFIER_LEN,
+            name.len()
+        );
+    }
     if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        anyhow::bail!("invalid identifier: {}", name);
+        anyhow::bail!("invalid identifier: {name}");
     }
     Ok(())
 }
@@ -366,20 +388,43 @@ fn postgres_type(data_type: &str) -> anyhow::Result<&'static str> {
         "datetime" => Ok("TIMESTAMPTZ"),
         "uuid" => Ok("UUID"),
         "jsonb" => Ok("JSONB"),
-        other => anyhow::bail!("unsupported data type: {}", other),
+        other => anyhow::bail!("unsupported data type: {other}"),
     }
 }
 
+/// カラム定義からデフォルト値の SQL フラグメントを生成する。
+/// CRITICAL-RUST-002 監査対応:
+/// - integer/decimal のデフォルト値を数値としてパース検証し、
+///   任意の SQL が注入されないことを保証する。
 fn default_value_sql(column: &CreateColumnDefinition) -> anyhow::Result<Option<String>> {
     let Some(default_value) = column.default_value.as_deref() else {
         return Ok(None);
     };
 
     let sql = match column.data_type.as_str() {
-        "integer" | "decimal" => default_value.to_string(),
+        "integer" => {
+            // CRITICAL-RUST-002 監査対応: integer デフォルト値を i64 としてパースして
+            // 不正な値（SQL 注入など）が混入しないことを検証する。
+            default_value.parse::<i64>().map_err(|_| {
+                anyhow::anyhow!(
+                    "invalid integer default value '{default_value}': must be a valid integer"
+                )
+            })?;
+            default_value.to_string()
+        }
+        "decimal" => {
+            // CRITICAL-RUST-002 監査対応: decimal デフォルト値を f64 としてパースして
+            // 不正な値が混入しないことを検証する。
+            default_value.parse::<f64>().map_err(|_| {
+                anyhow::anyhow!(
+                    "invalid decimal default value '{default_value}': must be a valid number"
+                )
+            })?;
+            default_value.to_string()
+        }
         "boolean" => match default_value {
             "true" | "false" => default_value.to_string(),
-            _ => anyhow::bail!("invalid boolean default: {}", default_value),
+            _ => anyhow::bail!("invalid boolean default: {default_value}"),
         },
         "uuid" if default_value.eq_ignore_ascii_case("gen_random_uuid()") => {
             "gen_random_uuid()".to_string()

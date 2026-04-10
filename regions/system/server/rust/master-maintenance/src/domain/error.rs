@@ -6,7 +6,7 @@ use crate::domain::value_object::rule_result::RuleResult;
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
 /// レコードバリデーションエラー。ルール評価で失敗した errors と警告 warnings を保持する。
-/// MasterMaintenanceError::RecordValidation に内包されて使用される。
+/// `MasterMaintenanceError::RecordValidation` に内包されて使用される。
 /// domain 層に定義することで usecase → domain の循環参照を防ぐ。
 #[derive(Debug)]
 pub struct RecordValidationError {
@@ -86,7 +86,7 @@ pub enum MasterMaintenanceError {
     ValidationFailed(String),
 
     /// レコードバリデーションエラー（ルール評価結果付き）
-    /// RecordValidationError を内包することで errors/warnings の詳細情報を保持する。
+    /// `RecordValidationError` を内包することで errors/warnings の詳細情報を保持する。
     #[error("record validation failed")]
     RecordValidation(Box<RecordValidationError>),
 
@@ -99,7 +99,7 @@ pub enum MasterMaintenanceError {
     Internal(String),
 }
 
-/// anyhow::Error を MasterMaintenanceError に変換する実装。
+/// `anyhow::Error` を `MasterMaintenanceError` に変換する実装。
 /// 型変換が未対応の usecase から上がってきたエラーを Internal にフォールバックする（暫定対応）。
 impl From<anyhow::Error> for MasterMaintenanceError {
     fn from(err: anyhow::Error) -> Self {
@@ -107,8 +107,8 @@ impl From<anyhow::Error> for MasterMaintenanceError {
     }
 }
 
-/// MasterMaintenanceError から ServiceError への変換実装。
-/// 既存の SYS_MM_* エラーコードとの後方互換性を維持する。
+/// `MasterMaintenanceError` から `ServiceError` への変換実装。
+/// 既存の `SYS_MM`_* エラーコードとの後方互換性を維持する。
 impl From<MasterMaintenanceError> for ServiceError {
     fn from(err: MasterMaintenanceError) -> Self {
         match err {
@@ -145,7 +145,7 @@ impl From<MasterMaintenanceError> for ServiceError {
                 operation,
             } => ServiceError::Forbidden {
                 code: ErrorCode::new("SYS_MM_OPERATION_NOT_ALLOWED"),
-                message: format!("{} not allowed for table '{}'", operation, table_name),
+                message: format!("{operation} not allowed for table '{table_name}'"),
             },
             MasterMaintenanceError::DuplicateTable(msg) => ServiceError::Conflict {
                 code: ErrorCode::new("SYS_MM_DUPLICATE_TABLE"),
@@ -167,7 +167,8 @@ impl From<MasterMaintenanceError> for ServiceError {
                 message: msg,
                 details: vec![],
             },
-            MasterMaintenanceError::SqlBuildError(msg) => ServiceError::Internal {
+            // SqlBuildError と Internal は同じエラーに変換するためアームを統合する
+            MasterMaintenanceError::SqlBuildError(msg) | MasterMaintenanceError::Internal(msg) => ServiceError::Internal {
                 code: ErrorCode::new("SYS_MM_INTERNAL_ERROR"),
                 message: msg,
             },
@@ -185,10 +186,6 @@ impl From<MasterMaintenanceError> for ServiceError {
                 code: ErrorCode::new("SYS_MM_VERSION_CONFLICT"),
                 message: msg,
                 details: vec![],
-            },
-            MasterMaintenanceError::Internal(msg) => ServiceError::Internal {
-                code: ErrorCode::new("SYS_MM_INTERNAL_ERROR"),
-                message: msg,
             },
         }
     }

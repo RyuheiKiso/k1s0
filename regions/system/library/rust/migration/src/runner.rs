@@ -37,9 +37,9 @@ impl InMemoryMigrationRunner {
 
         let mut entries: Vec<_> = std::fs::read_dir(dir)
             .map_err(MigrationError::Io)?
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
             .collect();
-        entries.sort_by_key(|e| e.file_name());
+        entries.sort_by_key(std::fs::DirEntry::file_name);
 
         for entry in entries {
             let filename = entry.file_name().to_string_lossy().to_string();
@@ -64,6 +64,7 @@ impl InMemoryMigrationRunner {
         })
     }
 
+    #[must_use]
     pub fn from_migrations(
         config: MigrationConfig,
         up_sqls: Vec<(String, String, String)>,

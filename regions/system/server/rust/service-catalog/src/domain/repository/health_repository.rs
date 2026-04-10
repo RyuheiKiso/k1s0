@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::health::HealthStatus;
 
-/// HealthRepository はサービスヘルスステータスの永続化トレイト。
+/// `HealthRepository` はサービスヘルスステータスの永続化トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait HealthRepository: Send + Sync {

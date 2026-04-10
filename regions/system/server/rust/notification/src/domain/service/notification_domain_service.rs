@@ -1,6 +1,7 @@
 pub struct NotificationDomainService;
 
 impl NotificationDomainService {
+    #[must_use]
     pub fn is_supported_channel_type(channel_type: &str) -> bool {
         matches!(channel_type, "email" | "slack" | "webhook" | "sms" | "push")
     }
@@ -10,8 +11,7 @@ impl NotificationDomainService {
             Ok(())
         } else {
             Err(format!(
-                "invalid channel_type: {} (allowed: email, slack, webhook, sms, push)",
-                channel_type
+                "invalid channel_type: {channel_type} (allowed: email, slack, webhook, sms, push)"
             ))
         }
     }
@@ -20,9 +20,10 @@ impl NotificationDomainService {
         let mut handlebars = handlebars::Handlebars::new();
         handlebars
             .register_template_string("template", template)
-            .map_err(|e| format!("invalid template syntax: {}", e))
+            .map_err(|e| format!("invalid template syntax: {e}"))
     }
 
+    #[must_use]
     pub fn is_retryable_status(status: &str) -> bool {
         status != "sent"
     }
@@ -39,7 +40,7 @@ impl NotificationDomainService {
         match parsed.scheme() {
             "http" | "https" => {}
             scheme => {
-                return Err(format!("許可されていないスキームです: {}", scheme));
+                return Err(format!("許可されていないスキームです: {scheme}"));
             }
         }
 
@@ -74,10 +75,10 @@ impl NotificationDomainService {
 
         // HIGH-03 DNS リバインド攻撃対策: ホスト名を DNS 解決し、解決後の全 IP アドレスを検証する
         // DNS 解決にはポート番号が必要なため :80 を付与してルックアップを行う
-        let lookup_target = format!("{}:80", host);
+        let lookup_target = format!("{host}:80");
         let addrs = tokio::net::lookup_host(lookup_target)
             .await
-            .map_err(|e| format!("DNS解決に失敗しました: {}", e))?;
+            .map_err(|e| format!("DNS解決に失敗しました: {e}"))?;
 
         for addr in addrs {
             let ip = addr.ip();
@@ -135,7 +136,8 @@ mod tests {
     /// 実際の DNS 解決を避けるため IP リテラルで検証し、ループバック拒否ロジックをテストする
     #[tokio::test]
     async fn test_validate_webhook_url_rejects_localhost_resolved() {
-        let result = NotificationDomainService::validate_webhook_url("http://127.0.0.1/callback").await;
+        let result =
+            NotificationDomainService::validate_webhook_url("http://127.0.0.1/callback").await;
         assert!(result.is_err(), "127.0.0.1 は拒否されるべき");
         let msg = result.unwrap_err();
         assert!(
@@ -147,7 +149,8 @@ mod tests {
     /// HIGH-03 DNS リバインド攻撃対策: プライベート IP リテラル 192.168.1.1 は拒否されることを確認する
     #[tokio::test]
     async fn test_validate_webhook_url_rejects_private_ip_literal() {
-        let result = NotificationDomainService::validate_webhook_url("https://192.168.1.1/hook").await;
+        let result =
+            NotificationDomainService::validate_webhook_url("https://192.168.1.1/hook").await;
         assert!(result.is_err(), "プライベートIPリテラルは拒否されるべき");
         let msg = result.unwrap_err();
         assert!(
@@ -159,7 +162,10 @@ mod tests {
     /// HIGH-03 DNS リバインド攻撃対策: リンクローカル IP リテラル 169.254.169.254 (AWS メタデータ) は拒否されることを確認する
     #[tokio::test]
     async fn test_validate_webhook_url_rejects_link_local_ip() {
-        let result = NotificationDomainService::validate_webhook_url("http://169.254.169.254/latest/meta-data").await;
+        let result = NotificationDomainService::validate_webhook_url(
+            "http://169.254.169.254/latest/meta-data",
+        )
+        .await;
         assert!(result.is_err(), "リンクローカル IP は拒否されるべき");
         let msg = result.unwrap_err();
         assert!(
@@ -171,7 +177,8 @@ mod tests {
     /// CRIT-02 / HIGH-03: クラスタ内部ホスト名 (kubernetes.default) は DNS 解決前に拒否されることを確認する
     #[tokio::test]
     async fn test_validate_webhook_url_rejects_cluster_hostname() {
-        let result = NotificationDomainService::validate_webhook_url("http://kubernetes.default/api").await;
+        let result =
+            NotificationDomainService::validate_webhook_url("http://kubernetes.default/api").await;
         assert!(result.is_err(), "クラスタ内部ホスト名は拒否されるべき");
         let msg = result.unwrap_err();
         assert!(
@@ -202,7 +209,8 @@ mod tests {
     /// CRIT-02 / HIGH-03: 172.16.0.1 (RFC1918 クラスB) は拒否されることを確認する
     #[tokio::test]
     async fn test_validate_webhook_url_rejects_rfc1918_class_b() {
-        let result = NotificationDomainService::validate_webhook_url("http://172.16.0.1/hook").await;
+        let result =
+            NotificationDomainService::validate_webhook_url("http://172.16.0.1/hook").await;
         assert!(result.is_err(), "172.16.x.x アドレスは拒否されるべき");
     }
 }

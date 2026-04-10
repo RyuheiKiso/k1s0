@@ -9,8 +9,8 @@ use axum::{
 
 use k1s0_auth::Claims;
 
-/// require_permission は resource/action ベースのアクセス制御ミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_permission` は resource/action ベースのアクセス制御ミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 ///
 /// event-store の RBAC マッピング:
 /// - GET            -> events/read

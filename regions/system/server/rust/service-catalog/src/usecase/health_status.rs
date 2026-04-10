@@ -5,14 +5,14 @@ use uuid::Uuid;
 use crate::domain::entity::health::HealthStatus;
 use crate::domain::repository::HealthRepository;
 
-/// HealthStatusError はヘルスステータスに関するエラーを表す。
+/// `HealthStatusError` はヘルスステータスに関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum HealthStatusError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// HealthStatusUseCase はサービスヘルスステータスのユースケース。
+/// `HealthStatusUseCase` はサービスヘルスステータスのユースケース。
 pub struct HealthStatusUseCase {
     health_repo: Arc<dyn HealthRepository>,
 }

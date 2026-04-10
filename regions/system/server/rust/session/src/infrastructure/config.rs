@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
-/// AuthConfig 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -11,7 +11,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -20,7 +20,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -104,7 +104,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig 縺ｯ PostgreSQL 繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `DatabaseConfig` 縺ｯ `PostgreSQL` 繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub url: String,
@@ -116,7 +116,7 @@ fn default_max_connections() -> u32 {
     10
 }
 
-/// RedisConfig 縺ｯ Redis 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `RedisConfig` 縺ｯ Redis 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct RedisConfig {
@@ -135,7 +135,7 @@ fn default_connect_timeout_seconds() -> u64 {
     3
 }
 
-/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `KafkaConfig` 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -151,7 +151,7 @@ pub struct KafkaConfig {
     pub consumer_group: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -161,7 +161,7 @@ fn default_consumer_group() -> String {
     "session-server-consumer".to_string()
 }
 
-/// SessionConfig 縺ｯ繧ｻ繝・す繝ｧ繝ｳ邂｡逅・崋譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `SessionConfig` 縺ｯ繧ｻ繝・す繝ｧ繝ｳ邂｡逅・崋譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
 /// 繝輔ぅ繝ｼ繝ｫ繝牙錐縺ｯ譌｢蟄倥・ main.rs 縺ｮ蜿ら・繝代ち繝ｼ繝ｳ縺ｫ蜷医ｏ縺帙※縺・ｋ縲・
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]

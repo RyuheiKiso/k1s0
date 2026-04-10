@@ -49,6 +49,8 @@ tonic = { workspace = true }
 prost = { workspace = true }
 prost-types = { workspace = true }
 rdkafka = { workspace = true }
+# ARCH-HIGH-003 対応: outbox_poller の並行 Kafka 送信のために追加
+futures = { workspace = true }
 
 [build-dependencies]
 k1s0-proto-build = { path = "../../../../../system/library/rust/proto-build" }

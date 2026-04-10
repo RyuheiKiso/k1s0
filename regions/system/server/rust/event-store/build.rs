@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 生成済みファイルが存在するか確認する
     let all_generated = services.iter().all(|(subdir, pkg)| {
-        let rs_file = format!("{}/{}/{}.rs", gen_rust_base, subdir, pkg);
+        let rs_file = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
         Path::new(&rs_file).exists()
     });
 
@@ -40,19 +40,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for (subdir, pkg) in services {
             // prost-build 生成の .rs ファイルをコピー（メッセージ型定義）
-            let src_rs = format!("{}/{}/{}.rs", gen_rust_base, subdir, pkg);
-            let dst_rs = out_path.join(format!("{}.rs", pkg));
-            fs::copy(&src_rs, &dst_rs).map_err(|e| {
-                format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e)
-            })?;
+            let src_rs = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
+            let dst_rs = out_path.join(format!("{pkg}.rs"));
+            fs::copy(&src_rs, &dst_rs)
+                .map_err(|e| format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e))?;
 
             // tonic-build 生成の .tonic.rs ファイルをコピー（gRPC スタブ）
-            let src_tonic = format!("{}/{}/{}.tonic.rs", gen_rust_base, subdir, pkg);
+            let src_tonic = format!("{gen_rust_base}/{subdir}/{pkg}.tonic.rs");
             if Path::new(&src_tonic).exists() {
                 // tonic::include_proto! は {pkg}.rs を読み込んだ後に
                 // 同ファイル内で include!("{pkg}.tonic.rs") を参照する設計のため、
                 // .tonic.rs も同じ OUT_DIR に配置する必要がある
-                let dst_tonic = out_path.join(format!("{}.tonic.rs", pkg));
+                let dst_tonic = out_path.join(format!("{pkg}.tonic.rs"));
                 fs::copy(&src_tonic, &dst_tonic).map_err(|e| {
                     format!(
                         "Failed to copy {} -> {}: {}",
@@ -74,8 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if !Path::new(event_store_proto).exists() {
             println!(
-                "cargo:warning=Proto file not found, skipping tonic codegen: {}",
-                event_store_proto
+                "cargo:warning=Proto file not found, skipping tonic codegen: {event_store_proto}"
             );
             return Ok(());
         }
@@ -90,10 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("cargo:warning=tonic-build succeeded for event-store proto");
             }
             Err(e) => {
-                println!(
-                    "cargo:warning=tonic-build failed (protoc may not be installed): {}",
-                    e
-                );
+                println!("cargo:warning=tonic-build failed (protoc may not be installed): {e}");
             }
         }
     }

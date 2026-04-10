@@ -9,7 +9,7 @@ use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use crate::traits::{BindingData, BindingResponse, InputBinding, OutputBinding};
 use crate::BindingError;
 
-/// InMemoryInputBinding はテスト・開発用のインメモリ InputBinding 実装。
+/// `InMemoryInputBinding` はテスト・開発用のインメモリ `InputBinding` 実装。
 pub struct InMemoryInputBinding {
     name: String,
     status: RwLock<ComponentStatus>,
@@ -38,7 +38,7 @@ impl Component for InMemoryInputBinding {
         &self.name
     }
 
-    fn component_type(&self) -> &str {
+    fn component_type(&self) -> &'static str {
         "binding.input"
     }
 
@@ -81,7 +81,7 @@ impl InputBinding for InMemoryInputBinding {
     }
 }
 
-/// InMemoryOutputBinding はテスト・開発用のインメモリ OutputBinding 実装。
+/// `InMemoryOutputBinding` はテスト・開発用のインメモリ `OutputBinding` 実装。
 pub struct InMemoryOutputBinding {
     name: String,
     status: RwLock<ComponentStatus>,
@@ -111,7 +111,7 @@ impl Component for InMemoryOutputBinding {
         &self.name
     }
 
-    fn component_type(&self) -> &str {
+    fn component_type(&self) -> &'static str {
         "binding.output"
     }
 

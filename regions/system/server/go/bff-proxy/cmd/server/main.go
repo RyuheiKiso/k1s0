@@ -219,6 +219,21 @@ func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *
 		prefix = "bff:session:"
 	}
 
+	// M-14 監査対応: SESSION_ENCRYPTION_KEY の検証を Redis nil チェックの前に実施する。
+	// Redis が nil（ALLOW_REDIS_SKIP=true の開発環境）でも不正なキーや本番環境でのキー未設定は
+	// 誤設定として早期にエラーを返す。
+	encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY")
+	var encKey []byte
+	if encKeyHex != "" {
+		var decErr error
+		encKey, decErr = hex.DecodeString(encKeyHex)
+		if decErr != nil || len(encKey) != 32 {
+			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
+		}
+	} else if !config.IsDevEnvironment(cfg.App.Environment) {
+		return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は非開発環境では必須です（SESSION_ENCRYPTION_KEY must be set in non-development environments）")
+	}
+
 	// H-002 監査対応: Redis 接続スキップ時（redisClient == nil）は NoOpStore を使用する。
 	// broken な redis クライアントを下流に渡すと nil dereference による panic が発生するリスクがある。
 	// NoOpStore は全操作を no-op で処理し、セッションデータは保持しない（dev 環境専用）。
@@ -228,11 +243,8 @@ func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *
 	}
 
 	var sessionStore session.FullStore
-	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
-		encKey, err := hex.DecodeString(encKeyHex)
-		if err != nil || len(encKey) != 32 {
-			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
-		}
+	if encKey != nil {
+		// SESSION_ENCRYPTION_KEY が有効: AES-GCM 暗号化セッションストアを使用する（S-04 対応）
 		encStore, err := session.NewEncryptedStore(redisClient, prefix, encKey)
 		if err != nil {
 			return nil, 0, fmt.Errorf("暗号化セッションストアの初期化に失敗: %w", err)
@@ -240,9 +252,7 @@ func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *
 		sessionStore = encStore
 		logger.Info("AES-GCM 暗号化セッションストアを使用します")
 	} else {
-		if !config.IsDevEnvironment(cfg.App.Environment) {
-			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は非開発環境では必須です（SESSION_ENCRYPTION_KEY must be set in non-development environments）")
-		}
+		// dev 環境かつ SESSION_ENCRYPTION_KEY 未設定: 平文 Redis ストアを使用する
 		sessionStore = session.NewRedisStore(redisClient, prefix)
 		logger.Warn("SESSION_ENCRYPTION_KEY が設定されていません。セッションデータは Redis に平文で保存されます。本番環境では必ず設定してください。")
 	}
@@ -346,18 +356,13 @@ func initRouter(
 
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
-	if cfg.Observability.Metrics.Enabled {
-		metricsPath := cfg.Observability.Metrics.Path
-		if metricsPath == "" {
-			metricsPath = "/metrics"
-		}
-		router.GET(metricsPath, gin.WrapH(promhttp.Handler()))
-	}
+	// HIGH-GO-001 監査対応: /metrics エンドポイントは内部専用サーバー（9090 ポート）に移動する。
+	// 公開ルーターへの登録を廃止し、クラスター外部からのメトリクス取得を防止する。
+	// 実際の登録は startServer 内の内部サーバーで行う。
 	router.GET("/auth/login", authHandler.Login)
 	router.GET("/auth/callback", authHandler.Callback)
 	router.GET("/auth/session", authHandler.Session)
 	router.GET("/auth/exchange", authHandler.Exchange)
-	router.POST("/auth/logout", authHandler.Logout)
 
 	// H-7 監査対応: 本番環境では CSRF 保護を強制的に有効化する。
 	// csrf.enabled を false に設定したまま本番運用されるリスクを防ぐ。
@@ -376,12 +381,28 @@ func initRouter(
 		api.Use(middleware.CSRFMiddleware(sessionStore, csrfHeader, handler.CookieName))
 	}
 	api.Any("/*path", proxyHandler.Handle)
+
+	// HIGH-006 対応: /auth/logout は状態変更操作（セッション破棄）のため CSRF 保護が必要。
+	// SessionMiddleware でセッション検証、CSRFMiddleware で CSRF トークン照合を行う。
+	// login/callback/session/exchange は認証前アクセスが必要なため CSRF 保護対象外。
+	authProtected := router.Group("/auth")
+	authProtected.Use(middleware.SessionMiddleware(sessionStore, handler.CookieName, sessionTTL, cfg.Session.Sliding))
+	if cfg.CSRF.Enabled {
+		csrfHeader := cfg.CSRF.HeaderName
+		if csrfHeader == "" {
+			csrfHeader = middleware.DefaultCSRFHeader
+		}
+		authProtected.Use(middleware.CSRFMiddleware(sessionStore, csrfHeader, handler.CookieName))
+	}
+	authProtected.POST("/logout", authHandler.Logout)
+
 	return router, nil
 }
 
 // startServer は HTTP サーバーを起動し、シグナルを待機してグレースフルにシャットダウンする。
 // G-01 対応: ReadTimeout=60s（大きなリクエストボディ対応）、WriteTimeout=120s（上流応答時間バッファ）。
 // H-16 対応: ReadHeaderTimeout=10s を設定し Slowloris 攻撃（ヘッダーを断片的に送信する遅延攻撃）を防止する。
+// HIGH-GO-001 監査対応: /metrics を内部専用サーバー（InternalPort）で起動し、公開ルーターから分離する。
 func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine, logger *slog.Logger, oidcWg *sync.WaitGroup) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
@@ -393,6 +414,14 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 		// 未設定の場合 Slowloris 攻撃によりサーバーリソースが枯渇するリスクがある
 		ReadHeaderTimeout: 10 * time.Second,
 	}
+
+	// HIGH-GO-001 監査対応: Prometheus メトリクスを内部専用ポートで起動し、公開ルーターから分離する。
+	// InternalPort が 0 の場合はデフォルト 9090 を使用する。
+	internalPort := cfg.Server.InternalPort
+	if internalPort == 0 {
+		internalPort = 9090
+	}
+	internalSrv := startInternalMetricsServer(cfg, internalPort, logger)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -416,10 +445,55 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
+	// HIGH-GO-001 監査対応: 内部メトリクスサーバーも graceful shutdown する。
+	if internalSrv != nil {
+		internalShutdownCtx, internalCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer internalCancel()
+		if err := internalSrv.Shutdown(internalShutdownCtx); err != nil {
+			logger.Warn("内部メトリクスサーバーのシャットダウンに失敗しました", slog.String("error", err.Error()))
+		}
+	}
+
 	// OIDC リトライゴルーチンの完了を待機する（コンテキストキャンセル済みのため速やかに終了する）
 	oidcWg.Wait()
 	logger.Info("BFF Proxy stopped")
 	return nil
+}
+
+// startInternalMetricsServer は Prometheus メトリクス専用の内部サーバーをセットアップして起動する。
+// HIGH-GO-001 監査対応: メトリクスを公開ルーターから分離し、クラスター内 Prometheus のみがアクセスできる
+// 専用ポートで公開する。メトリクスが無効の場合は nil を返す。
+func startInternalMetricsServer(cfg *config.BFFConfig, internalPort int, logger *slog.Logger) *http.Server {
+	if !cfg.Observability.Metrics.Enabled {
+		return nil
+	}
+
+	metricsPath := cfg.Observability.Metrics.Path
+	if metricsPath == "" {
+		metricsPath = "/metrics"
+	}
+
+	// DY-003 修正: Prometheus が同一 Pod 内のサイドカーではなく別 Pod からスクレイプするため、
+	// 0.0.0.0 にバインドして Pod の IP アドレスでアクセスできるようにする。
+	// NetworkPolicy で k1s0-observability namespace からの接続のみを許可し、外部露出を防止する。
+	internalMux := http.NewServeMux()
+	// メトリクスエンドポイントのみを内部サーバーに登録する
+	internalMux.Handle(metricsPath, promhttp.Handler())
+	internalAddr := fmt.Sprintf("0.0.0.0:%d", internalPort)
+	internalSrv := &http.Server{
+		Addr:              internalAddr,
+		Handler:           internalMux,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		logger.Info("内部メトリクスサーバーを起動します", slog.String("addr", internalAddr), slog.String("path", metricsPath))
+		if err := internalSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("内部メトリクスサーバーがエラーで終了しました", slog.String("error", err.Error()))
+		}
+	}()
+	return internalSrv
 }
 
 func initTracerProvider(

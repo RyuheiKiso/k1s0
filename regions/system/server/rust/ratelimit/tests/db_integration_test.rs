@@ -97,7 +97,10 @@ mod testcontainers_db_tests {
         rule_with_tenant.tenant_id = "system".to_string();
         repo.create(&rule_with_tenant).await.unwrap();
 
-        let found = repo.find_by_name("named-rule:ip:*", "system").await.unwrap();
+        let found = repo
+            .find_by_name("named-rule:ip:*", "system")
+            .await
+            .unwrap();
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.name, "named-rule:ip:*");

@@ -8,12 +8,13 @@ use uuid::Uuid;
 use crate::domain::entity::policy::Policy;
 use crate::domain::repository::PolicyRepository;
 
-/// PostgreSQL 実装の PolicyRepository。
+/// `PostgreSQL` 実装の `PolicyRepository`。
 pub struct PolicyPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl PolicyPostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -43,7 +44,8 @@ impl From<PolicyRow> for Policy {
             rego_content: r.rego_content,
             package_path: r.package_path,
             bundle_id: r.bundle_id,
-            version: r.version as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version: u32::try_from(r.version).unwrap_or(0),
             enabled: r.enabled,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -63,11 +65,13 @@ impl PolicyRepository for PolicyPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
+        // MED-016 監査対応: RLS に加えて明示的な WHERE tenant_id 条件を追加（defense-in-depth）
         let row: Option<PolicyRow> = sqlx::query_as(
             "SELECT id, name, description, rego_content, package_path, bundle_id, enabled, version, created_at, updated_at, tenant_id \
-             FROM policy.policies WHERE id = $1",
+             FROM policy.policies WHERE id = $1 AND tenant_id = $2",
         )
         .bind(id)
+        .bind(tenant_id)
         .fetch_optional(&mut *tx)
         .await?;
 
@@ -84,10 +88,12 @@ impl PolicyRepository for PolicyPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
+        // MED-016 監査対応: RLS に加えて明示的な WHERE tenant_id 条件を追加（defense-in-depth）
         let rows: Vec<PolicyRow> = sqlx::query_as(
             "SELECT id, name, description, rego_content, package_path, bundle_id, enabled, version, created_at, updated_at, tenant_id \
-             FROM policy.policies ORDER BY created_at DESC",
+             FROM policy.policies WHERE tenant_id = $1 ORDER BY created_at DESC",
         )
+        .bind(tenant_id)
         .fetch_all(&mut *tx)
         .await?;
 
@@ -111,44 +117,43 @@ impl PolicyRepository for PolicyPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // 動的 WHERE 句を組み立てる。
         // セキュリティ注記（M-05 監査対応）: format!() で埋め込むのはハードコードされたカラム名定数のみ。
         // ユーザー入力（bundle_id 等）は全て sqlx のバインドパラメータ（$N）経由で渡すため
         // SQL インジェクションのリスクはない。
-        let mut conditions = Vec::new();
+        // MED-016 監査対応: tenant_id = $1 を必須条件として最初に追加（defense-in-depth）
         let mut bind_index = 1u32;
+        let mut conditions = vec![format!("tenant_id = ${}", bind_index)];
+        bind_index += 1;
 
         if bundle_id.is_some() {
-            conditions.push(format!("bundle_id = ${}", bind_index));
+            conditions.push(format!("bundle_id = ${bind_index}"));
             bind_index += 1;
         }
         if enabled_only {
             conditions.push("enabled = true".to_string());
         }
 
-        let where_clause = if conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {}", conditions.join(" AND "))
-        };
+        let where_clause = format!("WHERE {}", conditions.join(" AND "));
 
-        let count_query = format!("SELECT COUNT(*) FROM policy.policies {}", where_clause);
+        let count_query = format!("SELECT COUNT(*) FROM policy.policies {where_clause}");
         let data_query = format!(
             "SELECT id, name, description, rego_content, package_path, bundle_id, enabled, version, created_at, updated_at, tenant_id \
              FROM policy.policies {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
             where_clause, bind_index, bind_index + 1
         );
 
-        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
+        // バインド順: tenant_id → bundle_id（任意） → limit → offset
+        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query).bind(tenant_id);
         if let Some(ref v) = bundle_id {
             count_q = count_q.bind(v);
         }
         let total_count = count_q.fetch_one(&mut *tx).await?;
 
-        let mut data_q = sqlx::query_as::<_, PolicyRow>(&data_query);
+        let mut data_q = sqlx::query_as::<_, PolicyRow>(&data_query).bind(tenant_id);
         if let Some(ref v) = bundle_id {
             data_q = data_q.bind(v);
         }
@@ -160,7 +165,8 @@ impl PolicyRepository for PolicyPostgresRepository {
         tx.commit().await?;
         Ok((
             rows.into_iter().map(Into::into).collect(),
-            total_count as u64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            u64::try_from(total_count).unwrap_or(0),
         ))
     }
 
@@ -185,7 +191,8 @@ impl PolicyRepository for PolicyPostgresRepository {
         .bind(&policy.package_path)
         .bind(policy.bundle_id)
         .bind(policy.enabled)
-        .bind(policy.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(policy.version).unwrap_or(i32::MAX))
         .bind(policy.created_at)
         .bind(policy.updated_at)
         .bind(&policy.tenant_id)
@@ -216,7 +223,8 @@ impl PolicyRepository for PolicyPostgresRepository {
         .bind(&policy.package_path)
         .bind(policy.bundle_id)
         .bind(policy.enabled)
-        .bind(policy.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(policy.version).unwrap_or(i32::MAX))
         .bind(policy.updated_at)
         .bind(&policy.tenant_id)
         .execute(&mut *tx)
@@ -254,12 +262,13 @@ impl PolicyRepository for PolicyPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let row: (bool,) =
-            sqlx::query_as("SELECT EXISTS(SELECT 1 FROM policy.policies WHERE name = $1 AND tenant_id = $2)")
-                .bind(name)
-                .bind(tenant_id)
-                .fetch_one(&mut *tx)
-                .await?;
+        let row: (bool,) = sqlx::query_as(
+            "SELECT EXISTS(SELECT 1 FROM policy.policies WHERE name = $1 AND tenant_id = $2)",
+        )
+        .bind(name)
+        .bind(tenant_id)
+        .fetch_one(&mut *tx)
+        .await?;
 
         tx.commit().await?;
         Ok(row.0)

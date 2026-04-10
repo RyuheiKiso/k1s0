@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::api_registration::ApiSchemaVersion;
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 
+// テナントスコープでバージョン一覧を取得するためのインプット構造体
 #[derive(Debug, Clone)]
 pub struct ListVersionsInput {
+    pub tenant_id: String,
     pub name: String,
     pub page: u32,
     pub page_size: u32,
@@ -48,20 +50,21 @@ impl ListVersionsUseCase {
         &self,
         input: &ListVersionsInput,
     ) -> Result<ListVersionsOutput, ListVersionsError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let schema = self
             .schema_repo
-            .find_by_name(&input.name)
+            .find_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| ListVersionsError::Internal(e.to_string()))?
             .ok_or_else(|| ListVersionsError::NotFound(input.name.clone()))?;
 
         let (versions, total_count) = self
             .version_repo
-            .find_all_by_name(&input.name, input.page, input.page_size)
+            .find_all_by_name(&input.tenant_id, &input.name, input.page, input.page_size)
             .await
             .map_err(|e| ListVersionsError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64) * (input.page_size as u64) < total_count;
+        let has_next = u64::from(input.page) * u64::from(input.page_size) < total_count;
 
         Ok(ListVersionsOutput {
             name: schema.name,
@@ -86,7 +89,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -95,21 +98,24 @@ mod tests {
         });
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_find_all_by_name().returning(|_, _, _| {
-            Ok((
-                vec![ApiSchemaVersion::new(
-                    "test-api".to_string(),
+        version_mock
+            .expect_find_all_by_name()
+            .returning(|_, _, _, _| {
+                Ok((
+                    vec![ApiSchemaVersion::new(
+                        "test-api".to_string(),
+                        1,
+                        SchemaType::OpenApi,
+                        "openapi: 3.0.3".to_string(),
+                        "user-001".to_string(),
+                    )],
                     1,
-                    SchemaType::OpenApi,
-                    "openapi: 3.0.3".to_string(),
-                    "user-001".to_string(),
-                )],
-                1,
-            ))
-        });
+                ))
+            });
 
         let uc = ListVersionsUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             page: 1,
             page_size: 20,
@@ -124,12 +130,13 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = ListVersionsUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             page: 1,
             page_size: 20,
@@ -147,12 +154,13 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = ListVersionsUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = ListVersionsInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             page: 1,
             page_size: 20,

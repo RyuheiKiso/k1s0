@@ -54,9 +54,6 @@ regions/system/server/rust/service-catalog/
 │   │   │   ├── scorecard_handler.rs     # スコアカード REST ハンドラー
 │   │   │   ├── search_handler.rs        # 検索 REST ハンドラー
 │   │   │   └── error.rs                 # エラーレスポンス
-│   │   ├── grpc/
-│   │   │   ├── mod.rs
-│   │   │   └── service_catalog_service.rs  # gRPC サービス実装
 │   │   └── middleware/
 │   │       ├── mod.rs
 │   │       ├── auth.rs                  # JWT 認証ミドルウェア
@@ -81,9 +78,6 @@ regions/system/server/rust/service-catalog/
 │       └── health_collector/
 │           ├── mod.rs
 │           └── poller.rs                # バックグラウンドヘルスポーリング
-├── proto/
-│   └── service_catalog.proto            # gRPC プロトコル定義
-├── build.rs                             # tonic-build（proto コンパイル）
 ├── config/
 │   ├── config.yaml
 │   ├── config.dev.yaml
@@ -98,19 +92,18 @@ regions/system/server/rust/service-catalog/
 
 > 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
+> **HIGH-008 対応**: service-catalog は gRPC を実装しない。REST（axum）のみ。
+> proto ファイル（`api/proto/k1s0/system/servicecatalog/`）および関連生成コードは削除済み。
+> graphql-gateway との通信は HTTP REST クライアント（service_catalog_client.rs）を使用する。
+
 ```toml
-# gRPC
-tonic = "0.12"
-prost = "0.13"
+# gRPC 不使用（REST のみ実装）
 
 # Kafka（将来実装予定・現在未実装）
 # rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # Redis（将来実装予定・現在未実装）
 # redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
-
-[build-dependencies]
-tonic-build = "0.12"
 ```
 
 ---

@@ -38,6 +38,8 @@ use crate::domain::service::DeliveryClient;
 use k1s0_server_common::startup::{ObservabilityFields, ServerBuilder};
 use secrecy::ExposeSecret;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // 設定ファイルを読み込む
     let config_path =
@@ -85,7 +87,7 @@ pub async fn run() -> anyhow::Result<()> {
             .as_ref()
             .map(|k| -> anyhow::Result<[u8; 32]> {
                 let bytes = hex::decode(k.expose_secret())
-                    .map_err(|e| anyhow::anyhow!("channel_config_encryption_key の hex デコードに失敗: {}", e))?;
+                    .map_err(|e| anyhow::anyhow!("channel_config_encryption_key の hex デコードに失敗: {e}"))?;
                 bytes.try_into()
                     .map_err(|_| anyhow::anyhow!("channel_config_encryption_key は64文字の hex（32バイト）である必要があります"))
             })
@@ -189,7 +191,7 @@ pub async fn run() -> anyhow::Result<()> {
         reqwest::Url::parse(&webhook_url).context("WEBHOOK_URL が有効な URL ではありません")?;
         // H-18: タイムアウト付き WebhookDeliveryClient を構築する。失敗時は起動エラーとして伝播する
         let webhook_client = WebhookDeliveryClient::new(webhook_url, None)
-            .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {e}"))?;
         info!("Webhook delivery client initialized");
         delivery_clients.insert("webhook".to_string(), Arc::new(webhook_client));
     } else {
@@ -391,7 +393,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -448,20 +450,27 @@ impl InMemoryNotificationChannelRepository {
     }
 }
 
+/// MEDIUM-RUST-001 監査対応: `InMemory` 実装もトレイトシグネチャ変更に追従する。
+/// `tenant_id` 引数は `InMemory` 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.values().cloned().collect())
     }
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -484,12 +493,14 @@ impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
             .cloned()
             .collect();
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        let total = filtered.len() as u64;
-        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(page.saturating_sub(1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<NotificationChannel> = filtered
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }
@@ -506,7 +517,7 @@ impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut channels = self.channels.write().await;
         Ok(channels.remove(id).is_some())
     }
@@ -524,20 +535,23 @@ impl InMemoryNotificationTemplateRepository {
     }
 }
 
+/// InMemory 実装もトレイトシグネチャ変更に追従する。
+/// tenant_id 引数は InMemory 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.values().cloned().collect())
     }
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -556,12 +570,14 @@ impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
             .cloned()
             .collect();
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        let total = filtered.len() as u64;
-        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(page.saturating_sub(1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<NotificationTemplate> = filtered
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }
@@ -578,7 +594,7 @@ impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut templates = self.templates.write().await;
         Ok(templates.remove(id).is_some())
     }
@@ -596,14 +612,16 @@ impl InMemoryNotificationLogRepository {
     }
 }
 
+/// InMemory 実装もトレイトシグネチャ変更に追従する。
+/// tenant_id 引数は InMemory 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationLogRepository for InMemoryNotificationLogRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs.get(id).cloned())
     }
 
-    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str, _tenant_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs
             .values()
@@ -614,6 +632,7 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_id: Option<String>,
@@ -638,12 +657,14 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
             .cloned()
             .collect();
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        let total = filtered.len() as u64;
-        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(page.saturating_sub(1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<NotificationLog> = filtered
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }

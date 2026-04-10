@@ -92,7 +92,8 @@ impl EventStore for PostgresEventStore {
         .await
         .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
 
-        let current_version = current_version as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let current_version = u64::try_from(current_version).unwrap_or(0);
 
         if let Some(expected) = expected_version {
             if expected != current_version {
@@ -114,7 +115,8 @@ impl EventStore for PostgresEventStore {
             )
             .bind(event.event_id)
             .bind(stream_id.as_str())
-            .bind(version as i64)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .bind(i64::try_from(version).unwrap_or(i64::MAX))
             .bind(&event.event_type)
             .bind(&event.payload)
             .bind(&event.metadata)
@@ -150,7 +152,8 @@ impl EventStore for PostgresEventStore {
             .map(|row| EventEnvelope {
                 event_id: row.get("event_id"),
                 stream_id: row.get("stream_id"),
-                version: row.get::<i64, _>("version") as u64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                version: u64::try_from(row.get::<i64, _>("version")).unwrap_or(0),
                 event_type: row.get("event_type"),
                 payload: row.get("payload"),
                 metadata: row.get("metadata"),
@@ -175,7 +178,8 @@ impl EventStore for PostgresEventStore {
             "#,
         )
         .bind(stream_id.as_str())
-        .bind(from_version as i64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i64::try_from(from_version).unwrap_or(i64::MAX))
         .fetch_all(&self.pool)
         .await
         .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
@@ -185,7 +189,8 @@ impl EventStore for PostgresEventStore {
             .map(|row| EventEnvelope {
                 event_id: row.get("event_id"),
                 stream_id: row.get("stream_id"),
-                version: row.get::<i64, _>("version") as u64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                version: u64::try_from(row.get::<i64, _>("version")).unwrap_or(0),
                 event_type: row.get("event_type"),
                 payload: row.get("payload"),
                 metadata: row.get("metadata"),
@@ -215,7 +220,8 @@ impl EventStore for PostgresEventStore {
                 .await
                 .map_err(|e| EventStoreError::StorageError(e.to_string()))?;
 
-        Ok(version as u64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok(u64::try_from(version).unwrap_or(0))
     }
 }
 

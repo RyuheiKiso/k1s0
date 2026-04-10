@@ -75,19 +75,21 @@ fn create_single_migration_runner() -> InMemoryMigrationRunner {
 // ===========================================================================
 
 // MigrationConfig のデフォルトテーブル名が "_migrations" であることを確認する。
+// table_name は private フィールドのため getter メソッド経由でアクセスする（H-19 監査対応）
 #[test]
 fn config_default_table_name() {
     let config = MigrationConfig::new(PathBuf::from("./migrations"), "postgres://test".to_string());
-    assert_eq!(config.table_name, "_migrations");
+    assert_eq!(config.table_name(), "_migrations");
 }
 
 // with_table_name でカスタムテーブル名を設定できることを確認する。
+// table_name は private フィールドのため getter メソッド経由でアクセスする（H-19 監査対応）
 #[test]
 fn config_custom_table_name() {
     let config = MigrationConfig::new(PathBuf::from("./migrations"), "postgres://test".to_string())
         .with_table_name("schema_versions")
         .expect("有効なテーブル名のため Ok が返るはず");
-    assert_eq!(config.table_name, "schema_versions");
+    assert_eq!(config.table_name(), "schema_versions");
 }
 
 // MigrationConfig がマイグレーションディレクトリと DB URL を正しく保持することを確認する。

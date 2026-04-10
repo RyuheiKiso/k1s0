@@ -107,7 +107,7 @@ impl CheckConsistencyUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         let rules = self.rule_repo.find_by_table_id(table.id, None).await?;
         let columns = self.column_repo.find_by_table_id(table.id).await?;

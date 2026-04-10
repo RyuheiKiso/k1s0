@@ -5,6 +5,8 @@ use crate::domain::repository::EventStreamRepository;
 
 #[derive(Debug, Clone)]
 pub struct ListStreamsInput {
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
     pub page: u32,
     pub page_size: u32,
 }
@@ -37,13 +39,14 @@ impl ListStreamsUseCase {
         let page = input.page.max(1);
         let page_size = input.page_size.clamp(1, 200);
 
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let (streams, total_count) = self
             .stream_repo
-            .list_all(page, page_size)
+            .list_all(&input.tenant_id, page, page_size)
             .await
             .map_err(|e| ListStreamsError::Internal(e.to_string()))?;
 
-        let has_next = (page as u64) * (page_size as u64) < total_count;
+        let has_next = u64::from(page) * u64::from(page_size) < total_count;
 
         Ok(ListStreamsOutput {
             streams,
@@ -67,6 +70,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 3,
             created_at: chrono::Utc::now(),
@@ -79,10 +83,11 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![make_stream()], 1)));
+            .returning(|_, _, _| Ok((vec![make_stream()], 1)));
 
         let uc = ListStreamsUseCase::new(Arc::new(stream_repo));
         let input = ListStreamsInput {
+            tenant_id: "tenant-test".to_string(),
             page: 1,
             page_size: 50,
         };
@@ -99,10 +104,11 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![make_stream()], 3)));
+            .returning(|_, _, _| Ok((vec![make_stream()], 3)));
 
         let uc = ListStreamsUseCase::new(Arc::new(stream_repo));
         let input = ListStreamsInput {
+            tenant_id: "tenant-test".to_string(),
             page: 1,
             page_size: 1,
         };
@@ -116,10 +122,11 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListStreamsUseCase::new(Arc::new(stream_repo));
         let input = ListStreamsInput {
+            tenant_id: "tenant-test".to_string(),
             page: 1,
             page_size: 50,
         };

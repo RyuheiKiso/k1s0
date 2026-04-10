@@ -5,6 +5,7 @@ use serde_json::Value;
 pub struct SchemaGeneratorService;
 
 impl SchemaGeneratorService {
+    #[must_use]
     pub fn generate_json_schema(
         table_def: &TableDefinition,
         columns: &[ColumnDefinition],
@@ -34,12 +35,11 @@ impl SchemaGeneratorService {
     fn column_to_json_schema(col: &ColumnDefinition) -> Value {
         let mut schema = serde_json::Map::new();
 
+        // "text"/"uuid"/"date"/"datetime" アームと wildcard アームが同一の返り値のため統合する
         let json_type = match col.data_type.as_str() {
-            "text" | "uuid" => "string",
             "integer" => "integer",
             "decimal" => "number",
             "boolean" => "boolean",
-            "date" | "datetime" => "string",
             "jsonb" => "object",
             _ => "string",
         };

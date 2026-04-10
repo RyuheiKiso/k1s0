@@ -3,7 +3,7 @@
 
 use crate::domain::entity::Tool;
 
-/// ToolRegistry はツールの登録・管理を行う
+/// `ToolRegistry` はツールの登録・管理を行う
 pub struct ToolRegistry {
     /// 登録されたツールのリスト
     tools: Vec<Tool>,
@@ -11,7 +11,8 @@ pub struct ToolRegistry {
 
 #[allow(dead_code)]
 impl ToolRegistry {
-    /// 新しいToolRegistryを生成する
+    /// `新しいToolRegistryを生成する`
+    #[must_use]
     pub fn new() -> Self {
         Self { tools: Vec::new() }
     }
@@ -22,7 +23,8 @@ impl ToolRegistry {
     }
 
     /// LLM向けのツールスキーマをJSON形式で取得する
-    /// OpenAPI JSONスキーマをserde_json::Valueに変換して返す
+    /// `OpenAPI` `JSONスキーマをserde_json::Valueに変換して返す`
+    #[must_use]
     pub fn get_schema_for_llm(&self) -> Vec<serde_json::Value> {
         self.tools
             .iter()
@@ -43,6 +45,7 @@ impl ToolRegistry {
     }
 
     /// 登録されたツール一覧を取得する
+    #[must_use]
     pub fn tools(&self) -> &[Tool] {
         &self.tools
     }

@@ -20,14 +20,14 @@ pub struct KeycloakRolePermissionSource {
 }
 
 impl KeycloakRolePermissionSource {
-    /// 新しい KeycloakRolePermissionSource を生成する。
+    /// 新しい `KeycloakRolePermissionSource` を生成する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(config: KeycloakConfig, token_cache_ttl_secs: u64) -> anyhow::Result<Self> {
         // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {e}"))?;
         Ok(Self {
             config,
             http_client,
@@ -61,7 +61,8 @@ impl KeycloakRolePermissionSource {
             .ok_or_else(|| anyhow::anyhow!("missing access_token in keycloak response"))?
             .to_string();
         let expires_in = body["expires_in"].as_i64().unwrap_or(300);
-        let expires_in = std::cmp::min(expires_in, self.token_cache_ttl_secs as i64);
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let expires_in = std::cmp::min(expires_in, i64::try_from(self.token_cache_ttl_secs).unwrap_or(i64::MAX));
         let cache_secs = if expires_in > 30 { expires_in - 30 } else { 1 };
         *cache = Some(CachedToken {
             token: token.clone(),
@@ -199,7 +200,7 @@ fn normalize_permission(raw: &str) -> Option<String> {
     if resource.is_empty() {
         return None;
     }
-    Some(format!("{}:{}", resource, action))
+    Some(format!("{resource}:{action}"))
 }
 
 fn default_permissions_for_role(role: &str) -> Vec<String> {

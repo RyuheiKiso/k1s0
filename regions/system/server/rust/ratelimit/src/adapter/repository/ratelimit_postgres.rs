@@ -5,19 +5,20 @@ use uuid::Uuid;
 use crate::domain::entity::{Algorithm, RateLimitRule};
 use crate::domain::repository::RateLimitRepository;
 
-/// RateLimitPostgresRepository は PostgreSQL ベースのルールリポジトリ。
+/// `RateLimitPostgresRepository` は `PostgreSQL` ベースのルールリポジトリ。
 pub struct RateLimitPostgresRepository {
     pool: PgPool,
 }
 
 impl RateLimitPostgresRepository {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 /// CRIT-005 対応: トランザクション内で RLS セッション変数を設定するヘルパー。
-/// set_config の第3引数 true は「トランザクションローカル」を意味し、トランザクション終了時にリセットされる。
+/// `set_config` の第3引数 true は「トランザクションローカル」を意味し、トランザクション終了時にリセットされる。
 async fn set_tenant_rls(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     tenant_id: &str,
@@ -37,12 +38,12 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         set_tenant_rls(&mut tx, &rule.tenant_id).await?;
 
         let row = sqlx::query_as::<_, RuleRow>(
-            r#"
+            r"
             INSERT INTO ratelimit.rate_limit_rules
                 (id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at
-            "#,
+            ",
         )
         .bind(rule.id)
         .bind(&rule.name)
@@ -68,11 +69,11 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         set_tenant_rls(&mut tx, tenant_id).await?;
 
         let row = sqlx::query_as::<_, RuleRow>(
-            r#"
+            r"
             SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .fetch_one(&mut *tx)
@@ -92,11 +93,11 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         set_tenant_rls(&mut tx, tenant_id).await?;
 
         let row = sqlx::query_as::<_, RuleRow>(
-            r#"
+            r"
             SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             WHERE name = $1
-            "#,
+            ",
         )
         .bind(name)
         .fetch_optional(&mut *tx)
@@ -119,19 +120,19 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         set_tenant_rls(&mut tx, tenant_id).await?;
 
         let rows = sqlx::query_as::<_, RuleRow>(
-            r#"
+            r"
             SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             WHERE scope = $1
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(scope)
         .fetch_all(&mut *tx)
         .await?;
 
         tx.commit().await?;
-        rows.into_iter().map(|r| r.into_rule()).collect()
+        rows.into_iter().map(RuleRow::into_rule).collect()
     }
 
     /// CRIT-005 対応: トランザクション内で RLS セッション変数を設定してから全ルールを取得する。
@@ -140,17 +141,17 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         set_tenant_rls(&mut tx, tenant_id).await?;
 
         let rows = sqlx::query_as::<_, RuleRow>(
-            r#"
+            r"
             SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .fetch_all(&mut *tx)
         .await?;
 
         tx.commit().await?;
-        rows.into_iter().map(|r| r.into_rule()).collect()
+        rows.into_iter().map(RuleRow::into_rule).collect()
     }
 
     /// CRIT-005 対応: トランザクション内で RLS セッション変数を設定してから条件付きページネーションでルールを取得する。
@@ -164,19 +165,19 @@ impl RateLimitRepository for RateLimitPostgresRepository {
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
-        let offset = ((page - 1) * page_size) as i64;
+        let offset = i64::from((page - 1) * page_size);
         let scope_ref = scope.as_deref();
 
         let mut tx = self.pool.begin().await?;
         set_tenant_rls(&mut tx, tenant_id).await?;
 
         let total: i64 = sqlx::query_scalar(
-            r#"
+            r"
             SELECT COUNT(*)
             FROM ratelimit.rate_limit_rules
             WHERE ($1::text IS NULL OR scope = $1)
               AND ($2::bool = FALSE OR enabled = TRUE)
-            "#,
+            ",
         )
         .bind(scope_ref)
         .bind(enabled_only)
@@ -184,18 +185,18 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         .await?;
 
         let rows = sqlx::query_as::<_, RuleRow>(
-            r#"
+            r"
             SELECT id, name, scope, identifier_pattern, limit_count, window_secs, algorithm, enabled, tenant_id, created_at, updated_at
             FROM ratelimit.rate_limit_rules
             WHERE ($1::text IS NULL OR scope = $1)
               AND ($2::bool = FALSE OR enabled = TRUE)
             ORDER BY created_at DESC
             LIMIT $3 OFFSET $4
-            "#,
+            ",
         )
         .bind(scope_ref)
         .bind(enabled_only)
-        .bind(page_size as i64)
+        .bind(i64::from(page_size))
         .bind(offset)
         .fetch_all(&mut *tx)
         .await?;
@@ -204,24 +205,25 @@ impl RateLimitRepository for RateLimitPostgresRepository {
 
         let rules: Vec<RateLimitRule> = rows
             .into_iter()
-            .map(|r| r.into_rule())
+            .map(RuleRow::into_rule)
             .collect::<anyhow::Result<Vec<_>>>()?;
 
-        Ok((rules, total.max(0) as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((rules, u64::try_from(total.max(0)).unwrap_or(0)))
     }
 
     /// CRIT-005 対応: トランザクション内で RLS セッション変数を設定してからルールを更新する。
-    /// tenant_id はルールエンティティ内のフィールドから取得し、WHERE 句にも含める。
+    /// `tenant_id` はルールエンティティ内のフィールドから取得し、WHERE 句にも含める。
     async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()> {
         let mut tx = self.pool.begin().await?;
         set_tenant_rls(&mut tx, &rule.tenant_id).await?;
 
         sqlx::query(
-            r#"
+            r"
             UPDATE ratelimit.rate_limit_rules
             SET name = $1, scope = $2, identifier_pattern = $3, limit_count = $4, window_secs = $5, algorithm = $6, enabled = $7, updated_at = $8
             WHERE id = $9 AND tenant_id = $10
-            "#,
+            ",
         )
         .bind(&rule.name)
         .bind(&rule.scope)
@@ -245,25 +247,24 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         let mut tx = self.pool.begin().await?;
         set_tenant_rls(&mut tx, tenant_id).await?;
 
-        let result = sqlx::query(
-            r#"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1 AND tenant_id = $2"#,
-        )
-        .bind(id)
-        .bind(tenant_id)
-        .execute(&mut *tx)
-        .await?;
+        let result =
+            sqlx::query(r"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1 AND tenant_id = $2")
+                .bind(id)
+                .bind(tenant_id)
+                .execute(&mut *tx)
+                .await?;
 
         tx.commit().await?;
         Ok(result.rows_affected() > 0)
     }
 
-    /// PostgreSQL リポジトリではRedis状態のリセットは行わない（state_storeが担当）。
+    /// `PostgreSQL` `リポジトリではRedis状態のリセットは行わない（state_storeが担当`）。
     async fn reset_state(&self, _key: &str) -> anyhow::Result<()> {
         Ok(())
     }
 }
 
-/// PostgreSQL の行を RateLimitRule エンティティに変換するための中間構造体。
+/// `PostgreSQL` の行を `RateLimitRule` エンティティに変換するための中間構造体。
 #[derive(sqlx::FromRow)]
 struct RuleRow {
     id: Uuid,
@@ -283,7 +284,7 @@ struct RuleRow {
 impl RuleRow {
     fn into_rule(self) -> anyhow::Result<RateLimitRule> {
         let algorithm = Algorithm::from_str(&self.algorithm)
-            .map_err(|e| anyhow::anyhow!("invalid algorithm in DB: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("invalid algorithm in DB: {e}"))?;
 
         Ok(RateLimitRule {
             id: self.id,

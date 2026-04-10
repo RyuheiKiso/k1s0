@@ -15,8 +15,9 @@ pub struct LocalFsStorageRepository {
 }
 
 impl LocalFsStorageRepository {
-    /// 新しい LocalFsStorageRepository を作成する。
-    /// root_path にファイルを保存し、base_url を使って URL を生成する。
+    /// 新しい `LocalFsStorageRepository` を作成する。
+    /// `root_path` `にファイルを保存し、base_url` を使って URL を生成する。
+    #[must_use]
     pub fn new(root_path: PathBuf, base_url: String) -> Self {
         Self {
             root_path,
@@ -24,8 +25,8 @@ impl LocalFsStorageRepository {
         }
     }
 
-    /// storage_key をファイルシステムのフルパスに変換する。
-    /// パストラバーサル攻撃を防ぐため、root_path 外へのパスは拒否する。
+    /// `storage_key` をファイルシステムのフルパスに変換する。
+    /// `パストラバーサル攻撃を防ぐため、root_path` 外へのパスは拒否する。
     fn resolve_path(&self, storage_key: &str) -> anyhow::Result<PathBuf> {
         let key_path = PathBuf::from(storage_key);
         // 絶対パスやパストラバーサル（../）を含むキーを拒否する
@@ -37,7 +38,7 @@ impl LocalFsStorageRepository {
                 )
             })
         {
-            anyhow::bail!("不正なストレージキー: {}", storage_key);
+            anyhow::bail!("不正なストレージキー: {storage_key}");
         }
         Ok(self.root_path.join(key_path))
     }
@@ -74,7 +75,7 @@ impl FileStorageRepository for LocalFsStorageRepository {
     ) -> anyhow::Result<String> {
         let full_path = self.resolve_path(storage_key)?;
         if !full_path.exists() {
-            anyhow::bail!("ファイルが存在しません: {}", storage_key);
+            anyhow::bail!("ファイルが存在しません: {storage_key}");
         }
         Ok(format!(
             "{}/internal/storage/{}",
@@ -82,7 +83,7 @@ impl FileStorageRepository for LocalFsStorageRepository {
         ))
     }
 
-    /// 指定された storage_key に対応するファイルを削除する。
+    /// 指定された `storage_key` に対応するファイルを削除する。
     async fn delete_object(&self, storage_key: &str) -> anyhow::Result<()> {
         let full_path = self.resolve_path(storage_key)?;
         if full_path.exists() {
@@ -108,14 +109,13 @@ impl FileStorageRepository for LocalFsStorageRepository {
         let head_bytes = tokio::fs::read(&full_path).await?;
 
         // infer によるマジックバイト検出を優先する
-        let content_type = infer::get(&head_bytes)
-            .map(|t| t.mime_type().to_string())
-            .unwrap_or_else(|| {
+        let content_type = infer::get(&head_bytes).map_or_else(
+            || {
                 // フォールバック: 拡張子から許可リスト内のコンテンツタイプを推定する
                 full_path
                     .extension()
                     .and_then(|ext| ext.to_str())
-                    .map(|ext| match ext {
+                    .map_or("application/octet-stream", |ext| match ext {
                         "pdf" => "application/pdf",
                         "png" => "image/png",
                         "jpg" | "jpeg" => "image/jpeg",
@@ -128,9 +128,10 @@ impl FileStorageRepository for LocalFsStorageRepository {
                         "gz" => "application/gzip",
                         _ => "application/octet-stream",
                     })
-                    .unwrap_or("application/octet-stream")
                     .to_string()
-            });
+            },
+            |t| t.mime_type().to_string(),
+        );
 
         result.insert("content_type".to_string(), content_type);
         Ok(result)

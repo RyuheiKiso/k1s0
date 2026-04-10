@@ -8,8 +8,10 @@ use crate::infrastructure::kafka::{
 };
 use crate::infrastructure::validator::SchemaValidatorFactory;
 
+// テナントスコープでバージョンを登録するためのインプット構造体
 #[derive(Debug, Clone)]
 pub struct RegisterVersionInput {
+    pub tenant_id: String,
     pub name: String,
     pub content: String,
     pub registered_by: String,
@@ -63,6 +65,8 @@ impl RegisterVersionUseCase {
         }
     }
 
+    /// スキーマバリデーターファクトリを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_validator(mut self, factory: Arc<dyn SchemaValidatorFactory>) -> Self {
         self.validator_factory = Some(factory);
         self
@@ -72,9 +76,10 @@ impl RegisterVersionUseCase {
         &self,
         input: &RegisterVersionInput,
     ) -> Result<ApiSchemaVersion, RegisterVersionError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let mut schema = self
             .schema_repo
-            .find_by_name(&input.name)
+            .find_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?
             .ok_or_else(|| RegisterVersionError::NotFound(input.name.clone()))?;
@@ -101,7 +106,7 @@ impl RegisterVersionUseCase {
 
         let previous = self
             .version_repo
-            .find_latest_by_name(&input.name)
+            .find_latest_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
 
@@ -127,7 +132,7 @@ impl RegisterVersionUseCase {
         .with_breaking_changes(has_breaking, breaking_changes);
 
         self.version_repo
-            .create(&version)
+            .create(&input.tenant_id, &version)
             .await
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
 
@@ -136,7 +141,7 @@ impl RegisterVersionUseCase {
         schema.updated_at = chrono::Utc::now();
 
         self.schema_repo
-            .update(&schema)
+            .update(&input.tenant_id, &schema)
             .await
             .map_err(|e| RegisterVersionError::Internal(e.to_string()))?;
 
@@ -172,17 +177,17 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
                 SchemaType::OpenApi,
             )))
         });
-        schema_mock.expect_update().returning(|_| Ok(()));
+        schema_mock.expect_update().returning(|_, _| Ok(()));
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_find_latest_by_name().returning(|_| {
+        version_mock.expect_find_latest_by_name().returning(|_, _| {
             Ok(Some(ApiSchemaVersion::new(
                 "test-api".to_string(),
                 1,
@@ -191,10 +196,11 @@ mod tests {
                 "user-001".to_string(),
             )))
         });
-        version_mock.expect_create().returning(|_| Ok(()));
+        version_mock.expect_create().returning(|_, _| Ok(()));
 
         let uc = RegisterVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             content: "openapi: 3.0.3\nversion: 2.0.0".to_string(),
             registered_by: "user-001".to_string(),
@@ -209,12 +215,13 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = RegisterVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             content: "openapi: 3.0.3".to_string(),
             registered_by: "user-001".to_string(),
@@ -232,12 +239,13 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = RegisterVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = RegisterVersionInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             content: "openapi: 3.0.3".to_string(),
             registered_by: "user-001".to_string(),

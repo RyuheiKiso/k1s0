@@ -25,7 +25,13 @@ const DEFAULT_BUCKETS: &[f64] = &[
 
 impl Metrics {
     /// new は Prometheus メトリクスを初期化して返す。
-    /// service_name はメトリクスの service ラベルに使用される。
+    /// `service_name` はメトリクスの service ラベルに使用される。
+    ///
+    /// # Panics
+    ///
+    /// Prometheus のカウンタ・ヒストグラム・レジストリへの登録に失敗した場合にパニックする。
+    #[must_use]
+    #[allow(clippy::too_many_lines)]
     pub fn new(service_name: &str) -> Self {
         let registry = Registry::new();
 
@@ -155,14 +161,14 @@ impl Metrics {
         }
     }
 
-    /// record_http_request は HTTP リクエストカウンタをインクリメントする。
+    /// `record_http_request` は HTTP リクエストカウンタをインクリメントする。
     pub fn record_http_request(&self, method: &str, path: &str, status: &str) {
         if let Some(ref counter) = self.http_requests_total {
             counter.with_label_values(&[method, path, status]).inc();
         }
     }
 
-    /// record_http_duration は HTTP リクエストのレイテンシをヒストグラムに記録する。
+    /// `record_http_duration` は HTTP リクエストのレイテンシをヒストグラムに記録する。
     pub fn record_http_duration(&self, method: &str, path: &str, duration_secs: f64) {
         if let Some(ref histogram) = self.http_request_duration {
             histogram
@@ -171,14 +177,14 @@ impl Metrics {
         }
     }
 
-    /// record_grpc_request は gRPC リクエストカウンタをインクリメントする。
+    /// `record_grpc_request` は gRPC リクエストカウンタをインクリメントする。
     pub fn record_grpc_request(&self, service: &str, method: &str, code: &str) {
         if let Some(ref counter) = self.grpc_handled_total {
             counter.with_label_values(&[service, method, code]).inc();
         }
     }
 
-    /// record_grpc_duration は gRPC リクエストのレイテンシをヒストグラムに記録する。
+    /// `record_grpc_duration` は gRPC リクエストのレイテンシをヒストグラムに記録する。
     pub fn record_grpc_duration(&self, service: &str, method: &str, duration_secs: f64) {
         if let Some(ref histogram) = self.grpc_handling_duration {
             histogram
@@ -187,7 +193,7 @@ impl Metrics {
         }
     }
 
-    /// record_db_query_duration は DB クエリのレイテンシをヒストグラムに記録する。
+    /// `record_db_query_duration` は DB クエリのレイテンシをヒストグラムに記録する。
     pub fn record_db_query_duration(&self, query_name: &str, table: &str, duration_secs: f64) {
         if let Some(ref histogram) = self.db_query_duration {
             histogram
@@ -196,36 +202,41 @@ impl Metrics {
         }
     }
 
-    /// record_kafka_message_produced は Kafka メッセージ送信カウンタをインクリメントする。
+    /// `record_kafka_message_produced` は Kafka メッセージ送信カウンタをインクリメントする。
     pub fn record_kafka_message_produced(&self, topic: &str) {
         if let Some(ref counter) = self.kafka_messages_produced_total {
             counter.with_label_values(&[topic]).inc();
         }
     }
 
-    /// record_kafka_message_consumed は Kafka メッセージ受信カウンタをインクリメントする。
+    /// `record_kafka_message_consumed` は Kafka メッセージ受信カウンタをインクリメントする。
     pub fn record_kafka_message_consumed(&self, topic: &str, consumer_group: &str) {
         if let Some(ref counter) = self.kafka_messages_consumed_total {
             counter.with_label_values(&[topic, consumer_group]).inc();
         }
     }
 
-    /// record_cache_hit はキャッシュヒットカウンタをインクリメントする。
+    /// `record_cache_hit` はキャッシュヒットカウンタをインクリメントする。
     pub fn record_cache_hit(&self, cache_name: &str) {
         if let Some(ref counter) = self.cache_hits_total {
             counter.with_label_values(&[cache_name]).inc();
         }
     }
 
-    /// record_cache_miss はキャッシュミスカウンタをインクリメントする。
+    /// `record_cache_miss` はキャッシュミスカウンタをインクリメントする。
     pub fn record_cache_miss(&self, cache_name: &str) {
         if let Some(ref counter) = self.cache_misses_total {
             counter.with_label_values(&[cache_name]).inc();
         }
     }
 
-    /// gather_metrics は Prometheus テキストフォーマットでメトリクスを返す。
+    /// `gather_metrics` は Prometheus テキストフォーマットでメトリクスを返す。
     /// /metrics エンドポイントのハンドラで使用する。
+    ///
+    /// # Panics
+    ///
+    /// Prometheus `TextEncoder` によるエンコードまたは UTF-8 変換に失敗した場合にパニックする。
+    #[must_use]
     pub fn gather_metrics(&self) -> String {
         let encoder = TextEncoder::new();
         let metric_families = self.registry.gather();

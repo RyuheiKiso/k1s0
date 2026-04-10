@@ -8,7 +8,7 @@ pub struct DeleteFileInput {
     pub file_id: String,
     /// CRIT-01 監査対応: テナントIDを必須化し、DELETE クエリの条件として使用する
     pub tenant_id: String,
-    /// CRIT-01 監査対応: 所有者IDを DELETE 条件に追加する。None の場合は所有者チェックをスキップ（sys_admin 用）
+    /// CRIT-01 監査対応: 所有者IDを DELETE 条件に追加する。None `の場合は所有者チェックをスキップ（sys_admin` 用）
     pub expected_uploader: Option<String>,
 }
 
@@ -121,9 +121,10 @@ mod tests {
     use std::collections::HashMap;
 
     fn sample_file() -> FileMetadata {
-        // C-01 監査対応: tenant_id 引数削除
+        // テナント分離対応: tenant_id 引数を追加
         FileMetadata::new(
             "file_001".to_string(),
+            "tenant-abc".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),

@@ -28,7 +28,7 @@ pub enum SagaError {
     Internal(String),
 }
 
-/// SagaError から ServiceError への変換実装
+/// `SagaError` から `ServiceError` への変換実装
 impl From<SagaError> for ServiceError {
     fn from(err: SagaError) -> Self {
         match err {
@@ -38,7 +38,7 @@ impl From<SagaError> for ServiceError {
             },
             SagaError::InvalidStatusTransition { from, to } => ServiceError::BadRequest {
                 code: ErrorCode::new("SYS_SAGA_INVALID_STATUS_TRANSITION"),
-                message: format!("invalid status transition: '{}' -> '{}'", from, to),
+                message: format!("invalid status transition: '{from}' -> '{to}'"),
                 details: vec![],
             },
             SagaError::CompensationFailed(msg) => ServiceError::Internal {

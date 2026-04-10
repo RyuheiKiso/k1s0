@@ -2,11 +2,12 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 
 use super::{AppState, ErrorResponse};
+use crate::domain::entity::claims::Claims;
 use crate::domain::entity::platform::Platform;
 use crate::domain::entity::version::AppVersion;
 use crate::usecase::version_selection::normalize_arch;
@@ -32,11 +33,13 @@ pub struct CreateVersionResponse {
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn list_versions(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.list_versions_uc.execute(&id).await {
+    match state.list_versions_uc.execute(&claims.tenant_id, &id).await {
         Ok(versions) => (StatusCode::OK, Json(VersionListResponse { versions })).into_response(),
         Err(crate::usecase::list_versions::ListVersionsError::AppNotFound(_)) => {
             let err =
@@ -79,6 +82,8 @@ pub struct CreateVersionRequest {
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: create_version は VersionRepository を直接使用するため tenant_id の伝播は不要。
+// VersionRepository のテナント分離は app_versions テーブルの RLS ポリシー（set_config 済みセッション内）に依存する。
 pub async fn create_version(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -119,7 +124,7 @@ pub async fn create_version(
                 );
                 let err = ErrorResponse::new(
                     "SYS_APPS_SIGNATURE_VERIFY_ERROR",
-                    format!("署名検証中にエラーが発生しました: {}", e),
+                    format!("署名検証中にエラーが発生しました: {e}"),
                 );
                 return (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response();
             }
@@ -178,29 +183,38 @@ pub struct DeleteVersionQuery {
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn delete_version(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path((id, version)): Path<(String, String)>,
     Query(params): Query<DeleteVersionQuery>,
 ) -> impl IntoResponse {
     let platform = match params.platform {
-        Some(platform) => match platform.parse::<Platform>() {
-            Ok(platform) => Some(platform),
-            Err(_) => {
+        Some(platform) => {
+            if let Ok(platform) = platform.parse::<Platform>() {
+                Some(platform)
+            } else {
                 let err = ErrorResponse::new(
                     "SYS_APPS_INVALID_PLATFORM",
                     "Invalid platform. Use: windows, linux, macos",
                 );
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
-        },
+        }
         None => None,
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));
 
     match state
         .delete_version_uc
-        .execute(&id, &version, platform.as_ref(), arch.as_deref())
+        .execute(
+            &claims.tenant_id,
+            &id,
+            &version,
+            platform.as_ref(),
+            arch.as_deref(),
+        )
         .await
     {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),

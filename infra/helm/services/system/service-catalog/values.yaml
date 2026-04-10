@@ -55,6 +55,8 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
+  # HIGH-005 監査対応: メモリ過負荷時の HPA スケーリングに使用する（設計書定義: 60%）
+  targetMemoryUtilizationPercentage: 60
 
 pdb:
   enabled: true

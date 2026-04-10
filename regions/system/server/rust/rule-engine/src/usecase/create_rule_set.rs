@@ -9,6 +9,8 @@ use crate::infrastructure::kafka_producer::{
 
 #[derive(Debug, Clone)]
 pub struct CreateRuleSetInput {
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加。JWT/ヘッダーから抽出したテナント ID を渡す。
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub domain: String,
@@ -82,6 +84,7 @@ impl CreateRuleSetUseCase {
         }
 
         let rule_set = RuleSet::new(
+            input.tenant_id.clone(),
             input.name.clone(),
             input.description.clone(),
             input.domain.clone(),

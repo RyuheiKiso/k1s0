@@ -35,6 +35,7 @@ impl CronSchedulerEngine {
         }
     }
 
+    #[must_use]
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let job_repo = self.job_repo.clone();
         let execution_repo = self.execution_repo.clone();
@@ -45,8 +46,8 @@ impl CronSchedulerEngine {
         tokio::spawn(async move {
             loop {
                 tokio::select! {
-                    _ = token.cancelled() => break,
-                    _ = tokio::time::sleep(Duration::from_secs(60)) => {
+                    () = token.cancelled() => break,
+                    () = tokio::time::sleep(Duration::from_secs(60)) => {
                         if let Err(e) = Self::tick(&job_repo, &execution_repo, &executor, &lock).await {
                             tracing::error!("cron tick error: {}", e);
                         }
@@ -108,7 +109,7 @@ impl CronSchedulerEngine {
         // cron crate expects 6-field (with seconds) or 7-field expressions
         // Standard 5-field cron: prepend "0 " for seconds
         let full_expr = if cron_expr.split_whitespace().count() == 5 {
-            format!("0 {}", cron_expr)
+            format!("0 {cron_expr}")
         } else {
             cron_expr.to_string()
         };

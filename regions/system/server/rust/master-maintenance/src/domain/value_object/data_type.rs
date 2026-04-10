@@ -30,6 +30,7 @@ impl fmt::Display for DataType {
 }
 
 impl DataType {
+    #[must_use]
     pub fn to_sql_type(&self) -> &'static str {
         match self {
             Self::Text => "TEXT",

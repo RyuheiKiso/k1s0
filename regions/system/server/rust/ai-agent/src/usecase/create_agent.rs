@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::domain::entity::AgentDefinition;
 use crate::domain::repository::AgentRepository;
 
-/// CreateAgentUseCase はエージェント定義の作成を担当する
+/// `CreateAgentUseCase` はエージェント定義の作成を担当する
 pub struct CreateAgentUseCase {
     /// エージェントリポジトリ
     agent_repo: Arc<dyn AgentRepository>,
@@ -31,7 +31,7 @@ pub struct CreateAgentResponse {
 }
 
 impl CreateAgentUseCase {
-    /// 新しいCreateAgentUseCaseを生成する
+    /// `新しいCreateAgentUseCaseを生成する`
     pub fn new(agent_repo: Arc<dyn AgentRepository>) -> Self {
         Self { agent_repo }
     }

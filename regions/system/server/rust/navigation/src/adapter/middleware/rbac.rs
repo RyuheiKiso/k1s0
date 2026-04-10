@@ -4,9 +4,9 @@
 //!
 //! | ロール          | リソース/アクション    |
 //! |----------------|----------------------|
-//! | sys_auditor+   | navigation/read      |
-//! | sys_operator+  | navigation/write     |
-//! | sys_admin のみ  | navigation/admin     |
+//! | `sys_auditor`+   | navigation/read      |
+//! | `sys_operator`+  | navigation/write     |
+//! | `sys_admin` のみ  | navigation/admin     |
 //!
 //! `AuthMiddlewareLayer` の後に配置し、`k1s0_auth::Claims` がリクエスト
 //! エクステンションに存在することを前提とする。
@@ -25,17 +25,17 @@ use k1s0_auth::Claims;
 /// navigation-server の RBAC アクション定義。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavigationAction {
-    /// 読み取り — sys_auditor 以上
+    /// 読み取り — `sys_auditor` 以上
     Read,
-    /// 書き込み — sys_operator 以上
+    /// 書き込み — `sys_operator` 以上
     Write,
-    /// 管理 — sys_admin のみ
+    /// 管理 — `sys_admin` のみ
     Admin,
 }
 
 /// ロールの階層順序。上位ロールは下位ロールの権限を包含する。
 ///
-/// sys_admin > sys_operator > sys_auditor
+/// `sys_admin` > `sys_operator` > `sys_auditor`
 const ROLE_HIERARCHY: &[&str] = &["sys_auditor", "sys_operator", "sys_admin"];
 
 /// 指定アクションに必要な最低ロールを返す。
@@ -63,8 +63,7 @@ fn has_navigation_permission(claims: &Claims, action: NavigationAction) -> bool 
         ROLE_HIERARCHY
             .iter()
             .position(|r| r == user_role)
-            .map(|idx| idx >= min_idx)
-            .unwrap_or(false)
+            .is_some_and(|idx| idx >= min_idx)
     })
 }
 
@@ -85,7 +84,7 @@ fn unauthenticated_response() -> Response {
         StatusCode::UNAUTHORIZED,
         Json(json!({
             "error": "SYS_AUTH_UNAUTHENTICATED",
-            "message": "認証が必要です"
+            "message": "Authentication required"
         })),
     )
         .into_response()
@@ -104,21 +103,25 @@ pub struct RbacMiddlewareLayer {
 }
 
 impl RbacMiddlewareLayer {
+    #[must_use]
     pub fn new(action: NavigationAction) -> Self {
         Self { action }
     }
 
-    /// 読み取り権限（sys_auditor 以上）を要求するレイヤーを生成する。
+    /// `読み取り権限（sys_auditor` 以上）を要求するレイヤーを生成する。
+    #[must_use]
     pub fn read() -> Self {
         Self::new(NavigationAction::Read)
     }
 
-    /// 書き込み権限（sys_operator 以上）を要求するレイヤーを生成する。
+    /// `書き込み権限（sys_operator` 以上）を要求するレイヤーを生成する。
+    #[must_use]
     pub fn write() -> Self {
         Self::new(NavigationAction::Write)
     }
 
-    /// 管理権限（sys_admin のみ）を要求するレイヤーを生成する。
+    /// `管理権限（sys_admin` のみ）を要求するレイヤーを生成する。
+    #[must_use]
     pub fn admin() -> Self {
         Self::new(NavigationAction::Admin)
     }
@@ -183,8 +186,7 @@ where
                     "RBAC: アクセス拒否"
                 );
                 return Ok(forbidden_response(&format!(
-                    "この操作には {} 以上のロールが必要です",
-                    min_role
+                    "この操作には {min_role} 以上のロールが必要です"
                 )));
             }
 

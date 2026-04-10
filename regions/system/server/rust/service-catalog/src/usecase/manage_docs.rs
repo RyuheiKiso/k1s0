@@ -5,14 +5,14 @@ use uuid::Uuid;
 use crate::domain::entity::service_doc::ServiceDoc;
 use crate::domain::repository::DocRepository;
 
-/// ManageDocsError はドキュメント管理に関するエラーを表す。
+/// `ManageDocsError` はドキュメント管理に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum ManageDocsError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// ManageDocsUseCase はサービスドキュメント管理ユースケース。
+/// `ManageDocsUseCase` はサービスドキュメント管理ユースケース。
 pub struct ManageDocsUseCase {
     doc_repo: Arc<dyn DocRepository>,
 }

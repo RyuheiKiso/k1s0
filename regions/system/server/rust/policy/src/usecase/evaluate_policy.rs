@@ -68,8 +68,7 @@ impl EvaluatePolicyUseCase {
         // from the policy record to avoid caller-supplied path drift.
         let resolved_package_path = resolved_policy
             .as_ref()
-            .map(|p| p.package_path.clone())
-            .unwrap_or_else(|| input.package_path.clone());
+            .map_or_else(|| input.package_path.clone(), |p| p.package_path.clone());
 
         // OPA client available: evaluate via OPA HTTP API
         if let Some(ref opa) = self.opa_client {
@@ -114,7 +113,7 @@ impl EvaluatePolicyUseCase {
                         resolved_package_path.clone(),
                         input.input.clone(),
                         false,
-                        Some(format!("OPA evaluation error: {}", e)),
+                        Some(format!("OPA evaluation error: {e}")),
                         Uuid::new_v4().to_string(),
                         false,
                     );

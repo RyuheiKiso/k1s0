@@ -4,7 +4,7 @@ use crate::domain::entity::saga_state::SagaState;
 use crate::domain::repository::saga_repository::SagaListParams;
 use crate::domain::repository::SagaRepository;
 
-/// ListSagasUseCase はSaga一覧取得を担う。
+/// `ListSagasUseCase` はSaga一覧取得を担う。
 pub struct ListSagasUseCase {
     saga_repo: Arc<dyn SagaRepository>,
 }

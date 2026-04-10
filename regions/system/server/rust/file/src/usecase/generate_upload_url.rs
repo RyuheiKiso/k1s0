@@ -92,8 +92,10 @@ impl GenerateUploadUrlUseCase {
         let storage_path = FileMetadata::generate_storage_path(&input.tenant_id, &input.filename)
             .map_err(|e| GenerateUploadUrlError::Validation(e.to_string()))?;
 
+        // テナント分離対応: tenant_id を FileMetadata に渡して RLS と連動させる
         let file = FileMetadata::new(
             file_id.clone(),
+            input.tenant_id.clone(),
             input.filename.clone(),
             input.size_bytes,
             input.content_type.clone(),
@@ -212,7 +214,10 @@ mod tests {
 
         match result.unwrap_err() {
             GenerateUploadUrlError::Validation(msg) => {
-                assert!(msg.contains("text/html"), "エラーメッセージに拒否対象の型が含まれること");
+                assert!(
+                    msg.contains("text/html"),
+                    "エラーメッセージに拒否対象の型が含まれること"
+                );
             }
             e => unreachable!("unexpected error: {:?}", e),
         }

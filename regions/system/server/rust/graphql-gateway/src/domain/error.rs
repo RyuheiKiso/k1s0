@@ -3,12 +3,12 @@
 //! 文字列マッチングではなく、型安全な分類で GraphQL エラーコードを決定する。
 //!
 //! M-15 監査対応: gRPC Status コードから型安全な GraphQL エラーカテゴリに変換する仕組みを提供する。
-//! graphql_handler.rs の classify_domain_error は文字列マッチング依存だったが、
-//! GrpcErrorCategory を通じて tonic::Status から直接分類できるようにした。
+//! `graphql_handler.rs` の `classify_domain_error` は文字列マッチング依存だったが、
+//! `GrpcErrorCategory` を通じて `tonic::Status` から直接分類できるようにした。
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// GraphqlGateway ドメイン固有のエラー型。
+/// `GraphqlGateway` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum GraphqlGatewayError {
     /// スキーマが見つからない
@@ -33,23 +33,24 @@ pub enum GraphqlGatewayError {
 }
 
 /// gRPC Status コードから GraphQL エラーコードへの型安全な分類。
-/// tonic::Status を直接受け取りエラーカテゴリを返す。
+/// `tonic::Status` を直接受け取りエラーカテゴリを返す。
 /// M-15 監査対応: 文字列マッチングに依存しない型安全な分類の実装基盤。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GrpcErrorCategory {
-    /// 認証エラー（tonic::Code::Unauthenticated）
+    /// `認証エラー（tonic::Code::Unauthenticated`）
     Unauthenticated,
-    /// 権限エラー（tonic::Code::PermissionDenied）
+    /// `権限エラー（tonic::Code::PermissionDenied`）
     Forbidden,
-    /// バリデーションエラー（tonic::Code::InvalidArgument / FailedPrecondition / OutOfRange）
+    /// `バリデーションエラー（tonic::Code::InvalidArgument` / `FailedPrecondition` / `OutOfRange`）
     ValidationError,
     /// バックエンドエラー（その他）
     BackendError,
 }
 
 impl GrpcErrorCategory {
-    /// tonic::Status から GrpcErrorCategory に変換する。
-    /// usecase 層または adapter 層で tonic::Status を直接受け取った場合に使用する。
+    /// `tonic::Status` から `GrpcErrorCategory` に変換する。
+    /// usecase 層または adapter 層で `tonic::Status` を直接受け取った場合に使用する。
+    #[must_use]
     pub fn from_tonic_code(code: tonic::Code) -> Self {
         match code {
             tonic::Code::Unauthenticated => GrpcErrorCategory::Unauthenticated,
@@ -62,8 +63,10 @@ impl GrpcErrorCategory {
     }
 
     /// GraphQL エラーコード文字列を返す。
-    /// graphql_handler.rs の gql_error() に渡す &'static str として使用する。
-    pub fn as_graphql_code(&self) -> &'static str {
+    /// `graphql_handler.rs` の `gql_error()` に渡す &'static str として使用する。
+    // enum は 1 バイトのため、参照渡しより値渡しが効率的（Clippy: trivially_copy_pass_by_ref）
+    #[must_use]
+    pub fn as_graphql_code(self) -> &'static str {
         match self {
             GrpcErrorCategory::Unauthenticated => "UNAUTHENTICATED",
             GrpcErrorCategory::Forbidden => "FORBIDDEN",
@@ -73,7 +76,7 @@ impl GrpcErrorCategory {
     }
 }
 
-/// GraphqlGatewayError から ServiceError への変換実装
+/// `GraphqlGatewayError` から `ServiceError` への変換実装
 impl From<GraphqlGatewayError> for ServiceError {
     fn from(err: GraphqlGatewayError) -> Self {
         match err {

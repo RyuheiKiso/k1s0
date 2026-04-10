@@ -9,7 +9,7 @@ pub struct Pagination {
     #[prost(int32, tag = "2")]
     pub page_size: i32,
 }
-/// PaginationResult はページネーション結果。
+/// `PaginationResult` はページネーション結果。
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct PaginationResult {
     /// 全件数（大規模データ対応のため int64 を使用）
@@ -48,24 +48,27 @@ pub struct Timestamp {
     #[prost(int32, tag = "2")]
     pub nanos: i32,
 }
-/// ChangeType は設定・フラグ変更操作の種別。
+/// `ChangeType` は設定・フラグ変更操作の種別。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ChangeType {
-    /// CHANGE_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+    /// `CHANGE_TYPE_UNSPECIFIED` は未指定（デフォルト値）。
     Unspecified = 0,
-    /// CHANGE_TYPE_CREATED は新規作成。
+    /// `CHANGE_TYPE_CREATED` は新規作成。
     Created = 1,
-    /// CHANGE_TYPE_UPDATED は更新。
+    /// `CHANGE_TYPE_UPDATED` は更新。
     Updated = 2,
-    /// CHANGE_TYPE_DELETED は削除。
+    /// `CHANGE_TYPE_DELETED` は削除。
     Deleted = 3,
 }
 impl ChangeType {
-    /// String value of the enum field names used in the ProtoBuf definition.
+    /// String value of the enum field names used in the `ProtoBuf` definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    /// (if the `ProtoBuf` definition does not change) and safe for programmatic use.
+    // プロトバッファ自動生成コードの &self は Copy 型だが、prost 生成のシグネチャを変更できない
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    #[must_use] 
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "CHANGE_TYPE_UNSPECIFIED",
@@ -74,7 +77,8 @@ impl ChangeType {
             Self::Deleted => "CHANGE_TYPE_DELETED",
         }
     }
-    /// Creates an enum from field names used in the ProtoBuf definition.
+    /// Creates an enum from field names used in the `ProtoBuf` definition.
+    #[must_use] 
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "CHANGE_TYPE_UNSPECIFIED" => Some(Self::Unspecified),

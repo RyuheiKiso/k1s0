@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::user::{User, UserListResult, UserRoles};
 
-/// UserRepository はユーザー情報取得のためのリポジトリトレイト。
+/// `UserRepository` はユーザー情報取得のためのリポジトリトレイト。
 /// 実装は Keycloak Admin API を通じてユーザー情報を取得する。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]

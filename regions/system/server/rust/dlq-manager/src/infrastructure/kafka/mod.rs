@@ -3,7 +3,7 @@ pub mod producer;
 
 use serde::Deserialize;
 
-/// KafkaConfig は Kafka 接続の設定を表す。
+/// `KafkaConfig` は Kafka 接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -15,13 +15,13 @@ pub struct KafkaConfig {
     pub dlq_topic_pattern: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// CRIT-005 監査対応: librdkafka の subscribe() は ^ プレフィックス付き文字列を正規表現として扱う。
+/// CRIT-005 監査対応: librdkafka の `subscribe()` は ^ プレフィックス付き文字列を正規表現として扱う。
 /// glob パターン（*.v1.dlq）はリテラルトピック名として解釈されるため、実際の DLQ トピックに一致しない。
 fn default_dlq_topic_pattern() -> String {
     "^.*\\.v1\\.dlq$".to_string()

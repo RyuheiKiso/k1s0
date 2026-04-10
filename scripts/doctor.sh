@@ -202,9 +202,24 @@ else
 fi
 
 # k1s0 CLI: プロジェクト管理・コード生成ツール
+# LOW-001 対応: k1s0 CLI 自体が doctor を実行している場合（$0 が k1s0 経由）は
+# "k1s0 が見つからない" という自己参照 WARN を出さない。
+# k1s0 が PATH に存在するか、またはこのスクリプトが k1s0 から呼び出されているかを確認する。
 if has k1s0; then
     k1s0_ver=$(k1s0 --version 2>/dev/null | head -1 || echo "(version不明)")
     ok "k1s0 CLI: ${k1s0_ver}"
+elif [[ -n "${K1S0_DOCTOR_INVOKED:-}" ]]; then
+    # K1S0_DOCTOR_INVOKED 環境変数が設定されている場合は k1s0 から呼び出されていると判断する。
+    # k1s0 CLI が PATH に登録されていなくても、直接実行された k1s0 バイナリはこの変数を設定できる。
+    # この場合は PATH 未設定の WARN のみを表示し、インストール案内は省略する。
+    k1s0_exe=$(command -v k1s0 2>/dev/null || echo "")
+    if [[ -n "$k1s0_exe" ]]; then
+        k1s0_ver=$(k1s0 --version 2>/dev/null | head -1 || echo "(version不明)")
+        ok "k1s0 CLI: ${k1s0_ver} (${k1s0_exe})"
+    else
+        warn "k1s0 CLI: PATH に k1s0 が登録されていません → 以下を .bashrc/.zshrc に追加してください:"
+        warn "  export PATH=\"\$HOME/.cargo/bin:\$PATH\""
+    fi
 else
     warn "k1s0 CLI: k1s0 が見つかりません → cargo install --path CLI/crates/k1s0-cli"
 fi

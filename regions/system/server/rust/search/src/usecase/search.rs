@@ -35,7 +35,7 @@ impl SearchUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから検索を実行する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してから検索を実行する。
     pub async fn execute(&self, input: &SearchInput) -> Result<SearchResult, SearchError> {
         let index = self
             .repo
@@ -75,7 +75,12 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockSearchRepository::new();
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}));
+        // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
+        let index = SearchIndex::new(
+            "products".to_string(),
+            serde_json::json!({}),
+            "tenant-a".to_string(),
+        );
         let return_index = index.clone();
 
         mock.expect_find_index()

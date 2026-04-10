@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::domain::entity::Execution;
 use crate::domain::repository::ExecutionRepository;
 
-/// ListExecutionsUseCase は実行履歴一覧の取得を担当する
+/// `ListExecutionsUseCase` は実行履歴一覧の取得を担当する
 pub struct ListExecutionsUseCase {
     /// 実行リポジトリ
     execution_repo: Arc<dyn ExecutionRepository>,
@@ -23,7 +23,7 @@ pub struct ListExecutionsResponse {
 }
 
 impl ListExecutionsUseCase {
-    /// 新しいListExecutionsUseCaseを生成する
+    /// `新しいListExecutionsUseCaseを生成する`
     pub fn new(execution_repo: Arc<dyn ExecutionRepository>) -> Self {
         Self { execution_repo }
     }

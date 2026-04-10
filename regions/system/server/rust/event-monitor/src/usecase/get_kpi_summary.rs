@@ -86,7 +86,10 @@ impl GetKpiSummaryUseCase {
         }
 
         let overall_completion_rate = if total_started_all > 0 {
-            total_completed_all as f64 / total_started_all as f64
+            // LOW-008: i64 → f64 の精度損失は許容（大規模カウント向け近似値計算のため）
+            #[allow(clippy::cast_precision_loss)]
+            let rate = total_completed_all as f64 / total_started_all as f64;
+            rate
         } else {
             0.0
         };
@@ -94,7 +97,8 @@ impl GetKpiSummaryUseCase {
         Ok(GetKpiSummaryOutput {
             period: period.to_string(),
             flows: items,
-            total_flows: flows.len() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            total_flows: i32::try_from(flows.len()).unwrap_or(i32::MAX),
             flows_with_slo_violation: slo_violations,
             overall_completion_rate,
         })
@@ -114,6 +118,7 @@ mod tests {
 
     fn make_flow(name: &str) -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             name.to_string(),
             "test".to_string(),
             "service.task".to_string(),
@@ -133,7 +138,7 @@ mod tests {
     }
 
     fn make_completed_instance(flow_id: Uuid) -> FlowInstance {
-        let mut inst = FlowInstance::new(flow_id, "corr-1".to_string());
+        let mut inst = FlowInstance::new("system".to_string(), flow_id, "corr-1".to_string());
         inst.status = FlowInstanceStatus::Completed;
         inst.completed_at = Some(Utc::now());
         inst.duration_ms = Some(1000);

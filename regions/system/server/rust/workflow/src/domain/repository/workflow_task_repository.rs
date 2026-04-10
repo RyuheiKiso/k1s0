@@ -9,6 +9,8 @@ pub trait WorkflowTaskRepository: Send + Sync {
     // テナントスコープでIDによるタスク検索を行う
     async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowTask>>;
     // テナントスコープでフィルタ付きタスク一覧を取得する
+    // フィルタ条件とページングで引数が多くなるためアーキテクチャ上の制約として許容する
+    #[allow(clippy::too_many_arguments)]
     async fn find_all(
         &self,
         tenant_id: &str,

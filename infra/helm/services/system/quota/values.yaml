@@ -20,6 +20,43 @@ container:
 service:
   grpcPort: 50051
 
+# K8S-MED-002 対応: k1s0-common は library chart のためデフォルト値が親チャートに引き継がれない。
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# K8S-MED-003 対応: probes を明示的に設定する（gRPC ではなく HTTP ヘルスチェック）。
+# quota は HTTP エンドポイント（port:8097）と gRPC エンドポイント（port:50051）を両方公開するが、
+# Kubernetes ヘルスチェックには HTTP /healthz, /readyz を使用する。
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    httpGet:
+      path: /readyz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  startup:
+    httpGet:
+      path: /readyz
+      port: http
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+  grpcHealthCheck:
+    enabled: false
+
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
   runAsNonRoot: true
@@ -33,6 +70,20 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop: ["ALL"]
+
+# HIGH-005 監査対応: メモリ過負荷時の HPA スケーリングを有効化する（設計書定義: 60%）
+# quota サービスはリクエストカウント管理によりメモリ使用が増加しやすいため HPA メモリ閾値を設定する
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  # メモリ過負荷時の HPA スケーリングに使用する（設計書定義: 60%）
+  targetMemoryUtilizationPercentage: 60
+
+pdb:
+  enabled: true
+  minAvailable: "50%"
 
 # H-03 監査対応: 単一 "system" ロールから個別ロール "quota-rust" に変更する（ADR-0045 参照）。
 vault:

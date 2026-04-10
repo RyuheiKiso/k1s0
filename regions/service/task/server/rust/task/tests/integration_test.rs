@@ -1,5 +1,5 @@
 // service tier 統合テスト: スタブリポジトリを使いHTTPレイヤーを検証する。
-// auth パターンに倣い AppState をスタブで構築し、認証なしモードで動作確認を行う。
+// ハンドラーは Claims が必須のため、テスト用の fake Claims 注入ミドルウェアを使用する。
 // 実 DB 接続テストは #[cfg(feature = "db-tests")] で区分けする。
 use std::sync::Arc;
 
@@ -15,6 +15,38 @@ use k1s0_task_server::domain::entity::task::{
 };
 use k1s0_task_server::domain::error::TaskError;
 use k1s0_task_server::domain::repository::task_repository::TaskRepository;
+
+/// テスト用の fake Claims 注入ミドルウェア。
+/// ハンドラーは `Option<Extension<Claims>>` が None の場合に 401 を返すため、
+/// テスト環境でも Claims を Extension として挿入する必要がある。
+async fn fake_claims_middleware(
+    mut req: axum::http::Request<Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use std::collections::HashMap;
+    // テスト用の Claims を生成して Extension として挿入する
+    let claims = k1s0_auth::Claims {
+        sub: "test-user-uuid".to_string(),
+        iss: "test-issuer".to_string(),
+        aud: k1s0_auth::Audience(vec!["test-audience".to_string()]),
+        exp: u64::MAX,
+        iat: 0,
+        jti: None,
+        typ: None,
+        azp: None,
+        scope: None,
+        preferred_username: Some("test-user".to_string()),
+        email: None,
+        realm_access: Some(k1s0_auth::RealmAccess {
+            roles: vec!["service_user".to_string()],
+        }),
+        resource_access: Some(HashMap::new()),
+        tier_access: Some(vec!["service".to_string()]),
+        tenant_id: "test-tenant".to_string(),
+    };
+    req.extensions_mut().insert(claims);
+    next.run(req).await
+}
 
 // --- テスト用スタブリポジトリ ---
 
@@ -158,7 +190,7 @@ impl TaskRepository for StubTaskRepository {
     }
 }
 
-/// スタブを使ってテスト用 AppState を構築する
+/// スタブを使ってテスト用 AppState を構築する（fake Claims ミドルウェア付き）
 fn make_test_app() -> axum::Router {
     let repo = Arc::new(StubTaskRepository::new());
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("task-test"));
@@ -202,10 +234,11 @@ fn make_test_app() -> axum::Router {
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test")
             .expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    router(state)
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    router(state).layer(axum::middleware::from_fn(fake_claims_middleware))
 }
 
-/// スタブにタスクを1件含んだ状態でテスト用 AppState を構築する
+/// スタブにタスクを1件含んだ状態でテスト用 AppState を構築する（fake Claims ミドルウェア付き）
 fn make_test_app_with_task(task: Task) -> axum::Router {
     let repo = Arc::new(StubTaskRepository::with_tasks(vec![task]));
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("task-test"));
@@ -249,7 +282,8 @@ fn make_test_app_with_task(task: Task) -> axum::Router {
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test")
             .expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    router(state)
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    router(state).layer(axum::middleware::from_fn(fake_claims_middleware))
 }
 
 // --- 統合テスト ---
@@ -423,6 +457,633 @@ async fn test_create_task_empty_title() {
     let resp = app.oneshot(req).await.expect("バリデーションテストリクエストの送信に失敗");
     // タイトルが空の場合はビジネスロジックエラー（500）またはバリデーションエラー（400/422）が返る
     assert_ne!(resp.status(), StatusCode::CREATED);
+}
+
+/// タスク作成レスポンスに description フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_create_task_with_description() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "project_id": uuid::Uuid::new_v4(),
+        "title": "説明付きタスク",
+        "description": "詳細な説明文",
+        "priority": "medium",
+        "labels": [],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["description"], "詳細な説明文");
+}
+
+/// タスク作成で priority=high が正しく反映されることを確認する
+#[tokio::test]
+async fn test_create_task_with_priority_high() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "project_id": uuid::Uuid::new_v4(),
+        "title": "高優先度タスク",
+        "priority": "high",
+        "labels": [],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["priority"], "high");
+}
+
+/// タスク作成で assignee_id が正しく反映されることを確認する
+#[tokio::test]
+async fn test_create_task_with_assignee() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "project_id": uuid::Uuid::new_v4(),
+        "title": "担当者付きタスク",
+        "priority": "medium",
+        "assignee_id": "user-abc",
+        "labels": [],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["assignee_id"], "user-abc");
+}
+
+/// タスク取得レスポンスに project_id が含まれることを確認する
+#[tokio::test]
+async fn test_get_task_has_project_id() {
+    let task = sample_task();
+    let task_id = task.id;
+    let project_id = task.project_id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["project_id"], project_id.to_string());
+}
+
+/// タスク取得レスポンスの初期 status が open であることを確認する
+#[tokio::test]
+async fn test_get_task_initial_status_is_open() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["status"], "open");
+}
+
+/// タスク取得レスポンスに version フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_get_task_has_version() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["version"].is_number());
+}
+
+/// タスク更新（PUT /api/v1/tasks/{id}）でタイトルが更新されることを確認する
+#[tokio::test]
+async fn test_update_task_title() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    // UpdateTask は expected_version が必須フィールド（楽観ロック用）
+    let body = serde_json::json!({"title": "更新後タイトル", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["title"], "更新後タイトル");
+}
+
+/// タスク更新（PUT /api/v1/tasks/{id}）で存在しない ID に 404 を返すことを確認する
+#[tokio::test]
+async fn test_update_task_not_found() {
+    let app = make_test_app();
+
+    // UpdateTask は expected_version が必須フィールド（楽観ロック用）
+    let body = serde_json::json!({"title": "更新後タイトル", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}", uuid::Uuid::new_v4()))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// ステータス更新（PUT /api/v1/tasks/{id}/status）で in_progress に遷移できることを確認する
+#[tokio::test]
+async fn test_update_task_status_to_in_progress() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    let body = serde_json::json!({"status": "in_progress", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}/status", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["status"], "in_progress");
+}
+
+/// ステータス更新で done に遷移できることを確認する
+/// Review → Done は有効な遷移なので、review 状態のタスクを使用する
+#[tokio::test]
+async fn test_update_task_status_to_done() {
+    // Open → Done は無効な遷移のため、review 状態のタスクを作成する
+    let mut task = sample_task();
+    task.status = TaskStatus::Review;
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    let body = serde_json::json!({"status": "done", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}/status", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["status"], "done");
+}
+
+/// ステータス更新で存在しない ID に対してエラーを返すことを確認する
+#[tokio::test]
+async fn test_update_task_status_not_found() {
+    let app = make_test_app();
+
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    let body = serde_json::json!({"status": "done", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}/status", uuid::Uuid::new_v4()))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// タスク一覧の total フィールドが件数と一致することを確認する
+#[tokio::test]
+async fn test_list_tasks_total_count_matches_array() {
+    let tasks = vec![sample_task(), sample_task(), sample_task()];
+    let repo = Arc::new(StubTaskRepository::with_tasks(tasks));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("task-test"));
+    let state = AppState {
+        create_task_uc: Arc::new(k1s0_task_server::usecase::create_task::CreateTaskUseCase::new(repo.clone())),
+        get_task_uc: Arc::new(k1s0_task_server::usecase::get_task::GetTaskUseCase::new(repo.clone())),
+        list_tasks_uc: Arc::new(k1s0_task_server::usecase::list_tasks::ListTasksUseCase::new(repo.clone())),
+        update_task_status_uc: Arc::new(k1s0_task_server::usecase::update_task_status::UpdateTaskStatusUseCase::new(repo.clone())),
+        update_task_uc: Arc::new(k1s0_task_server::usecase::update_task::UpdateTaskUseCase::new(repo.clone())),
+        create_checklist_item_uc: Arc::new(k1s0_task_server::usecase::create_checklist_item::CreateChecklistItemUseCase::new(repo.clone())),
+        update_checklist_item_uc: Arc::new(k1s0_task_server::usecase::update_checklist_item::UpdateChecklistItemUseCase::new(repo.clone())),
+        delete_checklist_item_uc: Arc::new(k1s0_task_server::usecase::delete_checklist_item::DeleteChecklistItemUseCase::new(repo.clone())),
+        metrics,
+        auth_state: None,
+        db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test").expect("テスト用 lazy pool の作成に失敗しました"),
+    };
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    let app = k1s0_task_server::adapter::handler::router(state)
+        .layer(axum::middleware::from_fn(fake_claims_middleware));
+
+    let req = Request::builder()
+        .uri("/api/v1/tasks")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let tasks_arr = json["tasks"].as_array().expect("tasks フィールドが配列でない");
+    assert_eq!(tasks_arr.len(), 3);
+    assert_eq!(json["total"], 3);
+}
+
+/// チェックリスト取得（GET /api/v1/tasks/{id}/checklist）が 200 と空リストを返すことを確認する
+#[tokio::test]
+async fn test_get_checklist_empty() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks/{}/checklist", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    // ハンドラーは {"checklist": [...]} 形式で返すため、"checklist" キーで取得する
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["checklist"].as_array().expect("checklist フィールドが配列でない").is_empty());
+}
+
+/// チェックリストアイテム追加（POST /api/v1/tasks/{id}/checklist）が 201 を返すことを確認する
+#[tokio::test]
+async fn test_create_checklist_item() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let body = serde_json::json!({
+        "title": "チェックリストアイテム1",
+        "sort_order": 0
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/tasks/{}/checklist", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["title"], "チェックリストアイテム1");
+    assert_eq!(json["is_completed"], false);
+}
+
+/// チェックリストアイテム更新（PUT /api/v1/tasks/{id}/checklist/{item_id}）が 200 を返すことを確認する
+#[tokio::test]
+async fn test_update_checklist_item() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let item_id = uuid::Uuid::new_v4();
+    let body = serde_json::json!({
+        "title": "更新済みアイテム",
+        "is_completed": true
+    });
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}/checklist/{}", task_id, item_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["is_completed"], true);
+}
+
+/// チェックリストアイテム削除（DELETE /api/v1/tasks/{id}/checklist/{item_id}）が 204 を返すことを確認する
+#[tokio::test]
+async fn test_delete_checklist_item() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let item_id = uuid::Uuid::new_v4();
+    let req = Request::builder()
+        .method("DELETE")
+        .uri(format!("/api/v1/tasks/{}/checklist/{}", task_id, item_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+/// タスク作成で labels 配列が正しく反映されることを確認する
+#[tokio::test]
+async fn test_create_task_with_labels() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "project_id": uuid::Uuid::new_v4(),
+        "title": "ラベル付きタスク",
+        "priority": "low",
+        "labels": ["bug", "feature"],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let labels = json["labels"].as_array().expect("labels フィールドが配列でない");
+    assert_eq!(labels.len(), 2);
+}
+
+/// タスク作成のデフォルト status が open であることを確認する
+#[tokio::test]
+async fn test_create_task_default_status_is_open() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "project_id": uuid::Uuid::new_v4(),
+        "title": "ステータス確認タスク",
+        "priority": "medium",
+        "labels": [],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["status"], "open");
+}
+
+/// タスク一覧に query parameter を付けても 200 を返すことを確認する
+#[tokio::test]
+async fn test_list_tasks_with_query_params() {
+    let task = sample_task();
+    let project_id = task.project_id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks?project_id={}&limit=10&offset=0", project_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// タスク取得レスポンスに created_at フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_get_task_has_created_at() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["created_at"].is_string());
+}
+
+/// タスク一覧レスポンスの各アイテムに id フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_list_tasks_items_have_id() {
+    let task = sample_task();
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri("/api/v1/tasks")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let tasks_arr = json["tasks"].as_array().expect("tasks フィールドが配列でない");
+    assert!(tasks_arr[0]["id"].is_string());
+}
+
+/// タスク更新で description を変更できることを確認する
+#[tokio::test]
+async fn test_update_task_description() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    // UpdateTask は expected_version が必須フィールド（楽観ロック用）
+    let body = serde_json::json!({"description": "更新後の説明", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["description"], "更新後の説明");
+}
+
+/// タスク作成で project_id が欠如した場合にバリデーションエラーを返すことを確認する
+#[tokio::test]
+async fn test_create_task_missing_project_id() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "title": "プロジェクトIDなし",
+        "priority": "medium",
+        "labels": [],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::CREATED);
+}
+
+/// チェックリストアイテム作成レスポンスに task_id が含まれることを確認する
+#[tokio::test]
+async fn test_create_checklist_item_has_task_id() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let body = serde_json::json!({"title": "アイテム確認", "sort_order": 1});
+    let req = Request::builder()
+        .method("POST")
+        .uri(format!("/api/v1/tasks/{}/checklist", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["task_id"], task_id.to_string());
+}
+
+/// タスク作成で reporter_id が正しく反映されることを確認する
+#[tokio::test]
+async fn test_create_task_with_reporter() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "project_id": uuid::Uuid::new_v4(),
+        "title": "報告者付きタスク",
+        "priority": "medium",
+        "reporter_id": "reporter-xyz",
+        "labels": [],
+        "checklist": []
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/tasks")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["reporter_id"], "reporter-xyz");
+}
+
+/// GET /api/v1/tasks/{id} で不正な UUID フォーマットに対してエラーを返すことを確認する
+#[tokio::test]
+async fn test_get_task_invalid_uuid() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .uri("/api/v1/tasks/not-a-uuid")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// タスク一覧レスポンスの各アイテムに status フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_list_tasks_items_have_status() {
+    let task = sample_task();
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri("/api/v1/tasks")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let tasks_arr = json["tasks"].as_array().expect("tasks フィールドが配列でない");
+    assert!(tasks_arr[0]["status"].is_string());
+}
+
+/// ステータス更新で存在しないステータス "closed" を指定するとバリデーションエラーを返すことを確認する
+/// TaskStatus は open/in_progress/review/done/cancelled のみ有効で、"closed" は無効
+#[tokio::test]
+async fn test_update_task_status_to_closed() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    // "closed" は TaskStatus に存在しないため 422 Unprocessable Entity を返す
+    let body = serde_json::json!({"status": "closed", "expected_version": 1});
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/tasks/{}/status", task_id))
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    // "closed" は存在しないステータスのため 422 Unprocessable Entity が返る（正常なバリデーション）
+    assert_eq!(resp.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+/// タスク取得レスポンスに priority フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_get_task_has_priority() {
+    let task = sample_task();
+    let task_id = task.id;
+    let app = make_test_app_with_task(task);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/tasks/{}", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["priority"].is_string());
+}
+
+/// タスク一覧レスポンスに tasks と total の両フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_list_tasks_response_structure() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .uri("/api/v1/tasks")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["tasks"].is_array());
+    assert!(json["total"].is_number());
 }
 
 // --- 実 DB を使ったテスト（db-tests feature が有効な場合のみ実行）---

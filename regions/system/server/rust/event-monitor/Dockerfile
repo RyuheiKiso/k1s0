@@ -22,9 +22,15 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 # cook ステージ: 依存のみビルド（キャッシュ層）
+# CARGO_FEATURES: フィーチャーフラグを cook ステージに渡す（dev-auth-bypass 等のフィーチャーをキャッシュに反映するため）
 FROM chef AS cook
+ARG CARGO_FEATURES=""
 COPY --from=planner /app/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-event-monitor-server
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+        cargo chef cook --release --features "${CARGO_FEATURES}" --recipe-path recipe.json -p k1s0-event-monitor-server; \
+    else \
+        cargo chef cook --release --recipe-path recipe.json -p k1s0-event-monitor-server; \
+    fi
 
 # builder ステージ: ソースコードのビルド
 FROM cook AS builder

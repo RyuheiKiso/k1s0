@@ -18,7 +18,8 @@ export class MemoryTokenStore implements TokenStore {
     return this.tokenSet;
   }
 
-  setTokenSet(tokenSet: TokenSet): void {
+  // HIGH-FE-001 対応: setTokenSet を async Promise<void> に変更する（インターフェース準拠）
+  async setTokenSet(tokenSet: TokenSet): Promise<void> {
     this.tokenSet = tokenSet;
   }
 
@@ -112,7 +113,8 @@ export class DevLocalStorageTokenStore implements TokenStore {
     }
   }
 
-  setTokenSet(tokenSet: TokenSet): void {
+  // HIGH-FE-001 対応: setTokenSet を async Promise<void> に変更する（インターフェース準拠）
+  async setTokenSet(tokenSet: TokenSet): Promise<void> {
     localStorage.setItem(this.tokenKey, JSON.stringify(tokenSet));
   }
 
@@ -176,6 +178,10 @@ export class SecureTokenStore implements TokenStore {
   private readonly bffBaseUrl: string;
   // M-010 監査対応: トークン操作失敗時の通知コールバックを保持するオプション
   private readonly _options?: SecureTokenStoreOptions;
+  // HIGH-FE-002 対応: インメモリキャッシュによる同期 getTokenSet() をサポートする。
+  // BFF への非同期通信なしで認証状態を素早く確認できるようにする。
+  // setTokenSet() でキャッシュを更新し、clearTokenSet() でクリアする。
+  private _cachedTokenSet: TokenSet | null = null;
 
   constructor(bffBaseUrl = '/bff', options?: SecureTokenStoreOptions) {
     // BFF が利用できない環境（SSR 等）での誤使用を検知してエラーをスローする。
@@ -234,32 +240,45 @@ export class SecureTokenStore implements TokenStore {
     return null;
   }
 
-  // BFF 経由でトークンセットを取得する。BFF が未起動の場合は null を返す。
+  // HIGH-FE-002 対応: インメモリキャッシュからトークンセットを返す。
+  // setTokenSet() によりキャッシュが更新されている場合はキャッシュ値を返す。
+  // キャッシュが null の場合（初回起動時等）は null を返す。
+  // 完全な非同期取得が必要な場合は getTokenSetAsync() を使用すること。
   getTokenSet(): TokenSet | null {
-    // SecureTokenStore は非同期 BFF 通信が必要なため、同期 getTokenSet() はスタブとして null を返す。
-    // 本番アプリケーションでは BFF セッション Cookie により認証状態を判定すること。
-    // 完全な非同期取得が必要な場合は getTokenSetAsync() を使用すること。
-    return null;
+    return this._cachedTokenSet;
   }
 
   // BFF 経由でトークンセットを非同期取得する（推奨: 本番用途はこちらを使用）。
+  // HIGH-FE-002 対応: BFF から取得したトークンをインメモリキャッシュに反映する。
   async getTokenSetAsync(): Promise<TokenSet | null> {
-    return this._request<TokenSet>('GET', '/token');
+    const tokenSet = await this._request<TokenSet>('GET', '/token');
+    // BFF からの最新値でキャッシュを更新する（null の場合もクリアする）
+    this._cachedTokenSet = tokenSet;
+    return tokenSet;
   }
 
   // BFF 経由でトークンセットを保存する（httpOnly Cookie セッションに紐付けて BFF が保管する）。
-  setTokenSet(tokenSet: TokenSet): void {
-    // 非同期操作の結果をキャッチするため、エラーはコンソールに出力する。
-    // 同期インターフェース制約のため void を返す。本番では setTokenSetAsync() を推奨。
-    this._request('POST', '/token', tokenSet).catch((err: unknown) => {
+  // HIGH-FE-001 対応: setTokenSet を async Promise<void> に変更する。
+  // BFF への非同期通信を await できるようにし、保存失敗を呼び出し元に伝播する。
+  // HIGH-FE-002 対応: setTokenSet 実行時にインメモリキャッシュも更新する。
+  async setTokenSet(tokenSet: TokenSet): Promise<void> {
+    // キャッシュを先に更新して同期アクセスで即座に反映されるようにする
+    this._cachedTokenSet = tokenSet;
+    try {
+      await this._request('POST', '/token', tokenSet);
+    } catch (err: unknown) {
       console.error('[k1s0-auth] SecureTokenStore: トークンの保存に失敗しました。', err);
       // M-010 監査対応: 呼び出し元に認証リセットを通知する
       this._options?.onTokenSetFailure?.(err);
-    });
+      throw err;
+    }
   }
 
   // BFF 経由でトークンセットを削除する。
+  // HIGH-FE-002 対応: clearTokenSet 実行時にインメモリキャッシュもクリアする。
   clearTokenSet(): void {
+    // キャッシュを即座にクリアして、BFF 通信完了を待たずに認証状態を反映する
+    this._cachedTokenSet = null;
     this._request('DELETE', '/token').catch((err: unknown) => {
       console.error('[k1s0-auth] SecureTokenStore: トークンの削除に失敗しました。', err);
       // M-010 監査対応: 呼び出し元に認証リセットを通知する

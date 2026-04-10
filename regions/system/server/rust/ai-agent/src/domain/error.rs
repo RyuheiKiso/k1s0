@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// AiAgent ドメイン固有のエラー型。
+/// `AiAgent` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum AiAgentError {
     /// エージェントが見つからない
@@ -28,7 +28,7 @@ pub enum AiAgentError {
     Internal(String),
 }
 
-/// AiAgentError から ServiceError への変換実装
+/// `AiAgentError` から `ServiceError` への変換実装
 impl From<AiAgentError> for ServiceError {
     fn from(err: AiAgentError) -> Self {
         match err {

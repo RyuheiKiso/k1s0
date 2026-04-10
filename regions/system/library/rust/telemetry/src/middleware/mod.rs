@@ -18,6 +18,7 @@ const SENSITIVE_PARAMS: &[&str] = &[
 
 /// HTTP パスからセンシティブなクエリパラメータをマスクする。
 /// 例: `/api/users?token=abc123` → `/api/users?token=***`
+#[must_use]
 pub fn sanitize_path(path: &str) -> String {
     // クエリパラメータがない場合はそのまま返す
     let Some(query_start) = path.find('?') else {
@@ -34,7 +35,7 @@ pub fn sanitize_path(path: &str) -> String {
                 let key = &param[..eq_pos];
                 let key_lower = key.to_ascii_lowercase();
                 if SENSITIVE_PARAMS.iter().any(|s| key_lower.contains(s)) {
-                    format!("{}=***", key)
+                    format!("{key}=***")
                 } else {
                     param.to_string()
                 }
@@ -57,8 +58,8 @@ pub use grpc_layer::GrpcMetricsLayer;
 #[cfg(any(feature = "axum-layer", test))]
 pub use http_layer::MetricsLayer;
 
-/// TelemetryMiddleware は HTTP リクエストの分散トレーシングとメトリクス記録を提供する。
-/// Go の HTTPMiddleware と同等の機能を持つ。
+/// `TelemetryMiddleware` は HTTP リクエストの分散トレーシングとメトリクス記録を提供する。
+/// Go の `HTTPMiddleware` と同等の機能を持つ。
 ///
 /// # axum での使用例
 ///
@@ -82,19 +83,20 @@ pub struct TelemetryMiddleware {
 }
 
 impl TelemetryMiddleware {
-    /// new は TelemetryMiddleware を生成する。
+    /// new は `TelemetryMiddleware` を生成する。
+    #[must_use]
     pub fn new(metrics: Arc<Metrics>) -> Self {
         Self { metrics }
     }
 
-    /// on_request はリクエスト開始時にトレーシングスパンを作成する。
+    /// `on_request` はリクエスト開始時にトレーシングスパンを作成する。
     /// パス内のセンシティブ情報をマスクしてからスパンに記録する。
     pub fn on_request(&self, method: &str, path: &str) {
         let safe_path = sanitize_path(path);
         tracing::info_span!("http_request", http.method = method, http.path = %safe_path,);
     }
 
-    /// on_response はレスポンス完了時にメトリクスを記録する。
+    /// `on_response` はレスポンス完了時にメトリクスを記録する。
     /// ステータスコードとレイテンシを記録し、構造化ログを出力する。
     /// パス内のセンシティブ情報をマスクしてからログ・メトリクスに記録する。
     pub fn on_response(&self, method: &str, path: &str, status: u16, duration_secs: f64) {
@@ -115,8 +117,8 @@ impl TelemetryMiddleware {
     }
 }
 
-/// GrpcInterceptor は gRPC Unary RPC のトレーシングとメトリクス記録を提供する。
-/// Go の GRPCUnaryInterceptor と同等の機能を持つ。
+/// `GrpcInterceptor` は gRPC Unary RPC のトレーシングとメトリクス記録を提供する。
+/// Go の `GRPCUnaryInterceptor` と同等の機能を持つ。
 ///
 /// # tonic での使用例
 ///
@@ -135,17 +137,18 @@ pub struct GrpcInterceptor {
 }
 
 impl GrpcInterceptor {
-    /// new は GrpcInterceptor を生成する。
+    /// new は `GrpcInterceptor` を生成する。
+    #[must_use]
     pub fn new(metrics: Arc<Metrics>) -> Self {
         Self { metrics }
     }
 
-    /// on_request は gRPC リクエスト開始時にトレーシングスパンを作成する。
+    /// `on_request` は gRPC リクエスト開始時にトレーシングスパンを作成する。
     pub fn on_request(&self, service: &str, method: &str) {
         tracing::info_span!("grpc_call", rpc.service = service, rpc.method = method,);
     }
 
-    /// on_response は gRPC レスポンス完了時にメトリクスを記録する。
+    /// `on_response` は gRPC レスポンス完了時にメトリクスを記録する。
     /// gRPC ステータスコードとレイテンシを記録し、構造化ログを出力する。
     pub fn on_response(&self, service: &str, method: &str, code: &str, duration_secs: f64) {
         self.metrics.record_grpc_request(service, method, code);
@@ -172,7 +175,7 @@ impl GrpcInterceptor {
     }
 }
 
-/// trace_request マクロは axum/tonic ハンドラにトレーシング情報を付与する。
+/// `trace_request` マクロは axum/tonic ハンドラにトレーシング情報を付与する。
 ///
 /// # 使用例
 ///
@@ -190,14 +193,14 @@ macro_rules! trace_request {
         let result = $body;
         let duration = start.elapsed();
         tracing::info!(
-            duration_ms = duration.as_millis() as u64,
+            duration_ms = u64::try_from(duration.as_millis()).unwrap_or(u64::MAX),
             "Request completed"
         );
         result
     }};
 }
 
-/// trace_grpc_call マクロは gRPC メソッド呼び出しにトレーシング情報を付与する。
+/// `trace_grpc_call` マクロは gRPC メソッド呼び出しにトレーシング情報を付与する。
 ///
 /// # 使用例
 ///
@@ -215,7 +218,7 @@ macro_rules! trace_grpc_call {
         let result = $body;
         let duration = start.elapsed();
         tracing::info!(
-            duration_ms = duration.as_millis() as u64,
+            duration_ms = u64::try_from(duration.as_millis()).unwrap_or(u64::MAX),
             "gRPC call completed"
         );
         result

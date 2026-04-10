@@ -61,7 +61,7 @@ impl ListInstancesUseCase {
             .await
             .map_err(|e| ListInstancesError::Internal(e.to_string()))?;
 
-        let has_next = (page as u64 * page_size as u64) < total_count;
+        let has_next = (u64::from(page) * u64::from(page_size)) < total_count;
 
         Ok(ListInstancesOutput {
             instances,
@@ -105,8 +105,9 @@ mod tests {
     #[tokio::test]
     async fn has_next_page() {
         let mut mock = MockWorkflowInstanceRepository::new();
+        // tenant_id が追加されたため6引数でパターンマッチする
         mock.expect_find_all()
-            .returning(|_, _, _, _, _| Ok((vec![], 50)));
+            .returning(|_, _, _, _, _, _| Ok((vec![], 50)));
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {
@@ -124,8 +125,9 @@ mod tests {
     #[tokio::test]
     async fn internal_error() {
         let mut mock = MockWorkflowInstanceRepository::new();
+        // tenant_id が追加されたため6引数でパターンマッチする
         mock.expect_find_all()
-            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {

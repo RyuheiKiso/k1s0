@@ -174,7 +174,7 @@ pub struct BackendsConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BackendConfig {
-    /// gRPC エンドポイント（例: "http://tenant-server.k1s0-system.svc.cluster.local:50051"）
+    /// gRPC エンドポイント（例: "<http://tenant-server.k1s0-system.svc.cluster.local:50051>"）
     #[serde(default = "default_backend_address")]
     pub address: String,
     /// リクエストタイムアウト（ミリ秒）
@@ -286,7 +286,7 @@ pub struct RateLimitConfig {
     /// レート制限を有効化するか
     #[serde(default)]
     pub enabled: bool,
-    /// ratelimit サービスの URL（例: "http://ratelimit-server:50051"）
+    /// ratelimit サービスの URL（例: "<http://ratelimit-server:50051>"）
     #[serde(default = "default_ratelimit_server_url")]
     pub server_url: String,
     /// レート制限のスコープ（キープレフィックスとして使用）
@@ -369,7 +369,7 @@ impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let path = std::env::var("CONFIG_PATH").unwrap_or_else(|_| path.to_owned());
         let content = fs::read_to_string(&path)
-            .map_err(|e| anyhow::anyhow!("failed to read config file {}: {}", path, e))?;
+            .map_err(|e| anyhow::anyhow!("failed to read config file {path}: {e}"))?;
         let cfg: Config = serde_yaml::from_str(&content)?;
         Ok(cfg)
     }
@@ -399,9 +399,13 @@ mod tests {
     use super::*;
 
     /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト・H-005 監査対応）
+    /// HIGH-010 監査対応: include_str! のパスを修正。
+    /// mod.rs の場所: src/infrastructure/config/mod.rs
+    /// config.docker.yaml の場所: config/config.docker.yaml（graphql-gateway ルート直下）
+    /// 相対パス: ../../../config/config.docker.yaml（3階層上がって config/ へ）
     #[test]
     fn config_docker_yaml_deserializes_correctly() {
-        let yaml = include_str!("../../config/config.docker.yaml");
+        let yaml = include_str!("../../../config/config.docker.yaml");
         let _config: Config =
             serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
     }

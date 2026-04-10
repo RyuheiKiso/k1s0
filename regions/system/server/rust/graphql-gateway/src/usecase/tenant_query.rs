@@ -32,10 +32,10 @@ impl TenantQueryResolver {
         let offset = after
             .as_deref()
             .and_then(decode_cursor)
-            .map(|o| o + 1)
-            .unwrap_or(0);
+            .map_or(0, |o| o + 1);
         let page = if page_size > 0 {
-            (offset as i32 / page_size) + 1
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            (i32::try_from(offset).unwrap_or(i32::MAX) / page_size) + 1
         } else {
             1
         };

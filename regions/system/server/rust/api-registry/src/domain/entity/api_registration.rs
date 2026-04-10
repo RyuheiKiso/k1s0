@@ -14,6 +14,7 @@ pub struct ApiSchema {
 }
 
 impl ApiSchema {
+    #[must_use]
     pub fn new(name: String, description: String, schema_type: SchemaType) -> Self {
         let now = Utc::now();
         Self {
@@ -39,9 +40,10 @@ pub enum SchemaType {
 
 impl SchemaType {
     #[allow(clippy::should_implement_trait)]
+    #[must_use]
     pub fn from_str(s: &str) -> Self {
+        // "openapi"/"open_api" アームと wildcard アームが同一の返り値のため統合する
         match s.to_lowercase().as_str() {
-            "openapi" | "open_api" => Self::OpenApi,
             "protobuf" | "proto" => Self::Protobuf,
             _ => Self::OpenApi,
         }
@@ -71,6 +73,7 @@ pub struct ApiSchemaVersion {
 }
 
 impl ApiSchemaVersion {
+    #[must_use]
     pub fn new(
         name: String,
         version: u32,
@@ -92,6 +95,7 @@ impl ApiSchemaVersion {
         }
     }
 
+    #[must_use]
     pub fn with_breaking_changes(
         mut self,
         breaking_changes: bool,
@@ -111,6 +115,7 @@ pub struct BreakingChange {
 }
 
 impl BreakingChange {
+    #[must_use]
     pub fn new(change_type: String, path: String, description: String) -> Self {
         Self {
             change_type,
@@ -159,6 +164,7 @@ pub struct DiffModifiedEntry {
 /// コンテンツのSHA256ハッシュを計算して返す
 /// result[..16] による128bit切り捨てをやめ、SHA256フルハッシュ（256bit/32バイト）を使用する
 /// これにより衝突耐性が維持され、セキュリティが確保される（H-08 監査対応）
+#[must_use]
 pub fn compute_content_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());

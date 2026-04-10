@@ -30,8 +30,8 @@ async fn check_permission_with_role_table(
     AuthDomainService::check_permission(roles, resource, action)
 }
 
-/// rbac_middleware は Request extension の Claims からロールを取得し、
-/// AuthDomainService を使って指定リソース・アクションのパーミッションを確認する axum ミドルウェア。
+/// `rbac_middleware` は Request extension の Claims からロールを取得し、
+/// `AuthDomainService` を使って指定リソース・アクションのパーミッションを確認する axum ミドルウェア。
 ///
 /// Claims が extension に存在しない場合は 401 Unauthorized を返す。
 /// パーミッションが不足する場合は 403 Forbidden を返す。
@@ -53,7 +53,7 @@ pub fn make_rbac_middleware(
     }
 }
 
-/// Core RBAC check logic. Called from make_rbac_middleware.
+/// Core RBAC check logic. Called from `make_rbac_middleware`.
 pub async fn rbac_check(
     state: AppState,
     req: Request<axum::body::Body>,
@@ -88,8 +88,7 @@ pub async fn rbac_check(
                 StatusCode::FORBIDDEN,
                 "SYS_AUTH_PERMISSION_DENIED",
                 format!(
-                    "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
-                    action, resource
+                    "Insufficient permissions: action '{action}' on resource '{resource}' is not allowed for the current roles."
                 ),
             )
         };
@@ -109,8 +108,7 @@ pub async fn rbac_check(
             StatusCode::FORBIDDEN,
             "SYS_AUTH_PERMISSION_DENIED",
             format!(
-                "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
-                action, resource
+                "Insufficient permissions: action '{action}' on resource '{resource}' is not allowed for the current roles."
             ),
         )
     }

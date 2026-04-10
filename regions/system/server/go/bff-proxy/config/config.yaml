@@ -7,6 +7,10 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  # HIGH-GO-001 監査対応: /metrics 専用の内部サーバーポート（127.0.0.1 にバインド）。
+  # Prometheus スクレイプは公開ポート（8080）ではなくこのポートを使用すること。
+  # デフォルト: 9090
+  internal_port: 9090
   read_timeout: "10s"
   write_timeout: "30s"
   shutdown_timeout: "15s"

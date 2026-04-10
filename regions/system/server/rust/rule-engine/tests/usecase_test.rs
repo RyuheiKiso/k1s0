@@ -430,6 +430,7 @@ impl RuleEventPublisher for StubEventPublisher {
 // Helpers
 // ============================================================
 
+/// テスト用ルール生成ヘルパー。CRITICAL-RUST-001 対応: tenant_id を固定値で設定する。
 fn make_rule(
     name: &str,
     priority: i32,
@@ -439,6 +440,7 @@ fn make_rule(
     let now = Utc::now();
     Rule {
         id: Uuid::new_v4(),
+        tenant_id: "test-tenant".to_string(),
         name: name.to_string(),
         description: format!("{} description", name),
         priority,
@@ -451,10 +453,12 @@ fn make_rule(
     }
 }
 
+/// テスト用ルールセット生成ヘルパー。CRITICAL-RUST-001 対応: tenant_id を固定値で設定する。
 fn make_rule_set(name: &str, domain: &str, mode: EvaluationMode, rule_ids: Vec<Uuid>) -> RuleSet {
     let now = Utc::now();
     RuleSet {
         id: Uuid::new_v4(),
+        tenant_id: "test-tenant".to_string(),
         name: name.to_string(),
         description: format!("{} description", name),
         domain: domain.to_string(),
@@ -481,7 +485,9 @@ async fn create_rule_success() {
     let repo = Arc::new(StubRuleRepository::new());
     let uc = CreateRuleUseCase::with_publisher(repo.clone(), make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する
     let input = CreateRuleInput {
+        tenant_id: "test-tenant".to_string(),
         name: "tax-rule".to_string(),
         description: "Tax calculation rule".to_string(),
         priority: 10,
@@ -504,7 +510,9 @@ async fn create_rule_empty_name_validation_error() {
     let repo = Arc::new(StubRuleRepository::new());
     let uc = CreateRuleUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（空の名前バリデーション）
     let input = CreateRuleInput {
+        tenant_id: "test-tenant".to_string(),
         name: "".to_string(),
         description: "".to_string(),
         priority: 10,
@@ -520,7 +528,9 @@ async fn create_rule_invalid_priority_too_low() {
     let repo = Arc::new(StubRuleRepository::new());
     let uc = CreateRuleUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（優先度範囲外バリデーション）
     let input = CreateRuleInput {
+        tenant_id: "test-tenant".to_string(),
         name: "test".to_string(),
         description: "".to_string(),
         priority: 0,
@@ -538,7 +548,9 @@ async fn create_rule_invalid_priority_too_high() {
     let repo = Arc::new(StubRuleRepository::new());
     let uc = CreateRuleUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（優先度上限超えバリデーション）
     let input = CreateRuleInput {
+        tenant_id: "test-tenant".to_string(),
         name: "test".to_string(),
         description: "".to_string(),
         priority: 1001,
@@ -554,7 +566,9 @@ async fn create_rule_invalid_condition() {
     let repo = Arc::new(StubRuleRepository::new());
     let uc = CreateRuleUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（不正な条件バリデーション）
     let input = CreateRuleInput {
+        tenant_id: "test-tenant".to_string(),
         name: "test".to_string(),
         description: "".to_string(),
         priority: 10,
@@ -576,7 +590,9 @@ async fn create_rule_already_exists() {
     let repo = Arc::new(StubRuleRepository::with_rules(vec![existing]));
     let uc = CreateRuleUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（重複ルール名テスト）
     let input = CreateRuleInput {
+        tenant_id: "test-tenant".to_string(),
         name: "existing-rule".to_string(),
         description: "".to_string(),
         priority: 10,
@@ -836,7 +852,9 @@ async fn create_rule_set_success() {
     let repo = Arc::new(StubRuleSetRepository::new());
     let uc = CreateRuleSetUseCase::with_publisher(repo.clone(), make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する
     let input = CreateRuleSetInput {
+        tenant_id: "test-tenant".to_string(),
         name: "tax-rules".to_string(),
         description: "Tax calculation rules".to_string(),
         domain: "pricing".to_string(),
@@ -859,7 +877,9 @@ async fn create_rule_set_empty_name() {
     let repo = Arc::new(StubRuleSetRepository::new());
     let uc = CreateRuleSetUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する（空の名前バリデーション）
     let input = CreateRuleSetInput {
+        tenant_id: "test-tenant".to_string(),
         name: "".to_string(),
         description: "".to_string(),
         domain: "pricing".to_string(),
@@ -876,7 +896,9 @@ async fn create_rule_set_empty_domain() {
     let repo = Arc::new(StubRuleSetRepository::new());
     let uc = CreateRuleSetUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する（空のドメインバリデーション）
     let input = CreateRuleSetInput {
+        tenant_id: "test-tenant".to_string(),
         name: "test".to_string(),
         description: "".to_string(),
         domain: "".to_string(),
@@ -893,7 +915,9 @@ async fn create_rule_set_invalid_evaluation_mode() {
     let repo = Arc::new(StubRuleSetRepository::new());
     let uc = CreateRuleSetUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する（不正な評価モードバリデーション）
     let input = CreateRuleSetInput {
+        tenant_id: "test-tenant".to_string(),
         name: "test".to_string(),
         description: "".to_string(),
         domain: "pricing".to_string(),
@@ -916,7 +940,9 @@ async fn create_rule_set_already_exists() {
     let repo = Arc::new(StubRuleSetRepository::with_rule_sets(vec![existing]));
     let uc = CreateRuleSetUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する（重複テスト）
     let input = CreateRuleSetInput {
+        tenant_id: "test-tenant".to_string(),
         name: "existing-set".to_string(),
         description: "".to_string(),
         domain: "pricing".to_string(),
@@ -933,7 +959,9 @@ async fn create_rule_set_all_match_mode() {
     let repo = Arc::new(StubRuleSetRepository::new());
     let uc = CreateRuleSetUseCase::with_publisher(repo, make_publisher());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する（all_match モード）
     let input = CreateRuleSetInput {
+        tenant_id: "test-tenant".to_string(),
         name: "all-match-set".to_string(),
         description: "".to_string(),
         domain: "validation".to_string(),
@@ -1131,7 +1159,9 @@ async fn evaluate_first_match_returns_first_matching_rule() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo.clone());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "pricing.tax-calc".to_string(),
         input: serde_json::json!({"amount": 5000}),
         context: serde_json::json!({"user_id": "u1"}),
@@ -1181,7 +1211,9 @@ async fn evaluate_all_match_returns_all_matching_rules() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（all_match モード）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "pricing.promo".to_string(),
         input: serde_json::json!({"category": "food", "amount": 200}),
         context: serde_json::json!({}),
@@ -1220,7 +1252,9 @@ async fn evaluate_no_match_returns_default() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（マッチなし）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "test.test-set".to_string(),
         input: serde_json::json!({"status": "active"}),
         context: serde_json::json!({}),
@@ -1256,7 +1290,9 @@ async fn evaluate_dry_run_does_not_write_log() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo.clone());
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（dry_run モード）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "test.test-set".to_string(),
         input: serde_json::json!({"x": "y"}),
         context: serde_json::json!({}),
@@ -1278,7 +1314,9 @@ async fn evaluate_rule_set_not_found() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（ルールセット見つからない）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "pricing.nonexistent".to_string(),
         input: serde_json::json!({}),
         context: serde_json::json!({}),
@@ -1296,7 +1334,9 @@ async fn evaluate_invalid_rule_set_format() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（フォーマット不正）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "no-dot-here".to_string(),
         input: serde_json::json!({}),
         context: serde_json::json!({}),
@@ -1341,7 +1381,9 @@ async fn evaluate_disabled_rules_are_skipped() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（dry_run モード）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "test.test-set".to_string(),
         input: serde_json::json!({"x": "y"}),
         context: serde_json::json!({}),
@@ -1385,7 +1427,9 @@ async fn evaluate_rules_sorted_by_priority() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（優先度ソートテスト）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "test.priority-set".to_string(),
         input: serde_json::json!({"x": "y"}),
         context: serde_json::json!({}),
@@ -1436,8 +1480,10 @@ async fn evaluate_complex_condition_with_combinators() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（複合条件マッチ）
     // Should match: food category, price > 100, gold tier
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "pricing.promo".to_string(),
         input: serde_json::json!({
             "item": {"category": "food", "price": 200},
@@ -1480,8 +1526,10 @@ async fn evaluate_complex_condition_no_match() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（複合条件マッチなし）
     // Should NOT match: food but price too low
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "pricing.promo".to_string(),
         input: serde_json::json!({
             "item": {"category": "food", "price": 50}
@@ -1518,7 +1566,9 @@ async fn evaluate_with_in_operator() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（starts_with 条件）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "logistics.shipping".to_string(),
         input: serde_json::json!({"region": "JP"}),
         context: serde_json::json!({}),
@@ -1552,7 +1602,9 @@ async fn evaluate_with_contains_operator() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（contains 条件）
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "catalog.classify".to_string(),
         input: serde_json::json!({"name": "premium membership plan"}),
         context: serde_json::json!({}),
@@ -1585,8 +1637,10 @@ async fn evaluate_with_none_combinator() {
 
     let uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo);
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（none コンビネータ）
     // "active" is neither "banned" nor "suspended" -> none = true -> match
     let input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "auth.access".to_string(),
         input: serde_json::json!({"status": "active"}),
         context: serde_json::json!({}),
@@ -1596,8 +1650,10 @@ async fn evaluate_with_none_combinator() {
     assert_eq!(result.matched_rules.len(), 1);
     assert_eq!(result.result, serde_json::json!({"allowed": true}));
 
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（none コンビネータ・マッチなし）
     // "banned" -> none = false -> no match
     let input2 = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "auth.access".to_string(),
         input: serde_json::json!({"status": "banned"}),
         context: serde_json::json!({}),
@@ -1790,7 +1846,9 @@ async fn list_evaluation_logs_after_evaluation() {
     let eval_uc = EvaluateUseCase::new(rule_set_repo, rule_repo, eval_log_repo.clone());
 
     // Execute evaluation (non-dry-run)
+    // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（ログ記録テスト）
     let eval_input = EvaluateInput {
+        tenant_id: "test-tenant".to_string(),
         rule_set: "test.log-set".to_string(),
         input: serde_json::json!({"x": "y"}),
         context: serde_json::json!({"trace_id": "abc"}),
@@ -1828,7 +1886,9 @@ async fn end_to_end_create_publish_evaluate_rollback() {
     // 1. Create a rule
     let create_rule_uc = CreateRuleUseCase::with_publisher(rule_repo.clone(), publisher.clone());
     let rule = create_rule_uc
+        // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（ワークフローテスト）
         .execute(&CreateRuleInput {
+            tenant_id: "test-tenant".to_string(),
             name: "vip-discount".to_string(),
             description: "VIP customer discount".to_string(),
             priority: 1,
@@ -1842,7 +1902,9 @@ async fn end_to_end_create_publish_evaluate_rollback() {
     let create_rs_uc =
         CreateRuleSetUseCase::with_publisher(rule_set_repo.clone(), publisher.clone());
     let rule_set = create_rs_uc
+        // CRITICAL-RUST-001 対応: tenant_id を指定してルールセットを作成する（ワークフローテスト）
         .execute(&CreateRuleSetInput {
+            tenant_id: "test-tenant".to_string(),
             name: "discounts".to_string(),
             description: "Discount calculation".to_string(),
             domain: "pricing".to_string(),
@@ -1869,7 +1931,9 @@ async fn end_to_end_create_publish_evaluate_rollback() {
         eval_log_repo.clone(),
     );
     let eval_result = eval_uc
+        // CRITICAL-RUST-001 対応: tenant_id を指定してルールを評価する（ワークフローテスト）
         .execute(&EvaluateInput {
+            tenant_id: "test-tenant".to_string(),
             rule_set: "pricing.discounts".to_string(),
             input: serde_json::json!({"customer": {"tier": "vip"}}),
             context: serde_json::json!({}),
@@ -1882,7 +1946,9 @@ async fn end_to_end_create_publish_evaluate_rollback() {
 
     // 5. Create a second rule and update rule set
     let rule2 = create_rule_uc
+        // CRITICAL-RUST-001 対応: tenant_id を指定してルールを作成する（ワークフローテスト step 5）
         .execute(&CreateRuleInput {
+            tenant_id: "test-tenant".to_string(),
             name: "premium-discount".to_string(),
             description: "Premium discount".to_string(),
             priority: 2,

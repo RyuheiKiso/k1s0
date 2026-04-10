@@ -40,7 +40,7 @@ pub enum NotificationError {
     Internal(String),
 }
 
-/// NotificationError から ServiceError への変換実装
+/// `NotificationError` から `ServiceError` への変換実装
 impl From<NotificationError> for ServiceError {
     fn from(err: NotificationError) -> Self {
         match err {

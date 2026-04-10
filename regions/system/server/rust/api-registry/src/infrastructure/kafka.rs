@@ -1,5 +1,5 @@
 //! Kafka プロデューサー実装。
-//! SchemaUpdatedEvent を k1s0.system.apiregistry.schema_updated.v1 トピックに送信する。
+//! `SchemaUpdatedEvent` を `k1s0.system.apiregistry.schema_updated.v1` トピックに送信する。
 
 use async_trait::async_trait;
 use rdkafka::config::ClientConfig;
@@ -66,7 +66,7 @@ impl SchemaEventPublisher for KafkaSchemaEventPublisher {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("Kafka send error: {}", err))?;
+            .map_err(|(err, _)| anyhow::anyhow!("Kafka send error: {err}"))?;
         Ok(())
     }
 }

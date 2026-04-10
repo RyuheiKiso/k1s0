@@ -163,12 +163,40 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(&req.status_code)
         .fetch_optional(&mut *tx)
         .await
-        .map_err(|e| BoardError::Infrastructure(e.into()))?
-        .ok_or_else(|| BoardError::WipLimitExceeded {
-            column_id: format!("project={} status={}", req.project_id, req.status_code),
-            current: 0,
-            limit: 0,
-        })?;
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
+
+        // HIGH-BIZ-004 対応: UPSERT が行を返さない場合（WIP 制限超過）に実際の current/limit を取得する。
+        // ON CONFLICT ... WHERE 句の条件を満たさない場合は RETURNING が返らないため、
+        // 別途 SELECT して実際の task_count と wip_limit を取得してエラーに含める。
+        let row = match row {
+            Some(r) => r,
+            None => {
+                // WIP 制限超過のため、現在の task_count と wip_limit を取得する
+                let existing = sqlx::query_as::<_, ColumnRow>(
+                    "SELECT id, project_id, status_code, wip_limit, task_count, version, created_at, updated_at \
+                     FROM board_service.board_columns \
+                     WHERE project_id = $1 AND status_code = $2",
+                )
+                .bind(req.project_id)
+                .bind(&req.status_code)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| BoardError::Infrastructure(e.into()))?;
+
+                return Err(match existing {
+                    Some(col) => BoardError::WipLimitExceeded {
+                        column_id: col.id.to_string(),
+                        current: col.task_count,
+                        limit: col.wip_limit,
+                    },
+                    None => BoardError::WipLimitExceeded {
+                        column_id: format!("project={} status={}", req.project_id, req.status_code),
+                        current: 0,
+                        limit: 0,
+                    },
+                });
+            }
+        };
 
         // HIGH-005 監査対応: Outbox イベントに tenant_id を含めてテナント分離を保証する
         sqlx::query(
@@ -209,12 +237,15 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .map_err(|e| BoardError::Infrastructure(e.into()))?
         .ok_or_else(|| BoardError::NotFound(format!("project={} status={}", req.project_id, req.status_code)))?;
 
+        // CRITICAL-BIZ-001 対応: Outbox イベントに tenant_id を含めてテナント分離を保証する
+        // increment メソッドと同様のパターンで tenant_id カラムを追加する
         sqlx::query(
-            "INSERT INTO board_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'board_column', 'BoardColumnUpdated', $3)",
+            "INSERT INTO board_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload, tenant_id) VALUES ($1, $2, 'board_column', 'BoardColumnUpdated', $3, $4)",
         )
         .bind(Uuid::new_v4())
         .bind(row.id)
-        .bind(serde_json::json!({ "column_id": row.id, "task_count": row.task_count }))
+        .bind(serde_json::json!({ "column_id": row.id, "project_id": req.project_id, "status_code": req.status_code, "task_count": row.task_count }))
+        .bind(tenant_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| BoardError::Infrastructure(e.into()))?;

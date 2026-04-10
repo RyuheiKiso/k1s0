@@ -27,8 +27,13 @@ export class SagaClient {
       throw new SagaError(`start_saga failed (status ${resp.status}): ${text}`, resp.status);
     }
 
-    const data = (await resp.json()) as { saga_id: string };
-    return { sagaId: data.saga_id };
+    // HIGH-002 監査対応: StartSagaResponse の status フィールドを返す。
+    // サーバーが status を返さない場合は 'STARTED' をデフォルト値として使用する。
+    const data = (await resp.json()) as { saga_id: string; status?: string };
+    return {
+      sagaId: data.saga_id,
+      status: (data.status as import('./types.js').SagaStatus | undefined) ?? 'STARTED',
+    };
   }
 
   /** Saga の状態を取得する。GET /api/v1/sagas/:sagaId */

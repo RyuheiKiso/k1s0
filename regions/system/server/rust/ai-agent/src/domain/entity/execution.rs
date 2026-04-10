@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// ExecutionStatus はエージェント実行の状態を表す列挙型
+/// `ExecutionStatus` はエージェント実行の状態を表す列挙型
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionStatus {
     /// 実行待ち
@@ -56,18 +56,18 @@ pub struct Execution {
     pub updated_at: DateTime<Utc>,
 }
 
-/// ExecutionStep はエージェントが実行した個別ステップを表す
+/// `ExecutionStep` はエージェントが実行した個別ステップを表す
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionStep {
     /// ステップのインデックス番号
     pub index: i32,
-    /// ステップ種別（thinking, tool_call, output）
+    /// ステップ種別（thinking, `tool_call`, output）
     pub step_type: String,
     /// ステップへの入力
     pub input: String,
     /// ステップの出力
     pub output: String,
-    /// 使用されたツール名（tool_callの場合）
+    /// `使用されたツール名（tool_callの場合`）
     pub tool_name: Option<String>,
     /// ステップの状態
     pub status: String,

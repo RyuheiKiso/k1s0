@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::config_entry::ConfigListResult;
 use crate::domain::repository::ConfigRepository;
 
-/// ListConfigsError は設定値一覧取得に関するエラーを表す。
+/// `ListConfigsError` は設定値一覧取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum ListConfigsError {
     #[error("validation error: {0}")]
@@ -16,7 +16,7 @@ pub enum ListConfigsError {
     Internal(String),
 }
 
-/// ListConfigsParams は設定値一覧取得のクエリパラメータを表す。
+/// `ListConfigsParams` は設定値一覧取得のクエリパラメータを表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListConfigsParams {
     #[serde(default = "default_page")]
@@ -35,7 +35,7 @@ fn default_page_size() -> i32 {
     20
 }
 
-/// ListConfigsUseCase は設定値一覧取得ユースケース。
+/// `ListConfigsUseCase` は設定値一覧取得ユースケース。
 pub struct ListConfigsUseCase {
     config_repo: Arc<dyn ConfigRepository>,
 }

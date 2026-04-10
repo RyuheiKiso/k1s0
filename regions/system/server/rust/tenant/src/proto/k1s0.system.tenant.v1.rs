@@ -117,7 +117,7 @@ pub struct RemoveMemberResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
 }
-/// UpdateMemberRoleRequest はテナントメンバーのロール更新リクエスト。
+/// `UpdateMemberRoleRequest` はテナントメンバーのロール更新リクエスト。
 /// 有効なロール: owner, admin, member, viewer
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateMemberRoleRequest {
@@ -128,7 +128,7 @@ pub struct UpdateMemberRoleRequest {
     #[prost(string, tag = "3")]
     pub role: ::prost::alloc::string::String,
 }
-/// UpdateMemberRoleResponse はテナントメンバーのロール更新レスポンス。
+/// `UpdateMemberRoleResponse` はテナントメンバーのロール更新レスポンス。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateMemberRoleResponse {
     #[prost(message, optional, tag = "1")]
@@ -199,14 +199,14 @@ pub struct ProvisioningJob {
     #[prost(message, optional, tag = "7")]
     pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
-/// WatchTenantRequest はテナント変更監視リクエスト。
+/// `WatchTenantRequest` はテナント変更監視リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WatchTenantRequest {
     /// 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
     #[prost(string, tag = "1")]
     pub tenant_id: ::prost::alloc::string::String,
 }
-/// WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
+/// `WatchTenantResponse` はテナント変更の監視レスポンス（ストリーミング）。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WatchTenantResponse {
     #[prost(string, tag = "1")]
@@ -229,10 +229,10 @@ pub mod tenant_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with TenantServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `TenantServiceServer`.
     #[async_trait]
     pub trait TenantService: std::marker::Send + std::marker::Sync + 'static {
-        /// CreateTenant は新しいテナントを作成し、Keycloak realm をプロビジョニングする。
+        /// `CreateTenant` は新しいテナントを作成し、Keycloak realm をプロビジョニングする。
         async fn create_tenant(
             &self,
             request: tonic::Request<super::CreateTenantRequest>,
@@ -240,7 +240,7 @@ pub mod tenant_service_server {
             tonic::Response<super::CreateTenantResponse>,
             tonic::Status,
         >;
-        /// GetTenant はテナントIDでテナント情報を取得する。
+        /// `GetTenant` はテナントIDでテナント情報を取得する。
         async fn get_tenant(
             &self,
             request: tonic::Request<super::GetTenantRequest>,
@@ -248,7 +248,7 @@ pub mod tenant_service_server {
             tonic::Response<super::GetTenantResponse>,
             tonic::Status,
         >;
-        /// ListTenants は全テナントの一覧をページネーション付きで返す。
+        /// `ListTenants` は全テナントの一覧をページネーション付きで返す。
         async fn list_tenants(
             &self,
             request: tonic::Request<super::ListTenantsRequest>,
@@ -256,7 +256,7 @@ pub mod tenant_service_server {
             tonic::Response<super::ListTenantsResponse>,
             tonic::Status,
         >;
-        /// UpdateTenant はテナント情報を更新する。
+        /// `UpdateTenant` はテナント情報を更新する。
         async fn update_tenant(
             &self,
             request: tonic::Request<super::UpdateTenantRequest>,
@@ -264,7 +264,7 @@ pub mod tenant_service_server {
             tonic::Response<super::UpdateTenantResponse>,
             tonic::Status,
         >;
-        /// SuspendTenant はアクティブなテナントを停止する。
+        /// `SuspendTenant` はアクティブなテナントを停止する。
         async fn suspend_tenant(
             &self,
             request: tonic::Request<super::SuspendTenantRequest>,
@@ -272,7 +272,7 @@ pub mod tenant_service_server {
             tonic::Response<super::SuspendTenantResponse>,
             tonic::Status,
         >;
-        /// ActivateTenant は停止中のテナントを再開する。
+        /// `ActivateTenant` は停止中のテナントを再開する。
         async fn activate_tenant(
             &self,
             request: tonic::Request<super::ActivateTenantRequest>,
@@ -280,7 +280,7 @@ pub mod tenant_service_server {
             tonic::Response<super::ActivateTenantResponse>,
             tonic::Status,
         >;
-        /// DeleteTenant はテナントを論理削除する。
+        /// `DeleteTenant` はテナントを論理削除する。
         async fn delete_tenant(
             &self,
             request: tonic::Request<super::DeleteTenantRequest>,
@@ -288,7 +288,7 @@ pub mod tenant_service_server {
             tonic::Response<super::DeleteTenantResponse>,
             tonic::Status,
         >;
-        /// AddMember はテナントにメンバーを追加する。
+        /// `AddMember` はテナントにメンバーを追加する。
         async fn add_member(
             &self,
             request: tonic::Request<super::AddMemberRequest>,
@@ -296,7 +296,7 @@ pub mod tenant_service_server {
             tonic::Response<super::AddMemberResponse>,
             tonic::Status,
         >;
-        /// ListMembers はテナントのメンバー一覧を取得する。
+        /// `ListMembers` はテナントのメンバー一覧を取得する。
         async fn list_members(
             &self,
             request: tonic::Request<super::ListMembersRequest>,
@@ -304,7 +304,7 @@ pub mod tenant_service_server {
             tonic::Response<super::ListMembersResponse>,
             tonic::Status,
         >;
-        /// RemoveMember はテナントからメンバーを削除する。
+        /// `RemoveMember` はテナントからメンバーを削除する。
         async fn remove_member(
             &self,
             request: tonic::Request<super::RemoveMemberRequest>,
@@ -312,7 +312,7 @@ pub mod tenant_service_server {
             tonic::Response<super::RemoveMemberResponse>,
             tonic::Status,
         >;
-        /// UpdateMemberRole はテナントメンバーのロールを更新する。
+        /// `UpdateMemberRole` はテナントメンバーのロールを更新する。
         async fn update_member_role(
             &self,
             request: tonic::Request<super::UpdateMemberRoleRequest>,
@@ -320,7 +320,7 @@ pub mod tenant_service_server {
             tonic::Response<super::UpdateMemberRoleResponse>,
             tonic::Status,
         >;
-        /// GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
+        /// `GetProvisioningStatus` はテナントプロビジョニングジョブのステータスを返す。
         async fn get_provisioning_status(
             &self,
             request: tonic::Request<super::GetProvisioningStatusRequest>,
@@ -328,13 +328,13 @@ pub mod tenant_service_server {
             tonic::Response<super::GetProvisioningStatusResponse>,
             tonic::Status,
         >;
-        /// Server streaming response type for the WatchTenant method.
+        /// Server streaming response type for the `WatchTenant` method.
         type WatchTenantStream: tonic::codegen::tokio_stream::Stream<
                 Item = std::result::Result<super::WatchTenantResponse, tonic::Status>,
             >
             + std::marker::Send
             + 'static;
-        /// WatchTenant はテナント変更の監視（Server-Side Streaming）。
+        /// `WatchTenant` はテナント変更の監視（Server-Side Streaming）。
         async fn watch_tenant(
             &self,
             request: tonic::Request<super::WatchTenantRequest>,
@@ -343,7 +343,7 @@ pub mod tenant_service_server {
             tonic::Status,
         >;
     }
-    /// TenantService はマルチテナント管理サービス。
+    /// `TenantService` はマルチテナント管理サービス。
     /// Keycloak realm プロビジョニングおよびメンバー管理を担当する。
     #[derive(Debug)]
     pub struct TenantServiceServer<T> {

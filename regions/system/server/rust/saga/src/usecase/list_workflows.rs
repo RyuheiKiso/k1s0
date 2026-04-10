@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::workflow::WorkflowDefinition;
 use crate::domain::repository::WorkflowRepository;
 
-/// ListWorkflowsUseCase はワークフロー一覧取得を担う。
+/// `ListWorkflowsUseCase` はワークフロー一覧取得を担う。
 pub struct ListWorkflowsUseCase {
     workflow_repo: Arc<dyn WorkflowRepository>,
 }

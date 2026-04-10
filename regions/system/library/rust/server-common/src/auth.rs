@@ -22,11 +22,12 @@ pub fn allow_insecure_no_auth(environment: &str) -> bool {
 /// 本番ビルド用（dev-auth-bypass フィーチャー無効かつテスト実行外）: 認証バイパスは常に不許可。
 /// プロダクションバイナリおよび通常のデバッグビルドからバイパスロジックを完全に除去する。
 #[cfg(not(any(test, feature = "dev-auth-bypass")))]
+#[must_use]
 pub fn allow_insecure_no_auth(_environment: &str) -> bool {
     false
 }
 
-/// 認証状態の検証。auth_state が None の場合、バイパスが有効でなければエラーを返す。
+/// `認証状態の検証。auth_state` が None の場合、バイパスが有効でなければエラーを返す。
 pub fn require_auth_state<T>(
     service_name: &str,
     environment: &str,
@@ -46,10 +47,8 @@ pub fn require_auth_state<T>(
     }
 
     bail!(
-        "auth configuration is required for {} (environment: {}). \
-Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test.",
-        service_name,
-        environment
+        "auth configuration is required for {service_name} (environment: {environment}). \
+Set auth.* in the config, or use ALLOW_INSECURE_NO_AUTH=true only for dev/test."
     )
 }
 

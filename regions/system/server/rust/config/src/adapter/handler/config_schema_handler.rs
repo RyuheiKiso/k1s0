@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
@@ -10,6 +10,34 @@ use crate::adapter::presentation::{
     ConfigEditorSchemaDto, ConfigFieldType, UpsertConfigSchemaRequestDto,
 };
 
+/// X-Tenant-ID ヘッダーまたは JWT Claims からテナントIDを抽出するヘルパー。
+/// Claims に `tenant_id` がある場合はそちらを優先し、なければヘッダーを使用する。
+/// どちらもなければシステムテナントにフォールバックする。
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// CRITICAL-RUST-001 監査対応: HTTP リクエストから `tenant_id` を取得する。
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id_http(
+    claims: Option<&Extension<k1s0_auth::Claims>>,
+    headers: &HeaderMap,
+) -> String {
+    // Claims の tenant_id を優先する
+    if let Some(Extension(c)) = claims {
+        if !c.tenant_id.is_empty() {
+            return c.tenant_id.clone();
+        }
+    }
+    // X-Tenant-ID ヘッダーにフォールバックする
+    if let Some(val) = headers.get("x-tenant-id") {
+        if let Ok(s) = val.to_str() {
+            if !s.is_empty() {
+                return s.to_string();
+            }
+        }
+    }
+    SYSTEM_TENANT_ID.to_string()
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/config-schema",
@@ -17,8 +45,14 @@ use crate::adapter::presentation::{
         (status = 200, description = "All config schemas", body = Vec<ConfigEditorSchemaDto>),
     )
 )]
-pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_config_schemas_uc.execute().await {
+pub async fn list_config_schemas(
+    State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: テナントIDを取得して RLS セッション変数に設定する。
+    let tenant_id = extract_tenant_id_http(claims.as_ref(), &headers);
+    match state.list_config_schemas_uc.execute(&tenant_id).await {
         Ok(schemas) => match schemas
             .iter()
             .map(ConfigEditorSchemaDto::try_from)
@@ -29,7 +63,7 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {err}"),
                 )),
             )
                 .into_response(),
@@ -49,16 +83,24 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
 )]
 pub async fn get_config_schema(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+    headers: HeaderMap,
     Path(service_name): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_config_schema_uc.execute(&service_name).await {
+    // CRITICAL-RUST-001 監査対応: テナントIDを取得して RLS セッション変数に設定する。
+    let tenant_id = extract_tenant_id_http(claims.as_ref(), &headers);
+    match state
+        .get_config_schema_uc
+        .execute(&service_name, &tenant_id)
+        .await
+    {
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
             Ok(response) => (StatusCode::OK, Json(response)).into_response(),
             Err(err) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {err}"),
                 )),
             )
                 .into_response(),
@@ -81,6 +123,7 @@ pub async fn get_config_schema(
 pub async fn upsert_config_schema(
     State(state): State<AppState>,
     claims: Option<Extension<k1s0_auth::Claims>>,
+    headers: HeaderMap,
     Path(service_name): Path<String>,
     Json(req): Json<UpsertConfigSchemaRequestDto>,
 ) -> impl IntoResponse {
@@ -94,12 +137,16 @@ pub async fn upsert_config_schema(
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
+    // CRITICAL-RUST-001 監査対応: テナントIDと更新者を Claims から取得する。
+    let tenant_id = extract_tenant_id_http(claims.as_ref(), &headers);
     let updated_by = claims
+        .as_ref()
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
 
     let schema_json = req.clone().into_schema_json();
     let input = crate::usecase::upsert_config_schema::UpsertConfigSchemaInput {
+        tenant_id,
         service_name,
         namespace_prefix: req.namespace_prefix,
         schema_json,
@@ -113,7 +160,7 @@ pub async fn upsert_config_schema(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {err}"),
                 )),
             )
                 .into_response(),
@@ -148,7 +195,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
         // カテゴリ ID が空でないことを検証する
         if category.id.trim().is_empty() {
             details.push(ErrorDetail::new(
-                format!("categories[{}].id", cat_idx),
+                format!("categories[{cat_idx}].id"),
                 "required",
                 "category id is required",
             ));
@@ -156,7 +203,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
         // カテゴリ label が空でないことを検証する
         if category.label.trim().is_empty() {
             details.push(ErrorDetail::new(
-                format!("categories[{}].label", cat_idx),
+                format!("categories[{cat_idx}].label"),
                 "required",
                 "category label is required",
             ));
@@ -164,7 +211,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
         // namespaces が空でないことを検証する
         if category.namespaces.is_empty() {
             details.push(ErrorDetail::new(
-                format!("categories[{}].namespaces", cat_idx),
+                format!("categories[{cat_idx}].namespaces"),
                 "required",
                 "at least one namespace is required",
             ));
@@ -173,7 +220,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // 各 namespace が空でないことを検証する
             if namespace.trim().is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].namespaces[{}]", cat_idx, ns_idx),
+                    format!("categories[{cat_idx}].namespaces[{ns_idx}]"),
                     "required",
                     "namespace must not be empty",
                 ));
@@ -183,7 +230,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // フィールド key が空でないことを検証する
             if field.key.trim().is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].fields[{}].key", cat_idx, field_idx),
+                    format!("categories[{cat_idx}].fields[{field_idx}].key"),
                     "required",
                     "field key is required",
                 ));
@@ -191,7 +238,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // フィールド label が空でないことを検証する
             if field.label.trim().is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].fields[{}].label", cat_idx, field_idx),
+                    format!("categories[{cat_idx}].fields[{field_idx}].label"),
                     "required",
                     "field label is required",
                 ));
@@ -199,7 +246,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // Enum フィールドには options が必要であることを検証する
             if field.field_type == ConfigFieldType::Enum && field.options.is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].fields[{}].options", cat_idx, field_idx),
+                    format!("categories[{cat_idx}].fields[{field_idx}].options"),
                     "required",
                     "enum field requires at least one option",
                 ));
@@ -228,6 +275,7 @@ mod tests {
     fn make_schema() -> ConfigSchema {
         ConfigSchema {
             id: Uuid::new_v4(),
+            tenant_id: "test-tenant".to_string(),
             service_name: "task-server".to_string(),
             namespace_prefix: "service.task".to_string(),
             schema_json: serde_json::json!({
@@ -256,8 +304,8 @@ mod tests {
         let schema = make_schema();
         schema_repo
             .expect_find_by_service_name()
-            .withf(|service| service == "task-server")
-            .return_once(move |_| Ok(Some(schema)));
+            .withf(|service, _tenant| service == "task-server")
+            .return_once(move |_, _| Ok(Some(schema)));
 
         let app = router(AppState::new(config_repo, Arc::new(schema_repo)));
         let response = app

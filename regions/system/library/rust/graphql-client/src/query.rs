@@ -18,11 +18,14 @@ impl GraphQlQuery {
         }
     }
 
+    #[must_use]
     pub fn variables(mut self, variables: serde_json::Value) -> Self {
         self.variables = Some(variables);
         self
     }
 
+    /// GraphQL オペレーション名を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn operation_name(mut self, name: impl Into<String>) -> Self {
         self.operation_name = Some(name.into());
         self

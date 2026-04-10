@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use subtle::ConstantTimeEq;
 
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// ValidateApiKeyError は API キー検証に関するエラー。
+/// `ValidateApiKeyError` は API キー検証に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum ValidateApiKeyError {
     #[error("invalid api key")]
@@ -19,12 +20,12 @@ pub enum ValidateApiKeyError {
     #[error("internal error: {0}")]
     Internal(String),
 
-    /// API_KEY_PEPPER 環境変数が未設定の場合のエラー。
+    /// `API_KEY_PEPPER` 環境変数が未設定の場合のエラー。
     #[error("pepper not configured")]
     PepperNotConfigured,
 }
 
-/// ValidateApiKeyResult は検証成功時の結果。
+/// `ValidateApiKeyResult` は検証成功時の結果。
 #[derive(Debug, Clone)]
 pub struct ValidateApiKeyResult {
     pub tenant_id: String,
@@ -32,7 +33,7 @@ pub struct ValidateApiKeyResult {
     pub scopes: Vec<String>,
 }
 
-/// ValidateApiKeyUseCase は API キー検証ユースケース。
+/// `ValidateApiKeyUseCase` は API キー検証ユースケース。
 pub struct ValidateApiKeyUseCase {
     repo: Arc<dyn ApiKeyRepository>,
 }
@@ -63,7 +64,6 @@ impl ValidateApiKeyUseCase {
 
         // H-008 監査対応: ハッシュ比較を定数時間で行い、タイミング攻撃を防止する
         // 通常の文字列比較（!=）は最初に不一致したバイトで短絡し、タイミングの差でハッシュを推測可能になる
-        use subtle::ConstantTimeEq;
         let computed_hash = hash_key(raw_key)?;
         if computed_hash
             .as_bytes()
@@ -107,6 +107,7 @@ fn hash_key(raw_key: &str) -> Result<String, ValidateApiKeyError> {
 fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
+    use std::fmt::Write;
     type HmacSha256 = Hmac<Sha256>;
 
     let mut mac =
@@ -117,8 +118,7 @@ fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
 
     let mut out = String::with_capacity(digest.len() * 2);
     for b in digest {
-        use std::fmt::Write;
-        let _ = write!(&mut out, "{:02x}", b);
+        let _ = write!(&mut out, "{b:02x}");
     }
     out
 }

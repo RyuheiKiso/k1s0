@@ -44,10 +44,11 @@ func TestCSRFMiddleware_NoSession(t *testing.T) {
 
 func TestCSRFMiddleware_MismatchToken(t *testing.T) {
 	store := newTestStore()
-	store.sessions["my-session"] = &session.SessionData{
-		AccessToken: "token",
-		CSRFToken:   "correct-token",
-		ExpiresAt:   time.Now().Add(10 * time.Minute).Unix(),
+	store.sessions["my-session"] = &session.Data{
+		AccessToken:        "token",
+		CSRFToken:          "correct-token",
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		CSRFTokenCreatedAt: time.Now().Unix(),
 	}
 
 	router := gin.New()
@@ -67,10 +68,11 @@ func TestCSRFMiddleware_MismatchToken(t *testing.T) {
 
 func TestCSRFMiddleware_ValidToken(t *testing.T) {
 	store := newTestStore()
-	store.sessions["my-session"] = &session.SessionData{
-		AccessToken: "token",
-		CSRFToken:   "valid-csrf",
-		ExpiresAt:   time.Now().Add(10 * time.Minute).Unix(),
+	store.sessions["my-session"] = &session.Data{
+		AccessToken:        "token",
+		CSRFToken:          "valid-csrf",
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		CSRFTokenCreatedAt: time.Now().Unix(),
 	}
 
 	router := gin.New()
@@ -92,10 +94,11 @@ func TestCSRFMiddleware_ValidToken(t *testing.T) {
 // コンテキストからセッションを取得し、冗長な store.Get() を回避することを検証する。
 func TestCSRFMiddleware_WithSessionMiddleware(t *testing.T) {
 	store := newTestStore()
-	store.sessions["my-session"] = &session.SessionData{
-		AccessToken: "token",
-		CSRFToken:   "valid-csrf",
-		ExpiresAt:   time.Now().Add(10 * time.Minute).Unix(),
+	store.sessions["my-session"] = &session.Data{
+		AccessToken:        "token",
+		CSRFToken:          "valid-csrf",
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		CSRFTokenCreatedAt: time.Now().Unix(),
 	}
 
 	router := gin.New()

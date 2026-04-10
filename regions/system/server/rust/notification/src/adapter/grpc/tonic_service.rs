@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の NotificationService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の NotificationGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `NotificationService` トレイトを実装する。
+//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の `NotificationGrpcService` に委譲する。
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
 // 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
@@ -54,19 +54,22 @@ use super::notification_grpc::{
 
 // --- ヘルパー関数 ---
 
-/// ISO 8601 文字列を ProtoTimestamp に変換する。
+/// ISO 8601 文字列を `ProtoTimestamp` に変換する。
 /// パース失敗時は None を返す（既存の deprecated 文字列フィールドでカバー）。
 fn str_to_ts(s: &str) -> Option<ProtoTimestamp> {
     chrono::DateTime::parse_from_rfc3339(s)
         .ok()
         .map(|dt| ProtoTimestamp {
             seconds: dt.timestamp(),
-            nanos: dt.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+            nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         })
 }
 
-/// ドメインのステータス文字列を NotificationStatus enum の i32 値に変換する。
+/// ドメインのステータス文字列を `NotificationStatus` enum の i32 値に変換する。
 /// 未知の文字列は Unspecified (0) にフォールバックする。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn status_str_to_enum(s: &str) -> i32 {
     match s {
         "pending" => NotificationStatus::Pending as i32,
@@ -81,11 +84,11 @@ fn status_str_to_enum(s: &str) -> i32 {
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
+        // FailedPrecondition と ChannelDisabled は同じ Status に変換するためアームを統合する
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
-            GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
-            GrpcError::ChannelDisabled(msg) => Status::failed_precondition(msg),
+            GrpcError::FailedPrecondition(msg) | GrpcError::ChannelDisabled(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -128,6 +131,7 @@ pub struct NotificationServiceTonic {
 }
 
 impl NotificationServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<NotificationGrpcService>) -> Self {
         Self { inner }
     }
@@ -139,9 +143,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoSendNotificationRequest>,
     ) -> Result<Response<ProtoSendNotificationResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        // 未設定の場合は UNAUTHENTICATED エラーを返す（フェイルクローズ設計）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = SendNotificationRequest {
             channel_id: inner.channel_id,
+            tenant_id,
             template_id: inner.template_id,
             template_variables: inner.template_variables,
             recipient: inner.recipient,
@@ -167,9 +175,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoGetNotificationRequest>,
     ) -> Result<Response<ProtoGetNotificationResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = GetNotificationRequest {
             notification_id: inner.notification_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -204,9 +215,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoRetryNotificationRequest>,
     ) -> Result<Response<ProtoRetryNotificationResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = RetryNotificationRequest {
             notification_id: inner.notification_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -240,21 +254,25 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoListNotificationsRequest>,
     ) -> Result<Response<ProtoListNotificationsResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListNotificationsRequest {
+            tenant_id,
             channel_id: inner.channel_id,
             status: inner.status,
+            // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
         };
         let resp = self
@@ -287,9 +305,11 @@ impl NotificationService for NotificationServiceTonic {
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(resp.total).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
         }))
@@ -299,21 +319,25 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoListChannelsRequest>,
     ) -> Result<Response<ProtoListChannelsResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListChannelsRequest {
+            tenant_id,
             channel_type: inner.channel_type,
             enabled_only: inner.enabled_only,
+            // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
         };
         let resp = self
@@ -324,9 +348,11 @@ impl NotificationService for NotificationServiceTonic {
         Ok(Response::new(ProtoListChannelsResponse {
             channels: resp.channels.iter().map(channel_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(resp.total).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
         }))
@@ -337,8 +363,8 @@ impl NotificationService for NotificationServiceTonic {
         request: Request<ProtoCreateChannelRequest>,
     ) -> Result<Response<ProtoCreateChannelResponse>, Status> {
         // ADR-0028 Phase 1: gRPC メタデータ x-tenant-id からテナント ID を取得する。
-        // メタデータが存在しない場合はシステムテナントにフォールバックする。
-        let tenant_id = tenant_id_from_metadata(request.metadata());
+        // CRIT-006 対応: フェイルクローズ設計。x-tenant-id が未設定の場合は UNAUTHENTICATED を返す。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = CreateChannelRequest {
             name: inner.name,
@@ -365,8 +391,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoGetChannelRequest>,
     ) -> Result<Response<ProtoGetChannelResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = GetChannelRequest { id: inner.id };
+        let req = GetChannelRequest {
+            id: inner.id,
+            tenant_id,
+        };
         let resp = self
             .inner
             .get_channel(req)
@@ -381,9 +412,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoUpdateChannelRequest>,
     ) -> Result<Response<ProtoUpdateChannelResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = UpdateChannelRequest {
             id: inner.id,
+            tenant_id,
             name: inner.name,
             enabled: inner.enabled,
             config_json: inner.config_json,
@@ -402,8 +436,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoDeleteChannelRequest>,
     ) -> Result<Response<ProtoDeleteChannelResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = DeleteChannelRequest { id: inner.id };
+        let req = DeleteChannelRequest {
+            id: inner.id,
+            tenant_id,
+        };
         let resp = self
             .inner
             .delete_channel(req)
@@ -419,20 +458,24 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoListTemplatesRequest>,
     ) -> Result<Response<ProtoListTemplatesResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListTemplatesRequest {
+            tenant_id,
             channel_type: inner.channel_type,
+            // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
         };
         let resp = self
@@ -443,9 +486,11 @@ impl NotificationService for NotificationServiceTonic {
         Ok(Response::new(ProtoListTemplatesResponse {
             templates: resp.templates.iter().map(template_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(resp.total).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
         }))
@@ -455,8 +500,11 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoCreateTemplateRequest>,
     ) -> Result<Response<ProtoCreateTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = CreateTemplateRequest {
+            tenant_id,
             name: inner.name,
             channel_type: inner.channel_type,
             subject_template: inner.subject_template,
@@ -476,8 +524,10 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoGetTemplateRequest>,
     ) -> Result<Response<ProtoGetTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = GetTemplateRequest { id: inner.id };
+        let req = GetTemplateRequest { id: inner.id, tenant_id };
         let resp = self
             .inner
             .get_template(req)
@@ -492,9 +542,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoUpdateTemplateRequest>,
     ) -> Result<Response<ProtoUpdateTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = UpdateTemplateRequest {
             id: inner.id,
+            tenant_id,
             name: inner.name,
             subject_template: inner.subject_template,
             body_template: inner.body_template,
@@ -513,8 +566,10 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoDeleteTemplateRequest>,
     ) -> Result<Response<ProtoDeleteTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = DeleteTemplateRequest { id: inner.id };
+        let req = DeleteTemplateRequest { id: inner.id, tenant_id };
         let resp = self
             .inner
             .delete_template(req)

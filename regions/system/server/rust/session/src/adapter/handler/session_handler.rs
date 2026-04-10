@@ -39,6 +39,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -86,19 +87,28 @@ fn forbidden_response(message: impl Into<String>) -> (StatusCode, Json<ErrorResp
     )
 }
 
+/// REST `CreateSession` ハンドラー。
+/// JWT Claims から `tenant_id` を取得し `CreateSessionInput` に設定する。
+/// 認証済みの場合は Claims.sub と `user_id` の一致確認（IDOR対策）も行う。
 pub async fn create_session(
     State(state): State<AppState>,
     claims: Option<Extension<k1s0_auth::Claims>>,
     Json(input): Json<CreateSessionHttpRequest>,
 ) -> impl IntoResponse {
-    if let Some(Extension(claims)) = claims {
+    // Claims が存在する場合は本人確認と tenant_id 取得を行う
+    let tenant_id = if let Some(Extension(ref claims)) = claims {
         if claims.sub != input.user_id {
             return forbidden_response("cannot create session for another user").into_response();
         }
-    }
+        claims.tenant_id().to_string()
+    } else {
+        // 認証なし（dev/test 環境）の場合は "system" テナントにフォールバックする
+        "system".to_string()
+    };
 
     let uc_input = CreateSessionInput {
         user_id: input.user_id,
+        tenant_id,
         device_id: input.device_id,
         device_name: input.device_name,
         device_type: input.device_type,
@@ -174,7 +184,7 @@ pub async fn refresh_session(
 
     let ttl_seconds = body
         .get("ttl_seconds")
-        .and_then(|v| v.as_i64())
+        .and_then(serde_json::Value::as_i64)
         .unwrap_or(3600);
     let input = RefreshSessionInput {
         id: session_id,
@@ -195,7 +205,12 @@ pub async fn revoke_session(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
-    if let Some(Extension(claims)) = claims {
+    // HIGH-002 対応: JWT Claims から jti と残余有効期限を取得する。
+    // ログアウト時に jti を Redis 失効リストに登録し、exp まで有効な窓を閉じる。
+    let mut jwt_jti: Option<String> = None;
+    let mut jwt_remaining_secs: Option<u64> = None;
+
+    if let Some(Extension(ref claims)) = claims {
         let lookup = GetSessionInput {
             id: Some(session_id.clone()),
             token: None,
@@ -209,9 +224,21 @@ pub async fn revoke_session(
             }
             Err(e) => return error_response(e).into_response(),
         }
+        // Claims から jti と残余有効期限（秒）を取得する。
+        // exp は Unix タイムスタンプ（秒）。現在時刻との差分が残余有効期限となる。
+        jwt_jti = claims.jti.clone();
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let now_secs = u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0);
+        if claims.exp > now_secs {
+            jwt_remaining_secs = Some(claims.exp - now_secs);
+        }
     }
 
-    let input = RevokeSessionInput { id: session_id };
+    let input = RevokeSessionInput {
+        id: session_id,
+        jwt_jti,
+        jwt_remaining_secs,
+    };
     match state.revoke_uc.execute(&input).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(e) => error_response(e).into_response(),
@@ -233,7 +260,8 @@ pub async fn list_user_sessions(
     let input = ListUserSessionsInput { user_id };
     match state.list_uc.execute(&input).await {
         Ok(output) => {
-            let total_count = output.sessions.len() as u32;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            let total_count = u32::try_from(output.sessions.len()).unwrap_or(u32::MAX);
             let mapped = ListSessionsHttpResponse {
                 sessions: output
                     .sessions

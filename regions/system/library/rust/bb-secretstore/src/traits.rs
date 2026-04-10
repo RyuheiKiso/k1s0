@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::SecretStoreError;
 
-/// SecretValue はシークレットストアのエントリを表す。
+/// `SecretValue` はシークレットストアのエントリを表す。
 #[derive(Debug, Clone)]
 pub struct SecretValue {
     pub key: String,
@@ -12,7 +12,7 @@ pub struct SecretValue {
     pub metadata: HashMap<String, String>,
 }
 
-/// SecretStore はシークレット管理の抽象インターフェース。
+/// `SecretStore` はシークレット管理の抽象インターフェース。
 /// Component トレイトを拡張する。
 #[async_trait]
 pub trait SecretStore: k1s0_bb_core::Component {

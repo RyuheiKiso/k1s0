@@ -60,7 +60,7 @@ impl ListEventsUseCase {
             .await
             .map_err(|e| ListEventsError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
         Ok(ListEventsOutput {
             events,
@@ -81,6 +81,7 @@ mod tests {
 
     fn make_event(corr_id: &str) -> EventRecord {
         EventRecord::new(
+            "system".to_string(),
             corr_id.to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),

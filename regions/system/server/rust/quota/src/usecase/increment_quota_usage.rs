@@ -9,12 +9,14 @@ use crate::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
 };
 
+/// CRITICAL-RUST-001 監査対応: `tenant_id` を追加して RLS テナント分離を有効にする。
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct IncrementQuotaUsageInput {
     pub quota_id: String,
     pub amount: u64,
     pub request_id: Option<String>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -71,18 +73,23 @@ impl IncrementQuotaUsageUseCase {
         &self,
         input: &IncrementQuotaUsageInput,
     ) -> Result<IncrementResult, IncrementQuotaUsageError> {
-        // 1. ポリシーを取得してリミットを確認
+        // 1. ポリシーを取得してリミットを確認（RLS のため tenant_id を渡す）
         let policy = self
             .policy_repo
-            .find_by_id(&input.quota_id)
+            .find_by_id(&input.quota_id, &input.tenant_id)
             .await
             .map_err(|e| IncrementQuotaUsageError::Internal(e.to_string()))?
             .ok_or_else(|| IncrementQuotaUsageError::NotFound(input.quota_id.clone()))?;
 
-        // 2. アトミックに check-and-increment を実行
+        // 2. アトミックに check-and-increment を実行（RLS のため tenant_id を渡す）
         let CheckAndIncrementResult { used, allowed } = self
             .usage_repo
-            .check_and_increment(&input.quota_id, input.amount, policy.limit)
+            .check_and_increment(
+                &input.quota_id,
+                input.amount,
+                policy.limit,
+                &input.tenant_id,
+            )
             .await
             .map_err(|e| IncrementQuotaUsageError::Internal(e.to_string()))?;
 
@@ -97,7 +104,7 @@ impl IncrementQuotaUsageUseCase {
                 limit: policy.limit,
                 used,
                 exceeded_at: chrono::Utc::now().to_rfc3339(),
-                reset_at: "".to_string(),
+                reset_at: String::new(),
             };
             let _ = self.event_publisher.publish_quota_exceeded(&event).await;
 
@@ -118,9 +125,12 @@ impl IncrementQuotaUsageUseCase {
             let prev_percent = if policy.limit == 0 {
                 100.0
             } else {
-                ((used.saturating_sub(input.amount)) as f64 / policy.limit as f64) * 100.0
+                // LOW-008: u64 → f64 の精度損失は許容（クォータ閾値判定の近似値計算のため）
+                #[allow(clippy::cast_precision_loss)]
+                let prev = (used.saturating_sub(input.amount)) as f64 / policy.limit as f64 * 100.0;
+                prev
             };
-            if usage_percent >= threshold as f64 && prev_percent < threshold as f64 {
+            if usage_percent >= f64::from(threshold) && prev_percent < f64::from(threshold) {
                 let event = QuotaThresholdReachedEvent {
                     event_type: "QUOTA_THRESHOLD_REACHED".to_string(),
                     quota_id: policy.id.clone(),
@@ -157,8 +167,10 @@ mod tests {
         MockQuotaPolicyRepository, MockQuotaUsageRepository,
     };
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy() -> crate::domain::entity::quota::QuotaPolicy {
         crate::domain::entity::quota::QuotaPolicy::new(
+            "test-tenant".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-abc".to_string(),
@@ -180,12 +192,12 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
         usage_mock
             .expect_check_and_increment()
-            .returning(|_, _, _| {
+            .returning(|_, _, _, _| {
                 Ok(CheckAndIncrementResult {
                     used: 7524,
                     allowed: true,
@@ -200,6 +212,7 @@ mod tests {
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
+            tenant_id: "tenant-abc".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -222,12 +235,12 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
         usage_mock
             .expect_check_and_increment()
-            .returning(|_, _, _| {
+            .returning(|_, _, _, _| {
                 Ok(CheckAndIncrementResult {
                     used: 10000,
                     allowed: false,
@@ -242,6 +255,7 @@ mod tests {
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
+            tenant_id: "tenant-abc".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -260,7 +274,7 @@ mod tests {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
 
-        policy_mock.expect_find_by_id().returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = IncrementQuotaUsageUseCase::new_without_publisher(
             Arc::new(policy_mock),
@@ -270,6 +284,7 @@ mod tests {
             quota_id: "nonexistent".to_string(),
             amount: 1,
             request_id: None,
+            tenant_id: "tenant-abc".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -286,7 +301,7 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = IncrementQuotaUsageUseCase::new_without_publisher(
             Arc::new(policy_mock),
@@ -296,6 +311,7 @@ mod tests {
             quota_id: "some-id".to_string(),
             amount: 1,
             request_id: None,
+            tenant_id: "tenant-abc".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

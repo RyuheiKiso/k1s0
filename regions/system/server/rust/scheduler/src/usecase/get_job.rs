@@ -21,7 +21,7 @@ impl GetJobUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブを取得する。
     pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<SchedulerJob, GetJobError> {
         self.repo
             .find_by_id(id, tenant_id)

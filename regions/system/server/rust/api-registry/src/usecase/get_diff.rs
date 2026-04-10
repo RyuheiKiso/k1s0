@@ -4,8 +4,10 @@ use crate::domain::entity::api_registration::SchemaDiff;
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 use crate::domain::service::api_registry_service::ApiRegistryDomainService;
 
+// テナントスコープで差分を取得するためのインプット構造体
 #[derive(Debug, Clone)]
 pub struct GetDiffInput {
+    pub tenant_id: String,
     pub name: String,
     pub from_version: Option<u32>,
     pub to_version: Option<u32>,
@@ -51,9 +53,10 @@ impl GetDiffUseCase {
     }
 
     pub async fn execute(&self, input: &GetDiffInput) -> Result<GetDiffOutput, GetDiffError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let schema = self
             .schema_repo
-            .find_by_name(&input.name)
+            .find_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| GetDiffError::Internal(e.to_string()))?
             .ok_or_else(|| GetDiffError::SchemaNotFound(input.name.clone()))?;
@@ -71,7 +74,7 @@ impl GetDiffUseCase {
 
         let from_ver = self
             .version_repo
-            .find_by_name_and_version(&input.name, from_version)
+            .find_by_name_and_version(&input.tenant_id, &input.name, from_version)
             .await
             .map_err(|e| GetDiffError::Internal(e.to_string()))?
             .ok_or_else(|| GetDiffError::VersionNotFound {
@@ -81,7 +84,7 @@ impl GetDiffUseCase {
 
         let to_ver = self
             .version_repo
-            .find_by_name_and_version(&input.name, to_version)
+            .find_by_name_and_version(&input.tenant_id, &input.name, to_version)
             .await
             .map_err(|e| GetDiffError::Internal(e.to_string()))?
             .ok_or_else(|| GetDiffError::VersionNotFound {
@@ -123,7 +126,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             let mut schema = ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -136,7 +139,7 @@ mod tests {
         let mut version_mock = MockApiSchemaVersionRepository::new();
         version_mock
             .expect_find_by_name_and_version()
-            .returning(|name, ver| {
+            .returning(|_, name, ver| {
                 Ok(Some(ApiSchemaVersion::new(
                     name.to_string(),
                     ver,
@@ -148,6 +151,7 @@ mod tests {
 
         let uc = GetDiffUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             from_version: Some(2),
             to_version: Some(3),
@@ -163,7 +167,7 @@ mod tests {
     #[tokio::test]
     async fn diff_with_breaking_changes() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             let mut schema = ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -176,7 +180,7 @@ mod tests {
         let mut version_mock = MockApiSchemaVersionRepository::new();
         version_mock
             .expect_find_by_name_and_version()
-            .returning(|name, ver| {
+            .returning(|_, name, ver| {
                 let content = if ver == 2 {
                     "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n  /api/v1/orders:\n    get:\n      summary: Orders\n".to_string()
                 } else {
@@ -193,6 +197,7 @@ mod tests {
 
         let uc = GetDiffUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             from_version: Some(2),
             to_version: Some(3),
@@ -206,12 +211,13 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = GetDiffUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             from_version: Some(1),
             to_version: Some(2),
@@ -227,7 +233,7 @@ mod tests {
     #[tokio::test]
     async fn validation_error_from_gte_to() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             let mut schema = ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -241,6 +247,7 @@ mod tests {
 
         let uc = GetDiffUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             from_version: Some(3),
             to_version: Some(2),
@@ -260,12 +267,13 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = GetDiffUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = GetDiffInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             from_version: Some(1),
             to_version: Some(2),

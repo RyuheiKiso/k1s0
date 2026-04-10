@@ -79,7 +79,8 @@ impl DistributedLock for RedisDistributedLock {
         let mut conn = self.conn.clone();
         let full_key = self.lock_key(key);
         let token = uuid::Uuid::new_v4().to_string();
-        let millis = ttl.as_millis() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let millis = u64::try_from(ttl.as_millis()).unwrap_or(u64::MAX);
 
         // Atomic SET key value NX PX milliseconds
         let result: Option<String> = redis::cmd("SET")
@@ -123,7 +124,8 @@ impl DistributedLock for RedisDistributedLock {
     async fn extend(&self, guard: &LockGuard, ttl: Duration) -> Result<(), LockError> {
         let mut conn = self.conn.clone();
         let full_key = self.lock_key(&guard.key);
-        let millis = ttl.as_millis() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let millis = u64::try_from(ttl.as_millis()).unwrap_or(u64::MAX);
 
         let script = Script::new(EXTEND_SCRIPT);
         let result: i64 = script

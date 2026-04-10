@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::TeamRepository;
 
-/// DeleteTeamError はチーム削除に関するエラーを表す。
+/// `DeleteTeamError` はチーム削除に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteTeamError {
     #[error("team not found: {0}")]
@@ -14,7 +14,7 @@ pub enum DeleteTeamError {
     Internal(String),
 }
 
-/// DeleteTeamUseCase はチーム削除ユースケース。
+/// `DeleteTeamUseCase` はチーム削除ユースケース。
 pub struct DeleteTeamUseCase {
     team_repo: Arc<dyn TeamRepository>,
 }

@@ -9,7 +9,7 @@ use tower::{Layer, Service};
 use crate::metrics::Metrics;
 use crate::middleware::TelemetryMiddleware;
 
-/// MetricsLayer は axum Router に適用する Tower Layer で、
+/// `MetricsLayer` は axum Router に適用する Tower Layer で、
 /// HTTP リクエストのメトリクスを自動記録する。
 ///
 /// # 使用例
@@ -27,6 +27,7 @@ pub struct MetricsLayer {
 }
 
 impl MetricsLayer {
+    #[must_use]
     pub fn new(metrics: Arc<Metrics>) -> Self {
         Self {
             mw: TelemetryMiddleware::new(metrics),
@@ -45,7 +46,7 @@ impl<S> Layer<S> for MetricsLayer {
     }
 }
 
-/// MetricsService は MetricsLayer が生成する Tower Service で、
+/// `MetricsService` は `MetricsLayer` が生成する Tower Service で、
 /// リクエストの method/path を記録し、レスポンス完了時にメトリクスを記録する。
 #[derive(Clone)]
 pub struct MetricsService<S> {

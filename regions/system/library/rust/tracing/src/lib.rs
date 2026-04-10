@@ -8,8 +8,10 @@ pub use span::{add_event, end_span, start_span, SpanHandle};
 
 use std::collections::HashMap;
 
-pub fn inject_context(
-    headers: &mut HashMap<String, String>,
+/// トレースコンテキストとバゲージをヘッダーマップに注入する。
+/// 異なるハッシャーを持つ `HashMap` にも対応するため、型パラメータを汎化する。
+pub fn inject_context<S: std::hash::BuildHasher>(
+    headers: &mut HashMap<String, String, S>,
     ctx: &TraceContext,
     baggage: Option<&Baggage>,
 ) {
@@ -22,7 +24,10 @@ pub fn inject_context(
     }
 }
 
-pub fn extract_context(headers: &HashMap<String, String>) -> (Option<TraceContext>, Baggage) {
+/// ヘッダーマップからトレースコンテキストとバゲージを抽出する。
+/// 異なるハッシャーを持つ `HashMap` にも対応するため、型パラメータを汎化する。
+#[must_use]
+pub fn extract_context<S: std::hash::BuildHasher>(headers: &HashMap<String, String, S>) -> (Option<TraceContext>, Baggage) {
     let ctx = headers
         .get("traceparent")
         .and_then(|v| TraceContext::from_traceparent(v));

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -102,6 +104,12 @@ func (p *ReverseProxy) ssrfSafeDialContext(ctx context.Context, network, addr st
 		return nil, fmt.Errorf("SSRF防御: DNS解決エラー (%s): %w", host, err)
 	}
 
+	// LOW-007 対応: DNS 解決結果が 0 件の場合のインデックス境界外アクセス（パニック）を防ぐ。
+	// LookupHost はエラーなしで空スライスを返すことがあるため、明示的に長さを確認する。
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("DNS解決失敗: %s のアドレスが見つかりません", host)
+	}
+
 	// 解決されたすべての IP を検証する（DNS リバインディング対策を含む）
 	for _, resolvedAddr := range addrs {
 		ip := net.ParseIP(resolvedAddr)
@@ -123,7 +131,7 @@ func (p *ReverseProxy) ssrfSafeDialContext(ctx context.Context, network, addr st
 		}
 	}
 
-	// 検証済みの IP:port で接続する
+	// 検証済みの IP:port で接続する（addrs[0] は上記の長さチェックにより安全）
 	baseDialer := &net.Dialer{Timeout: 30 * time.Second}
 	return baseDialer.DialContext(ctx, network, net.JoinHostPort(addrs[0], port))
 }
@@ -161,6 +169,33 @@ func NewReverseProxy(upstreamURL string, timeout time.Duration, allowedHosts map
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Transport = transport
+
+	// HIGH-GO-002 監査対応: バックエンドエラー詳細を隠蔽し、内部ネットワーク情報の漏洩を防止する。
+	// デフォルトの ErrorHandler はバックエンドのエラーメッセージをそのままクライアントに返す可能性があるため、
+	// 502 Bad Gateway のみを返すよう上書きする。
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		slog.Warn("アップストリームサービスへの接続に失敗しました",
+			slog.String("error", err.Error()),
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+		)
+		w.WriteHeader(http.StatusBadGateway)
+	}
+
+	// HIGH-GO-002 監査対応: バックエンドのレスポンスヘッダーから内部情報を含むヘッダーを除去する。
+	// X-Internal- プレフィックスのヘッダーやバックエンドサーバー情報をクライアントに返さないようにする。
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		// X-Internal- プレフィックスを持つヘッダーをすべて削除する
+		for key := range resp.Header {
+			if strings.HasPrefix(strings.ToLower(key), "x-internal-") {
+				resp.Header.Del(key)
+			}
+		}
+		// バックエンドサーバー情報を隠蔽する（Apache/nginx/tonic 等のバージョン漏洩を防ぐ）
+		resp.Header.Del("Server")
+		return nil
+	}
+
 	rp.proxy = proxy
 
 	return rp, nil

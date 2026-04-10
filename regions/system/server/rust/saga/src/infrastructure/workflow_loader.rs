@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::domain::entity::workflow::WorkflowDefinition;
 
-/// WorkflowLoader はディスク上のYAMLファイルからワークフロー定義を読み込む。
+/// `WorkflowLoader` はディスク上のYAMLファイルからワークフロー定義を読み込む。
 pub struct WorkflowLoader {
     workflow_dir: PathBuf,
 }

@@ -1,3 +1,5 @@
+// OpenApi derive マクロが内部で for_each を使用するため、このモジュールで警告を抑制する
+#![allow(clippy::needless_for_each)]
 pub mod config_handler;
 pub mod config_schema_handler;
 pub mod error;
@@ -17,7 +19,7 @@ use crate::usecase::{
     ListConfigSchemasUseCase, ListConfigsUseCase, UpdateConfigUseCase, UpsertConfigSchemaUseCase,
 };
 
-/// AppState はアプリケーション全体の共有状態を表す。
+/// `AppState` はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub get_config_uc: Arc<GetConfigUseCase>,
@@ -57,17 +59,21 @@ impl AppState {
         }
     }
 
+    #[must_use]
     pub fn with_kafka(mut self) -> Self {
         self.kafka_configured = true;
         self
     }
 
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 }
 
+// OpenApi derive マクロが内部で for_each を使用するため警告を抑制する
+#[allow(clippy::needless_for_each)]
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -208,5 +214,5 @@ pub fn router(state: AppState) -> Router {
 }
 
 /// server-common の統一エラーレスポンス型を再エクスポートする。
-/// 各サーバーで重複定義を避け、ErrorResponse / ErrorBody / ErrorDetail を共通化する。
+/// 各サーバーで重複定義を避け、ErrorResponse / `ErrorBody` / `ErrorDetail` を共通化する。
 pub use k1s0_server_common::{ErrorBody, ErrorDetail, ErrorResponse};

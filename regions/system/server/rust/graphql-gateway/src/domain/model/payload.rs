@@ -5,7 +5,7 @@ use super::{
     NotificationTemplate, Session, Tenant, WorkflowDefinition, WorkflowInstance, WorkflowTask,
 };
 
-/// GraphQL UserError: フィールドレベルエラーの構造化表現
+/// GraphQL `UserError`: フィールドレベルエラーの構造化表現
 #[derive(Debug, Clone, SimpleObject)]
 pub struct UserError {
     pub field: Option<Vec<String>>,

@@ -8,6 +8,7 @@ pub struct TraceContext {
 }
 
 impl TraceContext {
+    #[must_use]
     pub fn new(trace_id: &str, parent_id: &str, flags: u8) -> Self {
         Self {
             trace_id: trace_id.to_string(),
@@ -16,10 +17,12 @@ impl TraceContext {
         }
     }
 
+    #[must_use]
     pub fn to_traceparent(&self) -> String {
         format!("00-{}-{}-{:02x}", self.trace_id, self.parent_id, self.flags)
     }
 
+    #[must_use]
     pub fn from_traceparent(s: &str) -> Option<TraceContext> {
         let parts: Vec<&str> = s.split('-').collect();
         if parts.len() != 4 {
@@ -49,11 +52,16 @@ impl TraceContext {
     }
 }
 
-pub fn inject_context(ctx: &TraceContext, headers: &mut HashMap<String, String>) {
+/// トレースコンテキストをヘッダーマップに注入する。
+/// 異なるハッシャーを持つ `HashMap` にも対応するため、型パラメータを汎化する。
+pub fn inject_context<S: std::hash::BuildHasher>(ctx: &TraceContext, headers: &mut HashMap<String, String, S>) {
     headers.insert("traceparent".to_string(), ctx.to_traceparent());
 }
 
-pub fn extract_context(headers: &HashMap<String, String>) -> Option<TraceContext> {
+/// ヘッダーマップからトレースコンテキストを抽出する。
+/// 異なるハッシャーを持つ `HashMap` にも対応するため、型パラメータを汎化する。
+#[must_use]
+pub fn extract_context<S: std::hash::BuildHasher>(headers: &HashMap<String, String, S>) -> Option<TraceContext> {
     headers
         .get("traceparent")
         .and_then(|v| TraceContext::from_traceparent(v))

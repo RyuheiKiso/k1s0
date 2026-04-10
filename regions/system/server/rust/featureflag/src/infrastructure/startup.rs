@@ -39,6 +39,8 @@ fn parse_pool_duration(raw: &str) -> Option<Duration> {
     s.parse::<u64>().ok().map(Duration::from_secs)
 }
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -61,7 +63,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -211,7 +213,7 @@ pub async fn run() -> anyhow::Result<()> {
         match super::kafka_consumer::spawn_flag_cache_invalidator(kafka_cfg, cache) {
             Ok(_) => info!("featureflag cache invalidation consumer started"),
             Err(e) => {
-                tracing::warn!(error = %e, "failed to start featureflag cache invalidation consumer")
+                tracing::warn!(error = %e, "failed to start featureflag cache invalidation consumer");
             }
         }
     }
@@ -272,11 +274,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for featureflag-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -345,7 +343,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -422,10 +420,10 @@ impl InMemoryFeatureFlagRepository {
     }
 }
 
-/// STATIC-CRITICAL-001 監査対応: InMemoryFeatureFlagRepository は全メソッドで
-/// tenant_id を受け取るが、インメモリ実装ではフラグキーのみでアクセスする。
-/// 本実装はローカル開発・テスト用のフォールバックであり、本番では PostgreSQL 実装を使用する。
-/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+/// STATIC-CRITICAL-001 監査対応: `InMemoryFeatureFlagRepository` は全メソッドで
+/// `tenant_id` を受け取るが、インメモリ実装ではフラグキーのみでアクセスする。
+/// 本実装はローカル開発・テスト用のフォールバックであり、本番では `PostgreSQL` 実装を使用する。
+/// HIGH-005 対応: `tenant_id` は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 #[async_trait::async_trait]
 impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
     async fn find_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
@@ -433,7 +431,7 @@ impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
         flags
             .get(flag_key)
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
+            .ok_or_else(|| anyhow::anyhow!("flag not found: {flag_key}"))
     }
 
     async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {

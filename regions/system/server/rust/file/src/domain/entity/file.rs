@@ -6,11 +6,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::error::FileError;
 
-/// C-01 監査対応: フィールド名を DB カラム定義（file_storage.file_metadata）に合わせる
-/// DB カラム: id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at
+/// テナント分離のための `tenant_id` を含むファイルメタデータエンティティ
+/// DB カラム: id, `tenant_id`, filename, `size_bytes`, `content_type`, `uploaded_by`, tags, `storage_path`, checksum, status, `created_at`, `updated_at`
+/// migration 003 で `tenant_id` カラムを追加し、RLS によるテナント分離を実現する
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub id: String,
+    /// テナントID（RLS ポリシーで参照されるカラム）
+    pub tenant_id: String,
     #[serde(alias = "name")]
     pub filename: String,
     pub size_bytes: u64,
@@ -19,10 +22,10 @@ pub struct FileMetadata {
     #[serde(alias = "owner_id")]
     pub uploaded_by: String,
     pub tags: HashMap<String, String>,
-    /// DB カラム名: storage_path（旧 storage_key から改名）
+    /// DB カラム名: `storage_path（旧` `storage_key` から改名）
     #[serde(alias = "storage_key")]
     pub storage_path: String,
-    /// DB カラム名: checksum（旧 checksum_sha256 から改名）
+    /// DB カラム名: checksum（旧 `checksum_sha256` から改名）
     #[serde(alias = "checksum_sha256")]
     pub checksum: Option<String>,
     pub status: String,
@@ -31,10 +34,12 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
-    /// C-01 監査対応: tenant_id を削除、storage_key → storage_path、checksum_sha256 → checksum
+    /// テナント分離対応: `tenant_id` を引数に追加。RLS `set_config` と合わせてテナント境界を強制する。
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         id: String,
+        tenant_id: String,
         filename: String,
         size_bytes: u64,
         content_type: String,
@@ -45,6 +50,7 @@ impl FileMetadata {
         let now = Utc::now();
         Self {
             id,
+            tenant_id,
             filename,
             size_bytes,
             content_type,
@@ -76,8 +82,8 @@ impl FileMetadata {
     }
 
     /// ストレージキーを生成する
-    /// MED-03: tenant_id と filename の両方に対してパストラバーサル攻撃を防ぐバリデーションを実施する。
-    /// tenant_id に '/' や '..' が含まれていると {tenant_id}/{filename} のテナント境界が破れる。
+    /// MED-03: `tenant_id` と filename の両方に対してパストラバーサル攻撃を防ぐバリデーションを実施する。
+    /// `tenant_id` に '/' や '..' が含まれていると {`tenant_id}/{filename`} のテナント境界が破れる。
     pub fn generate_storage_path(tenant_id: &str, filename: &str) -> Result<String, FileError> {
         // tenant_id がスラッシュ・バックスラッシュ・ドット連続を含む場合は拒否する
         // （例: "tenant-a/../tenant-b" でテナント境界を突破するパス操作を防止）
@@ -105,7 +111,7 @@ impl FileMetadata {
                 "ファイル名にパストラバーサル文字列が含まれています".to_string(),
             ));
         }
-        Ok(format!("{}/{}", tenant_id, filename))
+        Ok(format!("{tenant_id}/{filename}"))
     }
 }
 
@@ -121,9 +127,10 @@ mod tests {
 
     #[test]
     fn new_creates_pending_file() {
-        // C-01 監査対応: tenant_id 引数を削除
+        // テナント分離対応: tenant_id 引数を追加
         let file = FileMetadata::new(
             "file_001".to_string(),
+            "tenant-abc".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),
@@ -143,8 +150,10 @@ mod tests {
 
     #[test]
     fn mark_available_updates_status_and_checksum() {
+        // テナント分離対応: tenant_id 引数を追加
         let mut file = FileMetadata::new(
             "file_002".to_string(),
+            "tenant-xyz".to_string(),
             "image.png".to_string(),
             1024,
             "image/png".to_string(),
@@ -162,8 +171,10 @@ mod tests {
 
     #[test]
     fn mark_deleted_updates_status() {
+        // テナント分離対応: tenant_id 引数を追加
         let mut file = FileMetadata::new(
             "file_003".to_string(),
+            "tenant-abc".to_string(),
             "data.csv".to_string(),
             512,
             "text/csv".to_string(),
@@ -178,8 +189,10 @@ mod tests {
 
     #[test]
     fn update_tags_replaces_all_tags() {
+        // テナント分離対応: tenant_id 引数を追加
         let mut file = FileMetadata::new(
             "file_004".to_string(),
+            "tenant-abc".to_string(),
             "doc.txt".to_string(),
             256,
             "text/plain".to_string(),

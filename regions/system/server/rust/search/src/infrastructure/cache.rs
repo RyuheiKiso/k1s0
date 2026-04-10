@@ -1,5 +1,5 @@
-/// IndexCache は検索インデックスのインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きで SearchIndex をキャッシュする。
+/// `IndexCache` は検索インデックスのインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きで `SearchIndex` をキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,11 +12,12 @@ pub struct IndexCache {
 }
 
 impl IndexCache {
-    /// 新しい IndexCache を作成する。
+    /// 新しい `IndexCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -60,11 +61,13 @@ mod tests {
     use uuid::Uuid;
 
     fn make_index(name: &str) -> Arc<SearchIndex> {
+        // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
         Arc::new(SearchIndex {
             id: Uuid::new_v4(),
             name: name.to_string(),
             mapping: serde_json::json!({}),
             created_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         })
     }
 
@@ -121,11 +124,13 @@ mod tests {
     async fn test_insert_overwrites_existing_entry() {
         let cache = IndexCache::new(100, 60);
 
+        // テスト用の v1/v2 インデックス（テナント IDは "tenant-a" を使用する）
         let idx_v1 = Arc::new(SearchIndex {
             id: Uuid::new_v4(),
             name: "products".to_string(),
             mapping: serde_json::json!({"version": 1}),
             created_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         });
 
         let idx_v2 = Arc::new(SearchIndex {
@@ -133,6 +138,7 @@ mod tests {
             name: "products".to_string(),
             mapping: serde_json::json!({"version": 2}),
             created_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         });
 
         cache.insert(idx_v1).await;

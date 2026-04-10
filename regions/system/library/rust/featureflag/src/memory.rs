@@ -14,6 +14,7 @@ pub struct InMemoryFeatureFlagClient {
 }
 
 impl InMemoryFeatureFlagClient {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             flags: Arc::new(RwLock::new(HashMap::new())),

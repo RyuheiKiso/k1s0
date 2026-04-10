@@ -238,6 +238,7 @@ pub struct TenantGrpcService {
 impl TenantGrpcService {
     #[allow(dead_code)]
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,
@@ -271,6 +272,7 @@ impl TenantGrpcService {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new_with_watch(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,
@@ -333,7 +335,7 @@ impl TenantGrpcService {
         } else {
             Some(
                 uuid::Uuid::parse_str(&req.owner_id)
-                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid owner_id: {}", e)))?,
+                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid owner_id: {e}")))?,
             )
         };
 
@@ -349,7 +351,7 @@ impl TenantGrpcService {
                 tenant: Some(domain_tenant_to_pb(&tenant)),
             }),
             Err(crate::usecase::CreateTenantError::NameConflict(name)) => {
-                Err(GrpcError::AlreadyExists(format!("tenant name: {}", name)))
+                Err(GrpcError::AlreadyExists(format!("tenant name: {name}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -357,14 +359,14 @@ impl TenantGrpcService {
 
     pub async fn get_tenant(&self, req: GetTenantRequest) -> Result<GetTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
 
         match self.get_tenant_uc.execute(tenant_id).await {
             Ok(tenant) => Ok(GetTenantResponse {
                 tenant: Some(domain_tenant_to_pb(&tenant)),
             }),
             Err(crate::usecase::GetTenantError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+                Err(GrpcError::NotFound(format!("tenant not found: {id}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -392,7 +394,7 @@ impl TenantGrpcService {
         match self.list_tenants_uc.execute(page, page_size).await {
             Ok((tenants, total_count)) => {
                 let pb_tenants: Vec<PbTenant> = tenants.iter().map(domain_tenant_to_pb).collect();
-                let has_next = (page as i64 * page_size as i64) < total_count;
+                let has_next = (i64::from(page) * i64::from(page_size)) < total_count;
                 Ok(ListTenantsResponse {
                     tenants: pb_tenants,
                     pagination: Some(PbPaginationResult {
@@ -412,7 +414,7 @@ impl TenantGrpcService {
         req: UpdateTenantRequest,
     ) -> Result<UpdateTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         let plan = req
             .plan
             .parse::<Plan>()
@@ -428,7 +430,7 @@ impl TenantGrpcService {
                 tenant: Some(domain_tenant_to_pb(&tenant)),
             }),
             Err(UpdateTenantError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+                Err(GrpcError::NotFound(format!("tenant not found: {id}")))
             }
             Err(UpdateTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(UpdateTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
@@ -440,13 +442,13 @@ impl TenantGrpcService {
         req: SuspendTenantRequest,
     ) -> Result<SuspendTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         match self.suspend_tenant_uc.execute(tenant_id).await {
             Ok(tenant) => Ok(SuspendTenantResponse {
                 tenant: Some(domain_tenant_to_pb(&tenant)),
             }),
             Err(SuspendTenantError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+                Err(GrpcError::NotFound(format!("tenant not found: {id}")))
             }
             Err(SuspendTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(SuspendTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
@@ -458,13 +460,13 @@ impl TenantGrpcService {
         req: ActivateTenantRequest,
     ) -> Result<ActivateTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         match self.activate_tenant_uc.execute(tenant_id).await {
             Ok(tenant) => Ok(ActivateTenantResponse {
                 tenant: Some(domain_tenant_to_pb(&tenant)),
             }),
             Err(ActivateTenantError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+                Err(GrpcError::NotFound(format!("tenant not found: {id}")))
             }
             Err(ActivateTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(ActivateTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
@@ -476,13 +478,13 @@ impl TenantGrpcService {
         req: DeleteTenantRequest,
     ) -> Result<DeleteTenantResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         match self.delete_tenant_uc.execute(tenant_id).await {
             Ok(tenant) => Ok(DeleteTenantResponse {
                 tenant: Some(domain_tenant_to_pb(&tenant)),
             }),
             Err(DeleteTenantError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+                Err(GrpcError::NotFound(format!("tenant not found: {id}")))
             }
             Err(DeleteTenantError::InvalidStatus(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(DeleteTenantError::Internal(msg)) => Err(GrpcError::Internal(msg)),
@@ -491,9 +493,9 @@ impl TenantGrpcService {
 
     pub async fn add_member(&self, req: AddMemberRequest) -> Result<AddMemberResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         let user_id = uuid::Uuid::parse_str(&req.user_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {e}")))?;
         validate_role(&req.role)?;
 
         let input = AddMemberInput {
@@ -518,14 +520,14 @@ impl TenantGrpcService {
         req: ListMembersRequest,
     ) -> Result<ListMembersResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
 
         match self.list_members_uc.execute(tenant_id).await {
             Ok(members) => Ok(ListMembersResponse {
                 members: members.iter().map(domain_member_to_pb).collect(),
             }),
             Err(ListMembersError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("tenant not found: {}", id)))
+                Err(GrpcError::NotFound(format!("tenant not found: {id}")))
             }
             Err(ListMembersError::Internal(msg)) => Err(GrpcError::Internal(msg)),
         }
@@ -536,9 +538,9 @@ impl TenantGrpcService {
         req: RemoveMemberRequest,
     ) -> Result<RemoveMemberResponse, GrpcError> {
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         let user_id = uuid::Uuid::parse_str(&req.user_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {e}")))?;
 
         match self.remove_member_uc.execute(tenant_id, user_id).await {
             Ok(success) => Ok(RemoveMemberResponse { success }),
@@ -556,9 +558,9 @@ impl TenantGrpcService {
     ) -> Result<UpdateMemberRoleResponse, GrpcError> {
         // tenant_id と user_id を UUID としてパースする
         let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {e}")))?;
         let user_id = uuid::Uuid::parse_str(&req.user_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {e}")))?;
 
         let input = UpdateMemberRoleInput {
             tenant_id,
@@ -576,9 +578,9 @@ impl TenantGrpcService {
             Err(UpdateMemberRoleError::TenantNotFound) => {
                 Err(GrpcError::NotFound("tenant not found".to_string()))
             }
-            Err(UpdateMemberRoleError::InvalidRole(role)) => Err(GrpcError::InvalidArgument(
-                format!("invalid role: {}", role),
-            )),
+            Err(UpdateMemberRoleError::InvalidRole(role)) => {
+                Err(GrpcError::InvalidArgument(format!("invalid role: {role}")))
+            }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -588,14 +590,14 @@ impl TenantGrpcService {
         req: GetProvisioningStatusRequest,
     ) -> Result<GetProvisioningStatusResponse, GrpcError> {
         let job_id = uuid::Uuid::parse_str(&req.job_id)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid job_id: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid job_id: {e}")))?;
 
         match self.get_provisioning_status_uc.execute(job_id).await {
             Ok(job) => Ok(GetProvisioningStatusResponse {
                 job: Some(domain_job_to_pb(&job)),
             }),
             Err(crate::usecase::GetProvisioningStatusError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("job not found: {}", id)))
+                Err(GrpcError::NotFound(format!("job not found: {id}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -607,7 +609,7 @@ impl TenantGrpcService {
 fn validate_role(s: &str) -> Result<(), GrpcError> {
     match s {
         "owner" | "admin" | "member" | "viewer" => Ok(()),
-        _ => Err(GrpcError::InvalidArgument(format!("unknown role: {}", s))),
+        _ => Err(GrpcError::InvalidArgument(format!("unknown role: {s}"))),
     }
 }
 
@@ -626,11 +628,13 @@ fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
         db_schema: t.db_schema.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {
             seconds: t.created_at.timestamp(),
-            nanos: t.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(t.created_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
         updated_at: Some(PbTimestamp {
             seconds: t.updated_at.timestamp(),
-            nanos: t.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(t.updated_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
     }
 }
@@ -643,7 +647,8 @@ fn domain_member_to_pb(m: &TenantMember) -> PbTenantMember {
         role: m.role.clone(),
         joined_at: Some(PbTimestamp {
             seconds: m.joined_at.timestamp(),
-            nanos: m.joined_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(m.joined_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
     }
 }
@@ -657,11 +662,13 @@ fn domain_job_to_pb(j: &ProvisioningJob) -> PbProvisioningJob {
         error_message: j.error_message.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {
             seconds: j.created_at.timestamp(),
-            nanos: j.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(j.created_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
         updated_at: Some(PbTimestamp {
             seconds: j.updated_at.timestamp(),
-            nanos: j.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(j.updated_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
     }
 }

@@ -15,6 +15,8 @@ impl IndexDocument {
         }
     }
 
+    /// フィールドを追加する（ビルダーパターン）。
+    #[must_use]
     pub fn field(mut self, name: impl Into<String>, value: serde_json::Value) -> Self {
         self.fields.insert(name.into(), value);
         self
@@ -52,12 +54,15 @@ pub struct IndexMapping {
 }
 
 impl IndexMapping {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             fields: HashMap::new(),
         }
     }
 
+    /// マッピングフィールドを追加する（ビルダーパターン）。
+    #[must_use]
     pub fn field(mut self, name: impl Into<String>, field_type: impl Into<String>) -> Self {
         self.fields.insert(
             name.into(),

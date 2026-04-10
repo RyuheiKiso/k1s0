@@ -757,6 +757,12 @@ message DeleteTemplateResponse {
 | domain/service | `NotificationDomainService` | テンプレート適用・リトライ判定ロジック |
 | usecase | `SendNotificationUsecase`, `RetryNotificationUsecase`, `GetNotificationUsecase`, `ListNotificationsUsecase`, `ListChannelsUsecase`, `GetChannelUsecase`, `CreateChannelUsecase`, `UpdateChannelUsecase`, `DeleteChannelUsecase`, `ListTemplatesUsecase`, `GetTemplateUsecase`, `CreateTemplateUsecase`, `UpdateTemplateUsecase`, `DeleteTemplateUsecase` | ユースケース |
 | adapter/handler | REST ハンドラー（axum）, gRPC ハンドラー（tonic）, Kafka コンシューマー | プロトコル変換・メッセージ受信 |
+
+### gRPC テナント分離設計（CRIT-006 対応）
+
+全 gRPC エンドポイント（`create_channel` 等）はリクエストメタデータ `x-tenant-id` ヘッダーから tenant_id を取得する。
+**フェイルクローズ設計**: `x-tenant-id` が未設定または空文字の場合は `UNAUTHENTICATED` エラーを返す。
+`SYSTEM_TENANT_ID` フォールバック定数は廃止済み。`tenant_id_from_metadata` は `Result<String, tonic::Status>` を返す。
 | infrastructure/config | Config ローダー | config.yaml の読み込み |
 | infrastructure/persistence | `NotificationChannelPostgresRepository`, `NotificationTemplatePostgresRepository`, `NotificationLogPostgresRepository` | PostgreSQL リポジトリ実装 |
 | infrastructure/messaging | `NotificationKafkaConsumer`, `NotificationDeliveredKafkaProducer` | Kafka コンシューマー・プロデューサー |

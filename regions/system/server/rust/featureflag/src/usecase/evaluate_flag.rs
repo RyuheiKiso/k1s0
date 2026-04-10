@@ -4,9 +4,9 @@ use crate::domain::entity::evaluation::{EvaluationContext, EvaluationResult};
 use crate::domain::repository::FeatureFlagRepository;
 use crate::domain::service::FeatureFlagDomainService;
 
-/// EvaluateFlagInput はフィーチャーフラグ評価の入力データ。
-/// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
-/// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+/// `EvaluateFlagInput` はフィーチャーフラグ評価の入力データ。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` でテナントスコープを指定する。
+/// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagInput {
     pub tenant_id: String,

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::team::Team;
 use crate::domain::repository::TeamRepository;
 
-/// UpdateTeamInput はチーム更新の入力パラメータ。
+/// `UpdateTeamInput` はチーム更新の入力パラメータ。
 pub struct UpdateTeamInput {
     pub id: Uuid,
     pub name: String,
@@ -15,7 +15,7 @@ pub struct UpdateTeamInput {
     pub slack_channel: Option<String>,
 }
 
-/// UpdateTeamError はチーム更新に関するエラーを表す。
+/// `UpdateTeamError` はチーム更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateTeamError {
     #[error("team not found: {0}")]
@@ -28,7 +28,7 @@ pub enum UpdateTeamError {
     Internal(String),
 }
 
-/// UpdateTeamUseCase はチーム更新ユースケース。
+/// `UpdateTeamUseCase` はチーム更新ユースケース。
 pub struct UpdateTeamUseCase {
     team_repo: Arc<dyn TeamRepository>,
 }

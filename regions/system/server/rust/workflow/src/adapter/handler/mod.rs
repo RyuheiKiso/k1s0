@@ -19,6 +19,8 @@ use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::require_permission;
 
 /// REST APIルーターを構築する
+// ルーター構築は全エンドポイントを定義するため行数が多くなる
+#[allow(clippy::too_many_lines)]
 pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Router {
     // 認証不要のエンドポイント
     let mut public_routes = Router::new()
@@ -155,9 +157,7 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
             .merge(internal_routes)
     };
 
-    public_routes
-        .merge(api_routes)
-        .with_state(state)
+    public_routes.merge(api_routes).with_state(state)
 }
 
 /// メトリクスエンドポイントのハンドラ

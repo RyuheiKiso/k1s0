@@ -140,6 +140,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_snapshots_stream_version ON eventstore.sna
 | `003_create_events.down.sql` | テーブル削除 |
 | `004_create_snapshots.up.sql` | snapshots テーブル作成 |
 | `004_create_snapshots.down.sql` | テーブル削除 |
+| `005_add_events_sequence_identity.up.sql` | events テーブルに sequence IDENTITY カラム追加 |
+| `006_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id VARCHAR(255) NOT NULL` と RLS ポリシー追加 |
+| `007_add_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `008_alter_tenant_id_to_text.up.sql` | `tenant_id` を TEXT 型に変更、RLS ポリシー再作成（CRITICAL-DB-002 対応） |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-002）
+
+全テーブル（`event_streams` / `events` / `snapshots`）の `tenant_id` を TEXT 型に統一（migration 008）。
+
+```sql
+-- 各テーブルに設定済み
+ALTER TABLE eventstore.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eventstore.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON eventstore.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

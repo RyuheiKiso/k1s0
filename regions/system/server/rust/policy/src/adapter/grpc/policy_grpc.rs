@@ -191,6 +191,8 @@ pub enum GrpcError {
     Unimplemented(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct PolicyGrpcService {
     create_policy_uc: Arc<CreatePolicyUseCase>,
     get_policy_uc: Arc<GetPolicyUseCase>,
@@ -205,6 +207,7 @@ pub struct PolicyGrpcService {
 
 impl PolicyGrpcService {
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         create_policy_uc: Arc<CreatePolicyUseCase>,
         get_policy_uc: Arc<GetPolicyUseCase>,
@@ -229,7 +232,7 @@ impl PolicyGrpcService {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシー評価を実行する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらポリシー評価を実行する。
     pub async fn evaluate_policy(
         &self,
         req: EvaluatePolicyRequest,
@@ -253,7 +256,7 @@ impl PolicyGrpcService {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&req.input_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid input_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid input_json: {e}")))?
         };
 
         let uc_input = EvaluatePolicyInput {
@@ -269,7 +272,7 @@ impl PolicyGrpcService {
             .await
             .map_err(|e| match e {
                 EvaluatePolicyError::NotFound(id) => {
-                    GrpcError::NotFound(format!("policy not found: {}", id))
+                    GrpcError::NotFound(format!("policy not found: {id}"))
                 }
                 EvaluatePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -282,7 +285,7 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを取得する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらポリシーを取得する。
     pub async fn get_policy(&self, req: GetPolicyRequest) -> Result<GetPolicyResponse, GrpcError> {
         let id = Uuid::parse_str(&req.id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid policy id: {}", req.id)))?;
@@ -301,16 +304,17 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシー一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらポリシー一覧を取得する。
     pub async fn list_policies(
         &self,
         req: ListPoliciesRequest,
     ) -> Result<ListPoliciesResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(0) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(0)
         };
 
         let output = self
@@ -320,7 +324,7 @@ impl PolicyGrpcService {
                 page_size,
                 bundle_id: match req.bundle_id.as_deref() {
                     Some(bundle_id) => Some(Uuid::parse_str(bundle_id).map_err(|_| {
-                        GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id))
+                        GrpcError::InvalidArgument(format!("invalid bundle_id: {bundle_id}"))
                     })?),
                     None => None,
                 },
@@ -335,20 +339,21 @@ impl PolicyGrpcService {
         Ok(ListPoliciesResponse {
             policies: output.policies.into_iter().map(to_policy_data).collect(),
             total_count: output.total_count,
-            page: output.page as i32,
-            page_size: output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            page: i32::try_from(output.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(output.page_size).unwrap_or(i32::MAX),
             has_next: output.has_next,
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを作成する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらポリシーを作成する。
     pub async fn create_policy(
         &self,
         req: CreatePolicyRequest,
     ) -> Result<CreatePolicyResponse, GrpcError> {
         let bundle_id = match req.bundle_id.as_deref() {
             Some(bundle_id) => Some(Uuid::parse_str(bundle_id).map_err(|_| {
-                GrpcError::InvalidArgument(format!("invalid bundle_id: {}", bundle_id))
+                GrpcError::InvalidArgument(format!("invalid bundle_id: {bundle_id}"))
             })?),
             None => None,
         };
@@ -366,7 +371,7 @@ impl PolicyGrpcService {
             .await
             .map_err(|e| match e {
                 CreatePolicyError::AlreadyExists(name) => {
-                    GrpcError::AlreadyExists(format!("policy already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("policy already exists: {name}"))
                 }
                 CreatePolicyError::Validation(msg) => GrpcError::InvalidArgument(msg),
                 CreatePolicyError::Internal(msg) => GrpcError::Internal(msg),
@@ -377,7 +382,7 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを更新する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらポリシーを更新する。
     pub async fn update_policy(
         &self,
         req: UpdatePolicyRequest,
@@ -397,7 +402,7 @@ impl PolicyGrpcService {
             .await
             .map_err(|e| match e {
                 UpdatePolicyError::NotFound(id) => {
-                    GrpcError::NotFound(format!("policy not found: {}", id))
+                    GrpcError::NotFound(format!("policy not found: {id}"))
                 }
                 UpdatePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -407,7 +412,7 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを削除する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらポリシーを削除する。
     pub async fn delete_policy(
         &self,
         req: DeletePolicyRequest,
@@ -420,7 +425,7 @@ impl PolicyGrpcService {
             .await
             .map_err(|e| match e {
                 DeletePolicyError::NotFound(id) => {
-                    GrpcError::NotFound(format!("policy not found: {}", id))
+                    GrpcError::NotFound(format!("policy not found: {id}"))
                 }
                 DeletePolicyError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -431,7 +436,7 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらバンドルを作成する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらバンドルを作成する。
     pub async fn create_bundle(
         &self,
         req: CreateBundleRequest,
@@ -463,7 +468,7 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらバンドル一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらバンドル一覧を取得する。
     pub async fn list_bundles(
         &self,
         req: ListBundlesRequest,
@@ -481,7 +486,7 @@ impl PolicyGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらバンドルを取得する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらバンドルを取得する。
     pub async fn get_bundle(&self, req: GetBundleRequest) -> Result<GetBundleResponse, GrpcError> {
         let id = Uuid::parse_str(&req.id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle id: {}", req.id)))?;
@@ -492,7 +497,7 @@ impl PolicyGrpcService {
             .await
             .map_err(|e| match e {
                 GetBundleError::NotFound(id) => {
-                    GrpcError::NotFound(format!("bundle not found: {}", id))
+                    GrpcError::NotFound(format!("bundle not found: {id}"))
                 }
                 GetBundleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -524,7 +529,8 @@ fn to_bundle_data(bundle: PolicyBundle) -> PolicyBundleData {
         name: bundle.name,
         description: bundle.description,
         enabled: bundle.enabled,
-        policy_count: bundle.policy_ids.len() as u32,
+        // LOW-008: 安全な型変換（ポリシー数は u32 範囲内が前提）
+        policy_count: u32::try_from(bundle.policy_ids.len()).unwrap_or(u32::MAX),
         policy_ids: bundle
             .policy_ids
             .into_iter()

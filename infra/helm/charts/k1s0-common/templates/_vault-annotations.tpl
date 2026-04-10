@@ -25,6 +25,11 @@ Values に以下を設定:
 */}}
 {{- define "k1s0-common.vaultAnnotations" -}}
 {{- if .Values.vault.enabled }}
+{{- /* LOW-011 対応: vault.role が未設定の場合は helm install/upgrade を失敗させる。
+     各サービスの values.yaml に role: "<service-name>" を明示的に設定すること。 */}}
+{{- if not .Values.vault.role }}
+{{- fail "vault.role が設定されていません。各サービスの values.yaml に role: \"<service-name>\" を設定してください（ADR-0045 参照）。" }}
+{{- end }}
 vault.hashicorp.com/agent-inject: "true"
 vault.hashicorp.com/agent-inject-status: "update"
 vault.hashicorp.com/role: {{ .Values.vault.role | quote }}

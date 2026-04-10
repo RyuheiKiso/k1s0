@@ -703,6 +703,15 @@ plugins:
         - Authorization
 
   # CORS - クロスオリジンリソース共有
+  # LOW-006 監査対応: KONG_CORS_ORIGINS の展開仕様を明記する
+  # envsubst によりデプロイ時に展開される。複数オリジンを許可する場合は
+  # 本設定ファイルを複数エントリに直接記載すること。
+  # 例（ステージング）:
+  #   origins:
+  #     - "https://app.staging.k1s0.internal.example.com"
+  #     - "https://admin.staging.k1s0.internal.example.com"
+  # 本番はワイルドカードサブドメイン 1 エントリのみを想定するため
+  # 単一の ${KONG_CORS_ORIGINS} で展開する。
   - name: cors
     config:
       origins:
@@ -729,16 +738,46 @@ plugins:
   # access フェーズを使用する理由:
   #   1. kong.service.request.set_header() は access フェーズでのみ upstream へのヘッダー設定が有効
   #      （header_filter フェーズはレスポンス処理であり、upstream リクエストヘッダーは設定不可）
-  #   2. post-function の priority は -1000 で JWT プラグイン（priority 1006）より後に実行されるため
+  #   2. post-function（priority -1000）は JWT プラグイン（priority 1006）より後に実行されるため
   #      access フェーズで authenticated_jwt_token が利用可能
+  #
+  # MEDIUM-002 監査対応 (本番版): kong.dev.yaml と同一の base64url デコード実装に統一。
+  # Kong 3.x での実装注記:
+  #   kong.ctx.shared.authenticated_jwt_token は raw JWT 文字列（eyJ...形式）であり、
+  #   .claims プロパティを持つデコード済みオブジェクトではない。
+  #   そのため JWT の payload 部分を base64url デコードして claims を取得する。
+  #   KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES=cjson.safe が環境変数で設定済みであること。
   # Keycloak の openid スコープ（k1s0-api-audience mapper）により全トークンに "k1s0-api" が付与される
   - name: post-function
     config:
       access:
         - |
-          local jwt = kong.ctx.shared.authenticated_jwt_token
-          if jwt then
-            local aud = jwt.claims.aud
+          local raw_token = kong.ctx.shared.authenticated_jwt_token
+          if raw_token then
+            -- JWT は header.payload.signature の3パーツ構造
+            -- payload を base64url デコードして claims を取得する
+            local parts = {}
+            for part in raw_token:gmatch("[^%.]+") do
+              parts[#parts + 1] = part
+            end
+            if #parts < 2 then
+              return kong.response.exit(401, { message = "Unauthorized: malformed token" })
+            end
+            -- base64url → base64 変換（-→+, _→/）とパディング追加
+            local payload_b64 = parts[2]:gsub("-", "+"):gsub("_", "/")
+            local padding = (4 - #payload_b64 % 4) % 4
+            payload_b64 = payload_b64 .. string.rep("=", padding)
+            local payload_json = ngx.decode_base64(payload_b64)
+            if not payload_json then
+              return kong.response.exit(401, { message = "Unauthorized: invalid token encoding" })
+            end
+            local cjson = require("cjson.safe")
+            local claims, err = cjson.decode(payload_json)
+            if not claims then
+              return kong.response.exit(401, { message = "Unauthorized: invalid token claims" })
+            end
+            -- aud クレームの検証
+            local aud = claims.aud
             local valid = false
             if type(aud) == "string" then
               valid = (aud == "k1s0-api")
@@ -750,14 +789,20 @@ plugins:
             if not valid then
               return kong.response.exit(401, { message = "Unauthorized: invalid audience" })
             end
-            kong.service.request.set_header("X-User-Id", jwt.claims.sub)
+            -- バックエンドサービス向けユーザー情報ヘッダーを設定する
+            kong.service.request.set_header("X-User-Id", claims.sub or "")
             local roles = ""
-            local ra = jwt.claims.realm_access
+            local ra = claims.realm_access
             if ra and ra.roles then
               roles = table.concat(ra.roles, ",")
             end
             kong.service.request.set_header("X-User-Roles", roles)
-            kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
+            kong.service.request.set_header("X-User-Email", claims.email or "")
+            -- MEDIUM-002 監査対応: テナントIDをバックエンドに転送する。
+            -- Kong 層で統一的に設定することで、バックエンドが個別に JWT から
+            -- テナントIDを取得する必要をなくし、テナント境界の一貫性を保証する。
+            -- Keycloak JWT のカスタムクレーム名は "tenant_id"（BFF Proxy oauth/client.go と一致）。
+            kong.service.request.set_header("X-Tenant-ID", claims.tenant_id or "")
           end
 
   # Prometheus - メトリクス収集
@@ -804,6 +849,16 @@ plugins:
   # HIGH-008 監査対応確認: allow リストは ${KONG_ADMIN_ALLOWED_IPS:-127.0.0.1} で環境変数化済み。
   # デフォルトは 127.0.0.1 のみ。本番では KONG_ADMIN_ALLOWED_IPS に適切な CIDR を設定すること。
   # envsubst（CI/CD パイプライン）により実行時に展開されるため、設定ファイルへのハードコードは不要。
+  #
+  # LOW-013 監査対応: 本番環境での ip-restriction グローバル適用に関する警告
+  # ⚠️ WARNING: ip-restriction プラグインをグローバル（plugins: の直下）に適用すると、
+  # allow リストに含まれない全 IP からのアクセスが Kong Proxy 経由でブロックされる。
+  # 本番環境での設定前に以下を必ず確認すること:
+  #   1. KONG_ADMIN_ALLOWED_IPS に、全正当クライアントの IP/CIDR が網羅されているか確認する
+  #   2. ロードバランサー経由の場合、実クライアント IP が X-Forwarded-For で正しく伝達されるか確認する
+  #   3. Kubernetes Pod の CIDR（例: 10.244.0.0/16）を許可しない場合、クラスタ内サービス間通信がブロックされる
+  #   4. 変更適用前に staging 環境で十分な動作確認を行うこと
+  #   5. deny リストと allow リストは同時に設定しないこと（allow が優先されるが混在は危険）
   - name: ip-restriction
     config:
       # HIGH-005 監査対応: Kong Admin API へのアクセスを localhost のみに制限する。
@@ -832,8 +887,10 @@ consumers:
   # サービス間認証専用 Consumer（saga-v1 / dlq-manager-v1 用）
   # key_claim_name: sub によりサービスアカウントの subject クレームで認証する。
   # グローバル JWT プラグインの iss ベース認証と衝突しないよう Consumer を分離する。
+  # HIGH-013 監査対応: key を予測困難な UUID に変更する。
+  # 旧値 "service-to-service" は文字列として推測・ブルートフォースされるリスクがあるため UUID に置換する。
   - username: service-to-service
     jwt_secrets:
       - algorithm: HS256
-        key: "service-to-service"
+        key: "7f4e2b9a-3c8d-4f51-a6e7-2b9d8c5f4e73"
         secret: "${KONG_S2S_JWT_SECRET}"

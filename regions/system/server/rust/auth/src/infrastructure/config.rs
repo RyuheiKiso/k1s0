@@ -183,6 +183,7 @@ pub struct JwksConfig {
     pub cache_ttl_secs: u64,
 }
 
+#[must_use]
 pub fn default_cache_ttl_secs() -> u64 {
     600
 }
@@ -263,7 +264,7 @@ fn default_keycloak_admin_refresh_interval_secs() -> u64 {
 }
 
 /// ユーザーキャッシュの設定（L-15 監査対応）。
-/// startup.rs の UserCache::new() で使用するパラメータを設定ファイルから読み込む。
+/// startup.rs の `UserCache::new()` で使用するパラメータを設定ファイルから読み込む。
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     /// ユーザーキャッシュの最大エントリ数

@@ -9,6 +9,7 @@ pub enum SubjectType {
 }
 
 impl SubjectType {
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             SubjectType::Tenant => "tenant",
@@ -18,6 +19,7 @@ impl SubjectType {
     }
 
     #[allow(clippy::should_implement_trait)]
+    #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "tenant" => Some(SubjectType::Tenant),
@@ -35,6 +37,7 @@ pub enum Period {
 }
 
 impl Period {
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             Period::Daily => "daily",
@@ -43,6 +46,7 @@ impl Period {
     }
 
     #[allow(clippy::should_implement_trait)]
+    #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "daily" => Some(Period::Daily),
@@ -55,6 +59,9 @@ impl Period {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuotaPolicy {
     pub id: String,
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子。
+    /// RLS ポリシーの `app.current_tenant_id` セッション変数と対応する。
+    pub tenant_id: String,
     pub name: String,
     pub subject_type: SubjectType,
     pub subject_id: String,
@@ -67,7 +74,11 @@ pub struct QuotaPolicy {
 }
 
 impl QuotaPolicy {
+    // ポリシー作成には複数のドメインフィールドが必要なため引数制限を緩める
+    #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
+        tenant_id: String,
         name: String,
         subject_type: SubjectType,
         subject_id: String,
@@ -79,6 +90,7 @@ impl QuotaPolicy {
         let now = Utc::now();
         Self {
             id: format!("quota_{}", uuid::Uuid::new_v4().simple()),
+            tenant_id,
             name,
             subject_type,
             subject_id,
@@ -110,6 +122,7 @@ pub struct QuotaUsage {
 }
 
 impl QuotaUsage {
+    #[must_use]
     pub fn new(
         policy: &QuotaPolicy,
         used: u64,
@@ -119,6 +132,8 @@ impl QuotaUsage {
     ) -> Self {
         // 使用量が制限を超えた場合は0、それ以外は残量を計算
         let remaining = policy.limit.saturating_sub(used);
+        // LOW-008: u64 → f64 の精度損失は許容（クォータ使用率の近似値計算のため）
+        #[allow(clippy::cast_precision_loss)]
         let usage_percent = if policy.limit == 0 {
             100.0
         } else {
@@ -179,6 +194,7 @@ mod tests {
     #[test]
     fn test_quota_policy_new() {
         let policy = QuotaPolicy::new(
+            "tenant-abc".to_string(),
             "test-policy".to_string(),
             SubjectType::Tenant,
             "tenant-abc".to_string(),
@@ -188,6 +204,7 @@ mod tests {
             Some(80),
         );
         assert!(policy.id.starts_with("quota_"));
+        assert_eq!(policy.tenant_id, "tenant-abc");
         assert_eq!(policy.name, "test-policy");
         assert_eq!(policy.subject_type, SubjectType::Tenant);
         assert_eq!(policy.subject_id, "tenant-abc");
@@ -200,6 +217,7 @@ mod tests {
     #[test]
     fn test_quota_usage_new_under_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::User,
             "user-1".to_string(),
@@ -219,6 +237,7 @@ mod tests {
     #[test]
     fn test_quota_usage_new_at_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),
@@ -237,6 +256,7 @@ mod tests {
     #[test]
     fn test_quota_usage_new_over_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::ApiKey,
             "key-1".to_string(),
@@ -254,6 +274,7 @@ mod tests {
     #[test]
     fn test_quota_usage_zero_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),

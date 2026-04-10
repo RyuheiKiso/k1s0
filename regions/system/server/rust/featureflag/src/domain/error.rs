@@ -1,10 +1,10 @@
-//! FeatureFlag サービスのドメインエラー型。
+//! `FeatureFlag` サービスのドメインエラー型。
 //!
 //! 文字列マッチングではなく、型安全な分類で HTTP ステータスコードを決定する。
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// FeatureFlag ドメイン固有のエラー型。
+/// `FeatureFlag` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum FeatureFlagError {
     /// フラグが見つからない
@@ -28,7 +28,7 @@ pub enum FeatureFlagError {
     Internal(String),
 }
 
-/// FeatureFlagError から ServiceError への変換実装
+/// `FeatureFlagError` から `ServiceError` への変換実装
 impl From<FeatureFlagError> for ServiceError {
     fn from(err: FeatureFlagError) -> Self {
         match err {

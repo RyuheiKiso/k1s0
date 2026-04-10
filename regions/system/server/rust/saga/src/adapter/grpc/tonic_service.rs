@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の SagaService トレイトを実装する。
-//! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の SagaGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `SagaService` トレイトを実装する。
+//! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の `SagaGrpcService` に委譲する。
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
 // 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
@@ -50,8 +50,10 @@ impl From<GrpcError> for Status {
 
 // --- 変換ヘルパー ---
 
-/// ドメインのサガステータス文字列を SagaStatus enum の i32 値に変換する。
+/// ドメインのサガステータス文字列を `SagaStatus` enum の i32 値に変換する。
 /// dual-write パターンで旧文字列フィールドと新 enum フィールドを同時設定するために使用する。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn saga_status_str_to_enum(s: &str) -> i32 {
     match s {
         "RUNNING" => SagaStatus::Running as i32,
@@ -69,7 +71,8 @@ fn rfc3339_to_proto_timestamp(s: &str) -> Option<ProtoTimestamp> {
         .ok()
         .map(|dt| ProtoTimestamp {
             seconds: dt.timestamp(),
-            nanos: dt.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         })
 }
 
@@ -97,25 +100,22 @@ fn json_to_prost_value(value: &serde_json::Value) -> prost_types::Value {
 }
 
 fn json_to_prost_struct(value: &serde_json::Value) -> prost_types::Struct {
-    match value {
-        serde_json::Value::Object(map) => {
-            let fields: BTreeMap<String, prost_types::Value> = map
-                .iter()
-                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
-                .collect();
-            prost_types::Struct { fields }
-        }
-        _ => {
-            let mut fields = BTreeMap::new();
-            fields.insert("value".to_string(), json_to_prost_value(value));
-            prost_types::Struct { fields }
-        }
+    if let serde_json::Value::Object(map) = value {
+        let fields: BTreeMap<String, prost_types::Value> = map
+            .iter()
+            .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+            .collect();
+        prost_types::Struct { fields }
+    } else {
+        let mut fields = BTreeMap::new();
+        fields.insert("value".to_string(), json_to_prost_value(value));
+        prost_types::Struct { fields }
     }
 }
 
 fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
+    // NullValue と None は同じ返り値のためアームを統合する
     match &value.kind {
-        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
         Some(prost_types::value::Kind::BoolValue(v)) => serde_json::Value::Bool(*v),
         Some(prost_types::value::Kind::NumberValue(v)) => serde_json::json!(*v),
         Some(prost_types::value::Kind::StringValue(v)) => serde_json::Value::String(v.clone()),
@@ -123,7 +123,7 @@ fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
             serde_json::Value::Array(list.values.iter().map(prost_value_to_json).collect())
         }
         Some(prost_types::value::Kind::StructValue(v)) => prost_struct_to_json(v),
-        None => serde_json::Value::Null,
+        Some(prost_types::value::Kind::NullValue(_)) | None => serde_json::Value::Null,
     }
 }
 
@@ -152,24 +152,24 @@ fn empty_string_to_none(value: String) -> Option<String> {
     }
 }
 
-/// gRPC リクエストの Extensions から tenant_id を取得する。
-/// CRIT-005 対応: Claims が存在する場合はその tenant_id を返し、存在しない場合は "system" を返す。
+/// gRPC リクエストの Extensions から `tenant_id` を取得する。
+/// CRIT-005 対応: Claims が存在する場合はその `tenant_id` を返し、存在しない場合は "system" を返す。
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
         .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 // --- SagaService tonic ラッパー ---
 
-/// SagaServiceTonic は tonic の SagaService として SagaGrpcService をラップする。
+/// `SagaServiceTonic` は tonic の `SagaService` として `SagaGrpcService` をラップする。
 pub struct SagaServiceTonic {
     inner: Arc<SagaGrpcService>,
 }
 
 impl SagaServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<SagaGrpcService>) -> Self {
         Self { inner }
     }
@@ -187,10 +187,9 @@ impl SagaService for SagaServiceTonic {
         let payload = inner
             .payload
             .as_ref()
-            .map(prost_struct_to_json)
-            .unwrap_or_else(|| serde_json::json!({}));
+            .map_or_else(|| serde_json::json!({}), prost_struct_to_json);
         let payload = serde_json::to_vec(&payload)
-            .map_err(|e| Status::invalid_argument(format!("invalid payload: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("invalid payload: {e}")))?;
         let req = StartSagaRequest {
             workflow_name: inner.workflow_name,
             payload,
@@ -275,10 +274,7 @@ impl SagaService for SagaServiceTonic {
         // CRIT-005 対応: Extensions から tenant_id を取得する
         let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let req = ListSagasRequest {
             page,
             page_size,
@@ -478,7 +474,8 @@ mod tests {
 
     fn make_dummy_get_uc() -> Arc<GetSagaUseCase> {
         let mut mock = MockSagaRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        // CRIT-005 監査対応: find_by_id は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
         Arc::new(GetSagaUseCase::new(Arc::new(mock)))
     }
 
@@ -490,7 +487,8 @@ mod tests {
 
     fn make_dummy_cancel_uc() -> Arc<CancelSagaUseCase> {
         let mut mock = MockSagaRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        // CRIT-005 監査対応: find_by_id は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
         Arc::new(CancelSagaUseCase::new(Arc::new(mock)))
     }
 
@@ -525,7 +523,8 @@ steps:
 
         let mut mock_saga_repo = MockSagaRepository::new();
         mock_saga_repo.expect_create().returning(|_| Ok(()));
-        mock_saga_repo.expect_find_by_id().returning(|_| Ok(None));
+        // CRIT-005 監査対応: find_by_id は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+        mock_saga_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let mut mock_caller = MockGrpcStepCaller::new();
         mock_caller
@@ -605,7 +604,8 @@ steps:
     #[tokio::test]
     async fn test_cancel_saga_not_found() {
         let mut mock_saga_repo = MockSagaRepository::new();
-        mock_saga_repo.expect_find_by_id().returning(|_| Ok(None));
+        // CRIT-005 監査対応: find_by_id は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+        mock_saga_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let cancel_uc = Arc::new(CancelSagaUseCase::new(Arc::new(mock_saga_repo)));
 
@@ -658,11 +658,13 @@ steps:
     // --- テスト5: get_saga → 存在するSagaを取得 ---
     #[tokio::test]
     async fn test_get_saga_success() {
+        // CRIT-005 監査対応: SagaState::new は tenant_id を第5引数に受け取る
         let saga = SagaState::new(
             "test-workflow".to_string(),
             serde_json::json!({"key": "value"}),
             Some("corr-001".to_string()),
             Some("user-1".to_string()),
+            "system".to_string(),
         );
         let saga_id = saga.saga_id;
         let saga_clone = saga.clone();
@@ -670,10 +672,12 @@ steps:
         let mut mock_saga_repo = MockSagaRepository::new();
         mock_saga_repo
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(saga_clone.clone())));
+            // CRIT-005 監査対応: find_by_id は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+            .returning(move |_, _| Ok(Some(saga_clone.clone())));
         mock_saga_repo
             .expect_find_step_logs()
-            .returning(|_| Ok(vec![]));
+            // CRIT-005 監査対応: find_step_logs は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+            .returning(|_, _| Ok(vec![]));
 
         let get_uc = Arc::new(GetSagaUseCase::new(Arc::new(mock_saga_repo)));
 

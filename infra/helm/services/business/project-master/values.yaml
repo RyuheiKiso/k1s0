@@ -19,6 +19,41 @@ service:
   # H-005 監査対応: container.grpcPort と同値に統一する
   grpcPort: 50051
 
+# K8S-MED-002 対応: k1s0-common は library chart のためデフォルト値が親チャートに引き継がれない。
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# K8S-MED-003 対応: probes を明示的に設定する（HTTP ヘルスチェック）。
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    httpGet:
+      path: /readyz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  startup:
+    httpGet:
+      path: /readyz
+      port: http
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+  grpcHealthCheck:
+    enabled: false
+
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
   runAsNonRoot: true

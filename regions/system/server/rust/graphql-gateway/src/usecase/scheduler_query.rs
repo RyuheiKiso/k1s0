@@ -25,7 +25,7 @@ impl SchedulerQueryResolver {
         after: Option<i32>,
     ) -> anyhow::Result<Vec<Job>> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         self.client
             .list_jobs(status, Some(page_size), Some(page))
             .await
@@ -48,7 +48,7 @@ impl SchedulerQueryResolver {
         status: Option<&str>,
     ) -> anyhow::Result<Vec<JobExecution>> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         self.client
             .list_executions(job_id, Some(page_size), Some(page), status)
             .await

@@ -26,12 +26,14 @@ impl MasterMaintenanceKafkaProducer {
         })
     }
 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
     /// シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）。
-    pub async fn close(&self) -> anyhow::Result<()> {
+    // async は不要（flush は同期呼び出しのため async キーワードを削除する）
+    pub fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(Duration::from_secs(10))?;
         Ok(())
@@ -63,7 +65,7 @@ impl MasterMaintenanceKafkaProducer {
         domain: &str,
         event: &Value,
     ) -> anyhow::Result<()> {
-        let domain_topic = format!("k1s0.business.{}.mastermaintenance.data_changed.v1", domain);
+        let domain_topic = format!("k1s0.business.{domain}.mastermaintenance.data_changed.v1");
         let payload = serde_json::to_vec(event)?;
         let key = event
             .get("resource_id")

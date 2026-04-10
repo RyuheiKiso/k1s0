@@ -5,10 +5,13 @@ use crate::infrastructure::kafka_producer::{VaultEventPublisher, VaultSecretRota
 use crate::usecase::get_secret::{GetSecretError, GetSecretInput, GetSecretUseCase};
 use crate::usecase::set_secret::{SetSecretError, SetSecretInput, SetSecretUseCase};
 
+/// MED-011 対応: `tenant_id` をアクセスログに記録するために追加。
 #[derive(Debug, Clone)]
 pub struct RotateSecretInput {
     pub path: String,
     pub data: HashMap<String, String>,
+    /// gRPC 層で Claims から抽出したテナント ID。get/set アクセスログに伝播する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -49,11 +52,13 @@ impl RotateSecretUseCase {
         &self,
         input: &RotateSecretInput,
     ) -> Result<RotateSecretOutput, RotateSecretError> {
+        // MED-011 対応: tenant_id を get/set アクセスログの両方に伝播する。
         let current = self
             .get_secret_uc
             .execute(&GetSecretInput {
                 path: input.path.clone(),
                 version: None,
+                tenant_id: input.tenant_id.clone(),
             })
             .await
             .map_err(|e| match e {
@@ -66,6 +71,7 @@ impl RotateSecretUseCase {
             .execute(&SetSecretInput {
                 path: input.path.clone(),
                 data: input.data.clone(),
+                tenant_id: input.tenant_id.clone(),
             })
             .await
             .map_err(|e| match e {

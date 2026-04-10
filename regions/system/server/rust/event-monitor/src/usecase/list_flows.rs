@@ -41,7 +41,7 @@ impl ListFlowsUseCase {
             .await
             .map_err(|e| ListFlowsError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
         Ok(ListFlowsOutput {
             flows,
@@ -62,6 +62,7 @@ mod tests {
 
     fn make_flow(name: &str) -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             name.to_string(),
             "test".to_string(),
             "service.task".to_string(),

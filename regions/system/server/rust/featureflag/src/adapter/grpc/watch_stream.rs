@@ -2,7 +2,7 @@ use tokio::sync::broadcast;
 
 use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
-/// FeatureFlagChangeNotification は gRPC ストリーミングレスポンスとして返す変更通知。
+/// `FeatureFlagChangeNotification` は gRPC ストリーミングレスポンスとして返す変更通知。
 #[derive(Debug, Clone)]
 pub struct FeatureFlagChangeNotification {
     pub flag_key: String,
@@ -11,8 +11,8 @@ pub struct FeatureFlagChangeNotification {
     pub description: String,
 }
 
-/// WatchFeatureFlagStreamHandler は broadcast::Receiver をラップし、
-/// flag_key フィルタを適用しながら次の変更通知を非同期で返す。
+/// `WatchFeatureFlagStreamHandler` は `broadcast::Receiver` をラップし、
+/// `flag_key` フィルタを適用しながら次の変更通知を非同期で返す。
 pub struct WatchFeatureFlagStreamHandler {
     receiver: broadcast::Receiver<FeatureFlagChangeEvent>,
     flag_key_filter: Option<String>,
@@ -20,9 +20,10 @@ pub struct WatchFeatureFlagStreamHandler {
 
 impl std::fmt::Debug for WatchFeatureFlagStreamHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // receiver は Debug 非対応のため省略し、フィルタ情報のみ出力する
         f.debug_struct("WatchFeatureFlagStreamHandler")
             .field("flag_key_filter", &self.flag_key_filter)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -31,6 +32,7 @@ impl WatchFeatureFlagStreamHandler {
     ///
     /// - `receiver`: `WatchFeatureFlagUseCase::subscribe()` で得た Receiver。
     /// - `flag_key_filter`: 指定した場合、そのフラグキーの変更通知のみを返す。
+    #[must_use]
     pub fn new(
         receiver: broadcast::Receiver<FeatureFlagChangeEvent>,
         flag_key_filter: Option<String>,
@@ -58,9 +60,7 @@ impl WatchFeatureFlagStreamHandler {
                         description: event.description,
                     });
                 }
-                Err(broadcast::error::RecvError::Lagged(_)) => {
-                    continue;
-                }
+                Err(broadcast::error::RecvError::Lagged(_)) => {}
                 Err(broadcast::error::RecvError::Closed) => {
                     return None;
                 }

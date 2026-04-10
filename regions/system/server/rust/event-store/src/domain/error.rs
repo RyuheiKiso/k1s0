@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// EventStore ドメイン固有のエラー型。
+/// `EventStore` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum EventStoreError {
     /// ストリームが見つからない
@@ -36,7 +36,7 @@ pub enum EventStoreError {
     Internal(String),
 }
 
-/// EventStoreError から ServiceError への変換実装
+/// `EventStoreError` から `ServiceError` への変換実装
 impl From<EventStoreError> for ServiceError {
     fn from(err: EventStoreError) -> Self {
         match err {

@@ -39,8 +39,10 @@ enum ActivityType {
   /// コメント: タスクへのテキストコメント
   comment,
   /// 作業時間記録: 作業に費やした時間の記録
+  // ignore: constant_identifier_names
   time_entry,
   /// ステータス変更: タスクのステータス変更の記録
+  // ignore: constant_identifier_names
   status_change,
   /// 担当割当: タスクの担当者変更の記録
   assignment;

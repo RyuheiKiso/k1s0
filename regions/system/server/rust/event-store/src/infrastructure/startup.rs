@@ -21,6 +21,8 @@ use crate::adapter::handler::{self, AppState};
 use crate::domain::repository::{EventRepository, EventStreamRepository, SnapshotRepository};
 use crate::usecase;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -42,7 +44,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -157,7 +159,8 @@ pub async fn run() -> anyhow::Result<()> {
         snapshot_repo.clone(),
     ));
 
-    // gRPC service（event_publisher を渡して REST と同様に Kafka publish を行う）
+    // gRPC service（event_publisher と db_pool を渡して REST と同様に Kafka publish / DLQ 記録を行う）
+    // LOW-010 監査対応: db_pool を渡すことでパブリッシュ失敗時に DB へ失敗状態を記録する。
     let grpc_svc = Arc::new(EventStoreGrpcService::new(
         append_events_uc.clone(),
         read_events_uc.clone(),
@@ -167,6 +170,7 @@ pub async fn run() -> anyhow::Result<()> {
         delete_stream_uc.clone(),
         stream_repo.clone(),
         event_publisher.clone(),
+        db_pool.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr =
@@ -191,11 +195,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for event-store");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -228,6 +228,10 @@ pub async fn run() -> anyhow::Result<()> {
     let list_streams_uc = Arc::new(usecase::ListStreamsUseCase::new(stream_repo.clone()));
 
     // REST AppState
+    // MED-013 監査対応: readyz で SELECT 1 ping を使えるよう db_pool を渡す
+    // LOW-010 監査対応: event_publisher は AppState への move 前に clone して
+    // spawn_publish_failed_retry_job（下記）でも使用できるようにする
+    let publisher_for_retry = event_publisher.clone();
     let mut state = AppState {
         append_events_uc,
         read_events_uc,
@@ -241,6 +245,7 @@ pub async fn run() -> anyhow::Result<()> {
         event_publisher,
         metrics: metrics.clone(),
         auth_state: None,
+        db_pool: db_pool.clone(),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
@@ -269,7 +274,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -281,6 +286,17 @@ pub async fn run() -> anyhow::Result<()> {
     let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
         let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
+
+    // LOW-010 監査対応（ADR-0118 Phase A + B）: publish_failed イベントの定期監視と自動再送。
+    // DB と Kafka が利用可能な場合に起動する。
+    // migration 010 の SECURITY DEFINER 関数で RLS をバイパスして全テナント横断で処理する。
+    if let Some(ref pool) = db_pool {
+        crate::adapter::handler::event_handler::spawn_publish_failed_retry_job(
+            pool.clone(),
+            publisher_for_retry,
+        );
+        info!("publish_failed retry job started (ADR-0118 Phase A+B)");
+    }
 
     // REST と gRPC を並行起動
     tokio::select! {

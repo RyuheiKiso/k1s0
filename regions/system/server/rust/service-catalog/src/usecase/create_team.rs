@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::team::Team;
 use crate::domain::repository::TeamRepository;
 
-/// CreateTeamInput はチーム作成の入力パラメータ。
+/// `CreateTeamInput` はチーム作成の入力パラメータ。
 pub struct CreateTeamInput {
     pub name: String,
     pub description: Option<String>,
@@ -14,7 +14,7 @@ pub struct CreateTeamInput {
     pub slack_channel: Option<String>,
 }
 
-/// CreateTeamError はチーム作成に関するエラーを表す。
+/// `CreateTeamError` はチーム作成に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTeamError {
     #[error("validation error: {0}")]
@@ -24,7 +24,7 @@ pub enum CreateTeamError {
     Internal(String),
 }
 
-/// CreateTeamUseCase はチーム作成ユースケース。
+/// `CreateTeamUseCase` はチーム作成ユースケース。
 pub struct CreateTeamUseCase {
     team_repo: Arc<dyn TeamRepository>,
 }

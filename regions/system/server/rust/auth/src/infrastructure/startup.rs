@@ -16,6 +16,9 @@ use crate::adapter::repository::audit_log_postgres::AuditLogPostgresRepository;
 use crate::adapter::repository::cached_user_repository::CachedUserRepository;
 use crate::adapter::repository::user_postgres::UserPostgresRepository;
 use crate::usecase;
+// HIGH-RUST-006 監査対応: gRPC 認証レイヤーを追加して認証なし gRPC 呼び出しを防止する。
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
 
 /// DB 接続 URL のパスワードをマスクしてログ出力用文字列を返す。
 /// `postgres://user:password@host:port/db` → `postgres://user:***@host:port/db` 形式に変換する。
@@ -34,6 +37,8 @@ fn mask_db_url(url: &str) -> String {
     url.to_string()
 }
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -56,7 +61,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -161,8 +166,7 @@ pub async fn run() -> anyhow::Result<()> {
             .auth
             .jwks
             .as_ref()
-            .map(|j| j.cache_ttl_secs)
-            .unwrap_or(default_cache_ttl_secs());
+            .map_or(default_cache_ttl_secs(), |j| j.cache_ttl_secs);
         super::jwks_provider::JwksProvider::new(url, std::time::Duration::from_secs(ttl_secs))
     });
 
@@ -323,13 +327,14 @@ pub async fn run() -> anyhow::Result<()> {
     let search_audit_logs_uc = Arc::new(usecase::SearchAuditLogsUseCase::new(audit_repo.clone()));
 
     // AppState (REST handler 用)
+    // HIGH-RUST-006 監査対応: audience を後続の GrpcAuthLayer 構築でも使用するため clone する
     let mut state = AppState::new(
         token_verifier,
         user_repo,
         audit_repo,
         api_key_repo,
-        cfg.auth.jwt.issuer,
-        cfg.auth.jwt.audience,
+        cfg.auth.jwt.issuer.clone(),
+        cfg.auth.jwt.audience.clone(),
         db_pool.clone(),
         keycloak_health_url,
         jwks_provider,
@@ -364,6 +369,36 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_tonic = adapter::grpc::AuthServiceTonic::new(auth_grpc_svc);
     let audit_tonic = adapter::grpc::AuditServiceTonic::new(audit_grpc_svc);
 
+    // HIGH-RUST-006 監査対応: gRPC 認証レイヤーを構築する。
+    // auth サービス自身が JWKS を提供するため、auth.jwks.url から JwksVerifier を初期化して
+    // GrpcAuthLayer に設定する。JWKS が未設定の場合（開発環境）は認証なし（None）で動作する。
+    // ValidateToken 等のブートストラップ RPC は GrpcAuthLayer の外部からサービスアカウントトークンで呼ばれる。
+    let grpc_auth_state: Option<k1s0_server_common::middleware::auth_middleware::AuthState> =
+        if let Some(jwks_config) = &cfg.auth.jwks {
+            let jwks_verifier = Arc::new(
+                k1s0_auth::JwksVerifier::new(
+                    &jwks_config.url,
+                    &cfg.auth.jwt.issuer,
+                    &cfg.auth.jwt.audience,
+                    std::time::Duration::from_secs(jwks_config.cache_ttl_secs),
+                )
+                .context("gRPC 認証用 JWKS 検証器の作成に失敗")?,
+            );
+            Some(k1s0_server_common::middleware::auth_middleware::AuthState {
+                verifier: jwks_verifier,
+            })
+        } else {
+            None
+        };
+    // require_auth_state は dev/test 以外で auth_state=None の場合にエラーを返す
+    let grpc_auth_state = k1s0_server_common::require_auth_state(
+        "auth-server",
+        &cfg.app.environment,
+        grpc_auth_state,
+    )?;
+    // gRPC メソッドに対応するアクションを決定するレイヤーを構築する
+    let grpc_auth_layer = GrpcAuthLayer::new(grpc_auth_state, Tier::System, auth_grpc_action);
+
     // Router
     let app = handler::router(state)
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
@@ -385,6 +420,9 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            // HIGH-RUST-006 監査対応: gRPC 認証レイヤーを追加する。
+            // health_service（grpc.health.v1.Health）は GrpcAuthLayer 内部で自動バイパスされる。
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(health_service)
             .add_service(AuthServiceServer::new(auth_tonic))
@@ -393,7 +431,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -424,6 +462,16 @@ pub async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// HIGH-RUST-006 監査対応: gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// `RecordAuditLog` / `SearchAuditLogs` / `GetUser` / `ListUsers` は write または admin 相当（"write"）、
+/// `ValidateToken` / `CheckPermission` / `GetUserRoles` は検証系（"read"）として扱う。
+fn auth_grpc_action(method: &str) -> &'static str {
+    match method {
+        "RecordAuditLog" | "SearchAuditLogs" | "ListUsers" => "write",
+        _ => "read",
+    }
+}
+
 // --- Stub implementations for dev mode ---
 
 struct StubTokenVerifier;
@@ -440,7 +488,7 @@ struct StubUserRepository;
 #[async_trait::async_trait]
 impl crate::domain::repository::UserRepository for StubUserRepository {
     async fn find_by_id(&self, user_id: &str) -> anyhow::Result<crate::domain::entity::user::User> {
-        anyhow::bail!("stub user repository: user not found: {}", user_id)
+        anyhow::bail!("stub user repository: user not found: {user_id}")
     }
 
     async fn list(
@@ -465,11 +513,11 @@ impl crate::domain::repository::UserRepository for StubUserRepository {
         &self,
         user_id: &str,
     ) -> anyhow::Result<crate::domain::entity::user::UserRoles> {
-        anyhow::bail!("stub user repository: user not found: {}", user_id)
+        anyhow::bail!("stub user repository: user not found: {user_id}")
     }
 }
 
-/// InMemoryApiKeyRepository は開発用のインメモリ API キーリポジトリ。
+/// `InMemoryApiKeyRepository` は開発用のインメモリ API キーリポジトリ。
 struct InMemoryApiKeyRepository {
     keys: tokio::sync::RwLock<Vec<crate::domain::entity::api_key::ApiKey>>,
 }
@@ -523,7 +571,7 @@ impl crate::domain::repository::ApiKeyRepository for InMemoryApiKeyRepository {
             key.revoked = true;
             Ok(())
         } else {
-            anyhow::bail!("api key not found: {}", id)
+            anyhow::bail!("api key not found: {id}")
         }
     }
 
@@ -532,13 +580,13 @@ impl crate::domain::repository::ApiKeyRepository for InMemoryApiKeyRepository {
         let len_before = keys.len();
         keys.retain(|k| k.id != id);
         if keys.len() == len_before {
-            anyhow::bail!("api key not found: {}", id)
+            anyhow::bail!("api key not found: {id}")
         }
         Ok(())
     }
 }
 
-/// InMemoryAuditLogRepository は開発用のインメモリ監査ログリポジトリ。
+/// `InMemoryAuditLogRepository` は開発用のインメモリ監査ログリポジトリ。
 struct InMemoryAuditLogRepository {
     logs: tokio::sync::RwLock<Vec<crate::domain::entity::audit_log::AuditLog>>,
 }
@@ -596,9 +644,10 @@ impl crate::domain::repository::AuditLogRepository for InMemoryAuditLogRepositor
             .cloned()
             .collect();
 
-        let total = filtered.len() as i64;
-        let offset = ((params.page - 1) * params.page_size) as usize;
-        let limit = params.page_size as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i64::try_from(filtered.len()).unwrap_or(i64::MAX);
+        let offset = usize::try_from((params.page - 1) * params.page_size).unwrap_or(0);
+        let limit = usize::try_from(params.page_size).unwrap_or(0);
 
         filtered = filtered.into_iter().skip(offset).take(limit).collect();
 

@@ -8,9 +8,11 @@ use crate::domain::entity::api_registration::{
 pub struct ApiRegistryDomainService;
 
 impl ApiRegistryDomainService {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
+    #[must_use]
     pub fn check_compatibility(
         &self,
         schema_type: &SchemaType,
@@ -18,11 +20,12 @@ impl ApiRegistryDomainService {
         new_content: &str,
     ) -> CompatibilityResult {
         match schema_type {
-            SchemaType::OpenApi => self.check_openapi_compatibility(old_content, new_content),
-            SchemaType::Protobuf => self.check_protobuf_compatibility(old_content, new_content),
+            SchemaType::OpenApi => Self::check_openapi_compatibility(old_content, new_content),
+            SchemaType::Protobuf => Self::check_protobuf_compatibility(old_content, new_content),
         }
     }
 
+    #[must_use]
     pub fn compute_diff(
         &self,
         schema_type: &SchemaType,
@@ -30,13 +33,13 @@ impl ApiRegistryDomainService {
         new_content: &str,
     ) -> SchemaDiff {
         match schema_type {
-            SchemaType::OpenApi => self.compute_openapi_diff(old_content, new_content),
-            SchemaType::Protobuf => self.compute_protobuf_diff(old_content, new_content),
+            SchemaType::OpenApi => Self::compute_openapi_diff(old_content, new_content),
+            SchemaType::Protobuf => Self::compute_protobuf_diff(old_content, new_content),
         }
     }
 
+    /// `OpenAPI` スキーマの後方互換性を検証する（自己参照不要のため関連関数として定義）。
     fn check_openapi_compatibility(
-        &self,
         old_content: &str,
         new_content: &str,
     ) -> CompatibilityResult {
@@ -58,13 +61,7 @@ impl ApiRegistryDomainService {
             new_val.get("paths").and_then(|p| p.as_object()),
         ) {
             for (path, _) in old_paths {
-                if !new_paths.contains_key(path.as_str()) {
-                    breaking_changes.push(BreakingChange::new(
-                        "path_removed".to_string(),
-                        path.clone(),
-                        format!("API path {} was removed", path),
-                    ));
-                } else {
+                if new_paths.contains_key(path.as_str()) {
                     let old_m = old_paths.get(path.as_str()).and_then(|p| p.as_object());
                     let new_m = new_paths.get(path.as_str()).and_then(|p| p.as_object());
                     if let (Some(om), Some(nm)) = (old_m, new_m) {
@@ -82,6 +79,12 @@ impl ApiRegistryDomainService {
                             }
                         }
                     }
+                } else {
+                    breaking_changes.push(BreakingChange::new(
+                        "path_removed".to_string(),
+                        path.clone(),
+                        format!("API path {path} was removed"),
+                    ));
                 }
             }
             for (path, _) in new_paths {
@@ -89,7 +92,7 @@ impl ApiRegistryDomainService {
                     non_breaking_changes.push(ChangeDetail {
                         change_type: "path_added".to_string(),
                         path: path.clone(),
-                        description: format!("New API path {} was added", path),
+                        description: format!("New API path {path} was added"),
                     });
                 }
             }
@@ -101,8 +104,8 @@ impl ApiRegistryDomainService {
         }
     }
 
+    /// Protobuf スキーマの後方互換性を検証する（自己参照不要のため関連関数として定義）。
     fn check_protobuf_compatibility(
-        &self,
         old_content: &str,
         new_content: &str,
     ) -> CompatibilityResult {
@@ -114,11 +117,8 @@ impl ApiRegistryDomainService {
             if !new_fields.iter().any(|(n, _)| n == field_num) {
                 breaking_changes.push(BreakingChange::new(
                     "field_removed".to_string(),
-                    format!("field {}", field_name),
-                    format!(
-                        "Proto field {} (number {}) was removed",
-                        field_name, field_num
-                    ),
+                    format!("field {field_name}"),
+                    format!("Proto field {field_name} (number {field_num}) was removed"),
                 ));
             }
         }
@@ -129,7 +129,8 @@ impl ApiRegistryDomainService {
         }
     }
 
-    fn compute_openapi_diff(&self, old_content: &str, new_content: &str) -> SchemaDiff {
+    /// `OpenAPI` スキーマの差分を計算する（自己参照不要のため関連関数として定義）。
+    fn compute_openapi_diff(old_content: &str, new_content: &str) -> SchemaDiff {
         let mut added = Vec::new();
         let mut modified = Vec::new();
         let removed = Vec::new();
@@ -146,7 +147,7 @@ impl ApiRegistryDomainService {
                     added.push(DiffEntry {
                         path: path.clone(),
                         entry_type: "path".to_string(),
-                        description: format!("New path {}", path),
+                        description: format!("New path {path}"),
                     });
                 }
             }
@@ -165,7 +166,7 @@ impl ApiRegistryDomainService {
                     if let (Some(o), Some(n)) = (os, ns) {
                         if o != n {
                             modified.push(DiffModifiedEntry {
-                                path: format!("{} GET summary", path),
+                                path: format!("{path} GET summary"),
                                 before: o.to_string(),
                                 after: n.to_string(),
                             });
@@ -181,7 +182,8 @@ impl ApiRegistryDomainService {
         }
     }
 
-    fn compute_protobuf_diff(&self, old_content: &str, new_content: &str) -> SchemaDiff {
+    /// Protobuf スキーマの差分を計算する（自己参照不要のため関連関数として定義）。
+    fn compute_protobuf_diff(old_content: &str, new_content: &str) -> SchemaDiff {
         let old_fields = extract_proto_fields(old_content);
         let new_fields = extract_proto_fields(new_content);
         let mut added = Vec::new();
@@ -189,9 +191,9 @@ impl ApiRegistryDomainService {
         for (field_num, field_name) in &new_fields {
             if !old_fields.iter().any(|(n, _)| n == field_num) {
                 added.push(DiffEntry {
-                    path: format!("field {}", field_name),
+                    path: format!("field {field_name}"),
                     entry_type: "field".to_string(),
-                    description: format!("New proto field {} (number {})", field_name, field_num),
+                    description: format!("New proto field {field_name} (number {field_num})"),
                 });
             }
         }

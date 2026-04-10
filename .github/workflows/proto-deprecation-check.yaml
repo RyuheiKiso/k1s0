@@ -11,6 +11,9 @@ on:
     # 毎月1日の0時（UTC）に実行して期限切れを早期検知する
     - cron: '0 0 1 * *'
 
+# 最小権限原則: 不要な権限を明示的に制限する
+permissions: {}
+
 jobs:
   check-proto-deprecation:
     runs-on: ubuntu-latest

@@ -61,10 +61,11 @@ pub fn resolve_connection_string(connection: &DbConnection, db_name: &str) -> Re
     match connection {
         DbConnection::LocalDev => {
             let port = read_local_dev_port().unwrap_or(LOCAL_DEV_DEFAULT_PORT);
-            // CLI-HIGH-001 監査対応: パスワードをハードコードせず環境変数 K1S0_DEV_DB_PASSWORD から取得する。
-            // 未設定時は "password" をデフォルト値として使用する（ローカル開発環境のみ）。
-            let dev_password =
-                std::env::var("K1S0_DEV_DB_PASSWORD").unwrap_or_else(|_| "password".to_string());
+            // CLI-001 修正: デフォルトパスワードを削除し環境変数を必須化する。
+            // apply.rs は本番マイグレーションパスにも到達しうるため、
+            // フォールバックとして "password" をハードコードすることは危険。
+            let dev_password = std::env::var("K1S0_DEV_DB_PASSWORD")
+                .context("K1S0_DEV_DB_PASSWORD must be set for local dev migration")?;
             Ok(format!(
                 "postgresql://app:{dev_password}@localhost:{port}/{db_name}?sslmode=disable"
             ))
@@ -309,6 +310,11 @@ mod tests {
 
     #[test]
     fn test_resolve_connection_string_local_dev() {
+        // MED-007 監査対応: テスト内でenv変数を設定し、CI環境での未設定による失敗を防ぐ
+        // SAFETY: テスト専用ファンクションであり、並列テスト実行による競合は #[test] の制約下で許容する
+        unsafe {
+            std::env::set_var("K1S0_DEV_DB_PASSWORD", "test-dev-password");
+        }
         let conn = resolve_connection_string(&DbConnection::LocalDev, "auth_db").unwrap();
         // ポートはstate.jsonが無い場合デフォルトの5432
         assert!(conn.contains("localhost"));

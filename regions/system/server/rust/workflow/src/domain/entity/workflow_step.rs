@@ -12,6 +12,7 @@ pub struct WorkflowStep {
 }
 
 impl WorkflowStep {
+    #[must_use]
     pub fn new(
         step_id: String,
         name: String,

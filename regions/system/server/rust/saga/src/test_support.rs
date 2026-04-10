@@ -76,13 +76,21 @@ impl SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, saga_id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<Option<SagaState>> {
+    async fn find_by_id(
+        &self,
+        saga_id: uuid::Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<SagaState>> {
         // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let states = self.states.read().await;
         Ok(states.iter().find(|s| s.saga_id == saga_id).cloned())
     }
 
-    async fn find_step_logs(&self, saga_id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<Vec<SagaStepLog>> {
+    async fn find_step_logs(
+        &self,
+        saga_id: uuid::Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Vec<SagaStepLog>> {
         // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let logs = self.step_logs.read().await;
         Ok(logs
@@ -134,15 +142,12 @@ impl SagaRepository for InMemorySagaRepository {
                     (ts_str.parse::<i64>(), uuid::Uuid::parse_str(id_str))
                 {
                     // cursor の created_at を復元する
-                    let cursor_ts =
-                        chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ts_ms);
+                    let cursor_ts = chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ts_ms);
                     if let Some(cursor_ts) = cursor_ts {
                         // (created_at, id) が cursor より小さいレコードを取得する（DESC 順）
                         let mut after_cursor: Vec<_> = filtered
                             .into_iter()
-                            .filter(|s| {
-                                (s.created_at, s.saga_id) < (cursor_ts, cursor_id)
-                            })
+                            .filter(|s| (s.created_at, s.saga_id) < (cursor_ts, cursor_id))
                             .collect();
                         // created_at DESC, id DESC でソートする
                         after_cursor.sort_by(|a, b| {
@@ -166,7 +171,11 @@ impl SagaRepository for InMemorySagaRepository {
         // OFFSET ページネーション（後方互換）
         let page = params.page.max(1);
         let offset = ((page - 1) * page_size) as usize;
-        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
+        let paged: Vec<_> = filtered
+            .into_iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .collect();
 
         Ok((paged, total))
     }

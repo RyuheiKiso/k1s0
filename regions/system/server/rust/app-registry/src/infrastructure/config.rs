@@ -188,13 +188,13 @@ fn default_storage_path() -> String {
 }
 
 /// STATIC-CRITICAL-002: Cosign 署名検証設定。
-/// verify_enabled が true の場合、SubprocessCosignVerifier を使用して cosign CLI で検証する。
+/// `verify_enabled` が true の場合、SubprocessCosignVerifier を使用して cosign CLI で検証する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct CosignConfig {
     /// 署名検証を有効にするフラグ。本番環境では true を推奨。開発環境は false（スタブ使用）。
     #[serde(default = "default_cosign_verify_enabled")]
     pub verify_enabled: bool,
-    /// Cosign 署名検証に使用する公開鍵ファイルのパス（verify_enabled が true の場合に必要）。
+    /// Cosign `署名検証に使用する公開鍵ファイルのパス（verify_enabled` が true の場合に必要）。
     #[serde(default = "default_cosign_public_key_path")]
     pub public_key_path: String,
 }

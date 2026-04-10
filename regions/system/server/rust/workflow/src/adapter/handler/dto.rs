@@ -19,7 +19,7 @@ use crate::usecase::{
 // --- アプリケーション状態 ---
 
 /// 全ユースケースとメトリクスを保持するアプリケーション共有状態
-/// db_pool は /readyz エンドポイントで DB 接続確認に使用する（CRITICAL-003 対応）
+/// `db_pool` は /readyz エンドポイントで DB 接続確認に使用する（CRITICAL-003 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -44,6 +44,7 @@ pub struct AppState {
 
 impl AppState {
     /// 認証状態を設定して自身を返すビルダーメソッド
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -176,7 +177,7 @@ pub struct UpdateWorkflowRequest {
 // --- インスタンス関連 DTO ---
 
 /// ワークフロー実行（インスタンス開始）リクエスト
-/// RUST-LOW-001 対応: initiator_id は JWT Claims の sub から取得するため省略可能とする
+/// RUST-LOW-001 対応: `initiator_id` は JWT Claims の sub から取得するため省略可能とする
 /// Claims が存在する場合は sub を優先し、存在しない場合はリクエストの値にフォールバックする
 #[derive(Debug, Deserialize)]
 pub struct ExecuteWorkflowRequest {
@@ -282,7 +283,7 @@ pub struct ReassignTaskRequest {
 // --- 共通ヘルパー ---
 
 /// エラーレスポンスを生成するヘルパー。
-/// .expect() を排除し、ErrorResponse を直接返す。
+/// .`expect()` を排除し、ErrorResponse を直接返す。
 pub(crate) fn error_json(code: &str, message: &str) -> ErrorResponse {
     ErrorResponse::new(code, message)
 }

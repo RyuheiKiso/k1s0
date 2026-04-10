@@ -390,7 +390,9 @@ fn step_select_range() -> Result<Option<MigrateRange>> {
             )?;
             // CLI-MED-004 監査対応: input_with_validation で事前検証済みのため
             // parse() は必ず成功する。unwrap_or による誤ったデフォルト値を防ぐ。
-            let version: u32 = version_str.parse().expect("input_with_validation で検証済み");
+            let version: u32 = version_str
+                .parse()
+                .expect("input_with_validation で検証済み");
             Ok(Some(MigrateRange::UpTo(version)))
         }
         _ => unreachable!(),
@@ -435,7 +437,9 @@ fn step_select_repair_operation() -> Result<Option<RepairOperation>> {
             )?;
             // CLI-MED-004 監査対応: input_with_validation で事前検証済みのため
             // parse() は必ず成功する。unwrap_or による誤ったデフォルト値を防ぐ。
-            let version: u32 = version_str.parse().expect("input_with_validation で検証済み");
+            let version: u32 = version_str
+                .parse()
+                .expect("input_with_validation で検証済み");
             Ok(Some(RepairOperation::ForceVersion(version)))
         }
         _ => unreachable!(),

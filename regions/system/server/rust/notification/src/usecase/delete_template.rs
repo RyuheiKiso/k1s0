@@ -20,10 +20,11 @@ impl DeleteTemplateUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<(), DeleteTemplateError> {
+    /// テナントスコープでテンプレートを削除する
+    pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<(), DeleteTemplateError> {
         let deleted = self
             .repo
-            .delete(id)
+            .delete(id, tenant_id)
             .await
             .map_err(|e| DeleteTemplateError::Internal(e.to_string()))?;
 
@@ -44,20 +45,20 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockNotificationTemplateRepository::new();
-        mock.expect_delete().returning(|_| Ok(true));
+        mock.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteTemplateUseCase::new(Arc::new(mock));
-        let result = uc.execute("tpl_any").await;
+        let result = uc.execute("tpl_any", "tenant_a").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockNotificationTemplateRepository::new();
-        mock.expect_delete().returning(|_| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteTemplateUseCase::new(Arc::new(mock));
-        let result = uc.execute("tpl_missing").await;
+        let result = uc.execute("tpl_missing", "tenant_a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

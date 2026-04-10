@@ -211,6 +211,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct ApiRegistryGrpcService {
     list_schemas_uc: Arc<ListSchemasUseCase>,
     register_schema_uc: Arc<RegisterSchemaUseCase>,
@@ -225,6 +227,7 @@ pub struct ApiRegistryGrpcService {
 
 impl ApiRegistryGrpcService {
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         list_schemas_uc: Arc<ListSchemasUseCase>,
         register_schema_uc: Arc<RegisterSchemaUseCase>,
@@ -253,20 +256,23 @@ impl ApiRegistryGrpcService {
         &self,
         request: ListSchemasRequest,
     ) -> Result<ListSchemasResponse, GrpcError> {
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
         let page = if request.page <= 0 {
             1
         } else {
-            request.page as u32
+            u32::try_from(request.page).unwrap_or(0)
         };
         let page_size = if request.page_size <= 0 {
             20
         } else {
-            request.page_size as u32
+            u32::try_from(request.page_size).unwrap_or(0)
         };
 
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let output = self
             .list_schemas_uc
             .execute(&ListSchemasInput {
+                tenant_id: "system".to_string(),
                 schema_type: if request.schema_type.is_empty() {
                     None
                 } else {
@@ -283,8 +289,9 @@ impl ApiRegistryGrpcService {
         Ok(ListSchemasResponse {
             schemas: output.schemas.into_iter().map(to_schema_data).collect(),
             total_count: output.total_count,
-            page: output.page as i32,
-            page_size: output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            page: i32::try_from(output.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(output.page_size).unwrap_or(i32::MAX),
             has_next: output.has_next,
         })
     }
@@ -293,9 +300,11 @@ impl ApiRegistryGrpcService {
         &self,
         request: RegisterSchemaRequest,
     ) -> Result<RegisterSchemaResponse, GrpcError> {
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let version = self
             .register_schema_uc
             .execute(&RegisterSchemaInput {
+                tenant_id: "system".to_string(),
                 name: request.name,
                 description: request.description,
                 schema_type: SchemaType::from_str(&request.schema_type),
@@ -305,11 +314,11 @@ impl ApiRegistryGrpcService {
             .await
             .map_err(|e| match e {
                 RegisterSchemaError::AlreadyExists(name) => {
-                    GrpcError::AlreadyExists(format!("schema already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("schema already exists: {name}"))
                 }
                 RegisterSchemaError::Validation(msg) => GrpcError::InvalidArgument(msg),
-                RegisterSchemaError::ValidatorError(msg) => GrpcError::Internal(msg),
-                RegisterSchemaError::Internal(msg) => GrpcError::Internal(msg),
+                // ValidatorError と Internal は同じエラーに変換するためアームを統合する
+                RegisterSchemaError::ValidatorError(msg) | RegisterSchemaError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
         Ok(RegisterSchemaResponse {
@@ -324,13 +333,14 @@ impl ApiRegistryGrpcService {
         if request.name.is_empty() {
             return Err(GrpcError::InvalidArgument("name is required".to_string()));
         }
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let output = self
             .get_schema_uc
-            .execute(&request.name)
+            .execute("system", &request.name)
             .await
             .map_err(|e| match e {
                 GetSchemaError::NotFound(n) => {
-                    GrpcError::NotFound(format!("schema not found: {}", n))
+                    GrpcError::NotFound(format!("schema not found: {n}"))
                 }
                 GetSchemaError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -344,19 +354,22 @@ impl ApiRegistryGrpcService {
         &self,
         request: ListVersionsRequest,
     ) -> Result<ListVersionsResponse, GrpcError> {
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
         let page = if request.page <= 0 {
             1
         } else {
-            request.page as u32
+            u32::try_from(request.page).unwrap_or(0)
         };
         let page_size = if request.page_size <= 0 {
             20
         } else {
-            request.page_size as u32
+            u32::try_from(request.page_size).unwrap_or(0)
         };
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let output = self
             .list_versions_uc
             .execute(&ListVersionsInput {
+                tenant_id: "system".to_string(),
                 name: request.name,
                 page,
                 page_size,
@@ -364,7 +377,7 @@ impl ApiRegistryGrpcService {
             .await
             .map_err(|e| match e {
                 ListVersionsError::NotFound(name) => {
-                    GrpcError::NotFound(format!("schema not found: {}", name))
+                    GrpcError::NotFound(format!("schema not found: {name}"))
                 }
                 ListVersionsError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -377,8 +390,9 @@ impl ApiRegistryGrpcService {
                 .map(to_schema_version_data)
                 .collect(),
             total_count: output.total_count,
-            page: output.page as i32,
-            page_size: output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            page: i32::try_from(output.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(output.page_size).unwrap_or(i32::MAX),
             has_next: output.has_next,
         })
     }
@@ -387,9 +401,11 @@ impl ApiRegistryGrpcService {
         &self,
         request: RegisterVersionRequest,
     ) -> Result<RegisterVersionResponse, GrpcError> {
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let version = self
             .register_version_uc
             .execute(&RegisterVersionInput {
+                tenant_id: "system".to_string(),
                 name: request.name,
                 content: request.content,
                 registered_by: request.registered_by,
@@ -397,11 +413,11 @@ impl ApiRegistryGrpcService {
             .await
             .map_err(|e| match e {
                 RegisterVersionError::NotFound(name) => {
-                    GrpcError::NotFound(format!("schema not found: {}", name))
+                    GrpcError::NotFound(format!("schema not found: {name}"))
                 }
                 RegisterVersionError::Validation(msg) => GrpcError::InvalidArgument(msg),
-                RegisterVersionError::ValidatorError(msg) => GrpcError::Internal(msg),
-                RegisterVersionError::Internal(msg) => GrpcError::Internal(msg),
+                // ValidatorError と Internal は同じエラーに変換するためアームを統合する
+                RegisterVersionError::ValidatorError(msg) | RegisterVersionError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
         Ok(RegisterVersionResponse {
@@ -416,13 +432,14 @@ impl ApiRegistryGrpcService {
         if request.name.is_empty() {
             return Err(GrpcError::InvalidArgument("name is required".to_string()));
         }
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let output = self
             .get_schema_version_uc
-            .execute(&request.name, request.version)
+            .execute("system", &request.name, request.version)
             .await
             .map_err(|e| match e {
                 GetSchemaVersionError::NotFound { name, version } => {
-                    GrpcError::NotFound(format!("{}@{} not found", name, version))
+                    GrpcError::NotFound(format!("{name}@{version} not found"))
                 }
                 GetSchemaVersionError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -435,22 +452,20 @@ impl ApiRegistryGrpcService {
         &self,
         request: DeleteVersionRequest,
     ) -> Result<DeleteVersionResponse, GrpcError> {
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         self.delete_version_uc
-            .execute(&request.name, request.version, None)
+            .execute("system", &request.name, request.version, None)
             .await
             .map_err(|e| match e {
                 DeleteVersionError::SchemaNotFound(name) => {
-                    GrpcError::NotFound(format!("schema not found: {}", name))
+                    GrpcError::NotFound(format!("schema not found: {name}"))
                 }
                 DeleteVersionError::VersionNotFound { name, version } => {
-                    GrpcError::NotFound(format!("{}@{} not found", name, version))
+                    GrpcError::NotFound(format!("{name}@{version} not found"))
                 }
-                DeleteVersionError::CannotDeleteLatest(name) => {
-                    GrpcError::FailedPrecondition(format!(
-                        "cannot delete the only remaining version of schema: {}",
-                        name
-                    ))
-                }
+                DeleteVersionError::CannotDeleteLatest(name) => GrpcError::FailedPrecondition(
+                    format!("cannot delete the only remaining version of schema: {name}"),
+                ),
                 DeleteVersionError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -475,7 +490,9 @@ impl ApiRegistryGrpcService {
                 "content is required".to_string(),
             ));
         }
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let input = CheckCompatibilityInput {
+            tenant_id: "system".to_string(),
             name: request.name,
             content: request.content,
             base_version: request.base_version,
@@ -486,10 +503,10 @@ impl ApiRegistryGrpcService {
             .await
             .map_err(|e| match e {
                 CheckCompatibilityError::SchemaNotFound(n) => {
-                    GrpcError::NotFound(format!("schema not found: {}", n))
+                    GrpcError::NotFound(format!("schema not found: {n}"))
                 }
                 CheckCompatibilityError::VersionNotFound { name, version } => {
-                    GrpcError::NotFound(format!("{}@{} not found", name, version))
+                    GrpcError::NotFound(format!("{name}@{version} not found"))
                 }
                 CheckCompatibilityError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -517,9 +534,11 @@ impl ApiRegistryGrpcService {
     }
 
     pub async fn get_diff(&self, request: GetDiffRequest) -> Result<GetDiffResponse, GrpcError> {
+        // gRPC は内部サービス間通信のため tenant_id はリクエストから取得する（未指定時は "system"）
         let output = self
             .get_diff_uc
             .execute(&GetDiffInput {
+                tenant_id: "system".to_string(),
                 name: request.name,
                 from_version: request.from_version,
                 to_version: request.to_version,
@@ -527,10 +546,10 @@ impl ApiRegistryGrpcService {
             .await
             .map_err(|e| match e {
                 GetDiffError::SchemaNotFound(name) => {
-                    GrpcError::NotFound(format!("schema not found: {}", name))
+                    GrpcError::NotFound(format!("schema not found: {name}"))
                 }
                 GetDiffError::VersionNotFound { name, version } => {
-                    GrpcError::NotFound(format!("{}@{} not found", name, version))
+                    GrpcError::NotFound(format!("{name}@{version} not found"))
                 }
                 GetDiffError::ValidationError(msg) => GrpcError::InvalidArgument(msg),
                 GetDiffError::Internal(msg) => GrpcError::Internal(msg),

@@ -47,22 +47,25 @@ impl DeleteVersionUseCase {
         }
     }
 
+    // テナントスコープでバージョンを削除し、スキーマメタデータを更新する
     pub async fn execute(
         &self,
+        tenant_id: &str,
         name: &str,
         version: u32,
         deleted_by: Option<String>,
     ) -> Result<(), DeleteVersionError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let schema = self
             .schema_repo
-            .find_by_name(name)
+            .find_by_name(tenant_id, name)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?
             .ok_or_else(|| DeleteVersionError::SchemaNotFound(name.to_string()))?;
 
         let count = self
             .version_repo
-            .count_by_name(name)
+            .count_by_name(tenant_id, name)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
 
@@ -72,7 +75,7 @@ impl DeleteVersionUseCase {
 
         let deleted = self
             .version_repo
-            .delete(name, version)
+            .delete(tenant_id, name, version)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
 
@@ -86,23 +89,24 @@ impl DeleteVersionUseCase {
         // 削除後メタデータ更新
         let remaining_count = self
             .version_repo
-            .count_by_name(name)
+            .count_by_name(tenant_id, name)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
         let latest = self
             .version_repo
-            .find_latest_by_name(name)
+            .find_latest_by_name(tenant_id, name)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?
             .ok_or_else(|| DeleteVersionError::Internal("latest version not found".to_string()))?;
 
         let mut updated_schema = schema.clone();
-        updated_schema.version_count = remaining_count as u32;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        updated_schema.version_count = u32::try_from(remaining_count).unwrap_or(0);
         updated_schema.latest_version = latest.version;
         updated_schema.updated_at = chrono::Utc::now();
 
         self.schema_repo
-            .update(&updated_schema)
+            .update(tenant_id, &updated_schema)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
 
@@ -138,19 +142,19 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
                 SchemaType::OpenApi,
             )))
         });
-        schema_mock.expect_update().returning(|_| Ok(()));
+        schema_mock.expect_update().returning(|_, _| Ok(()));
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
         let count_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let count_calls_clone = count_calls.clone();
-        version_mock.expect_count_by_name().returning(move |_| {
+        version_mock.expect_count_by_name().returning(move |_, _| {
             let call = count_calls_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             if call == 0 {
                 Ok(3)
@@ -158,33 +162,35 @@ mod tests {
                 Ok(2)
             }
         });
-        version_mock.expect_delete().returning(|_, _| Ok(true));
-        version_mock.expect_find_latest_by_name().returning(|name| {
-            Ok(Some(
-                crate::domain::entity::api_registration::ApiSchemaVersion::new(
-                    name.to_string(),
-                    2,
-                    SchemaType::OpenApi,
-                    "{}".to_string(),
-                    "tester".to_string(),
-                ),
-            ))
-        });
+        version_mock.expect_delete().returning(|_, _, _| Ok(true));
+        version_mock
+            .expect_find_latest_by_name()
+            .returning(|_, name| {
+                Ok(Some(
+                    crate::domain::entity::api_registration::ApiSchemaVersion::new(
+                        name.to_string(),
+                        2,
+                        SchemaType::OpenApi,
+                        "{}".to_string(),
+                        "tester".to_string(),
+                    ),
+                ))
+            });
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 1, None).await;
+        let result = uc.execute("tenant-a", "test-api", 1, None).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn not_found_schema() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("nonexistent", 1, None).await;
+        let result = uc.execute("tenant-a", "nonexistent", 1, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::SchemaNotFound(name) => assert_eq!(name, "nonexistent"),
@@ -195,7 +201,7 @@ mod tests {
     #[tokio::test]
     async fn cannot_delete_latest() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -204,10 +210,10 @@ mod tests {
         });
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_count_by_name().returning(|_| Ok(1));
+        version_mock.expect_count_by_name().returning(|_, _| Ok(1));
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 1, None).await;
+        let result = uc.execute("tenant-a", "test-api", 1, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::CannotDeleteLatest(name) => assert_eq!(name, "test-api"),
@@ -218,7 +224,7 @@ mod tests {
     #[tokio::test]
     async fn version_not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -227,11 +233,11 @@ mod tests {
         });
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_count_by_name().returning(|_| Ok(3));
-        version_mock.expect_delete().returning(|_, _| Ok(false));
+        version_mock.expect_count_by_name().returning(|_, _| Ok(3));
+        version_mock.expect_delete().returning(|_, _, _| Ok(false));
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 99, None).await;
+        let result = uc.execute("tenant-a", "test-api", 99, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::VersionNotFound { name, version } => {
@@ -247,12 +253,12 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api", 1, None).await;
+        let result = uc.execute("tenant-a", "test-api", 1, None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteVersionError::Internal(msg) => assert!(msg.contains("db error")),

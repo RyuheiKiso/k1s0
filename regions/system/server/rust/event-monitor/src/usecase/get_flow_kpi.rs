@@ -44,6 +44,7 @@ impl GetFlowKpiUseCase {
         }
     }
 
+    #[must_use]
     pub fn with_cache(mut self, cache: Arc<KpiCache>) -> Self {
         self.kpi_cache = Some(cache);
         self
@@ -55,7 +56,7 @@ impl GetFlowKpiUseCase {
         period: &str,
     ) -> Result<GetFlowKpiOutput, GetFlowKpiError> {
         // Check cache first
-        let cache_key = format!("flow_kpi:{}:{}", flow_id, period);
+        let cache_key = format!("flow_kpi:{flow_id}:{period}");
         if let Some(ref cache) = self.kpi_cache {
             if let Some(cached_kpi) = cache.get(&cache_key).await {
                 let flow = self
@@ -122,6 +123,7 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "test".to_string(),
             "service.task".to_string(),
@@ -141,7 +143,7 @@ mod tests {
     }
 
     fn make_completed_instance(flow_id: Uuid) -> FlowInstance {
-        let mut inst = FlowInstance::new(flow_id, "corr-1".to_string());
+        let mut inst = FlowInstance::new("system".to_string(), flow_id, "corr-1".to_string());
         inst.status = FlowInstanceStatus::Completed;
         inst.completed_at = Some(Utc::now());
         inst.duration_ms = Some(1000);

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
-/// HashiCorp Vault KV v2 クライアント。
+/// `HashiCorp` Vault KV v2 クライアント。
 pub struct VaultKvClient {
     client: VaultClient,
     mount: String,
@@ -25,6 +25,7 @@ impl VaultKvClient {
 
     /// KV マウントパスを設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_mount(mut self, mount: impl Into<String>) -> Self {
         self.mount = mount.into();
         self

@@ -8,45 +8,48 @@ impl AssertionHelper {
     ///
     /// `actual` が `expected` の全キー・値を含んでいることを検証する。
     /// `actual` に余分なキーがあっても失敗しない。
+    ///
+    /// # Panics
+    /// `actual` または `expected` が有効な JSON でない場合、または部分一致に失敗した場合にパニックする。
     pub fn assert_json_contains(actual: &str, expected: &str) {
         let actual_val: Value = serde_json::from_str(actual).expect("actual is not valid JSON");
         let expected_val: Value =
             serde_json::from_str(expected).expect("expected is not valid JSON");
         assert!(
             json_contains(&actual_val, &expected_val),
-            "JSON partial match failed.\nActual: {}\nExpected: {}",
-            actual,
-            expected
+            "JSON partial match failed.\nActual: {actual}\nExpected: {expected}"
         );
     }
 
     /// イベント一覧に指定タイプのイベントが含まれていることを検証する。
     ///
     /// 各イベントは `{"type": "..."}` の形式であることを想定する。
+    ///
+    /// # Panics
+    /// 指定したイベントタイプが一覧に存在しない場合にパニックする。
     pub fn assert_event_emitted(events: &[Value], event_type: &str) {
         let found = events.iter().any(|e| {
             e.get("type")
                 .and_then(|t| t.as_str())
-                .map(|t| t == event_type)
-                .unwrap_or(false)
+                .is_some_and(|t| t == event_type)
         });
         assert!(
             found,
-            "Event '{}' not found in events: {:?}",
-            event_type, events
+            "Event '{event_type}' not found in events: {events:?}"
         );
     }
 
     /// JSON 値が null でないことを検証する。
+    ///
+    /// # Panics
+    /// `json_str` が有効な JSON でない場合、または指定パスの値が null または存在しない場合にパニックする。
     pub fn assert_not_null(json_str: &str, path: &str) {
         let val: Value = serde_json::from_str(json_str).expect("invalid JSON");
         let result = json_path(&val, path);
         // is_some_and で Option を安全にアンラップし、null チェックを行う
         assert!(
             result.is_some_and(|v| !v.is_null()),
-            "Expected non-null at path '{}' in: {}",
-            path,
-            json_str
+            "Expected non-null at path '{path}' in: {json_str}"
         );
     }
 }
@@ -55,7 +58,7 @@ fn json_contains(actual: &Value, expected: &Value) -> bool {
     match (actual, expected) {
         (Value::Object(a), Value::Object(e)) => e
             .iter()
-            .all(|(k, v)| a.get(k).map(|av| json_contains(av, v)).unwrap_or(false)),
+            .all(|(k, v)| a.get(k).is_some_and(|av| json_contains(av, v))),
         (Value::Array(a), Value::Array(e)) => {
             e.iter().all(|ev| a.iter().any(|av| json_contains(av, ev)))
         }

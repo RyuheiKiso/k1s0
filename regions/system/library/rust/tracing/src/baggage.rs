@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub struct Baggage(HashMap<String, String>);
 
 impl Baggage {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -12,16 +13,19 @@ impl Baggage {
         self.0.insert(key.into(), value.into());
     }
 
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.0.get(key).map(|s| s.as_str())
+        self.0.get(key).map(std::string::String::as_str)
     }
 
+    #[must_use]
     pub fn to_header(&self) -> String {
         let mut pairs: Vec<_> = self.0.iter().map(|(k, v)| format!("{k}={v}")).collect();
         pairs.sort();
         pairs.join(",")
     }
 
+    #[must_use]
     pub fn from_header(s: &str) -> Self {
         let mut b = Self::new();
         for item in s.split(',') {
@@ -32,10 +36,12 @@ impl Baggage {
         b
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }

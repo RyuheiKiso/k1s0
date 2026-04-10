@@ -1,4 +1,6 @@
 // graphql-gateway ビルドスクリプト。
+// HIGH-001 監査対応: build.rs の too_many_lines は大規模 proto コピー処理のため許容する
+#![allow(clippy::too_many_lines)]
 // gRPC クライアントコードの生成または生成済みファイルの利用を行う。
 //
 // 戦略:
@@ -28,7 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("featureflag/v1", "k1s0.system.featureflag.v1"),
         ("config/v1", "k1s0.system.config.v1"),
         ("navigation/v1", "k1s0.system.navigation.v1"),
-        ("servicecatalog/v1", "k1s0.system.servicecatalog.v1"),
+        // HIGH-008 対応: servicecatalog サービスは gRPC を実装せず REST のみのため proto 削除済み。
+        // graphql-gateway は HTTP REST クライアント（service_catalog_client.rs）で接続する。
         ("auth/v1", "k1s0.system.auth.v1"),
         ("session/v1", "k1s0.system.session.v1"),
         ("vault/v1", "k1s0.system.vault.v1"),
@@ -40,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 全ての生成済みファイルが揃っているか確認する
     // 1つでも欠けている場合はフォールバックとして tonic-build を試みる
     let all_generated = services.iter().all(|(subdir, pkg)| {
-        let rs_file = format!("{}/{}/{}.rs", gen_rust_base, subdir, pkg);
+        let rs_file = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
         Path::new(&rs_file).exists()
     });
 
@@ -52,20 +55,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for (subdir, pkg) in services {
             // prost-build 生成の .rs ファイルをコピー（メッセージ型定義）
-            let src_rs = format!("{}/{}/{}.rs", gen_rust_base, subdir, pkg);
-            let dst_rs = out_path.join(format!("{}.rs", pkg));
-            fs::copy(&src_rs, &dst_rs).map_err(|e| {
-                format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e)
-            })?;
+            let src_rs = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
+            let dst_rs = out_path.join(format!("{pkg}.rs"));
+            fs::copy(&src_rs, &dst_rs)
+                .map_err(|e| format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e))?;
 
             // tonic-build 生成の .tonic.rs ファイルをコピー（gRPC スタブ）
             // common/v1 は gRPC サービスを持たないためスキップ
-            let src_tonic = format!("{}/{}/{}.tonic.rs", gen_rust_base, subdir, pkg);
+            let src_tonic = format!("{gen_rust_base}/{subdir}/{pkg}.tonic.rs");
             if Path::new(&src_tonic).exists() {
                 // tonic::include_proto! は {pkg}.rs を読み込んだ後に
                 // 同ファイル内で include!("{pkg}.tonic.rs") を参照する設計のため、
                 // .tonic.rs も同じ OUT_DIR に配置する必要がある
-                let dst_tonic = out_path.join(format!("{}.tonic.rs", pkg));
+                let dst_tonic = out_path.join(format!("{pkg}.tonic.rs"));
                 fs::copy(&src_tonic, &dst_tonic).map_err(|e| {
                     format!(
                         "Failed to copy {} -> {}: {}",
@@ -81,7 +83,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // ローカル開発環境で protoc + buf/validate が利用可能な場合にのみ成功する。
         // Docker ビルドでは api/proto/gen/rust/ の生成済みファイルが必須。
         println!("cargo:warning=graphql-gateway: pre-generated files not found, falling back to tonic-build");
-        println!("cargo:warning=NOTE: Docker build requires pre-generated files in api/proto/gen/rust/");
+        println!(
+            "cargo:warning=NOTE: Docker build requires pre-generated files in api/proto/gen/rust/"
+        );
 
         let tenant_proto = "../../../../../api/proto/k1s0/system/tenant/v1/tenant.proto";
         let featureflag_proto =
@@ -89,14 +93,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let config_proto = "../../../../../api/proto/k1s0/system/config/v1/config.proto";
         let navigation_proto =
             "../../../../../api/proto/k1s0/system/navigation/v1/navigation.proto";
-        let service_catalog_proto =
-            "../../../../../api/proto/k1s0/system/servicecatalog/v1/service_catalog.proto";
+        // HIGH-008 対応: service_catalog.proto は削除済み（gRPC 未実装、REST のみ）
         let api_common_proto = "../../../../../api/proto/k1s0/system/common/v1/types.proto";
         let auth_proto = "../../../../../api/proto/k1s0/system/auth/v1/auth.proto";
         let session_proto = "../../../../../api/proto/k1s0/system/session/v1/session.proto";
         let vault_proto = "../../../../../api/proto/k1s0/system/vault/v1/vault.proto";
-        let scheduler_proto =
-            "../../../../../api/proto/k1s0/system/scheduler/v1/scheduler.proto";
+        let scheduler_proto = "../../../../../api/proto/k1s0/system/scheduler/v1/scheduler.proto";
         let notification_proto =
             "../../../../../api/proto/k1s0/system/notification/v1/notification.proto";
         let workflow_proto = "../../../../../api/proto/k1s0/system/workflow/v1/workflow.proto";
@@ -106,7 +108,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             && std::path::Path::new(featureflag_proto).exists()
             && std::path::Path::new(config_proto).exists()
             && std::path::Path::new(navigation_proto).exists()
-            && std::path::Path::new(service_catalog_proto).exists()
             && std::path::Path::new(api_common_proto).exists()
             && std::path::Path::new(auth_proto).exists()
             && std::path::Path::new(session_proto).exists()
@@ -129,7 +130,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         featureflag_proto,
                         config_proto,
                         navigation_proto,
-                        service_catalog_proto,
                         api_common_proto,
                         auth_proto,
                         session_proto,
@@ -145,8 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Err(e) => {
                     println!(
-                        "cargo:warning=tonic-build failed (buf/validate.proto requires BSR access): {}",
-                        e
+                        "cargo:warning=tonic-build failed (buf/validate.proto requires BSR access): {e}"
                     );
                     println!("cargo:warning=Run 'buf generate' in api/proto/ to regenerate api/proto/gen/rust/");
                 }

@@ -1,3 +1,5 @@
+// OpenApi derive マクロが内部で for_each を使用するため、このモジュールで警告を抑制する
+#![allow(clippy::needless_for_each)]
 pub mod dependency;
 pub mod doc;
 pub mod health;
@@ -25,7 +27,7 @@ use crate::usecase::{
     UpdateServiceUseCase, UpdateTeamUseCase,
 };
 
-/// ValidateTokenUseCase はトークン検証のためのユースケース。
+/// `ValidateTokenUseCase` はトークン検証のためのユースケース。
 pub struct ValidateTokenUseCase {
     verifier: Arc<dyn crate::infrastructure::TokenVerifier>,
     expected_issuer: String,
@@ -66,7 +68,7 @@ impl ValidateTokenUseCase {
     }
 }
 
-/// AppState はアプリケーション全体の共有状態を表す。
+/// `AppState` はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub list_services_uc: Arc<ListServicesUseCase>,
@@ -89,6 +91,8 @@ pub struct AppState {
     pub db_pool: Option<sqlx::PgPool>,
 }
 
+// OpenApi derive マクロが内部で for_each を使用するため警告を抑制する
+#[allow(clippy::needless_for_each)]
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -133,7 +137,7 @@ pub struct AppState {
 struct ApiDoc;
 
 /// REST API ルーターを構築する。
-/// 同一パスの GET/PUT/DELETE を1つの .route() に統合し、
+/// 同一パスの GET/PUT/DELETE を1つの .`route()` に統合し、
 /// HTTP メソッドに基づいて read/write 権限を自動判定する。
 pub fn router(state: AppState) -> Router {
     // サービスルート: GET→read, POST/PUT/DELETE→write をメソッドベースで判定

@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -56,14 +56,22 @@ fn validation_error_response(message: &str) -> ErrorResponse {
 /// GET /api/v1/quotas
 pub async fn list_quotas(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Query(params): Query<ListQuotasParams>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = ListQuotaPoliciesInput {
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
         subject_type: params.subject_type,
         subject_id: params.subject_id,
         enabled_only: params.enabled_only,
+        tenant_id,
     };
 
     match state.list_policies_uc.execute(&input).await {
@@ -90,8 +98,18 @@ pub async fn list_quotas(
 }
 
 /// GET /api/v1/quotas/:id
-pub async fn get_quota(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match state.get_policy_uc.execute(&id).await {
+pub async fn get_quota(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
+    match state.get_policy_uc.execute(&id, &tenant_id).await {
         Ok(policy) => (StatusCode::OK, Json(policy)).into_response(),
         Err(e) => {
             let msg = e.to_string();
@@ -110,9 +128,17 @@ pub async fn get_quota(State(state): State<AppState>, Path(id): Path<String>) ->
 /// POST /api/v1/quotas
 pub async fn create_quota(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateQuotaRequest>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = CreateQuotaPolicyInput {
+        tenant_id,
         name: req.name,
         subject_type: req.subject_type,
         subject_id: req.subject_id,
@@ -147,11 +173,19 @@ pub async fn create_quota(
 /// PUT /api/v1/quotas/:id
 pub async fn update_quota(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<UpdateQuotaRequest>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = UpdateQuotaPolicyInput {
         id,
+        tenant_id,
         name: req.name,
         subject_type: req.subject_type,
         subject_id: req.subject_id,
@@ -183,13 +217,19 @@ pub async fn update_quota(
 /// POST /api/v1/quotas/:id/check - Check quota remaining (read-only)
 pub async fn check_quota(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_usage_uc.execute(&id).await {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
+    match state.get_usage_uc.execute(&id, &tenant_id).await {
         Ok(usage) => (StatusCode::OK, Json(usage)).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
@@ -236,15 +276,21 @@ pub struct UpdateQuotaRequest {
 /// DELETE /api/v1/quotas/:id
 pub async fn delete_quota(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::delete_quota_policy::DeleteQuotaPolicyError;
 
-    match state.delete_policy_uc.execute(&id).await {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
+    match state.delete_policy_uc.execute(&id, &tenant_id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteQuotaPolicyError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteQuotaPolicyError::Internal(msg)) => {
@@ -256,14 +302,23 @@ pub async fn delete_quota(
 }
 
 /// GET /api/v1/quotas/:id/usage
-pub async fn get_usage(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn get_usage(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     use crate::usecase::get_quota_usage::GetQuotaUsageError;
 
-    match state.get_usage_uc.execute(&id).await {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
+    match state.get_usage_uc.execute(&id, &tenant_id).await {
         Ok(usage) => (StatusCode::OK, Json(usage)).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
@@ -277,13 +332,21 @@ pub async fn get_usage(State(state): State<AppState>, Path(id): Path<String>) ->
 /// POST /api/v1/quotas/:id/usage/increment
 pub async fn increment_usage(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<IncrementUsageRequest>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = IncrementQuotaUsageInput {
         quota_id: id,
         amount: req.amount,
         request_id: req.request_id,
+        tenant_id,
     };
 
     match state.increment_usage_uc.execute(&input).await {
@@ -308,22 +371,29 @@ pub async fn increment_usage(
 /// POST /api/v1/quotas/:id/usage/reset
 pub async fn reset_usage(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(id): Path<String>,
     Json(req): Json<ResetUsageRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::reset_quota_usage::ResetQuotaUsageError;
 
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = ResetQuotaUsageInput {
         quota_id: id,
         reason: req.reason,
         reset_by: req.reset_by,
+        tenant_id,
     };
 
     match state.reset_usage_uc.execute(&input).await {
         Ok(output) => (StatusCode::OK, Json(output)).into_response(),
         Err(ResetQuotaUsageError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Validation(msg)) => {
@@ -370,6 +440,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -381,6 +452,7 @@ impl ErrorResponse {
         }
     }
 
+    #[must_use]
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

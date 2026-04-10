@@ -7,7 +7,7 @@ use tonic::Status;
 
 use super::ai_grpc::{AiGatewayGrpcService, GrpcError};
 
-/// GrpcErrorからtonic::Statusへの変換。
+/// `GrpcErrorからtonic::Statusへの変換`。
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
@@ -28,11 +28,13 @@ pub struct AiGatewayServiceTonic {
 #[allow(dead_code)]
 impl AiGatewayServiceTonic {
     /// 新しいtonicサービスを生成する。
+    #[must_use]
     pub fn new(inner: Arc<AiGatewayGrpcService>) -> Self {
         Self { inner }
     }
 
     /// 内部サービスへの参照を取得する。
+    #[must_use]
     pub fn inner(&self) -> &Arc<AiGatewayGrpcService> {
         &self.inner
     }

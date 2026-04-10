@@ -21,6 +21,7 @@ pub struct NavigationGrpcService {
 }
 
 impl NavigationGrpcService {
+    #[must_use]
     pub fn new(get_navigation_uc: Arc<GetNavigationUseCase>) -> Self {
         Self { get_navigation_uc }
     }

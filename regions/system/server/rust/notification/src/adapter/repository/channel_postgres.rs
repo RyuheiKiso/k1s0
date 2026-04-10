@@ -8,13 +8,13 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
 /// C-005 監査対応: AES-256-GCM 暗号化・復号化関数をインポートする
-/// C-001 Phase A: 後方互換フォールバック付き復号関数を追加する（aes_decrypt は直接使用しない）
-use k1s0_encryption::aes::{aes_decrypt_with_legacy_fallback, aes_encrypt};
+/// ADR-0104: Phase `B（バッチ再暗号化）完了後、aes_decrypt` のみを使用する
+use k1s0_encryption::aes::{aes_decrypt, aes_encrypt};
 
-/// チャンネルの PostgreSQL リポジトリ実装
+/// チャンネルの `PostgreSQL` リポジトリ実装
 /// C-005: channels.config を AES-256-GCM で暗号化して保存する
-/// H-012: tenant_id カラムによるマルチテナント分離を実装する
-/// H-010: RLS（Row Level Security）と set_config によるテナント境界を強制する
+/// H-012: `tenant_id` カラムによるマルチテナント分離を実装する
+/// H-010: RLS（Row Level Security）と `set_config` によるテナント境界を強制する
 pub struct ChannelPostgresRepository {
     pool: Arc<PgPool>,
     /// C-005 監査対応: チャンネル設定の暗号化キー（32バイト）。None の場合は暗号化を省略する
@@ -23,7 +23,8 @@ pub struct ChannelPostgresRepository {
 
 impl ChannelPostgresRepository {
     /// 暗号化キー付きでリポジトリを作成する
-    /// encryption_key が None の場合、設定は平文で保存される（開発環境のみ許可）
+    /// `encryption_key` が None の場合、設定は平文で保存される（開発環境のみ許可）
+    #[must_use]
     pub fn new(pool: Arc<PgPool>, encryption_key: Option<[u8; 32]>) -> Self {
         Self {
             pool,
@@ -31,8 +32,8 @@ impl ChannelPostgresRepository {
         }
     }
 
-    /// PostgreSQL セッション変数 app.current_tenant_id を設定して RLS ポリシーを有効化する
-    /// set_config の第3引数 true は SET LOCAL（トランザクションスコープ）を意味する
+    /// `PostgreSQL` セッション変数 `app.current_tenant_id` を設定して RLS ポリシーを有効化する
+    /// `set_config` の第3引数 true は SET LOCAL（トランザクションスコープ）を意味する
     async fn set_tenant_context(
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         tenant_id: &str,
@@ -48,32 +49,38 @@ impl ChannelPostgresRepository {
     /// C-001 監査対応: AAD にチャンネル ID を使用し、異なるチャンネル間での
     /// ciphertext 流用（swap attack）を防止する。
     /// 暗号化キーが設定されていない場合は None を返す（平文 config カラムを使用）
-    fn encrypt_config(&self, channel_id: &str, config: &serde_json::Value) -> anyhow::Result<Option<String>> {
+    fn encrypt_config(
+        &self,
+        channel_id: &str,
+        config: &serde_json::Value,
+    ) -> anyhow::Result<Option<String>> {
         match &self.encryption_key {
             Some(key) => {
                 let plaintext = serde_json::to_vec(config)
-                    .map_err(|e| anyhow::anyhow!("設定の JSON シリアライズに失敗: {}", e))?;
+                    .map_err(|e| anyhow::anyhow!("設定の JSON シリアライズに失敗: {e}"))?;
                 // C-001 監査対応: AAD にチャンネル ID を指定して暗号化する
                 let encrypted = aes_encrypt(key, &plaintext, channel_id.as_bytes())
-                    .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 暗号化に失敗: {}", e))?;
+                    .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 暗号化に失敗: {e}"))?;
                 Ok(Some(encrypted))
             }
             None => Ok(None),
         }
     }
 
-    /// 暗号化済み設定を復号化して serde_json::Value に変換する。
-    /// C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
-    /// 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
-    /// Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
-    fn decrypt_config(&self, channel_id: &str, encrypted: &str) -> anyhow::Result<serde_json::Value> {
+    /// 暗号化済み設定を復号化して `serde_json::Value` に変換する。
+    /// ADR-0104: Phase `B（バッチ再暗号化）完了後、aes_decrypt` のみで AAD 付き復号を行う。
+    fn decrypt_config(
+        &self,
+        channel_id: &str,
+        encrypted: &str,
+    ) -> anyhow::Result<serde_json::Value> {
         match &self.encryption_key {
             Some(key) => {
-                // C-001 Phase A: AAD にチャンネル ID を指定して新形式で復号を試み、失敗時は旧形式にフォールバックする
-                let plaintext = aes_decrypt_with_legacy_fallback(key, encrypted, channel_id.as_bytes())
-                    .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 復号化に失敗: {}", e))?;
+                // ADR-0104: AAD にチャンネル ID を指定して復号する（旧形式フォールバックなし）
+                let plaintext = aes_decrypt(key, encrypted, channel_id.as_bytes())
+                    .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 復号化に失敗: {e}"))?;
                 serde_json::from_slice(&plaintext)
-                    .map_err(|e| anyhow::anyhow!("復号化済み設定の JSON 解析に失敗: {}", e))
+                    .map_err(|e| anyhow::anyhow!("復号化済み設定の JSON 解析に失敗: {e}"))
             }
             None => Err(anyhow::anyhow!(
                 "暗号化された設定データがありますが、暗号化キーが設定されていません。\
@@ -82,9 +89,9 @@ impl ChannelPostgresRepository {
         }
     }
 
-    /// ChannelRow をドメインエンティティに変換する。
-    /// encrypted_config が存在する場合は復号化を優先する（dual-read 移行戦略）。
-    /// C-001 監査対応: decrypt_config の AAD にチャンネル ID を渡してコンテキスト検証を実施する。
+    /// `ChannelRow` をドメインエンティティに変換する。
+    /// `encrypted_config` が存在する場合は復号化を優先する（dual-read 移行戦略）。
+    /// C-001 監査対応: `decrypt_config` の AAD にチャンネル ID を渡してコンテキスト検証を実施する。
     fn row_to_channel(&self, row: ChannelRow) -> anyhow::Result<NotificationChannel> {
         let config = if let Some(ref encrypted) = row.encrypted_config {
             // C-005/C-001: 暗号化済みデータが存在する場合はチャンネル ID を AAD として復号化する
@@ -107,7 +114,7 @@ impl ChannelPostgresRepository {
     }
 }
 
-/// DB から取得する生データ構造（sqlx::FromRow で自動マッピング）
+/// DB `から取得する生データ構造（sqlx::FromRow` で自動マッピング）
 #[derive(sqlx::FromRow)]
 struct ChannelRow {
     id: String,
@@ -126,12 +133,16 @@ struct ChannelRow {
 
 #[async_trait]
 impl NotificationChannelRepository for ChannelPostgresRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取り RLS セッション変数を設定する。
+    /// "system" ハードコードを廃止し、ユースケース層から渡されたテナント ID を使用する。
+    async fn find_by_id(
+        &self,
+        id: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         // H-010: トランザクション内で RLS セッション変数を設定する
-        // NOTE: 現時点ではシステムチャンネル（tenant_id='system'）をデフォルトとして使用する
-        //       JWT クレームからのテナント伝播は ADR-0056 に記載の実装ロードマップで対応する
         let mut tx = self.pool.begin().await?;
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let row: Option<ChannelRow> = sqlx::query_as(
             "SELECT id, name, channel_type, config, encrypted_config, tenant_id, enabled, created_at, updated_at \
@@ -145,10 +156,11 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         row.map(|r| self.row_to_channel(r)).transpose()
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取り RLS セッション変数を設定する。
+    async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         let mut tx = self.pool.begin().await?;
         // H-010: RLS セッション変数を設定してテナント分離を強制する
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let rows: Vec<ChannelRow> = sqlx::query_as(
             "SELECT id, name, channel_type, config, encrypted_config, tenant_id, enabled, created_at, updated_at \
@@ -161,21 +173,23 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         rows.into_iter().map(|r| self.row_to_channel(r)).collect()
     }
 
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を最初のパラメータとして受け取り RLS セッション変数を設定する。
     async fn find_all_paginated(
         &self,
+        tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
         enabled_only: bool,
     ) -> anyhow::Result<(Vec<NotificationChannel>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         let mut conditions = Vec::new();
         let mut bind_index = 1u32;
 
         if channel_type.is_some() {
-            conditions.push(format!("channel_type = ${}", bind_index));
+            conditions.push(format!("channel_type = ${bind_index}"));
             bind_index += 1;
         }
         if enabled_only {
@@ -188,10 +202,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let count_query = format!(
-            "SELECT COUNT(*) FROM notification.channels {}",
-            where_clause
-        );
+        let count_query = format!("SELECT COUNT(*) FROM notification.channels {where_clause}");
         let data_query = format!(
             "SELECT id, name, channel_type, config, encrypted_config, tenant_id, enabled, created_at, updated_at \
              FROM notification.channels {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
@@ -202,7 +213,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
 
         // H-010: RLS セッション変数を設定してテナント分離を強制する
         let mut tx = self.pool.begin().await?;
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
         if let Some(ref v) = channel_type {
@@ -222,7 +233,8 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
 
         let channels: anyhow::Result<Vec<NotificationChannel>> =
             rows.into_iter().map(|r| self.row_to_channel(r)).collect();
-        Ok((channels?, total_count as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((channels?, u64::try_from(total_count).unwrap_or(0)))
     }
 
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
@@ -289,10 +301,12 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取り RLS セッション変数を設定する。
+    /// 他テナントのチャンネルを削除できないよう RLS ポリシーで保護する。
+    async fn delete(&self, id: &str, tenant_id: &str) -> anyhow::Result<bool> {
         // H-010: RLS セッション変数を設定してテナント分離を強制する
         let mut tx = self.pool.begin().await?;
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let result = sqlx::query("DELETE FROM notification.channels WHERE id = $1")
             .bind(id)

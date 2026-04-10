@@ -59,9 +59,9 @@ func (m *mockOAuthClientForProxy) ClearDiscoveryCache() {}
 // エラーケースのシミュレートを容易にする。
 type mockSessionStoreForProxy struct {
 	// sessions はインメモリのセッションデータストア。
-	sessions map[string]*session.SessionData
+	sessions map[string]*session.Data
 	// updateFn は Update 呼び出しの振る舞いを上書きする。nil の場合はデフォルト動作（map への保存）。
-	updateFn func(ctx context.Context, id string, data *session.SessionData, ttl time.Duration) error
+	updateFn func(ctx context.Context, id string, data *session.Data, ttl time.Duration) error
 	// deleteFn は Delete 呼び出しの振る舞いを上書きする。nil の場合はデフォルト動作（map から削除）。
 	deleteFn func(ctx context.Context, id string) error
 }
@@ -69,19 +69,19 @@ type mockSessionStoreForProxy struct {
 // newMockSessionStoreForProxy はテスト用インメモリセッションストアを生成する。
 func newMockSessionStoreForProxy() *mockSessionStoreForProxy {
 	return &mockSessionStoreForProxy{
-		sessions: make(map[string]*session.SessionData),
+		sessions: make(map[string]*session.Data),
 	}
 }
 
 // Create はセッションデータを保存し、固定 ID を返す。
-func (m *mockSessionStoreForProxy) Create(_ context.Context, data *session.SessionData, _ time.Duration) (string, error) {
+func (m *mockSessionStoreForProxy) Create(_ context.Context, data *session.Data, _ time.Duration) (string, error) {
 	id := "created-session"
 	m.sessions[id] = data
 	return id, nil
 }
 
 // Get は指定 ID のセッションデータを取得する。存在しない場合は nil を返す。
-func (m *mockSessionStoreForProxy) Get(_ context.Context, id string) (*session.SessionData, error) {
+func (m *mockSessionStoreForProxy) Get(_ context.Context, id string) (*session.Data, error) {
 	if s, ok := m.sessions[id]; ok {
 		return s, nil
 	}
@@ -89,7 +89,7 @@ func (m *mockSessionStoreForProxy) Get(_ context.Context, id string) (*session.S
 }
 
 // Update はセッションデータを更新する。updateFn が設定されている場合はそちらに委譲する。
-func (m *mockSessionStoreForProxy) Update(ctx context.Context, id string, data *session.SessionData, ttl time.Duration) error {
+func (m *mockSessionStoreForProxy) Update(ctx context.Context, id string, data *session.Data, ttl time.Duration) error {
 	if m.updateFn != nil {
 		return m.updateFn(ctx, id, data, ttl)
 	}
@@ -170,7 +170,7 @@ func TestPrepareProxy_NeedsRefresh_Success(t *testing.T) {
 
 	// UpdateFn が呼ばれたことを記録するフラグ
 	updateCalled := false
-	store.updateFn = func(_ context.Context, id string, data *session.SessionData, _ time.Duration) error {
+	store.updateFn = func(_ context.Context, id string, data *session.Data, _ time.Duration) error {
 		updateCalled = true
 		// M-5: Redis 更新時点でメモリ上のセッション（sess）はまだ古い AccessToken のはず
 		if data.AccessToken != "new-access-token" {
@@ -296,7 +296,7 @@ func TestPrepareProxy_SessionUpdateFailure(t *testing.T) {
 
 	// Update を必ずエラーにする
 	updateErr := errors.New("redis connection lost")
-	store.updateFn = func(_ context.Context, _ string, _ *session.SessionData, _ time.Duration) error {
+	store.updateFn = func(_ context.Context, _ string, _ *session.Data, _ time.Duration) error {
 		return updateErr
 	}
 
@@ -346,12 +346,12 @@ func TestPrepareProxy_SessionUpdateFailure(t *testing.T) {
 func TestPrepareProxy_SessionNotFound(t *testing.T) {
 	store := newMockSessionStoreForProxy()
 	// セッションデータが存在しない（nil）場合を表現するため、空のセッションを使用する。
-	// PrepareProxy のシグネチャでは *session.SessionData を受け取るため、
+	// PrepareProxy のシグネチャでは *session.Data を受け取るため、
 	// 「セッション未発見」は handler 層（SessionMiddleware）が担当し、
 	// usecase は SessionData が nil でない前提で動作する。
 	// ここでは NeedsRefresh=false + AccessToken="" のケースで
 	// 空文字の AccessToken が返ることを確認する。
-	emptySess := &session.SessionData{
+	emptySess := &session.Data{
 		AccessToken: "",
 		ExpiresAt:   time.Now().Add(time.Hour).Unix(),
 	}

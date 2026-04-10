@@ -8,7 +8,15 @@ use crate::adapter::graphql_handler::WorkflowStepInput;
 use crate::domain::model::{WorkflowDefinition, WorkflowInstance, WorkflowStep, WorkflowTask};
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -32,13 +40,13 @@ pub struct WorkflowGrpcClient {
     client: WorkflowServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl WorkflowGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -58,7 +66,8 @@ impl WorkflowGrpcClient {
             name: s.name,
             step_type: s.step_type,
             assignee_role: s.assignee_role.filter(|v| !v.is_empty()),
-            timeout_hours: s.timeout_hours.map(|v| v as i32),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            timeout_hours: s.timeout_hours.map(|v| i32::try_from(v).unwrap_or(i32::MAX)),
             on_approve: s.on_approve.filter(|v| !v.is_empty()),
             on_reject: s.on_reject.filter(|v| !v.is_empty()),
         }
@@ -71,7 +80,8 @@ impl WorkflowGrpcClient {
             id: d.id,
             name: d.name,
             description: d.description,
-            version: d.version as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version: i32::try_from(d.version).unwrap_or(i32::MAX),
             enabled: d.enabled,
             steps: d.steps.into_iter().map(Self::step_from_proto).collect(),
             created_at: timestamp_to_rfc3339(d.created_at),
@@ -138,7 +148,8 @@ impl WorkflowGrpcClient {
                 name: s.name.clone(),
                 step_type: s.step_type.clone(),
                 assignee_role: s.assignee_role.clone(),
-                timeout_hours: s.timeout_hours.map(|v| v as u32),
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                timeout_hours: s.timeout_hours.map(|v| u32::try_from(v).unwrap_or(0)),
                 on_approve: s.on_approve.clone(),
                 on_reject: s.on_reject.clone(),
                 // 後方互換フィールド（0 = UNSPECIFIED）
@@ -160,14 +171,14 @@ impl WorkflowGrpcClient {
 
         match self.client.clone().get_workflow(request).await {
             Ok(resp) => {
-                let d = match resp.into_inner().workflow {
-                    Some(d) => d,
-                    None => return Ok(None),
+                // ワークフロー定義が存在しない場合は None を返す
+                let Some(d) = resp.into_inner().workflow else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::definition_from_proto(d)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("WorkflowService.GetWorkflow failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("WorkflowService.GetWorkflow failed: {e}")),
         }
     }
 
@@ -192,7 +203,7 @@ impl WorkflowGrpcClient {
             .clone()
             .list_workflows(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.ListWorkflows failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.ListWorkflows failed: {e}"))?
             .into_inner();
 
         Ok(resp
@@ -223,7 +234,7 @@ impl WorkflowGrpcClient {
             .clone()
             .create_workflow(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.CreateWorkflow failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.CreateWorkflow failed: {e}"))?
             .into_inner()
             .workflow
             .ok_or_else(|| anyhow::anyhow!("empty workflow in create response"))?;
@@ -243,8 +254,8 @@ impl WorkflowGrpcClient {
         let request =
             tonic::Request::new(proto::k1s0::system::workflow::v1::UpdateWorkflowRequest {
                 workflow_id: workflow_id.to_owned(),
-                name: name.map(|s| s.to_owned()),
-                description: description.map(|s| s.to_owned()),
+                name: name.map(std::borrow::ToOwned::to_owned),
+                description: description.map(std::borrow::ToOwned::to_owned),
                 enabled,
                 steps: steps.map(|s| proto::k1s0::system::workflow::v1::WorkflowSteps {
                     items: Self::steps_to_proto(s),
@@ -256,7 +267,7 @@ impl WorkflowGrpcClient {
             .clone()
             .update_workflow(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.UpdateWorkflow failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.UpdateWorkflow failed: {e}"))?
             .into_inner()
             .workflow
             .ok_or_else(|| anyhow::anyhow!("empty workflow in update response"))?;
@@ -276,7 +287,7 @@ impl WorkflowGrpcClient {
             .clone()
             .delete_workflow(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.DeleteWorkflow failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.DeleteWorkflow failed: {e}"))?
             .into_inner();
 
         Ok(resp.success)
@@ -307,7 +318,7 @@ impl WorkflowGrpcClient {
             .clone()
             .start_instance(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.StartInstance failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.StartInstance failed: {e}"))?
             .into_inner();
 
         // M-016 監査対応: 非 UTF-8 バイナリが REPLACEMENT CHARACTER に化けることを防ぐ
@@ -346,14 +357,14 @@ impl WorkflowGrpcClient {
 
         match self.client.clone().get_instance(request).await {
             Ok(resp) => {
-                let i = match resp.into_inner().instance {
-                    Some(i) => i,
-                    None => return Ok(None),
+                // インスタンスが存在しない場合は None を返す
+                let Some(i) = resp.into_inner().instance else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::instance_from_proto(i)?))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("WorkflowService.GetInstance failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("WorkflowService.GetInstance failed: {e}")),
         }
     }
 
@@ -382,7 +393,7 @@ impl WorkflowGrpcClient {
             .clone()
             .list_instances(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.ListInstances failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.ListInstances failed: {e}"))?
             .into_inner();
 
         resp.instances
@@ -400,7 +411,7 @@ impl WorkflowGrpcClient {
         let request =
             tonic::Request::new(proto::k1s0::system::workflow::v1::CancelInstanceRequest {
                 instance_id: instance_id.to_owned(),
-                reason: reason.map(|s| s.to_owned()),
+                reason: reason.map(std::borrow::ToOwned::to_owned),
             });
 
         let i = self
@@ -408,7 +419,7 @@ impl WorkflowGrpcClient {
             .clone()
             .cancel_instance(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.CancelInstance failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.CancelInstance failed: {e}"))?
             .into_inner()
             .instance
             .ok_or_else(|| anyhow::anyhow!("empty instance in cancel response"))?;
@@ -444,7 +455,7 @@ impl WorkflowGrpcClient {
             .clone()
             .list_tasks(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.ListTasks failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.ListTasks failed: {e}"))?
             .into_inner();
 
         Ok(resp.tasks.into_iter().map(Self::task_from_proto).collect())
@@ -461,7 +472,7 @@ impl WorkflowGrpcClient {
         let request = tonic::Request::new(proto::k1s0::system::workflow::v1::ReassignTaskRequest {
             task_id: task_id.to_owned(),
             new_assignee_id: new_assignee_id.to_owned(),
-            reason: reason.map(|s| s.to_owned()),
+            reason: reason.map(std::borrow::ToOwned::to_owned),
             actor_id: actor_id.to_owned(),
         });
 
@@ -470,7 +481,7 @@ impl WorkflowGrpcClient {
             .clone()
             .reassign_task(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.ReassignTask failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.ReassignTask failed: {e}"))?
             .into_inner();
 
         let task = resp
@@ -491,7 +502,7 @@ impl WorkflowGrpcClient {
         let request = tonic::Request::new(proto::k1s0::system::workflow::v1::ApproveTaskRequest {
             task_id: task_id.to_owned(),
             actor_id: actor_id.to_owned(),
-            comment: comment.map(|s| s.to_owned()),
+            comment: comment.map(std::borrow::ToOwned::to_owned),
         });
 
         let resp = self
@@ -499,7 +510,7 @@ impl WorkflowGrpcClient {
             .clone()
             .approve_task(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.ApproveTask failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.ApproveTask failed: {e}"))?
             .into_inner();
 
         Ok((
@@ -520,7 +531,7 @@ impl WorkflowGrpcClient {
         let request = tonic::Request::new(proto::k1s0::system::workflow::v1::RejectTaskRequest {
             task_id: task_id.to_owned(),
             actor_id: actor_id.to_owned(),
-            comment: comment.map(|s| s.to_owned()),
+            comment: comment.map(std::borrow::ToOwned::to_owned),
         });
 
         let resp = self
@@ -528,7 +539,7 @@ impl WorkflowGrpcClient {
             .clone()
             .reject_task(request)
             .await
-            .map_err(|e| anyhow::anyhow!("WorkflowService.RejectTask failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("WorkflowService.RejectTask failed: {e}"))?
             .into_inner();
 
         Ok((
@@ -556,13 +567,14 @@ impl WorkflowGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("workflow gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("workflow gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }
@@ -570,6 +582,7 @@ fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) 
 fn optional_timestamp_to_rfc3339(
     ts: Option<proto::k1s0::system::common::v1::Timestamp>,
 ) -> Option<String> {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
 }

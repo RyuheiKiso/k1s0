@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::user::User;
 use crate::domain::repository::UserRepository;
 
-/// GetUserError はユーザー取得に関するエラーを表す。
+/// `GetUserError` はユーザー取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetUserError {
     #[error("user not found: {0}")]
@@ -13,7 +13,7 @@ pub enum GetUserError {
     Internal(String),
 }
 
-/// GetUserUseCase はユーザー情報取得ユースケース。
+/// `GetUserUseCase` はユーザー情報取得ユースケース。
 pub struct GetUserUseCase {
     user_repo: Arc<dyn UserRepository>,
 }

@@ -202,6 +202,8 @@ fn make_test_app() -> axum::Router {
         auth_state: None,
         // テスト用バックエンド種別: インメモリリポジトリを使用
         backend_kind: "in-memory".to_string(),
+        // テスト時は DB 接続プールを使用しない
+        db_pool: None,
     };
     router(state)
 }

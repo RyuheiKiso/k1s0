@@ -28,12 +28,14 @@ use k1s0_policy_server::usecase::{
 /// テスト用のポリシーリポジトリ。全メソッドが空の結果を返す。
 struct StubPolicyRepo;
 
+/// CRIT-005 対応: PolicyRepository スタブ。tenant_id パラメータを受け取るが、
+/// インメモリ実装のため全メソッドが空の結果を返す。シグネチャを本番 trait に合わせる。
 #[async_trait]
 impl PolicyRepository for StubPolicyRepo {
-    async fn find_by_id(&self, _id: &Uuid) -> anyhow::Result<Option<Policy>> {
+    async fn find_by_id(&self, _id: &Uuid, _tenant_id: &str) -> anyhow::Result<Option<Policy>> {
         Ok(None)
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<Policy>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<Policy>> {
         Ok(vec![])
     }
     async fn find_all_paginated(
@@ -42,6 +44,7 @@ impl PolicyRepository for StubPolicyRepo {
         _page_size: u32,
         _bundle_id: Option<Uuid>,
         _enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         Ok((vec![], 0))
     }
@@ -51,10 +54,10 @@ impl PolicyRepository for StubPolicyRepo {
     async fn update(&self, _policy: &Policy) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
-    async fn exists_by_name(&self, _name: &str) -> anyhow::Result<bool> {
+    async fn exists_by_name(&self, _name: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }
@@ -64,18 +67,24 @@ impl PolicyRepository for StubPolicyRepo {
 /// テスト用のバンドルリポジトリ。全メソッドが空の結果を返す。
 struct StubBundleRepo;
 
+/// CRIT-005 対応: PolicyBundleRepository スタブ。tenant_id パラメータを受け取るが、
+/// インメモリ実装のため全メソッドが空の結果を返す。シグネチャを本番 trait に合わせる。
 #[async_trait]
 impl PolicyBundleRepository for StubBundleRepo {
-    async fn find_by_id(&self, _id: &Uuid) -> anyhow::Result<Option<PolicyBundle>> {
+    async fn find_by_id(
+        &self,
+        _id: &Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<PolicyBundle>> {
         Ok(None)
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<PolicyBundle>> {
         Ok(vec![])
     }
     async fn create(&self, _bundle: &PolicyBundle) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }

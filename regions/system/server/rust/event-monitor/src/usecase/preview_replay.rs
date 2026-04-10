@@ -79,12 +79,12 @@ impl PreviewReplayUseCase {
                 .iter()
                 .filter(|e| {
                     e.flow_step_index
-                        .map(|idx| idx >= input.from_step_index)
-                        .unwrap_or(false)
+                        .is_some_and(|idx| idx >= input.from_step_index)
                 })
                 .collect();
 
-            let events_count = replay_events.len() as i32;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            let events_count = i32::try_from(replay_events.len()).unwrap_or(i32::MAX);
             total_events += events_count;
 
             for e in &replay_events {
@@ -98,8 +98,7 @@ impl PreviewReplayUseCase {
                     .find_by_id(&flow_id)
                     .await
                     .map_err(|e| PreviewReplayError::Internal(e.to_string()))?
-                    .map(|f| f.name)
-                    .unwrap_or_else(|| "unknown".to_string())
+                    .map_or_else(|| "unknown".to_string(), |f| f.name)
             } else {
                 "unknown".to_string()
             };
@@ -147,6 +146,7 @@ mod tests {
 
     fn make_event_with_flow(corr_id: &str, flow_id: Uuid, step_index: i32) -> EventRecord {
         let mut event = EventRecord::new(
+            "system".to_string(),
             corr_id.to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),
@@ -161,6 +161,7 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "test".to_string(),
             "service.task".to_string(),

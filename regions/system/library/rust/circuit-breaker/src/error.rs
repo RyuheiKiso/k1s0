@@ -10,7 +10,8 @@ impl<E: fmt::Display> fmt::Display for CircuitBreakerError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CircuitBreakerError::Open => write!(f, "circuit breaker is open"),
-            CircuitBreakerError::Inner(e) => write!(f, "inner error: {}", e),
+            // HIGH-001 監査対応: format 文字列の変数を直接埋め込む
+            CircuitBreakerError::Inner(e) => write!(f, "inner error: {e}"),
         }
     }
 }

@@ -124,6 +124,7 @@ CREATE INDEX IF NOT EXISTS idx_flag_audit_logs_flag_id ON featureflag.flag_audit
 | `005_add_rls.down.sql` | RLS ポリシー・設定削除 |
 | `006_alter_tenant_id_to_text.up.sql` | feature_flags / flag_audit_logs の tenant_id を UUID→TEXT に変更（C-004 監査対応・ADR-0093） |
 | `006_alter_tenant_id_to_text.down.sql` | tenant_id を TEXT→UUID に戻す（注意: 非 UUID 値が存在する場合は失敗） |
+| `007_fix_rls_as_restrictive.up.sql` | RLS ポリシーに AS RESTRICTIVE を追加して再作成（HIGH-DB-003 対応） |
 
 ### 005_add_rls.up.sql
 **目的**: Row Level Security (RLS) によるテナント分離の強化

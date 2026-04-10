@@ -7,6 +7,13 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
+    # MED-010 / HIGH-003 監査対応: Prometheus が Basic Auth（web.yml）で保護されているため
+    # Grafana datasource にも認証情報を設定する。
+    # 開発環境専用のパスワードであり、本番環境では Vault / Secret 経由で注入すること。
+    basicAuth: true
+    basicAuthUser: prometheus_admin
+    secureJsonData:
+      basicAuthPassword: prometheus_admin
 
   - name: Loki
     type: loki

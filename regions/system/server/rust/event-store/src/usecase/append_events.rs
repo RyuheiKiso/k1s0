@@ -13,6 +13,8 @@ use crate::domain::service::{EventStoreDomainError, EventStoreDomainService};
 #[derive(Debug, Clone)]
 pub struct AppendEventsInput {
     pub stream_id: String,
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
     pub aggregate_type: Option<String>,
     pub events: Vec<EventData>,
     pub expected_version: i64,
@@ -43,8 +45,8 @@ pub enum AppendEventsError {
     Internal(String),
 }
 
-/// AppendEventsUseCase はイベントの追記ユースケースを実装する。
-/// TransactionalAppendPort が設定されている場合は REPEATABLE READ トランザクションを
+/// `AppendEventsUseCase` はイベントの追記ユースケースを実装する。
+/// `TransactionalAppendPort` が設定されている場合は REPEATABLE READ トランザクションを
 /// 使用してストリーム作成・イベント追記・バージョン更新を単一の原子操作として実行する。
 /// usecase 層は domain トレイトにのみ依存し、infrastructure 具体型には依存しない。
 pub struct AppendEventsUseCase {
@@ -67,8 +69,8 @@ impl AppendEventsUseCase {
         }
     }
 
-    /// TransactionalAppendPort を受け取るコンストラクタ（PostgreSQL 使用時はこちらを使用）。
-    /// transactional_port が設定されている場合、execute() は REPEATABLE READ トランザクションで
+    /// `TransactionalAppendPort` を受け取るコンストラクタ（PostgreSQL 使用時はこちらを使用）。
+    /// `transactional_port` `が設定されている場合、execute()` は REPEATABLE READ トランザクションで
     /// ストリーム作成・イベント追記・バージョン更新を単一操作として実行する。
     /// domain トレイトを介することで usecase 層の infrastructure 依存を排除する。
     pub fn new_with_transactional_port(
@@ -83,8 +85,8 @@ impl AppendEventsUseCase {
         }
     }
 
-    /// 後方互換のために PgPool を受け取るコンストラクタを維持する。
-    /// 内部で TransactionalAppendAdapter を生成して transactional_port に設定する。
+    /// 後方互換のために `PgPool` を受け取るコンストラクタを維持する。
+    /// 内部で `TransactionalAppendAdapter` を生成して `transactional_port` に設定する。
     #[deprecated(
         since = "0.2.0",
         note = "代わりに new_with_transactional_port を使用してください"
@@ -125,15 +127,17 @@ impl AppendEventsUseCase {
 
     /// TransactionalAppendPort（domain トレイト）を介してトランザクション内で実行する。
     /// infrastructure 具体型には依存せず、クリーンアーキテクチャの依存方向を維持する。
+    /// `テナント分離のため、tenant_id` を全リポジトリ呼び出しに渡す（ADR-0106）。
     async fn execute_with_port(
         &self,
         input: &AppendEventsInput,
         port: &dyn TransactionalAppendPort,
     ) -> Result<AppendEventsOutput, AppendEventsError> {
         // まずトランザクション外でストリームの現在状態を取得してバージョン検証を行う
+        // テナント分離のため、tenant_id を渡して RLS を有効化する
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 
@@ -161,11 +165,12 @@ impl AppendEventsUseCase {
             }
         }
 
-        // 新規ストリームの場合はストリームエンティティを生成する
+        // 新規ストリームの場合はストリームエンティティを生成する（テナント ID を設定）
         let new_stream = if input.expected_version == -1 {
             Some(EventStream::new(
                 input.stream_id.clone(),
                 input.aggregate_type.clone().unwrap_or_default(),
+                input.tenant_id.clone(),
             ))
         } else {
             None
@@ -177,7 +182,7 @@ impl AppendEventsUseCase {
             input.expected_version
         };
 
-        // 保存するイベントのバージョンを採番する
+        // 保存するイベントのバージョンを採番する（テナント ID を設定）
         let stored_events: Vec<StoredEvent> = input
             .events
             .iter()
@@ -185,9 +190,11 @@ impl AppendEventsUseCase {
             .map(|(i, data)| {
                 StoredEvent::new(
                     input.stream_id.clone(),
+                    input.tenant_id.clone(),
                     0, // sequence は INSERT の RETURNING で採番される
                     data.event_type.clone(),
-                    base_version + (i as i64) + 1,
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    base_version + i64::try_from(i).unwrap_or(i64::MAX) + 1,
                     data.payload.clone(),
                     EventMetadata::new(
                         data.metadata.actor_id.clone(),
@@ -198,11 +205,14 @@ impl AppendEventsUseCase {
             })
             .collect();
 
-        let new_version = base_version + input.events.len() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let new_version = base_version + i64::try_from(input.events.len()).unwrap_or(i64::MAX);
 
         // TransactionalAppendPort を介してトランザクション内で原子操作を実行する
+        // テナント分離のため tenant_id を渡す（ADR-0106）
         let persisted = port
             .append_in_transaction(
+                &input.tenant_id,
                 new_stream.as_ref(),
                 &input.stream_id,
                 stored_events,
@@ -219,13 +229,14 @@ impl AppendEventsUseCase {
     }
 
     /// トランザクションなし（インメモリリポジトリ）で実行する。
+    /// `テナント分離のため、tenant_id` を全リポジトリ呼び出しに渡す（ADR-0106）。
     async fn execute_without_tx(
         &self,
         input: &AppendEventsInput,
     ) -> Result<AppendEventsOutput, AppendEventsError> {
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 
@@ -253,9 +264,11 @@ impl AppendEventsUseCase {
         }
 
         if input.expected_version == -1 {
+            // 新規ストリーム作成時はテナント ID を設定する
             let new_stream = EventStream::new(
                 input.stream_id.clone(),
                 input.aggregate_type.clone().unwrap_or_default(),
+                input.tenant_id.clone(),
             );
             self.stream_repo
                 .create(&new_stream)
@@ -269,6 +282,7 @@ impl AppendEventsUseCase {
             input.expected_version
         };
 
+        // テナント ID を含むイベントを生成する
         let stored_events: Vec<StoredEvent> = input
             .events
             .iter()
@@ -276,9 +290,11 @@ impl AppendEventsUseCase {
             .map(|(i, data)| {
                 StoredEvent::new(
                     input.stream_id.clone(),
+                    input.tenant_id.clone(),
                     0, // sequence assigned by storage
                     data.event_type.clone(),
-                    base_version + (i as i64) + 1,
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    base_version + i64::try_from(i).unwrap_or(i64::MAX) + 1,
                     data.payload.clone(),
                     EventMetadata::new(
                         data.metadata.actor_id.clone(),
@@ -289,16 +305,18 @@ impl AppendEventsUseCase {
             })
             .collect();
 
-        let new_version = base_version + input.events.len() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let new_version = base_version + i64::try_from(input.events.len()).unwrap_or(i64::MAX);
 
+        // テナント分離のため tenant_id を渡す（ADR-0106）
         let persisted = self
             .event_repo
-            .append(&input.stream_id, stored_events)
+            .append(&input.tenant_id, &input.stream_id, stored_events)
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 
         self.stream_repo
-            .update_version(&input.stream_id, new_version)
+            .update_version(&input.tenant_id, &input.stream_id, new_version)
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 
@@ -322,6 +340,7 @@ mod tests {
     fn make_input(stream_id: &str, expected_version: i64) -> AppendEventsInput {
         AppendEventsInput {
             stream_id: stream_id.to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: Some("TestAggregate".to_string()),
             events: vec![EventData {
                 event_type: "TestEventOccurred".to_string(),
@@ -332,26 +351,43 @@ mod tests {
         }
     }
 
+    // テスト用の EventStream を生成するファクトリ関数
+    fn make_stream(id: &str, version: i64) -> EventStream {
+        EventStream {
+            id: id.to_string(),
+            tenant_id: "tenant-test".to_string(),
+            aggregate_type: "TestAggregate".to_string(),
+            current_version: version,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
     #[tokio::test]
     async fn success_new_stream() {
         let mut stream_repo = MockEventStreamRepository::new();
         let mut event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo.expect_create().returning(|_| Ok(()));
-        stream_repo.expect_update_version().returning(|_, _| Ok(()));
+        stream_repo
+            .expect_update_version()
+            .returning(|_, _, _| Ok(()));
 
-        event_repo.expect_append().returning(|stream_id, events| {
-            Ok(events
-                .into_iter()
-                .enumerate()
-                .map(|(i, mut e)| {
-                    e.sequence = (i as u64) + 1;
-                    e.stream_id = stream_id.to_string();
-                    e
-                })
-                .collect())
-        });
+        event_repo
+            .expect_append()
+            .returning(|_, stream_id, events| {
+                Ok(events
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, mut e)| {
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        e.sequence = u64::try_from(i).unwrap_or(u64::MAX).saturating_add(1);
+                        e.stream_id = stream_id.to_string();
+                        e
+                    })
+                    .collect())
+            });
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", -1);
@@ -368,28 +404,27 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let mut event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| {
-            Ok(Some(EventStream {
-                id: "stream-001".to_string(),
-                aggregate_type: "TestAggregate".to_string(),
-                current_version: 2,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }))
-        });
-        stream_repo.expect_update_version().returning(|_, _| Ok(()));
+        stream_repo
+            .expect_find_by_id()
+            .returning(|_, _| Ok(Some(make_stream("stream-001", 2))));
+        stream_repo
+            .expect_update_version()
+            .returning(|_, _, _| Ok(()));
 
-        event_repo.expect_append().returning(|stream_id, events| {
-            Ok(events
-                .into_iter()
-                .enumerate()
-                .map(|(i, mut e)| {
-                    e.sequence = (i as u64) + 10;
-                    e.stream_id = stream_id.to_string();
-                    e
-                })
-                .collect())
-        });
+        event_repo
+            .expect_append()
+            .returning(|_, stream_id, events| {
+                Ok(events
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, mut e)| {
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        e.sequence = u64::try_from(i).unwrap_or(u64::MAX).saturating_add(10);
+                        e.stream_id = stream_id.to_string();
+                        e
+                    })
+                    .collect())
+            });
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", 2);
@@ -404,15 +439,9 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| {
-            Ok(Some(EventStream {
-                id: "stream-001".to_string(),
-                aggregate_type: "TestAggregate".to_string(),
-                current_version: 5,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }))
-        });
+        stream_repo
+            .expect_find_by_id()
+            .returning(|_, _| Ok(Some(make_stream("stream-001", 5))));
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", 2);
@@ -434,7 +463,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-999", 0);
@@ -451,15 +480,9 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| {
-            Ok(Some(EventStream {
-                id: "stream-001".to_string(),
-                aggregate_type: "TestAggregate".to_string(),
-                current_version: 0,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }))
-        });
+        stream_repo
+            .expect_find_by_id()
+            .returning(|_, _| Ok(Some(make_stream("stream-001", 0))));
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", -1);
@@ -479,6 +502,7 @@ mod tests {
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = AppendEventsInput {
             stream_id: "stream-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: Some("TestAggregate".to_string()),
             events: vec![],
             expected_version: 0,
@@ -498,7 +522,7 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db connection failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("db connection failed")));
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", 0);

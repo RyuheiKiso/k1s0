@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// ApiKey は API キーを表すドメインエンティティ。
+/// `ApiKey` は API キーを表すドメインエンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ApiKey {
     pub id: Uuid,
@@ -17,7 +17,7 @@ pub struct ApiKey {
     pub updated_at: DateTime<Utc>,
 }
 
-/// CreateApiKeyRequest は API キー作成リクエスト。
+/// `CreateApiKeyRequest` は API キー作成リクエスト。
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateApiKeyRequest {
     pub tenant_id: String,
@@ -26,8 +26,8 @@ pub struct CreateApiKeyRequest {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
-/// CreateApiKeyResponse は API キー作成レスポンス。
-/// raw_key は作成直後にのみ返される平文キー。
+/// `CreateApiKeyResponse` は API キー作成レスポンス。
+/// `raw_key` は作成直後にのみ返される平文キー。
 #[derive(Debug, Clone, Serialize)]
 pub struct CreateApiKeyResponse {
     pub id: Uuid,
@@ -39,7 +39,7 @@ pub struct CreateApiKeyResponse {
     pub created_at: DateTime<Utc>,
 }
 
-/// ApiKeySummary はキー一覧表示用の要約。
+/// `ApiKeySummary` はキー一覧表示用の要約。
 #[derive(Debug, Clone, Serialize)]
 pub struct ApiKeySummary {
     pub id: Uuid,

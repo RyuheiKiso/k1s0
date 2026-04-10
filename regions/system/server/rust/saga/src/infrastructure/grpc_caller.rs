@@ -60,7 +60,7 @@ impl Codec for JsonCodec {
     }
 }
 
-/// GrpcStepCaller はSagaステップのgRPC呼び出しトレイト。
+/// `GrpcStepCaller` `はSagaステップのgRPC呼び出しトレイト`。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait GrpcStepCaller: Send + Sync {
@@ -73,13 +73,14 @@ pub trait GrpcStepCaller: Send + Sync {
     ) -> anyhow::Result<serde_json::Value>;
 }
 
-/// ServiceRegistry は静的サービスレジストリ。
+/// `ServiceRegistry` は静的サービスレジストリ。
 pub struct ServiceRegistry {
     services: HashMap<String, ServiceEndpoint>,
 }
 
 impl ServiceRegistry {
-    /// 新しいServiceRegistryを作成する。
+    /// `新しいServiceRegistryを作成する`。
+    #[must_use]
     pub fn new(services: HashMap<String, ServiceEndpoint>) -> Self {
         Self { services }
     }
@@ -89,18 +90,19 @@ impl ServiceRegistry {
         self.services
             .get(service_name)
             .map(|ep| format!("http://{}:{}", ep.host, ep.port))
-            .ok_or_else(|| anyhow::anyhow!("service not found: {}", service_name))
+            .ok_or_else(|| anyhow::anyhow!("service not found: {service_name}"))
     }
 }
 
-/// TonicGrpcCaller はtonic経由の動的gRPC呼び出し実装。
+/// `TonicGrpcCaller` `はtonic経由の動的gRPC呼び出し実装`。
 pub struct TonicGrpcCaller {
     registry: Arc<ServiceRegistry>,
     channels: RwLock<HashMap<String, Channel>>,
 }
 
 impl TonicGrpcCaller {
-    /// 新しいTonicGrpcCallerを作成する。
+    /// `新しいTonicGrpcCallerを作成する`。
+    #[must_use]
     pub fn new(registry: Arc<ServiceRegistry>) -> Self {
         Self {
             registry,
@@ -132,13 +134,12 @@ impl TonicGrpcCaller {
         Ok(channel)
     }
 
-    /// メソッド名 "ServiceName.MethodName" からgRPCパスを構築する。
+    /// メソッド名 "ServiceName.MethodName" `からgRPCパスを構築する`。
     fn build_grpc_path(method: &str) -> anyhow::Result<String> {
         let parts: Vec<&str> = method.splitn(2, '.').collect();
         if parts.len() != 2 {
             anyhow::bail!(
-                "invalid method format: expected 'ServiceName.MethodName', got '{}'",
-                method
+                "invalid method format: expected 'ServiceName.MethodName', got '{method}'"
             );
         }
         Ok(format!("/{}/{}", parts[0], parts[1]))
@@ -166,23 +167,23 @@ impl GrpcStepCaller for TonicGrpcCaller {
         );
 
         let path = PathAndQuery::try_from(path_str)
-            .map_err(|e| anyhow::anyhow!("invalid gRPC path: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("invalid gRPC path: {e}"))?;
 
         let mut client = tonic::client::Grpc::new(channel);
         client
             .ready()
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC not ready: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("gRPC not ready: {e}"))?;
 
         let request = tonic::Request::new(payload_bytes);
         let response = client
             .unary(request, path, JsonCodec)
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC call failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("gRPC call failed: {e}"))?;
 
         let response_bytes = response.into_inner();
         let result: serde_json::Value = serde_json::from_slice(&response_bytes)
-            .map_err(|e| anyhow::anyhow!("failed to deserialize gRPC response: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("failed to deserialize gRPC response: {e}"))?;
 
         Ok(result)
     }

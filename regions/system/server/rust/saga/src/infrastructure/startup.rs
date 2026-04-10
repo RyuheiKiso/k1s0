@@ -23,6 +23,8 @@ use crate::adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
 use crate::adapter::repository::workflow_postgres::WorkflowPostgresRepository;
 use crate::domain::repository::WorkflowRepository;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -46,7 +48,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -70,7 +72,7 @@ pub async fn run() -> anyhow::Result<()> {
         crate::MIGRATOR
             .run(&pool)
             .await
-            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {e}"))?;
         tracing::info!("saga-db migrations applied successfully");
         Some(pool)
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
@@ -83,7 +85,7 @@ pub async fn run() -> anyhow::Result<()> {
         crate::MIGRATOR
             .run(&pool)
             .await
-            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {e}"))?;
         tracing::info!("saga-db migrations applied successfully");
         Some(pool)
     } else {
@@ -198,11 +200,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for saga-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -281,7 +279,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server（server.host は設定ファイルで制御可能）
@@ -342,7 +340,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// StartSaga / CancelSaga / CompensateSaga / RegisterWorkflow は write、それ以外は read。
+/// `StartSaga` / `CancelSaga` / `CompensateSaga` / `RegisterWorkflow` は write、それ以外は read。
 fn saga_grpc_action(method: &str) -> &'static str {
     match method {
         "StartSaga" | "CancelSaga" | "CompensateSaga" | "RegisterWorkflow" => "write",
@@ -386,14 +384,17 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn update_status(
         &self,
         saga_id: uuid::Uuid,
         status: &domain::entity::saga_state::SagaStatus,
         error_message: Option<String>,
+        _tenant_id: &str,
     ) -> anyhow::Result<()> {
-        let mut states = self.states.write().await;
-        if let Some(s) = states.iter_mut().find(|s| s.saga_id == saga_id) {
+        // status との名前衝突を避けるため state_list と命名する（Clippy: similar_names）
+        let mut state_list = self.states.write().await;
+        if let Some(s) = state_list.iter_mut().find(|s| s.saga_id == saga_id) {
             s.status = status.clone();
             s.error_message = error_message;
             s.updated_at = chrono::Utc::now();
@@ -401,17 +402,21 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_id(
         &self,
         saga_id: uuid::Uuid,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<domain::entity::saga_state::SagaState>> {
         let states = self.states.read().await;
         Ok(states.iter().find(|s| s.saga_id == saga_id).cloned())
     }
 
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_step_logs(
         &self,
         saga_id: uuid::Uuid,
+        _tenant_id: &str,
     ) -> anyhow::Result<Vec<domain::entity::saga_step_log::SagaStepLog>> {
         let logs = self.step_logs.read().await;
         Ok(logs
@@ -449,11 +454,12 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
             .cloned()
             .collect();
 
-        let total = filtered.len() as i32;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i32::try_from(filtered.len()).unwrap_or(i32::MAX);
         let page = params.page.max(1);
         let page_size = params.page_size.max(1);
-        let offset = ((page - 1) * page_size) as usize;
-        let limit = page_size as usize;
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let limit = usize::try_from(page_size).unwrap_or(0);
         let paged: Vec<_> = filtered.into_iter().skip(offset).take(limit).collect();
 
         Ok((paged, total))

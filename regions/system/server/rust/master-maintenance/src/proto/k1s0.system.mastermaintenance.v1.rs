@@ -44,6 +44,8 @@ pub struct GetTableDefinitionRequest {
     pub domain_scope: ::prost::alloc::string::String,
 }
 /// テーブル定義レスポンス
+// prost 生成コードのテーブル定義は複数の権限制御用 bool フィールドを持つ（変更不可）
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTableDefinitionResponse {
     #[prost(string, tag = "1")]
@@ -90,6 +92,8 @@ pub struct GetTableDefinitionResponse {
     pub admin_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// カラム定義
+// prost 生成コードのカラム定義は多数の bool フィールドを持つ（変更不可）
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ColumnDefinition {
     #[prost(string, tag = "1")]
@@ -743,7 +747,7 @@ pub mod master_maintenance_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with MasterMaintenanceServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `MasterMaintenanceServiceServer`.
     #[async_trait]
     pub trait MasterMaintenanceService: std::marker::Send + std::marker::Sync + 'static {
         /// テーブル定義

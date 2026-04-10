@@ -49,10 +49,13 @@ impl From<GrpcError> for Status {
     }
 }
 
+// Proto フィールドの型が Option<Timestamp> であるため Option を返す必要がある（変更不可）
+#[allow(clippy::unnecessary_wraps)]
 fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     })
 }
 
@@ -105,6 +108,7 @@ pub struct EventMonitorServiceTonic {
 }
 
 impl EventMonitorServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<EventMonitorGrpcService>) -> Self {
         Self { inner }
     }
@@ -117,10 +121,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
         request: Request<ProtoListEventsRequest>,
     ) -> Result<Response<ProtoListEventsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
 
         let (events, total_count, has_next) = self
             .inner
@@ -138,7 +139,8 @@ impl EventMonitorService for EventMonitorServiceTonic {
         Ok(Response::new(ProtoListEventsResponse {
             events: events.into_iter().map(to_proto_event).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(total_count).unwrap_or(i64::MAX),
                 page,
                 page_size,
                 has_next,
@@ -185,7 +187,8 @@ impl EventMonitorService for EventMonitorServiceTonic {
                     event_type: e.event_type.clone(),
                     source: e.source.clone(),
                     timestamp: to_proto_timestamp(e.timestamp),
-                    step_index: e.flow_step_index.unwrap_or(i as i32),
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    step_index: e.flow_step_index.unwrap_or_else(|| i32::try_from(i).unwrap_or(i32::MAX)),
                     status: e.status.clone(),
                     duration_from_previous_ms: duration,
                 }
@@ -217,10 +220,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
         request: Request<ProtoListFlowsRequest>,
     ) -> Result<Response<ProtoListFlowsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
 
         let (flows, total_count, has_next) = self
             .inner
@@ -231,7 +231,8 @@ impl EventMonitorService for EventMonitorServiceTonic {
         Ok(Response::new(ProtoListFlowsResponse {
             flows: flows.into_iter().map(to_proto_flow).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(total_count).unwrap_or(i64::MAX),
                 page,
                 page_size,
                 has_next,
@@ -259,8 +260,17 @@ impl EventMonitorService for EventMonitorServiceTonic {
         &self,
         request: Request<ProtoCreateFlowRequest>,
     ) -> Result<Response<ProtoCreateFlowResponse>, Status> {
+        // gRPC メタデータから tenant_id を取得する。未設定の場合は "system" を使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
+
         let inner = request.into_inner();
         let input = crate::usecase::create_flow::CreateFlowInput {
+            tenant_id,
             name: inner.name,
             description: inner.description,
             domain: inner.domain,
@@ -279,18 +289,18 @@ impl EventMonitorService for EventMonitorServiceTonic {
                     description: s.description,
                 })
                 .collect(),
-            slo: inner
-                .slo
-                .map(|s| crate::domain::entity::flow_definition::FlowSlo {
-                    target_completion_seconds: s.target_completion_seconds,
-                    target_success_rate: s.target_success_rate,
-                    alert_on_violation: s.alert_on_violation,
-                })
-                .unwrap_or(crate::domain::entity::flow_definition::FlowSlo {
+            slo: inner.slo.map_or(
+                crate::domain::entity::flow_definition::FlowSlo {
                     target_completion_seconds: 300,
                     target_success_rate: 0.995,
                     alert_on_violation: true,
-                }),
+                },
+                |s| crate::domain::entity::flow_definition::FlowSlo {
+                    target_completion_seconds: s.target_completion_seconds,
+                    target_success_rate: s.target_success_rate,
+                    alert_on_violation: s.alert_on_violation,
+                },
+            ),
         };
 
         let flow = self

@@ -104,6 +104,11 @@ impl FileEventPublisher for StubFilePublisher {
     async fn publish(&self, _event_type: &str, _payload: &serde_json::Value) -> anyhow::Result<()> {
         Ok(())
     }
+
+    // テスト用スタブのため close は何もしない
+    async fn close(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 // ---------------------------------------------------------------------------

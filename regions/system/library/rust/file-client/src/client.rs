@@ -37,6 +37,7 @@ pub struct InMemoryFileClient {
 }
 
 impl InMemoryFileClient {
+    #[must_use]
     pub fn new(config: FileClientConfig) -> Self {
         Self {
             files: tokio::sync::Mutex::new(std::collections::HashMap::new()),
@@ -72,7 +73,7 @@ impl FileClient for InMemoryFileClient {
         };
         self.files.lock().await.insert(path.to_string(), meta);
         Ok(PresignedUrl {
-            url: format!("https://storage.example.com/upload/{}", path),
+            url: format!("https://storage.example.com/upload/{path}"),
             method: "PUT".to_string(),
             expires_at,
             headers: std::collections::HashMap::new(),
@@ -93,7 +94,7 @@ impl FileClient for InMemoryFileClient {
             .map_err(|e| FileClientError::InvalidDuration(e.to_string()))?;
         let expires_at = chrono::Utc::now() + chrono_duration;
         Ok(PresignedUrl {
-            url: format!("https://storage.example.com/download/{}", path),
+            url: format!("https://storage.example.com/download/{path}"),
             method: "GET".to_string(),
             expires_at,
             headers: std::collections::HashMap::new(),
@@ -176,7 +177,8 @@ impl ServerFileClient {
     /// 新しい `ServerFileClient` を生成する。
     ///
     /// `config.server_url` が未設定の場合は `FileClientError::InvalidConfig` を返す。
-    pub async fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
+    // async は不要（.await 呼び出しがないため同期関数に変換する）
+    pub fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
         let base_url = config.server_url.ok_or_else(|| {
             FileClientError::InvalidConfig("server_url が設定されていません".into())
         })?;
@@ -202,10 +204,7 @@ impl ServerFileClient {
         match status.as_u16() {
             401 | 403 => Err(FileClientError::Unauthorized(body)),
             404 => Err(FileClientError::NotFound(body)),
-            _ => Err(FileClientError::Internal(format!(
-                "HTTP {}: {}",
-                status, body
-            ))),
+            _ => Err(FileClientError::Internal(format!("HTTP {status}: {body}"))),
         }
     }
 }
@@ -277,7 +276,7 @@ impl FileClient for ServerFileClient {
         let encoded = urlencoding_simple(path);
         let resp = self
             .http
-            .delete(self.url(&format!("/api/v1/files/{}", encoded)))
+            .delete(self.url(&format!("/api/v1/files/{encoded}")))
             .send()
             .await
             .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
@@ -289,7 +288,7 @@ impl FileClient for ServerFileClient {
         let encoded = urlencoding_simple(path);
         let resp = self
             .http
-            .get(self.url(&format!("/api/v1/files/{}/metadata", encoded)))
+            .get(self.url(&format!("/api/v1/files/{encoded}/metadata")))
             .send()
             .await
             .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
@@ -341,7 +340,7 @@ fn urlencoding_simple(path: &str) -> String {
                     {
                         vec![b as char]
                     } else {
-                        format!("%{:02X}", b).chars().collect::<Vec<_>>()
+                        format!("%{b:02X}").chars().collect::<Vec<_>>()
                     }
                 })
                 .collect::<String>()

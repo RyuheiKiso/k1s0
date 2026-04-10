@@ -1,4 +1,4 @@
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -15,6 +15,14 @@ use crate::usecase::list_events::{ListEventsError, ListEventsInput};
 use crate::usecase::list_streams::{ListStreamsError, ListStreamsInput};
 use crate::usecase::read_event_by_sequence::{ReadEventBySequenceError, ReadEventBySequenceInput};
 use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
+
+/// JWT クレームからテナント ID を抽出するヘルパー。
+/// クレームが存在しない場合（開発環境など）はフォールバック値 "system" を返す。
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id(claims: Option<&Extension<k1s0_auth::Claims>>) -> String {
+    claims
+        .map_or_else(|| "system".to_string(), |ext| ext.0.tenant_id().to_string())
+}
 
 // --- Request / Response DTOs ---
 
@@ -34,6 +42,8 @@ pub struct EventDataRequest {
     pub metadata: MetadataRequest,
 }
 
+// イベントメタデータフィールドの _id サフィックスはドメイン上の意図的な命名規則
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Default, Deserialize, utoipa::ToSchema)]
 pub struct MetadataRequest {
     pub actor_id: Option<String>,
@@ -60,6 +70,8 @@ pub struct StoredEventResponse {
     pub stored_at: String,
 }
 
+// イベントメタデータレスポンスフィールドの _id サフィックスはドメイン上の意図的な命名規則
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MetadataResponse {
     pub actor_id: Option<String>,
@@ -99,11 +111,16 @@ const MAX_PUBLISH_RETRY_DELAY_MS: u64 = 30_000;
 const MAX_PUBLISH_RETRY_ATTEMPTS: u32 = 10;
 
 /// イベントの Kafka パブリッシュをバックグラウンドで実行し、失敗時はリトライする。
-/// リトライ上限（MAX_PUBLISH_RETRY_ATTEMPTS）に達した場合はエラーログを出力して終了する。
+/// `リトライ上限（MAX_PUBLISH_RETRY_ATTEMPTS）に達した場合はエラーログを出力して終了する`。
+/// LOW-010 監査対応: pool が Some の場合、リトライ上限到達時に DB へ失敗状態を記録し
+/// イベント消失を防止する。成功時は 'published' に更新する。
+/// tenant_id は RLS ポリシー満足のために必要（set_config でセッション変数を設定する）。
 pub(crate) fn spawn_publish_events_with_retry(
     publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
     stream_id: String,
+    tenant_id: String,
     events: Vec<crate::domain::entity::event::StoredEvent>,
+    pool: Option<sqlx::PgPool>,
 ) {
     tokio::spawn(async move {
         let mut attempt: u32 = 0;
@@ -113,13 +130,19 @@ pub(crate) fn spawn_publish_events_with_retry(
         loop {
             attempt += 1;
             match publisher.publish_events(&stream_id, &events).await {
-                Ok(_) => {
+                Ok(()) => {
                     if attempt > 1 {
                         tracing::info!(
                             stream_id = %stream_id,
                             attempts = attempt,
                             "event publish succeeded after retry"
                         );
+                    }
+                    // LOW-010 監査対応: パブリッシュ成功時に publish_status を 'published' に更新する。
+                    if let Some(ref p) = pool {
+                        if let Err(db_err) = mark_events_as_published(p, &stream_id, &tenant_id).await {
+                            tracing::warn!(error = %db_err, stream_id = %stream_id, "failed to update publish_status to published");
+                        }
                     }
                     break;
                 }
@@ -133,6 +156,18 @@ pub(crate) fn spawn_publish_events_with_retry(
                             max_attempts = MAX_PUBLISH_RETRY_ATTEMPTS,
                             "failed to publish events to kafka after max retry attempts, giving up"
                         );
+                        // LOW-010 監査対応: Kafka パブリッシュ失敗をDBに記録し、イベント消失を防止する。
+                        // spawn_publish_failed_monitor が定期的に publish_failed を検知し、
+                        // ADR-0118 の再送ジョブ（Phase B）で回収する設計。
+                        if let Some(ref p) = pool {
+                            if let Err(db_err) = mark_events_as_publish_failed(p, &stream_id, &tenant_id).await {
+                                tracing::error!(
+                                    error = %db_err,
+                                    stream_id = %stream_id,
+                                    "failed to mark events as publish_failed in DB"
+                                );
+                            }
+                        }
                         break;
                     }
 
@@ -141,7 +176,8 @@ pub(crate) fn spawn_publish_events_with_retry(
                         stream_id = %stream_id,
                         attempts = attempt,
                         max_attempts = MAX_PUBLISH_RETRY_ATTEMPTS,
-                        next_retry_ms = retry_delay.as_millis() as u64,
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        next_retry_ms = u64::try_from(retry_delay.as_millis()).unwrap_or(u64::MAX),
                         "failed to publish events to kafka, will retry"
                     );
 
@@ -152,6 +188,221 @@ pub(crate) fn spawn_publish_events_with_retry(
             }
         }
     });
+}
+
+/// LOW-010 監査対応: Kafka パブリッシュ失敗時に eventstore.events テーブルの
+/// publish_status を 'publish_failed' に更新してイベント消失を防止する。
+/// eventstore.events には FORCE ROW LEVEL SECURITY が適用されているため、
+/// トランザクション内で set_config('app.current_tenant_id', tenant_id, true) を実行して
+/// RLS ポリシーを満たす必要がある（lessons.md: SET LOCAL にバインドは使えない→ set_config 使用）。
+async fn mark_events_as_publish_failed(
+    pool: &sqlx::PgPool,
+    stream_id: &str,
+    tenant_id: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    // RLS ポリシー（tenant_id = current_setting('app.current_tenant_id', true)）を満たす
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+        .bind(tenant_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query(
+        "UPDATE eventstore.events SET publish_status = 'publish_failed' \
+         WHERE stream_id = $1 AND tenant_id = $2 AND publish_status = 'pending'"
+    )
+    .bind(stream_id)
+    .bind(tenant_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// LOW-010 監査対応: Kafka パブリッシュ成功時に eventstore.events テーブルの
+/// publish_status を 'published' に更新する。
+/// eventstore.events の RLS ポリシーを満たすため set_config でテナント ID を設定する。
+/// 通常フロー（pending → published）と再送ジョブ（publish_failed → published）の
+/// 両方に対応するため、publish_status != 'published' の全行を対象とする。
+async fn mark_events_as_published(
+    pool: &sqlx::PgPool,
+    stream_id: &str,
+    tenant_id: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    // RLS ポリシー満足のためテナント ID を設定する
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+        .bind(tenant_id)
+        .execute(&mut *tx)
+        .await?;
+    // publish_status IN ('pending', 'publish_failed') を対象とする。
+    // 通常フロー（pending）と再送ジョブ（publish_failed）の両方で呼ばれるため。
+    sqlx::query(
+        "UPDATE eventstore.events SET publish_status = 'published' \
+         WHERE stream_id = $1 AND tenant_id = $2 \
+         AND publish_status IN ('pending', 'publish_failed')"
+    )
+    .bind(stream_id)
+    .bind(tenant_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// LOW-010 監査対応（ADR-0118 Phase A + B 統合実装）:
+/// publish_failed イベントの定期監視と自動再送を行うバックグラウンドジョブ。
+///
+/// 設計方針（ADR-0118）:
+/// - FORCE ROW LEVEL SECURITY 下では通常の COUNT/SELECT は全行が RLS で隠される。
+///   migration 010 で追加した SECURITY DEFINER 関数
+///   `eventstore.count_publish_failed_all_tenants()` /
+///   `eventstore.list_publish_failed_events()` を経由することで、
+///   関数オーナー（スーパーユーザー）権限で全テナント横断のアクセスが可能になる。
+/// - 60 秒間隔でバッチ（最大 100 件）を取得し、stream_id+tenant_id 単位で
+///   Kafka パブリッシュを再試行する。成功時は 'published' に更新する。
+///   失敗時はログを出力し次のインターバルで再試行する（無限ループ防止）。
+pub fn spawn_publish_failed_retry_job(
+    pool: sqlx::PgPool,
+    publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
+) {
+    /// 再送ジョブの実行間隔（秒）
+    const RETRY_INTERVAL_SECS: u64 = 60;
+    /// 1 バッチで取得する最大イベント件数（負荷制御）
+    const BATCH_LIMIT: i32 = 100;
+
+    tokio::spawn(async move {
+        let mut interval =
+            tokio::time::interval(Duration::from_secs(RETRY_INTERVAL_SECS));
+        // 起動直後の即時実行を避けるため最初の tick をスキップする
+        interval.tick().await;
+
+        loop {
+            interval.tick().await;
+
+            // Phase A: SECURITY DEFINER 関数で全テナント横断の publish_failed 件数を取得する
+            let count = match sqlx::query_scalar::<_, i64>(
+                "SELECT eventstore.count_publish_failed_all_tenants()"
+            )
+            .fetch_one(&pool)
+            .await
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "failed to count publish_failed events"
+                    );
+                    continue;
+                }
+            };
+
+            if count == 0 {
+                // 失敗件数ゼロ: 正常、次のインターバルまでスキップ
+                continue;
+            }
+
+            tracing::warn!(
+                count = count,
+                "publish_failed events detected: attempting retry (ADR-0118 Phase B)"
+            );
+
+            // Phase B: SECURITY DEFINER 関数でイベントを取得してリパブリッシュする
+            let rows = match sqlx::query_as::<_, PublishFailedEventRow>(
+                "SELECT * FROM eventstore.list_publish_failed_events($1)"
+            )
+            .bind(BATCH_LIMIT)
+            .fetch_all(&pool)
+            .await
+            {
+                Ok(rows) => rows,
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "failed to fetch publish_failed events for retry"
+                    );
+                    continue;
+                }
+            };
+
+            // stream_id + tenant_id 単位でグループ化してパブリッシュする
+            let mut groups: std::collections::HashMap<
+                (String, String),
+                Vec<crate::domain::entity::event::StoredEvent>,
+            > = std::collections::HashMap::new();
+
+            for row in rows {
+                // metadata は JSONB → EventMetadata に変換（失敗時は空メタデータ）
+                let metadata = serde_json::from_value(row.r_metadata)
+                    .unwrap_or_else(|_| crate::domain::entity::event::EventMetadata::new(
+                        None, None, None,
+                    ));
+                let event = crate::domain::entity::event::StoredEvent {
+                    stream_id: row.r_stream_id.clone(),
+                    tenant_id: row.r_tenant_id.clone(),
+                    // DB の sequence は i64 だが、ドメインでは u64 を使用する
+                    sequence: u64::try_from(row.r_sequence).unwrap_or(0),
+                    event_type: row.r_event_type,
+                    version: row.r_version,
+                    payload: row.r_payload,
+                    metadata,
+                    occurred_at: row.r_occurred_at,
+                    stored_at: row.r_stored_at,
+                };
+                groups
+                    .entry((row.r_stream_id, row.r_tenant_id))
+                    .or_default()
+                    .push(event);
+            }
+
+            for ((stream_id, tenant_id), events) in groups {
+                match publisher.publish_events(&stream_id, &events).await {
+                    Ok(()) => {
+                        tracing::info!(
+                            stream_id = %stream_id,
+                            tenant_id = %tenant_id,
+                            count = events.len(),
+                            "retry publish succeeded for publish_failed events"
+                        );
+                        // 成功: publish_failed → published に更新する
+                        // mark_events_as_published は IN ('pending', 'publish_failed') を対象とする
+                        if let Err(e) =
+                            mark_events_as_published(&pool, &stream_id, &tenant_id).await
+                        {
+                            tracing::warn!(
+                                error = %e,
+                                stream_id = %stream_id,
+                                "failed to mark retried events as published"
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        // 失敗: ログのみ、次のインターバルで再試行する
+                        tracing::warn!(
+                            error = %e,
+                            stream_id = %stream_id,
+                            tenant_id = %tenant_id,
+                            "retry publish failed, will try again at next interval"
+                        );
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// publish_failed 再送ジョブが DB から読み取るイベント行の構造体。
+/// migration 010 の SECURITY DEFINER 関数 `list_publish_failed_events` の返却型と対応する。
+#[derive(sqlx::FromRow)]
+struct PublishFailedEventRow {
+    r_stream_id:   String,
+    r_tenant_id:   String,
+    r_sequence:    i64,
+    r_event_type:  String,
+    r_version:     i64,
+    r_payload:     serde_json::Value,
+    r_metadata:    serde_json::Value,
+    r_occurred_at: chrono::DateTime<chrono::Utc>,
+    r_stored_at:   chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -272,8 +523,12 @@ fn to_stream_response(stream: &crate::domain::entity::event::EventStream) -> Str
 )]
 pub async fn append_events(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<AppendEventsRequest>,
 ) -> Result<(axum::http::StatusCode, Json<AppendEventsResponse>), EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
     let events: Vec<EventData> = req
         .events
         .into_iter()
@@ -290,6 +545,7 @@ pub async fn append_events(
 
     let input = AppendEventsInput {
         stream_id: req.stream_id,
+        tenant_id,
         aggregate_type: req.aggregate_type,
         events,
         expected_version: req.expected_version,
@@ -301,28 +557,31 @@ pub async fn append_events(
         .await
         .map_err(|e| match e {
             AppendEventsError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             AppendEventsError::StreamAlreadyExists(id) => {
-                EventStoreError::StreamAlreadyExists(format!("stream already exists: {}", id))
+                EventStoreError::StreamAlreadyExists(format!("stream already exists: {id}"))
             }
             AppendEventsError::VersionConflict {
                 stream_id,
                 expected,
                 actual,
             } => EventStoreError::VersionConflict(format!(
-                "version conflict for stream {}: expected {}, actual {}",
-                stream_id, expected, actual
+                "version conflict for stream {stream_id}: expected {expected}, actual {actual}"
             )),
             AppendEventsError::Validation(msg) => EventStoreError::Validation(msg),
             AppendEventsError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
 
     // Publish in background with retry for at-least-once delivery semantics.
+    // LOW-010 監査対応: db_pool を渡すことで、リトライ上限到達時に DB へ失敗状態を記録する。
+    // tenant_id は mark 関数内の RLS ポリシー（set_config）に必要。
     let publisher = state.event_publisher.clone();
     let stream_id = output.stream_id.clone();
+    let tenant_id = output.events.first().map(|e| e.tenant_id.clone()).unwrap_or_default();
     let events = output.events.clone();
-    spawn_publish_events_with_retry(publisher, stream_id, events);
+    let pool = state.db_pool.clone();
+    spawn_publish_events_with_retry(publisher, stream_id, tenant_id, events, pool);
 
     let event_responses: Vec<StoredEventResponse> =
         output.events.iter().map(to_stored_event_response).collect();
@@ -337,7 +596,7 @@ pub async fn append_events(
     ))
 }
 
-/// GET /api/v1/events/:stream_id - Read events from a stream
+/// GET /`api/v1/events/:stream_id` - Read events from a stream
 #[utoipa::path(
     get,
     path = "/api/v1/events/{stream_id}",
@@ -356,11 +615,16 @@ pub async fn append_events(
 )]
 pub async fn read_events(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
     Query(query): Query<ReadEventsQuery>,
 ) -> Result<Json<ReadEventsResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
     let input = ReadEventsInput {
         stream_id,
+        tenant_id,
         from_version: query.from_version,
         to_version: query.to_version,
         event_type: query.event_type,
@@ -374,7 +638,7 @@ pub async fn read_events(
         .await
         .map_err(|e| match e {
             ReadEventsError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             ReadEventsError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -395,7 +659,7 @@ pub async fn read_events(
     }))
 }
 
-/// GET /api/v1/streams/:stream_id/events/:sequence - Read one event by sequence
+/// GET /`api/v1/streams/:stream_id/events/:sequence` - Read one event by sequence
 #[utoipa::path(
     get,
     path = "/api/v1/streams/{stream_id}/events/{sequence}",
@@ -410,10 +674,15 @@ pub async fn read_events(
 )]
 pub async fn read_event_by_sequence(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path((stream_id, sequence)): Path<(String, u64)>,
 ) -> Result<Json<StoredEventResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
     let input = ReadEventBySequenceInput {
         stream_id,
+        tenant_id,
         sequence,
     };
 
@@ -423,14 +692,13 @@ pub async fn read_event_by_sequence(
         .await
         .map_err(|e| match e {
             ReadEventBySequenceError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             ReadEventBySequenceError::EventNotFound {
                 stream_id,
                 sequence,
             } => EventStoreError::EventNotFound(format!(
-                "event not found: stream={}, sequence={}",
-                stream_id, sequence
+                "event not found: stream={stream_id}, sequence={sequence}"
             )),
             ReadEventBySequenceError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -453,9 +721,14 @@ pub async fn read_event_by_sequence(
 )]
 pub async fn list_events(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Query(query): Query<ListEventsQuery>,
 ) -> Result<Json<ListEventsResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
     let input = ListEventsInput {
+        tenant_id,
         event_type: query.event_type,
         page: query.page,
         page_size: query.page_size,
@@ -497,9 +770,14 @@ pub async fn list_events(
 )]
 pub async fn list_streams(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Query(query): Query<ListStreamsQuery>,
 ) -> Result<Json<ListStreamsResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
     let input = ListStreamsInput {
+        tenant_id,
         page: query.page,
         page_size: query.page_size,
     };
@@ -526,7 +804,7 @@ pub async fn list_streams(
     }))
 }
 
-/// GET /api/v1/streams/:stream_id/snapshot - Get stream snapshot
+/// GET /`api/v1/streams/:stream_id/snapshot` - Get stream snapshot
 #[utoipa::path(
     get,
     path = "/api/v1/streams/{stream_id}/snapshot",
@@ -538,9 +816,16 @@ pub async fn list_streams(
 )]
 pub async fn get_snapshot(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
 ) -> Result<Json<SnapshotResponse>, EventStoreError> {
-    let input = GetLatestSnapshotInput { stream_id };
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
+    let input = GetLatestSnapshotInput {
+        stream_id,
+        tenant_id,
+    };
 
     let snapshot = state
         .get_latest_snapshot_uc
@@ -548,10 +833,10 @@ pub async fn get_snapshot(
         .await
         .map_err(|e| match e {
             GetLatestSnapshotError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             GetLatestSnapshotError::SnapshotNotFound(id) => {
-                EventStoreError::SnapshotNotFound(format!("snapshot not found for stream: {}", id))
+                EventStoreError::SnapshotNotFound(format!("snapshot not found for stream: {id}"))
             }
             GetLatestSnapshotError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -566,7 +851,7 @@ pub async fn get_snapshot(
     }))
 }
 
-/// POST /api/v1/streams/:stream_id/snapshot - Create snapshot
+/// POST /`api/v1/streams/:stream_id/snapshot` - Create snapshot
 #[utoipa::path(
     post,
     path = "/api/v1/streams/{stream_id}/snapshot",
@@ -580,12 +865,17 @@ pub async fn get_snapshot(
 )]
 pub async fn create_snapshot(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
     Json(req): Json<CreateSnapshotRequest>,
 ) -> Result<(axum::http::StatusCode, Json<SnapshotResponse>), EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
     let response_state = req.state.clone();
     let input = CreateSnapshotInput {
         stream_id,
+        tenant_id,
         snapshot_version: req.snapshot_version,
         aggregate_type: req.aggregate_type,
         state: req.state,
@@ -597,7 +887,7 @@ pub async fn create_snapshot(
         .await
         .map_err(|e| match e {
             CreateSnapshotError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             CreateSnapshotError::Validation(msg) => EventStoreError::Validation(msg),
             CreateSnapshotError::Internal(msg) => EventStoreError::Internal(msg),
@@ -616,7 +906,7 @@ pub async fn create_snapshot(
     ))
 }
 
-/// DELETE /api/v1/streams/:stream_id - Delete a stream and all its events/snapshots
+/// DELETE /`api/v1/streams/:stream_id` - Delete a stream and all its events/snapshots
 #[utoipa::path(
     delete,
     path = "/api/v1/streams/{stream_id}",
@@ -628,9 +918,16 @@ pub async fn create_snapshot(
 )]
 pub async fn delete_stream(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
 ) -> Result<impl axum::response::IntoResponse, EventStoreError> {
-    let input = DeleteStreamInput { stream_id };
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(claims.as_ref());
+
+    let input = DeleteStreamInput {
+        stream_id,
+        tenant_id,
+    };
 
     state
         .delete_stream_uc
@@ -638,7 +935,7 @@ pub async fn delete_stream(
         .await
         .map_err(|e| match e {
             DeleteStreamError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             DeleteStreamError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -709,12 +1006,15 @@ mod tests {
                 "k1s0-event-store-server-test",
             )),
             auth_state: None,
+            // インメモリ（dev/test）モードでは DB 接続不要のため None を設定する
+            db_pool: None,
         }
     }
 
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "system".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 3,
             created_at: chrono::Utc::now(),
@@ -725,9 +1025,11 @@ mod tests {
     fn make_event(seq: u64) -> StoredEvent {
         StoredEvent::new(
             "order-001".to_string(),
+            "system".to_string(),
             seq,
             "OrderPlaced".to_string(),
-            seq as i64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            i64::try_from(seq).unwrap_or(i64::MAX),
             serde_json::json!({}),
             DomainMeta::new(None, None, None),
         )
@@ -760,7 +1062,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
         let state = make_test_state(
             stream_repo,
             MockEventRepository::new(),
@@ -787,18 +1089,21 @@ mod tests {
         let mut event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo.expect_create().returning(|_| Ok(()));
-        stream_repo.expect_update_version().returning(|_, _| Ok(()));
+        stream_repo
+            .expect_update_version()
+            .returning(|_, _, _| Ok(()));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
-        event_repo.expect_append().returning(|sid, events| {
+            .returning(|_, _, _| Ok((vec![], 0)));
+        event_repo.expect_append().returning(|_, sid, events| {
             Ok(events
                 .into_iter()
                 .enumerate()
                 .map(|(i, mut e)| {
-                    e.sequence = (i as u64) + 1;
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    e.sequence = u64::try_from(i).unwrap_or(u64::MAX).saturating_add(1);
                     e.stream_id = sid.to_string();
                     e
                 })
@@ -806,7 +1111,7 @@ mod tests {
         });
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -847,16 +1152,16 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
         event_repo
             .expect_find_by_stream()
-            .returning(|_, _, _, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
+            .returning(|_, _, _, _, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -880,10 +1185,10 @@ mod tests {
         let event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -909,7 +1214,7 @@ mod tests {
 
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![make_event(1)], 1)));
+            .returning(|_, _, _, _| Ok((vec![make_event(1)], 1)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -935,7 +1240,7 @@ mod tests {
 
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![make_stream()], 1)));
+            .returning(|_, _, _| Ok((vec![make_stream()], 1)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -961,14 +1266,15 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
-        snapshot_repo.expect_find_latest().returning(|_| {
+            .returning(|_, _, _| Ok((vec![], 0)));
+        snapshot_repo.expect_find_latest().returning(|_, _| {
             Ok(Some(Snapshot::new(
                 "snap_001".to_string(),
                 "order-001".to_string(),
+                "system".to_string(),
                 3,
                 "Order".to_string(),
                 serde_json::json!({"status": "shipped"}),
@@ -999,11 +1305,13 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
-        snapshot_repo.expect_find_latest().returning(|_| Ok(None));
+            .returning(|_, _, _| Ok((vec![], 0)));
+        snapshot_repo
+            .expect_find_latest()
+            .returning(|_, _| Ok(None));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -1029,10 +1337,10 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
         snapshot_repo.expect_create().returning(|_| Ok(()));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
@@ -1068,10 +1376,10 @@ mod tests {
         let event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);

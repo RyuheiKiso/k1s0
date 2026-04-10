@@ -2,11 +2,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// OutboxEvent はサービス層のアウトボックステーブルに格納されるイベントを表す。
+/// `OutboxEvent` はサービス層のアウトボックステーブルに格納されるイベントを表す。
 ///
 /// 各サービス（order, inventory, payment）で共通の構造体。
 /// DB トランザクション内でビジネス操作と同時に書き込まれ、
-/// OutboxEventPoller が定期的にポーリングして Kafka へパブリッシュする。
+/// `OutboxEventPoller` が定期的にポーリングして Kafka へパブリッシュする。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutboxEvent {
     /// イベントの一意識別子

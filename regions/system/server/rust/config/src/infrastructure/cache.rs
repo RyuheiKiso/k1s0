@@ -1,5 +1,5 @@
-/// ConfigCache は設定値のインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きで設定値をキャッシュする。
+/// `ConfigCache` は設定値のインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きで設定値をキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,11 +12,12 @@ pub struct ConfigCache {
 }
 
 impl ConfigCache {
-    /// 新しい ConfigCache を作成する。
+    /// 新しい `ConfigCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -26,8 +27,9 @@ impl ConfigCache {
     }
 
     /// "namespace:key" 形式のキャッシュキーを生成する。
+    #[must_use]
     pub fn cache_key(namespace: &str, key: &str) -> String {
-        format!("{}:{}", namespace, key)
+        format!("{namespace}:{key}")
     }
 
     /// namespace と key に対応するエントリを取得する。

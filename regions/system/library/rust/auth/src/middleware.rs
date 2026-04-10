@@ -19,13 +19,13 @@ type AuthMiddlewareFuture = std::pin::Pin<
     Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>,
 >;
 
-/// AuthState はミドルウェアが使用する共有状態。
+/// `AuthState` はミドルウェアが使用する共有状態。
 #[derive(Clone)]
 pub struct AuthState {
     pub verifier: Arc<JwksVerifier>,
 }
 
-/// auth_middleware は JWT 認証ミドルウェア。
+/// `auth_middleware` は JWT 認証ミドルウェア。
 /// Authorization ヘッダーから Bearer トークンを取得し、JWKS 検証を行う。
 /// 検証成功時は Claims をリクエストエクステンションに格納する。
 pub async fn auth_middleware(
@@ -46,8 +46,8 @@ pub async fn auth_middleware(
     Ok(next.run(req).await)
 }
 
-/// require_role は指定ロールを必須とするミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_role` は指定ロールを必須とするミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 pub fn require_role(
     role: &'static str,
 ) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
@@ -60,7 +60,7 @@ pub fn require_role(
 
             if !rbac::has_role(claims, role) {
                 return Err(AuthErrorResponse::forbidden(
-                    "この操作を実行する権限がありません",
+                    "You do not have permission to perform this action",
                 ));
             }
 
@@ -69,8 +69,8 @@ pub fn require_role(
     }
 }
 
-/// require_permission は指定リソース・アクションの権限を必須とするミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_permission` は指定リソース・アクションの権限を必須とするミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
@@ -84,7 +84,7 @@ pub fn require_permission(
 
             if !rbac::check_permission(claims, resource, action) {
                 return Err(AuthErrorResponse::forbidden(
-                    "この操作を実行する権限がありません",
+                    "You do not have permission to perform this action",
                 ));
             }
 
@@ -93,8 +93,8 @@ pub fn require_permission(
     }
 }
 
-/// require_tier_access は指定 Tier へのアクセスを必須とするミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_tier_access` は指定 Tier へのアクセスを必須とするミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 pub fn require_tier_access(
     tier: &'static str,
 ) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
@@ -142,7 +142,7 @@ fn extract_bearer_token(req: &Request<Body>) -> Result<String, AuthErrorResponse
     Ok(token.to_string())
 }
 
-/// AuthErrorResponse は認証エラーの HTTP レスポンス。
+/// `AuthErrorResponse` は認証エラーの HTTP レスポンス。
 #[derive(Debug)]
 pub struct AuthErrorResponse {
     pub status: StatusCode,
@@ -156,25 +156,34 @@ impl AuthErrorResponse {
             AuthError::MissingToken | AuthError::InvalidAuthHeader => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_UNAUTHENTICATED".into(),
-                message: "認証が必要です".into(),
+                message: "Authentication required".into(),
             },
             AuthError::TokenExpired => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_TOKEN_EXPIRED".into(),
-                message: "トークンの有効期限が切れています".into(),
+                message: "Token has expired".into(),
             },
             AuthError::InvalidToken(_) => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_INVALID_TOKEN".into(),
-                message: "トークンが無効です".into(),
+                message: "Invalid token".into(),
             },
             AuthError::JwksFetchFailed(_) => Self {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
                 code: "SYS_AUTH_JWKS_ERROR".into(),
-                message: "認証サービスへの接続に失敗しました".into(),
+                message: "Failed to connect to authentication service".into(),
             },
-            AuthError::PermissionDenied => Self::forbidden("この操作を実行する権限がありません"),
+            AuthError::PermissionDenied => {
+                Self::forbidden("You do not have permission to perform this action")
+            }
             AuthError::TierAccessDenied => Self::tier_forbidden(),
+            // HIGH-002 対応: ログアウト済みトークン（jti ブラックリスト）は 401 で返す。
+            // 再ログインを促すため TokenExpired と同じ UNAUTHORIZED を使用する。
+            AuthError::TokenRevoked => Self {
+                status: StatusCode::UNAUTHORIZED,
+                code: "SYS_AUTH_TOKEN_REVOKED".into(),
+                message: "Token has been revoked. Please log in again.".into(),
+            },
         }
     }
 
@@ -182,7 +191,7 @@ impl AuthErrorResponse {
         Self {
             status: StatusCode::UNAUTHORIZED,
             code: "SYS_AUTH_UNAUTHENTICATED".into(),
-            message: "認証が必要です".into(),
+            message: "Authentication required".into(),
         }
     }
 
@@ -198,7 +207,7 @@ impl AuthErrorResponse {
         Self {
             status: StatusCode::FORBIDDEN,
             code: "SYS_AUTH_TIER_FORBIDDEN".into(),
-            message: "このTierへのアクセス権がありません".into(),
+            message: "You do not have access to this tier".into(),
         }
     }
 }

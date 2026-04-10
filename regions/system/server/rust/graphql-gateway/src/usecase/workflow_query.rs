@@ -28,7 +28,7 @@ impl WorkflowQueryResolver {
         after: Option<i32>,
     ) -> anyhow::Result<Vec<WorkflowDefinition>> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         self.client
             .list_workflows(enabled_only, Some(page_size), Some(page))
             .await
@@ -52,7 +52,7 @@ impl WorkflowQueryResolver {
         after: Option<i32>,
     ) -> anyhow::Result<Vec<WorkflowInstance>> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         self.client
             .list_instances(
                 status,
@@ -75,7 +75,7 @@ impl WorkflowQueryResolver {
         after: Option<i32>,
     ) -> anyhow::Result<Vec<WorkflowTask>> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         self.client
             .list_tasks(
                 assignee_id,

@@ -1,9 +1,11 @@
-/// Convert kebab-case to snake_case.
+/// Convert kebab-case to `snake_case`.
+#[must_use]
 pub fn to_snake(kebab: &str) -> String {
     kebab.replace('-', "_")
 }
 
-/// Convert kebab-case to PascalCase.
+/// Convert kebab-case to `PascalCase`.
+#[must_use]
 pub fn to_pascal(kebab: &str) -> String {
     kebab
         .split('-')
@@ -21,6 +23,7 @@ pub fn to_pascal(kebab: &str) -> String {
 }
 
 /// Convert kebab-case to camelCase.
+#[must_use]
 pub fn to_camel(kebab: &str) -> String {
     let pascal = to_pascal(kebab);
     let mut chars = pascal.chars();

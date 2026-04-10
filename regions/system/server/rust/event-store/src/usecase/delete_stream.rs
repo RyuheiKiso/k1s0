@@ -5,6 +5,8 @@ use crate::domain::repository::{EventRepository, EventStreamRepository, Snapshot
 #[derive(Debug, Clone)]
 pub struct DeleteStreamInput {
     pub stream_id: String,
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +23,8 @@ pub enum DeleteStreamError {
     Internal(String),
 }
 
+// リポジトリフィールドの命名規則として _repo サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct DeleteStreamUseCase {
     stream_repo: Arc<dyn EventStreamRepository>,
     event_repo: Arc<dyn EventRepository>,
@@ -44,9 +48,10 @@ impl DeleteStreamUseCase {
         &self,
         input: &DeleteStreamInput,
     ) -> Result<DeleteStreamOutput, DeleteStreamError> {
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| DeleteStreamError::Internal(e.to_string()))?;
 
@@ -55,18 +60,19 @@ impl DeleteStreamUseCase {
         }
 
         // Delete snapshots first, then events, then the stream
+        // テナント分離のため全操作に tenant_id を渡す（ADR-0106）
         self.snapshot_repo
-            .delete_by_stream(&input.stream_id)
+            .delete_by_stream(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| DeleteStreamError::Internal(e.to_string()))?;
 
         self.event_repo
-            .delete_by_stream(&input.stream_id)
+            .delete_by_stream(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| DeleteStreamError::Internal(e.to_string()))?;
 
         self.stream_repo
-            .delete(&input.stream_id)
+            .delete(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| DeleteStreamError::Internal(e.to_string()))?;
 
@@ -89,6 +95,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 3,
             created_at: chrono::Utc::now(),
@@ -104,10 +111,12 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
-        snapshot_repo.expect_delete_by_stream().returning(|_| Ok(2));
-        event_repo.expect_delete_by_stream().returning(|_| Ok(5));
-        stream_repo.expect_delete().returning(|_| Ok(true));
+            .returning(|_, _| Ok(Some(make_stream())));
+        snapshot_repo
+            .expect_delete_by_stream()
+            .returning(|_, _| Ok(2));
+        event_repo.expect_delete_by_stream().returning(|_, _| Ok(5));
+        stream_repo.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteStreamUseCase::new(
             Arc::new(stream_repo),
@@ -116,6 +125,7 @@ mod tests {
         );
         let input = DeleteStreamInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -130,7 +140,7 @@ mod tests {
         let event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = DeleteStreamUseCase::new(
             Arc::new(stream_repo),
@@ -139,6 +149,7 @@ mod tests {
         );
         let input = DeleteStreamInput {
             stream_id: "order-999".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -156,7 +167,7 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = DeleteStreamUseCase::new(
             Arc::new(stream_repo),
@@ -165,6 +176,7 @@ mod tests {
         );
         let input = DeleteStreamInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

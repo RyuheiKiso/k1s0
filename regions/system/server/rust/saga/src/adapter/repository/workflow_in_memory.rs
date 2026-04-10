@@ -6,13 +6,14 @@ use tokio::sync::RwLock;
 use crate::domain::entity::workflow::WorkflowDefinition;
 use crate::domain::repository::WorkflowRepository;
 
-/// InMemoryWorkflowRepository はインメモリのワークフローリポジトリ。
+/// `InMemoryWorkflowRepository` はインメモリのワークフローリポジトリ。
 pub struct InMemoryWorkflowRepository {
     workflows: RwLock<HashMap<String, WorkflowDefinition>>,
 }
 
 impl InMemoryWorkflowRepository {
-    /// 新しいInMemoryWorkflowRepositoryを作成する。
+    /// `新しいInMemoryWorkflowRepositoryを作成する`。
+    #[must_use]
     pub fn new() -> Self {
         Self {
             workflows: RwLock::new(HashMap::new()),

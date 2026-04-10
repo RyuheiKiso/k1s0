@@ -14,18 +14,18 @@ import (
 
 // MemoryStore is an in-memory Store implementation for testing.
 type MemoryStore struct {
-	data    map[string]*SessionData
+	data    map[string]*Data
 	expires map[string]time.Time
 }
 
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		data:    make(map[string]*SessionData),
+		data:    make(map[string]*Data),
 		expires: make(map[string]time.Time),
 	}
 }
 
-func (m *MemoryStore) Create(_ context.Context, data *SessionData, ttl time.Duration) (string, error) {
+func (m *MemoryStore) Create(_ context.Context, data *Data, ttl time.Duration) (string, error) {
 	id := "test-session-" + time.Now().Format("150405.000000")
 	data.CreatedAt = time.Now().Unix()
 	copied := *data
@@ -34,7 +34,7 @@ func (m *MemoryStore) Create(_ context.Context, data *SessionData, ttl time.Dura
 	return id, nil
 }
 
-func (m *MemoryStore) Get(_ context.Context, id string) (*SessionData, error) {
+func (m *MemoryStore) Get(_ context.Context, id string) (*Data, error) {
 	d, ok := m.data[id]
 	if !ok {
 		return nil, nil
@@ -47,7 +47,7 @@ func (m *MemoryStore) Get(_ context.Context, id string) (*SessionData, error) {
 	return d, nil
 }
 
-func (m *MemoryStore) Update(_ context.Context, id string, data *SessionData, ttl time.Duration) error {
+func (m *MemoryStore) Update(_ context.Context, id string, data *Data, ttl time.Duration) error {
 	copied := *data
 	m.data[id] = &copied
 	m.expires[id] = time.Now().Add(ttl)
@@ -71,7 +71,7 @@ func TestMemoryStore_CreateAndGet(t *testing.T) {
 	store := NewMemoryStore()
 	ctx := context.Background()
 
-	data := &SessionData{
+	data := &Data{
 		AccessToken: "test-token",
 		CSRFToken:   "csrf-123",
 		Subject:     "user-1",
@@ -103,11 +103,11 @@ func TestMemoryStore_Update(t *testing.T) {
 	store := NewMemoryStore()
 	ctx := context.Background()
 
-	data := &SessionData{AccessToken: "old-token"}
+	data := &Data{AccessToken: "old-token"}
 	id, err := store.Create(ctx, data, 10*time.Minute)
 	require.NoError(t, err)
 
-	updated := &SessionData{AccessToken: "new-token"}
+	updated := &Data{AccessToken: "new-token"}
 	err = store.Update(ctx, id, updated, 10*time.Minute)
 	require.NoError(t, err)
 
@@ -120,7 +120,7 @@ func TestMemoryStore_Delete(t *testing.T) {
 	store := NewMemoryStore()
 	ctx := context.Background()
 
-	data := &SessionData{AccessToken: "token"}
+	data := &Data{AccessToken: "token"}
 	id, err := store.Create(ctx, data, 10*time.Minute)
 	require.NoError(t, err)
 
@@ -132,7 +132,7 @@ func TestMemoryStore_Delete(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-func TestSessionData_IsExpired(t *testing.T) {
+func TestData_IsExpired(t *testing.T) {
 	tests := []struct {
 		name      string
 		expiresAt int64
@@ -152,7 +152,7 @@ func TestSessionData_IsExpired(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SessionData{ExpiresAt: tt.expiresAt}
+			s := &Data{ExpiresAt: tt.expiresAt}
 			assert.Equal(t, tt.expired, s.IsExpired())
 		})
 	}

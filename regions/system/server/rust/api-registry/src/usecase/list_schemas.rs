@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::api_registration::ApiSchema;
 use crate::domain::repository::ApiSchemaRepository;
 
+// テナントスコープでスキーマ一覧を取得するためのインプット構造体
 #[derive(Debug, Clone)]
 pub struct ListSchemasInput {
+    pub tenant_id: String,
     pub schema_type: Option<String>,
     pub page: u32,
     pub page_size: u32,
@@ -38,13 +40,19 @@ impl ListSchemasUseCase {
         &self,
         input: &ListSchemasInput,
     ) -> Result<ListSchemasOutput, ListSchemasError> {
+        // テナントスコープでリポジトリを呼び出す
         let (schemas, total_count) = self
             .schema_repo
-            .find_all(input.schema_type.clone(), input.page, input.page_size)
+            .find_all(
+                &input.tenant_id,
+                input.schema_type.clone(),
+                input.page,
+                input.page_size,
+            )
             .await
             .map_err(|e| ListSchemasError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64) * (input.page_size as u64) < total_count;
+        let has_next = u64::from(input.page) * u64::from(input.page_size) < total_count;
 
         Ok(ListSchemasOutput {
             schemas,
@@ -66,7 +74,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockApiSchemaRepository::new();
-        mock.expect_find_all().returning(|_, _, _| {
+        mock.expect_find_all().returning(|_, _, _, _| {
             Ok((
                 vec![ApiSchema::new(
                     "test-api".to_string(),
@@ -79,6 +87,7 @@ mod tests {
 
         let uc = ListSchemasUseCase::new(Arc::new(mock));
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 1,
             page_size: 20,
@@ -94,13 +103,14 @@ mod tests {
     #[tokio::test]
     async fn success_with_filter() {
         let mut mock = MockApiSchemaRepository::new();
-        mock.expect_find_all().returning(|schema_type, _, _| {
+        mock.expect_find_all().returning(|_, schema_type, _, _| {
             assert_eq!(schema_type, Some("openapi".to_string()));
             Ok((Vec::new(), 0))
         });
 
         let uc = ListSchemasUseCase::new(Arc::new(mock));
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: Some("openapi".to_string()),
             page: 1,
             page_size: 20,
@@ -115,10 +125,11 @@ mod tests {
     async fn error() {
         let mut mock = MockApiSchemaRepository::new();
         mock.expect_find_all()
-            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListSchemasUseCase::new(Arc::new(mock));
         let input = ListSchemasInput {
+            tenant_id: "tenant-a".to_string(),
             schema_type: None,
             page: 1,
             page_size: 20,

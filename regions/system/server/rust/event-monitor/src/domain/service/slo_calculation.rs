@@ -5,7 +5,10 @@ use crate::domain::entity::flow_kpi::{BurnRateWindow, SloStatus};
 pub struct SloCalculationService;
 
 impl SloCalculationService {
+    #[must_use]
     pub fn calculate(flow: &FlowDefinition, instances: &[FlowInstance]) -> SloStatus {
+        // LOW-008: usize→f64変換（精度損失は統計計算上許容範囲）
+        #[allow(clippy::cast_precision_loss)]
         let total = instances.len() as f64;
         if total == 0.0 {
             return SloStatus {
@@ -18,6 +21,8 @@ impl SloCalculationService {
             };
         }
 
+        // usize→f64変換（SLO成功率計算のため精度損失は許容範囲）
+        #[allow(clippy::cast_precision_loss)]
         let completed = instances
             .iter()
             .filter(|i| i.status == FlowInstanceStatus::Completed)
@@ -50,11 +55,14 @@ impl SloCalculationService {
         }
     }
 
-    /// Calculate SLO status from a pre-computed FlowKpi (used with cached KPI data).
+    /// Calculate SLO status from a pre-computed `FlowKpi` (used with cached KPI data).
+    #[must_use]
     pub fn calculate_from_kpi(
         flow: &FlowDefinition,
         kpi: &crate::domain::entity::flow_kpi::FlowKpi,
     ) -> SloStatus {
+        // LOW-008: i64→f64変換（精度損失は統計計算上許容範囲）
+        #[allow(clippy::cast_precision_loss)]
         let total = kpi.total_started as f64;
         if total == 0.0 {
             return SloStatus {
@@ -94,6 +102,7 @@ impl SloCalculationService {
         }
     }
 
+    #[must_use]
     pub fn calculate_burn_rate(
         flow: &FlowDefinition,
         instances_by_window: &[(&str, &[FlowInstance])],
@@ -103,7 +112,9 @@ impl SloCalculationService {
         instances_by_window
             .iter()
             .map(|(window, instances)| {
-                let total = instances.len() as f64;
+                // LOW-008: usize→f64変換（精度損失は統計計算上許容範囲）
+        #[allow(clippy::cast_precision_loss)]
+        let total = instances.len() as f64;
                 if total == 0.0 {
                     return BurnRateWindow {
                         window: window.to_string(),
@@ -112,6 +123,8 @@ impl SloCalculationService {
                     };
                 }
 
+                // LOW-008: usize→f64変換（精度損失は統計計算上許容範囲）
+                #[allow(clippy::cast_precision_loss)]
                 let completed = instances
                     .iter()
                     .filter(|i| i.status == FlowInstanceStatus::Completed)
@@ -149,6 +162,7 @@ mod tests {
         let now = Utc::now();
         FlowDefinition {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             name: "test_flow".to_string(),
             description: String::new(),
             domain: "service.task".to_string(),
@@ -173,6 +187,7 @@ mod tests {
     fn make_instance(status: FlowInstanceStatus) -> FlowInstance {
         FlowInstance {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             flow_id: Uuid::new_v4(),
             correlation_id: "corr".to_string(),
             status,

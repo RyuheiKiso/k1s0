@@ -38,6 +38,8 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
     /// DLQ クライアントが Noop の場合 true。health endpoint で degraded ステータスを返すために使用。
+    // dlq_noop は将来の health endpoint 拡張で参照される予定のため保持する
+    #[allow(dead_code)]
     pub dlq_noop: bool,
     /// DB 接続プール。readyz エンドポイントで DB 疎通確認に使用する。
     /// DB 設定がない場合（in-memory モード）は None。
@@ -46,12 +48,15 @@ pub struct AppState {
 
 impl AppState {
     // 認証ステートを設定する
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 }
 
+// ルーター構築は全エンドポイントを定義するため行数が多くなる
+#[allow(clippy::too_many_lines)]
 pub fn router(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/healthz", get(health::healthz))

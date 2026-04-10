@@ -38,7 +38,7 @@ impl From<DocRow> for ServiceDoc {
     }
 }
 
-/// DocPostgresRepository は PostgreSQL ベースのドキュメントリポジトリ。
+/// `DocPostgresRepository` は `PostgreSQL` ベースのドキュメントリポジトリ。
 pub struct DocPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -46,6 +46,7 @@ pub struct DocPostgresRepository {
 
 impl DocPostgresRepository {
     #[allow(dead_code)]
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -53,6 +54,7 @@ impl DocPostgresRepository {
         }
     }
 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -83,7 +85,7 @@ impl DocRepository for DocPostgresRepository {
             );
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn set_docs(&self, service_id: Uuid, docs: Vec<ServiceDoc>) -> anyhow::Result<()> {

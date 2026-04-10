@@ -24,6 +24,9 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     /// 認証状態。None の場合は認証なし（dev/test 環境のみ許可）
     pub auth_state: Option<AuthState>,
+    /// MEDIUM-001 監査対応: readyz で DB 疎通確認を行うためのコネクションプール。
+    /// task-rust と同一パターンで SELECT 1 による確認を実装する。
+    pub db_pool: sqlx::PgPool,
 }
 
 /// REST ルーターを組み立てる。

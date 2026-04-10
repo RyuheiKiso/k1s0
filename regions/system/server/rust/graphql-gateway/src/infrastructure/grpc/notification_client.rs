@@ -7,7 +7,15 @@ use tracing::instrument;
 use crate::domain::model::{NotificationChannel, NotificationLog, NotificationTemplate};
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -31,13 +39,13 @@ pub struct NotificationGrpcClient {
     client: NotificationServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl NotificationGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -63,7 +71,8 @@ impl NotificationGrpcClient {
             subject: n.subject.filter(|s| !s.is_empty()),
             body: n.body,
             status: n.status,
-            retry_count: n.retry_count as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            retry_count: i32::try_from(n.retry_count).unwrap_or(i32::MAX),
             error_message: n.error_message.filter(|s| !s.is_empty()),
             sent_at: n.sent_at.filter(|s| !s.is_empty()),
             created_at: n.created_at,
@@ -117,16 +126,15 @@ impl NotificationGrpcClient {
 
         match self.client.clone().get_notification(request).await {
             Ok(resp) => {
-                let n = match resp.into_inner().notification {
-                    Some(n) => n,
-                    None => return Ok(None),
+                // 通知が存在しない場合は None を返す
+                let Some(n) = resp.into_inner().notification else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::log_from_proto(n)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!(
-                "NotificationService.GetNotification failed: {}",
-                e
+                "NotificationService.GetNotification failed: {e}"
             )),
         }
     }
@@ -142,8 +150,8 @@ impl NotificationGrpcClient {
         // ページネーションパラメータを共通Paginationサブメッセージで構成
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::ListNotificationsRequest {
-                channel_id: channel_id.map(|s| s.to_owned()),
-                status: status.map(|s| s.to_owned()),
+                channel_id: channel_id.map(std::borrow::ToOwned::to_owned),
+                status: status.map(std::borrow::ToOwned::to_owned),
                 pagination: Some(proto::k1s0::system::common::v1::Pagination {
                     page: page.unwrap_or(1),
                     page_size: page_size.unwrap_or(20),
@@ -156,7 +164,7 @@ impl NotificationGrpcClient {
             .clone()
             .list_notifications(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.ListNotifications failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.ListNotifications failed: {e}"))?
             .into_inner();
 
         Ok(resp
@@ -181,11 +189,11 @@ impl NotificationGrpcClient {
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::SendNotificationRequest {
                 channel_id: channel_id.to_owned(),
-                template_id: template_id.map(|s| s.to_owned()),
+                template_id: template_id.map(std::borrow::ToOwned::to_owned),
                 template_variables: template_variables.clone(),
                 recipient: recipient.to_owned(),
-                subject: subject.map(|s| s.to_owned()),
-                body: body.map(|s| s.to_owned()),
+                subject: subject.map(std::borrow::ToOwned::to_owned),
+                body: body.map(std::borrow::ToOwned::to_owned),
             },
         );
 
@@ -194,7 +202,7 @@ impl NotificationGrpcClient {
             .clone()
             .send_notification(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.SendNotification failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.SendNotification failed: {e}"))?
             .into_inner();
 
         Ok((resp.notification_id, resp.status, resp.created_at))
@@ -216,7 +224,7 @@ impl NotificationGrpcClient {
             .clone()
             .retry_notification(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.RetryNotification failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.RetryNotification failed: {e}"))?
             .into_inner()
             .notification
             .ok_or_else(|| anyhow::anyhow!("empty notification in retry response"))?;
@@ -235,16 +243,15 @@ impl NotificationGrpcClient {
 
         match self.client.clone().get_channel(request).await {
             Ok(resp) => {
-                let c = match resp.into_inner().channel {
-                    Some(c) => c,
-                    None => return Ok(None),
+                // チャンネルが存在しない場合は None を返す
+                let Some(c) = resp.into_inner().channel else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::channel_from_proto(c)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!(
-                "NotificationService.GetChannel failed: {}",
-                e
+                "NotificationService.GetChannel failed: {e}"
             )),
         }
     }
@@ -260,7 +267,7 @@ impl NotificationGrpcClient {
         // ページネーションパラメータを共通Paginationサブメッセージで構成
         let request =
             tonic::Request::new(proto::k1s0::system::notification::v1::ListChannelsRequest {
-                channel_type: channel_type.map(|s| s.to_owned()),
+                channel_type: channel_type.map(std::borrow::ToOwned::to_owned),
                 enabled_only,
                 pagination: Some(proto::k1s0::system::common::v1::Pagination {
                     page: page.unwrap_or(1),
@@ -273,7 +280,7 @@ impl NotificationGrpcClient {
             .clone()
             .list_channels(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.ListChannels failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.ListChannels failed: {e}"))?
             .into_inner();
 
         Ok(resp
@@ -305,7 +312,7 @@ impl NotificationGrpcClient {
             .clone()
             .create_channel(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.CreateChannel failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.CreateChannel failed: {e}"))?
             .into_inner()
             .channel
             .ok_or_else(|| anyhow::anyhow!("empty channel in create response"))?;
@@ -324,9 +331,9 @@ impl NotificationGrpcClient {
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::UpdateChannelRequest {
                 id: id.to_owned(),
-                name: name.map(|s| s.to_owned()),
+                name: name.map(std::borrow::ToOwned::to_owned),
                 enabled,
-                config_json: config_json.map(|s| s.to_owned()),
+                config_json: config_json.map(std::borrow::ToOwned::to_owned),
             },
         );
 
@@ -335,7 +342,7 @@ impl NotificationGrpcClient {
             .clone()
             .update_channel(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.UpdateChannel failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.UpdateChannel failed: {e}"))?
             .into_inner()
             .channel
             .ok_or_else(|| anyhow::anyhow!("empty channel in update response"))?;
@@ -354,7 +361,7 @@ impl NotificationGrpcClient {
             .clone()
             .delete_channel(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.DeleteChannel failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.DeleteChannel failed: {e}"))?
             .into_inner();
 
         Ok(resp.success)
@@ -371,16 +378,15 @@ impl NotificationGrpcClient {
 
         match self.client.clone().get_template(request).await {
             Ok(resp) => {
-                let t = match resp.into_inner().template {
-                    Some(t) => t,
-                    None => return Ok(None),
+                // テンプレートが存在しない場合は None を返す
+                let Some(t) = resp.into_inner().template else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::template_from_proto(t)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!(
-                "NotificationService.GetTemplate failed: {}",
-                e
+                "NotificationService.GetTemplate failed: {e}"
             )),
         }
     }
@@ -395,7 +401,7 @@ impl NotificationGrpcClient {
         // ページネーションパラメータを共通Paginationサブメッセージで構成
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::ListTemplatesRequest {
-                channel_type: channel_type.map(|s| s.to_owned()),
+                channel_type: channel_type.map(std::borrow::ToOwned::to_owned),
                 pagination: Some(proto::k1s0::system::common::v1::Pagination {
                     page: page.unwrap_or(1),
                     page_size: page_size.unwrap_or(20),
@@ -408,7 +414,7 @@ impl NotificationGrpcClient {
             .clone()
             .list_templates(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.ListTemplates failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.ListTemplates failed: {e}"))?
             .into_inner();
 
         Ok(resp
@@ -430,7 +436,7 @@ impl NotificationGrpcClient {
             proto::k1s0::system::notification::v1::CreateTemplateRequest {
                 name: name.to_owned(),
                 channel_type: channel_type.to_owned(),
-                subject_template: subject_template.map(|s| s.to_owned()),
+                subject_template: subject_template.map(std::borrow::ToOwned::to_owned),
                 body_template: body_template.to_owned(),
             },
         );
@@ -440,7 +446,7 @@ impl NotificationGrpcClient {
             .clone()
             .create_template(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.CreateTemplate failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.CreateTemplate failed: {e}"))?
             .into_inner()
             .template
             .ok_or_else(|| anyhow::anyhow!("empty template in create response"))?;
@@ -459,9 +465,9 @@ impl NotificationGrpcClient {
         let request = tonic::Request::new(
             proto::k1s0::system::notification::v1::UpdateTemplateRequest {
                 id: id.to_owned(),
-                name: name.map(|s| s.to_owned()),
-                subject_template: subject_template.map(|s| s.to_owned()),
-                body_template: body_template.map(|s| s.to_owned()),
+                name: name.map(std::borrow::ToOwned::to_owned),
+                subject_template: subject_template.map(std::borrow::ToOwned::to_owned),
+                body_template: body_template.map(std::borrow::ToOwned::to_owned),
             },
         );
 
@@ -470,7 +476,7 @@ impl NotificationGrpcClient {
             .clone()
             .update_template(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.UpdateTemplate failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.UpdateTemplate failed: {e}"))?
             .into_inner()
             .template
             .ok_or_else(|| anyhow::anyhow!("empty template in update response"))?;
@@ -489,7 +495,7 @@ impl NotificationGrpcClient {
             .clone()
             .delete_template(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NotificationService.DeleteTemplate failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NotificationService.DeleteTemplate failed: {e}"))?
             .into_inner();
 
         Ok(resp.success)
@@ -512,7 +518,7 @@ impl NotificationGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("notification gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("notification gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 }

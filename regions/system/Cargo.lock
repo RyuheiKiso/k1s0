@@ -3351,6 +3351,7 @@ name = "k1s0-health"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "deadpool-redis",
  "mockall",
  "rdkafka",
@@ -4092,6 +4093,7 @@ dependencies = [
  "axum-test",
  "base64 0.22.1",
  "chrono",
+ "hex",
  "k1s0-auth",
  "k1s0-correlation",
  "k1s0-server-common",
@@ -4104,6 +4106,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",

@@ -63,15 +63,19 @@ pub struct JobFilter {
 }
 
 impl JobFilter {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn status(mut self, status: JobStatus) -> Self {
         self.status = Some(status);
         self
     }
 
+    /// ジョブ名プレフィックスを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn name_prefix(mut self, prefix: impl Into<String>) -> Self {
         self.name_prefix = Some(prefix.into());
         self

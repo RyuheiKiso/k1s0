@@ -20,10 +20,11 @@ impl DeleteQuotaPolicyUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<(), DeleteQuotaPolicyError> {
+    /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り delete に渡して RLS を有効にする。
+    pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<(), DeleteQuotaPolicyError> {
         let deleted = self
             .repo
-            .delete(id)
+            .delete(id, tenant_id)
             .await
             .map_err(|e| DeleteQuotaPolicyError::Internal(e.to_string()))?;
 
@@ -45,21 +46,21 @@ mod tests {
     async fn success() {
         let mut mock = MockQuotaPolicyRepository::new();
         mock.expect_delete()
-            .withf(|id| id == "quota-1")
-            .returning(|_| Ok(true));
+            .withf(|id, _tenant_id| id == "quota-1")
+            .returning(|_, _| Ok(true));
 
         let uc = DeleteQuotaPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute("quota-1").await;
+        let result = uc.execute("quota-1", "tenant-1").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockQuotaPolicyRepository::new();
-        mock.expect_delete().returning(|_| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteQuotaPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "tenant-1").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteQuotaPolicyError::NotFound(id) => assert_eq!(id, "nonexistent"),
@@ -71,10 +72,10 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockQuotaPolicyRepository::new();
         mock.expect_delete()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = DeleteQuotaPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute("some-id").await;
+        let result = uc.execute("some-id", "tenant-1").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteQuotaPolicyError::Internal(msg) => assert!(msg.contains("db error")),

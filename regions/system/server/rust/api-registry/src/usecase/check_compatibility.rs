@@ -4,8 +4,10 @@ use crate::domain::entity::api_registration::CompatibilityResult;
 use crate::domain::repository::{ApiSchemaRepository, ApiSchemaVersionRepository};
 use crate::domain::service::api_registry_service::ApiRegistryDomainService;
 
+// テナントスコープで互換性チェックを行うためのインプット構造体
 #[derive(Debug, Clone)]
 pub struct CheckCompatibilityInput {
+    pub tenant_id: String,
     pub name: String,
     pub content: String,
     pub base_version: Option<u32>,
@@ -50,9 +52,10 @@ impl CheckCompatibilityUseCase {
         &self,
         input: &CheckCompatibilityInput,
     ) -> Result<CheckCompatibilityOutput, CheckCompatibilityError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let schema = self
             .schema_repo
-            .find_by_name(&input.name)
+            .find_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| CheckCompatibilityError::Internal(e.to_string()))?
             .ok_or_else(|| CheckCompatibilityError::SchemaNotFound(input.name.clone()))?;
@@ -61,7 +64,7 @@ impl CheckCompatibilityUseCase {
 
         let base = self
             .version_repo
-            .find_by_name_and_version(&input.name, base_version_num)
+            .find_by_name_and_version(&input.tenant_id, &input.name, base_version_num)
             .await
             .map_err(|e| CheckCompatibilityError::Internal(e.to_string()))?
             .ok_or_else(|| CheckCompatibilityError::VersionNotFound {
@@ -95,7 +98,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -106,7 +109,7 @@ mod tests {
         let mut version_mock = MockApiSchemaVersionRepository::new();
         version_mock
             .expect_find_by_name_and_version()
-            .returning(|_, _| {
+            .returning(|_, _, _| {
                 Ok(Some(ApiSchemaVersion::new(
                     "test-api".to_string(),
                     1,
@@ -118,6 +121,7 @@ mod tests {
 
         let uc = CheckCompatibilityUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             content: "openapi: 3.0.3\nversion: 2.0.0".to_string(),
             base_version: None,
@@ -133,7 +137,7 @@ mod tests {
     #[tokio::test]
     async fn breaking_change_detected() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -144,7 +148,7 @@ mod tests {
         let mut version_mock = MockApiSchemaVersionRepository::new();
         version_mock
             .expect_find_by_name_and_version()
-            .returning(|_, _| {
+            .returning(|_, _, _| {
                 Ok(Some(ApiSchemaVersion::new(
                     "test-api".to_string(),
                     1,
@@ -156,6 +160,7 @@ mod tests {
 
         let uc = CheckCompatibilityUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             content: "openapi: 3.0.3\npaths:\n  /api/v1/users:\n    get:\n      summary: Users\n"
                 .to_string(),
@@ -175,12 +180,13 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = CheckCompatibilityUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "nonexistent".to_string(),
             content: "openapi: 3.0.3".to_string(),
             base_version: None,
@@ -198,12 +204,13 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = CheckCompatibilityUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = CheckCompatibilityInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             content: "openapi: 3.0.3".to_string(),
             base_version: None,

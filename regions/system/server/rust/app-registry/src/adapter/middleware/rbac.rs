@@ -16,9 +16,9 @@ fn error_response(status: StatusCode, code: &str, message: impl Into<String>) ->
 
 /// 静的 RBAC: ロール名とリソース・アクションの組み合わせでパーミッションを判定する。
 /// app-registry 固有のロール定義:
-/// - admin / sys_admin: すべてのリソースに対する全アクション
-/// - publisher / app_publisher / sys_operator: "apps" リソースに対する read/write
-/// - user / sys_auditor / sys_viewer: "apps" リソースに対する read のみ
+/// - admin / `sys_admin`: すべてのリソースに対する全アクション
+/// - publisher / `app_publisher` / `sys_operator`: "apps" リソースに対する read/write
+/// - user / `sys_auditor` / `sys_viewer`: "apps" リソースに対する read のみ
 fn check_permission_static(roles: &[String], resource: &str, action: &str) -> bool {
     for role in roles {
         let allowed = match role.as_str() {
@@ -36,7 +36,7 @@ fn check_permission_static(roles: &[String], resource: &str, action: &str) -> bo
     false
 }
 
-/// make_rbac_middleware はリソースとアクションを受け取り、RBAC チェックを行うクロージャを返す。
+/// `make_rbac_middleware` はリソースとアクションを受け取り、RBAC チェックを行うクロージャを返す。
 pub fn make_rbac_middleware(
     resource: &'static str,
     action: &'static str,
@@ -80,8 +80,7 @@ pub async fn rbac_check(
             StatusCode::FORBIDDEN,
             "SYS_APPS_PERMISSION_DENIED",
             format!(
-                "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
-                action, resource
+                "Insufficient permissions: action '{action}' on resource '{resource}' is not allowed for the current roles."
             ),
         )
     }

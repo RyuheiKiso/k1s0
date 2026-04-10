@@ -51,6 +51,9 @@ spec:
     # MED-009 監査対応: Secret の過剰作成を防ぎ、クラスター全体のリソース枯渇を防止する。
     # 算出根拠: 26サービス × Vault SPC + DB認証情報 + TLS証明書 = 約78 → 100に設定
     count/secrets: "100"
+    # MED-015 監査対応: ストレージ要求量の上限を設定してクラスターのストレージ枯渇を防止する
+    # 算出根拠: 26サービス × 最大 PVC 4Gi = 104Gi → バッファ含め 100Gi に設定（dev 1x）
+    requests.storage: "100Gi"
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -72,6 +75,8 @@ spec:
     persistentvolumeclaims: "40"
     # MED-009 監査対応: business 名前空間の Secret 上限（4サービス × 各種Secret）
     count/secrets: "50"
+    # MED-015 監査対応: ストレージ要求量の上限（business tier: 4サービス × 最大 PVC 8Gi = 32Gi）
+    requests.storage: "50Gi"
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -90,6 +95,8 @@ spec:
     persistentvolumeclaims: "20"
     # MED-009 監査対応: service 名前空間の Secret 上限（3サービス × 各種Secret）
     count/secrets: "50"
+    # MED-015 監査対応: ストレージ要求量の上限（service tier: 3サービス × 最大 PVC 8Gi = 24Gi）
+    requests.storage: "50Gi"
 
 # ============================================================
 # staging 環境 (2x) - infra/kubernetes/overlays/staging/ で適用

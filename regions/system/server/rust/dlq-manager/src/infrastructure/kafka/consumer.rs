@@ -5,16 +5,16 @@ use crate::domain::repository::DlqMessageRepository;
 
 use super::KafkaConfig;
 
-/// DlqKafkaConsumer は DLQ トピックを購読して新しいメッセージを取り込む。
+/// `DlqKafkaConsumer` は DLQ トピックを購読して新しいメッセージを取り込む。
 pub struct DlqKafkaConsumer {
-    _consumer: rdkafka::consumer::StreamConsumer,
+    consumer: rdkafka::consumer::StreamConsumer,
     repo: Arc<dyn DlqMessageRepository>,
     consumer_group: String,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl DlqKafkaConsumer {
-    /// 新しい DlqKafkaConsumer を作成する。
+    /// 新しい `DlqKafkaConsumer` を作成する。
     pub fn new(config: &KafkaConfig, repo: Arc<dyn DlqMessageRepository>) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
         use rdkafka::consumer::Consumer;
@@ -39,7 +39,7 @@ impl DlqKafkaConsumer {
         );
 
         Ok(Self {
-            _consumer: consumer,
+            consumer,
             repo,
             consumer_group: config.consumer_group.clone(),
             metrics: None,
@@ -47,6 +47,7 @@ impl DlqKafkaConsumer {
     }
 
     /// メトリクスを設定する。
+    #[must_use]
     pub fn with_metrics(mut self, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
@@ -58,7 +59,7 @@ impl DlqKafkaConsumer {
         use rdkafka::message::Headers;
         use rdkafka::Message;
 
-        let consumer = &self._consumer;
+        let consumer = &self.consumer;
 
         loop {
             match consumer.recv().await {

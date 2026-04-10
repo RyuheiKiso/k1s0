@@ -23,11 +23,13 @@ impl PolicyDomainService {
     }
 
     /// パッケージパスを正規化する（前後の空白・スラッシュを除去）
-    /// H-001 監査対応: 正規化後のパスは OpaClient::validate_package_path で検証される
+    /// H-001 監査対応: 正規化後のパスは `OpaClient::validate_package_path` で検証される
+    #[must_use]
     pub fn normalize_package_path(package_path: &str) -> String {
         package_path.trim().trim_matches('/').to_string()
     }
 
+    #[must_use]
     pub fn can_evaluate_policy(enabled: bool) -> bool {
         enabled
     }

@@ -13,7 +13,7 @@ pub trait WorkflowEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// InstanceStartedEvent は Kafka へ発行するワークフロー開始イベント。
+/// `InstanceStartedEvent` は Kafka へ発行するワークフロー開始イベント。
 #[derive(Debug, Serialize, serde::Deserialize)]
 pub struct InstanceStartedEvent {
     pub event_type: String,
@@ -30,7 +30,7 @@ pub struct InstanceStartedEvent {
     pub timestamp: String,
 }
 
-/// TaskCompletedEvent は Kafka へ発行するタスク完了イベント。
+/// `TaskCompletedEvent` は Kafka へ発行するタスク完了イベント。
 #[derive(Debug, Serialize, serde::Deserialize)]
 pub struct TaskCompletedEvent {
     pub event_type: String,
@@ -47,7 +47,7 @@ pub struct TaskCompletedEvent {
     pub timestamp: String,
 }
 
-/// NoopWorkflowEventPublisher は何も発行しないプロデューサー（InMemory / テスト用）。
+/// `NoopWorkflowEventPublisher` は何も発行しないプロデューサー（InMemory / テスト用）。
 pub struct NoopWorkflowEventPublisher;
 
 #[async_trait]
@@ -65,7 +65,7 @@ impl WorkflowEventPublisher for NoopWorkflowEventPublisher {
     }
 }
 
-/// KafkaWorkflowEventPublisher は rdkafka FutureProducer を使った実装。
+/// `KafkaWorkflowEventPublisher` は rdkafka `FutureProducer` を使った実装。
 pub struct KafkaWorkflowEventPublisher {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -73,7 +73,7 @@ pub struct KafkaWorkflowEventPublisher {
 }
 
 impl KafkaWorkflowEventPublisher {
-    /// 新しい KafkaWorkflowEventPublisher を作成する。
+    /// 新しい `KafkaWorkflowEventPublisher` を作成する。
     pub fn new(config: &crate::infrastructure::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -97,6 +97,7 @@ impl KafkaWorkflowEventPublisher {
     }
 
     /// 配信先トピック名を返す。
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
@@ -132,7 +133,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish instance started event: {}", err)
+                anyhow::anyhow!("failed to publish instance started event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {
@@ -169,9 +170,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish task completed event: {}", err)
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish task completed event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);

@@ -8,6 +8,7 @@ pub struct ChangeLogPostgresRepository {
 }
 
 impl ChangeLogPostgresRepository {
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -17,12 +18,12 @@ impl ChangeLogPostgresRepository {
 impl ChangeLogRepository for ChangeLogPostgresRepository {
     async fn create(&self, log: &ChangeLog) -> anyhow::Result<ChangeLog> {
         let row = sqlx::query_as::<_, ChangeLogRow>(
-            r#"INSERT INTO master_maintenance.change_logs
+            r"INSERT INTO master_maintenance.change_logs
                (id, target_table, target_record_id, operation, before_data, after_data,
                 changed_columns, changed_by, change_reason, trace_id, domain_scope)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                -- 明示的カラム指定によるクエリ安全性の確保
-               RETURNING id, target_table, target_record_id, operation, before_data, after_data, changed_columns, changed_by, change_reason, trace_id, domain_scope, created_at"#,
+               RETURNING id, target_table, target_record_id, operation, before_data, after_data, changed_columns, changed_by, change_reason, trace_id, domain_scope, created_at",
         )
         .bind(log.id)
         .bind(&log.target_table)
@@ -60,12 +61,15 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
             "SELECT id, target_table, target_record_id, operation, before_data, after_data, changed_columns, changed_by, change_reason, trace_id, domain_scope, created_at FROM master_maintenance.change_logs WHERE target_table = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
         )
         .bind(table_name)
-        .bind(page_size as i64)
-        .bind(offset as i64)
+        .bind(i64::from(page_size))
+        .bind(i64::from(offset))
         .fetch_all(&self.pool)
         .await?;
 
-        Ok((rows.into_iter().map(|r| r.into()).collect(), total.0))
+        Ok((
+            rows.into_iter().map(std::convert::Into::into).collect(),
+            total.0,
+        ))
     }
 
     async fn find_by_record(
@@ -91,12 +95,15 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         )
         .bind(table_name)
         .bind(record_id)
-        .bind(page_size as i64)
-        .bind(offset as i64)
+        .bind(i64::from(page_size))
+        .bind(i64::from(offset))
         .fetch_all(&self.pool)
         .await?;
 
-        Ok((rows.into_iter().map(|r| r.into()).collect(), total.0))
+        Ok((
+            rows.into_iter().map(std::convert::Into::into).collect(),
+            total.0,
+        ))
     }
 }
 

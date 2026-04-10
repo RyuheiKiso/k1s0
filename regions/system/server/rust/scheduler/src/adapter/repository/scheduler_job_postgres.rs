@@ -7,12 +7,13 @@ use sqlx::PgPool;
 use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::SchedulerJobRepository;
 
-/// PostgreSQL によるスケジューラジョブリポジトリの実装。
+/// `PostgreSQL` によるスケジューラジョブリポジトリの実装。
 pub struct SchedulerJobPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl SchedulerJobPostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -197,13 +198,12 @@ impl SchedulerJobRepository for SchedulerJobPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let result = sqlx::query(
-            "DELETE FROM scheduler.scheduler_jobs WHERE id = $1 AND tenant_id = $2",
-        )
-        .bind(id)
-        .bind(tenant_id)
-        .execute(&mut *tx)
-        .await?;
+        let result =
+            sqlx::query("DELETE FROM scheduler.scheduler_jobs WHERE id = $1 AND tenant_id = $2")
+                .bind(id)
+                .bind(tenant_id)
+                .execute(&mut *tx)
+                .await?;
 
         tx.commit().await?;
         Ok(result.rows_affected() > 0)

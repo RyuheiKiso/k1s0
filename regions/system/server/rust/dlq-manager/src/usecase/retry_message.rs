@@ -6,7 +6,7 @@ use crate::domain::entity::DlqMessage;
 use crate::domain::repository::DlqMessageRepository;
 use crate::infrastructure::kafka::producer::DlqEventPublisher;
 
-/// RetryMessageUseCase は DLQ メッセージの再処理を担う。
+/// `RetryMessageUseCase` は DLQ メッセージの再処理を担う。
 pub struct RetryMessageUseCase {
     repo: Arc<dyn DlqMessageRepository>,
     publisher: Option<Arc<dyn DlqEventPublisher>>,
@@ -20,13 +20,13 @@ impl RetryMessageUseCase {
         Self { repo, publisher }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから DLQ メッセージを再処理する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してから DLQ メッセージを再処理する。
     pub async fn execute(&self, id: Uuid, tenant_id: &str) -> anyhow::Result<DlqMessage> {
         let mut message = self
             .repo
             .find_by_id(id, tenant_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("dlq message not found: {}", id))?;
+            .ok_or_else(|| anyhow::anyhow!("dlq message not found: {id}"))?;
 
         if !message.is_retryable() {
             anyhow::bail!(

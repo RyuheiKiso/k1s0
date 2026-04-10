@@ -16,16 +16,16 @@ use crate::domain::entity::search_index::{
 };
 use crate::domain::repository::SearchRepository;
 
-/// SearchOpenSearchRepository は OpenSearch を使った SearchRepository 実装。
+/// `SearchOpenSearchRepository` は `OpenSearch` を使った `SearchRepository` 実装。
 pub struct SearchOpenSearchRepository {
     client: OpenSearch,
     prefix: String,
 }
 
 impl SearchOpenSearchRepository {
-    /// SearchOpenSearchRepository を構築する。
-    /// tls_insecure が false（デフォルト）の場合、TLS 証明書を完全検証する。
-    /// 開発環境のみ tls_insecure = true を使用すること。
+    /// `SearchOpenSearchRepository` を構築する。
+    /// `tls_insecure` が false（デフォルト）の場合、TLS 証明書を完全検証する。
+    /// 開発環境のみ `tls_insecure` = true を使用すること。
     pub fn new(
         url: &str,
         username: &str,
@@ -80,9 +80,12 @@ impl SearchOpenSearchRepository {
     }
 }
 
+// SearchRepository 実装は多数のメソッドを持つため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl SearchRepository for SearchOpenSearchRepository {
-    async fn create_index(&self, index: &SearchIndex) -> anyhow::Result<()> {
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn create_index(&self, index: &SearchIndex, _tenant_id: &str) -> anyhow::Result<()> {
         let idx_name = self.index_name(&index.name);
         let response = self
             .client
@@ -94,12 +97,13 @@ impl SearchRepository for SearchOpenSearchRepository {
 
         if !response.status_code().is_success() {
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("failed to create index {}: {}", idx_name, body);
+            anyhow::bail!("failed to create index {idx_name}: {body}");
         }
         Ok(())
     }
 
-    async fn find_index(&self, name: &str) -> anyhow::Result<Option<SearchIndex>> {
+    /// `OpenSearch実装`: `tenant_id` をレスポンスの `SearchIndex` に付与する。
+    async fn find_index(&self, name: &str, tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
         let idx_name = self.index_name(name);
         let response = self
             .client
@@ -109,18 +113,21 @@ impl SearchRepository for SearchOpenSearchRepository {
             .await?;
 
         if response.status_code().is_success() {
+            // OpenSearchから取得したインデックス情報にテナント IDを付与して返す。
             Ok(Some(SearchIndex {
                 id: Uuid::new_v4(),
                 name: name.to_string(),
                 mapping: json!({}),
                 created_at: Utc::now(),
+                tenant_id: tenant_id.to_string(),
             }))
         } else {
             Ok(None)
         }
     }
 
-    async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()> {
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn index_document(&self, doc: &SearchDocument, _tenant_id: &str) -> anyhow::Result<()> {
         let idx_name = self.index_name(&doc.index_name);
         let response = self
             .client
@@ -141,7 +148,8 @@ impl SearchRepository for SearchOpenSearchRepository {
         Ok(())
     }
 
-    async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn search(&self, query: &SearchQuery, _tenant_id: &str) -> anyhow::Result<SearchResult> {
         let idx_name = self.index_name(&query.index_name);
 
         let mut body = if query.query.is_empty() {
@@ -198,15 +206,15 @@ impl SearchRepository for SearchOpenSearchRepository {
         let response = self
             .client
             .search(SearchParts::Index(&[&idx_name]))
-            .from(query.from as i64)
-            .size(query.size as i64)
+            .from(i64::from(query.from))
+            .size(i64::from(query.size))
             .body(body)
             .send()
             .await?;
 
         if !response.status_code().is_success() {
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("search failed on {}: {}", idx_name, body);
+            anyhow::bail!("search failed on {idx_name}: {body}");
         }
 
         let response_body: Value = response.json().await?;
@@ -223,6 +231,8 @@ impl SearchRepository for SearchOpenSearchRepository {
                         id: hit["_id"].as_str().unwrap_or("").to_string(),
                         index_name: query.index_name.clone(),
                         content: hit["_source"].clone(),
+                        // LOW-008: f64 → f32 の精度損失は許容（スコアの近似値として使用）
+                        #[allow(clippy::cast_possible_truncation)]
                         score: hit["_score"].as_f64().unwrap_or(0.0) as f32,
                         indexed_at: Utc::now(),
                     })
@@ -253,7 +263,8 @@ impl SearchRepository for SearchOpenSearchRepository {
 
         let page_size = query.size.max(1);
         let page = (query.from / page_size) + 1;
-        let has_next = total > (query.from as u64 + hits.len() as u64);
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let has_next = total > (u64::from(query.from) + u64::try_from(hits.len()).unwrap_or(u64::MAX));
 
         Ok(SearchResult {
             total,
@@ -268,7 +279,13 @@ impl SearchRepository for SearchOpenSearchRepository {
         })
     }
 
-    async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         let idx_name = self.index_name(index_name);
         let response = self
             .client
@@ -284,7 +301,8 @@ impl SearchRepository for SearchOpenSearchRepository {
         }
     }
 
-    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+    /// `OpenSearch実装`: `tenant_id` を使用してレスポンスの `SearchIndex` に付与する。
+    async fn list_indices(&self, tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         let pattern = format!("{}*", self.prefix);
         let response = self
             .client
@@ -309,11 +327,13 @@ impl SearchRepository for SearchOpenSearchRepository {
                             .strip_prefix(&self.prefix)
                             .unwrap_or(full_name)
                             .to_string();
+                        // OpenSearchから取得したインデックス情報にテナント IDを付与して返す。
                         SearchIndex {
                             id: Uuid::new_v4(),
                             name,
                             mapping: json!({}),
                             created_at: Utc::now(),
+                            tenant_id: tenant_id.to_string(),
                         }
                     })
                     .collect()

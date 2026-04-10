@@ -6,7 +6,7 @@ use crate::domain::entity::saga_state::SagaState;
 use crate::domain::entity::saga_step_log::SagaStepLog;
 use crate::domain::repository::SagaRepository;
 
-/// GetSagaUseCase はSaga詳細取得を担う。
+/// `GetSagaUseCase` はSaga詳細取得を担う。
 pub struct GetSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
 }
@@ -16,8 +16,8 @@ impl GetSagaUseCase {
         Self { saga_repo }
     }
 
-    /// SagaとステップログをIDで取得する。
-    /// CRIT-005 対応: tenant_id を引数で受け取り RLS 分離に使用する。
+    /// `SagaとステップログをIDで取得する`。
+    /// CRIT-005 対応: `tenant_id` を引数で受け取り RLS 分離に使用する。
     pub async fn execute(
         &self,
         saga_id: Uuid,
@@ -44,7 +44,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_saga_found() {
-        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
+        let saga = SagaState::new(
+            "test".to_string(),
+            serde_json::json!({}),
+            None,
+            None,
+            "system".to_string(),
+        );
         let saga_id = saga.saga_id;
         let saga_clone = saga.clone();
 

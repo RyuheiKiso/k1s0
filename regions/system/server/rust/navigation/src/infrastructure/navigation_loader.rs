@@ -1,6 +1,6 @@
 use crate::domain::entity::navigation::NavigationConfig;
 
-/// NavigationConfigLoader はナビゲーション設定の読み込みを抽象化するトレイト。
+/// `NavigationConfigLoader` はナビゲーション設定の読み込みを抽象化するトレイト。
 #[cfg_attr(test, mockall::automock)]
 pub trait NavigationConfigLoader: Send + Sync {
     fn load(&self) -> anyhow::Result<NavigationConfig>;
@@ -12,6 +12,7 @@ pub struct YamlNavigationConfigLoader {
 }
 
 impl YamlNavigationConfigLoader {
+    #[must_use]
     pub fn new(path: &str) -> Self {
         Self {
             path: path.to_string(),

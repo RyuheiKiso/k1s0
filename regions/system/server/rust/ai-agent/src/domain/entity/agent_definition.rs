@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// AgentDefinition はAIエージェントの定義を表す
+/// `AgentDefinition` はAIエージェントの定義を表す
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentDefinition {
     /// エージェントの一意識別子
@@ -19,7 +19,7 @@ pub struct AgentDefinition {
     pub system_prompt: String,
     /// 利用可能なツール名のリスト
     pub tools: Vec<String>,
-    /// ReActループの最大ステップ数
+    /// `ReActループの最大ステップ数`
     pub max_steps: i32,
     /// エージェントが有効かどうか
     pub enabled: bool,

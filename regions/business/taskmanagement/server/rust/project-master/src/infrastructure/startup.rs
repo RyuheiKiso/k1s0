@@ -147,6 +147,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // AppState + ルーター
+    // MEDIUM-001 監査対応: readyz の DB 疎通確認用にコネクションプールを AppState に渡す。
+    // db_pool が None の場合は行 86 の bail! で処理が終了しているため expect は安全。
     let state = AppState {
         manage_project_types_uc,
         manage_status_definitions_uc,
@@ -154,6 +156,7 @@ pub async fn run() -> anyhow::Result<()> {
         manage_tenant_extensions_uc,
         metrics: metrics.clone(),
         auth_state,
+        db_pool: db_pool.expect("db_pool must be set (None case already handled above)"),
     };
     let app = router(state);
     // BSL-MED-002 監査対応: 大きなリクエストボディによるメモリ枯渇攻撃を防ぐため最大2MBに制限する

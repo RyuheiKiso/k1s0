@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::ServiceRepository;
 
-/// DeleteServiceError はサービス削除に関するエラーを表す。
+/// `DeleteServiceError` はサービス削除に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteServiceError {
     #[error("service not found: {0}")]
@@ -14,7 +14,7 @@ pub enum DeleteServiceError {
     Internal(String),
 }
 
-/// DeleteServiceUseCase はサービス削除ユースケース。
+/// `DeleteServiceUseCase` はサービス削除ユースケース。
 pub struct DeleteServiceUseCase {
     service_repo: Arc<dyn ServiceRepository>,
 }
@@ -24,16 +24,17 @@ impl DeleteServiceUseCase {
         Self { service_repo }
     }
 
-    pub async fn execute(&self, id: Uuid) -> Result<(), DeleteServiceError> {
-        // Verify service exists
-        match self.service_repo.find_by_id(id).await {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(&self, tenant_id: &str, id: Uuid) -> Result<(), DeleteServiceError> {
+        // サービスの存在確認にもテナントスコープを適用する
+        match self.service_repo.find_by_id(tenant_id, id).await {
             Ok(Some(_)) => {}
             Ok(None) => return Err(DeleteServiceError::NotFound(id)),
             Err(e) => return Err(DeleteServiceError::Internal(e.to_string())),
         }
 
         self.service_repo
-            .delete(id)
+            .delete(tenant_id, id)
             .await
             .map_err(|e| DeleteServiceError::Internal(e.to_string()))
     }
@@ -72,11 +73,11 @@ mod tests {
         let svc = make_service(id);
         let mut mock = MockServiceRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(svc.clone())));
-        mock.expect_delete().returning(|_| Ok(()));
+            .returning(move |_, _| Ok(Some(svc.clone())));
+        mock.expect_delete().returning(|_, _| Ok(()));
 
         let uc = DeleteServiceUseCase::new(Arc::new(mock));
-        let result = uc.execute(id).await;
+        let result = uc.execute("tenant-1", id).await;
         assert!(result.is_ok());
     }
 
@@ -84,10 +85,10 @@ mod tests {
     #[tokio::test]
     async fn test_delete_service_not_found() {
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = DeleteServiceUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("tenant-1", Uuid::new_v4()).await;
         assert!(matches!(result, Err(DeleteServiceError::NotFound(_))));
     }
 
@@ -96,10 +97,10 @@ mod tests {
     async fn test_delete_service_repo_error() {
         let mut mock = MockServiceRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_, _| Err(anyhow::anyhow!("connection refused")));
 
         let uc = DeleteServiceUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("tenant-1", Uuid::new_v4()).await;
         assert!(matches!(result, Err(DeleteServiceError::Internal(_))));
     }
 }

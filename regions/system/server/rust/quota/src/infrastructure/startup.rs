@@ -22,6 +22,8 @@ use crate::domain::repository::{
     CheckAndIncrementResult, QuotaPolicyRepository, QuotaUsageRepository,
 };
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -43,7 +45,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -99,8 +101,7 @@ pub async fn run() -> anyhow::Result<()> {
                     let prefix = cfg
                         .redis
                         .as_ref()
-                        .map(|r| r.key_prefix.clone())
-                        .unwrap_or_else(|| "quota:".to_string());
+                        .map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
                     info!("using Redis for usage counters (prefix={})", prefix);
                     Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
                         cm.clone(),
@@ -116,8 +117,7 @@ pub async fn run() -> anyhow::Result<()> {
                 // dev/test 以外ではインフラ接続失敗時に即座にサーバー起動を中断する。
                 if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
                     return Err(anyhow::anyhow!(
-                        "PostgreSQL 接続に失敗しました。本番環境ではフォールバックは許可されていません: {}",
-                        e
+                        "PostgreSQL 接続に失敗しました。本番環境ではフォールバックは許可されていません: {e}"
                     ));
                 }
                 tracing::warn!(
@@ -129,8 +129,7 @@ pub async fn run() -> anyhow::Result<()> {
                     let prefix = cfg
                         .redis
                         .as_ref()
-                        .map(|r| r.key_prefix.clone())
-                        .unwrap_or_else(|| "quota:".to_string());
+                        .map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
                     Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
                         cm.clone(),
                         prefix,
@@ -159,8 +158,7 @@ pub async fn run() -> anyhow::Result<()> {
             let prefix = cfg
                 .redis
                 .as_ref()
-                .map(|r| r.key_prefix.clone())
-                .unwrap_or_else(|| "quota:".to_string());
+                .map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
             Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
                 cm.clone(),
                 prefix,
@@ -192,8 +190,7 @@ pub async fn run() -> anyhow::Result<()> {
                     // dev/test 以外では Kafka 初期化失敗時に即座にサーバー起動を中断する。
                     if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
                         return Err(anyhow::anyhow!(
-                            "Kafka プロデューサーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {}",
-                            e
+                            "Kafka プロデューサーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {e}"
                         ));
                     }
                     tracing::warn!(
@@ -262,7 +259,14 @@ pub async fn run() -> anyhow::Result<()> {
         // 最大リトライ到達時に false にセットさせることで readyz に連携する
         let cron_healthy_flag = Arc::clone(&cron_healthy);
         tokio::spawn(async move {
-            run_reset_cron(daily_cron, monthly_cron, cron_reset_uc, cron_list_uc, cron_healthy_flag).await;
+            run_reset_cron(
+                daily_cron,
+                monthly_cron,
+                cron_reset_uc,
+                cron_list_uc,
+                cron_healthy_flag,
+            )
+            .await;
         });
     }
 
@@ -342,7 +346,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -375,7 +379,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// CreateQuotaPolicy / UpdateQuotaPolicy / DeleteQuotaPolicy / IncrementQuotaUsage / ResetQuotaUsage は write、
+/// `CreateQuotaPolicy` / `UpdateQuotaPolicy` / `DeleteQuotaPolicy` / `IncrementQuotaUsage` / `ResetQuotaUsage` は write、
 /// それ以外は read。
 fn quota_grpc_action(method: &str) -> &'static str {
     match method {
@@ -399,7 +403,7 @@ const CRON_MAX_RETRY: u32 = 10;
 const CRON_RETRY_WAIT_SECS: u64 = 60;
 
 /// H-006 監査対応: quota リセット cron タスク。
-/// cron_healthy フラグを受け取り、最大リトライ到達時に false にセットして
+/// `cron_healthy` フラグを受け取り、最大リトライ到達時に false にセットして
 /// /readyz が 503 を返すようにし、プロセス再起動を促す。
 async fn run_reset_cron(
     daily_expr: String,
@@ -408,35 +412,38 @@ async fn run_reset_cron(
     list_uc: Arc<usecase::ListQuotaPoliciesUseCase>,
     cron_healthy: Arc<std::sync::atomic::AtomicBool>,
 ) {
-    use std::str::FromStr;
     use std::sync::atomic::Ordering;
 
-    // croner v2 形式（6フィールド: 秒 分 時 日 月 曜日）でスケジュールを登録する
-    // パース失敗したスケジュールはスキップし、有効なものだけ使用する
+    // HIGH-004 監査対応: croner v2 は with_seconds_required() を明示しないと 5 フィールドモードで動作する。
+    // Cron::from_str() や "...".parse() はデフォルト 5 フィールドのため、
+    // 6 フィールド式（"0 0 0 * * *"）を渡すと find_next_occurrence が常に Err を返す。
+    // Cron::new(expr).with_seconds_required().parse() に変更して 6 フィールドモードを明示する。
     let schedules: Vec<(&str, croner::Cron)> = [
         ("daily", daily_expr.as_str()),
         ("monthly", monthly_expr.as_str()),
     ]
     .into_iter()
-    .filter_map(|(label, expr)| match croner::Cron::from_str(expr) {
-        Ok(cron) => {
-            info!(
-                schedule = label,
-                expression = expr,
-                "cron schedule registered"
-            );
-            Some((label, cron))
-        }
-        Err(e) => {
-            tracing::error!(
-                schedule = label,
-                expression = expr,
-                error = %e,
-                "failed to parse cron expression, skipping"
-            );
-            None
-        }
-    })
+    .filter_map(
+        |(label, expr)| match croner::Cron::new(expr).with_seconds_required().parse() {
+            Ok(cron) => {
+                info!(
+                    schedule = label,
+                    expression = expr,
+                    "cron schedule registered"
+                );
+                Some((label, cron))
+            }
+            Err(e) => {
+                tracing::error!(
+                    schedule = label,
+                    expression = expr,
+                    error = %e,
+                    "failed to parse cron expression, skipping"
+                );
+                None
+            }
+        },
+    )
     .collect();
 
     // 有効なスケジュールが1件もない場合はタスクを終了する
@@ -468,37 +475,34 @@ async fn run_reset_cron(
             }
         }
 
-        let (fire_at, label) = match next_fire {
-            Some(v) => {
-                // cron計算に成功したので連続失敗カウンタをリセットする
-                consecutive_failures = 0;
-                v
-            }
-            None => {
-                // H-006 監査対応: cron計算失敗時に即座に終了するのではなく、
-                // 60秒待機後にリトライする。最大リトライ回数到達後にフラグを false にして終了する。
-                consecutive_failures += 1;
+        let (fire_at, label) = if let Some(v) = next_fire {
+            // cron計算に成功したので連続失敗カウンタをリセットする
+            consecutive_failures = 0;
+            v
+        } else {
+            // H-006 監査対応: cron計算失敗時に即座に終了するのではなく、
+            // 60秒待機後にリトライする。最大リトライ回数到達後にフラグを false にして終了する。
+            consecutive_failures += 1;
+            tracing::error!(
+                retry = consecutive_failures,
+                max_retry = CRON_MAX_RETRY,
+                wait_secs = CRON_RETRY_WAIT_SECS,
+                "cron occurrence の計算に失敗しました。リトライ待機後に再試行します",
+            );
+            if consecutive_failures >= CRON_MAX_RETRY {
+                // H-006 監査対応: 最大リトライ到達時に cron_healthy を false にセットして
+                // /readyz が 503 を返すようにし、Kubernetes の readinessProbe によるプロセス再起動を促す
+                cron_healthy.store(false, Ordering::Relaxed);
                 tracing::error!(
-                    retry = consecutive_failures,
                     max_retry = CRON_MAX_RETRY,
-                    wait_secs = CRON_RETRY_WAIT_SECS,
-                    "cron occurrence の計算に失敗しました。リトライ待機後に再試行します",
+                    "cron occurrence の計算が連続して失敗しました。\
+                    reset cron タスクを終了します（readyz に unhealthy を通知済み）。\
+                    システム管理者は cron 式の設定を確認してください。",
                 );
-                if consecutive_failures >= CRON_MAX_RETRY {
-                    // H-006 監査対応: 最大リトライ到達時に cron_healthy を false にセットして
-                    // /readyz が 503 を返すようにし、Kubernetes の readinessProbe によるプロセス再起動を促す
-                    cron_healthy.store(false, Ordering::Relaxed);
-                    tracing::error!(
-                        max_retry = CRON_MAX_RETRY,
-                        "cron occurrence の計算が連続して失敗しました。\
-                        reset cron タスクを終了します（readyz に unhealthy を通知済み）。\
-                        システム管理者は cron 式の設定を確認してください。",
-                    );
-                    return;
-                }
-                tokio::time::sleep(std::time::Duration::from_secs(CRON_RETRY_WAIT_SECS)).await;
-                continue;
+                return;
             }
+            tokio::time::sleep(std::time::Duration::from_secs(CRON_RETRY_WAIT_SECS)).await;
+            continue;
         };
 
         let wait = (fire_at - chrono::Utc::now())
@@ -529,20 +533,24 @@ async fn reset_all_policies(
     let mut total_reset = 0u64;
 
     loop {
+        // CRITICAL-RUST-001 監査対応: スケジューラは全テナントを対象とするため
+        // system テナントとして実行する（RLS bypass 権限を持つロールが望ましい）。
         let input = usecase::list_quota_policies::ListQuotaPoliciesInput {
             page,
             page_size,
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "system".to_string(),
         };
         match list_uc.execute(&input).await {
             Ok(output) => {
                 for policy in &output.quotas {
                     let reset_input = usecase::reset_quota_usage::ResetQuotaUsageInput {
                         quota_id: policy.id.clone(),
-                        reason: format!("scheduled {} reset", schedule_label),
+                        reason: format!("scheduled {schedule_label} reset"),
                         reset_by: "system-cron".to_string(),
+                        tenant_id: policy.tenant_id.clone(),
                     };
                     if let Err(e) = reset_uc.execute(&reset_input).await {
                         tracing::warn!(
@@ -593,20 +601,28 @@ impl InMemoryQuotaPolicyRepository {
 
 #[async_trait::async_trait]
 impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
+    /// `InMemory` 実装では `tenant_id` によるフィルタリングは行わない（テスト・開発用）。
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
         let policies = self.policies.read().await;
         Ok(policies.get(id).cloned())
     }
 
-    async fn find_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
+    async fn find_all(
+        &self,
+        page: u32,
+        page_size: u32,
+        _tenant_id: &str,
+    ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
         let policies = self.policies.read().await;
         let all: Vec<QuotaPolicy> = policies.values().cloned().collect();
-        let total = all.len() as u64;
-        let start = ((page - 1) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(all.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<QuotaPolicy> = all
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }
@@ -623,7 +639,7 @@ impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut policies = self.policies.write().await;
         Ok(policies.remove(id).is_some())
     }
@@ -643,19 +659,25 @@ impl InMemoryQuotaUsageRepository {
 
 #[async_trait::async_trait]
 impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
-    async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
+    /// `InMemory` 実装では `tenant_id` によるフィルタリングは行わない（テスト・開発用）。
+    async fn get_usage(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<Option<u64>> {
         let counters = self.counters.read().await;
-        Ok(counters.get(quota_id).cloned())
+        Ok(counters.get(quota_id).copied())
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
+    async fn increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        _tenant_id: &str,
+    ) -> anyhow::Result<u64> {
         let mut counters = self.counters.write().await;
         let counter = counters.entry(quota_id.to_string()).or_insert(0);
         *counter += amount;
         Ok(*counter)
     }
 
-    async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
+    async fn reset(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<()> {
         let mut counters = self.counters.write().await;
         counters.insert(quota_id.to_string(), 0);
         Ok(())
@@ -666,6 +688,7 @@ impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
         quota_id: &str,
         amount: u64,
         limit: u64,
+        _tenant_id: &str,
     ) -> anyhow::Result<CheckAndIncrementResult> {
         let mut counters = self.counters.write().await;
         let current = counters.entry(quota_id.to_string()).or_insert(0);

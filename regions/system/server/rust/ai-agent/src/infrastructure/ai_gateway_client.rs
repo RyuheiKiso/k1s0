@@ -9,15 +9,16 @@ use k1s0_bb_ai_client::types::{
 };
 use k1s0_bb_ai_client::HttpAiClient;
 
-/// AiGatewayClient はAI Gatewayサーバーへの接続を管理する
+/// `AiGatewayClient` はAI Gatewayサーバーへの接続を管理する
 pub struct AiGatewayClient {
     /// 内部のHTTP AIクライアント
     inner: HttpAiClient,
 }
 
 impl AiGatewayClient {
-    /// 新しいAiGatewayClientを生成する
-    /// endpointはAI GatewayサーバーのベースURL
+    /// `新しいAiGatewayClientを生成する`
+    /// endpointはAI `GatewayサーバーのベースURL`
+    #[must_use]
     pub fn new(endpoint: &str) -> Self {
         // API Keyは内部通信のため空文字列を使用する
         let inner = HttpAiClient::new(endpoint.to_string(), String::new());

@@ -73,8 +73,9 @@ pub struct GrpcDlqClient {
 }
 
 impl GrpcDlqClient {
-    /// grpc_endpoint と timeout_ms から新しい GrpcDlqClient を生成する。
+    /// `grpc_endpoint` と `timeout_ms` から新しい `GrpcDlqClient` を生成する。
     /// 接続は各 RPC 呼び出し時に遅延確立する（lazy connect）。
+    #[must_use]
     pub fn new(grpc_endpoint: String, timeout_ms: u64) -> Self {
         Self {
             endpoint: grpc_endpoint,
@@ -95,11 +96,11 @@ impl GrpcDlqClient {
         // エンドポイント文字列から tonic::transport::Channel を構築する。
         // timeout はサーバー接続タイムアウトとして設定する。
         let channel = tonic::transport::Endpoint::from_shared(self.endpoint.clone())
-            .map_err(|e| anyhow::anyhow!("DLQ Manager エンドポイントが不正: {}", e))?
+            .map_err(|e| anyhow::anyhow!("DLQ Manager エンドポイントが不正: {e}"))?
             .timeout(self.timeout)
             .connect()
             .await
-            .map_err(|e| anyhow::anyhow!("DLQ Manager への gRPC 接続に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("DLQ Manager への gRPC 接続に失敗: {e}"))?;
 
         Ok(crate::proto::k1s0::system::dlq::v1::dlq_service_client::DlqServiceClient::new(channel))
     }
@@ -107,10 +108,10 @@ impl GrpcDlqClient {
 
 #[async_trait]
 impl DlqManagerClient for GrpcDlqClient {
-    /// preview_replay: 指定した correlation_ids に対応する DLQ メッセージを検索し、
+    /// `preview_replay`: 指定した `correlation_ids` に対応する DLQ メッセージを検索し、
     /// リプレイ対象件数・影響サービス等の事前確認情報を返す。
-    /// DlqService には専用の preview RPC がないため、ListMessages を使って
-    /// 対象 correlation_id ごとの DLQ メッセージ数を集計して返す。
+    /// `DlqService` には専用の preview RPC がないため、ListMessages を使って
+    /// 対象 `correlation_id` ごとの DLQ メッセージ数を集計して返す。
     async fn preview_replay(&self, req: &ReplayRequest) -> anyhow::Result<ReplayPreviewResponse> {
         use crate::proto::k1s0::system::dlq::v1::{
             dlq_service_client::DlqServiceClient, ListMessagesRequest,
@@ -130,7 +131,8 @@ impl DlqManagerClient for GrpcDlqClient {
             });
             match client.list_messages(list_req).await {
                 Ok(resp) => {
-                    let count = resp.into_inner().messages.len() as i32;
+                    // LOW-008: 安全な型変換（メッセージ数は i32 範囲内が前提）
+                    let count = i32::try_from(resp.into_inner().messages.len()).unwrap_or(i32::MAX);
                     if count > 0 {
                         total_dlq_messages += count;
                         affected_topics.push(corr_id.clone());
@@ -148,16 +150,17 @@ impl DlqManagerClient for GrpcDlqClient {
 
         // total_events_to_replay は DLQ 件数と correlation_ids 件数の合計を返す。
         Ok(ReplayPreviewResponse {
-            total_events_to_replay: req.correlation_ids.len() as i32,
+            // LOW-008: 安全な型変換（correlation_ids 件数は i32 範囲内が前提）
+            total_events_to_replay: i32::try_from(req.correlation_ids.len()).unwrap_or(i32::MAX),
             affected_services: affected_topics,
             dlq_messages_found: total_dlq_messages,
             estimated_duration_seconds: total_dlq_messages * 2, // 1件あたり約2秒と見積もる
         })
     }
 
-    /// execute_replay: 指定した correlation_ids に対応する DLQ メッセージを
-    /// RetryAll RPC を使って一括リトライする。
-    /// correlation_ids を "トピック" として扱い、各 correlation_id 配下の
+    /// `execute_replay`: 指定した `correlation_ids` に対応する DLQ メッセージを
+    /// `RetryAll` RPC を使って一括リトライする。
+    /// `correlation_ids` を "トピック" として扱い、各 `correlation_id` 配下の
     /// メッセージをリトライする。
     async fn execute_replay(&self, req: &ReplayRequest) -> anyhow::Result<ReplayResponse> {
         use crate::proto::k1s0::system::dlq::v1::{
@@ -191,7 +194,8 @@ impl DlqManagerClient for GrpcDlqClient {
         Ok(ReplayResponse {
             replay_id,
             status: "completed".to_string(),
-            total_events: req.correlation_ids.len() as i32,
+            // LOW-008: 安全な型変換（correlation_ids 件数は i32 範囲内が前提）
+            total_events: i32::try_from(req.correlation_ids.len()).unwrap_or(i32::MAX),
             replayed_events: total_retried,
         })
     }

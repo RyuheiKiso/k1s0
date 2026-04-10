@@ -23,6 +23,8 @@ use crate::domain::entity::search_index::{
 };
 use crate::domain::repository::SearchRepository;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -44,7 +46,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -348,7 +350,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -381,7 +383,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// CreateIndex / IndexDocument / DeleteDocument は write、それ以外は read。
+/// `CreateIndex` / `IndexDocument` / `DeleteDocument` は write、それ以外は read。
 fn search_grpc_action(method: &str) -> &'static str {
     match method {
         "CreateIndex" | "IndexDocument" | "DeleteDocument" => "write",
@@ -420,18 +422,25 @@ impl InMemorySearchRepository {
 
 #[async_trait::async_trait]
 impl SearchRepository for InMemorySearchRepository {
-    async fn create_index(&self, index: &SearchIndex) -> anyhow::Result<()> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn create_index(&self, index: &SearchIndex, _tenant_id: &str) -> anyhow::Result<()> {
         let mut indices = self.indices.write().await;
         indices.insert(index.name.clone(), index.clone());
         Ok(())
     }
 
-    async fn find_index(&self, name: &str) -> anyhow::Result<Option<SearchIndex>> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_index(
+        &self,
+        name: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<SearchIndex>> {
         let indices = self.indices.read().await;
         Ok(indices.get(name).cloned())
     }
 
-    async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn index_document(&self, doc: &SearchDocument, _tenant_id: &str) -> anyhow::Result<()> {
         let mut documents = self.documents.write().await;
         documents
             .entry(doc.index_name.clone())
@@ -440,7 +449,8 @@ impl SearchRepository for InMemorySearchRepository {
         Ok(())
     }
 
-    async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn search(&self, query: &SearchQuery, _tenant_id: &str) -> anyhow::Result<SearchResult> {
         let documents = self.documents.read().await;
         let docs = documents
             .get(&query.index_name)
@@ -473,7 +483,7 @@ impl SearchRepository for InMemorySearchRepository {
             .collect();
         let page_size = query.size.max(1);
         let page = (query.from / page_size) + 1;
-        let has_next = total > (query.from as u64 + hits.len() as u64);
+        let has_next = total > (u64::from(query.from) + hits.len() as u64);
 
         Ok(SearchResult {
             total,
@@ -488,7 +498,13 @@ impl SearchRepository for InMemorySearchRepository {
         })
     }
 
-    async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         let mut documents = self.documents.write().await;
         if let Some(docs) = documents.get_mut(index_name) {
             let len_before = docs.len();
@@ -499,7 +515,8 @@ impl SearchRepository for InMemorySearchRepository {
         }
     }
 
-    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn list_indices(&self, _tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         let indices = self.indices.read().await;
         Ok(indices.values().cloned().collect())
     }

@@ -5,14 +5,15 @@ use crate::types::{
     DlqMessage, ListDlqMessagesRequest, ListDlqMessagesResponse, RetryDlqMessageResponse,
 };
 
-/// DlqClient は DLQ 管理サーバーへの HTTP REST クライアント。
+/// `DlqClient` は DLQ 管理サーバーへの HTTP REST クライアント。
 pub struct DlqClient {
     endpoint: String,
     http_client: Client,
 }
 
 impl DlqClient {
-    /// 新しい DlqClient を作成する。
+    /// 新しい `DlqClient` を作成する。
+    #[must_use]
     pub fn new(endpoint: &str) -> Self {
         Self {
             endpoint: endpoint.trim_end_matches('/').to_string(),
@@ -24,7 +25,7 @@ impl DlqClient {
     }
 
     /// DLQ メッセージ一覧を取得する。
-    /// GET /api/v1/dlq/:topic?page=:page&page_size=:page_size
+    /// GET /`api/v1/dlq/:topic?page=:page&page_size=:page_size`
     pub async fn list_messages(
         &self,
         req: ListDlqMessagesRequest,

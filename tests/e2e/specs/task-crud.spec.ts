@@ -6,8 +6,9 @@ import { test, expect, type Page } from "@playwright/test";
 // BFF_BASE は環境変数または config.ts のデフォルト値を使用する
 import { BFF_BASE } from "./config";
 
-// タスク API のベースパス（BFF プロキシ経由: /bff/api/v1/tasks）
-const TASK_API = `${BFF_BASE}/bff/api/v1/tasks`;
+// タスク API のベースパス（BFF プロキシ経由: /api/v1/tasks）
+// MED-017 修正: bff-proxy のルーターは /api/ で登録されており /bff/ プレフィックスは存在しない
+const TASK_API = `${BFF_BASE}/api/v1/tasks`;
 
 // Keycloak が利用可能かどうかを確認するフラグ
 // TEST_KEYCLOAK_AVAILABLE=true の場合のみ認証済みフローのテストを実行する
@@ -22,7 +23,8 @@ test.describe("タスク API: 未認証アクセス", () => {
   // 期待結果: 全エンドポイントで 401 が返ること
 
   // 認証なしでのタスク一覧取得が 401 を返すことを検証する
-  test("未認証で GET /bff/api/v1/tasks にアクセスすると 401 が返ること", async ({
+  // MED-017 修正: テスト名のパスも /bff/ → なしに更新
+  test("未認証で GET /api/v1/tasks にアクセスすると 401 が返ること", async ({
     request,
   }) => {
     const response = await request.get(TASK_API, {
@@ -32,7 +34,8 @@ test.describe("タスク API: 未認証アクセス", () => {
   });
 
   // 認証なしでのタスク作成が 401 を返すことを検証する
-  test("未認証で POST /bff/api/v1/tasks にアクセスすると 401 が返ること", async ({
+  // MED-017 修正: テスト名のパスも /bff/ → なしに更新
+  test("未認証で POST /api/v1/tasks にアクセスすると 401 が返ること", async ({
     request,
   }) => {
     const response = await request.post(TASK_API, {
@@ -44,7 +47,8 @@ test.describe("タスク API: 未認証アクセス", () => {
   });
 
   // 認証なしでの特定タスク取得が 401 を返すことを検証する
-  test("未認証で GET /bff/api/v1/tasks/:id にアクセスすると 401 が返ること", async ({
+  // MED-017 修正: テスト名のパスも /bff/ → なしに更新
+  test("未認証で GET /api/v1/tasks/:id にアクセスすると 401 が返ること", async ({
     request,
   }) => {
     const response = await request.get(`${TASK_API}/non-existent-id`, {
@@ -94,7 +98,8 @@ test.describe("タスク CRUD E2E（Keycloak 連携）", () => {
     const testPassword = process.env.TEST_PASSWORD ?? "testpassword";
 
     // ログインページに遷移して Keycloak 認証フローを完了する
-    await page.goto(`${BFF_BASE}/bff/auth/login`);
+    // MED-017 修正: /bff/auth/login → /auth/login（bff-proxy のルーター定義に合わせる）
+    await page.goto(`${BFF_BASE}/auth/login`);
     // Keycloak のログインページに遷移していることを確認する
     await expect(page).toHaveURL(/\/realms\/k1s0\/protocol\/openid-connect\/auth/);
     await page.fill("#username", testUser);
@@ -277,20 +282,22 @@ test.describe("タスク CRUD E2E（Keycloak 連携）", () => {
 test.describe("タスク API: ルーティング確認", () => {
   // 旧 RPC スタイルのパスは 404 を返すことを確認する
   // 前提条件: api-crud.spec.ts の他サービスと同パターンで検証する
-  // 期待結果: /bff/api/v1/list_tasks は 404 を返すこと
-  test("旧 RPC スタイル /bff/api/v1/list_tasks は 404 が返ること", async ({
+  // MED-017 修正: /bff/api/v1/list_tasks → /api/v1/list_tasks（/bff/ プレフィックスなし）
+  // 期待結果: /api/v1/list_tasks は 404 を返すこと
+  test("旧 RPC スタイル /api/v1/list_tasks は 404 が返ること", async ({
     request,
   }) => {
     const response = await request.get(
-      `${BFF_BASE}/bff/api/v1/list_tasks`
+      `${BFF_BASE}/api/v1/list_tasks`
     );
     expect(response.status()).toBe(404);
   });
 
-  // RESTful パス /bff/api/v1/tasks がルーティングされていることを確認する
+  // RESTful パス /api/v1/tasks がルーティングされていることを確認する
   // 前提条件: 認証なし（認証エラーが返ればエンドポイントは存在する）
   // 期待結果: 401 または 403 が返ること（404 ではない）
-  test("GET /bff/api/v1/tasks がルーティングされていること", async ({
+  // MED-017 修正: /bff/api/v1/tasks → /api/v1/tasks
+  test("GET /api/v1/tasks がルーティングされていること", async ({
     request,
   }) => {
     const response = await request.get(TASK_API, {

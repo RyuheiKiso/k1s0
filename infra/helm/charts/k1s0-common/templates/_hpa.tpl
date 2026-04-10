@@ -15,18 +15,24 @@ spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
+    {{- /* HIGH-007 監査対応: hasKey で存在確認してから出力する */}}
+    {{- /* lessons.md: default フィルタは 0 を falsy 扱いするため hasKey を使う */}}
+    {{- if hasKey .Values.autoscaling "targetCPUUtilizationPercentage" }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if hasKey .Values.autoscaling "targetMemoryUtilizationPercentage" }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 60

@@ -1,6 +1,6 @@
 // AES-GCM 暗号化セッションストア（S-04 対応）
 // SESSION_ENCRYPTION_KEY 環境変数から 32 バイト（AES-256）の鍵を使用して
-// SessionData を暗号化してから Redis に保存する。
+// Data を暗号化してから Redis に保存する。
 // 鍵が未設定の場合は通常の RedisStore にフォールバックする（main.go 参照）。
 package session
 
@@ -19,7 +19,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// EncryptedStore は AES-GCM で SessionData を暗号化して Redis に保存するセッションストア。
+// EncryptedStore は AES-GCM で Data を暗号化して Redis に保存するセッションストア。
 // Store インターフェースを完全に実装し、RedisStore の代替として使用できる。
 type EncryptedStore struct {
 	client redis.Cmdable
@@ -109,8 +109,8 @@ func (s *EncryptedStore) decrypt(encoded string, aad []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-// Create は SessionData を暗号化して Redis に保存し、新規セッション ID を返す。
-func (s *EncryptedStore) Create(ctx context.Context, data *SessionData, ttl time.Duration) (string, error) {
+// Create は Data を暗号化して Redis に保存し、新規セッション ID を返す。
+func (s *EncryptedStore) Create(ctx context.Context, data *Data, ttl time.Duration) (string, error) {
 	id := uuid.New().String()
 	data.CreatedAt = time.Now().Unix()
 
@@ -132,7 +132,7 @@ func (s *EncryptedStore) Create(ctx context.Context, data *SessionData, ttl time
 }
 
 // Get は Redis からセッションを取得し、復号して返す。存在しない場合は nil を返す。
-func (s *EncryptedStore) Get(ctx context.Context, id string) (*SessionData, error) {
+func (s *EncryptedStore) Get(ctx context.Context, id string) (*Data, error) {
 	val, err := s.client.Get(ctx, s.redisKey(id)).Result()
 	if err == redis.Nil {
 		return nil, nil
@@ -147,7 +147,7 @@ func (s *EncryptedStore) Get(ctx context.Context, id string) (*SessionData, erro
 		return nil, fmt.Errorf("セッションの復号に失敗: %w", err)
 	}
 
-	var data SessionData
+	var data Data
 	if err := json.Unmarshal(plaintext, &data); err != nil {
 		return nil, fmt.Errorf("セッションのデシリアライズに失敗: %w", err)
 	}
@@ -155,7 +155,7 @@ func (s *EncryptedStore) Get(ctx context.Context, id string) (*SessionData, erro
 }
 
 // Update は既存セッションデータを暗号化して上書きする。
-func (s *EncryptedStore) Update(ctx context.Context, id string, data *SessionData, ttl time.Duration) error {
+func (s *EncryptedStore) Update(ctx context.Context, id string, data *Data, ttl time.Duration) error {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("セッションのシリアライズに失敗: %w", err)
@@ -196,7 +196,7 @@ func (s *EncryptedStore) exchangeCodeKey(code string) string {
 }
 
 // CreateExchangeCode はモバイルフロー用交換コードデータを暗号化して Redis に保存する（H-5 監査対応）。
-// SessionData.AccessToken を流用する代わりに ExchangeCodeData 専用の操作を提供する。
+// Data.AccessToken を流用する代わりに ExchangeCodeData 専用の操作を提供する。
 func (s *EncryptedStore) CreateExchangeCode(ctx context.Context, data *ExchangeCodeData, ttl time.Duration) (string, error) {
 	code := uuid.New().String()
 

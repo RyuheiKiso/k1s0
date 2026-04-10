@@ -14,7 +14,7 @@ struct MemoryState {
     seq: u64,
 }
 
-/// InMemorySchedulerClient is an in-memory SchedulerClient implementation
+/// `InMemorySchedulerClient` is an in-memory `SchedulerClient` implementation
 /// for unit tests and local development.
 #[derive(Debug, Default)]
 pub struct InMemorySchedulerClient {
@@ -22,6 +22,7 @@ pub struct InMemorySchedulerClient {
 }
 
 impl InMemorySchedulerClient {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             state: Mutex::new(MemoryState::default()),

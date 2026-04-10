@@ -6,6 +6,8 @@ use crate::domain::repository::{EventRepository, EventStreamRepository};
 #[derive(Debug, Clone)]
 pub struct ReadEventBySequenceInput {
     pub stream_id: String,
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
     pub sequence: u64,
 }
 
@@ -39,9 +41,10 @@ impl ReadEventBySequenceUseCase {
         &self,
         input: &ReadEventBySequenceInput,
     ) -> Result<StoredEvent, ReadEventBySequenceError> {
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| ReadEventBySequenceError::Internal(e.to_string()))?;
 
@@ -51,9 +54,10 @@ impl ReadEventBySequenceUseCase {
             ));
         }
 
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let event = self
             .event_repo
-            .find_by_sequence(&input.stream_id, input.sequence)
+            .find_by_sequence(&input.tenant_id, &input.stream_id, input.sequence)
             .await
             .map_err(|e| ReadEventBySequenceError::Internal(e.to_string()))?;
 
@@ -76,6 +80,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 3,
             created_at: chrono::Utc::now(),
@@ -86,6 +91,7 @@ mod tests {
     fn make_event() -> StoredEvent {
         StoredEvent::new(
             "order-001".to_string(),
+            "tenant-test".to_string(),
             1,
             "OrderPlaced".to_string(),
             1,
@@ -101,14 +107,15 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         event_repo
             .expect_find_by_sequence()
-            .returning(|_, _| Ok(Some(make_event())));
+            .returning(|_, _, _| Ok(Some(make_event())));
 
         let uc = ReadEventBySequenceUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventBySequenceInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             sequence: 1,
         };
         let result = uc.execute(&input).await;
@@ -122,11 +129,12 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ReadEventBySequenceUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventBySequenceInput {
             stream_id: "order-999".to_string(),
+            tenant_id: "tenant-test".to_string(),
             sequence: 1,
         };
         let result = uc.execute(&input).await;
@@ -144,14 +152,15 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         event_repo
             .expect_find_by_sequence()
-            .returning(|_, _| Ok(None));
+            .returning(|_, _, _| Ok(None));
 
         let uc = ReadEventBySequenceUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventBySequenceInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             sequence: 999,
         };
         let result = uc.execute(&input).await;
@@ -169,11 +178,12 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ReadEventBySequenceUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventBySequenceInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             sequence: 1,
         };
         let result = uc.execute(&input).await;

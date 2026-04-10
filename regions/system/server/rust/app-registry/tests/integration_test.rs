@@ -66,28 +66,30 @@ impl TestAppRepository {
     }
 }
 
+// CRIT-004 監査対応: tenant_id パラメータを追加（テスト実装のため無視）
 #[async_trait]
 impl AppRepository for TestAppRepository {
     async fn list(
         &self,
+        _tenant_id: &str,
         _category: Option<String>,
         _search: Option<String>,
     ) -> anyhow::Result<Vec<App>> {
         Ok(self.apps.read().await.clone())
     }
 
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<App>> {
+    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<App>> {
         let apps = self.apps.read().await;
         Ok(apps.iter().find(|a| a.id == id).cloned())
     }
 
-    async fn create(&self, app: &App) -> anyhow::Result<App> {
+    async fn create(&self, _tenant_id: &str, app: &App) -> anyhow::Result<App> {
         let mut apps = self.apps.write().await;
         apps.push(app.clone());
         Ok(app.clone())
     }
 
-    async fn update(&self, app: &App) -> anyhow::Result<App> {
+    async fn update(&self, _tenant_id: &str, app: &App) -> anyhow::Result<App> {
         let mut apps = self.apps.write().await;
         if let Some(existing) = apps.iter_mut().find(|a| a.id == app.id) {
             *existing = app.clone();
@@ -95,7 +97,7 @@ impl AppRepository for TestAppRepository {
         Ok(app.clone())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, id: &str) -> anyhow::Result<bool> {
         let mut apps = self.apps.write().await;
         let len_before = apps.len();
         apps.retain(|a| a.id != id);
@@ -241,6 +243,10 @@ async fn make_test_app_with_repos(
             "test-issuer".to_string(),
             "test-audience".to_string(),
         )),
+        // テスト用スタブ: 署名検証を常に成功させる
+        cosign_verifier: Arc::new(
+            k1s0_app_registry::infrastructure::signature_verifier::StubCosignVerifier,
+        ),
         metrics,
         db_pool: None,
     };
@@ -285,6 +291,7 @@ fn sample_version(app_id: &str, version: &str) -> AppVersion {
         storage_key: format!("{}/{}/linux/amd64/binary", app_id, version),
         release_notes: Some("Initial release".to_string()),
         mandatory: false,
+        cosign_signature: None,
         published_at: chrono::Utc::now(),
         created_at: chrono::Utc::now(),
     }

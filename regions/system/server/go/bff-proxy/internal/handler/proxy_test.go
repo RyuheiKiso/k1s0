@@ -31,20 +31,20 @@ func (c *closeNotifierRecorder) CloseNotify() <-chan bool {
 
 // proxyTestStore is an in-memory store for proxy handler tests.
 type proxyTestStore struct {
-	sessions map[string]*session.SessionData
+	sessions map[string]*session.Data
 }
 
 func newProxyTestStore() *proxyTestStore {
-	return &proxyTestStore{sessions: make(map[string]*session.SessionData)}
+	return &proxyTestStore{sessions: make(map[string]*session.Data)}
 }
 
-func (s *proxyTestStore) Create(_ context.Context, data *session.SessionData, _ time.Duration) (string, error) {
+func (s *proxyTestStore) Create(_ context.Context, data *session.Data, _ time.Duration) (string, error) {
 	id := "proxy-session"
 	s.sessions[id] = data
 	return id, nil
 }
 
-func (s *proxyTestStore) Get(_ context.Context, id string) (*session.SessionData, error) {
+func (s *proxyTestStore) Get(_ context.Context, id string) (*session.Data, error) {
 	d, ok := s.sessions[id]
 	if !ok {
 		return nil, nil
@@ -52,7 +52,7 @@ func (s *proxyTestStore) Get(_ context.Context, id string) (*session.SessionData
 	return d, nil
 }
 
-func (s *proxyTestStore) Update(_ context.Context, id string, data *session.SessionData, _ time.Duration) error {
+func (s *proxyTestStore) Update(_ context.Context, id string, data *session.Data, _ time.Duration) error {
 	s.sessions[id] = data
 	return nil
 }
@@ -77,7 +77,7 @@ func TestProxyHandler_InjectsAuthHeader(t *testing.T) {
 	defer upstream.Close()
 
 	store := newProxyTestStore()
-	store.sessions["test-session"] = &session.SessionData{
+	store.sessions["test-session"] = &session.Data{
 		AccessToken: "test-access-token",
 		ExpiresAt:   time.Now().Add(10 * time.Minute).Unix(),
 	}
@@ -145,7 +145,7 @@ func TestProxyHandler_RefreshFailure_DeletesSession(t *testing.T) {
 
 	// 期限切れトークンを持つセッションをストアに登録する
 	store := newProxyTestStore()
-	store.sessions["refresh-session"] = &session.SessionData{
+	store.sessions["refresh-session"] = &session.Data{
 		AccessToken:  "expired-access-token",
 		RefreshToken: "old-refresh-token",
 		ExpiresAt:    time.Now().Add(-1 * time.Minute).Unix(),

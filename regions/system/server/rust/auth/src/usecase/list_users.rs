@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::user::UserListResult;
 use crate::domain::repository::UserRepository;
 
-/// ListUsersError はユーザー一覧取得に関するエラーを表す。
+/// `ListUsersError` はユーザー一覧取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum ListUsersError {
     #[error("invalid page: {0}")]
@@ -16,7 +16,7 @@ pub enum ListUsersError {
     Internal(String),
 }
 
-/// ListUsersParams はユーザー一覧取得のクエリパラメータを表す。
+/// `ListUsersParams` はユーザー一覧取得のクエリパラメータを表す。
 #[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct ListUsersParams {
     pub page: Option<i32>,
@@ -25,7 +25,7 @@ pub struct ListUsersParams {
     pub enabled: Option<bool>,
 }
 
-/// ListUsersUseCase はユーザー一覧取得ユースケース。
+/// `ListUsersUseCase` はユーザー一覧取得ユースケース。
 pub struct ListUsersUseCase {
     user_repo: Arc<dyn UserRepository>,
 }

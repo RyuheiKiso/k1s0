@@ -73,6 +73,7 @@ pub async fn register_overdue_check_job(cfg: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[must_use]
 pub fn overdue_check_target_url(cfg: &Config) -> String {
     if let Ok(base_url) = std::env::var("WORKFLOW_INTERNAL_BASE_URL") {
         return format!(
@@ -95,7 +96,7 @@ pub fn overdue_check_target_url(cfg: &Config) -> String {
         _ => format!("http://127.0.0.1:{}", cfg.server.port),
     };
 
-    format!("{}/internal/tasks/check-overdue", base_url)
+    format!("{base_url}/internal/tasks/check-overdue")
 }
 
 #[derive(Debug, Deserialize)]

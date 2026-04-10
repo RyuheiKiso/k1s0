@@ -7,22 +7,22 @@ use async_graphql::dataloader::DataLoader;
 
 use crate::domain::port::{ConfigPort, FeatureFlagPort, TenantPort};
 
-/// GraphQL リクエストコンテキスト。JWT から抽出した認証情報と DataLoader を保持する。
+/// GraphQL リクエストコンテキスト。JWT から抽出した認証情報と `DataLoader` を保持する。
 #[allow(dead_code)]
 pub struct GraphqlContext {
     /// JWT sub クレームから取得したユーザー ID
     pub user_id: String,
-    /// JWT realm_access.roles から取得したロールリスト
+    /// JWT `realm_access.roles` から取得したロールリスト
     pub roles: Vec<String>,
     /// リクエスト追跡 ID（X-Request-Id ヘッダーまたは UUID 自動生成）
     pub request_id: String,
     /// 検証済み raw JWT トークン。下流 gRPC サービスへの転送用（M-3 監査対応: クエリ引数からコンテキストへ移動）
     pub bearer_token: String,
     /// H-15 監査対応: クライアント IP アドレス（X-Forwarded-For またはリモートアドレスから取得）
-    /// クライアントが ip_address をリクエストに含められないようサーバーサイドで抽出する
+    /// クライアントが `ip_address` をリクエストに含められないようサーバーサイドで抽出する
     pub ip_address: String,
     /// H-15 監査対応: クライアントのユーザーエージェント（User-Agent ヘッダーから取得）
-    /// クライアントが user_agent をリクエストに含められないようサーバーサイドで抽出する
+    /// クライアントが `user_agent` をリクエストに含められないようサーバーサイドで抽出する
     pub user_agent: String,
     /// テナントバッチローダー
     pub tenant_loader: Arc<DataLoader<TenantLoader>>,
@@ -32,20 +32,20 @@ pub struct GraphqlContext {
     pub config_loader: Arc<DataLoader<ConfigLoader>>,
 }
 
-/// テナントバッチロード用の DataLoader 実装体。
-/// client フィールドは TenantPort トレイトオブジェクトを保持し、具象型に依存しない。
+/// テナントバッチロード用の `DataLoader` 実装体。
+/// client フィールドは `TenantPort` トレイトオブジェクトを保持し、具象型に依存しない。
 pub struct TenantLoader {
     pub client: Arc<dyn TenantPort>,
 }
 
-/// フィーチャーフラグバッチロード用の DataLoader 実装体。
-/// client フィールドは FeatureFlagPort トレイトオブジェクトを保持し、具象型に依存しない。
+/// フィーチャーフラグバッチロード用の `DataLoader` 実装体。
+/// client フィールドは `FeatureFlagPort` トレイトオブジェクトを保持し、具象型に依存しない。
 pub struct FeatureFlagLoader {
     pub client: Arc<dyn FeatureFlagPort>,
 }
 
-/// コンフィグバッチロード用の DataLoader 実装体。
-/// client フィールドは ConfigPort トレイトオブジェクトを保持し、具象型に依存しない。
+/// コンフィグバッチロード用の `DataLoader` 実装体。
+/// client フィールドは `ConfigPort` トレイトオブジェクトを保持し、具象型に依存しない。
 pub struct ConfigLoader {
     pub client: Arc<dyn ConfigPort>,
 }

@@ -9,7 +9,7 @@ pub use error::RateLimitError;
 pub use in_memory::InMemoryRateLimitClient;
 pub use types::{RateLimitPolicy, RateLimitResult, RateLimitStatus};
 
-/// C-02 監査対応: GrpcRateLimitClient → HttpRateLimitClient にリネーム
+/// C-02 監査対応: `GrpcRateLimitClient` → `HttpRateLimitClient` にリネーム
 #[cfg(feature = "grpc")]
 pub use grpc::HttpRateLimitClient;
 

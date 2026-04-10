@@ -3,10 +3,16 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/// Session はユーザーセッションのドメインエンティティ。
+/// `tenant_id` はテナント分離（RLS）のために必須フィールドとして管理する。
+/// Redis には JSON `シリアライズ形式で保存され、serde_default` でレガシーデータとも互換性を保つ。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
     pub id: String,
     pub user_id: String,
+    /// テナント識別子。RLS ポリシーで `app.current_tenant_id` と照合される。
+    #[serde(default = "default_tenant_id")]
+    pub tenant_id: String,
     pub device_id: String,
     pub device_name: Option<String>,
     pub device_type: Option<String>,
@@ -21,11 +27,18 @@ pub struct Session {
     pub metadata: HashMap<String, String>,
 }
 
+/// `tenant_id` のデフォルト値。既存 Redis データとの後方互換性のために "system" を返す。
+fn default_tenant_id() -> String {
+    "system".to_string()
+}
+
 impl Session {
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         !self.revoked && !self.is_expired()
     }
 
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         Utc::now() >= self.expires_at
     }
@@ -48,6 +61,7 @@ mod tests {
         Session {
             id: "sess-1".to_string(),
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-1".to_string(),
             device_name: Some("device".to_string()),
             device_type: Some("desktop".to_string()),

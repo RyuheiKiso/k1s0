@@ -19,11 +19,9 @@ use super::dto::{
     RejectTaskRequest,
 };
 
-/// Claims が存在する場合は tenant_id を返し、存在しない場合は "system" を返す
+/// Claims が存在する場合は `tenant_id` を返し、存在しない場合は "system" を返す
 fn tenant_id_from_claims(claims: Option<&Claims>) -> String {
-    claims
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+    claims.map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 /// GET /api/v1/tasks
@@ -54,13 +52,9 @@ pub async fn list_tasks(
                 .into_iter()
                 .map(|t| {
                     // 期限超過判定: 期限切れかつステータスがpendingまたはassignedの場合
-                    let is_overdue = t
-                        .due_at
-                        .map(|d| {
-                            d < chrono::Utc::now()
-                                && (t.status == "pending" || t.status == "assigned")
-                        })
-                        .unwrap_or(false);
+                    let is_overdue = t.due_at.is_some_and(|d| {
+                        d < chrono::Utc::now() && (t.status == "pending" || t.status == "assigned")
+                    });
                     serde_json::json!({
                         "id": t.id,
                         "instance_id": t.instance_id,
@@ -170,7 +164,7 @@ pub async fn approve_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_TASK_NOT_FOUND",
-                &format!("task not found: {}", id),
+                &format!("task not found: {id}"),
             )),
         )
             .into_response(),
@@ -179,7 +173,7 @@ pub async fn approve_task(
             StatusCode::CONFLICT,
             Json(error_json(
                 "SYS_WORKFLOW_TASK_INVALID_STATUS",
-                &format!("invalid task status: {}", status),
+                &format!("invalid task status: {status}"),
             )),
         )
             .into_response(),
@@ -188,7 +182,7 @@ pub async fn approve_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
-                &format!("instance not found: {}", inst_id),
+                &format!("instance not found: {inst_id}"),
             )),
         )
             .into_response(),
@@ -197,7 +191,7 @@ pub async fn approve_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_DEFINITION_NOT_FOUND",
-                &format!("definition not found: {}", def_id),
+                &format!("definition not found: {def_id}"),
             )),
         )
             .into_response(),
@@ -244,7 +238,7 @@ pub async fn reject_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_TASK_NOT_FOUND",
-                &format!("task not found: {}", id),
+                &format!("task not found: {id}"),
             )),
         )
             .into_response(),
@@ -253,7 +247,7 @@ pub async fn reject_task(
             StatusCode::CONFLICT,
             Json(error_json(
                 "SYS_WORKFLOW_TASK_INVALID_STATUS",
-                &format!("invalid task status: {}", status),
+                &format!("invalid task status: {status}"),
             )),
         )
             .into_response(),
@@ -262,7 +256,7 @@ pub async fn reject_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_INSTANCE_NOT_FOUND",
-                &format!("instance not found: {}", inst_id),
+                &format!("instance not found: {inst_id}"),
             )),
         )
             .into_response(),
@@ -271,7 +265,7 @@ pub async fn reject_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_DEFINITION_NOT_FOUND",
-                &format!("definition not found: {}", def_id),
+                &format!("definition not found: {def_id}"),
             )),
         )
             .into_response(),
@@ -319,7 +313,7 @@ pub async fn reassign_task(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_TASK_NOT_FOUND",
-                &format!("task not found: {}", id),
+                &format!("task not found: {id}"),
             )),
         )
             .into_response(),
@@ -328,7 +322,7 @@ pub async fn reassign_task(
             StatusCode::CONFLICT,
             Json(error_json(
                 "SYS_WORKFLOW_TASK_REASSIGN_INVALID_STATUS",
-                &format!("invalid task status for reassignment: {}", status),
+                &format!("invalid task status for reassignment: {status}"),
             )),
         )
             .into_response(),

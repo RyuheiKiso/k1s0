@@ -2,7 +2,8 @@
 // L-06 監査対応 確認日: 2026-03-28
 // 全 54 モジュール（api/proto + 52 ライブラリ + bff-proxy）の実在を確認済み。
 // MISSING なし。問題なし。
-go 1.26.1
+// HIGH-009 監査対応: Go 1.26.1 → 1.26.2 アップグレード（crypto/x509, crypto/tls, html/template の CVE 修正）
+go 1.26.2
 
 use (
 	// サーバー — API・プロキシサービス

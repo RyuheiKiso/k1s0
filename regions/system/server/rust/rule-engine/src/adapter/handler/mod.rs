@@ -38,11 +38,12 @@ pub struct AppState {
     pub auth_state: Option<AuthState>,
     /// バックエンド種別: "postgres" または "in-memory"。health エンドポイントで使用。
     pub backend_kind: String,
-    /// DB 接続プール（MED-007 監査対応: PostgreSQL 設定が存在する場合に初期化）
+    /// DB 接続プール（MED-007 監査対応: `PostgreSQL` 設定が存在する場合に初期化）
     pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self

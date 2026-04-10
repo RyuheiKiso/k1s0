@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
@@ -35,12 +35,14 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_spiffe(mut self, spiffe_state: SpiffeAuthState) -> Self {
         self.spiffe_state = Some(spiffe_state);
         self
@@ -50,7 +52,7 @@ impl AppState {
 // --- Query DTOs ---
 
 /// LOW-12 監査対応: keyset ページネーションクエリパラメータ。
-/// after_id に前ページの最後のアイテムの UUID を指定すると次ページを取得できる。
+/// `after_id` に前ページの最後のアイテムの UUID を指定すると次ページを取得できる。
 #[derive(Debug, Deserialize)]
 pub struct AuditLogQuery {
     /// 前ページの最後のアイテムの id（カーソル）。省略した場合は先頭ページ。
@@ -118,16 +120,16 @@ fn classify_vault_internal_error(msg: &str) -> (StatusCode, &'static str) {
 }
 
 /// 本番環境で内部エラー詳細を API レスポンスに露出しないためのフラグ。
-/// VAULT_EXPOSE_INTERNAL_ERRORS=true を設定した場合のみ詳細を返す（開発環境専用）。
+/// `VAULT_EXPOSE_INTERNAL_ERRORS=true` を設定した場合のみ詳細を返す（開発環境専用）。
 fn should_expose_internal_errors() -> bool {
     std::env::var("VAULT_EXPOSE_INTERNAL_ERRORS")
         .map(|v| v.eq_ignore_ascii_case("true"))
         .unwrap_or(false)
 }
 
-/// Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー。
+/// `Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー`。
 /// 本番環境ではエラー詳細を隠蔽し、ジェネリックなメッセージを返す（LOW-04 監査対応）。
-/// 開発環境では VAULT_EXPOSE_INTERNAL_ERRORS=true で詳細を返せる。
+/// 開発環境では `VAULT_EXPOSE_INTERNAL_ERRORS=true` で詳細を返せる。
 fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
     let (status, code) = classify_vault_internal_error(msg);
     // 本番環境でのエラー詳細漏洩を防ぐため、expose フラグが false の場合はジェネリックメッセージに差し替える
@@ -135,11 +137,12 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
         msg
     } else {
         // 内部エラー詳細は隠蔽し、エラーコードのみクライアントに返す
+        // SYS_VAULT_CACHE_ERROR と未知コードは同じメッセージを返すためアームを統合する
         match code {
             "SYS_VAULT_ACCESS_DENIED" => "access denied",
-            "SYS_VAULT_CACHE_ERROR" => "internal server error",
             "SYS_VAULT_VALIDATION_ERROR" => "invalid request",
             "SYS_VAULT_UPSTREAM_ERROR" => "upstream service error",
+            // SYS_VAULT_CACHE_ERROR および未知コードは同じメッセージを返す（_ のみで全マッチ）
             _ => "internal server error",
         }
     };
@@ -164,11 +167,17 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
 /// POST /api/v1/secrets
 pub async fn create_secret(
     State(state): State<AppState>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<SetSecretRequest>,
 ) -> impl IntoResponse {
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = SetSecretInput {
         path: req.path.clone(),
         data: req.data,
+        tenant_id,
     };
 
     match state.set_secret_uc.execute(&input).await {
@@ -190,9 +199,13 @@ pub async fn get_secret(
     Path(key): Path<String>,
     Query(query): Query<SecretVersionQuery>,
 ) -> impl IntoResponse {
+    // MED-011 監査対応: tenant_id を access_log に伝播する
+    // 現在 vault は key_path による論理分離（ADR-0056）を採用しており、tenant_id は None で許容する
+    // 将来フェーズ3（key_path prefix 必須化）対応時に JWT Claims からの tenant_id 抽出を追加する
     let input = GetSecretInput {
         path: key.clone(),
         version: query.version,
+        tenant_id: None,
     };
 
     match state.get_secret_uc.execute(&input).await {
@@ -213,7 +226,7 @@ pub async fn get_secret(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),
@@ -225,11 +238,17 @@ pub async fn get_secret(
 pub async fn update_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<UpdateSecretRequest>,
 ) -> impl IntoResponse {
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = SetSecretInput {
         path: key.clone(),
         data: req.data,
+        tenant_id,
     };
 
     match state.set_secret_uc.execute(&input).await {
@@ -249,10 +268,16 @@ pub async fn update_secret(
 pub async fn delete_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = DeleteSecretInput {
         path: key.clone(),
         versions: vec![], // delete all versions
+        tenant_id,
     };
 
     match state.delete_secret_uc.execute(&input).await {
@@ -261,7 +286,7 @@ pub async fn delete_secret(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),
@@ -270,6 +295,8 @@ pub async fn delete_secret(
 }
 
 /// GET /api/v1/secrets
+/// axum の Query 型制約により `HashMap` 型パラメータの汎化は不可のため、警告を抑制する。
+#[allow(clippy::implicit_hasher)]
 pub async fn list_secrets(
     State(state): State<AppState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -291,9 +318,11 @@ pub async fn get_secret_metadata(
     State(state): State<AppState>,
     Path(key): Path<String>,
 ) -> impl IntoResponse {
+    // MED-011 監査対応: tenant_id を access_log に伝播する（将来フェーズ3で JWT Claims 抽出予定）
     let input = GetSecretInput {
         path: key.clone(),
         version: None,
+        tenant_id: None,
     };
 
     match state.get_secret_uc.execute(&input).await {
@@ -311,7 +340,7 @@ pub async fn get_secret_metadata(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),
@@ -372,14 +401,22 @@ pub async fn list_audit_logs(
 }
 
 /// POST /api/v1/secrets/:key/rotate
+/// axum の Json 型制約により `HashMap` 型パラメータの汎化は不可のため、警告を抑制する。
+#[allow(clippy::implicit_hasher)]
 pub async fn rotate_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = RotateSecretInput {
         path: key.clone(),
         data: req,
+        tenant_id,
     };
 
     match state.rotate_secret_uc.execute(&input).await {
@@ -396,7 +433,7 @@ pub async fn rotate_secret(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),

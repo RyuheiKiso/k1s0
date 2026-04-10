@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::DlqMessage;
 use crate::domain::repository::DlqMessageRepository;
 
-/// ListMessagesUseCase はトピック別の DLQ メッセージ一覧取得を担う。
+/// `ListMessagesUseCase` はトピック別の DLQ メッセージ一覧取得を担う。
 pub struct ListMessagesUseCase {
     repo: Arc<dyn DlqMessageRepository>,
 }
@@ -13,7 +13,7 @@ impl ListMessagesUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからトピック別にメッセージ一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからトピック別にメッセージ一覧を取得する。
     pub async fn execute(
         &self,
         topic: &str,
@@ -21,7 +21,9 @@ impl ListMessagesUseCase {
         page_size: i32,
         tenant_id: &str,
     ) -> anyhow::Result<(Vec<DlqMessage>, i64)> {
-        self.repo.find_by_topic(topic, page, page_size, tenant_id).await
+        self.repo
+            .find_by_topic(topic, page, page_size, tenant_id)
+            .await
     }
 }
 
@@ -38,7 +40,10 @@ mod tests {
             .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
-        let (messages, total) = uc.execute("orders.dlq.v1", 1, 20, "tenant-a").await.unwrap();
+        let (messages, total) = uc
+            .execute("orders.dlq.v1", 1, 20, "tenant-a")
+            .await
+            .unwrap();
         assert!(messages.is_empty());
         assert_eq!(total, 0);
     }
@@ -57,7 +62,10 @@ mod tests {
         });
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
-        let (messages, total) = uc.execute("orders.dlq.v1", 1, 20, "tenant-a").await.unwrap();
+        let (messages, total) = uc
+            .execute("orders.dlq.v1", 1, 20, "tenant-a")
+            .await
+            .unwrap();
         assert_eq!(messages.len(), 1);
         assert_eq!(total, 1);
     }

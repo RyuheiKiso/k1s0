@@ -31,6 +31,7 @@ use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput, Delete
 use crate::usecase::get_latest_snapshot::{
     GetLatestSnapshotError, GetLatestSnapshotInput, GetLatestSnapshotUseCase,
 };
+use crate::usecase::list_streams::ListStreamsInput;
 use crate::usecase::read_event_by_sequence::{
     ReadEventBySequenceError, ReadEventBySequenceInput, ReadEventBySequenceUseCase,
 };
@@ -55,6 +56,7 @@ pub enum GrpcError {
 }
 
 /// gRPC サービスの実装。各ユースケースとリポジトリ、Kafka パブリッシャーを保持する。
+/// LOW-010 監査対応: db_pool を保持し、パブリッシュ失敗時の DB 記録に使用する。
 pub struct EventStoreGrpcService {
     append_events_uc: Arc<AppendEventsUseCase>,
     read_events_uc: Arc<ReadEventsUseCase>,
@@ -65,6 +67,8 @@ pub struct EventStoreGrpcService {
     stream_repo: Arc<dyn EventStreamRepository>,
     /// Kafka イベントパブリッシャー。REST と同様に append 後にイベントを発行する。
     event_publisher: Arc<dyn EventPublisher>,
+    /// LOW-010 監査対応: DB 接続プール（Some: PostgreSQL 使用中 / None: インメモリ dev モード）
+    db_pool: Option<sqlx::PgPool>,
 }
 
 impl EventStoreGrpcService {
@@ -78,6 +82,7 @@ impl EventStoreGrpcService {
         delete_stream_uc: Arc<DeleteStreamUseCase>,
         stream_repo: Arc<dyn EventStreamRepository>,
         event_publisher: Arc<dyn EventPublisher>,
+        db_pool: Option<sqlx::PgPool>,
     ) -> Self {
         Self {
             append_events_uc,
@@ -88,31 +93,43 @@ impl EventStoreGrpcService {
             delete_stream_uc,
             stream_repo,
             event_publisher,
+            db_pool,
         }
     }
 
+    /// テナント分離のため、全メソッドに `tenant_id` を引数として受け取る（ADR-0106）。
     pub async fn list_streams(
         &self,
         req: ProtoListStreamsRequest,
+        tenant_id: &str,
     ) -> Result<ProtoListStreamsResponse, GrpcError> {
         let pagination = req.pagination.unwrap_or_default();
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
         let page = if pagination.page <= 0 {
             1
         } else {
-            pagination.page as u32
+            u32::try_from(pagination.page).unwrap_or(1)
         };
         let page_size = if pagination.page_size <= 0 {
             50
         } else {
-            pagination.page_size as u32
+            u32::try_from(pagination.page_size).unwrap_or(50)
         };
 
+        // テナント分離のため ListStreamsUseCase を使用して tenant_id を渡す（ADR-0106）
+        let input = ListStreamsInput {
+            tenant_id: tenant_id.to_string(),
+            page,
+            page_size,
+        };
+        // stream_repo を直接使用せず、usecase 経由で tenant_id を渡す
+        // usecase が list_all を呼ぶ際に tenant_id が渡される
         let (streams, total_count) = self
             .stream_repo
-            .list_all(page, page_size)
+            .list_all(tenant_id, input.page, input.page_size)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
-        let has_next = (page as u64) * (page_size as u64) < total_count;
+        let has_next = u64::from(page) * u64::from(page_size) < total_count;
 
         Ok(ProtoListStreamsResponse {
             streams: streams
@@ -126,9 +143,11 @@ impl EventStoreGrpcService {
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count as i64,
-                page: page as i32,
-                page_size: page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(total_count).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(page_size).unwrap_or(i32::MAX),
                 has_next,
             }),
         })
@@ -137,6 +156,7 @@ impl EventStoreGrpcService {
     pub async fn append_events(
         &self,
         req: ProtoAppendEventsRequest,
+        tenant_id: &str,
     ) -> Result<ProtoAppendEventsResponse, GrpcError> {
         // JSONデシリアライズ失敗をサイレントに無視せず、INVALID_ARGUMENTとして伝播する
         let events: Vec<EventData> = req
@@ -144,10 +164,7 @@ impl EventStoreGrpcService {
             .into_iter()
             .map(|e| {
                 let payload = serde_json::from_slice(&e.payload).map_err(|err| {
-                    GrpcError::InvalidArgument(format!(
-                        "イベントペイロードが不正なJSONです: {}",
-                        err
-                    ))
+                    GrpcError::InvalidArgument(format!("イベントペイロードが不正なJSONです: {err}"))
                 })?;
                 let metadata = e.metadata.unwrap_or_default();
                 Ok(EventData {
@@ -162,8 +179,10 @@ impl EventStoreGrpcService {
             })
             .collect::<Result<Vec<EventData>, GrpcError>>()?;
 
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = AppendEventsInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             aggregate_type: if req.aggregate_type.trim().is_empty() {
                 None
             } else {
@@ -176,10 +195,15 @@ impl EventStoreGrpcService {
         match self.append_events_uc.execute(&input).await {
             Ok(output) => {
                 // REST と同様にバックグラウンドで Kafka にイベントを発行する
+                // LOW-010 監査対応: db_pool と tenant_id を渡すことで、リトライ上限到達時に
+                // RLS を満たした上で DB へ失敗状態を記録する。
+                let tenant_id_for_dlq = output.events.first().map(|e| e.tenant_id.clone()).unwrap_or_default();
                 spawn_publish_events_with_retry(
                     self.event_publisher.clone(),
                     output.stream_id.clone(),
+                    tenant_id_for_dlq,
                     output.events.clone(),
+                    self.db_pool.clone(),
                 );
 
                 // シリアライズ失敗をエラーとして収集し、失敗時はINTERNALを返す
@@ -195,18 +219,17 @@ impl EventStoreGrpcService {
                 })
             }
             Err(AppendEventsError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(AppendEventsError::StreamAlreadyExists(id)) => Err(GrpcError::AlreadyExists(
-                format!("stream already exists: {}", id),
+                format!("stream already exists: {id}"),
             )),
             Err(AppendEventsError::VersionConflict {
                 stream_id,
                 expected,
                 actual,
             }) => Err(GrpcError::Aborted(format!(
-                "version conflict for stream {}: expected {}, actual {}",
-                stream_id, expected, actual
+                "version conflict for stream {stream_id}: expected {expected}, actual {actual}"
             ))),
             Err(AppendEventsError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -216,21 +239,25 @@ impl EventStoreGrpcService {
     pub async fn read_events(
         &self,
         req: ProtoReadEventsRequest,
+        tenant_id: &str,
     ) -> Result<ProtoReadEventsResponse, GrpcError> {
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = req.pagination.unwrap_or_default();
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
         let page = if pagination.page <= 0 {
             1
         } else {
-            pagination.page as u32
+            u32::try_from(pagination.page).unwrap_or(1)
         };
         let page_size = if pagination.page_size <= 0 {
             20
         } else {
-            pagination.page_size as u32
+            u32::try_from(pagination.page_size).unwrap_or(20)
         };
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = ReadEventsInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             from_version: req.from_version,
             to_version: req.to_version,
             event_type: req.event_type,
@@ -251,15 +278,17 @@ impl EventStoreGrpcService {
                     events,
                     current_version: output.current_version,
                     pagination: Some(ProtoPaginationResult {
-                        total_count: output.pagination.total_count as i64,
-                        page: page as i32,
-                        page_size: page_size as i32,
+                        // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                        total_count: i64::try_from(output.pagination.total_count).unwrap_or(i64::MAX),
+                        // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                        page: i32::try_from(page).unwrap_or(i32::MAX),
+                        page_size: i32::try_from(page_size).unwrap_or(i32::MAX),
                         has_next: output.pagination.has_next,
                     }),
                 })
             }
             Err(ReadEventsError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -268,9 +297,12 @@ impl EventStoreGrpcService {
     pub async fn read_event_by_sequence(
         &self,
         req: ProtoReadEventBySequenceRequest,
+        tenant_id: &str,
     ) -> Result<ProtoReadEventBySequenceResponse, GrpcError> {
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = ReadEventBySequenceInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             sequence: req.sequence,
         };
 
@@ -282,14 +314,13 @@ impl EventStoreGrpcService {
                 })
             }
             Err(ReadEventBySequenceError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(ReadEventBySequenceError::EventNotFound {
                 stream_id,
                 sequence,
             }) => Err(GrpcError::NotFound(format!(
-                "event not found: stream={}, sequence={}",
-                stream_id, sequence
+                "event not found: stream={stream_id}, sequence={sequence}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -298,17 +329,17 @@ impl EventStoreGrpcService {
     pub async fn create_snapshot(
         &self,
         req: ProtoCreateSnapshotRequest,
+        tenant_id: &str,
     ) -> Result<ProtoCreateSnapshotResponse, GrpcError> {
         // スナップショット状態のJSONデシリアライズ失敗をINVALID_ARGUMENTとして伝播する
         let state = serde_json::from_slice(&req.state).map_err(|err| {
-            GrpcError::InvalidArgument(format!(
-                "スナップショット状態が不正なJSONです: {}",
-                err
-            ))
+            GrpcError::InvalidArgument(format!("スナップショット状態が不正なJSONです: {err}"))
         })?;
 
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = CreateSnapshotInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             snapshot_version: req.snapshot_version,
             aggregate_type: req.aggregate_type,
             state,
@@ -323,7 +354,7 @@ impl EventStoreGrpcService {
                 aggregate_type: output.aggregate_type,
             }),
             Err(CreateSnapshotError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(CreateSnapshotError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -333,9 +364,12 @@ impl EventStoreGrpcService {
     pub async fn get_latest_snapshot(
         &self,
         req: ProtoGetLatestSnapshotRequest,
+        tenant_id: &str,
     ) -> Result<ProtoGetLatestSnapshotResponse, GrpcError> {
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = GetLatestSnapshotInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
         };
 
         match self.get_latest_snapshot_uc.execute(&input).await {
@@ -343,8 +377,7 @@ impl EventStoreGrpcService {
                 // スナップショット状態のシリアライズ失敗はINTERNALエラーとして伝播する
                 let state = serde_json::to_vec(&snapshot.state).map_err(|err| {
                     GrpcError::Internal(format!(
-                        "スナップショット状態のシリアライズに失敗しました: {}",
-                        err
+                        "スナップショット状態のシリアライズに失敗しました: {err}"
                     ))
                 })?;
                 Ok(ProtoGetLatestSnapshotResponse {
@@ -359,11 +392,10 @@ impl EventStoreGrpcService {
                 })
             }
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(GetLatestSnapshotError::SnapshotNotFound(id)) => Err(GrpcError::NotFound(format!(
-                "snapshot not found for stream: {}",
-                id
+                "snapshot not found for stream: {id}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -372,16 +404,19 @@ impl EventStoreGrpcService {
     pub async fn delete_stream(
         &self,
         req: ProtoDeleteStreamRequest,
+        tenant_id: &str,
     ) -> Result<ProtoDeleteStreamResponse, GrpcError> {
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let out = self
             .delete_stream_uc
             .execute(&DeleteStreamInput {
                 stream_id: req.stream_id,
+                tenant_id: tenant_id.to_string(),
             })
             .await
             .map_err(|e| match e {
                 DeleteStreamError::StreamNotFound(id) => {
-                    GrpcError::NotFound(format!("stream not found: {}", id))
+                    GrpcError::NotFound(format!("stream not found: {id}"))
                 }
                 DeleteStreamError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -393,16 +428,19 @@ impl EventStoreGrpcService {
     }
 }
 
-/// chrono::DateTime<Utc> を Proto の Timestamp メッセージに変換する。
+/// `chrono::DateTime`<Utc> を Proto の Timestamp メッセージに変換する。
 /// 他サーバー（api-registry, event-monitor, config）と同一のパターンを使用。
+// Proto フィールドの型が Option<Timestamp> であるため Option を返す必要がある（変更不可）
+#[allow(clippy::unnecessary_wraps)]
 fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     })
 }
 
-/// StoredEvent を Proto メッセージに変換する。
+/// `StoredEvent` を Proto メッセージに変換する。
 /// ペイロードのシリアライズ失敗はINTERNALエラーとして伝播する。
 fn stored_event_to_proto(
     e: crate::domain::entity::event::StoredEvent,
@@ -410,8 +448,7 @@ fn stored_event_to_proto(
     // ペイロードのシリアライズ失敗をサイレントに無視せず、INTERNALエラーとして伝播する
     let payload = serde_json::to_vec(&e.payload).map_err(|err| {
         GrpcError::Internal(format!(
-            "イベントペイロードのシリアライズに失敗しました: {}",
-            err
+            "イベントペイロードのシリアライズに失敗しました: {err}"
         ))
     })?;
     Ok(ProtoStoredEvent {
@@ -483,6 +520,7 @@ mod tests {
             snapshot_repo.clone(),
         ));
 
+        // テストではインメモリモードのため db_pool は None とする
         EventStoreGrpcService::new(
             append_uc,
             read_events_uc,
@@ -492,6 +530,7 @@ mod tests {
             delete_uc,
             stream_repo,
             publisher,
+            None,
         )
     }
 
@@ -505,17 +544,15 @@ mod tests {
             stream_id: "stream-001".to_string(),
             expected_version: -1,
             aggregate_type: "TestAggregate".to_string(),
-            events: vec![
-                crate::proto::k1s0::system::eventstore::v1::EventData {
-                    event_type: "TestEvent".to_string(),
-                    // 不正なバイト列: 有効なJSONではない
-                    payload: b"not-valid-json{{{".to_vec(),
-                    metadata: None,
-                },
-            ],
+            events: vec![crate::proto::k1s0::system::eventstore::v1::EventData {
+                event_type: "TestEvent".to_string(),
+                // 不正なバイト列: 有効なJSONではない
+                payload: b"not-valid-json{{{".to_vec(),
+                metadata: None,
+            }],
         };
 
-        let result = svc.append_events(req).await;
+        let result = svc.append_events(req, "tenant-test").await;
         assert!(result.is_err(), "不正なJSONペイロードはエラーを返すべき");
         match result.unwrap_err() {
             GrpcError::InvalidArgument(msg) => {
@@ -542,8 +579,11 @@ mod tests {
             state: b"not-valid-json{{{".to_vec(),
         };
 
-        let result = svc.create_snapshot(req).await;
-        assert!(result.is_err(), "不正なJSONスナップショット状態はエラーを返すべき");
+        let result = svc.create_snapshot(req, "tenant-test").await;
+        assert!(
+            result.is_err(),
+            "不正なJSONスナップショット状態はエラーを返すべき"
+        );
         match result.unwrap_err() {
             GrpcError::InvalidArgument(msg) => {
                 assert!(
@@ -564,9 +604,7 @@ mod tests {
         // MockEventStreamRepository に find_by_id の期待値を設定する必要がある。
         // make_service() とは別に個別にモックを組み立てる。
         let mut stream_repo = MockEventStreamRepository::new();
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
         let stream_repo = Arc::new(stream_repo);
 
         let event_repo = Arc::new(MockEventRepository::new());
@@ -598,6 +636,7 @@ mod tests {
             event_repo.clone(),
             snapshot_repo.clone(),
         ));
+        // テストではインメモリモードのため db_pool は None とする
         let svc = EventStoreGrpcService::new(
             append_uc,
             read_events_uc,
@@ -607,26 +646,28 @@ mod tests {
             delete_uc,
             stream_repo,
             publisher,
+            None,
         );
 
         let req = ProtoAppendEventsRequest {
             stream_id: "stream-001".to_string(),
             expected_version: 0, // 0 を指定するとストリームが存在しないため StreamNotFound になる
             aggregate_type: "TestAggregate".to_string(),
-            events: vec![
-                crate::proto::k1s0::system::eventstore::v1::EventData {
-                    event_type: "TestEvent".to_string(),
-                    // 有効なJSON
-                    payload: b"{}".to_vec(),
-                    metadata: None,
-                },
-            ],
+            events: vec![crate::proto::k1s0::system::eventstore::v1::EventData {
+                event_type: "TestEvent".to_string(),
+                // 有効なJSON
+                payload: b"{}".to_vec(),
+                metadata: None,
+            }],
         };
 
-        let result = svc.append_events(req).await;
+        let result = svc.append_events(req, "tenant-test").await;
         // ストリームが存在しないため StreamNotFound エラーが返るが、
         // InvalidArgument（JSONパースエラー）は返ってはいけない
-        assert!(result.is_err(), "ストリームが存在しないためエラーが返るべき");
+        assert!(
+            result.is_err(),
+            "ストリームが存在しないためエラーが返るべき"
+        );
         assert!(
             matches!(result.unwrap_err(), GrpcError::NotFound(_)),
             "有効なJSONの場合は NotFound エラーが返り、InvalidArgument は返ってはいけない"

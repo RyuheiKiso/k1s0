@@ -31,14 +31,14 @@ pub struct Claims {
     pub tier_access: Vec<String>,
 }
 
-/// RealmAccess は Keycloak の realm_access クレームを表す。
+/// `RealmAccess` は Keycloak の `realm_access` クレームを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, utoipa::ToSchema)]
 pub struct RealmAccess {
     #[serde(default)]
     pub roles: Vec<String>,
 }
 
-/// ResourceAccess は Keycloak の resource_access クレームを表す。
+/// `ResourceAccess` は Keycloak の `resource_access` クレームを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, utoipa::ToSchema)]
 pub struct ResourceAccess {
     #[serde(default)]
@@ -48,27 +48,30 @@ pub struct ResourceAccess {
 impl Claims {
     /// ユーザーが指定されたレルムロールを持っているかどうかを判定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn has_realm_role(&self, role: &str) -> bool {
         self.realm_access.roles.iter().any(|r| r == role)
     }
 
     /// ユーザーが指定されたクライアントロールを持っているかどうかを判定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn has_client_role(&self, client: &str, role: &str) -> bool {
         self.resource_access
             .get(client)
-            .map(|access| access.roles.iter().any(|r| r == role))
-            .unwrap_or(false)
+            .is_some_and(|access| access.roles.iter().any(|r| r == role))
     }
 
-    /// sys_operator 以上のロールを持っているかどうかを判定する。
+    /// `sys_operator` 以上のロールを持っているかどうかを判定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn is_sys_operator_or_above(&self) -> bool {
         self.has_realm_role("sys_operator") || self.has_realm_role("sys_admin")
     }
 
-    /// sys_auditor 以上のロールを持っているかどうかを判定する。
+    /// `sys_auditor` 以上のロールを持っているかどうかを判定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn is_sys_auditor_or_above(&self) -> bool {
         self.has_realm_role("sys_auditor")
             || self.has_realm_role("sys_operator")

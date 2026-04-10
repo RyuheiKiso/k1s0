@@ -5,7 +5,10 @@ import 'dart:typed_data';
 import 'package:pointycastle/export.dart';
 import 'package:pointycastle/asn1.dart';
 
-/// Generates an RSA key pair (2048-bit) and returns PEM-encoded strings.
+/// Generates an RSA key pair (3072-bit) and returns PEM-encoded strings.
+/// HIGH-010 監査対応: MED-014 で TypeScript ライブラリが 3072-bit に引き上げられたため、
+/// Dart ライブラリも同等のセキュリティ強度（128-bit 相当）に統一する。
+/// 3072-bit は NIST SP 800-131A の長期利用推奨鍵長であり、2048-bit よりも安全性が高い。
 Map<String, String> generateRsaKeyPair() {
   final keyGen = RSAKeyGenerator();
   final secureRandom = FortunaRandom();
@@ -15,7 +18,7 @@ Map<String, String> generateRsaKeyPair() {
   secureRandom.seed(KeyParameter(Uint8List.fromList(seeds)));
 
   keyGen.init(ParametersWithRandom(
-    RSAKeyGeneratorParameters(BigInt.from(65537), 2048, 64),
+    RSAKeyGeneratorParameters(BigInt.from(65537), 3072, 64),
     secureRandom,
   ));
 

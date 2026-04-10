@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// SagaStatus はSagaの状態を表す。
+/// `SagaStatus` はSagaの状態を表す。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SagaStatus {
@@ -36,12 +36,12 @@ impl SagaStatus {
             "COMPENSATING" => Ok(Self::Compensating),
             "FAILED" => Ok(Self::Failed),
             "CANCELLED" => Ok(Self::Cancelled),
-            _ => anyhow::bail!("invalid saga status: {}", s),
+            _ => anyhow::bail!("invalid saga status: {s}"),
         }
     }
 }
 
-/// SagaState はSagaの状態を表す。
+/// `SagaState` はSagaの状態を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct SagaState {
     pub saga_id: Uuid,
@@ -59,7 +59,8 @@ pub struct SagaState {
 }
 
 impl SagaState {
-    /// 新しいSagaStateを作成する。
+    /// `新しいSagaStateを作成する`。
+    #[must_use]
     pub fn new(
         workflow_name: String,
         payload: serde_json::Value,
@@ -111,7 +112,7 @@ impl SagaState {
         self.updated_at = Utc::now();
     }
 
-    /// Sagaをキャンセルする。cancel_saga usecase からリポジトリ経由で使用される。
+    /// `Sagaをキャンセルする。cancel_saga` usecase からリポジトリ経由で使用される。
     // H-02 監査対応: cancel_saga usecase の実装に備えて保持する
     #[allow(dead_code)]
     pub fn cancel(&mut self) {
@@ -120,6 +121,7 @@ impl SagaState {
     }
 
     /// 終端状態かどうかを返す。
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(
             self.status,

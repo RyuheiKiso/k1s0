@@ -17,6 +17,7 @@ pub struct FilteredNavigation {
 }
 
 /// ナビゲーション設定をユーザーコンテキストに基づいてフィルタリングする。
+#[must_use]
 pub fn filter_navigation(config: &NavigationConfig, user_ctx: &UserContext) -> FilteredNavigation {
     let filtered_routes = filter_routes(&config.routes, &config.guards, user_ctx);
     let used_guard_ids = collect_guard_ids(&filtered_routes);

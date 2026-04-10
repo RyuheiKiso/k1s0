@@ -13,6 +13,7 @@ pub struct TenantPostgresRepository {
 }
 
 impl TenantPostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -44,7 +45,7 @@ fn status_from_str(s: &str) -> TenantStatus {
 
 fn plan_from_str(s: &str) -> anyhow::Result<Plan> {
     s.parse::<Plan>()
-        .map_err(|e| anyhow::anyhow!("invalid tenant plan in database: {}", e))
+        .map_err(|e| anyhow::anyhow!("invalid tenant plan in database: {e}"))
 }
 
 impl TryFrom<TenantRow> for Tenant {
@@ -67,9 +68,18 @@ impl TryFrom<TenantRow> for Tenant {
     }
 }
 
+/// CRITICAL-RUST-001 監査対応: `TenantRepository` の `PostgreSQL` 実装。
+/// migration 008 で追加した RLS ポリシーに対応する。
 #[async_trait]
 impl TenantRepository for TenantPostgresRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Tenant>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // テナントの id が current_tenant_id と一致する行のみアクセス可能（migration 008 対応）。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         let row: Option<TenantRow> = sqlx::query_as(
             "SELECT id, name, display_name, status, plan, owner_id, settings, keycloak_realm, db_schema, created_at, updated_at \
              FROM tenant.tenants WHERE id = $1",
@@ -81,9 +91,12 @@ impl TenantRepository for TenantPostgresRepository {
     }
 
     async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<Tenant>> {
+        // CRITICAL-RUST-001 監査対応: FORCE RLS 下でテナント名検索が必要なため
+        // migration 010 で作成した SECURITY DEFINER 関数を使用して RLS をバイパスする。
+        // テナント認証ブートストラップ時にテナント UUID が不明なままテナント名から検索する必要がある。
         let row: Option<TenantRow> = sqlx::query_as(
             "SELECT id, name, display_name, status, plan, owner_id, settings, keycloak_realm, db_schema, created_at, updated_at \
-             FROM tenant.tenants WHERE name = $1",
+             FROM tenant.tenant_find_by_name($1)",
         )
         .bind(name)
         .fetch_optional(self.pool.as_ref())
@@ -92,19 +105,21 @@ impl TenantRepository for TenantPostgresRepository {
     }
 
     async fn list(&self, page: i32, page_size: i32) -> anyhow::Result<(Vec<Tenant>, i64)> {
-        let offset = ((page.max(1) - 1) * page_size) as i64;
-        let limit = page_size as i64;
+        // CRITICAL-RUST-001 監査対応: FORCE RLS 下で全テナント一覧が必要な管理 API のため
+        // migration 010 で作成した SECURITY DEFINER 関数を使用して RLS をバイパスする。
+        let offset = i64::from((page.max(1) - 1) * page_size);
+        let limit = i64::from(page_size);
 
         let rows: Vec<TenantRow> = sqlx::query_as(
             "SELECT id, name, display_name, status, plan, owner_id, settings, keycloak_realm, db_schema, created_at, updated_at \
-             FROM tenant.tenants ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+             FROM tenant.tenant_list_all($1, $2)",
         )
         .bind(limit)
         .bind(offset)
         .fetch_all(self.pool.as_ref())
         .await?;
 
-        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tenant.tenants")
+        let count: (i64,) = sqlx::query_as("SELECT tenant.tenant_count_all()")
             .fetch_one(self.pool.as_ref())
             .await?;
 
@@ -116,6 +131,13 @@ impl TenantRepository for TenantPostgresRepository {
     }
 
     async fn create(&self, tenant: &Tenant) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // テナント作成時は新しい tenant.id を current_tenant_id として設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant.id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         sqlx::query(
             "INSERT INTO tenant.tenants (id, name, display_name, status, plan, owner_id, settings, keycloak_realm, db_schema, created_at, updated_at) \
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
@@ -137,6 +159,12 @@ impl TenantRepository for TenantPostgresRepository {
     }
 
     async fn update(&self, tenant: &Tenant) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant.id.to_string())
+            .execute(self.pool.as_ref())
+            .await?;
+
         sqlx::query(
             "UPDATE tenant.tenants \
              SET display_name = $2, status = $3, plan = $4, owner_id = $5, settings = $6, keycloak_realm = $7, db_schema = $8 \

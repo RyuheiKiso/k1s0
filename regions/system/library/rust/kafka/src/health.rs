@@ -1,7 +1,7 @@
 use crate::config::KafkaConfig;
 use crate::error::KafkaError;
 
-/// KafkaHealthStatus は Kafka クラスターのヘルス状態を表す。
+/// `KafkaHealthStatus` は Kafka クラスターのヘルス状態を表す。
 #[derive(Debug, Clone, PartialEq)]
 pub enum KafkaHealthStatus {
     /// 接続可能・正常
@@ -10,20 +10,23 @@ pub enum KafkaHealthStatus {
     Unhealthy(String),
 }
 
-/// KafkaHealthChecker は Kafka クラスターのヘルスチェックを提供する。
+/// `KafkaHealthChecker` は Kafka クラスターのヘルスチェックを提供する。
 pub struct KafkaHealthChecker {
     config: KafkaConfig,
 }
 
 impl KafkaHealthChecker {
+    #[must_use]
     pub fn new(config: KafkaConfig) -> Self {
         Self { config }
     }
 
-    /// ブローカー設定の妥当性を確認する（非同期ヘルスチェック）。
+    /// ブローカー設定の妥当性を確認する（ヘルスチェック）。
     ///
     /// 実際のブローカー疎通確認は rdkafka 等の具体的なクライアントに委ねる。
     /// このメソッドは設定の論理的妥当性を検証する。
+    // テストコードが .await で呼び出すため async を維持し、unused_async を抑制する
+    #[allow(clippy::unused_async)]
     pub async fn check(&self) -> Result<KafkaHealthStatus, KafkaError> {
         self.check_config()?;
         Ok(KafkaHealthStatus::Healthy)

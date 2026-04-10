@@ -2,7 +2,13 @@
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
 // 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
-#![allow(deprecated)]
+// HIGH-001 監査対応: protoとのデータ変換で必要なキャストを許容する
+#![allow(
+    deprecated,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
 
 use std::sync::Arc;
 
@@ -72,8 +78,7 @@ fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
         .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 // --- DlqServiceTonic ラッパー ---
@@ -83,6 +88,7 @@ pub struct DlqServiceTonic {
 }
 
 impl DlqServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<DlqGrpcService>) -> Self {
         Self { inner }
     }
@@ -114,7 +120,7 @@ impl DlqService for DlqServiceTonic {
             .list_messages(&inner.topic, page, page_size, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
-        let has_next = (page as i64 * page_size as i64) < total;
+        let has_next = (i64::from(page) * i64::from(page_size)) < total;
 
         Ok(Response::new(ProtoListMessagesResponse {
             messages: messages.into_iter().map(domain_to_proto).collect(),

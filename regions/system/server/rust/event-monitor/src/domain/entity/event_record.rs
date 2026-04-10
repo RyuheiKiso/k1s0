@@ -1,9 +1,12 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+/// イベント記録ドメインエンティティ。テナント分離のため `tenant_id` を保持する。
 #[derive(Debug, Clone)]
 pub struct EventRecord {
     pub id: Uuid,
+    /// テナント識別子（RLS による行レベルセキュリティのキーとなる）
+    pub tenant_id: String,
     pub correlation_id: String,
     pub event_type: String,
     pub source: String,
@@ -17,7 +20,10 @@ pub struct EventRecord {
 }
 
 impl EventRecord {
+    /// `新しいイベント記録を生成する。tenant_id` は Kafka ヘッダー "x-tenant-id" から取得する。
+    #[must_use]
     pub fn new(
+        tenant_id: String,
         correlation_id: String,
         event_type: String,
         source: String,
@@ -27,6 +33,7 @@ impl EventRecord {
     ) -> Self {
         Self {
             id: Uuid::new_v4(),
+            tenant_id,
             correlation_id,
             event_type,
             source,

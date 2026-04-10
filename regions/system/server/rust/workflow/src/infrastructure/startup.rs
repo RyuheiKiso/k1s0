@@ -29,6 +29,8 @@ async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> 
         .ok_or_else(|| anyhow::anyhow!("failed to resolve bind address {host}:{port}"))
 }
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -50,7 +52,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -83,7 +85,7 @@ pub async fn run() -> anyhow::Result<()> {
         crate::MIGRATOR
             .run(pool.as_ref())
             .await
-            .map_err(|e| anyhow::anyhow!("workflow-db migration failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("workflow-db migration failed: {e}"))?;
         tracing::info!("workflow-db migrations applied successfully");
 
         (
@@ -249,11 +251,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for workflow-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -324,8 +322,12 @@ pub async fn run() -> anyhow::Result<()> {
         .await;
 
     let grpc_metrics = metrics;
-    let grpc_auth_layer =
-        crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+    // HIGH-004 対応: server-common の GrpcAuthLayer に action_mapper を注入する
+    let grpc_auth_layer = crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(
+        grpc_auth_state,
+        k1s0_server_common::middleware::rbac::Tier::System,
+        crate::adapter::middleware::grpc_auth::action_mapper,
+    );
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
@@ -337,7 +339,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;

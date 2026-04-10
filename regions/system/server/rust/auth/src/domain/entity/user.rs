@@ -25,7 +25,7 @@ pub struct Role {
     pub description: String,
 }
 
-/// UserRoles はユーザーに割り当てられたロール一覧を表す。
+/// `UserRoles` はユーザーに割り当てられたロール一覧を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct UserRoles {
     pub user_id: String,
@@ -42,7 +42,7 @@ pub struct Pagination {
     pub has_next: bool,
 }
 
-/// UserListResult はユーザー一覧とページネーション結果を表す。
+/// `UserListResult` はユーザー一覧とページネーション結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct UserListResult {
     pub users: Vec<User>,

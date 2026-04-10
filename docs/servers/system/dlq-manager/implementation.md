@@ -12,9 +12,10 @@ system-dlq-manager-server（DLQ メッセージ管理サーバー）の Rust 実
 regions/system/server/rust/dlq-manager/
 ├── src/
 │   ├── main.rs                              # エントリポイント + InMemoryDlqMessageRepository
-│   ├── lib.rs                               # ライブラリクレート（pub mod 4モジュール）
+│   ├── lib.rs                               # ライブラリクレート（pub mod 各モジュール）
 │   ├── domain/
 │   │   ├── mod.rs
+│   │   ├── error.rs                         # ドメインエラー型定義
 │   │   ├── entity/
 │   │   │   ├── mod.rs
 │   │   │   └── dlq_message.rs               # DlqMessage / DlqStatus
@@ -30,14 +31,27 @@ regions/system/server/rust/dlq-manager/
 │   │   └── retry_all.rs                     # トピック内全メッセージ一括再処理
 │   ├── adapter/
 │   │   ├── mod.rs
-│   │   └── handler/
-│   │       ├── mod.rs                       # AppState / router() / ErrorResponse / ErrorBody
-│   │       ├── dlq_handler.rs               # REST ハンドラー（DTO + エンドポイント）
-│   │       └── error.rs                     # DlqError（NotFound / Validation / Conflict / Internal）
+│   │   ├── grpc/                            # MED-010: gRPC アダプター層
+│   │   │   ├── mod.rs                       # gRPC モジュール公開
+│   │   │   ├── dlq_grpc.rs                  # gRPC サービス実装（DlqServiceGrpc）
+│   │   │   └── tonic_service.rs             # tonic サービスエントリポイント
+│   │   ├── handler/
+│   │   │   ├── mod.rs                       # AppState / router() / ErrorResponse / ErrorBody
+│   │   │   ├── dlq_handler.rs               # REST ハンドラー（DTO + エンドポイント）
+│   │   │   └── error.rs                     # DlqError（NotFound / Validation / Conflict / Internal）
+│   │   └── middleware/                      # MED-010: 認証・認可ミドルウェア層
+│   │       ├── mod.rs                       # ミドルウェアモジュール公開
+│   │       ├── auth.rs                      # Bearer JWT 検証・Claims 注入
+│   │       └── rbac.rs                      # ロールベースアクセス制御（sys_admin 等）
+│   ├── proto/                               # MED-010: protobuf 生成コード
+│   │   ├── mod.rs
+│   │   ├── k1s0.system.common.v1.rs         # 共通型（生成コード）
+│   │   └── k1s0.system.dlq.v1.rs            # DLQ サービス型（生成コード）
 │   └── infrastructure/
 │       ├── mod.rs
 │       ├── config.rs                        # Config / AppConfig / ServerConfig
 │       ├── database.rs                      # DatabaseConfig（接続URL構築）
+│       ├── startup.rs                       # アプリケーション起動シーケンス
 │       ├── kafka/
 │       │   ├── mod.rs                       # KafkaConfig
 │       │   ├── consumer.rs                  # DlqKafkaConsumer（DLQトピック購読）

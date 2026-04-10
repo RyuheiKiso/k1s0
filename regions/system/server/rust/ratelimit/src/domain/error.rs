@@ -1,10 +1,10 @@
-//! RateLimit サービスのドメインエラー型。
+//! `RateLimit` サービスのドメインエラー型。
 //!
 //! 文字列マッチングではなく、型安全な分類で HTTP ステータスコードを決定する。
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// RateLimit ドメイン固有のエラー型。
+/// `RateLimit` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum RateLimitError {
     /// レート制限設定が見つからない
@@ -24,7 +24,7 @@ pub enum RateLimitError {
     Internal(String),
 }
 
-/// RateLimitError から ServiceError への変換実装
+/// `RateLimitError` から `ServiceError` への変換実装
 impl From<RateLimitError> for ServiceError {
     fn from(err: RateLimitError) -> Self {
         match err {

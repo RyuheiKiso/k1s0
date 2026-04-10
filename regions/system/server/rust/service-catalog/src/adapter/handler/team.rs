@@ -2,13 +2,14 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 use uuid::Uuid;
 
 use super::{AppState, ErrorResponse};
 // utoipa マクロの body 型参照に必要なインポート
+use crate::domain::entity::claims::Claims;
 use crate::domain::entity::service::Service;
 use crate::domain::entity::team::Team;
 use crate::domain::repository::service_repository::ServiceListFilters;
@@ -60,8 +61,10 @@ pub async fn list_teams(State(state): State<AppState>) -> impl IntoResponse {
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn get_team_services(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(team_id): Path<Uuid>,
 ) -> impl IntoResponse {
     let filters = ServiceListFilters {
@@ -69,7 +72,11 @@ pub async fn get_team_services(
         ..Default::default()
     };
 
-    match state.list_services_uc.execute(filters).await {
+    match state
+        .list_services_uc
+        .execute(&claims.tenant_id, filters)
+        .await
+    {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
@@ -78,7 +85,7 @@ pub async fn get_team_services(
     }
 }
 
-/// GET /api/v1/teams/{team_id}
+/// GET /`api/v1/teams/{team_id`}
 pub async fn get_team(
     State(state): State<AppState>,
     Path(team_id): Path<Uuid>,
@@ -121,7 +128,7 @@ pub async fn create_team(
     }
 }
 
-/// PUT /api/v1/teams/{team_id}
+/// PUT /`api/v1/teams/{team_id`}
 pub async fn update_team(
     State(state): State<AppState>,
     Path(team_id): Path<Uuid>,
@@ -152,7 +159,7 @@ pub async fn update_team(
     }
 }
 
-/// DELETE /api/v1/teams/{team_id}
+/// DELETE /`api/v1/teams/{team_id`}
 pub async fn delete_team(
     State(state): State<AppState>,
     Path(team_id): Path<Uuid>,

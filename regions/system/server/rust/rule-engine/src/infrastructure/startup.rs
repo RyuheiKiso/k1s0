@@ -28,6 +28,8 @@ use crate::domain::repository::{
     EvaluationLogRepository, RuleRepository, RuleSetRepository, RuleSetVersionRepository,
 };
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -49,7 +51,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -128,41 +130,38 @@ pub async fn run() -> anyhow::Result<()> {
     // 接続に失敗した場合のみ in-memory フォールバックを使用する。
     let (rule_repo, rule_set_repo, version_repo, eval_log_repo, backend_kind, db_pool) =
         if cfg.database.is_some() || std::env::var("DATABASE_URL").is_ok() {
-            match infrastructure::database::connect_optional(&cfg).await {
-                Some(pool) => {
-                    info!("connected to PostgreSQL for rule-engine, using pg-backed repositories");
-                    let pool = Arc::new(pool);
-                    let rule_repo: Arc<dyn RuleRepository> =
-                        Arc::new(RulePostgresRepository::new(pool.clone()));
-                    let rule_set_repo: Arc<dyn RuleSetRepository> =
-                        Arc::new(RuleSetPostgresRepository::new(pool.clone()));
-                    let version_repo: Arc<dyn RuleSetVersionRepository> =
-                        Arc::new(RuleSetVersionPostgresRepository::new(pool.clone()));
-                    let eval_log_repo: Arc<dyn EvaluationLogRepository> =
-                        Arc::new(EvaluationLogPostgresRepository::new(pool.clone()));
-                    (
-                        rule_repo,
-                        rule_set_repo,
-                        version_repo,
-                        eval_log_repo,
-                        "postgres".to_string(),
-                        // Arc<Pool<Postgres>> から Pool<Postgres> を取り出して Option<PgPool> に変換する
-                        Some((*pool).clone()),
-                    )
-                }
-                None => {
-                    info!("PostgreSQL connection failed, falling back to in-memory backend");
-                    (
-                        Arc::new(InMemoryRuleRepository::new()) as Arc<dyn RuleRepository>,
-                        Arc::new(InMemoryRuleSetRepository::new()) as Arc<dyn RuleSetRepository>,
-                        Arc::new(InMemoryRuleSetVersionRepository::new())
-                            as Arc<dyn RuleSetVersionRepository>,
-                        Arc::new(InMemoryEvaluationLogRepository::new())
-                            as Arc<dyn EvaluationLogRepository>,
-                        "in-memory".to_string(),
-                        None,
-                    )
-                }
+            if let Some(pool) = infrastructure::database::connect_optional(&cfg).await {
+                info!("connected to PostgreSQL for rule-engine, using pg-backed repositories");
+                let pool = Arc::new(pool);
+                let rule_repo: Arc<dyn RuleRepository> =
+                    Arc::new(RulePostgresRepository::new(pool.clone()));
+                let rule_set_repo: Arc<dyn RuleSetRepository> =
+                    Arc::new(RuleSetPostgresRepository::new(pool.clone()));
+                let version_repo: Arc<dyn RuleSetVersionRepository> =
+                    Arc::new(RuleSetVersionPostgresRepository::new(pool.clone()));
+                let eval_log_repo: Arc<dyn EvaluationLogRepository> =
+                    Arc::new(EvaluationLogPostgresRepository::new(pool.clone()));
+                (
+                    rule_repo,
+                    rule_set_repo,
+                    version_repo,
+                    eval_log_repo,
+                    "postgres".to_string(),
+                    // Arc<Pool<Postgres>> から Pool<Postgres> を取り出して Option<PgPool> に変換する
+                    Some((*pool).clone()),
+                )
+            } else {
+                info!("PostgreSQL connection failed, falling back to in-memory backend");
+                (
+                    Arc::new(InMemoryRuleRepository::new()) as Arc<dyn RuleRepository>,
+                    Arc::new(InMemoryRuleSetRepository::new()) as Arc<dyn RuleSetRepository>,
+                    Arc::new(InMemoryRuleSetVersionRepository::new())
+                        as Arc<dyn RuleSetVersionRepository>,
+                    Arc::new(InMemoryEvaluationLogRepository::new())
+                        as Arc<dyn EvaluationLogRepository>,
+                    "in-memory".to_string(),
+                    None,
+                )
             }
         } else {
             (
@@ -292,7 +291,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -325,8 +324,8 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// CreateRule / UpdateRule / DeleteRule / CreateRuleSet / UpdateRuleSet / DeleteRuleSet /
-/// PublishRuleSet / RollbackRuleSet は write、それ以外は read。
+/// `CreateRule` / `UpdateRule` / `DeleteRule` / `CreateRuleSet` / `UpdateRuleSet` / `DeleteRuleSet` /
+/// `PublishRuleSet` / `RollbackRuleSet` は write、それ以外は read。
 fn rule_engine_grpc_action(method: &str) -> &'static str {
     match method {
         "CreateRule" | "UpdateRule" | "DeleteRule" | "CreateRuleSet" | "UpdateRuleSet"

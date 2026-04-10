@@ -5,10 +5,12 @@ use crate::domain::entity::search_index::SearchQuery;
 pub struct SearchDomainService;
 
 impl SearchDomainService {
+    #[must_use]
     pub fn normalize_query(raw: &str) -> String {
         raw.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 
+    #[must_use]
     pub fn normalize_filters(raw: &HashMap<String, String>) -> HashMap<String, String> {
         raw.iter()
             .filter_map(|(k, v)| {
@@ -23,6 +25,7 @@ impl SearchDomainService {
             .collect()
     }
 
+    #[must_use]
     pub fn normalize_facets(raw: &[String]) -> Vec<String> {
         let mut seen = HashSet::new();
         let mut facets = Vec::new();
@@ -40,6 +43,7 @@ impl SearchDomainService {
         facets
     }
 
+    #[must_use]
     pub fn build_query(
         index_name: String,
         query: &str,

@@ -15,13 +15,16 @@ use crate::infrastructure::kafka_producer::{
     NoopNotificationEventPublisher, NotificationEventPublisher,
 };
 
-// 通知送信ユースケースの入力パラメータを定義する構造体
-// RUST-MED-003: template_variables は現状 HashMap<String, String>（文字列のみ対応）。
-// 将来的には serde_json::Value への移行で JSON オブジェクト・数値・配列を扱えるようにする予定。
-// 移行は proto v2 での破壊的変更として実施する（proto の map<string, string> → google.protobuf.Struct への変更が必要）。
+/// 通知送信ユースケースの入力パラメータを定義する構造体
+/// RUST-MED-003: `template_variables` は現状 `HashMap`<String, String>（文字列のみ対応）。
+/// 将来的には `serde_json::Value` への移行で JSON オブジェクト・数値・配列を扱えるようにする予定。
+/// 移行は proto v2 での破壊的変更として実施する（proto の map<string, string> → google.protobuf.Struct への変更が必要）。
+/// MEDIUM-RUST-001 監査対応: `tenant_id` を追加してチャンネル検索時の RLS を有効化する。
 #[derive(Debug, Clone)]
 pub struct SendNotificationInput {
     pub channel_id: String,
+    /// MEDIUM-RUST-001: JWT クレームから取得したテナント ID。RLS の `set_config` に使用する。
+    pub tenant_id: String,
     pub template_id: Option<String>,
     pub recipient: String,
     pub subject: Option<String>,
@@ -131,6 +134,8 @@ impl SendNotificationUseCase {
         }
     }
 
+    /// イベントパブリッシャーを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_event_publisher(
         mut self,
         event_publisher: Arc<dyn NotificationEventPublisher>,
@@ -158,9 +163,10 @@ impl SendNotificationUseCase {
         &self,
         input: &SendNotificationInput,
     ) -> Result<SendNotificationOutput, SendNotificationError> {
+        // MEDIUM-RUST-001 監査対応: input.tenant_id を伝播して RLS でテナント分離を強制する
         let channel = self
             .channel_repo
-            .find_by_id(&input.channel_id)
+            .find_by_id(&input.channel_id, &input.tenant_id)
             .await
             .map_err(|e| SendNotificationError::Internal(e.to_string()))?
             .ok_or_else(|| SendNotificationError::ChannelNotFound(input.channel_id.clone()))?;
@@ -177,8 +183,9 @@ impl SendNotificationUseCase {
             let repo = self.template_repo.as_ref().ok_or_else(|| {
                 SendNotificationError::Internal("template repository is not configured".to_string())
             })?;
+            // テナントスコープでテンプレートを検索する
             let template = repo
-                .find_by_id(template_id)
+                .find_by_id(template_id, &input.tenant_id)
                 .await
                 .map_err(|e| SendNotificationError::Internal(e.to_string()))?
                 .ok_or_else(|| SendNotificationError::TemplateNotFound(template_id.clone()))?;
@@ -203,7 +210,9 @@ impl SendNotificationUseCase {
             (base_subject, base_body)
         };
 
+        // テナント ID を含めて通知ログを生成する
         let mut log = NotificationLog::new(
+            input.tenant_id.clone(),
             input.channel_id.clone(),
             input.recipient.clone(),
             subject.clone(),
@@ -286,15 +295,16 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         log_mock.expect_create().returning(|_| Ok(()));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
@@ -314,11 +324,12 @@ mod tests {
         let log_mock = MockNotificationLogRepository::new();
         let missing_id = "ch_missing".to_string();
 
-        channel_mock.expect_find_by_id().returning(|_| Ok(None));
+        channel_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
             channel_id: missing_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -353,13 +364,14 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         let uc = SendNotificationUseCase::new(Arc::new(channel_mock), Arc::new(log_mock));
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -394,9 +406,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         log_mock.expect_create().returning(|_| Ok(()));
 
@@ -413,6 +425,7 @@ mod tests {
         );
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
@@ -443,9 +456,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         log_mock
             .expect_create()
@@ -467,6 +480,7 @@ mod tests {
         );
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "#general".to_string(),
             subject: None,
@@ -497,9 +511,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         log_mock
             .expect_create()
@@ -519,6 +533,7 @@ mod tests {
         );
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "+1234567890".to_string(),
             subject: None,
@@ -549,9 +564,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| *id == channel_id
+                move |id, _tenant_id| *id == channel_id
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         log_mock
             .expect_create()
@@ -579,6 +594,7 @@ mod tests {
 
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_a".to_string(),
             template_id: None,
             recipient: "alice@example.com".to_string(),
             subject: Some("Order {{order_id}} Confirmation".to_string()),

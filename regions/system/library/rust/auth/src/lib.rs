@@ -34,7 +34,7 @@ pub use rbac::{
     check_permission, has_permission, has_resource_role, has_role, has_tier_access,
     validate_tier_access,
 };
-pub use verifier::{AuthError, DefaultJwksFetcher, JwksFetcher, JwksVerifier};
+pub use verifier::{AuthError, DefaultJwksFetcher, JtiRevokedChecker, JwksFetcher, JwksVerifier};
 
 #[cfg(test)]
 mod tests;

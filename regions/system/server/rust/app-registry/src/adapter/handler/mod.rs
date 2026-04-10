@@ -1,3 +1,5 @@
+// OpenApi derive マクロが内部で for_each を使用するため、このモジュールで警告を抑制する
+#![allow(clippy::needless_for_each)]
 pub mod app_handler;
 pub mod download_handler;
 pub mod version_handler;
@@ -21,8 +23,8 @@ use crate::usecase::{
     ListAppsUseCase, ListVersionsUseCase, UpdateAppUseCase,
 };
 
-/// ValidateTokenUseCase はトークン検証のためのユースケース。
-/// auth server の ValidateTokenUseCase と同等だが、app-registry 用に簡略化。
+/// `ValidateTokenUseCase` はトークン検証のためのユースケース。
+/// auth server の `ValidateTokenUseCase` と同等だが、app-registry 用に簡略化。
 pub struct ValidateTokenUseCase {
     verifier: Arc<dyn crate::infrastructure::TokenVerifier>,
     expected_issuer: String,
@@ -63,7 +65,7 @@ impl ValidateTokenUseCase {
     }
 }
 
-/// AppState はアプリケーション全体の共有状態を表す。
+/// `AppState` はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub list_apps_uc: Arc<ListAppsUseCase>,
@@ -78,12 +80,14 @@ pub struct AppState {
     pub get_download_stats_uc: Arc<GetDownloadStatsUseCase>,
     pub generate_download_url_uc: Arc<GenerateDownloadUrlUseCase>,
     pub validate_token_uc: Arc<ValidateTokenUseCase>,
-    /// STATIC-CRITICAL-002: Cosign 署名検証器。本番は SubprocessCosignVerifier、開発は StubCosignVerifier。
+    /// STATIC-CRITICAL-002: Cosign 署名検証器。本番は SubprocessCosignVerifier、開発は `StubCosignVerifier`。
     pub cosign_verifier: Arc<dyn CosignVerifier>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
 }
 
+// OpenApi derive マクロが内部で for_each を使用するため警告を抑制する
+#[allow(clippy::needless_for_each)]
 #[derive(OpenApi)]
 #[openapi(
     paths(

@@ -2,8 +2,8 @@
 use secrecy::Secret;
 use serde::Deserialize;
 
-/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -13,7 +13,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -22,7 +22,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -103,7 +103,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// OpenSearchConfig 縺ｯ OpenSearch 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `OpenSearchConfig` 縺ｯ `OpenSearch` 謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpenSearchConfig {
     pub url: String,
@@ -115,7 +115,7 @@ pub struct OpenSearchConfig {
     #[serde(default = "default_index_prefix")]
     pub index_prefix: String,
     /// TLS 証明書検証を無効化するフラグ。本番環境では false を設定すること。
-    /// true にすると CertificateValidation::None になり、MITM 攻撃のリスクがある。
+    /// true にすると `CertificateValidation::None` になり、MITM 攻撃のリスクがある。
     #[serde(default)]
     pub tls_insecure: bool,
 }
@@ -124,7 +124,7 @@ fn default_index_prefix() -> String {
     "k1s0-".to_string()
 }
 
-/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `KafkaConfig` 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -136,7 +136,7 @@ pub struct KafkaConfig {
     pub topic: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -146,7 +146,7 @@ fn default_consumer_group() -> String {
     "search-server-consumer".to_string()
 }
 
-/// CacheConfig 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `CacheConfig` 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     #[serde(default = "default_max_entries")]

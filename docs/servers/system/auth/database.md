@@ -340,6 +340,10 @@ ALTER TABLE auth.api_keys
 | `019_extend_prefix_varchar.down.sql` | prefix カラム型を VARCHAR(10) に復元 |
 | `020_fix_api_keys_rls_cast.up.sql` | api_keys の RLS ポリシーに `::TEXT` キャストを追加して型不一致を解消 |
 | `020_fix_api_keys_rls_cast.down.sql` | RLS ポリシーをキャストなしバージョンに復元 |
+| `021_add_rls_with_check.up.sql` | api_keys の RLS ポリシーを `AS RESTRICTIVE` + `WITH CHECK` 付きで再作成（INSERT/UPDATE 時のテナント検証強化） |
+| `021_add_rls_with_check.down.sql` | `WITH CHECK` なし・非 RESTRICTIVE ポリシーに復元 |
+| `022_add_api_key_bypass_functions.up.sql` | SECURITY DEFINER 関数を作成（`api_key_find_by_prefix` / `api_key_find_by_id` / `api_key_revoke` / `api_key_delete`）。RLS FORCE 環境で認証ブートストラップ・管理操作を提供する（CRITICAL-RUST-001 対応） |
+| `022_add_api_key_bypass_functions.down.sql` | SECURITY DEFINER 関数削除 |
 
 ### 019_extend_prefix_varchar.up.sql
 **目的**: API キープレフィックスのブルートフォース耐性向上のためのカラム長拡張
@@ -359,6 +363,21 @@ ALTER TABLE auth.api_keys
 | キャスト追加 | `CREATE POLICY tenant_isolation ON auth.api_keys USING (tenant_id::TEXT = current_setting('app.current_tenant_id', true)::TEXT);` |
 
 **背景**: migration 019 で prefix 長が拡張されたため 020 として適用。`tenant_id`（TEXT 型）と `current_setting()` の戻り値（TEXT 型）を `::TEXT` キャストで明示的に統一し、RLS ポリシーの型不一致エラーを解消する。トランザクション内で実行（BEGIN/COMMIT）。
+
+### 022_add_api_key_bypass_functions.up.sql
+**目的**: FORCE ROW LEVEL SECURITY 環境における認証ブートストラップ・管理操作用 SECURITY DEFINER 関数の提供
+
+| 関数 | 目的 |
+|------|------|
+| `auth.api_key_find_by_prefix(prefix TEXT)` | 認証時（テナント ID 不明）の API キー検索 |
+| `auth.api_key_find_by_id(id UUID)` | 管理操作（テナント ID 不明）の API キー取得 |
+| `auth.api_key_revoke(id UUID)` | 管理操作の API キー失効（更新行の id を返す） |
+| `auth.api_key_delete(id UUID)` | 管理操作の API キー削除（削除行の id を返す） |
+
+**背景**: migration 018 で `FORCE ROW LEVEL SECURITY` を有効化。migration 021 で `AS RESTRICTIVE + WITH CHECK` を適用。
+これにより直接クエリでは `app.current_tenant_id` が未設定のとき全件 RLS でブロックされる。
+認証ブートストラップフロー（テナント ID 不明でプレフィックス検索）・管理 API はテナントコンテキストなしで操作する必要があるため、
+SECURITY DEFINER 関数（オーナー = DB マイグレーション実行ロール）を用いて RLS をバイパスする。
 
 ---
 

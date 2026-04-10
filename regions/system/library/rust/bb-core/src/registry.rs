@@ -7,12 +7,14 @@ use tracing::{error, info};
 use crate::component::{Component, ComponentStatus};
 use crate::ComponentError;
 
-/// ComponentRegistry はビルディングブロックの登録・管理を行うレジストリ。
+/// `ComponentRegistry` はビルディングブロックの登録・管理を行うレジストリ。
 pub struct ComponentRegistry {
     components: RwLock<HashMap<String, Arc<dyn Component>>>,
 }
 
 impl ComponentRegistry {
+    // HIGH-001 監査対応: 戻り値を必ず使用するよう must_use を付与する
+    #[must_use]
     pub fn new() -> Self {
         Self {
             components: RwLock::new(HashMap::new()),

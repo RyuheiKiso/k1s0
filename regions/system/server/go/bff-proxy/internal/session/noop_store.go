@@ -23,19 +23,19 @@ func NewNoOpStore() *NoOpStore {
 }
 
 // Create はセッションの作成を no-op で処理し、固定のダミーセッション ID を返す。
-func (n *NoOpStore) Create(_ context.Context, _ *SessionData, _ time.Duration) (string, error) {
+func (n *NoOpStore) Create(_ context.Context, _ *Data, _ time.Duration) (string, error) {
 	// データを永続化しないため、ダミー ID を返す
 	return "noop-session", nil
 }
 
 // Get はセッションの取得を no-op で処理し、常に nil を返す。
-func (n *NoOpStore) Get(_ context.Context, _ string) (*SessionData, error) {
+func (n *NoOpStore) Get(_ context.Context, _ string) (*Data, error) {
 	// 常に未発見として扱う
 	return nil, nil
 }
 
 // Update はセッションの更新を no-op で処理し、常に成功を返す。
-func (n *NoOpStore) Update(_ context.Context, _ string, _ *SessionData, _ time.Duration) error {
+func (n *NoOpStore) Update(_ context.Context, _ string, _ *Data, _ time.Duration) error {
 	return nil
 }
 

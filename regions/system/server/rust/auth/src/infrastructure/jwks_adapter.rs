@@ -5,12 +5,13 @@ use async_trait::async_trait;
 use crate::domain::entity::claims::{Claims, RealmAccess, ResourceAccess};
 use crate::infrastructure::TokenVerifier;
 
-/// JwksVerifierAdapter はライブラリの JwksVerifier をサーバーの TokenVerifier に適合させる。
+/// `JwksVerifierAdapter` はライブラリの `JwksVerifier` をサーバーの `TokenVerifier` に適合させる。
 pub struct JwksVerifierAdapter {
     verifier: Arc<k1s0_auth::JwksVerifier>,
 }
 
 impl JwksVerifierAdapter {
+    #[must_use]
     pub fn new(verifier: Arc<k1s0_auth::JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -23,7 +24,7 @@ impl TokenVerifier for JwksVerifierAdapter {
             .verifier
             .verify_token(token)
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         Ok(convert_claims(lib_claims))
     }
 }
@@ -49,8 +50,10 @@ fn convert_claims(c: k1s0_auth::Claims) -> Claims {
         // ライブラリの Audience(Vec<String>) を Vec<String> としてそのまま変換する。
         // 先頭要素のみ取得する旧実装では複数 audience が失われていたため修正。
         aud: c.aud.0,
-        exp: c.exp as i64,
-        iat: c.iat as i64,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        exp: i64::try_from(c.exp).unwrap_or(i64::MAX),
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        iat: i64::try_from(c.iat).unwrap_or(0),
         jti: c.jti.unwrap_or_default(),
         typ: c.typ.unwrap_or_default(),
         azp: c.azp.unwrap_or_default(),

@@ -32,11 +32,13 @@ impl VaultClientConfig {
         }
     }
 
+    #[must_use]
     pub fn cache_ttl(mut self, ttl: Duration) -> Self {
         self.cache_ttl = ttl;
         self
     }
 
+    #[must_use]
     pub fn cache_max_capacity(mut self, capacity: usize) -> Self {
         self.cache_max_capacity = capacity;
         self
@@ -44,6 +46,7 @@ impl VaultClientConfig {
 
     /// Vault 接続の必須/任意を設定するビルダーメソッド。
     /// 開発環境では `false` に設定することで、Vault が利用不可でもサーバーを起動できる。
+    #[must_use]
     pub fn vault_required(mut self, required: bool) -> Self {
         self.vault_required = required;
         self

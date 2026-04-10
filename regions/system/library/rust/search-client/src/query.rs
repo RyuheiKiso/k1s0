@@ -76,21 +76,26 @@ impl SearchQuery {
         }
     }
 
+    #[must_use]
     pub fn filter(mut self, filter: Filter) -> Self {
         self.filters.push(filter);
         self
     }
 
+    /// ファセット項目を追加する（ビルダーパターン）。
+    #[must_use]
     pub fn facet(mut self, facet: impl Into<String>) -> Self {
         self.facets.push(facet.into());
         self
     }
 
+    #[must_use]
     pub fn page(mut self, page: u32) -> Self {
         self.page = page;
         self
     }
 
+    #[must_use]
     pub fn size(mut self, size: u32) -> Self {
         self.size = size;
         self

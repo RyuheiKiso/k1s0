@@ -2,7 +2,7 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-/// AuthConfig は JWT 認証設定を表す。
+/// `AuthConfig` は JWT 認証設定を表す。
 /// config.docker.yaml の nested 形式（auth.jwt / auth.jwks）に対応する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
@@ -13,7 +13,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークンの issuer と audience を保持する。
+/// `JwtConfig` は JWT トークンの issuer と audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT の発行者（issuer）URL
@@ -22,7 +22,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントとキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントとキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -104,7 +104,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig はデータベース接続の設定を表す。
+/// `DatabaseConfig` はデータベース接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -141,7 +141,8 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 接続 URL を生成する。
+    /// `PostgreSQL` 接続 URL を生成する。
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -156,7 +157,7 @@ impl DatabaseConfig {
     }
 }
 
-/// KafkaConfig は Kafka ブローカー接続の設定を表す。
+/// `KafkaConfig` は Kafka ブローカー接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -168,19 +169,19 @@ pub struct KafkaConfig {
     pub notification_topic: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// SchedulerClientConfig は scheduler-server 連携の設定を表す。
+/// `SchedulerClientConfig` は scheduler-server 連携の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SchedulerClientConfig {
     pub internal_endpoint: String,
 }
 
-/// OverdueCheckConfig はタスク期日超過チェックの設定を表す。
+/// `OverdueCheckConfig` はタスク期日超過チェックの設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct OverdueCheckConfig {
     #[serde(default = "default_cron_expression")]

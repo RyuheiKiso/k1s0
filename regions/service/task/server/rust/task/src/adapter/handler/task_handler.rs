@@ -41,7 +41,7 @@ pub async fn list_tasks(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     // MED-14 監査対応: status パース失敗時に None で無視するのではなく 400 Bad Request を返す。
@@ -50,7 +50,7 @@ pub async fn list_tasks(
     let status = match q.status.as_deref() {
         None => None,
         Some(s) => Some(s.parse::<crate::domain::entity::task::TaskStatus>().map_err(|e| {
-            ServiceError::bad_request("TASK", format!("無効なステータス値です: {}", e))
+            ServiceError::bad_request("TASK", format!("Invalid status value: {}", e))
         })?),
     };
     let filter = TaskFilter {
@@ -72,7 +72,7 @@ pub async fn get_task(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let task = state
@@ -96,7 +96,7 @@ pub async fn create_task(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     // JWT sub/username を actor として使用する
@@ -123,7 +123,7 @@ pub async fn update_task_status(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     // JWT sub/username を actor として使用する
@@ -144,7 +144,7 @@ pub async fn get_checklist(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let items = state.get_task_uc.get_checklist(tenant_id, id).await.map_err(map_err)?;
@@ -161,7 +161,7 @@ pub async fn update_task(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     // JWT sub/username を actor として使用する
@@ -184,7 +184,7 @@ pub async fn create_checklist_item(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let item = state
@@ -205,7 +205,7 @@ pub async fn update_checklist_item(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     let item = state
@@ -225,7 +225,7 @@ pub async fn delete_checklist_item(
     // Claims が存在しない場合は未認証として 401 を返す
     let claims_inner = claims
         .as_ref()
-        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "Authentication required"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
     state

@@ -10,6 +10,7 @@ pub struct SlackDeliveryClient {
 }
 
 impl SlackDeliveryClient {
+    #[must_use]
     pub fn new(webhook_url: String) -> Self {
         Self {
             webhook_url,
@@ -24,7 +25,7 @@ impl DeliveryClient for SlackDeliveryClient {
         let text = if subject.is_empty() {
             body.to_string()
         } else {
-            format!("*{}*\n{}", subject, body)
+            format!("*{subject}*\n{body}")
         };
 
         let payload = json!({ "text": text });
@@ -44,8 +45,7 @@ impl DeliveryClient for SlackDeliveryClient {
                 .await
                 .unwrap_or_else(|_| "unknown".to_string());
             return Err(DeliveryError::Rejected(format!(
-                "Slack returned {}: {}",
-                status, body_text
+                "Slack returned {status}: {body_text}"
             )));
         }
 

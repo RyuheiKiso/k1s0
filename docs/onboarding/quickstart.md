@@ -154,14 +154,27 @@ just local-up-profile infra
 
 ### docker compose を直接呼ぶ場合
 
-`--profile infra` フラグが必要。
+> ⛔ **新規環境セットアップには `just local-up-dev` を使用してください（HIGH-007 監査対応）。**
+> `docker compose` を直接呼ぶと以下の 2 つの問題が発生します:
+> 1. **DB マイグレーションが実行されない** → `tenant-rust`, `config-rust`, `featureflag-rust` 等が unhealthy になる（CRIT-004）
+> 2. **`--build` フラグが付かない** → スタレイメージによるコンフィグ不整合が発生する（CRIT-001）
+>
+> `just local-up-dev` はマイグレーション（Phase 1.5）と `--build` を自動で処理するため、
+> **新規環境では必ず `just local-up-dev` を使用すること。**
+
+docker compose を直接呼ぶ場合は `--profile infra` フラグとマイグレーションの手動実行が必要。
 
 ```bash
 # インフラサービス（PostgreSQL / Redis / Kafka / Keycloak 等）を起動
-docker compose --profile infra up -d
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra up -d
+
+# DB マイグレーションを手動実行（必須: スキップするとアプリが unhealthy になる）
+just migrate-all
 
 # インフラ + system プロファイルを同時起動
-docker compose --profile infra --profile system up -d
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra --profile system up -d
 
 # 個別サービスの停止時も profile が必要
 docker compose --profile infra down

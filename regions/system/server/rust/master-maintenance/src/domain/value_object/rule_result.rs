@@ -11,6 +11,7 @@ pub struct RuleResult {
 }
 
 impl RuleResult {
+    #[must_use]
     pub fn pass() -> Self {
         Self {
             rule_id: String::new(),
@@ -22,6 +23,7 @@ impl RuleResult {
         }
     }
 
+    #[must_use]
     pub fn fail(message: String) -> Self {
         Self {
             rule_id: String::new(),
@@ -33,6 +35,7 @@ impl RuleResult {
         }
     }
 
+    #[must_use]
     pub fn warning(message: String) -> Self {
         Self {
             rule_id: String::new(),
@@ -45,6 +48,7 @@ impl RuleResult {
     }
 
     /// ルール情報を設定して返す
+    #[must_use]
     pub fn with_rule_info(mut self, rule_id: String, rule_name: String) -> Self {
         self.rule_id = rule_id;
         self.rule_name = rule_name;

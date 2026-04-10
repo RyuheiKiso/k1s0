@@ -40,6 +40,13 @@ on:
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
 
+# MED-013: デプロイの同時実行を防ぐ（進行中のデプロイを完了させてから次を実行する）
+# cancel-in-progress: false により実行中のデプロイをキャンセルせず、次のデプロイをキューに入れる
+# group に github.workflow を含めることで他のデプロイワークフローとは独立したキューを持つ
+concurrency:
+  group: deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 # キャッシュ戦略:
 # - GitHub Actions Cache (type=gha): Docker ビルドレイヤーキャッシュ（cache-from/cache-to で利用）
 # - Cargo/Go キャッシュ: 各言語の依存関係は CI ワークフロー（ci.yaml）側で管理

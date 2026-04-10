@@ -54,12 +54,14 @@ pub fn validate(config: &EventsConfig) -> Result<()> {
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
     // L-002 監査対応: expect メッセージをパターン内容が分かる説明的なメッセージに変更する。
     let kebab_re = KEBAB_RE.get_or_init(|| {
-        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-            .expect("kebab-case パターン正規表現のコンパイルに失敗（パターン: ^[a-z0-9]+(-[a-z0-9]+)*$）")
+        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").expect(
+            "kebab-case パターン正規表現のコンパイルに失敗（パターン: ^[a-z0-9]+(-[a-z0-9]+)*$）",
+        )
     });
     let event_name_re = EVENT_NAME_RE.get_or_init(|| {
-        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$")
-            .expect("イベント名パターン正規表現のコンパイルに失敗（パターン: kebab-case + ドット区切り）")
+        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$").expect(
+            "イベント名パターン正規表現のコンパイルに失敗（パターン: kebab-case + ドット区切り）",
+        )
     });
     let snake_re = SNAKE_RE.get_or_init(|| {
         Regex::new(r"^[a-z_][a-z0-9_]*$")

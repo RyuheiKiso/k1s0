@@ -34,6 +34,8 @@ pub struct TraceOutput {
     pub pending_steps: Vec<PendingStepInfo>,
 }
 
+// リポジトリフィールドの命名規則として _repo サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct TraceByCorrelationUseCase {
     event_repo: Arc<dyn EventRecordRepository>,
     flow_def_repo: Arc<dyn FlowDefinitionRepository>,
@@ -57,9 +59,9 @@ impl TraceByCorrelationUseCase {
         instance: &FlowInstance,
         steps: Option<&Vec<FlowStep>>,
     ) -> Vec<PendingStepInfo> {
-        let steps = match steps {
-            Some(s) => s,
-            None => return vec![],
+        // let-else: フロー定義ステップが存在しない場合は空リストを返す
+        let Some(steps) = steps else {
+            return vec![];
         };
 
         // Only compute pending steps for in-progress flows
@@ -67,7 +69,8 @@ impl TraceByCorrelationUseCase {
             return vec![];
         }
 
-        let current_idx = instance.current_step_index as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let current_idx = usize::try_from(instance.current_step_index).unwrap_or(0);
         let elapsed_since_start = (chrono::Utc::now() - instance.started_at).num_seconds();
 
         steps
@@ -80,7 +83,8 @@ impl TraceByCorrelationUseCase {
                     .source_filter
                     .clone()
                     .unwrap_or_else(|| step.source.clone()),
-                step_index: i as i32,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                step_index: i32::try_from(i).unwrap_or(i32::MAX),
                 timeout_seconds: step.timeout_seconds,
                 waiting_since_seconds: elapsed_since_start,
             })
@@ -146,6 +150,7 @@ mod tests {
 
     fn make_event(corr_id: &str) -> EventRecord {
         EventRecord::new(
+            "system".to_string(),
             corr_id.to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),
@@ -157,6 +162,7 @@ mod tests {
 
     fn make_flow_with_steps(flow_id: Uuid) -> FlowDefinition {
         let mut flow = FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "test".to_string(),
             "service.task".to_string(),
@@ -196,7 +202,7 @@ mod tests {
     #[tokio::test]
     async fn with_flow() {
         let flow_id = Uuid::new_v4();
-        let instance = FlowInstance::new(flow_id, "corr-123".to_string());
+        let instance = FlowInstance::new("system".to_string(), flow_id, "corr-123".to_string());
         // instance is InProgress at step 0, so steps 1 and 2 are pending
 
         let mut event_mock = MockEventRecordRepository::new();

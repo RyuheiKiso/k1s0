@@ -46,7 +46,7 @@ impl GetFlowInstancesUseCase {
             .await
             .map_err(|e| GetFlowInstancesError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
         Ok(GetFlowInstancesOutput {
             instances,
@@ -72,8 +72,8 @@ mod tests {
             .returning(move |_, _, _| {
                 Ok((
                     vec![
-                        FlowInstance::new(flow_id, "corr-1".to_string()),
-                        FlowInstance::new(flow_id, "corr-2".to_string()),
+                        FlowInstance::new("system".to_string(), flow_id, "corr-1".to_string()),
+                        FlowInstance::new("system".to_string(), flow_id, "corr-2".to_string()),
                     ],
                     5,
                 ))

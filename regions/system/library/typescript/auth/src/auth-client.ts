@@ -131,7 +131,8 @@ export class AuthClient {
       expiresAt: Date.now() + data.expires_in * 1000,
     };
 
-    this.tokenStore.setTokenSet(tokenSet);
+    // HIGH-FE-001 対応: setTokenSet が Promise<void> になったため await を追加する
+    await this.tokenStore.setTokenSet(tokenSet);
     this.tokenStore.clearCodeVerifier();
     this.tokenStore.clearState();
     this.scheduleRefresh();
@@ -175,7 +176,8 @@ export class AuthClient {
       expiresAt: Date.now() + data.expires_in * 1000,
     };
 
-    this.tokenStore.setTokenSet(newTokenSet);
+    // HIGH-FE-001 対応: setTokenSet が Promise<void> になったため await を追加する
+    await this.tokenStore.setTokenSet(newTokenSet);
     this.scheduleRefresh();
   }
 

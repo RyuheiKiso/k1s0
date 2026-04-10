@@ -288,6 +288,7 @@ async fn test_set_secret_success_creates_new_secret() {
     let input = SetSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "s3cret")]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -314,6 +315,7 @@ async fn test_set_secret_success_updates_existing_secret() {
     let input = SetSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "new-pass")]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -339,6 +341,7 @@ async fn test_set_secret_records_audit_log_on_success() {
     let input = SetSecretInput {
         path: "app/api/key".to_string(),
         data: make_secret_data(&[("key", "abc123")]),
+        tenant_id: None,
     };
 
     let _ = uc.execute(&input).await;
@@ -364,6 +367,7 @@ async fn test_set_secret_store_error_returns_internal() {
     let input = SetSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "s3cret")]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -387,6 +391,7 @@ async fn test_set_secret_records_audit_log_on_failure() {
     let input = SetSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "s3cret")]),
+        tenant_id: None,
     };
 
     let _ = uc.execute(&input).await;
@@ -415,6 +420,7 @@ async fn test_set_secret_with_multiple_key_value_pairs() {
             ("db_port", "5432"),
             ("db_name", "mydb"),
         ]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -445,6 +451,7 @@ async fn test_get_secret_success() {
     let input = GetSecretInput {
         path: "app/db/password".to_string(),
         version: None,
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -472,6 +479,7 @@ async fn test_get_secret_not_found() {
     let input = GetSecretInput {
         path: "nonexistent/path".to_string(),
         version: None,
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -499,6 +507,7 @@ async fn test_get_secret_internal_error() {
     let input = GetSecretInput {
         path: "app/db/password".to_string(),
         version: None,
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -523,6 +532,7 @@ async fn test_get_secret_records_audit_on_failure() {
     let input = GetSecretInput {
         path: "missing".to_string(),
         version: None,
+        tenant_id: None,
     };
 
     let _ = uc.execute(&input).await;
@@ -550,6 +560,7 @@ async fn test_delete_secret_success() {
     let input = DeleteSecretInput {
         path: "app/db/password".to_string(),
         versions: vec![1],
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -577,6 +588,7 @@ async fn test_delete_secret_not_found() {
     let input = DeleteSecretInput {
         path: "nonexistent".to_string(),
         versions: vec![],
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -601,6 +613,7 @@ async fn test_delete_secret_internal_error() {
     let input = DeleteSecretInput {
         path: "app/db/password".to_string(),
         versions: vec![1],
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -625,6 +638,7 @@ async fn test_delete_secret_records_audit_on_failure() {
     let input = DeleteSecretInput {
         path: "missing".to_string(),
         versions: vec![1],
+        tenant_id: None,
     };
 
     let _ = uc.execute(&input).await;
@@ -861,6 +875,7 @@ async fn test_rotate_secret_success() {
     let input = RotateSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "new-rotated-pass")]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -902,6 +917,7 @@ async fn test_rotate_secret_not_found() {
     let input = RotateSecretInput {
         path: "nonexistent".to_string(),
         data: make_secret_data(&[("key", "value")]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -936,6 +952,7 @@ async fn test_rotate_secret_event_publish_failure() {
     let input = RotateSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "new-pass")]),
+        tenant_id: None,
     };
 
     let result = uc.execute(&input).await;
@@ -970,6 +987,7 @@ async fn test_set_then_get_secret_roundtrip() {
     let set_input = SetSecretInput {
         path: "app/db/password".to_string(),
         data: make_secret_data(&[("password", "roundtrip-value")]),
+        tenant_id: None,
     };
     let set_result = set_uc.execute(&set_input).await;
     assert!(set_result.is_ok());
@@ -979,6 +997,7 @@ async fn test_set_then_get_secret_roundtrip() {
     let get_input = GetSecretInput {
         path: "app/db/password".to_string(),
         version: None,
+        tenant_id: None,
     };
     let get_result = get_uc.execute(&get_input).await;
     assert!(get_result.is_ok());
@@ -1002,6 +1021,7 @@ async fn test_set_then_delete_then_get_returns_not_found() {
     let set_input = SetSecretInput {
         path: "app/temp/secret".to_string(),
         data: make_secret_data(&[("key", "value")]),
+        tenant_id: None,
     };
     assert!(set_uc.execute(&set_input).await.is_ok());
 
@@ -1009,6 +1029,7 @@ async fn test_set_then_delete_then_get_returns_not_found() {
     let delete_input = DeleteSecretInput {
         path: "app/temp/secret".to_string(),
         versions: vec![1],
+        tenant_id: None,
     };
     assert!(delete_uc.execute(&delete_input).await.is_ok());
 
@@ -1016,6 +1037,7 @@ async fn test_set_then_delete_then_get_returns_not_found() {
     let get_input = GetSecretInput {
         path: "app/temp/secret".to_string(),
         version: None,
+        tenant_id: None,
     };
     let result = get_uc.execute(&get_input).await;
     assert!(result.is_err());
@@ -1039,6 +1061,7 @@ async fn test_list_after_multiple_sets() {
         let input = SetSecretInput {
             path: format!("app/{}", name),
             data: make_secret_data(&[("value", "test")]),
+            tenant_id: None,
         };
         assert!(set_uc.execute(&input).await.is_ok());
     }
@@ -1073,6 +1096,7 @@ async fn test_audit_trail_across_operations() {
         .execute(&SetSecretInput {
             path: "app/key".to_string(),
             data: make_secret_data(&[("k", "v")]),
+            tenant_id: None,
         })
         .await;
 
@@ -1081,6 +1105,7 @@ async fn test_audit_trail_across_operations() {
         .execute(&GetSecretInput {
             path: "app/key".to_string(),
             version: None,
+            tenant_id: None,
         })
         .await;
 
@@ -1089,6 +1114,7 @@ async fn test_audit_trail_across_operations() {
         .execute(&DeleteSecretInput {
             path: "app/key".to_string(),
             versions: vec![1],
+            tenant_id: None,
         })
         .await;
 

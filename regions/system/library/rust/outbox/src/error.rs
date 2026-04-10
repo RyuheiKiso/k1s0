@@ -1,4 +1,4 @@
-/// OutboxError はアウトボックス操作に関するエラーを表す。
+/// `OutboxError` はアウトボックス操作に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum OutboxError {
     #[error("store error: {0}")]

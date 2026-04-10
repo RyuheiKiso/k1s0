@@ -74,9 +74,10 @@ probes:
   # liveness/readiness より先に評価され、起動完了前に liveness が誤って失敗するのを防ぐ。
   # initialDelaySeconds: 10 — Vault Agent Injector の init コンテナ完了を待つための猶予時間（L-11 監査対応）。
   # failureThreshold × periodSeconds = 50秒の猶予期間を与える（合計最大60秒）。
+  # MEDIUM-INFRA-003 監査対応: /healthz から /readyz に変更し DB・依存サービス確認済みの状態を保証する
   startup:
     httpGet:
-      path: /healthz
+      path: /readyz
       port: http
     initialDelaySeconds: 10
     failureThreshold: 10
@@ -97,11 +98,12 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
-  # INFRA-MED-001 対応: OOM Kill 前にスケールアウトする余裕を確保するため 70% に修正
-  # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ
-  # メモリ使用率によるスケールアウトを追加（AVAIL-003 監査対応）
+  # INFRA-HIGH-002 監査対応: OOM Kill を防止するため 70% → 60% に引き下げ。
+  # 70% ではスケールアウトまでのバッファが不足し、スパイク時に OOM Kill が発生しやすい。
+  # 60% に設定することで HPA がスケールアウト完了する前に OOM Kill が起きるリスクを低減する。
+  # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ（更に 60% に改善）
   # Kafka コンシューマや大量 JSON 処理サービスの OOM Kill を防止する
-  targetMemoryUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 60
 
 # PodDisruptionBudget
 # MED-003 対応: replicaCount=1 の場合 "50%" は floor(0.5)=0 となり実質無効なため絶対値 1 に変更。
@@ -146,12 +148,13 @@ config:
   data: {}                             # ConfigMap として作成
 
 # Vault Agent Injector
-# MED-004 監査対応: vault.role の共通デフォルト値は "service"。
-# 各サービス固有のポリシーがある場合は、個別の values.yaml で role を上書きすること。
-# ADR-0045 参照: per-service Vault ロール分離設計。
+# LOW-011 対応: vault.role のデフォルト値を汎用的な "service" から "" (空文字列) に変更する。
+# 空文字列のまま helm install/upgrade を実行した場合、_vault.tpl の required 制約でエラーになり
+# 各サービスで明示的なロール名設定を強制する。ADR-0045 参照: per-service Vault ロール分離設計。
+# 各サービスの values.yaml には必ず role: "<service-name>" を設定すること。
 vault:
   enabled: true
-  role: "service"
+  role: ""
   secrets:
     - path: "secret/data/k1s0/service/app/database"
       key: "password"
@@ -218,17 +221,13 @@ istio:
 
 # Alertmanager 設定（H-03 対応: PagerDuty エスカレーション通知チャネルを追加）
 # pagerdutyRoutingKey は本番環境では Vault 経由で注入し、空文字の場合は通知されない
-# L-8 監査対応: 本番環境の values.yaml では required: true を設定すること。
-# required=true かつ webhookUrl が空の場合、helm install/upgrade が失敗してデプロイを防止する。
-# L-010 監査対応: alertmanager.required のデフォルト値は false（開発環境用）。
-# 警告: 本番環境では必ず true に設定すること。false のままでは AlertManager が未設定でも
-# デプロイが成功してしまい、障害通知が届かない。
-# 設定方法: infra/helm/services/<tier>/<service>/values-prod.yaml に以下を追加する:
-#   alertmanager:
-#     required: true
-#     webhookUrl: "https://hooks.teams.microsoft.com/..."
+# L-8/L-010 監査対応: required=true かつ webhookUrl が空の場合、helm install/upgrade が失敗してデプロイを防止する。
+# MED-004 対応: デフォルトを true に変更し、alertmanager.webhookUrl 未設定での本番デプロイを防止する。
+# 開発環境では values-dev.yaml に required: false を明示的に設定すること（全 values-dev.yaml 設定済み）。
 alertmanager:
-  required: false           # 本番環境では true に設定すること（L-8/L-010 監査対応: 障害通知欠落防止）
+  # MED-004 対応: デフォルト true でフェイルセーフ化（誤って alertmanager 未設定のまま本番デプロイを防止）
+  # 開発環境は各サービスの values-dev.yaml で required: false を明示的に指定する
+  required: true
   webhookUrl: ""            # Microsoft Teams デフォルト Webhook URL（環境別に上書きすること）
   criticalWebhookUrl: ""    # Microsoft Teams critical Webhook URL（環境別に上書きすること）
   warningWebhookUrl: ""     # Microsoft Teams warning Webhook URL（環境別に上書きすること）

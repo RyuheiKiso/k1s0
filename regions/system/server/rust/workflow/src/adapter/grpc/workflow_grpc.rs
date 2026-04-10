@@ -93,7 +93,7 @@ pub struct WorkflowTaskData {
 
 #[derive(Debug, Clone)]
 pub struct ListWorkflowsRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub enabled_only: bool,
     pub page: i32,
@@ -111,7 +111,7 @@ pub struct ListWorkflowsResponse {
 
 #[derive(Debug, Clone)]
 pub struct CreateWorkflowRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub name: String,
     pub description: String,
@@ -126,7 +126,7 @@ pub struct CreateWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetWorkflowRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub workflow_id: String,
 }
@@ -138,7 +138,7 @@ pub struct GetWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct UpdateWorkflowRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub workflow_id: String,
     pub name: Option<String>,
@@ -154,7 +154,7 @@ pub struct UpdateWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct DeleteWorkflowRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub workflow_id: String,
 }
@@ -167,7 +167,7 @@ pub struct DeleteWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct StartInstanceRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub workflow_id: String,
     pub title: String,
@@ -190,7 +190,7 @@ pub struct StartInstanceResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetInstanceRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub instance_id: String,
 }
@@ -202,7 +202,7 @@ pub struct GetInstanceResponse {
 
 #[derive(Debug, Clone)]
 pub struct ListInstancesRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub status: String,
     pub workflow_id: String,
@@ -222,7 +222,7 @@ pub struct ListInstancesResponse {
 
 #[derive(Debug, Clone)]
 pub struct CancelInstanceRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub instance_id: String,
     pub reason: Option<String>,
@@ -235,7 +235,7 @@ pub struct CancelInstanceResponse {
 
 #[derive(Debug, Clone)]
 pub struct ListTasksRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub assignee_id: String,
     pub status: String,
@@ -256,7 +256,7 @@ pub struct ListTasksResponse {
 
 #[derive(Debug, Clone)]
 pub struct ReassignTaskRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub task_id: String,
     pub new_assignee_id: String,
@@ -272,7 +272,7 @@ pub struct ReassignTaskResponse {
 
 #[derive(Debug, Clone)]
 pub struct ApproveTaskRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub task_id: String,
     pub actor_id: String,
@@ -289,7 +289,7 @@ pub struct ApproveTaskResponse {
 
 #[derive(Debug, Clone)]
 pub struct RejectTaskRequest {
-    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    /// テナント分離のため gRPC リクエストメタデータから抽出した `tenant_id`
     pub tenant_id: String,
     pub task_id: String,
     pub actor_id: String,
@@ -322,6 +322,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct WorkflowGrpcService {
     list_workflows_uc: Arc<ListWorkflowsUseCase>,
     create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -340,6 +342,7 @@ pub struct WorkflowGrpcService {
 
 impl WorkflowGrpcService {
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         list_workflows_uc: Arc<ListWorkflowsUseCase>,
         create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -376,11 +379,12 @@ impl WorkflowGrpcService {
         &self,
         req: ListWorkflowsRequest,
     ) -> Result<ListWorkflowsResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
@@ -402,8 +406,9 @@ impl WorkflowGrpcService {
                 .map(to_workflow_definition_data)
                 .collect(),
             total_count: out.total_count,
-            page: out.page as i32,
-            page_size: out.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(out.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(out.page_size).unwrap_or(i32::MAX),
             has_next: out.has_next,
         })
     }
@@ -426,7 +431,7 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 CreateWorkflowError::AlreadyExists(name) => {
-                    GrpcError::AlreadyExists(format!("workflow already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("workflow already exists: {name}"))
                 }
                 CreateWorkflowError::Validation(msg) => GrpcError::InvalidArgument(msg),
                 CreateWorkflowError::Internal(msg) => GrpcError::Internal(msg),
@@ -450,7 +455,7 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 GetWorkflowError::NotFound(id) => {
-                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                    GrpcError::NotFound(format!("workflow not found: {id}"))
                 }
                 GetWorkflowError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -479,7 +484,7 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 UpdateWorkflowError::NotFound(id) => {
-                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                    GrpcError::NotFound(format!("workflow not found: {id}"))
                 }
                 UpdateWorkflowError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -501,7 +506,7 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 DeleteWorkflowError::NotFound(id) => {
-                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                    GrpcError::NotFound(format!("workflow not found: {id}"))
                 }
                 DeleteWorkflowError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -519,7 +524,7 @@ impl WorkflowGrpcService {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&req.context_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid context_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid context_json: {e}")))?
         };
 
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
@@ -535,13 +540,13 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 StartInstanceError::WorkflowNotFound(id) => {
-                    GrpcError::NotFound(format!("workflow not found: {}", id))
+                    GrpcError::NotFound(format!("workflow not found: {id}"))
                 }
                 StartInstanceError::WorkflowDisabled(id) => {
-                    GrpcError::FailedPrecondition(format!("workflow disabled: {}", id))
+                    GrpcError::FailedPrecondition(format!("workflow disabled: {id}"))
                 }
                 StartInstanceError::NoSteps(id) => {
-                    GrpcError::FailedPrecondition(format!("workflow has no steps: {}", id))
+                    GrpcError::FailedPrecondition(format!("workflow has no steps: {id}"))
                 }
                 StartInstanceError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -573,7 +578,7 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 GetInstanceError::NotFound(id) => {
-                    GrpcError::NotFound(format!("instance not found: {}", id))
+                    GrpcError::NotFound(format!("instance not found: {id}"))
                 }
                 GetInstanceError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -586,11 +591,12 @@ impl WorkflowGrpcService {
         &self,
         req: ListInstancesRequest,
     ) -> Result<ListInstancesResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
@@ -626,8 +632,9 @@ impl WorkflowGrpcService {
                 .map(to_workflow_instance_data)
                 .collect(),
             total_count: out.total_count,
-            page: out.page as i32,
-            page_size: out.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(out.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(out.page_size).unwrap_or(i32::MAX),
             has_next: out.has_next,
         })
     }
@@ -647,10 +654,10 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 CancelInstanceError::NotFound(id) => {
-                    GrpcError::NotFound(format!("instance not found: {}", id))
+                    GrpcError::NotFound(format!("instance not found: {id}"))
                 }
                 CancelInstanceError::InvalidStatus(id, status) => GrpcError::FailedPrecondition(
-                    format!("instance {} cannot be cancelled in status '{}'", id, status),
+                    format!("instance {id} cannot be cancelled in status '{status}'"),
                 ),
                 CancelInstanceError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -660,11 +667,12 @@ impl WorkflowGrpcService {
     }
 
     pub async fn list_tasks(&self, req: ListTasksRequest) -> Result<ListTasksResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
@@ -698,8 +706,9 @@ impl WorkflowGrpcService {
         Ok(ListTasksResponse {
             tasks: out.tasks.into_iter().map(to_workflow_task_data).collect(),
             total_count: out.total_count,
-            page: out.page as i32,
-            page_size: out.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(out.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(out.page_size).unwrap_or(i32::MAX),
             has_next: out.has_next,
         })
     }
@@ -721,10 +730,10 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 ReassignTaskError::TaskNotFound(id) => {
-                    GrpcError::NotFound(format!("task not found: {}", id))
+                    GrpcError::NotFound(format!("task not found: {id}"))
                 }
                 ReassignTaskError::InvalidStatus(status) => {
-                    GrpcError::FailedPrecondition(format!("invalid task status: {}", status))
+                    GrpcError::FailedPrecondition(format!("invalid task status: {status}"))
                 }
                 ReassignTaskError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -751,16 +760,16 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 ApproveTaskError::TaskNotFound(id) => {
-                    GrpcError::NotFound(format!("task not found: {}", id))
+                    GrpcError::NotFound(format!("task not found: {id}"))
                 }
                 ApproveTaskError::InvalidStatus(status) => {
-                    GrpcError::FailedPrecondition(format!("invalid task status: {}", status))
+                    GrpcError::FailedPrecondition(format!("invalid task status: {status}"))
                 }
                 ApproveTaskError::InstanceNotFound(id) => {
-                    GrpcError::NotFound(format!("instance not found: {}", id))
+                    GrpcError::NotFound(format!("instance not found: {id}"))
                 }
                 ApproveTaskError::DefinitionNotFound(id) => {
-                    GrpcError::NotFound(format!("workflow definition not found: {}", id))
+                    GrpcError::NotFound(format!("workflow definition not found: {id}"))
                 }
                 ApproveTaskError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -789,16 +798,16 @@ impl WorkflowGrpcService {
             .await
             .map_err(|e| match e {
                 RejectTaskError::TaskNotFound(id) => {
-                    GrpcError::NotFound(format!("task not found: {}", id))
+                    GrpcError::NotFound(format!("task not found: {id}"))
                 }
                 RejectTaskError::InvalidStatus(status) => {
-                    GrpcError::FailedPrecondition(format!("invalid task status: {}", status))
+                    GrpcError::FailedPrecondition(format!("invalid task status: {status}"))
                 }
                 RejectTaskError::InstanceNotFound(id) => {
-                    GrpcError::NotFound(format!("instance not found: {}", id))
+                    GrpcError::NotFound(format!("instance not found: {id}"))
                 }
                 RejectTaskError::DefinitionNotFound(id) => {
-                    GrpcError::NotFound(format!("workflow definition not found: {}", id))
+                    GrpcError::NotFound(format!("workflow definition not found: {id}"))
                 }
                 RejectTaskError::Internal(msg) => GrpcError::Internal(msg),
             })?;

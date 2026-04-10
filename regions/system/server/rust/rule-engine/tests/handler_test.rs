@@ -295,12 +295,15 @@ fn build_state(rule_repo: Arc<StubRuleRepo>, rule_set_repo: Arc<StubRuleSetRepo>
         metrics,
         auth_state: None,
         backend_kind: "in-memory".to_string(),
+        // テスト時は DB 接続プールを使用しない
+        db_pool: None,
     }
 }
 
-/// テスト用ルール生成ヘルパー
+/// テスト用ルール生成ヘルパー。CRITICAL-RUST-001 対応: tenant_id を第1引数に追加する。
 fn make_rule(name: &str) -> Rule {
     Rule::new(
+        "test-tenant".to_string(),
         name.to_string(),
         "test rule".to_string(),
         10,
@@ -358,8 +361,9 @@ async fn readyz_in_memory_returns_degraded() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    // ADR-0068 準拠: checks.rule_engine_backend でバックエンド種別を確認する
     assert_eq!(json["status"], "degraded");
-    assert_eq!(json["backend"], "in-memory");
+    assert_eq!(json["checks"]["rule_engine_backend"], "in-memory");
 }
 
 // ---------------------------------------------------------------------------

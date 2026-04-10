@@ -9,6 +9,7 @@ pub enum Tier {
 }
 
 impl Tier {
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Tier::System => "system",
@@ -79,14 +80,17 @@ impl ScaffoldConfig {
         Ok(())
     }
 
+    #[must_use]
     pub fn has_grpc(&self) -> bool {
         matches!(self.api_style, ApiStyle::Grpc | ApiStyle::Both)
     }
 
+    #[must_use]
     pub fn has_rest(&self) -> bool {
         matches!(self.api_style, ApiStyle::Rest | ApiStyle::Both)
     }
 
+    #[must_use]
     pub fn has_database(&self) -> bool {
         !matches!(self.database, DatabaseType::None)
     }

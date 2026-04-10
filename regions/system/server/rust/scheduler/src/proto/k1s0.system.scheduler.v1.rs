@@ -209,7 +209,7 @@ pub mod scheduler_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with SchedulerServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `SchedulerServiceServer`.
     #[async_trait]
     pub trait SchedulerService: std::marker::Send + std::marker::Sync + 'static {
         async fn create_job(

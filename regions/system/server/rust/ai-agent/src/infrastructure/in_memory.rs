@@ -9,14 +9,15 @@ use tokio::sync::RwLock;
 use crate::domain::entity::{AgentDefinition, Execution};
 use crate::domain::repository::{AgentRepository, ExecutionRepository};
 
-/// InMemoryAgentRepository はメモリ内のエージェントリポジトリ
+/// `InMemoryAgentRepository` はメモリ内のエージェントリポジトリ
 pub struct InMemoryAgentRepository {
     /// エージェント定義のストア
     agents: Arc<RwLock<Vec<AgentDefinition>>>,
 }
 
 impl InMemoryAgentRepository {
-    /// 新しいInMemoryAgentRepositoryを生成する
+    /// `新しいInMemoryAgentRepositoryを生成する`
+    #[must_use]
     pub fn new() -> Self {
         Self {
             agents: Arc::new(RwLock::new(Vec::new())),
@@ -56,14 +57,15 @@ impl AgentRepository for InMemoryAgentRepository {
     }
 }
 
-/// InMemoryExecutionRepository はメモリ内の実行リポジトリ
+/// `InMemoryExecutionRepository` はメモリ内の実行リポジトリ
 pub struct InMemoryExecutionRepository {
     /// 実行のストア
     executions: Arc<RwLock<Vec<Execution>>>,
 }
 
 impl InMemoryExecutionRepository {
-    /// 新しいInMemoryExecutionRepositoryを生成する
+    /// `新しいInMemoryExecutionRepositoryを生成する`
+    #[must_use]
     pub fn new() -> Self {
         Self {
             executions: Arc::new(RwLock::new(Vec::new())),

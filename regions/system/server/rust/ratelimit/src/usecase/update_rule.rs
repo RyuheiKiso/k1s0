@@ -6,7 +6,7 @@ use crate::domain::entity::{Algorithm, RateLimitRule};
 use crate::domain::repository::RateLimitRepository;
 use crate::domain::service::RateLimitDomainService;
 
-/// UpdateRuleError はルール更新に関するエラー。
+/// `UpdateRuleError` はルール更新に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateRuleError {
     #[error("rule not found: {0}")]
@@ -22,7 +22,7 @@ pub enum UpdateRuleError {
     Internal(String),
 }
 
-/// UpdateRuleInput はルール更新の入力。
+/// `UpdateRuleInput` はルール更新の入力。
 pub struct UpdateRuleInput {
     pub id: String,
     pub scope: String,
@@ -35,7 +35,7 @@ pub struct UpdateRuleInput {
     pub tenant_id: String,
 }
 
-/// UpdateRuleUseCase はルール更新ユースケース。
+/// `UpdateRuleUseCase` はルール更新ユースケース。
 pub struct UpdateRuleUseCase {
     repo: Arc<dyn RateLimitRepository>,
 }
@@ -45,7 +45,7 @@ impl UpdateRuleUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを更新する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを更新する。
     pub async fn execute(&self, input: &UpdateRuleInput) -> Result<RateLimitRule, UpdateRuleError> {
         RateLimitDomainService::validate_rule_input(
             &input.scope,

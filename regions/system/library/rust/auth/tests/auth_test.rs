@@ -24,8 +24,8 @@ fn build_claims(
         sub: sub.into(),
         iss: "https://auth.example.com/realms/k1s0".into(),
         aud: k1s0_auth::Audience(vec!["k1s0-api".into()]),
-        exp: 9999999999,
-        iat: 1000000000,
+        exp: 9_999_999_999,
+        iat: 1_000_000_000,
         jti: None,
         typ: Some("Bearer".into()),
         azp: None,
@@ -59,8 +59,8 @@ fn build_minimal_claims(sub: &str) -> Claims {
         sub: sub.into(),
         iss: "https://auth.example.com/realms/k1s0".into(),
         aud: k1s0_auth::Audience(vec![]),
-        exp: 9999999999,
-        iat: 1000000000,
+        exp: 9_999_999_999,
+        iat: 1_000_000_000,
         jti: None,
         typ: None,
         azp: None,
@@ -391,7 +391,7 @@ fn claims_tier_access_list_returns_tiers() {
 #[test]
 fn claims_display_contains_sub() {
     let claims = build_claims("user-xyz", vec![], vec![], vec![]);
-    let display = format!("{}", claims);
+    let display = format!("{claims}");
     assert!(display.contains("user-xyz"));
 }
 
@@ -428,7 +428,7 @@ fn claims_actor_falls_back_to_sub() {
 #[test]
 fn claims_actor_skips_empty_preferred_username() {
     let mut claims = build_minimal_claims("sub-id");
-    claims.preferred_username = Some("".into());
+    claims.preferred_username = Some(String::new());
     claims.email = Some("user@test.com".into());
     assert_eq!(claims.actor(), Some("user@test.com"));
 }
@@ -437,8 +437,8 @@ fn claims_actor_skips_empty_preferred_username() {
 #[test]
 fn claims_actor_skips_empty_email_and_username() {
     let mut claims = build_minimal_claims("sub-id");
-    claims.preferred_username = Some("".into());
-    claims.email = Some("".into());
+    claims.preferred_username = Some(String::new());
+    claims.email = Some(String::new());
     assert_eq!(claims.actor(), Some("sub-id"));
 }
 
@@ -446,8 +446,8 @@ fn claims_actor_skips_empty_email_and_username() {
 #[test]
 fn claims_actor_returns_none_when_all_empty() {
     let mut claims = build_minimal_claims("");
-    claims.preferred_username = Some("".into());
-    claims.email = Some("".into());
+    claims.preferred_username = Some(String::new());
+    claims.email = Some(String::new());
     assert!(claims.actor().is_none());
 }
 
@@ -469,8 +469,8 @@ fn actor_from_claims_returns_system_when_none() {
 #[test]
 fn actor_from_claims_returns_system_when_all_fields_empty() {
     let mut claims = build_minimal_claims("");
-    claims.preferred_username = Some("".into());
-    claims.email = Some("".into());
+    claims.preferred_username = Some(String::new());
+    claims.email = Some(String::new());
     assert_eq!(actor_from_claims(Some(&claims)), "system");
 }
 

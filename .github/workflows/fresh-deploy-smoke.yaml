@@ -107,6 +107,10 @@ jobs:
       # インフラ起動（報告書 7.3 推奨手順）
       # ============================================================
 
+      # MEDIUM-006 監査対応: このワークフローは docker-compose.dev.yaml を使用するため
+      # Vault が dev モード（VAULT_DEV_ROOT_TOKEN_ID）で起動する。
+      # これはエフェメラル CI ランナー上のスモークテスト専用であり、
+      # staging/production 環境では docker-compose.dev.yaml を一切使用しない。
       - name: Start infra services
         run: |
           # 報告書 7.3: --profile infra でインフラサービスを起動

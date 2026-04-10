@@ -8,7 +8,7 @@ pub struct SessionDomainService;
 
 impl SessionDomainService {
     /// セッション作成リクエストのバリデーションを行う。
-    /// LOW-08 対応: TTL の下限を MIN_TTL_SECONDS（60秒）に設定し、
+    /// LOW-08 対応: TTL の下限を `MIN_TTL_SECONDS（60秒）に設定し`、
     /// 極端に短いセッション TTL を拒否する。
     pub fn validate_create_request(
         device_id: &str,
@@ -23,13 +23,13 @@ impl SessionDomainService {
         // TTL の下限チェック: MIN_TTL_SECONDS 未満は拒否する
         if ttl < MIN_TTL_SECONDS || ttl > max_ttl {
             return Err(SessionError::InvalidInput(format!(
-                "ttl_seconds must be between {} and {}",
-                MIN_TTL_SECONDS, max_ttl
+                "ttl_seconds must be between {MIN_TTL_SECONDS} and {max_ttl}"
             )));
         }
         Ok(())
     }
 
+    #[must_use]
     pub fn compute_revoke_count(active_sessions: usize, max_devices: usize) -> usize {
         if active_sessions < max_devices {
             return 0;

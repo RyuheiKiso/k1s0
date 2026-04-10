@@ -1,25 +1,26 @@
-/// FlagCache はフィーチャーフラグのインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きでフラグをキャッシュする。
-/// STATIC-CRITICAL-001 監査対応: キャッシュキーを "{tenant_id}:{flag_key}" 形式にして
+/// `FlagCache` はフィーチャーフラグのインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きでフラグをキャッシュする。
+/// STATIC-CRITICAL-001 監査対応: キャッシュキーを "{`tenant_id}:{flag_key`}" 形式にして
 /// テナント間のキャッシュ混在を防ぐ。
-/// HIGH-005 対応: tenant_id を &str 型で受け取る（migration 006 で TEXT 型に変更済み）。
+/// HIGH-005 対応: `tenant_id` を &str 型で受け取る（migration 006 で TEXT 型に変更済み）。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::domain::entity::feature_flag::FeatureFlag;
 
-/// キャッシュキーは "{tenant_id}:{flag_key}" 形式。
+/// キャッシュキーは "{`tenant_id}:{flag_key`}" 形式。
 pub struct FlagCache {
     inner: Cache<String, Arc<FeatureFlag>>,
 }
 
 impl FlagCache {
-    /// 新しい FlagCache を作成する。
+    /// 新しい `FlagCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -29,25 +30,25 @@ impl FlagCache {
     }
 
     /// テナントスコープのキャッシュキーを生成する。
-    /// HIGH-005 対応: tenant_id は &str 型（DB の TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB の TEXT 型に対応）。
     fn cache_key(tenant_id: &str, flag_key: &str) -> String {
         format!("{tenant_id}:{flag_key}")
     }
 
-    /// tenant_id + flag_key に対応するフラグを取得する。
+    /// `tenant_id` + `flag_key` に対応するフラグを取得する。
     /// キャッシュミスの場合は None を返す。
     pub async fn get(&self, tenant_id: &str, flag_key: &str) -> Option<Arc<FeatureFlag>> {
         self.inner.get(&Self::cache_key(tenant_id, flag_key)).await
     }
 
     /// フラグをキャッシュに追加する。
-    /// キーは flag.tenant_id + flag.flag_key から自動生成する。
+    /// キーは `flag.tenant_id` + `flag.flag_key` から自動生成する。
     pub async fn insert(&self, flag: Arc<FeatureFlag>) {
         let key = Self::cache_key(&flag.tenant_id, &flag.flag_key);
         self.inner.insert(key, flag).await;
     }
 
-    /// 特定の tenant_id + flag_key のフラグをキャッシュから削除する。
+    /// 特定の `tenant_id` + `flag_key` のフラグをキャッシュから削除する。
     pub async fn invalidate(&self, tenant_id: &str, flag_key: &str) {
         self.inner
             .invalidate(&Self::cache_key(tenant_id, flag_key))
@@ -55,7 +56,8 @@ impl FlagCache {
     }
 
     /// すべてのキャッシュエントリを削除する。
-    pub async fn invalidate_all(&self) {
+    // async は不要（.await 呼び出しがないため同期関数に変換する）
+    pub fn invalidate_all(&self) {
         self.inner.invalidate_all();
     }
 }
@@ -152,7 +154,8 @@ mod tests {
         cache.insert(flag1).await;
         cache.insert(flag2).await;
 
-        cache.invalidate_all().await;
+        // invalidate_all は同期関数のため .await 不要
+        cache.invalidate_all();
 
         assert!(cache.get(tid, "feature.dark-mode").await.is_none());
         assert!(cache.get(tid, "feature.new-ui").await.is_none());

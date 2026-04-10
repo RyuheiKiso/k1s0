@@ -124,7 +124,8 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 接続 URL を生成する。
+    /// `PostgreSQL` 接続 URL を生成する。
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
@@ -138,6 +139,7 @@ impl DatabaseConfig {
         )
     }
 
+    #[must_use]
     pub fn migrations_path() -> &'static Path {
         Path::new("../../../database/master-maintenance-db/migrations")
     }
@@ -151,7 +153,7 @@ pub struct KafkaConfig {
     pub domain_topic_pattern: Option<String>,
 }
 
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -161,7 +163,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -170,7 +172,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -250,7 +252,7 @@ fn default_max_file_size() -> usize {
     50
 }
 fn default_max_rows() -> usize {
-    100000
+    100_000
 }
 fn default_batch_size() -> usize {
     500

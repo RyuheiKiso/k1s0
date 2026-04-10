@@ -18,7 +18,7 @@ use tracing::{info, warn};
 use crate::adapter::middleware::auth_middleware::Claims;
 
 /// レート制限ミドルウェアの Tower Layer。
-/// RateLimitClient と設定スコープを保持し、リクエストごとにレート制限チェックを行う。
+/// `RateLimitClient` と設定スコープを保持し、リクエストごとにレート制限チェックを行う。
 #[derive(Clone)]
 pub struct RateLimitLayer {
     /// レート制限クライアント（gRPC またはインメモリ）
@@ -28,7 +28,7 @@ pub struct RateLimitLayer {
 }
 
 impl RateLimitLayer {
-    /// 新しい RateLimitLayer を作成する。
+    /// 新しい `RateLimitLayer` を作成する。
     /// client: レート制限クライアント実装
     /// scope: キープレフィックス（サービス識別用）
     pub fn new(client: Arc<dyn RateLimitClient>, scope: String) -> Self {
@@ -63,7 +63,7 @@ pub struct RateLimitService<S> {
 }
 
 /// リクエストからレート制限キーの識別子を抽出する。
-/// 優先順位: Claims（認証済みユーザーID）→ X-Forwarded-For ヘッダー → ConnectInfo IP → "anonymous"
+/// 優先順位: Claims（認証済みユーザーID）→ X-Forwarded-For ヘッダー → `ConnectInfo` IP → "anonymous"
 /// Claims ベースのキーを最優先とすることで、認証済みユーザーを正確にレート制限できる。
 fn extract_identifier(req: &Request<Body>) -> String {
     // 認証済みユーザーの場合は sub クレームをキーとして使用する（IP スプーフィング耐性）
@@ -123,23 +123,21 @@ where
         let mut inner = self.inner.clone();
 
         Box::pin(async move {
-            // リクエストからクライアント識別子を抽出（body 分離前に実行）
-            let identifier = extract_identifier(&req);
-            // スコープと識別子を組み合わせてレート制限キーを生成
-            let rate_limit_key = format!("{}:{}", scope, identifier);
-
             // STATIC-MEDIUM-001 監査対応: ボディを読み取って GraphQL クエリ複雑度をコストとして推定する。
             // Alias DoS（大量エイリアスによる単一リクエストへの負荷集中）を防止する。
             // RequestBodyLimitLayer（2MB）が外側に適用されているため、ここでも 2MB を上限とする。
             const MAX_BODY_SIZE: usize = 2 * 1024 * 1024;
+
+            // リクエストからクライアント識別子を抽出（body 分離前に実行）
+            let identifier = extract_identifier(&req);
+            // スコープと識別子を組み合わせてレート制限キーを生成
+            let rate_limit_key = format!("{scope}:{identifier}");
             let (parts, body) = req.into_parts();
-            let body_bytes = match axum::body::to_bytes(body, MAX_BODY_SIZE).await {
-                Ok(bytes) => bytes,
-                Err(_) => {
-                    // ボディ読み取り失敗時はコスト1でフォールバックし、後続サービスに転送する
-                    let req = Request::from_parts(parts, Body::empty());
-                    return inner.call(req).await;
-                }
+            // let-else: ボディ読み取り失敗時はフォールバックして後続サービスに転送する
+            let Ok(body_bytes) = axum::body::to_bytes(body, MAX_BODY_SIZE).await else {
+                // ボディ読み取り失敗時はコスト1でフォールバックし、後続サービスに転送する
+                let req = Request::from_parts(parts, Body::empty());
+                return inner.call(req).await;
             };
 
             // GraphQL クエリのフィールド選択数をコストとして推定する
@@ -196,7 +194,7 @@ where
 
 /// STATIC-MEDIUM-001 監査対応: GraphQL リクエストボディからクエリ複雑度を推定してコストを返す。
 /// JSON ボディの "query" フィールドを取得し、フィールド選択行数を複雑度の近似値とする。
-/// エイリアスを多用した Alias DoS 攻撃（例: 同一フィールドを1000個のエイリアスで呼び出す）を
+/// エイリアスを多用した Alias `DoS` 攻撃（例: 同一フィールドを1000個のエイリアスで呼び出す）を
 /// フィールド数に比例したコストで抑制する。
 /// GraphQL クエリでないリクエスト（ヘルスチェック等）はコスト1を返す。
 fn estimate_query_cost(body: &[u8]) -> u32 {
@@ -205,7 +203,7 @@ fn estimate_query_cost(body: &[u8]) -> u32 {
         Ok(json) => json
             .get("query")
             .and_then(|v| v.as_str())
-            .map(|s| s.to_string()),
+            .map(std::string::ToString::to_string),
         Err(_) => None,
     };
 
@@ -219,7 +217,7 @@ fn estimate_query_cost(body: &[u8]) -> u32 {
     // フィールド選択数の近似値となる（エイリアス `alias: field` も1行1コスト）。
     let field_count = query
         .lines()
-        .map(|line| line.trim())
+        .map(str::trim)
         .filter(|line| {
             !line.is_empty()
                 && !line.starts_with('#')
@@ -233,10 +231,12 @@ fn estimate_query_cost(body: &[u8]) -> u32 {
                 && !line.starts_with('(')
                 && !line.starts_with(')')
         })
-        .count() as u32;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .count();
+    let field_count = u32::try_from(field_count).unwrap_or(u32::MAX);
 
     // コスト下限は1（最低1リクエスト消費）、上限は100（極端な巨大クエリの上限）
-    field_count.max(1).min(100)
+    field_count.clamp(1, 100)
 }
 
 /// HTTP 429 Too Many Requests レスポンスを生成する。
@@ -327,7 +327,11 @@ mod tests {
 }"#;
         let body = format!(r#"{{"query": {:?}}}"#, query);
         let cost = estimate_query_cost(body.as_bytes());
-        assert!(cost > 1, "エイリアス多用クエリはコスト1より大きいべき: {}", cost);
+        assert!(
+            cost > 1,
+            "エイリアス多用クエリはコスト1より大きいべき: {}",
+            cost
+        );
     }
 
     /// GraphQL でないリクエスト（ヘルスチェック等）はコスト1を返す

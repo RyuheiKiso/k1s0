@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// AiGateway ドメイン固有のエラー型。
+/// `AiGateway` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum AiGatewayError {
     /// モデルが見つからない
@@ -28,7 +28,7 @@ pub enum AiGatewayError {
     Internal(String),
 }
 
-/// AiGatewayError から ServiceError への変換実装
+/// `AiGatewayError` から `ServiceError` への変換実装
 impl From<AiGatewayError> for ServiceError {
     fn from(err: AiGatewayError) -> Self {
         match err {

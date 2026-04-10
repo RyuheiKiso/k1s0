@@ -82,6 +82,85 @@ jobs:
             exit 1
           fi
 
+  # LOW-003 対応: Kind クラスターを使った Helm Chart インテグレーションテスト。
+  # helm lint / helm template による静的検証に加え、実際の K8s API サーバーに対して
+  # kubectl apply --dry-run=server を実行することで以下を検証する:
+  #   - K8s API バージョン互換性（deprecated API の検出）
+  #   - リソーススペックの正確性（無効なフィールド名・型の検出）
+  #   - RBAC / ServiceAccount 参照の整合性
+  # helm lint / helm template では検出できない K8s API レベルの問題を CI で早期検知する。
+  helm-k8s-dryrun:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: "3.16"
+      # Kind クラスターを起動して K8s API サーバーを提供する（LOW-003 監査対応）
+      # helm/kind-action サードパーティアクションを使用せず Kind バイナリを直接インストールする。
+      # 理由: GitHub Actions のサプライチェーン攻撃防止のため SHA ピン留めが必要だが、
+      #      helm/kind-action のリリースコミット SHA はリポジトリ外から機械的に検証できない。
+      #      Kind は CNCF の公式ツール（kubernetes-sigs/kind）であり、公式 GitHub Releases から
+      #      バージョン番号を明示して取得することでトレーサビリティと透明性を確保する。
+      - name: Kind をインストールして Kind クラスターを作成する
+        run: |
+          # Kind v0.24.0 は kindest/node:v1.31.x に対応している（Kind 公式互換マトリクス参照）
+          KIND_VERSION="v0.24.0"
+          curl -Lo ./kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind --version
+          # クラスター作成: --wait 60s でコントロールプレーンが Ready になるまで待機する
+          kind create cluster \
+            --name k1s0-helm-test \
+            --image kindest/node:v1.31.0 \
+            --wait 60s
+      # 全サービス chart の Namespace を事前作成する（deploy マニフェストが Namespace 参照する場合の対応）
+      - name: Namespace を事前作成する
+        shell: bash
+        run: |
+          kubectl create namespace k1s0-system   --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace k1s0-business --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace k1s0-service  --dry-run=client -o yaml | kubectl apply -f -
+      # 全サービス chart を values-dev.yaml でレンダリングし K8s API サーバーへの dry-run 適用を検証する
+      - name: Helm Chart を K8s API サーバーに対して dry-run 検証する（LOW-003）
+        shell: bash
+        run: |
+          failed=0
+          checked=0
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+            if [ ! -f "$chart/Chart.yaml" ]; then
+              continue
+            fi
+            chart_name=$(basename "$chart")
+            values_file=""
+            if [ -f "$chart/values-dev.yaml" ]; then
+              values_file="--values $chart/values-dev.yaml"
+            fi
+            # helm dependency update で Library Chart を取得する
+            if ! helm dependency update "$chart" > /dev/null 2>&1; then
+              echo "::warning::$chart_name: helm dependency update が失敗（OCI レジストリ未接続の可能性）。スキップします。"
+              continue
+            fi
+            # helm template でマニフェストを生成し kubectl apply --dry-run=server で K8s API 検証を実行する
+            if helm template "test-${chart_name}" "$chart" $values_file 2>/dev/null \
+               | kubectl apply --dry-run=server -f - > /dev/null 2>&1; then
+              echo "OK: $chart_name"
+              checked=$((checked + 1))
+            else
+              echo "::error::$chart_name: kubectl apply --dry-run=server が失敗しました"
+              helm template "test-${chart_name}" "$chart" $values_file 2>/dev/null \
+               | kubectl apply --dry-run=server -f - 2>&1 | head -20
+              failed=$((failed + 1))
+            fi
+          done
+          echo "Helm K8s dry-run 検証完了: ${checked} チャート成功、${failed} チャート失敗"
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi
+
   # modules.yaml とディスク上のマニフェストの整合性検証
   validate-modules:
     runs-on: ubuntu-latest
@@ -391,37 +470,79 @@ jobs:
 
           echo "Vault-Terraform 同期検証: 完了"
 
-  # H-024 監査対応: GraphQL スキーマの構文バリデーションを CI に追加する
-  # api/graphql/schema.graphql は手動管理のため、構文エラーを早期検知することが目的である。
-  # schema-gen バイナリが実装された際は、このジョブを実装との差分検出に切り替えること（MED-014 参照）。
+  # ARCH-CRIT-001: GraphQL スキーマの自動生成差分検出を CI に追加する
+  # schema-gen バイナリが実装コードから SDL を生成し、api/graphql/schema.graphql との差分を検出する。
+  # 差分がある場合は CI が失敗し、schema.graphql の更新が必要であることを通知する。
   validate-graphql-schema:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Node.js セットアップ（graphql パッケージによるスキーマ構文検証）
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - name: Rust キャッシュ
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d2 # v2
         with:
-          node-version: "20"
-      - name: GraphQL スキーマ構文バリデーション（H-024 監査対応）
+          workspaces: regions/system
+      - name: schema-gen バイナリをビルドする
         shell: bash
         run: |
-          # graphql パッケージを一時インストールしてスキーマの構文を検証する
-          # スキーマが手動管理のため、構文エラーを CI で早期検知することが目的である
-          npm install --no-save graphql 2>/dev/null
-          node --input-type=module << 'EOF'
-          import { buildSchema } from 'graphql';
-          import { readFileSync } from 'fs';
-          try {
-            const schema = readFileSync('api/graphql/schema.graphql', 'utf8');
-            buildSchema(schema);
-            console.log('GraphQL schema syntax validation: OK');
-          } catch (e) {
-            console.error('GraphQL schema syntax error:', e.message);
-            process.exit(1);
-          }
-          EOF
+          cargo build --manifest-path regions/system/Cargo.toml \
+            -p k1s0-graphql-gateway-server --bin schema-gen
+      - name: 実装から SDL を生成して schema.graphql と差分検出する（ARCH-CRIT-001）
+        shell: bash
+        run: |
+          # schema-gen バイナリで実装コードから SDL を生成する
+          regions/system/target/debug/schema-gen > /tmp/generated.graphql
+          # api/graphql/schema.graphql と差分を比較する
+          if ! diff -u api/graphql/schema.graphql /tmp/generated.graphql; then
+            echo ""
+            echo "ERROR: api/graphql/schema.graphql が実装コードと乖離しています。"
+            echo "以下のコマンドで schema.graphql を更新してください:"
+            echo "  cargo run --manifest-path regions/system/Cargo.toml --bin schema-gen > api/graphql/schema.graphql"
+            exit 1
+          fi
+          echo "GraphQL schema validation: OK (実装との差分なし)"
+
+  # ARCH-HIGH-002 対応: HTTP レスポンスに日本語文字列が混入していないことを CI で自動検出する。
+  # ADR-0005 では全 REST API エラーメッセージを英語で返すことが必須。
+  # 対象: adapter/handler/ と adapter/middleware/ 配下の *.rs ファイル。
+  # ログメッセージ（tracing::warn!/error!/info!）と test モジュールは対象外。
+  validate-no-japanese-in-error-responses:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: HTTP レスポンスに日本語文字列が含まれないことを検証する（ADR-0005 / ARCH-HIGH-002）
+        shell: bash
+        run: |
+          set -euo pipefail
+          # adapter/handler/ と adapter/middleware/ 配下の *.rs から日本語文字列を検出する。
+          # tracing::warn!/error!/info!/debug! ログ行と // コメント行は除外する。
+          # #[cfg(test)] ブロック内のテストコードは除外する。
+          VIOLATIONS=$(grep -rn --include="*.rs" \
+            'ServiceError::\|bad_request\|unauthorized\|ErrorResponse::new\|Json(json' \
+            regions/system/server/rust regions/service \
+            2>/dev/null | \
+            python3 -c "
+          import sys, re
+          count = 0
+          for line in sys.stdin:
+              parts = line.split(':', 2)
+              if len(parts) < 3:
+                  continue
+              code = parts[2]
+              # ログ行・コメント行・テストコードをスキップ
+              if re.search(r'tracing::|warn!|info!|debug!|error!|// |#\[test\]|test_|assert|sample_', code):
+                  continue
+              # 日本語文字（ひらがな・カタカナ・漢字）が含まれる行を検出
+              if re.search(r'[\u3040-\u30FF\u4E00-\u9FAF]', code):
+                  print(line.rstrip())
+                  count += 1
+          sys.exit(1 if count > 0 else 0)
+          ") || { echo ""; echo "ERROR: ADR-0005 違反 — HTTP レスポンス内に日本語文字列が検出されました。英語に修正してください。"; exit 1; }
+          echo "Japanese character check in HTTP responses: OK"
 
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:

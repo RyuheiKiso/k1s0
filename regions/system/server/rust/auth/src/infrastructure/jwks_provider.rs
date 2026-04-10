@@ -6,7 +6,7 @@ use tokio::sync::{Mutex, RwLock};
 
 /// JWKS (JSON Web Key Set) をキャッシュ付きで取得するプロバイダー。
 /// 同時リフレッシュ時のサンダリングハード問題を防ぐため、
-/// fetch_lock で排他制御を行い、1リクエストだけがフェッチし他は待機する。
+/// `fetch_lock` で排他制御を行い、1リクエストだけがフェッチし他は待機する。
 #[derive(Clone)]
 pub struct JwksProvider {
     inner: Arc<Inner>,
@@ -29,6 +29,7 @@ struct CachedJwks {
 }
 
 impl JwksProvider {
+    #[must_use]
     pub fn new(url: String, ttl: Duration) -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(3))
@@ -46,7 +47,7 @@ impl JwksProvider {
     }
 
     /// キャッシュが有効ならそのまま返す。
-    /// 期限切れの場合は fetch_lock を取得し、1リクエストだけが JWKS を再取得する。
+    /// 期限切れの場合は `fetch_lock` を取得し、1リクエストだけが JWKS を再取得する。
     /// ロック待ちの間に他のリクエストがキャッシュを更新した場合はそれを返す（ダブルチェック）。
     pub async fn get(&self) -> anyhow::Result<Value> {
         // 高速パス: キャッシュが有効ならロック不要で返す

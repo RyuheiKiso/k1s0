@@ -1,3 +1,5 @@
+// HIGH-001 監査対応: build.rs の unnecessary_wraps は Result 戻り値の慣用的パターンとして許容する
+#![allow(clippy::unnecessary_wraps)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let notification_proto =
         "../../../../../api/proto/k1s0/system/notification/v1/notification.proto";
@@ -5,8 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if !std::path::Path::new(notification_proto).exists() {
         println!(
-            "cargo:warning=Proto file not found, skipping tonic codegen: {}",
-            notification_proto
+            "cargo:warning=Proto file not found, skipping tonic codegen: {notification_proto}"
         );
         return Ok(());
     }
@@ -21,10 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("cargo:warning=tonic-build succeeded for notification proto");
         }
         Err(e) => {
-            println!(
-                "cargo:warning=tonic-build failed (protoc may not be installed): {}",
-                e
-            );
+            println!("cargo:warning=tonic-build failed (protoc may not be installed): {e}");
         }
     }
     Ok(())

@@ -1,15 +1,15 @@
 use async_graphql::{Enum, SimpleObject};
 
 /// 監査ログのイベント種別（C-9 監査対応: 文字列フィールドから型安全な enum へ移行）。
-/// C-004 監査対応: proto との双方向整合のため TokenRefresh, PermissionCheck を追加する。
-/// スキーマの AuditEventType enum に対応する。
+/// C-004 監査対応: proto との双方向整合のため `TokenRefresh`, `PermissionCheck` を追加する。
+/// スキーマの `AuditEventType` enum に対応する。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Enum)]
 pub enum AuditEventType {
     Login,
     Logout,
-    /// C-004 監査対応: proto AUDIT_EVENT_TYPE_TOKEN_REFRESH に対応
+    /// C-004 監査対応: proto `AUDIT_EVENT_TYPE_TOKEN_REFRESH` に対応
     TokenRefresh,
-    /// C-004 監査対応: proto AUDIT_EVENT_TYPE_PERMISSION_CHECK に対応
+    /// C-004 監査対応: proto `AUDIT_EVENT_TYPE_PERMISSION_CHECK` に対応
     PermissionCheck,
     Create,
     Update,
@@ -23,7 +23,7 @@ pub enum AuditEventType {
 }
 
 /// 監査ログの実行結果（C-9 監査対応: 文字列フィールドから型安全な enum へ移行）。
-/// スキーマの AuditResult enum に対応する。
+/// スキーマの `AuditResult` enum に対応する。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Enum)]
 pub enum AuditResult {
     Success,
@@ -31,7 +31,8 @@ pub enum AuditResult {
     Partial,
 }
 
-/// AuditEventType enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
+/// `AuditEventType` enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
+#[must_use]
 pub fn audit_event_type_to_str(e: AuditEventType) -> &'static str {
     match e {
         AuditEventType::Login => "LOGIN",
@@ -50,7 +51,8 @@ pub fn audit_event_type_to_str(e: AuditEventType) -> &'static str {
     }
 }
 
-/// AuditResult enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
+/// `AuditResult` enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
+#[must_use]
 pub fn audit_result_to_str(e: AuditResult) -> &'static str {
     match e {
         AuditResult::Success => "SUCCESS",

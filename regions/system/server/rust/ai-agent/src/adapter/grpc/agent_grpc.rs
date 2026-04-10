@@ -38,7 +38,7 @@ pub struct ReviewData {
     pub resumed: bool,
 }
 
-/// AiAgentGrpcService はgRPCサービスのビジネスロジックを実装する
+/// `AiAgentGrpcService` `はgRPCサービスのビジネスロジックを実装する`
 pub struct AiAgentGrpcService {
     /// エージェント実行ユースケース
     execute_agent_uc: Arc<ExecuteAgentUseCase>,
@@ -47,7 +47,8 @@ pub struct AiAgentGrpcService {
 }
 
 impl AiAgentGrpcService {
-    /// 新しいAiAgentGrpcServiceを生成する
+    /// `新しいAiAgentGrpcServiceを生成する`
+    #[must_use]
     pub fn new(
         execute_agent_uc: Arc<ExecuteAgentUseCase>,
         review_step_uc: Arc<ReviewStepUseCase>,
@@ -120,7 +121,7 @@ fn execution_to_data(exec: Execution) -> ExecutionData {
     }
 }
 
-/// ExecutionStepをgRPC用データ型に変換する
+/// `ExecutionStepをgRPC用データ型に変換する`
 fn step_to_data(step: DomainStep) -> StepData {
     StepData {
         index: step.index,

@@ -46,14 +46,17 @@ use super::workflow_grpc::{
     WorkflowStepData, WorkflowTaskData,
 };
 
-/// gRPC リクエストの Extensions から tenant_id を取得する
-/// Claims が存在する場合はその tenant_id を返し、存在しない場合は "system" を返す
-fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+/// gRPC リクエストの Extensions から `tenant_id` を取得する。
+/// HIGH-004対応: 認証なしリクエストが "system" テナントとして処理されるのを防ぐ。
+/// Claims が存在しない場合は明示的に Unauthenticated エラーを返す（CWE-287対応）。
+// tonic::Status は大きい型だが gRPC インターフェースの都合で直接使用する必要がある
+#[allow(clippy::result_large_err)]
+fn tenant_id_from_request<T>(request: &Request<T>) -> Result<String, Status> {
     request
         .extensions()
         .get::<Claims>()
         .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .ok_or_else(|| Status::unauthenticated("認証情報が必要です"))
 }
 
 impl From<GrpcError> for Status {
@@ -71,10 +74,13 @@ impl From<GrpcError> for Status {
 fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> ProtoTimestamp {
     ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     }
 }
 
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn to_proto_step(step: WorkflowStepData) -> ProtoWorkflowStep {
     // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
     let step_type_enum = match step.step_type.as_str() {
@@ -158,6 +164,7 @@ pub struct WorkflowServiceTonic {
 }
 
 impl WorkflowServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<WorkflowGrpcService>) -> Self {
         Self { inner }
     }
@@ -169,13 +176,10 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoListWorkflowsRequest>,
     ) -> Result<Response<ProtoListWorkflowsResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_workflows(ListWorkflowsRequest {
@@ -193,7 +197,8 @@ impl WorkflowService for WorkflowServiceTonic {
                 .map(to_proto_definition)
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -205,8 +210,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoCreateWorkflowRequest>,
     ) -> Result<Response<ProtoCreateWorkflowResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -228,8 +233,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoGetWorkflowRequest>,
     ) -> Result<Response<ProtoGetWorkflowResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -248,8 +253,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoUpdateWorkflowRequest>,
     ) -> Result<Response<ProtoUpdateWorkflowResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -274,8 +279,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoDeleteWorkflowRequest>,
     ) -> Result<Response<ProtoDeleteWorkflowResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -295,8 +300,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoStartInstanceRequest>,
     ) -> Result<Response<ProtoStartInstanceResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -327,8 +332,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoGetInstanceRequest>,
     ) -> Result<Response<ProtoGetInstanceResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -348,13 +353,10 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoListInstancesRequest>,
     ) -> Result<Response<ProtoListInstancesResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_instances(ListInstancesRequest {
@@ -370,7 +372,8 @@ impl WorkflowService for WorkflowServiceTonic {
         Ok(Response::new(ProtoListInstancesResponse {
             instances: resp.instances.into_iter().map(to_proto_instance).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -382,8 +385,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoCancelInstanceRequest>,
     ) -> Result<Response<ProtoCancelInstanceResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -403,13 +406,10 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoListTasksRequest>,
     ) -> Result<Response<ProtoListTasksResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_tasks(ListTasksRequest {
@@ -426,7 +426,8 @@ impl WorkflowService for WorkflowServiceTonic {
         Ok(Response::new(ProtoListTasksResponse {
             tasks: resp.tasks.into_iter().map(to_proto_task).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -438,8 +439,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoReassignTaskRequest>,
     ) -> Result<Response<ProtoReassignTaskResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -462,8 +463,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoApproveTaskRequest>,
     ) -> Result<Response<ProtoApproveTaskResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -488,8 +489,8 @@ impl WorkflowService for WorkflowServiceTonic {
         &self,
         request: Request<ProtoRejectTaskRequest>,
     ) -> Result<Response<ProtoRejectTaskResponse>, Status> {
-        // RLS テナント分離のため Extensions から tenant_id を取得する
-        let tenant_id = tenant_id_from_request(&request);
+        // RLS テナント分離のため Extensions から tenant_id を取得する（認証必須）
+        let tenant_id = tenant_id_from_request(&request)?;
         let inner = request.into_inner();
         let resp = self
             .inner

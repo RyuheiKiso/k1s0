@@ -35,6 +35,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct EventMonitorGrpcService {
     list_events_uc: Arc<ListEventsUseCase>,
     trace_by_correlation_uc: Arc<TraceByCorrelationUseCase>,
@@ -53,6 +55,7 @@ pub struct EventMonitorGrpcService {
 
 impl EventMonitorGrpcService {
     #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         list_events_uc: Arc<ListEventsUseCase>,
         trace_by_correlation_uc: Arc<TraceByCorrelationUseCase>,
@@ -94,8 +97,9 @@ impl EventMonitorGrpcService {
         source: Option<String>,
         status: Option<String>,
     ) -> Result<(Vec<EventRecord>, u64, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(1) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(20) };
 
         let output = self
             .list_events_uc
@@ -141,7 +145,7 @@ impl EventMonitorGrpcService {
 
     pub async fn get_flow(&self, id: &str) -> Result<FlowDefinition, GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {id}")))?;
         self.get_flow_uc.execute(&uuid).await.map_err(|e| match e {
             GetFlowError::NotFound(id) => GrpcError::NotFound(id),
             GetFlowError::Internal(msg) => GrpcError::Internal(msg),
@@ -160,7 +164,7 @@ impl EventMonitorGrpcService {
 
     pub async fn delete_flow(&self, id: &str) -> Result<(), GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {id}")))?;
         self.delete_flow_uc
             .execute(&uuid)
             .await
@@ -176,8 +180,9 @@ impl EventMonitorGrpcService {
         page_size: i32,
         domain: Option<String>,
     ) -> Result<(Vec<FlowDefinition>, u64, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(1) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(20) };
 
         let output = self
             .list_flows_uc
@@ -198,7 +203,7 @@ impl EventMonitorGrpcService {
         period: Option<String>,
     ) -> Result<crate::usecase::get_flow_kpi::GetFlowKpiOutput, GrpcError> {
         let uuid = Uuid::parse_str(flow_id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", flow_id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {flow_id}")))?;
         let period = period.as_deref().unwrap_or("1h");
         self.get_flow_kpi_uc
             .execute(&uuid, period)
@@ -234,7 +239,7 @@ impl EventMonitorGrpcService {
         flow_id: &str,
     ) -> Result<crate::usecase::get_slo_burn_rate::GetSloBurnRateOutput, GrpcError> {
         let uuid = Uuid::parse_str(flow_id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", flow_id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {flow_id}")))?;
         self.get_slo_burn_rate_uc
             .execute(&uuid)
             .await

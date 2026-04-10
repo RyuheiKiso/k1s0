@@ -263,6 +263,8 @@ migrations/
 | 010 | add_tenant_id | config_entries / config_change_logs に tenant_id UUID NOT NULL 追加（STATIC-CRITICAL-001） |
 | 011 | encrypt_config_values | config_entries に encrypted_value TEXT / is_encrypted BOOLEAN 追加（STATIC-HIGH-002） |
 | 012 | alter_tenant_id_to_text | config_entries / config_change_logs の tenant_id を UUID→TEXT に変更（C-004 監査対応・ADR-0093） |
+| 013 | add_rls_policies | config_entries / config_change_logs / service_config_mappings に RLS ポリシー追加（HIGH-005 対応） |
+| 014 | add_config_schemas_tenant_rls | config_schemas / service_config_mappings に `tenant_id TEXT NOT NULL` と RLS ポリシー追加（HIGH-DB-001 対応） |
 
 ### 012_alter_tenant_id_to_text.up.sql
 **目的**: tenant_id カラムの型を UUID から TEXT に変更し、全サービスで型を統一する（C-004 監査対応・ADR-0093）

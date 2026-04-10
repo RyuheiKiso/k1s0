@@ -19,7 +19,7 @@ pub enum DeleteVersionError {
     Internal(String),
 }
 
-/// DeleteVersionUseCase はアプリバージョン削除ユースケース。
+/// `DeleteVersionUseCase` はアプリバージョン削除ユースケース。
 pub struct DeleteVersionUseCase {
     app_repo: Arc<dyn AppRepository>,
     version_repo: Arc<dyn VersionRepository>,
@@ -33,8 +33,10 @@ impl DeleteVersionUseCase {
         }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         app_id: &str,
         version: &str,
         platform: Option<&Platform>,
@@ -42,7 +44,7 @@ impl DeleteVersionUseCase {
     ) -> Result<(), DeleteVersionError> {
         let app = self
             .app_repo
-            .find_by_id(app_id)
+            .find_by_id(tenant_id, app_id)
             .await
             .map_err(|e| DeleteVersionError::Internal(e.to_string()))?;
 
@@ -84,7 +86,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_version_success() {
         let mut app_repo = MockAppRepository::new();
-        app_repo.expect_find_by_id().returning(|_| {
+        app_repo.expect_find_by_id().returning(|_, _| {
             Ok(Some(App {
                 id: "cli".to_string(),
                 name: "CLI".to_string(),
@@ -109,6 +111,7 @@ mod tests {
                 storage_key: "key".to_string(),
                 release_notes: None,
                 mandatory: false,
+                cosign_signature: None,
                 published_at: chrono::Utc::now(),
                 created_at: chrono::Utc::now(),
             }])
@@ -117,7 +120,13 @@ mod tests {
 
         let uc = DeleteVersionUseCase::new(Arc::new(app_repo), Arc::new(mock));
         let result = uc
-            .execute("cli", "1.0.0", Some(&Platform::Linux), Some("amd64"))
+            .execute(
+                "tenant-1",
+                "cli",
+                "1.0.0",
+                Some(&Platform::Linux),
+                Some("amd64"),
+            )
             .await;
         assert!(result.is_ok());
     }

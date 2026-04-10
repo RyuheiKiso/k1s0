@@ -24,6 +24,7 @@ pub struct InMemorySessionClient {
 }
 
 impl InMemorySessionClient {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             sessions: Arc::new(RwLock::new(HashMap::new())),

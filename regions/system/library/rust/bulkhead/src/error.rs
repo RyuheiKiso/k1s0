@@ -12,11 +12,10 @@ impl<E: fmt::Display> fmt::Display for BulkheadError<E> {
             BulkheadError::Full { max_concurrent } => {
                 write!(
                     f,
-                    "bulkhead full: max concurrent calls ({}) reached",
-                    max_concurrent
+                    "bulkhead full: max concurrent calls ({max_concurrent}) reached"
                 )
             }
-            BulkheadError::Inner(e) => write!(f, "{}", e),
+            BulkheadError::Inner(e) => write!(f, "{e}"),
         }
     }
 }

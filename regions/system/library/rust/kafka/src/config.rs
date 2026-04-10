@@ -3,13 +3,13 @@ use std::collections::HashMap;
 
 use crate::error::KafkaError;
 
-/// KafkaConfig は Kafka クライアントの基本設定を表す。
-/// Debug トレイトはカスタム実装で sasl_password をマスクする。
+/// `KafkaConfig` は Kafka クライアントの基本設定を表す。
+/// Debug トレイトはカスタム実装で `sasl_password` をマスクする。
 #[derive(Clone, Serialize, Deserialize)]
 pub struct KafkaConfig {
     /// Kafka ブローカーアドレスのリスト
     pub brokers: Vec<String>,
-    /// セキュリティプロトコル（PLAINTEXT / SSL / SASL_PLAINTEXT / SASL_SSL）
+    /// セキュリティプロトコル（PLAINTEXT / SSL / `SASL_PLAINTEXT` / `SASL_SSL`）
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
     /// コンシューマーグループ ID
@@ -34,7 +34,7 @@ pub struct KafkaConfig {
     pub max_message_bytes: usize,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -71,22 +71,26 @@ impl std::fmt::Debug for KafkaConfig {
 
 impl KafkaConfig {
     /// ビルダーを取得する。
+    #[must_use]
     pub fn builder() -> KafkaConfigBuilder {
         KafkaConfigBuilder::default()
     }
 
     /// ブローカーアドレスをカンマ区切り文字列で返す（rdkafka の bootstrap.servers 用）。
+    #[must_use]
     pub fn bootstrap_servers(&self) -> String {
         self.brokers.join(",")
     }
 
     /// セキュリティプロトコルが TLS を使用するか判定する。
+    #[must_use]
     pub fn uses_tls(&self) -> bool {
         self.security_protocol.contains("SSL")
     }
 
     /// Kafka クライアント初期化に使う設定マップを返す。
     /// producer/consumer の双方で同じ値を利用できる。
+    #[must_use]
     pub fn client_properties(&self) -> HashMap<String, String> {
         let mut props = HashMap::new();
         props.insert("bootstrap.servers".to_string(), self.bootstrap_servers());
@@ -109,7 +113,7 @@ impl KafkaConfig {
     }
 }
 
-/// KafkaConfigBuilder は KafkaConfig のビルダー。
+/// `KafkaConfigBuilder` は `KafkaConfig` のビルダー。
 #[derive(Default)]
 pub struct KafkaConfigBuilder {
     brokers: Vec<String>,
@@ -125,60 +129,69 @@ pub struct KafkaConfigBuilder {
 
 impl KafkaConfigBuilder {
     /// ブローカーアドレスを設定する。
+    #[must_use]
     pub fn brokers(mut self, brokers: Vec<String>) -> Self {
         self.brokers = brokers;
         self
     }
 
     /// セキュリティプロトコルを設定する。
+    #[must_use]
     pub fn security_protocol(mut self, protocol: &str) -> Self {
         self.security_protocol = Some(protocol.to_string());
         self
     }
 
     /// コンシューマーグループ ID を設定する。
+    #[must_use]
     pub fn consumer_group(mut self, group: &str) -> Self {
         self.consumer_group = Some(group.to_string());
         self
     }
 
     /// SASL メカニズムを設定する。
+    #[must_use]
     pub fn sasl_mechanism(mut self, mechanism: &str) -> Self {
         self.sasl_mechanism = Some(mechanism.to_string());
         self
     }
 
     /// SASL ユーザー名を設定する。
+    #[must_use]
     pub fn sasl_username(mut self, username: &str) -> Self {
         self.sasl_username = Some(username.to_string());
         self
     }
 
     /// SASL パスワードを設定する。
+    #[must_use]
     pub fn sasl_password(mut self, password: &str) -> Self {
         self.sasl_password = Some(password.to_string());
         self
     }
 
     /// 接続タイムアウト（ミリ秒）を設定する。
+    #[must_use]
     pub fn connection_timeout_ms(mut self, ms: u64) -> Self {
         self.connection_timeout_ms = Some(ms);
         self
     }
 
     /// リクエストタイムアウト（ミリ秒）を設定する。
+    #[must_use]
     pub fn request_timeout_ms(mut self, ms: u64) -> Self {
         self.request_timeout_ms = Some(ms);
         self
     }
 
     /// 最大メッセージサイズ（バイト）を設定する。
+    #[must_use]
     pub fn max_message_bytes(mut self, bytes: usize) -> Self {
         self.max_message_bytes = Some(bytes);
         self
     }
 
-    /// KafkaConfig を構築する。ブローカーが未設定の場合はエラーを返す。
+    /// `KafkaConfig` を構築する。ブローカーが未設定の場合はエラーを返す。
     pub fn build(self) -> Result<KafkaConfig, KafkaError> {
         if self.brokers.is_empty() {
             return Err(KafkaError::ConfigurationError(

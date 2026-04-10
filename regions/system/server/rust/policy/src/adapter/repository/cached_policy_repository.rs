@@ -7,9 +7,9 @@ use crate::domain::entity::policy::Policy;
 use crate::domain::repository::PolicyRepository;
 use crate::infrastructure::cache::PolicyCache;
 
-/// CachedPolicyRepository は PolicyCache を使ってキャッシュ付きの PolicyRepository を提供する。
+/// `CachedPolicyRepository` は `PolicyCache` を使ってキャッシュ付きの `PolicyRepository` を提供する。
 /// 内部の delegate に対して読み取り時にキャッシュを挟み、書き込み時にキャッシュを無効化する。
-/// CRIT-005 対応: tenant_id を delegate に透過的に渡す。キャッシュキーは UUID のみとし、
+/// CRIT-005 対応: `tenant_id` を delegate に透過的に渡す。キャッシュキーは UUID のみとし、
 /// 同一 UUID のポリシーは 1 テナントにしか属さないという設計前提に基づく。
 pub struct CachedPolicyRepository {
     delegate: Arc<dyn PolicyRepository>,
@@ -24,7 +24,7 @@ impl CachedPolicyRepository {
 
 #[async_trait]
 impl PolicyRepository for CachedPolicyRepository {
-    /// CRIT-005 対応: tenant_id を delegate に渡し RLS を有効にして取得する。
+    /// CRIT-005 対応: `tenant_id` を delegate に渡し RLS を有効にして取得する。
     async fn find_by_id(&self, id: &Uuid, tenant_id: &str) -> anyhow::Result<Option<Policy>> {
         // キャッシュから取得を試みる
         if let Some(cached) = self.cache.get(id).await {
@@ -39,12 +39,12 @@ impl PolicyRepository for CachedPolicyRepository {
         Ok(result)
     }
 
-    /// CRIT-005 対応: find_all はキャッシュを通さない（全件取得はキャッシュ効率が悪いため）。
+    /// CRIT-005 対応: `find_all` はキャッシュを通さない（全件取得はキャッシュ効率が悪いため）。
     async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<Policy>> {
         self.delegate.find_all(tenant_id).await
     }
 
-    /// CRIT-005 対応: tenant_id を delegate に渡しページネーション付き一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を delegate に渡しページネーション付き一覧を取得する。
     async fn find_all_paginated(
         &self,
         page: u32,
@@ -72,7 +72,7 @@ impl PolicyRepository for CachedPolicyRepository {
         Ok(())
     }
 
-    /// CRIT-005 対応: tenant_id を delegate に渡して削除する。
+    /// CRIT-005 対応: `tenant_id` を delegate に渡して削除する。
     async fn delete(&self, id: &Uuid, tenant_id: &str) -> anyhow::Result<bool> {
         let deleted = self.delegate.delete(id, tenant_id).await?;
         if deleted {
@@ -81,7 +81,7 @@ impl PolicyRepository for CachedPolicyRepository {
         Ok(deleted)
     }
 
-    /// CRIT-005 対応: exists_by_name はキャッシュを通さない（名前ベースの検索は ID キャッシュと合わない）。
+    /// CRIT-005 対応: `exists_by_name` はキャッシュを通さない（名前ベースの検索は ID キャッシュと合わない）。
     async fn exists_by_name(&self, name: &str, tenant_id: &str) -> anyhow::Result<bool> {
         self.delegate.exists_by_name(name, tenant_id).await
     }
@@ -210,7 +210,11 @@ mod tests {
         cached_repo.update(&policy).await.unwrap();
 
         // キャッシュからは更新後のデータが取れる
-        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap().unwrap();
+        let result = cached_repo
+            .find_by_id(&id, "tenant-a")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(result.description, "updated");
         assert_eq!(result.version, 2);
     }

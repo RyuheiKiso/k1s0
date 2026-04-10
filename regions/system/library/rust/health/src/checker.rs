@@ -21,6 +21,7 @@ pub struct CompositeHealthChecker {
 }
 
 impl CompositeHealthChecker {
+    #[must_use]
     pub fn new() -> Self {
         Self { checks: vec![] }
     }
@@ -52,12 +53,13 @@ impl CompositeHealthChecker {
     }
 
     /// readyz は全ヘルスチェッカーを実行し、トラフィック受け入れ可否を返す。
-    /// run_all() と同等。
+    /// `run_all()` と同等。
     pub async fn readyz(&self) -> HealthResponse {
         self.run_all().await
     }
 
     /// healthz は死活確認用エンドポイント。常に ok を返す。
+    #[must_use]
     pub fn healthz(&self) -> HealthzResponse {
         HealthzResponse {
             status: "ok".to_string(),
@@ -71,11 +73,10 @@ impl Default for CompositeHealthChecker {
     }
 }
 
+/// ARCH-004 監査対応: ADR-0068 に準拠して UTC タイムスタンプを ISO 8601 形式（RFC 3339）で返す。
+/// 旧実装は UNIX エポック秒（整数）を返しており、クライアントが解釈しにくかった。
 fn chrono_now() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs().to_string())
-        .unwrap_or_default()
+    chrono::Utc::now().to_rfc3339()
 }
 
 #[cfg(test)]
@@ -86,6 +87,8 @@ mod tests {
 
     #[async_trait]
     impl HealthCheck for AlwaysHealthy {
+        // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+        #[allow(clippy::unnecessary_literal_bound)]
         fn name(&self) -> &str {
             "always-healthy"
         }
@@ -98,6 +101,8 @@ mod tests {
 
     #[async_trait]
     impl HealthCheck for AlwaysUnhealthy {
+        // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+        #[allow(clippy::unnecessary_literal_bound)]
         fn name(&self) -> &str {
             "always-unhealthy"
         }

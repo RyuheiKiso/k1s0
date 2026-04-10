@@ -3,10 +3,10 @@ use axum::{http::StatusCode, Json};
 use k1s0_server_common::error as codes;
 use k1s0_server_common::{ErrorResponse, ServiceError};
 
-/// ApiError は api-registry 用のエラーレスポンス生成ヘルパー。
+/// `ApiError` は api-registry 用のエラーレスポンス生成ヘルパー。
 ///
 /// エラーコードは k1s0-server-common の `SYS_APIREG_*` パターンに従う。
-/// `.expect()` による serde_json::to_value を廃止し、Json<ErrorResponse> を直接返す。
+/// `.expect()` による `serde_json::to_value` を廃止し、Json<ErrorResponse> を直接返す。
 pub struct ApiError;
 
 impl ApiError {
@@ -77,7 +77,7 @@ impl ApiError {
     }
 }
 
-/// ServiceError を (StatusCode, Json<ErrorResponse>) タプル形式に変換する。
+/// `ServiceError` を (`StatusCode`, Json<ErrorResponse>) タプル形式に変換する。
 /// api-registry ハンドラで使用するヘルパー関数。
 /// `.expect()` を排除し、Json<ErrorResponse> を直接返す。
 pub fn service_error_to_response(err: ServiceError) -> (StatusCode, Json<ErrorResponse>) {

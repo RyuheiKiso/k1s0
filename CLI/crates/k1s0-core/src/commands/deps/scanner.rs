@@ -412,8 +412,9 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
     // L-002 監査対応: expect メッセージをパターン内容が分かる説明的なメッセージに変更する。
     let re = REST_SERVICE_RE.get_or_init(|| {
-        Regex::new(r"([\w-]+)\.k1s0-(system|business|service)")
-            .expect("REST サービス名パターン正規表現のコンパイルに失敗（パターン: {service}.k1s0-{tier}）")
+        Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").expect(
+            "REST サービス名パターン正規表現のコンパイルに失敗（パターン: {service}.k1s0-{tier}）",
+        )
     });
     let graphql_re = GRAPHQL_RE.get_or_init(|| {
         Regex::new(r"(?i)graphql|/graphql")

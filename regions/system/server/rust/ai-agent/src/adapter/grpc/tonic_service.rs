@@ -15,7 +15,7 @@ use crate::proto::k1s0::system::ai_agent::v1::{
 
 use super::agent_grpc::{AiAgentGrpcService, GrpcError};
 
-/// GrpcErrorからtonic::Statusへの変換
+/// `GrpcErrorからtonic::Statusへの変換`
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
         match e {
@@ -26,13 +26,14 @@ impl From<GrpcError> for Status {
     }
 }
 
-/// AiAgentServiceTonic はtonic生成のトレイトを実装するラッパー
+/// `AiAgentServiceTonic` はtonic生成のトレイトを実装するラッパー
 pub struct AiAgentServiceTonic {
     inner: Arc<AiAgentGrpcService>,
 }
 
 impl AiAgentServiceTonic {
-    /// 新しいAiAgentServiceTonicを生成する
+    /// `新しいAiAgentServiceTonicを生成する`
+    #[must_use]
     pub fn new(inner: Arc<AiAgentGrpcService>) -> Self {
         Self { inner }
     }
@@ -112,7 +113,8 @@ impl AiAgentService for AiAgentServiceTonic {
                                 "tool_name": step.tool_name,
                             })
                             .to_string(),
-                            step_index: i as i32,
+                            // HIGH-001 監査対応: usizeからi32への安全なキャスト
+                            step_index: i32::try_from(i).unwrap_or(i32::MAX),
                         };
                         if tx.send(Ok(event)).await.is_err() {
                             break;

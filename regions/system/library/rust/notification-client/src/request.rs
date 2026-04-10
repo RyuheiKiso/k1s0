@@ -36,6 +36,8 @@ impl NotificationRequest {
         }
     }
 
+    /// 件名を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_subject(mut self, subject: impl Into<String>) -> Self {
         self.subject = Some(subject.into());
         self

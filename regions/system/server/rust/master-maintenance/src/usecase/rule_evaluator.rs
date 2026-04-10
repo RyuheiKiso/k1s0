@@ -231,20 +231,17 @@ fn evaluate_condition(
         "not_exists" => right.is_null(),
         "in" => right
             .as_array()
-            .map(|items| items.iter().any(|item| compare_eq(left, item)))
-            .unwrap_or(false),
+            .is_some_and(|items| items.iter().any(|item| compare_eq(left, item))),
         "not_in" => right
             .as_array()
-            .map(|items| items.iter().all(|item| !compare_eq(left, item)))
-            .unwrap_or(false),
+            .is_some_and(|items| items.iter().all(|item| !compare_eq(left, item))),
         "between" => right
             .as_array()
             .filter(|items| items.len() == 2)
-            .map(|items| {
+            .is_some_and(|items| {
                 compare_numeric(left, &items[0], |lhs, rhs| lhs >= rhs)
                     && compare_numeric(left, &items[1], |lhs, rhs| lhs <= rhs)
-            })
-            .unwrap_or(false),
+            }),
         _ => false,
     }
 }
@@ -325,8 +322,8 @@ fn render_message(template: &str, record: &Value) -> String {
     let mut rendered = template.to_string();
     if let Some(object) = record.as_object() {
         for (key, value) in object {
-            rendered = rendered.replace(&format!("{{{}}}", key), &scalar_string(value));
-            rendered = rendered.replace(&format!("{{current.{}}}", key), &scalar_string(value));
+            rendered = rendered.replace(&format!("{{{key}}}"), &scalar_string(value));
+            rendered = rendered.replace(&format!("{{current.{key}}}"), &scalar_string(value));
         }
     }
     rendered

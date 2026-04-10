@@ -81,10 +81,17 @@ fn test_tenant_status_unknown_defaults_to_active() {
 #[test]
 fn test_tenant_construction() {
     // Tenant ドメインモデルが正しく構築できることを検証
+    // C-002 監査対応: proto 整合のため display_name/plan/owner_id 等のフィールドを追加
     let tenant = Tenant {
         id: "t-001".to_string(),
         name: "Test Tenant".to_string(),
+        display_name: "Test Tenant Display".to_string(),
         status: TenantStatus::Active,
+        plan: "standard".to_string(),
+        owner_id: "owner-001".to_string(),
+        settings: None,
+        db_schema: None,
+        keycloak_realm: None,
         created_at: "2024-01-01T00:00:00Z".to_string(),
         updated_at: "2024-01-01T00:00:00Z".to_string(),
     };
@@ -95,12 +102,19 @@ fn test_tenant_construction() {
 #[test]
 fn test_tenant_connection_construction() {
     // TenantConnection（Relay-style ページネーション）が正しく構築できることを検証
+    // C-002 監査対応: proto 整合のため display_name/plan/owner_id 等のフィールドを追加
     let connection = TenantConnection {
         edges: vec![TenantEdge {
             node: Tenant {
                 id: "t-001".to_string(),
                 name: "Tenant 1".to_string(),
+                display_name: "Tenant 1 Display".to_string(),
                 status: TenantStatus::Active,
+                plan: "standard".to_string(),
+                owner_id: "owner-001".to_string(),
+                settings: None,
+                db_schema: None,
+                keycloak_realm: None,
                 created_at: "2024-01-01T00:00:00Z".to_string(),
                 updated_at: "2024-01-01T00:00:00Z".to_string(),
             },
@@ -134,14 +148,18 @@ fn test_config_entry_construction() {
 #[test]
 fn test_feature_flag_construction() {
     // FeatureFlag ドメインモデルが正しく構築できることを検証
+    // CRIT-007 監査対応: proto 整合のため flag_key/variants/rules/created_at/updated_at に変更
     let flag = FeatureFlag {
-        key: "dark-mode".to_string(),
-        name: "Dark mode toggle".to_string(),
+        id: "ff-001".to_string(),
+        flag_key: "dark-mode".to_string(),
+        description: Some("Dark mode toggle".to_string()),
         enabled: true,
-        rollout_percentage: 100,
-        target_environments: vec!["production".to_string()],
+        variants: vec![],
+        rules: vec![],
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+        updated_at: "2024-01-01T00:00:00Z".to_string(),
     };
-    assert_eq!(flag.key, "dark-mode");
+    assert_eq!(flag.flag_key, "dark-mode");
     assert!(flag.enabled);
 }
 
@@ -246,10 +264,17 @@ fn test_graphql_gateway_error_internal_to_service_error() {
 #[test]
 fn test_tenant_clone_and_debug() {
     // Tenant が Clone と Debug を実装していることを検証
+    // C-002 監査対応: proto 整合のため display_name/plan/owner_id 等のフィールドを追加
     let tenant = Tenant {
         id: "t-001".to_string(),
         name: "Test".to_string(),
+        display_name: "Test Display".to_string(),
         status: TenantStatus::Active,
+        plan: "free".to_string(),
+        owner_id: "owner-001".to_string(),
+        settings: None,
+        db_schema: None,
+        keycloak_realm: None,
         created_at: "2024-01-01T00:00:00Z".to_string(),
         updated_at: "2024-01-01T00:00:00Z".to_string(),
     };

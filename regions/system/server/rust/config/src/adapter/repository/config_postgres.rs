@@ -15,7 +15,7 @@ use crate::domain::entity::config_entry::{
 use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
 
-/// ConfigPostgresRepository は ConfigRepository の PostgreSQL 実装。
+/// `ConfigPostgresRepository` は `ConfigRepository` の `PostgreSQL` 実装。
 /// STATIC-HIGH-002: AES-256-GCM 暗号化による機密設定値の保護をサポートする。
 pub struct ConfigPostgresRepository {
     pool: PgPool,
@@ -37,6 +37,7 @@ impl ConfigPostgresRepository {
         }
     }
 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -47,6 +48,7 @@ impl ConfigPostgresRepository {
     }
 
     /// STATIC-HIGH-002: 暗号化鍵と機密 namespace リストを設定するビルダーメソッド。
+    #[must_use]
     pub fn set_encryption(mut self, key: [u8; 32], sensitive_namespaces: Vec<String>) -> Self {
         self.encryption_key = Some(key);
         self.sensitive_namespaces = sensitive_namespaces;
@@ -60,7 +62,7 @@ impl ConfigPostgresRepository {
     }
 
     /// 指定した namespace が暗号化対象かどうかを判定する。
-    /// 暗号化鍵が設定されており、かつ sensitive_namespaces のいずれかに前方一致する場合に true を返す。
+    /// 暗号化鍵が設定されており、かつ `sensitive_namespaces` のいずれかに前方一致する場合に true を返す。
     fn is_sensitive_namespace(&self, namespace: &str) -> bool {
         self.encryption_key.is_some()
             && self
@@ -69,9 +71,9 @@ impl ConfigPostgresRepository {
                 .any(|prefix| namespace.starts_with(prefix.as_str()))
     }
 
-    /// value_json を AES-256-GCM で暗号化し、(value_json_to_store, encrypted_value, is_encrypted) を返す。
-    /// 機密 namespace の場合: value_json = '{}'（空 JSON）、encrypted_value = 暗号文（base64）、is_encrypted = true
-    /// 非機密 namespace の場合: value_json = 元の値、encrypted_value = NULL、is_encrypted = false
+    /// `value_json` を AES-256-GCM `で暗号化し、(value_json_to_store`, `encrypted_value`, `is_encrypted`) を返す。
+    /// 機密 namespace の場合: `value_json` = '{}'（空 `JSON）、encrypted_value` = `暗号文（base64）、is_encrypted` = true
+    /// 非機密 namespace の場合: `value_json` = `元の値、encrypted_value` = `NULL、is_encrypted` = false
     /// C-001 監査対応: AAD に namespace バイト列を使用し、ciphertext swap attack を防止する。
     fn encrypt_value(
         &self,
@@ -82,16 +84,16 @@ impl ConfigPostgresRepository {
             let key = self.encryption_key.as_ref().unwrap(); // is_sensitive_namespace で Some を確認済み
             let plaintext = value_json.to_string();
             // C-001 監査対応: AAD に namespace を指定し、namespace をまたいだ ciphertext の流用を防ぐ
-            let ciphertext = k1s0_encryption::aes_encrypt(key, plaintext.as_bytes(), namespace.as_bytes())
-                .map_err(|e| {
-                    ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
-                        "設定値の暗号化に失敗: {}",
-                        e
-                    ))
-                })?;
+            let ciphertext =
+                k1s0_encryption::aes_encrypt(key, plaintext.as_bytes(), namespace.as_bytes())
+                    .map_err(|e| {
+                        ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                            "設定値の暗号化に失敗: {e}"
+                        ))
+                    })?;
             // 暗号化済みエントリの value_json は空 JSON を格納し、実値は encrypted_value に保持する
             Ok((
-                serde_json::Value::Object(Default::default()),
+                serde_json::Value::Object(serde_json::Map::default()),
                 Some(ciphertext),
                 true,
             ))
@@ -218,14 +220,17 @@ impl ConfigPostgresRepository {
         }
 
         match row {
-            Some(row) => Ok(Some(row_to_config_entry(row, self.encryption_key.as_ref())?)),
+            Some(row) => Ok(Some(row_to_config_entry(
+                row,
+                self.encryption_key.as_ref(),
+            )?)),
             None => Ok(None),
         }
     }
 }
 
-/// PostgreSQL の行から ConfigEntry を構築するヘルパー。
-/// STATIC-HIGH-002: is_encrypted = true の場合、encrypted_value を復号して value_json として返す。
+/// `PostgreSQL` の行から `ConfigEntry` を構築するヘルパー。
+/// STATIC-HIGH-002: `is_encrypted` = true `の場合、encrypted_value` を復号して `value_json` として返す。
 /// C-001 監査対応: 復号時の AAD に namespace を使用し、暗号化時と同一コンテキストを検証する。
 fn row_to_config_entry(
     row: sqlx::postgres::PgRow,
@@ -241,18 +246,14 @@ fn row_to_config_entry(
     let value_json = if is_encrypted {
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
-                // C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
-                // 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
-                // Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
-                let plaintext = k1s0_encryption::aes_decrypt_with_legacy_fallback(key, ciphertext, namespace.as_bytes()).map_err(|e| {
-                    anyhow::anyhow!("設定値の復号に失敗: {}", e)
-                })?;
-                serde_json::from_slice(&plaintext).map_err(|e| {
-                    anyhow::anyhow!("復号後の JSON パースに失敗: {}", e)
-                })?
+                // ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで復号する
+                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes())
+                    .map_err(|e| anyhow::anyhow!("設定値の復号に失敗: {e}"))?;
+                serde_json::from_slice(&plaintext)
+                    .map_err(|e| anyhow::anyhow!("復号後の JSON パースに失敗: {e}"))?
             }
             // 暗号化フラグが true だが鍵がない場合は空 JSON を返す（設定ミス対策）
-            _ => serde_json::Value::Object(Default::default()),
+            _ => serde_json::Value::Object(serde_json::Map::default()),
         }
     } else {
         row.try_get("value_json")?
@@ -272,8 +273,8 @@ fn row_to_config_entry(
     })
 }
 
-/// PostgreSQL の行から ServiceConfigEntry を構築するヘルパー。
-/// STATIC-HIGH-002: is_encrypted = true の場合、encrypted_value を復号して value として返す。
+/// `PostgreSQL` の行から `ServiceConfigEntry` を構築するヘルパー。
+/// STATIC-HIGH-002: `is_encrypted` = true `の場合、encrypted_value` を復号して value として返す。
 /// C-001 監査対応: 復号時の AAD に namespace を使用し、暗号化時と同一コンテキストを検証する。
 fn row_to_service_config_entry(
     row: sqlx::postgres::PgRow,
@@ -287,17 +288,13 @@ fn row_to_service_config_entry(
     let value = if is_encrypted {
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
-                // C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
-                // 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
-                // Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
-                let plaintext = k1s0_encryption::aes_decrypt_with_legacy_fallback(key, ciphertext, namespace.as_bytes()).map_err(|e| {
-                    anyhow::anyhow!("サービス設定値の復号に失敗: {}", e)
-                })?;
-                serde_json::from_slice(&plaintext).map_err(|e| {
-                    anyhow::anyhow!("復号後の JSON パースに失敗: {}", e)
-                })?
+                // ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで復号する
+                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes())
+                    .map_err(|e| anyhow::anyhow!("サービス設定値の復号に失敗: {e}"))?;
+                serde_json::from_slice(&plaintext)
+                    .map_err(|e| anyhow::anyhow!("復号後の JSON パースに失敗: {e}"))?
             }
-            _ => serde_json::Value::Object(Default::default()),
+            _ => serde_json::Value::Object(serde_json::Map::default()),
         }
     } else {
         row.try_get("value_json")?
@@ -311,24 +308,34 @@ fn row_to_service_config_entry(
     })
 }
 
+// ConfigRepository の実装は多数のメソッドを持つため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl ConfigRepository for ConfigPostgresRepository {
-    /// STATIC-CRITICAL-001 監査対応: tenant_id + namespace + key で設定値を取得する。
-    /// STATIC-HIGH-002: is_encrypted = true の場合は復号して返す。
+    /// STATIC-CRITICAL-001 監査対応: `tenant_id` + namespace + key で設定値を取得する。
+    /// STATIC-HIGH-002: `is_encrypted` = true の場合は復号して返す。
     async fn find_by_namespace_and_key(
         &self,
         tenant_id: Uuid,
         namespace: &str,
         key: &str,
     ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let start = std::time::Instant::now();
         let row = sqlx::query(
-            r#"
+            r"
             SELECT id, namespace, key, value_json, encrypted_value, is_encrypted, version, description,
                    created_by, updated_by, created_at, updated_at
             FROM config_entries
             WHERE tenant_id = $1 AND namespace = $2 AND key = $3
-            "#,
+            ",
         )
         // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
         .bind(tenant_id.to_string())
@@ -355,7 +362,7 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナント内の namespace 設定値一覧を取得する。
-    /// STATIC-HIGH-002: is_encrypted = true のエントリは復号して返す。
+    /// STATIC-HIGH-002: `is_encrypted` = true のエントリは復号して返す。
     async fn list_by_namespace(
         &self,
         tenant_id: Uuid,
@@ -364,6 +371,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         page_size: i32,
         search: Option<String>,
     ) -> Result<ConfigListResult, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let offset = (page - 1) * page_size;
         let encryption_key = self.encryption_key.as_ref();
 
@@ -372,21 +386,21 @@ impl ConfigRepository for ConfigPostgresRepository {
             let pattern = format!("%{}%", escape_like_pattern(search_term));
             let start = std::time::Instant::now();
             let rows = sqlx::query(
-                r#"
+                r"
                 SELECT id, namespace, key, value_json, encrypted_value, is_encrypted, version, description,
                        created_by, updated_by, created_at, updated_at
                 FROM config_entries
                 WHERE tenant_id = $1 AND namespace = $2 AND key LIKE $3 ESCAPE '\'
                 ORDER BY key ASC
                 LIMIT $4 OFFSET $5
-                "#,
+                ",
             )
             // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
             .bind(tenant_id.to_string())
             .bind(namespace)
             .bind(&pattern)
-            .bind(page_size as i64)
-            .bind(offset as i64)
+            .bind(i64::from(page_size))
+            .bind(i64::from(offset))
             .fetch_all(&self.pool)
             .await
             .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
@@ -428,20 +442,20 @@ impl ConfigRepository for ConfigPostgresRepository {
         } else {
             let start = std::time::Instant::now();
             let rows = sqlx::query(
-                r#"
+                r"
                 SELECT id, namespace, key, value_json, encrypted_value, is_encrypted, version, description,
                        created_by, updated_by, created_at, updated_at
                 FROM config_entries
                 WHERE tenant_id = $1 AND namespace = $2
                 ORDER BY key ASC
                 LIMIT $3 OFFSET $4
-                "#,
+                ",
             )
             // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
             .bind(tenant_id.to_string())
             .bind(namespace)
-            .bind(page_size as i64)
-            .bind(offset as i64)
+            .bind(i64::from(page_size))
+            .bind(i64::from(offset))
             .fetch_all(&self.pool)
             .await
             .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
@@ -505,6 +519,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         description: Option<String>,
         updated_by: &str,
     ) -> Result<ConfigEntry, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let now = chrono::Utc::now();
         let new_version = expected_version + 1;
 
@@ -514,7 +535,7 @@ impl ConfigRepository for ConfigPostgresRepository {
 
         let start = std::time::Instant::now();
         let row = sqlx::query(
-            r#"
+            r"
             UPDATE config_entries
             SET value_json = $1,
                 encrypted_value = $2,
@@ -525,7 +546,7 @@ impl ConfigRepository for ConfigPostgresRepository {
                 updated_at = $7
             WHERE tenant_id = $8 AND namespace = $9 AND key = $10 AND version = $11
             RETURNING id, namespace, key, value_json, encrypted_value, is_encrypted, version, description, created_by, updated_by, created_at, updated_at
-            "#,
+            ",
         )
         .bind(&value_json_to_store)
         .bind(&encrypted_value)
@@ -546,34 +567,33 @@ impl ConfigRepository for ConfigPostgresRepository {
             m.record_db_query_duration("update", "config_entries", start.elapsed().as_secs_f64());
         }
 
-        match row {
-            Some(row) => row_to_config_entry(row, self.encryption_key.as_ref())
-                .map_err(ConfigRepositoryError::Infrastructure),
-            None => {
-                // バージョン不一致か、キーが存在しないかを確認
-                let exists: Option<(i32,)> = sqlx::query_as(
-                    "SELECT version FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",
-                )
-                // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
-                .bind(tenant_id.to_string())
-                .bind(namespace)
-                .bind(key)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+        if let Some(row) = row {
+            row_to_config_entry(row, self.encryption_key.as_ref())
+                .map_err(ConfigRepositoryError::Infrastructure)
+        } else {
+            // バージョン不一致か、キーが存在しないかを確認
+            let exists: Option<(i32,)> = sqlx::query_as(
+                "SELECT version FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",
+            )
+            // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+            .bind(tenant_id.to_string())
+            .bind(namespace)
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
 
-                match exists {
-                    // バージョン不一致: 楽観的排他制御エラー
-                    Some((current_version,)) => Err(ConfigRepositoryError::VersionConflict {
-                        expected: expected_version,
-                        current: current_version,
-                    }),
-                    // キーが存在しない: NotFound エラー
-                    None => Err(ConfigRepositoryError::NotFound {
-                        namespace: namespace.to_string(),
-                        key: key.to_string(),
-                    }),
-                }
+            match exists {
+                // バージョン不一致: 楽観的排他制御エラー
+                Some((current_version,)) => Err(ConfigRepositoryError::VersionConflict {
+                    expected: expected_version,
+                    current: current_version,
+                }),
+                // キーが存在しない: NotFound エラー
+                None => Err(ConfigRepositoryError::NotFound {
+                    namespace: namespace.to_string(),
+                    key: key.to_string(),
+                }),
             }
         }
     }
@@ -585,6 +605,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         namespace: &str,
         key: &str,
     ) -> Result<bool, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let start = std::time::Instant::now();
         let result = sqlx::query(
             "DELETE FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",
@@ -604,27 +631,34 @@ impl ConfigRepository for ConfigPostgresRepository {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナント内のサービス名に紐づく設定値を一括取得する。
-    /// STATIC-HIGH-002: is_encrypted = true のエントリは復号して返す。
+    /// STATIC-HIGH-002: `is_encrypted` = true のエントリは復号して返す。
     async fn find_by_service_name(
         &self,
         tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         // サービス名に紐づく namespace パターンで検索
         // 例: "auth-server" → "system.auth.%" のような namespace にマッチ
         // M-02 監査対応: ハイフンをドットに置換した後に残る特殊文字（\, %, _）をエスケープする
         let escaped_name = escape_like_pattern(&service_name.replace('-', "."));
-        let pattern = format!("%.{}%", escaped_name);
+        let pattern = format!("%.{escaped_name}%");
         let encryption_key = self.encryption_key.as_ref();
 
         let start = std::time::Instant::now();
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT namespace, key, value_json, encrypted_value, is_encrypted, version
             FROM config_entries
             WHERE tenant_id = $1 AND namespace LIKE $2 ESCAPE '\'
             ORDER BY namespace, key
-            "#,
+            ",
         )
         // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
         .bind(tenant_id.to_string())
@@ -649,13 +683,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         if entries.is_empty() {
             // service_config_mappings テーブルから直接マッピングを検索
             let mapped_rows = sqlx::query(
-                r#"
+                r"
                 SELECT ce.namespace, ce.key, ce.value_json, ce.encrypted_value, ce.is_encrypted, ce.version
                 FROM config_entries ce
                 INNER JOIN service_config_mappings scm ON ce.id = scm.config_entry_id
                 WHERE ce.tenant_id = $1 AND scm.service_name = $2
                 ORDER BY ce.namespace, ce.key
-                "#,
+                ",
             )
             // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
             .bind(tenant_id.to_string())
@@ -688,17 +722,24 @@ impl ConfigRepository for ConfigPostgresRepository {
         })
     }
 
-    /// 設定変更ログを記録する（tenant_id を含む）。
+    /// `設定変更ログを記録する（tenant_id` を含む）。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(log.tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let start = std::time::Instant::now();
         sqlx::query(
-            r#"
+            r"
             INSERT INTO config_change_logs (
                 id, tenant_id, config_entry_id, namespace, key, old_value_json, new_value_json,
                 old_version, new_version, change_type, changed_by, trace_id, created_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            "#,
+            ",
         )
         .bind(log.id)
         // ADR-0093 対応: config_change_logs.tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す

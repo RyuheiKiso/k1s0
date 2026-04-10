@@ -1,4 +1,4 @@
-/// DomainError はドメイン層のバリデーションエラーを表す。
+/// `DomainError` はドメイン層のバリデーションエラーを表す。
 #[derive(Debug)]
 pub enum DomainError {
     InvalidNamespace(String),
@@ -7,15 +7,15 @@ pub enum DomainError {
 impl std::fmt::Display for DomainError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidNamespace(ns) => write!(f, "Invalid namespace format: {}", ns),
+            Self::InvalidNamespace(ns) => write!(f, "Invalid namespace format: {ns}"),
         }
     }
 }
 
-/// ConfigDomainService はドメインルールのバリデーションを提供する。
+/// `ConfigDomainService` はドメインルールのバリデーションを提供する。
 pub struct ConfigDomainService;
 
-/// ConfigDomainService の Default 実装（clippy::new_without_default 対応）
+/// `ConfigDomainService` の Default `実装（clippy::new_without_default` 対応）
 impl Default for ConfigDomainService {
     fn default() -> Self {
         Self
@@ -23,6 +23,7 @@ impl Default for ConfigDomainService {
 }
 
 impl ConfigDomainService {
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
@@ -33,8 +34,7 @@ impl ConfigDomainService {
         let parts: Vec<&str> = namespace.split('.').collect();
         if parts.len() < 2 {
             return Err(DomainError::InvalidNamespace(format!(
-                "Namespace must have at least 2 segments (tier.service), got: {}",
-                namespace
+                "Namespace must have at least 2 segments (tier.service), got: {namespace}"
             )));
         }
         let valid_tiers = ["system", "business", "service"];

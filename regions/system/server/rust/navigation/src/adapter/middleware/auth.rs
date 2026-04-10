@@ -20,11 +20,10 @@ use k1s0_auth::JwksVerifier;
 /// Authorization ヘッダーから Bearer トークンを抽出する。
 /// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
-    let auth_str = headers
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())?;
+    // HIGH-001 監査対応: const は文より前に定義する
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_str = headers.get("Authorization").and_then(|v| v.to_str().ok())?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }
@@ -62,6 +61,7 @@ pub struct AuthMiddlewareLayer {
 }
 
 impl AuthMiddlewareLayer {
+    #[must_use]
     pub fn new(verifier: Arc<JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -110,20 +110,15 @@ where
         let mut inner = self.inner.clone();
 
         Box::pin(async move {
+            // HIGH-001 監査対応: let...else パターンで可読性を向上する
             // Bearer トークンを取得
-            let token = match extract_bearer_token(req.headers()) {
-                Some(t) => t,
-                None => {
-                    return Ok(unauthorized_response("missing Authorization header"));
-                }
+            let Some(token) = extract_bearer_token(req.headers()) else {
+                return Ok(unauthorized_response("missing Authorization header"));
             };
 
             // JWKS 検証
-            let claims = match verifier.verify_token(&token).await {
-                Ok(c) => c,
-                Err(_) => {
-                    return Ok(unauthorized_response("invalid or expired JWT token"));
-                }
+            let Ok(claims) = verifier.verify_token(&token).await else {
+                return Ok(unauthorized_response("invalid or expired JWT token"));
             };
 
             // Claims をエクステンションに格納（後続ミドルウェア/ハンドラで利用可能）

@@ -42,6 +42,7 @@ pub struct InMemoryTenantClient {
 }
 
 impl InMemoryTenantClient {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             // 空の HashMap で tokio::sync::Mutex を初期化する
@@ -51,6 +52,7 @@ impl InMemoryTenantClient {
         }
     }
 
+    #[must_use]
     pub fn with_tenants(tenants: Vec<Tenant>) -> Self {
         let map: HashMap<String, Tenant> = tenants.into_iter().map(|t| (t.id.clone(), t)).collect();
         Self {
@@ -256,13 +258,13 @@ impl From<MemberResponse> for TenantMember {
     }
 }
 
-/// POST /api/v1/tenants/{tenant_id}/members のレスポンス DTO。
+/// POST /`api/v1/tenants/{tenant_id}/members` のレスポンス DTO。
 #[derive(Debug, Deserialize)]
 struct MemberWrapperResponse {
     member: MemberResponse,
 }
 
-/// GET /api/v1/tenants/{tenant_id}/members のレスポンス DTO。
+/// GET /`api/v1/tenants/{tenant_id}/members` のレスポンス DTO。
 #[derive(Debug, Deserialize)]
 struct MembersResponse {
     members: Vec<MemberResponse>,
@@ -274,7 +276,7 @@ struct ProvisioningStatusResponse {
     status: String,
 }
 
-/// "pending" / "in_progress" / "completed" / "failed" 文字列から `ProvisioningStatus` へ変換。
+/// "pending" / "`in_progress`" / "completed" / "failed" 文字列から `ProvisioningStatus` へ変換。
 fn parse_provisioning_status(s: &str) -> ProvisioningStatus {
     match s {
         "pending" => ProvisioningStatus::Pending,
@@ -337,10 +339,7 @@ impl HttpTenantClient {
         let body = resp.text().await.unwrap_or_default();
         match status.as_u16() {
             404 => Err(TenantError::NotFound(tenant_id.to_string())),
-            _ => Err(TenantError::ServerError(format!(
-                "HTTP {}: {}",
-                status, body
-            ))),
+            _ => Err(TenantError::ServerError(format!("HTTP {status}: {body}"))),
         }
     }
 
@@ -363,7 +362,7 @@ impl TenantClient for HttpTenantClient {
 
         let resp = self
             .http
-            .get(self.url(&format!("/api/v1/tenants/{}", tenant_id)))
+            .get(self.url(&format!("/api/v1/tenants/{tenant_id}")))
             .send()
             .await
             .map_err(Self::map_request_error)?;
@@ -384,7 +383,7 @@ impl TenantClient for HttpTenantClient {
         if let Some(ref status) = filter.status {
             let s = serde_json::to_value(status)
                 .ok()
-                .and_then(|v| v.as_str().map(|s| s.to_string()))
+                .and_then(|v| v.as_str().map(std::string::ToString::to_string))
                 .unwrap_or_default();
             query.push(("status", s));
         }
@@ -419,7 +418,7 @@ impl TenantClient for HttpTenantClient {
 
         let resp = self
             .http
-            .get(self.url(&format!("/api/v1/tenants/{}/settings", tenant_id)))
+            .get(self.url(&format!("/api/v1/tenants/{tenant_id}/settings")))
             .send()
             .await
             .map_err(Self::map_request_error)?;
@@ -465,7 +464,7 @@ impl TenantClient for HttpTenantClient {
         let body = serde_json::json!({ "user_id": user_id, "role": role });
         let resp = self
             .http
-            .post(self.url(&format!("/api/v1/tenants/{}/members", tenant_id)))
+            .post(self.url(&format!("/api/v1/tenants/{tenant_id}/members")))
             .json(&body)
             .send()
             .await
@@ -481,10 +480,7 @@ impl TenantClient for HttpTenantClient {
     async fn remove_member(&self, tenant_id: &str, user_id: &str) -> Result<(), TenantError> {
         let resp = self
             .http
-            .delete(self.url(&format!(
-                "/api/v1/tenants/{}/members/{}",
-                tenant_id, user_id
-            )))
+            .delete(self.url(&format!("/api/v1/tenants/{tenant_id}/members/{user_id}")))
             .send()
             .await
             .map_err(Self::map_request_error)?;
@@ -495,7 +491,7 @@ impl TenantClient for HttpTenantClient {
     async fn list_members(&self, tenant_id: &str) -> Result<Vec<TenantMember>, TenantError> {
         let resp = self
             .http
-            .get(self.url(&format!("/api/v1/tenants/{}/members", tenant_id)))
+            .get(self.url(&format!("/api/v1/tenants/{tenant_id}/members")))
             .send()
             .await
             .map_err(Self::map_request_error)?;
@@ -513,10 +509,7 @@ impl TenantClient for HttpTenantClient {
     ) -> Result<ProvisioningStatus, TenantError> {
         let resp = self
             .http
-            .get(self.url(&format!(
-                "/api/v1/tenants/{}/provisioning-status",
-                tenant_id
-            )))
+            .get(self.url(&format!("/api/v1/tenants/{tenant_id}/provisioning-status")))
             .send()
             .await
             .map_err(Self::map_request_error)?;

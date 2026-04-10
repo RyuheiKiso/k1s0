@@ -11,12 +11,13 @@ use crate::domain::entity::search_index::{
 };
 use crate::domain::repository::SearchRepository;
 
-/// SearchPostgresRepository は PostgreSQL 全文検索を使った SearchRepository 実装。
+/// `SearchPostgresRepository` は `PostgreSQL` 全文検索を使った `SearchRepository` 実装。
 pub struct SearchPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl SearchPostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -78,9 +79,11 @@ struct FacetRow {
     cnt: i64,
 }
 
+// SearchRepository 実装は多数のメソッドを持つため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl SearchRepository for SearchPostgresRepository {
-    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからインデックスを作成する。
+    /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してからインデックスを作成する。
     async fn create_index(&self, index: &SearchIndex, tenant_id: &str) -> anyhow::Result<()> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
@@ -104,7 +107,7 @@ impl SearchRepository for SearchPostgresRepository {
         Ok(())
     }
 
-    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからインデックスを名前で検索する。
+    /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してからインデックスを名前で検索する。
     async fn find_index(&self, name: &str, tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
@@ -124,8 +127,8 @@ impl SearchRepository for SearchPostgresRepository {
         Ok(row.map(Into::into))
     }
 
-    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからドキュメントを登録する（UPSERT）。
-    /// search_vector はトリガーが自動生成するため、INSERT では設定しない。
+    /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してからドキュメントを登録する（UPSERT）。
+    /// `search_vector` はトリガーが自動生成するため、INSERT では設定しない。
     async fn index_document(&self, doc: &SearchDocument, tenant_id: &str) -> anyhow::Result<()> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
@@ -171,8 +174,8 @@ impl SearchRepository for SearchPostgresRepository {
         Ok(())
     }
 
-    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してから全文検索を実行する。
-    /// - plainto_tsquery で任意のユーザー入力を安全に処理する（tsquery インジェクション防止）
+    /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してから全文検索を実行する。
+    /// - `plainto_tsquery` で任意のユーザー入力を安全に処理する（tsquery インジェクション防止）
     /// - query.filters の各キー・バリューを JSONB フィールドフィルタとして適用する
     /// - query.facets で指定されたフィールドの値ごとにドキュメント数を集計して返す
     async fn search(&self, query: &SearchQuery, tenant_id: &str) -> anyhow::Result<SearchResult> {
@@ -218,9 +221,9 @@ impl SearchRepository for SearchPostgresRepository {
         }
 
         qb.push(" LIMIT ");
-        qb.push_bind(query.size as i64);
+        qb.push_bind(i64::from(query.size));
         qb.push(" OFFSET ");
-        qb.push_bind(query.from as i64);
+        qb.push_bind(i64::from(query.from));
 
         let rows: Vec<SearchDocumentRow> = qb.build_query_as().fetch_all(&mut *tx).await?;
 
@@ -247,11 +250,12 @@ impl SearchRepository for SearchPostgresRepository {
 
         let count: (i64,) = count_qb.build_query_as().fetch_one(&mut *tx).await?;
 
-        let total = count.0.max(0) as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(count.0.max(0)).unwrap_or(0);
         let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
         let page_size = query.size.max(1);
         let page = (query.from / page_size) + 1;
-        let has_next = total > (query.from as u64 + hits.len() as u64);
+        let has_next = total > (u64::from(query.from) + u64::try_from(hits.len()).unwrap_or(u64::MAX));
 
         // --- ファセット集計: query.facets で指定されたフィールドごとに GROUP BY ---
         let mut facets: HashMap<String, HashMap<String, u64>> = HashMap::new();
@@ -289,7 +293,8 @@ impl SearchRepository for SearchPostgresRepository {
 
             let field_counts: HashMap<String, u64> = facet_rows
                 .into_iter()
-                .filter_map(|r| r.val.map(|v| (v, r.cnt.max(0) as u64)))
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                .filter_map(|r| r.val.map(|v| (v, u64::try_from(r.cnt.max(0)).unwrap_or(0))))
                 .collect();
 
             facets.insert(facet_field.clone(), field_counts);
@@ -310,8 +315,13 @@ impl SearchRepository for SearchPostgresRepository {
         })
     }
 
-    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからドキュメントを削除する。
-    async fn delete_document(&self, index_name: &str, doc_id: &str, tenant_id: &str) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してからドキュメントを削除する。
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
@@ -325,12 +335,11 @@ impl SearchRepository for SearchPostgresRepository {
                 .fetch_optional(&mut *tx)
                 .await?;
 
-        let index_id = match index_row {
-            Some(row) => row.0,
-            None => {
-                tx.commit().await?;
-                return Ok(false);
-            }
+        let index_id = if let Some(row) = index_row {
+            row.0
+        } else {
+            tx.commit().await?;
+            return Ok(false);
         };
 
         let result = sqlx::query(
@@ -360,7 +369,7 @@ impl SearchRepository for SearchPostgresRepository {
         }
     }
 
-    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してから全インデックスを取得する。
+    /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してから全インデックスを取得する。
     async fn list_indices(&self, tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
@@ -440,7 +449,8 @@ mod tests {
         ];
         let map: HashMap<String, u64> = rows
             .into_iter()
-            .filter_map(|r| r.val.map(|v| (v, r.cnt.max(0) as u64)))
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .filter_map(|r| r.val.map(|v| (v, u64::try_from(r.cnt.max(0)).unwrap_or(0))))
             .collect();
         assert_eq!(map.get("electronics"), Some(&5u64));
         assert_eq!(map.get("books"), Some(&2u64));

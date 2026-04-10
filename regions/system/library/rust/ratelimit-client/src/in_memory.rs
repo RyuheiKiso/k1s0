@@ -21,7 +21,8 @@ struct InMemoryState {
 
 impl InMemoryRateLimitClient {
     /// 新しい `InMemoryRateLimitClient` を生成する。
-    /// デフォルトポリシー（limit=100, window_secs=3600, algorithm=token_bucket）が設定される。
+    /// デフォルトポリシー（limit=100, `window_secs=3600`, `algorithm=token_bucket）が設定される`。
+    #[must_use]
     pub fn new() -> Self {
         let mut policies = HashMap::new();
         policies.insert(
@@ -66,7 +67,9 @@ impl RateLimitClient for InMemoryRateLimitClient {
         let state = self.inner.lock().await;
         let policy = get_policy(&state, key);
         let used = state.counters.get(key).copied().unwrap_or(0);
-        let reset_at = Utc::now() + chrono::Duration::seconds(policy.window_secs as i64);
+        // HIGH-001 監査対応: u64→i64 の安全なキャスト（i64::MAX で上限）
+        let window_secs_i64 = i64::try_from(policy.window_secs).unwrap_or(i64::MAX);
+        let reset_at = Utc::now() + chrono::Duration::seconds(window_secs_i64);
 
         if used + cost > policy.limit {
             let retry_after = policy.window_secs;
@@ -101,7 +104,9 @@ impl RateLimitClient for InMemoryRateLimitClient {
         let new_used = used + cost;
         state.counters.insert(key.to_string(), new_used);
         let remaining = policy.limit - new_used;
-        let reset_at = Utc::now() + chrono::Duration::seconds(policy.window_secs as i64);
+        // HIGH-001 監査対応: u64→i64 の安全なキャスト
+        let window_secs_i64 = i64::try_from(policy.window_secs).unwrap_or(i64::MAX);
+        let reset_at = Utc::now() + chrono::Duration::seconds(window_secs_i64);
 
         Ok(RateLimitResult {
             remaining,

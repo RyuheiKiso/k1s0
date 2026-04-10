@@ -13,6 +13,6 @@ pub async fn create_pool(
         .max_lifetime(Some(Duration::from_secs(conn_max_lifetime_secs)))
         .connect(url)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to connect to database: {e}"))?;
     Ok(pool)
 }

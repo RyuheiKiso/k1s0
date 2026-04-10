@@ -265,7 +265,7 @@ fn config_clone_is_equal() {
 #[tokio::test]
 async fn metrics_initial_state() {
     let cb = CircuitBreaker::new(default_config());
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.success_count, 0);
     assert_eq!(m.failure_count, 0);
     assert_eq!(m.state, "Closed");
@@ -280,7 +280,7 @@ async fn metrics_track_successes_and_failures() {
     cb.record_success().await;
     cb.record_failure().await;
 
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.success_count, 2);
     assert_eq!(m.failure_count, 1);
 }
@@ -290,21 +290,21 @@ async fn metrics_track_successes_and_failures() {
 async fn metrics_reflect_state_changes() {
     let cb = CircuitBreaker::new(fast_config(1, 1, 50));
 
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.state, "Closed");
 
     cb.record_failure().await;
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.state, "Open");
 
     tokio::time::sleep(Duration::from_millis(60)).await;
     // Trigger state check
     let _ = cb.state().await;
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.state, "HalfOpen");
 
     cb.record_success().await;
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.state, "Closed");
 }
 
@@ -317,7 +317,7 @@ async fn metrics_accumulate_through_call() {
     let _: Result<i32, CircuitBreakerError<String>> =
         cb.call(|| async { Err("e".to_string()) }).await;
 
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.success_count, 1);
     assert_eq!(m.failure_count, 1);
 }
@@ -343,7 +343,7 @@ async fn concurrent_failures_transition_correctly() {
     }
 
     assert_eq!(cb.state().await, CircuitBreakerState::Open);
-    let m = cb.metrics().await;
+    let m = cb.metrics();
     assert_eq!(m.failure_count, 10);
 }
 

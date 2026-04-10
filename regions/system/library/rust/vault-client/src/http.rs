@@ -32,11 +32,17 @@ pub struct HttpVaultClient {
 }
 
 impl HttpVaultClient {
-    /// 新しい HttpVaultClient を生成する。
+    /// 新しい `HttpVaultClient` を生成する。
     /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
+    ///
+    /// # Panics
+    ///
+    /// TLSの初期化に失敗した場合にパニックする。
+    #[must_use]
     pub fn new(config: VaultClientConfig) -> Self {
         let cache = Cache::builder()
-            .max_capacity(config.cache_max_capacity as u64)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .max_capacity(u64::try_from(config.cache_max_capacity).unwrap_or(u64::MAX))
             .time_to_live(config.cache_ttl)
             .build();
         let http = reqwest::Client::builder()
@@ -63,19 +69,21 @@ impl HttpVaultClient {
         self.config.vault_required
     }
 
-    /// サーキットブレーカーまたは HTTP リクエストのエラーを vault_required フラグに
+    /// サーキットブレーカーまたは HTTP リクエストのエラーを `vault_required` フラグに
     /// 基づいて処理する。
     ///
     /// フォールバック戦略:
-    /// - vault_required=true (本番): エラーをそのまま ServerError として返す。
+    /// - `vault_required=true` (本番): エラーをそのまま `ServerError` として返す。
     ///   シークレットなしでの起動はセキュリティリスクとなるため、致命的エラーとして扱う。
-    /// - vault_required=false (開発): 接続不可系エラーの場合は警告ログを出力し
-    ///   ConnectionUnavailable を返す。呼び出し元はこのバリアントを判定して
+    /// - `vault_required=false` (開発): 接続不可系エラーの場合は警告ログを出力し
+    ///   `ConnectionUnavailable` を返す。呼び出し元はこのバリアントを判定して
     ///   ローカル設定へのフォールバックを実行できる。
-    /// - 認証エラーやアプリケーションレベルのエラーは vault_required に関わらず
+    /// - 認証エラーやアプリケーションレベルのエラーは `vault_required` に関わらず
     ///   常にそのまま返す（設定ミスは黙殺すべきでないため）。
     fn handle_connection_error(&self, error_msg: String) -> VaultError {
-        if !self.config.vault_required {
+        if self.config.vault_required {
+            VaultError::ServerError(error_msg)
+        } else {
             warn!(
                 vault_url = %self.config.server_url,
                 error = %error_msg,
@@ -83,8 +91,6 @@ impl HttpVaultClient {
                  本番環境では vault_required=true に設定してください。"
             );
             VaultError::ConnectionUnavailable(error_msg)
-        } else {
-            VaultError::ServerError(error_msg)
         }
     }
 }
@@ -106,7 +112,7 @@ impl VaultClient for HttpVaultClient {
             .circuit_breaker
             .call(|| async { http.get(&url).send().await })
             .await
-            .map_err(|e| self.handle_connection_error(format!("circuit breaker: {}", e)))?;
+            .map_err(|e| self.handle_connection_error(format!("circuit breaker: {e}")))?;
 
         match resp.status() {
             StatusCode::OK => {
@@ -128,8 +134,7 @@ impl VaultClient for HttpVaultClient {
                 Err(VaultError::PermissionDenied(path.to_string()))
             }
             status => Err(VaultError::ServerError(format!(
-                "unexpected status: {}",
-                status
+                "unexpected status: {status}"
             ))),
         }
     }
@@ -155,7 +160,7 @@ impl VaultClient for HttpVaultClient {
             .circuit_breaker
             .call(|| async { http.get(&url).send().await })
             .await
-            .map_err(|e| self.handle_connection_error(format!("circuit breaker: {}", e)))?;
+            .map_err(|e| self.handle_connection_error(format!("circuit breaker: {e}")))?;
 
         if resp.status() == StatusCode::OK {
             resp.json::<Vec<String>>()
@@ -184,9 +189,9 @@ impl VaultClient for HttpVaultClient {
             let mut interval = tokio::time::interval(ttl);
             loop {
                 interval.tick().await;
-                let resp = match http.get(&url).send().await {
-                    Ok(r) => r,
-                    Err(_) => continue,
+                // HIGH-001 監査対応: let...elseパターンに変換
+                let Ok(resp) = http.get(&url).send().await else {
+                    continue;
                 };
                 if resp.status() != StatusCode::OK {
                     continue;

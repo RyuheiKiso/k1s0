@@ -17,6 +17,8 @@ use crate::adapter::handler::{self, AppState};
 use crate::domain::entity::{ProvisioningJob, Tenant, TenantMember};
 use crate::domain::repository::{MemberRepository, TenantRepository};
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -39,7 +41,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -166,8 +168,8 @@ pub async fn run() -> anyhow::Result<()> {
                 brokers,
                 consumer_group: String::new(),
                 security_protocol: "PLAINTEXT".to_string(),
-                sasl: Default::default(),
-                topics: Default::default(),
+                sasl: super::kafka_producer::SaslConfig::default(),
+                topics: super::kafka_producer::TopicsConfig::default(),
             };
             let publisher = super::kafka_producer::KafkaTenantEventPublisher::new(&kafka_cfg)?;
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
@@ -373,7 +375,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.http_port));
@@ -405,8 +407,8 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// CreateTenant / UpdateTenant / DeleteTenant / SuspendTenant / ActivateTenant /
-/// AddMember / RemoveMember は write、それ以外は read。
+/// `CreateTenant` / `UpdateTenant` / `DeleteTenant` / `SuspendTenant` / `ActivateTenant` /
+/// `AddMember` / `RemoveMember` は write、それ以外は read。
 /// gRPC メソッド名から RBAC アクション文字列を返す。
 /// 書き込み系メソッドは "write"、それ以外は "read" を返す。
 fn tenant_grpc_action(method: &str) -> &'static str {
@@ -445,12 +447,13 @@ impl TenantRepository for InMemoryTenantRepository {
 
     async fn list(&self, page: i32, page_size: i32) -> anyhow::Result<(Vec<Tenant>, i64)> {
         let tenants = self.tenants.read().await;
-        let total = tenants.len() as i64;
-        let offset = ((page - 1) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i64::try_from(tenants.len()).unwrap_or(i64::MAX);
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
         let result: Vec<_> = tenants
             .iter()
             .skip(offset)
-            .take(page_size as usize)
+            .take(usize::try_from(page_size).unwrap_or(0))
             .cloned()
             .collect();
         Ok((result, total))

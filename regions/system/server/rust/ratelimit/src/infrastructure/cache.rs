@@ -1,5 +1,5 @@
-/// RuleCache はレートリミットルールのインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きでルール情報をキャッシュする。
+/// `RuleCache` はレートリミットルールのインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きでルール情報をキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,11 +12,12 @@ pub struct RuleCache {
 }
 
 impl RuleCache {
-    /// 新しい RuleCache を作成する。
+    /// 新しい `RuleCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -35,7 +36,7 @@ impl RuleCache {
     /// ID に対応するルールを取得する。
     /// キャッシュミスの場合は None を返す。
     pub async fn get_by_id(&self, id: &uuid::Uuid) -> Option<Arc<RateLimitRule>> {
-        let key = format!("id:{}", id);
+        let key = format!("id:{id}");
         self.inner.get(&key).await
     }
 
@@ -56,7 +57,7 @@ impl RuleCache {
 
     /// 特定の id のルールをキャッシュから削除する。
     pub async fn invalidate_by_id(&self, id: &uuid::Uuid) {
-        let key = format!("id:{}", id);
+        let key = format!("id:{id}");
         self.inner.invalidate(&key).await;
     }
 }

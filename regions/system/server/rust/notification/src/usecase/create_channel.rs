@@ -4,7 +4,7 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::service::NotificationDomainService;
 
-/// H-012 監査対応: tenant_id フィールドを追加してマルチテナント分離を実現する
+/// H-012 監査対応: `tenant_id` フィールドを追加してマルチテナント分離を実現する
 #[derive(Debug, Clone)]
 pub struct CreateChannelInput {
     pub name: String,

@@ -2,13 +2,14 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 use uuid::Uuid;
 
 use super::{AppState, ErrorResponse};
 // utoipa マクロの body 型参照に必要なインポート
+use crate::domain::entity::claims::Claims;
 use crate::domain::entity::service::Service;
 use crate::domain::entity::service::{ServiceLifecycle, ServiceTier};
 use crate::domain::repository::service_repository::ServiceListFilters;
@@ -48,12 +49,12 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut overall_ok = true;
 
     if let Some(ref pool) = state.db_pool {
-        match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => db_status = "ok",
-            Err(_) => {
-                db_status = "error";
-                overall_ok = false;
-            }
+        // is_ok() を使って冗長なパターンマッチを避ける
+        if sqlx::query("SELECT 1").execute(pool).await.is_ok() {
+            db_status = "ok";
+        } else {
+            db_status = "error";
+            overall_ok = false;
         }
     }
 
@@ -105,8 +106,10 @@ pub async fn metrics_endpoint(State(state): State<AppState>) -> impl IntoRespons
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn list_services(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Query(params): Query<ListServicesQuery>,
 ) -> impl IntoResponse {
     let tier = params.tier.and_then(|t| t.parse::<ServiceTier>().ok());
@@ -121,7 +124,11 @@ pub async fn list_services(
         tag: params.tag,
     };
 
-    match state.list_services_uc.execute(filters).await {
+    match state
+        .list_services_uc
+        .execute(&claims.tenant_id, filters)
+        .await
+    {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
@@ -140,8 +147,13 @@ pub async fn list_services(
     ),
     security(("bearer_auth" = []))
 )]
-pub async fn get_service(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
-    match state.get_service_uc.execute(id).await {
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
+pub async fn get_service(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    match state.get_service_uc.execute(&claims.tenant_id, id).await {
         Ok(service) => (StatusCode::OK, Json(service)).into_response(),
         Err(crate::usecase::get_service::GetServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");
@@ -165,11 +177,17 @@ pub async fn get_service(State(state): State<AppState>, Path(id): Path<Uuid>) ->
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn register_service(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Json(input): Json<RegisterServiceInput>,
 ) -> impl IntoResponse {
-    match state.register_service_uc.execute(input).await {
+    match state
+        .register_service_uc
+        .execute(&claims.tenant_id, input)
+        .await
+    {
         Ok(service) => (StatusCode::CREATED, Json(service)).into_response(),
         Err(crate::usecase::register_service::RegisterServiceError::TeamNotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified team was not found");
@@ -198,12 +216,18 @@ pub async fn register_service(
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn update_service(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateServiceInput>,
 ) -> impl IntoResponse {
-    match state.update_service_uc.execute(id, input).await {
+    match state
+        .update_service_uc
+        .execute(&claims.tenant_id, id, input)
+        .await
+    {
         Ok(service) => (StatusCode::OK, Json(service)).into_response(),
         Err(crate::usecase::update_service::UpdateServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");
@@ -230,11 +254,13 @@ pub async fn update_service(
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn delete_service(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.delete_service_uc.execute(id).await {
+    match state.delete_service_uc.execute(&claims.tenant_id, id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(crate::usecase::delete_service::DeleteServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");

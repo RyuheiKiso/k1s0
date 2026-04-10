@@ -21,9 +21,14 @@ impl GetQuotaPolicyUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<QuotaPolicy, GetQuotaPolicyError> {
+    /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り `find_by_id` に渡して RLS を有効にする。
+    pub async fn execute(
+        &self,
+        id: &str,
+        tenant_id: &str,
+    ) -> Result<QuotaPolicy, GetQuotaPolicyError> {
         self.repo
-            .find_by_id(id)
+            .find_by_id(id, tenant_id)
             .await
             .map_err(|e| GetQuotaPolicyError::Internal(e.to_string()))?
             .ok_or_else(|| GetQuotaPolicyError::NotFound(id.to_string()))
@@ -37,8 +42,10 @@ mod tests {
     use crate::domain::entity::quota::{Period, SubjectType};
     use crate::domain::repository::quota_repository::MockQuotaPolicyRepository;
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy() -> QuotaPolicy {
         QuotaPolicy::new(
+            "test-tenant".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),
@@ -57,11 +64,11 @@ mod tests {
         let return_policy = policy.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
         let uc = GetQuotaPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "tenant-1").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().name, "test");
     }
@@ -69,10 +76,10 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockQuotaPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetQuotaPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "tenant-1").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaPolicyError::NotFound(id) => assert_eq!(id, "nonexistent"),
@@ -84,10 +91,10 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockQuotaPolicyRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = GetQuotaPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute("some-id").await;
+        let result = uc.execute("some-id", "tenant-1").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaPolicyError::Internal(msg) => assert!(msg.contains("db error")),

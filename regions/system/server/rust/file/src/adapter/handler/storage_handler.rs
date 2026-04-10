@@ -16,6 +16,9 @@ use crate::domain::service::FileDomainService;
 
 /// GET /internal/storage/{*key} - ローカル PV からファイルを提供する。
 /// production では S3 pre-signed URL を使用するため、このハンドラーは dev/test 環境向け。
+///
+/// # Panics
+/// `Response::builder()` のヘッダー設定に失敗した場合にパニックする（静的な値のため通常は発生しない）。
 pub async fn serve_internal_storage(
     State(state): State<AppState>,
     Path(key): Path<String>,
@@ -26,7 +29,7 @@ pub async fn serve_internal_storage(
         None => {
             return (
                 StatusCode::NOT_IMPLEMENTED,
-                "ローカルストレージが設定されていません",
+                "Local storage is not configured",
             )
                 .into_response();
         }
@@ -42,15 +45,14 @@ pub async fn serve_internal_storage(
             )
         })
     {
-        return (StatusCode::BAD_REQUEST, "不正なストレージキー").into_response();
+        return (StatusCode::BAD_REQUEST, "Invalid storage key").into_response();
     }
 
     let full_path = root.join(&key_path);
 
-    // ファイルバイト列を読み込む（存在しない場合は 404）
-    let bytes = match tokio::fs::read(&full_path).await {
-        Ok(b) => b,
-        Err(_) => return (StatusCode::NOT_FOUND, "ファイルが存在しません").into_response(),
+    // let-else: ファイルが存在しない場合は 404 を返す
+    let Ok(bytes) = tokio::fs::read(&full_path).await else {
+        return (StatusCode::NOT_FOUND, "File not found").into_response();
     };
 
     // infer によるマジックバイト検出でコンテンツタイプを決定する。
@@ -58,10 +60,9 @@ pub async fn serve_internal_storage(
     let detected_type = infer::get(&bytes).map(|t| t.mime_type().to_string());
 
     // 拡張子ベースの期待コンテンツタイプ（allowlist から取得）
-    let extension_type = full_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| match ext {
+    let extension_type = full_path.extension().and_then(|ext| ext.to_str()).map_or(
+        "application/octet-stream",
+        |ext| match ext {
             "pdf" => "application/pdf",
             "png" => "image/png",
             "jpg" | "jpeg" => "image/jpeg",
@@ -73,8 +74,8 @@ pub async fn serve_internal_storage(
             "zip" => "application/zip",
             "gz" => "application/gzip",
             _ => "application/octet-stream",
-        })
-        .unwrap_or("application/octet-stream");
+        },
+    );
 
     // STATIC-HIGH-003 監査対応: マジックバイトで検出した型が拡張子の期待型と一致しない場合は拒否する。
     // ただし infer が判定できない場合（バイナリ等）は拡張子ベースにフォールバックする。
@@ -89,15 +90,14 @@ pub async fn serve_internal_storage(
                 );
                 return (
                     StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    "ファイルの実際の種別が宣言されたコンテンツタイプと一致しません",
+                    "File content type does not match the declared type",
                 )
                     .into_response();
             }
             // マジックバイト検出結果が許可リストにない場合は拒否する
             if !FileDomainService::is_allowed_content_type(detected) {
                 tracing::warn!(key = %key, detected = %detected, "許可リスト外のコンテンツタイプを拒否");
-                return (StatusCode::FORBIDDEN, "このコンテンツタイプは許可されていません")
-                    .into_response();
+                return (StatusCode::FORBIDDEN, "This content type is not allowed").into_response();
             }
             detected.clone()
         }
@@ -129,7 +129,7 @@ pub async fn serve_internal_storage(
         .header(header::CONTENT_TYPE, &content_type)
         .header(
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{}\"", safe_filename),
+            format!("attachment; filename=\"{safe_filename}\""),
         )
         // MIME スニッフィングを完全に無効化する
         .header("X-Content-Type-Options", "nosniff")

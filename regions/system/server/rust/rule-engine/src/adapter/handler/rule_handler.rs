@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -26,14 +26,15 @@ pub async fn list_rules(
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
     let rule_set_id = match params.rule_set_id {
-        Some(ref id) => match Uuid::parse_str(id) {
-            Ok(uid) => Some(uid),
-            Err(_) => {
+        Some(ref id) => {
+            if let Ok(uid) = Uuid::parse_str(id) {
+                Some(uid)
+            } else {
                 let err =
                     ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_set_id format");
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
-        },
+        }
         None => None,
     };
 
@@ -78,7 +79,7 @@ pub async fn get_rule(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
             (StatusCode::OK, Json(resp)).into_response()
         }
         Ok(None) => {
-            let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {}", id));
+            let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
@@ -92,9 +93,17 @@ pub async fn get_rule(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
 
 pub async fn create_rule(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateRuleRequest>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = CreateRuleInput {
+        tenant_id,
         name: req.name,
         description: req.description,
         priority: req.priority,
@@ -110,7 +119,7 @@ pub async fn create_rule(
         Err(crate::usecase::create_rule::CreateRuleError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_ALREADY_EXISTS",
-                &format!("rule already exists: {}", name),
+                &format!("rule already exists: {name}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -149,7 +158,7 @@ pub async fn update_rule(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::update_rule::UpdateRuleError::NotFound(_)) => {
-            let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {}", id));
+            let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::update_rule::UpdateRuleError::Validation(msg)) => {
@@ -178,7 +187,7 @@ pub async fn delete_rule(State(state): State<AppState>, Path(id): Path<Uuid>) ->
         )
             .into_response(),
         Err(crate::usecase::delete_rule::DeleteRuleError::NotFound(_)) => {
-            let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {}", id));
+            let err = ErrorResponse::new("SYS_RULE_NOT_FOUND", &format!("rule not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::delete_rule::DeleteRuleError::Internal(msg)) => {
@@ -242,7 +251,7 @@ pub async fn get_rule_set(
         Ok(None) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_SET_NOT_FOUND",
-                &format!("rule set not found: {}", id),
+                &format!("rule set not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -257,18 +266,24 @@ pub async fn get_rule_set(
 
 pub async fn create_rule_set(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateRuleSetRequestBody>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let rule_ids: Result<Vec<Uuid>, _> = req.rule_ids.iter().map(|s| Uuid::parse_str(s)).collect();
-    let rule_ids = match rule_ids {
-        Ok(ids) => ids,
-        Err(_) => {
-            let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_ids format");
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        }
+    // let-else: UUIDパースエラーの場合は400を返す
+    let Ok(rule_ids) = rule_ids else {
+        let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_ids format");
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     };
 
     let input = CreateRuleSetInput {
+        tenant_id,
         name: req.name,
         description: req.description,
         domain: req.domain,
@@ -285,7 +300,7 @@ pub async fn create_rule_set(
         Err(crate::usecase::create_rule_set::CreateRuleSetError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_ALREADY_EXISTS",
-                &format!("rule set already exists: {}", name),
+                &format!("rule set already exists: {name}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -308,13 +323,12 @@ pub async fn update_rule_set(
     let rule_ids = match req.rule_ids {
         Some(ref ids) => {
             let parsed: Result<Vec<Uuid>, _> = ids.iter().map(|s| Uuid::parse_str(s)).collect();
-            match parsed {
-                Ok(uuids) => Some(uuids),
-                Err(_) => {
-                    let err =
-                        ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_ids format");
-                    return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-                }
+            if let Ok(uuids) = parsed {
+                Some(uuids)
+            } else {
+                let err =
+                    ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_ids format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
             }
         }
         None => None,
@@ -337,7 +351,7 @@ pub async fn update_rule_set(
         Err(crate::usecase::update_rule_set::UpdateRuleSetError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_SET_NOT_FOUND",
-                &format!("rule set not found: {}", id),
+                &format!("rule set not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -368,7 +382,7 @@ pub async fn delete_rule_set(
         Err(crate::usecase::delete_rule_set::DeleteRuleSetError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_SET_NOT_FOUND",
-                &format!("rule set not found: {}", id),
+                &format!("rule set not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -400,7 +414,7 @@ pub async fn publish_rule_set(
         Err(crate::usecase::publish_rule_set::PublishRuleSetError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_SET_NOT_FOUND",
-                &format!("rule set not found: {}", id),
+                &format!("rule set not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -430,14 +444,14 @@ pub async fn rollback_rule_set(
         Err(crate::usecase::rollback_rule_set::RollbackRuleSetError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_SET_NOT_FOUND",
-                &format!("rule set not found: {}", id),
+                &format!("rule set not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::rollback_rule_set::RollbackRuleSetError::NoPreviousVersion(v)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_NO_PREVIOUS_VERSION",
-                &format!("no previous version to rollback: current version is {}", v),
+                &format!("no previous version to rollback: current version is {v}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -452,9 +466,17 @@ pub async fn rollback_rule_set(
 
 pub async fn evaluate(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<EvaluateRequestBody>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = EvaluateInput {
+        tenant_id,
         rule_set: req.rule_set,
         input: req.input,
         context: req.context.unwrap_or(serde_json::json!({})),
@@ -465,9 +487,17 @@ pub async fn evaluate(
 
 pub async fn evaluate_dry_run(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<EvaluateRequestBody>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = EvaluateInput {
+        tenant_id,
         rule_set: req.rule_set,
         input: req.input,
         context: req.context.unwrap_or(serde_json::json!({})),
@@ -515,7 +545,7 @@ async fn evaluate_inner(state: AppState, input: EvaluateInput) -> impl IntoRespo
         Err(crate::usecase::evaluate::EvaluateError::RuleSetNotFound(name)) => {
             let err = ErrorResponse::new(
                 "SYS_RULE_SET_NOT_FOUND",
-                &format!("rule set not found: {}", name),
+                &format!("rule set not found: {name}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -538,23 +568,21 @@ pub async fn list_evaluation_logs(
 ) -> impl IntoResponse {
     // M-003 監査対応: 不正な日付形式は 400 Bad Request で返す（サイレント無視を修正）
     let from = if let Some(ref s) = params.from {
-        match chrono::DateTime::parse_from_rfc3339(s) {
-            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
-            Err(_) => {
-                let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'from' date format");
-                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-            }
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
+            Some(dt.with_timezone(&chrono::Utc))
+        } else {
+            let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'from' date format");
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
         }
     } else {
         None
     };
     let to = if let Some(ref s) = params.to {
-        match chrono::DateTime::parse_from_rfc3339(s) {
-            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
-            Err(_) => {
-                let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'to' date format");
-                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-            }
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
+            Some(dt.with_timezone(&chrono::Utc))
+        } else {
+            let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'to' date format");
+            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
         }
     } else {
         None
@@ -743,7 +771,11 @@ impl From<crate::domain::entity::rule::RuleSet> for RuleSetResponse {
             domain: rs.domain,
             evaluation_mode: rs.evaluation_mode.as_str().to_string(),
             default_result: rs.default_result,
-            rule_ids: rs.rule_ids.iter().map(|id| id.to_string()).collect(),
+            rule_ids: rs
+                .rule_ids
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
             current_version: rs.current_version,
             enabled: rs.enabled,
             created_at: rs.created_at.to_rfc3339(),
@@ -772,6 +804,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -784,6 +817,7 @@ impl ErrorResponse {
     }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

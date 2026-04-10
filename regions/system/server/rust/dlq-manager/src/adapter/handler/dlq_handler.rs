@@ -11,11 +11,10 @@ use super::AppState;
 
 /// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
-fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id(claims: Option<&Extension<Claims>>) -> String {
     claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -106,16 +105,27 @@ pub async fn healthz() -> Json<serde_json::Value> {
 
 #[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
 pub async fn readyz(State(state): State<AppState>) -> impl axum::response::IntoResponse {
+    // MED-001 対応: .is_ok() でエラーを握り潰さず tracing::error! で詳細を記録する
     let (db_status, db_ready) = if let Some(pool) = &state.db_pool {
-        let ok = sqlx::query("SELECT 1").execute(pool.as_ref()).await.is_ok();
-        (if ok { "ok" } else { "error" }, ok)
+        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+            Ok(_) => ("ok", true),
+            Err(e) => {
+                tracing::error!(error = %e, "readyz: DB ping failed");
+                ("error", false)
+            }
+        }
     } else {
         ("not_configured", true)
     };
 
     let (kafka_status, kafka_ready) = if let Some(publisher) = &state.publisher {
-        let ok = publisher.health_check().await.is_ok();
-        (if ok { "ok" } else { "error" }, ok)
+        match publisher.health_check().await {
+            Ok(()) => ("ok", true),
+            Err(e) => {
+                tracing::error!(error = %e, "readyz: Kafka health check failed");
+                ("error", false)
+            }
+        }
     } else {
         ("not_configured", true)
     };
@@ -167,7 +177,7 @@ pub async fn list_messages(
     Query(query): Query<ListMessagesQuery>,
 ) -> Result<Json<ListMessagesResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let (messages, total) = state
         .list_messages_uc
@@ -178,7 +188,7 @@ pub async fn list_messages(
     let message_responses: Vec<DlqMessageResponse> =
         messages.iter().map(to_message_response).collect();
 
-    let has_next = (query.page as i64 * query.page_size as i64) < total;
+    let has_next = (i64::from(query.page) * i64::from(query.page_size)) < total;
 
     Ok(Json(ListMessagesResponse {
         messages: message_responses,
@@ -207,10 +217,10 @@ pub async fn get_message(
     Path(id): Path<String>,
 ) -> Result<Json<DlqMessageResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
+        .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
 
     let message = state
         .get_message_uc
@@ -244,10 +254,10 @@ pub async fn retry_message(
     Path(id): Path<String>,
 ) -> Result<Json<RetryMessageResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
+        .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
 
     let message = state
         .retry_message_uc
@@ -283,10 +293,10 @@ pub async fn delete_message(
     Path(id): Path<String>,
 ) -> Result<Json<DeleteMessageResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
+        .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
 
     state
         .delete_message_uc
@@ -312,7 +322,7 @@ pub async fn retry_all(
     Path(topic): Path<String>,
 ) -> Result<Json<RetryAllResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let retried = state
         .retry_all_uc
@@ -324,7 +334,7 @@ pub async fn retry_all(
 
     Ok(Json(RetryAllResponse {
         retried_count: retried_i32,
-        message: format!("{} messages retried in topic {}", retried, topic),
+        message: format!("{retried} messages retried in topic {topic}"),
     }))
 }
 

@@ -9,7 +9,7 @@ use tracing::info;
 use crate::domain::entity::ExecutionStatus;
 use crate::domain::repository::ExecutionRepository;
 
-/// ReviewStepUseCase は実行ステップのレビュー（承認/拒否）を担当する
+/// `ReviewStepUseCase` は実行ステップのレビュー（承認/拒否）を担当する
 pub struct ReviewStepUseCase {
     /// 実行リポジトリ
     execution_repo: Arc<dyn ExecutionRepository>,
@@ -31,7 +31,7 @@ pub struct ReviewStepResponse {
 }
 
 impl ReviewStepUseCase {
-    /// 新しいReviewStepUseCaseを生成する
+    /// `新しいReviewStepUseCaseを生成する`
     pub fn new(execution_repo: Arc<dyn ExecutionRepository>) -> Self {
         Self { execution_repo }
     }

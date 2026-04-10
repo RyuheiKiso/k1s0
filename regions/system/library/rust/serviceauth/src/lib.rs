@@ -1,6 +1,6 @@
 //! k1s0-serviceauth: サービス間認証ライブラリ。
 //!
-//! OAuth2 Client Credentials フローによるサービストークン管理を提供する。
+//! `OAuth2` Client Credentials フローによるサービストークン管理を提供する。
 //! Istio の mTLS と SPIFFE ID によるワークロードアイデンティティ検証もサポートする。
 //!
 //! # 使い方

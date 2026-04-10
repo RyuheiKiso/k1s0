@@ -19,11 +19,16 @@ plugins:
       fault_tolerant: false
       hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
 
-  # CORS - クロスオリジンリソース共有
+  # HIGH-014 監査対応: CORS オリジンのワイルドカードサブドメインを明示的なオリジンに変更する。
+  # "https://*.k1s0.internal.example.com" はサブドメインを全て許可するため、
+  # 意図しないサブドメインからのリクエストを受け入れるリスクがある。
+  # 実際にアクセスを許可するオリジンのみを明示的に列挙することで最小権限の原則を適用する。
   - name: cors
     config:
       origins:
-        - "https://*.k1s0.internal.example.com"
+        - "https://app.k1s0.internal.example.com"
+        - "https://admin.k1s0.internal.example.com"
+        - "https://api.k1s0.internal.example.com"
       methods:
         - GET
         - POST

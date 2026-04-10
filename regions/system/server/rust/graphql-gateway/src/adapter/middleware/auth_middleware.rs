@@ -28,6 +28,7 @@ pub struct Claims {
 }
 
 impl Claims {
+    #[must_use]
     pub fn roles(&self) -> Vec<String> {
         self.realm_access
             .as_ref()
@@ -44,11 +45,9 @@ pub struct RealmAccess {
 /// Authorization ヘッダーから Bearer トークンを抽出する。
 /// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
-    let auth_str = headers
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())?;
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_str = headers.get("Authorization").and_then(|v| v.to_str().ok())?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }
@@ -63,13 +62,14 @@ fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
     }
 }
 
-/// AuthMiddlewareLayer は JwksVerifier を保持し、JWT 検証ミドルウェアを提供する Tower Layer。
+/// `AuthMiddlewareLayer` は `JwksVerifier` を保持し、JWT 検証ミドルウェアを提供する Tower Layer。
 #[derive(Clone)]
 pub struct AuthMiddlewareLayer {
     verifier: Arc<JwksVerifier>,
 }
 
 impl AuthMiddlewareLayer {
+    #[must_use]
     pub fn new(verifier: Arc<JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -86,7 +86,7 @@ impl<S> tower::Layer<S> for AuthMiddlewareLayer {
     }
 }
 
-/// AuthMiddlewareService は JWT 検証を行う Tower Service。
+/// `AuthMiddlewareService` は JWT 検証を行う Tower Service。
 #[derive(Clone)]
 pub struct AuthMiddlewareService<S> {
     inner: S,
@@ -117,22 +117,20 @@ where
         Box::pin(async move {
             let token = extract_bearer_token(req.headers());
 
-            let token = match token {
-                Some(t) => t,
-                None => {
-                    let request_id = uuid::Uuid::new_v4().to_string();
-                    return Ok((
-                        StatusCode::UNAUTHORIZED,
-                        Json(serde_json::json!({
-                            "error": {
-                                "code": "SYS_AUTH_TOKEN_MISSING",
-                                "message": "missing Authorization header",
-                                "request_id": request_id
-                            }
-                        })),
-                    )
-                        .into_response());
-                }
+            // let-else: トークンが存在しない場合は 401 を返す
+            let Some(token) = token else {
+                let request_id = uuid::Uuid::new_v4().to_string();
+                return Ok((
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "SYS_AUTH_TOKEN_MISSING",
+                            "message": "missing Authorization header",
+                            "request_id": request_id
+                        }
+                    })),
+                )
+                    .into_response());
             };
 
             // LOW-014 監査対応: JWT 検証エラーを種別ごとに区別し、クライアントに
@@ -146,32 +144,32 @@ where
                         // トークン期限切れ: 正常なセッション切れであることが多い
                         JwtVerifyError::TokenExpired => (
                             "SYS_AUTH_TOKEN_EXPIRED",
-                            "JWTトークンの有効期限が切れています。再ログインしてください。",
+                            "Token has expired. Please log in again.",
                         ),
                         // 署名不正: 改ざん・偽造の可能性がある（セキュリティアラート対象）
                         JwtVerifyError::InvalidSignature => (
                             "SYS_AUTH_TOKEN_INVALID_SIGNATURE",
-                            "JWT署名が無効です。",
+                            "Invalid JWT signature.",
                         ),
                         // issuer 不一致: 設定ミスまたは別環境のトークン
                         JwtVerifyError::InvalidIssuer => (
                             "SYS_AUTH_TOKEN_INVALID_ISSUER",
-                            "JWTのissuerが無効です。",
+                            "Invalid JWT issuer.",
                         ),
                         // audience 不一致: 別サービス向けのトークンを使用している可能性
                         JwtVerifyError::InvalidAudience => (
                             "SYS_AUTH_TOKEN_INVALID_AUDIENCE",
-                            "JWTのaudienceが無効です。",
+                            "Invalid JWT audience.",
                         ),
                         // JWKS 取得失敗: 認証サービスの一時障害（再試行可能）
                         JwtVerifyError::JwksFetchFailed(_) => (
                             "SYS_AUTH_JWKS_UNAVAILABLE",
-                            "認証サービスに一時的に接続できません。しばらく後に再試行してください。",
+                            "Authentication service is temporarily unavailable. Please try again later.",
                         ),
                         // その他の不正フォーマット
                         JwtVerifyError::MalformedToken(_) => (
                             "SYS_AUTH_TOKEN_MALFORMED",
-                            "JWTトークンの形式が不正です。",
+                            "Malformed JWT token.",
                         ),
                     };
                     return Ok((

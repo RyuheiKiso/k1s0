@@ -29,7 +29,7 @@ impl ListJobsUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブ一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブ一覧を取得する。
     pub async fn execute(&self, input: &ListJobsInput) -> anyhow::Result<ListJobsOutput> {
         let all_jobs = self.repo.find_all(&input.tenant_id).await?;
         let filtered: Vec<_> = all_jobs
@@ -48,14 +48,16 @@ impl ListJobsUseCase {
                 true
             })
             .collect();
-        let total_count = filtered.len() as u64;
-        let start = ((input.page - 1) * input.page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total_count = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from((input.page - 1) * input.page_size).unwrap_or(0);
+        let take_count = usize::try_from(input.page_size).unwrap_or(0);
         let jobs: Vec<_> = filtered
             .into_iter()
             .skip(start)
-            .take(input.page_size as usize)
+            .take(take_count)
             .collect();
-        let has_next = (start + input.page_size as usize) < total_count as usize;
+        let has_next = (start + take_count) < usize::try_from(total_count).unwrap_or(usize::MAX);
         Ok(ListJobsOutput {
             jobs,
             total_count,

@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// DlqManager ドメイン固有のエラー型。
+/// `DlqManager` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum DlqManagerError {
     /// DLQ メッセージが見つからない
@@ -28,7 +28,7 @@ pub enum DlqManagerError {
     Internal(String),
 }
 
-/// DlqManagerError から ServiceError への変換実装
+/// `DlqManagerError` から `ServiceError` への変換実装
 impl From<DlqManagerError> for ServiceError {
     fn from(err: DlqManagerError) -> Self {
         match err {

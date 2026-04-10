@@ -6,6 +6,8 @@ use crate::domain::repository::{EventRepository, EventStreamRepository};
 #[derive(Debug, Clone)]
 pub struct ReadEventsInput {
     pub stream_id: String,
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
     pub from_version: i64,
     pub to_version: Option<i64>,
     pub event_type: Option<String>,
@@ -49,9 +51,10 @@ impl ReadEventsUseCase {
         &self,
         input: &ReadEventsInput,
     ) -> Result<ReadEventsOutput, ReadEventsError> {
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| ReadEventsError::Internal(e.to_string()))?;
 
@@ -61,9 +64,11 @@ impl ReadEventsUseCase {
         let page_size = input.page_size.clamp(1, 200);
         let page = input.page.max(1);
 
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let (events, total_count) = self
             .event_repo
             .find_by_stream(
+                &input.tenant_id,
                 &input.stream_id,
                 input.from_version,
                 input.to_version,
@@ -74,7 +79,7 @@ impl ReadEventsUseCase {
             .await
             .map_err(|e| ReadEventsError::Internal(e.to_string()))?;
 
-        let has_next = (page as u64) * (page_size as u64) < total_count;
+        let has_next = u64::from(page) * u64::from(page_size) < total_count;
 
         Ok(ReadEventsOutput {
             stream_id: input.stream_id.clone(),
@@ -102,6 +107,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 3,
             created_at: chrono::Utc::now(),
@@ -112,7 +118,9 @@ mod tests {
     fn make_event(version: i64) -> StoredEvent {
         StoredEvent::new(
             "order-001".to_string(),
-            version as u64,
+            "tenant-test".to_string(),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            u64::try_from(version).unwrap_or(0),
             "OrderPlaced".to_string(),
             version,
             serde_json::json!({}),
@@ -127,15 +135,16 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
 
         event_repo
             .expect_find_by_stream()
-            .returning(|_, _, _, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
+            .returning(|_, _, _, _, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
 
         let uc = ReadEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventsInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             from_version: 1,
             to_version: None,
             event_type: None,
@@ -156,11 +165,12 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let event_repo = MockEventRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ReadEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventsInput {
             stream_id: "order-999".to_string(),
+            tenant_id: "tenant-test".to_string(),
             from_version: 1,
             to_version: None,
             event_type: None,
@@ -182,11 +192,12 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ReadEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventsInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             from_version: 1,
             to_version: None,
             event_type: None,
@@ -208,15 +219,16 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
 
         event_repo
             .expect_find_by_stream()
-            .returning(|_, _, _, _, _, _| Ok((vec![make_event(1)], 3)));
+            .returning(|_, _, _, _, _, _, _| Ok((vec![make_event(1)], 3)));
 
         let uc = ReadEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = ReadEventsInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             from_version: 1,
             to_version: None,
             event_type: None,

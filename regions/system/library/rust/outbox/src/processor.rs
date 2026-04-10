@@ -6,7 +6,7 @@ use crate::message::OutboxMessage;
 use crate::store::OutboxStore;
 use tokio_util::sync::CancellationToken;
 
-/// OutboxPublisher はアウトボックスメッセージの発行インターフェース。
+/// `OutboxPublisher` はアウトボックスメッセージの発行インターフェース。
 #[async_trait::async_trait]
 pub trait OutboxPublisher: Send + Sync {
     async fn publish(&self, message: &OutboxMessage) -> Result<(), OutboxError>;
@@ -19,8 +19,8 @@ const DEFAULT_CONCURRENCY: usize = 4;
 /// この時間を超えて PROCESSING のままのメッセージをリカバリ対象とする（M-12 監査対応）
 const DEFAULT_STALE_PROCESSING_MINUTES: u32 = 10;
 
-/// OutboxProcessor はアウトボックスメッセージの定期処理を担う。
-/// fetch_pending → publish → update のサイクルを並列実行する。
+/// `OutboxProcessor` はアウトボックスメッセージの定期処理を担う。
+/// `fetch_pending` → publish → update のサイクルを並列実行する。
 /// M-12 監査対応: PROCESSING スタックを防ぐためリカバリ処理も定期実行する。
 pub struct OutboxProcessor {
     store: Arc<dyn OutboxStore>,
@@ -50,14 +50,16 @@ impl OutboxProcessor {
 
     /// 並列処理数を設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_concurrency(mut self, concurrency: usize) -> Self {
         self.concurrency = concurrency;
         self
     }
 
     /// PROCESSING スタック検出閾値を設定する（M-12 監査対応）。
-    /// デフォルトは DEFAULT_STALE_PROCESSING_MINUTES 分。
+    /// デフォルトは `DEFAULT_STALE_PROCESSING_MINUTES` 分。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_stale_processing_minutes(mut self, minutes: u32) -> Self {
         self.stale_processing_minutes = minutes;
         self
@@ -135,7 +137,7 @@ impl OutboxProcessor {
     }
 
     /// PROCESSING 状態でスタックしたメッセージを PENDING に戻すリカバリ処理（M-12 監査対応）。
-    /// mark_delivered 後の DB Update 失敗によって PROCESSING のまま残ったメッセージを自動復旧する。
+    /// `mark_delivered` 後の DB Update 失敗によって PROCESSING のまま残ったメッセージを自動復旧する。
     pub async fn recover_stale_messages(&self) -> Result<(), OutboxError> {
         match self
             .store
@@ -157,21 +159,21 @@ impl OutboxProcessor {
         Ok(())
     }
 
-    /// process_batch を interval ごとに実行する。
+    /// `process_batch` を interval ごとに実行する。
     /// M-12 監査対応: リカバリ処理も定期実行し PROCESSING スタックを自動解消する。
-    /// cancellation_token がキャンセルされたら終了する。
+    /// `cancellation_token` がキャンセルされたら終了する。
     pub async fn run(
         &self,
         interval: Duration,
         cancellation_token: CancellationToken,
     ) -> Result<(), OutboxError> {
-        let mut ticker = tokio::time::interval(interval);
         // リカバリは処理インターバルの10倍周期で実行する（過剰なDB負荷を避けるため）
-        let mut recovery_tick_count: u64 = 0;
         const RECOVERY_INTERVAL_TICKS: u64 = 10;
+        let mut ticker = tokio::time::interval(interval);
+        let mut recovery_tick_count: u64 = 0;
         loop {
             tokio::select! {
-                _ = cancellation_token.cancelled() => break,
+                () = cancellation_token.cancelled() => break,
                 _ = ticker.tick() => {
                     self.process_batch().await?;
                     recovery_tick_count += 1;

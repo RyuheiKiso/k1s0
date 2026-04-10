@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 /// セッション操作に関するエラー型。
-/// Expired: セッションの有効期限切れ（get_session usecase で返される）。
-/// TooManySessions: デバイス上限超過（create_session usecase で将来返す予定）。
+/// Expired: `セッションの有効期限切れ（get_session` usecase で返される）。
+/// `TooManySessions`: `デバイス上限超過（create_session` usecase で将来返す予定）。
 /// セッション操作に関するエラー型
 #[derive(Debug, Error)]
 pub enum SessionError {

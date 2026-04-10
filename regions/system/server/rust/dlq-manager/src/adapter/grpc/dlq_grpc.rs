@@ -9,7 +9,7 @@ use crate::usecase::{
     RetryMessageUseCase,
 };
 
-/// GrpcError は gRPC レイヤーのエラー型。
+/// `GrpcError` は gRPC レイヤーのエラー型。
 #[derive(Debug)]
 pub enum GrpcError {
     NotFound(String),
@@ -18,7 +18,9 @@ pub enum GrpcError {
     Internal(String),
 }
 
-/// DlqGrpcService は DLQ gRPC サービスのビジネスロジック層。
+/// `DlqGrpcService` は DLQ gRPC サービスのビジネスロジック層。
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct DlqGrpcService {
     pub list_messages_uc: Arc<ListMessagesUseCase>,
     pub get_message_uc: Arc<GetMessageUseCase>,
@@ -28,6 +30,7 @@ pub struct DlqGrpcService {
 }
 
 impl DlqGrpcService {
+    #[must_use]
     pub fn new(
         list_messages_uc: Arc<ListMessagesUseCase>,
         get_message_uc: Arc<GetMessageUseCase>,
@@ -44,7 +47,7 @@ impl DlqGrpcService {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージ一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS でテナント分離しながら DLQ メッセージ一覧を取得する。
     pub async fn list_messages(
         &self,
         topic: &str,
@@ -58,37 +61,37 @@ impl DlqGrpcService {
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージを取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS でテナント分離しながら DLQ メッセージを取得する。
     pub async fn get_message(&self, id: &str, tenant_id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {id}")))?;
         self.get_message_uc
             .execute(uuid, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージをリトライする。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS でテナント分離しながら DLQ メッセージをリトライする。
     pub async fn retry_message(&self, id: &str, tenant_id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {id}")))?;
         self.retry_message_uc
             .execute(uuid, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS でテナント分離しながら DLQ メッセージを削除する。
     pub async fn delete_message(&self, id: &str, tenant_id: &str) -> Result<(), GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {id}")))?;
         self.delete_message_uc
             .execute(uuid, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながらトピック内の全 DLQ メッセージをリトライする。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS でテナント分離しながらトピック内の全 DLQ メッセージをリトライする。
     pub async fn retry_all(&self, topic: &str, tenant_id: &str) -> Result<i64, GrpcError> {
         self.retry_all_uc
             .execute(topic, tenant_id)
@@ -97,7 +100,7 @@ impl DlqGrpcService {
     }
 }
 
-/// anyhow::Error をドメインエラー型で型ベースに GrpcError へ変換する。
+/// `anyhow::Error` をドメインエラー型で型ベースに `GrpcError` へ変換する。
 /// ダウンキャストに失敗した場合は internal エラーとする。
 fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
     use crate::domain::error::DlqManagerError;
@@ -107,10 +110,12 @@ fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
             let msg = domain_err.to_string();
             match domain_err {
                 DlqManagerError::NotFound(_) => GrpcError::NotFound(msg),
-                DlqManagerError::ProcessFailed(_) => GrpcError::Internal(msg),
+                // HIGH-001 監査対応: 同一ボディのmatchアームをORパターンで結合
+                DlqManagerError::ProcessFailed(_) | DlqManagerError::Internal(_) => {
+                    GrpcError::Internal(msg)
+                }
                 DlqManagerError::AlreadyProcessed(_) => GrpcError::FailedPrecondition(msg),
                 DlqManagerError::ValidationFailed(_) => GrpcError::InvalidArgument(msg),
-                DlqManagerError::Internal(_) => GrpcError::Internal(msg),
             }
         }
         Err(err) => GrpcError::Internal(err.to_string()),

@@ -24,6 +24,7 @@ pub struct InMemoryCacheClient {
 }
 
 impl InMemoryCacheClient {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             store: Arc::new(RwLock::new(HashMap::new())),
@@ -41,10 +42,10 @@ impl Default for InMemoryCacheClient {
 impl CacheClient for InMemoryCacheClient {
     async fn get(&self, key: &str) -> Result<Option<String>, CacheError> {
         let store = self.store.read().await;
+        // 期限切れエントリと未存在エントリは同じ返り値のためアームを統合する
         match store.get(key) {
             Some(entry) if !entry.is_expired() => Ok(Some(entry.value.clone())),
-            Some(_) => Ok(None),
-            None => Ok(None),
+            Some(_) | None => Ok(None),
         }
     }
 
@@ -72,7 +73,7 @@ impl CacheClient for InMemoryCacheClient {
 
     async fn set_nx(&self, key: &str, value: &str, ttl: Duration) -> Result<bool, CacheError> {
         let mut store = self.store.write().await;
-        if store.get(key).is_none_or(|e| e.is_expired()) {
+        if store.get(key).is_none_or(Entry::is_expired) {
             store.insert(
                 key.to_string(),
                 Entry {

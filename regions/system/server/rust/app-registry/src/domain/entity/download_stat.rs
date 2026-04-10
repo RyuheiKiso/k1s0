@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-/// DownloadStat はアプリダウンロードの統計情報を表すドメインエンティティ。
+/// `DownloadStat` はアプリダウンロードの統計情報を表すドメインエンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DownloadStat {
     pub id: Uuid,

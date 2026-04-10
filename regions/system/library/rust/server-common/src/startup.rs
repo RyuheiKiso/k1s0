@@ -33,8 +33,8 @@ pub struct ServerBuilder {
 }
 
 impl ServerBuilder {
-    /// 新しい ServerBuilder を生成する。
-    /// service_name・version・tier は全初期化処理で共有される識別子。
+    /// 新しい `ServerBuilder` を生成する。
+    /// `service_name・version・tier` は全初期化処理で共有される識別子。
     /// tier は "system" / "business" / "service" のいずれかを指定する（デフォルト値なし）。
     pub fn new(
         service_name: impl Into<String>,
@@ -49,15 +49,16 @@ impl ServerBuilder {
     }
 
     /// サービス名を取得する。
+    #[must_use]
     pub fn service_name(&self) -> &str {
         &self.service_name
     }
 
     /// テレメトリ（トレーシング・ログ）を初期化する。
     ///
-    /// 全サーバーで同一の TelemetryConfig 構築ロジックを共通化する。
-    /// ObservabilityConfig の各フィールドから TelemetryConfig を組み立て、
-    /// k1s0_telemetry::init_telemetry() を呼び出す。
+    /// 全サーバーで同一の `TelemetryConfig` 構築ロジックを共通化する。
+    /// `ObservabilityConfig` の各フィールドから `TelemetryConfig` を組み立て、
+    /// `k1s0_telemetry::init_telemetry()` を呼び出す。
     pub fn init_telemetry(
         &self,
         environment: &str,
@@ -77,12 +78,13 @@ impl ServerBuilder {
             log_format: observability.log_format.clone(),
         };
         k1s0_telemetry::init_telemetry(&telemetry_cfg)
-            .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗: {e}"))?;
         Ok(())
     }
 
     /// Metrics インスタンスを生成する。
-    /// service_name をラベルとして使用し、全メトリクスをサービス単位で識別する。
+    /// `service_name` をラベルとして使用し、全メトリクスをサービス単位で識別する。
+    #[must_use]
     pub fn create_metrics(&self) -> Arc<k1s0_telemetry::metrics::Metrics> {
         Arc::new(k1s0_telemetry::metrics::Metrics::new(&self.service_name))
     }
@@ -153,8 +155,8 @@ impl ServerBuilder {
 
     /// JWKS トークン検証器を作成する。
     ///
-    /// JwksAuthConfig（jwt + jwks）から JwksVerifier を構築する。
-    /// 全サーバーで繰り返される JwksVerifier::new() の呼び出しを共通化する。
+    /// JwksAuthConfig（jwt + jwks）から `JwksVerifier` を構築する。
+    /// 全サーバーで繰り返される `JwksVerifier::new()` の呼び出しを共通化する。
     #[cfg(feature = "startup-auth")]
     pub fn init_jwks_verifier(
         &self,
@@ -177,7 +179,7 @@ impl ServerBuilder {
             &auth_config.jwt.audience,
             std::time::Duration::from_secs(jwks.cache_ttl_secs),
         )
-        .map_err(|e| anyhow::anyhow!("JWKS 検証器の作成に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("JWKS 検証器の作成に失敗: {e}"))?;
 
         info!(
             service = %self.service_name,
@@ -198,14 +200,14 @@ impl ServerBuilder {
 
 /// テレメトリ初期化に必要な Observability 設定フィールド。
 ///
-/// 各サーバーの ObservabilityConfig から変換して使用する。
+/// 各サーバーの `ObservabilityConfig` から変換して使用する。
 /// サーバー固有の Config 構造体に依存しないよう、必要なフィールドのみを抽出した
 /// 中間構造体として設計している。
 #[derive(Debug, Clone)]
 pub struct ObservabilityFields {
     /// トレース機能の有効/無効フラグ
     pub trace_enabled: bool,
-    /// トレースエンドポイント URL（例: "http://otel-collector.observability:4317"）
+    /// トレースエンドポイント URL（例: "<http://otel-collector.observability:4317>"）
     pub trace_endpoint: String,
     /// トレースサンプリングレート（0.0〜1.0）
     pub sample_rate: f64,
@@ -252,8 +254,8 @@ impl Default for DatabasePoolConfig {
 
 /// JWKS 認証設定（nested 形式: jwt + jwks）。
 ///
-/// 各サーバーの AuthConfig から変換して使用する。
-/// サーバー固有の AuthConfig 構造体に依存しないよう分離している。
+/// 各サーバーの `AuthConfig` から変換して使用する。
+/// サーバー固有の `AuthConfig` 構造体に依存しないよう分離している。
 #[cfg(feature = "startup-auth")]
 #[derive(Debug, Clone)]
 pub struct JwksAuthConfig {
@@ -263,7 +265,7 @@ pub struct JwksAuthConfig {
     pub jwks: Option<JwksAuthJwksConfig>,
 }
 
-/// JwksAuthJwtConfig は JWT 検証の issuer / audience を保持する。
+/// `JwksAuthJwtConfig` は JWT 検証の issuer / audience を保持する。
 #[cfg(feature = "startup-auth")]
 #[derive(Debug, Clone)]
 pub struct JwksAuthJwtConfig {
@@ -273,7 +275,7 @@ pub struct JwksAuthJwtConfig {
     pub audience: String,
 }
 
-/// JwksAuthJwksConfig は JWKS エンドポイント URL とキャッシュ TTL を保持する。
+/// `JwksAuthJwksConfig` は JWKS エンドポイント URL とキャッシュ TTL を保持する。
 #[cfg(feature = "startup-auth")]
 #[derive(Debug, Clone)]
 pub struct JwksAuthJwksConfig {

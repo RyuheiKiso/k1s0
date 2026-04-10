@@ -40,11 +40,13 @@ mod tests {
 
     #[tokio::test]
     async fn success() {
-        let instance = FlowInstance::new(Uuid::new_v4(), "corr-123".to_string());
+        let instance =
+            FlowInstance::new("system".to_string(), Uuid::new_v4(), "corr-123".to_string());
         let instance_id = instance.id;
         let mut mock = MockFlowInstanceRepository::new();
         mock.expect_find_by_id().returning(move |_| {
             Ok(Some(FlowInstance::new(
+                "system".to_string(),
                 Uuid::new_v4(),
                 "corr-123".to_string(),
             )))

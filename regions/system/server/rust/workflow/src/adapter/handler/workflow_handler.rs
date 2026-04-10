@@ -19,11 +19,9 @@ use super::dto::{
     ListWorkflowsResponse, PaginationResponse, UpdateWorkflowRequest, WorkflowResponse,
 };
 
-/// Claims が存在する場合は tenant_id を返し、存在しない場合は "system" を返す
+/// Claims が存在する場合は `tenant_id` を返し、存在しない場合は "system" を返す
 fn tenant_id_from_claims(claims: Option<&Claims>) -> String {
-    claims
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+    claims.map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 /// POST /api/v1/workflows
@@ -86,7 +84,7 @@ pub async fn create_workflow(
             StatusCode::CONFLICT,
             Json(error_json(
                 "SYS_WORKFLOW_ALREADY_EXISTS",
-                &format!("workflow already exists: {}", name),
+                &format!("workflow already exists: {name}"),
             )),
         )
             .into_response(),
@@ -114,7 +112,10 @@ pub async fn get_workflow(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = GetWorkflowInput { tenant_id, id: id.clone() };
+    let input = GetWorkflowInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.get_workflow_uc.execute(&input).await {
         Ok(def) => {
@@ -139,7 +140,7 @@ pub async fn get_workflow(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_NOT_FOUND",
-                &format!("workflow not found: {}", id),
+                &format!("workflow not found: {id}"),
             )),
         )
             .into_response(),
@@ -273,7 +274,7 @@ pub async fn update_workflow(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_NOT_FOUND",
-                &format!("workflow not found: {}", id),
+                &format!("workflow not found: {id}"),
             )),
         )
             .into_response(),
@@ -295,7 +296,10 @@ pub async fn delete_workflow(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = DeleteWorkflowInput { tenant_id, id: id.clone() };
+    let input = DeleteWorkflowInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.delete_workflow_uc.execute(&input).await {
         // 成功時はコンテンツなしで204を返す
@@ -305,7 +309,7 @@ pub async fn delete_workflow(
             StatusCode::NOT_FOUND,
             Json(error_json(
                 "SYS_WORKFLOW_NOT_FOUND",
-                &format!("workflow not found: {}", id),
+                &format!("workflow not found: {id}"),
             )),
         )
             .into_response(),

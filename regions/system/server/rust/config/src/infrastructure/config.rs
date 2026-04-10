@@ -3,8 +3,8 @@ use serde::Deserialize;
 use super::database::DatabaseConfig;
 use super::kafka_producer::KafkaConfig;
 
-/// AuthConfig 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -14,7 +14,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -23,7 +23,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -174,8 +174,8 @@ fn default_namespace_max_depth() -> usize {
 }
 
 /// STATIC-HIGH-002: 設定値暗号化設定。
-/// enabled が true の場合、sensitive_namespaces にマッチする設定値を AES-256-GCM で暗号化する。
-/// 暗号化鍵は環境変数 CONFIG_ENCRYPTION_KEY（base64 エンコード 32 バイト）または key_base64 から取得する。
+/// enabled が true `の場合、sensitive_namespaces` にマッチする設定値を AES-256-GCM で暗号化する。
+/// 暗号化鍵は環境変数 `CONFIG_ENCRYPTION_KEY（base64` エンコード 32 バイト）または `key_base64` から取得する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct EncryptionConfig {
     /// 暗号化を有効にするフラグ。本番環境では true を推奨
@@ -184,7 +184,7 @@ pub struct EncryptionConfig {
     /// 暗号化対象の namespace プレフィックスリスト
     #[serde(default = "default_sensitive_namespaces")]
     pub sensitive_namespaces: Vec<String>,
-    /// 暗号化鍵（base64 エンコード 32 バイト）。環境変数 CONFIG_ENCRYPTION_KEY でも指定可能
+    /// 暗号化鍵（base64 エンコード 32 バイト）。環境変数 `CONFIG_ENCRYPTION_KEY` でも指定可能
     #[serde(default)]
     pub key_base64: String,
 }
@@ -200,13 +200,10 @@ impl Default for EncryptionConfig {
 }
 
 fn default_sensitive_namespaces() -> Vec<String> {
-    vec![
-        "system.auth".to_string(),
-        "system.database".to_string(),
-    ]
+    vec!["system.auth".to_string(), "system.database".to_string()]
 }
 
-/// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蝓ｺ譛ｬ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AppConfig` 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蝓ｺ譛ｬ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -225,7 +222,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `ServerConfig` 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]

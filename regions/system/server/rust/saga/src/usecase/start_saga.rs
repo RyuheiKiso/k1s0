@@ -9,7 +9,7 @@ use crate::domain::repository::{SagaRepository, WorkflowRepository};
 use crate::infrastructure::task_tracker::SagaTaskTracker;
 use crate::usecase::ExecuteSagaUseCase;
 
-/// StartSagaUseCase はSagaの開始を担う。
+/// `StartSagaUseCase` はSagaの開始を担う。
 pub struct StartSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
     workflow_repo: Arc<dyn WorkflowRepository>,
@@ -32,14 +32,15 @@ impl StartSagaUseCase {
         }
     }
 
-    /// SagaTaskTracker への参照を返す。
+    /// `SagaTaskTracker` への参照を返す。
     /// シャットダウン時に `tracker.wait_for_completion()` を呼び出すために使用する。
+    #[must_use]
     pub fn task_tracker(&self) -> &SagaTaskTracker {
         &self.task_tracker
     }
 
-    /// Sagaを開始する。ワークフロー存在確認 → SagaState作成 → バックグラウンド実行。
-    /// CRIT-005 対応: tenant_id を引数で受け取り、SagaState に設定してRLS分離を実現する。
+    /// Sagaを開始する。ワークフロー存在確認 → `SagaState作成` → バックグラウンド実行。
+    /// CRIT-005 対応: `tenant_id` を引数で受け取り、SagaState に設定してRLS分離を実現する。
     pub async fn execute(
         &self,
         workflow_name: String,
@@ -54,10 +55,16 @@ impl StartSagaUseCase {
             .get(&workflow_name)
             .await
             .map_err(|e| SagaError::Internal(e.to_string()))?
-            .ok_or_else(|| SagaError::NotFound(format!("workflow: {}", workflow_name)))?;
+            .ok_or_else(|| SagaError::NotFound(format!("workflow: {workflow_name}")))?;
 
         // SagaState を生成する（tenant_id を含む）
-        let state = SagaState::new(workflow_name.clone(), payload, correlation_id, initiated_by, tenant_id);
+        let state = SagaState::new(
+            workflow_name.clone(),
+            payload,
+            correlation_id,
+            initiated_by,
+            tenant_id,
+        );
         let saga_id = state.saga_id;
 
         // SagaState を永続化する: リポジトリエラーは Internal として伝播する
@@ -122,7 +129,13 @@ mod tests {
         );
 
         let result = uc
-            .execute("nonexistent".to_string(), serde_json::json!({}), None, None, "system".to_string())
+            .execute(
+                "nonexistent".to_string(),
+                serde_json::json!({}),
+                None,
+                None,
+                "system".to_string(),
+            )
             .await;
         // anyhow::Error ではなく SagaError::NotFound の具体型でアサートする
         assert!(matches!(result, Err(SagaError::NotFound(_))));
@@ -147,7 +160,8 @@ steps:
 
         let mut mock_saga_repo = MockSagaRepository::new();
         mock_saga_repo.expect_create().returning(|_| Ok(()));
-        mock_saga_repo.expect_find_by_id().returning(|_| Ok(None));
+        // CRIT-005 監査対応: find_by_id は tenant_id を第2引数に受け取るため 2 引数クロージャを使用する
+        mock_saga_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let mut mock_caller = MockGrpcStepCaller::new();
         mock_caller

@@ -160,6 +160,8 @@ pub struct StoredEvent {
     #[prost(message, optional, tag = "8")]
     pub stored_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
+// プロトバッファ自動生成コード: *_id フィールド名は gRPC スキーマとして確定済み
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EventStoreMetadata {
     #[prost(string, optional, tag = "1")]
@@ -169,6 +171,8 @@ pub struct EventStoreMetadata {
     #[prost(string, optional, tag = "3")]
     pub causation_id: ::core::option::Option<::prost::alloc::string::String>,
 }
+// プロトバッファ自動生成コード: snapshot_version は Snapshot のプロトフィールド名として必要
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Snapshot {
     #[prost(string, tag = "1")]
@@ -195,7 +199,7 @@ pub mod event_store_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with EventStoreServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `EventStoreServiceServer`.
     #[async_trait]
     pub trait EventStoreService: std::marker::Send + std::marker::Sync + 'static {
         async fn list_streams(

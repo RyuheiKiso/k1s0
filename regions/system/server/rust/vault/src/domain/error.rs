@@ -32,7 +32,7 @@ pub enum VaultError {
     Internal(String),
 }
 
-/// VaultError から ServiceError への変換実装
+/// `VaultError` から `ServiceError` への変換実装
 impl From<VaultError> for ServiceError {
     fn from(err: VaultError) -> Self {
         match err {

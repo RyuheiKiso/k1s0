@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の FeatureFlagService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の FeatureFlagGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `FeatureFlagService` トレイトを実装する。
+//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の `FeatureFlagGrpcService` に委譲する。
 //! ADR-0028 Phase 1: x-tenant-id gRPC メタデータからテナントIDを取得し、
 //! 未指定の場合はシステムテナント UUID にフォールバックする。
 
@@ -37,12 +37,15 @@ fn to_proto_timestamp(
 ) -> crate::proto::k1s0::system::common::v1::Timestamp {
     crate::proto::k1s0::system::common::v1::Timestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     }
 }
 
 /// ドメイン層の演算子文字列を proto Operator enum の i32 値に変換する。
 /// PbFlagRule.operator（文字列）を ProtoFlagRule.operator（i32）に変換する際に使用する。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn operator_str_to_proto(s: &str) -> i32 {
     use crate::proto::k1s0::system::featureflag::v1::Operator;
     match s {
@@ -65,9 +68,8 @@ fn operator_str_to_proto(s: &str) -> i32 {
 /// ProtoFlagRule.operator（i32）を PbFlagRule.operator（文字列）に変換する際に使用する。
 fn proto_to_operator_str(v: i32) -> String {
     use crate::proto::k1s0::system::featureflag::v1::Operator;
+    // Eq と Unspecified は同じ返り値のためアームを統合する（不明な値は "eq" をデフォルトとする）
     match Operator::try_from(v).unwrap_or(Operator::Unspecified) {
-        // 等値比較: OPERATOR_EQ = 1
-        Operator::Eq => "eq".to_string(),
         // 不等値比較: OPERATOR_NE = 2
         Operator::Ne => "ne".to_string(),
         // 部分一致: OPERATOR_CONTAINS = 3
@@ -76,8 +78,8 @@ fn proto_to_operator_str(v: i32) -> String {
         Operator::Gt => "gt".to_string(),
         // 小なり比較: OPERATOR_LT = 5
         Operator::Lt => "lt".to_string(),
-        // 不明な値は "eq" をデフォルト値として返す
-        Operator::Unspecified => "eq".to_string(),
+        // 等値比較または不明な値は "eq" をデフォルト値として返す
+        Operator::Eq | Operator::Unspecified => "eq".to_string(),
     }
 }
 
@@ -90,6 +92,8 @@ impl From<GrpcError> for Status {
             GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
+            // 未認証エラー: テナントIDが取得できない場合に unauthenticated を返す。
+            GrpcError::Unauthenticated(msg) => Status::unauthenticated(msg),
         }
     }
 }
@@ -101,6 +105,7 @@ pub struct FeatureFlagServiceTonic {
 }
 
 impl FeatureFlagServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<FeatureFlagGrpcService>) -> Self {
         Self { inner }
     }
@@ -158,14 +163,14 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
     }
 
     /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを評価する。
-    /// proto の EvaluationContext に含まれる tenant_id は評価コンテキスト用（RLS ではなく属性マッチング用）。
+    /// proto の `EvaluationContext` に含まれる `tenant_id` は評価コンテキスト用（RLS ではなく属性マッチング用）。
     async fn evaluate_flag(
         &self,
         request: Request<ProtoEvaluateFlagRequest>,
     ) -> Result<Response<ProtoEvaluateFlagResponse>, Status> {
         // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
-        let tenant_id = tenant_id_from_metadata(request.metadata())
-            .map_err(Into::<Status>::into)?;
+        let tenant_id =
+            tenant_id_from_metadata(request.metadata()).map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let ctx = inner.context.unwrap_or_default();
         let req = EvaluateFlagRequest {
@@ -195,8 +200,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         request: Request<ProtoGetFlagRequest>,
     ) -> Result<Response<ProtoGetFlagResponse>, Status> {
         // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
-        let tenant_id = tenant_id_from_metadata(request.metadata())
-            .map_err(Into::<Status>::into)?;
+        let tenant_id =
+            tenant_id_from_metadata(request.metadata()).map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let req = GetFlagRequest {
             tenant_id,
@@ -246,8 +251,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         request: Request<ProtoListFlagsRequest>,
     ) -> Result<Response<ProtoListFlagsResponse>, Status> {
         // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
-        let tenant_id = tenant_id_from_metadata(request.metadata())
-            .map_err(Into::<Status>::into)?;
+        let tenant_id =
+            tenant_id_from_metadata(request.metadata()).map_err(Into::<Status>::into)?;
         let resp = self
             .inner
             .list_flags(ListFlagsRequest { tenant_id })
@@ -296,8 +301,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         request: Request<ProtoCreateFlagRequest>,
     ) -> Result<Response<ProtoCreateFlagResponse>, Status> {
         // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
-        let tenant_id = tenant_id_from_metadata(request.metadata())
-            .map_err(Into::<Status>::into)?;
+        let tenant_id =
+            tenant_id_from_metadata(request.metadata()).map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let req = CreateFlagRequest {
             tenant_id,
@@ -358,8 +363,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         request: Request<ProtoUpdateFlagRequest>,
     ) -> Result<Response<ProtoUpdateFlagResponse>, Status> {
         // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
-        let tenant_id = tenant_id_from_metadata(request.metadata())
-            .map_err(Into::<Status>::into)?;
+        let tenant_id =
+            tenant_id_from_metadata(request.metadata()).map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let req = UpdateFlagRequest {
             tenant_id,
@@ -431,8 +436,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         request: Request<ProtoDeleteFlagRequest>,
     ) -> Result<Response<ProtoDeleteFlagResponse>, Status> {
         // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
-        let tenant_id = tenant_id_from_metadata(request.metadata())
-            .map_err(Into::<Status>::into)?;
+        let tenant_id =
+            tenant_id_from_metadata(request.metadata()).map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let resp = self
             .inner

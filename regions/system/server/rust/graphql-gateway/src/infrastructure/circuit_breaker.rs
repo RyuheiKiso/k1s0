@@ -29,6 +29,7 @@ pub struct CircuitBreakerRegistry {
 #[allow(dead_code)]
 impl CircuitBreakerRegistry {
     /// デフォルト設定でレジストリを生成する。
+    #[must_use]
     pub fn new() -> Self {
         Self {
             breakers: RwLock::new(HashMap::new()),
@@ -41,6 +42,7 @@ impl CircuitBreakerRegistry {
     }
 
     /// カスタム設定でレジストリを生成する。
+    #[must_use]
     pub fn with_config(config: CircuitBreakerConfig) -> Self {
         Self {
             breakers: RwLock::new(HashMap::new()),

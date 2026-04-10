@@ -20,6 +20,13 @@ rust-version = "1.93"
 unwrap_used = "deny"
 # async fn 内で std::sync::Mutex のロックを await ポイントをまたいで保持することを禁止する
 await_holding_lock = "deny"
+# HIGH-ARCH 監査対応: pedantic lint を有効化してコード品質を段階的に向上させる
+# deny ではなく warn にすることで既存コードへの影響を最小化する
+pedantic = { level = "warn", priority = -1 }
+# pedantic lint のうち過度に厳格なルールは個別に許可する
+needless_pass_by_value = "allow"
+missing_errors_doc = "allow"
+module_name_repetitions = "allow"
 
 # ワークスペース共通依存関係: 全メンバークレートで統一バージョンを使用する
 [workspace.dependencies]
@@ -58,6 +65,8 @@ tracing-opentelemetry = "0.28"
 prometheus = "0.14"
 validator = { version = "0.20", features = ["derive"] }
 rdkafka = { version = "0.39", features = ["cmake-build"] }
+# ARCH-HIGH-003 対応: outbox_poller の並行 Kafka 送信のために追加
+futures = "0.3"
 axum-test = "17"
 
 # リリースビルドの最適化設定

@@ -3,23 +3,25 @@ use std::sync::Arc;
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::repository::config_schema_repository::ConfigSchemaRepository;
 
-/// UpsertConfigSchemaError は設定スキーマ作成・更新に関するエラーを表す。
+/// `UpsertConfigSchemaError` は設定スキーマ作成・更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpsertConfigSchemaError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// UpsertConfigSchemaInput は設定スキーマ作成・更新の入力を表す。
+/// `UpsertConfigSchemaInput` は設定スキーマ作成・更新の入力を表す。
 #[derive(Debug, Clone)]
 pub struct UpsertConfigSchemaInput {
+    // CRITICAL-RUST-001 監査対応: テナント分離のために追加
+    pub tenant_id: String,
     pub service_name: String,
     pub namespace_prefix: String,
     pub schema_json: serde_json::Value,
     pub updated_by: String,
 }
 
-/// UpsertConfigSchemaUseCase は設定スキーマ作成・更新ユースケース。
+/// `UpsertConfigSchemaUseCase` は設定スキーマ作成・更新ユースケース。
 pub struct UpsertConfigSchemaUseCase {
     schema_repo: Arc<dyn ConfigSchemaRepository>,
 }
@@ -34,8 +36,10 @@ impl UpsertConfigSchemaUseCase {
         &self,
         input: &UpsertConfigSchemaInput,
     ) -> Result<ConfigSchema, UpsertConfigSchemaError> {
+        // CRITICAL-RUST-001 監査対応: tenant_id を ConfigSchema に設定してテナント分離を保証する。
         let schema = ConfigSchema {
             id: uuid::Uuid::new_v4(),
+            tenant_id: input.tenant_id.clone(),
             service_name: input.service_name.clone(),
             namespace_prefix: input.namespace_prefix.clone(),
             schema_json: input.schema_json.clone(),
@@ -64,6 +68,7 @@ mod tests {
 
         let uc = UpsertConfigSchemaUseCase::new(Arc::new(mock));
         let input = UpsertConfigSchemaInput {
+            tenant_id: "test-tenant".to_string(),
             service_name: "auth-server".to_string(),
             namespace_prefix: "system.auth".to_string(),
             schema_json: serde_json::json!({"categories": []}),
@@ -83,6 +88,7 @@ mod tests {
 
         let uc = UpsertConfigSchemaUseCase::new(Arc::new(mock));
         let input = UpsertConfigSchemaInput {
+            tenant_id: "test-tenant".to_string(),
             service_name: "auth-server".to_string(),
             namespace_prefix: "system.auth".to_string(),
             schema_json: serde_json::json!({"categories": []}),

@@ -7,8 +7,10 @@ use crate::infrastructure::kafka::{
 };
 use crate::infrastructure::validator::SchemaValidatorFactory;
 
+// テナントスコープでスキーマを登録するためのインプット構造体
 #[derive(Debug, Clone)]
 pub struct RegisterSchemaInput {
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub schema_type: SchemaType,
@@ -61,6 +63,8 @@ impl RegisterSchemaUseCase {
         }
     }
 
+    /// スキーマバリデーターファクトリを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_validator(mut self, factory: Arc<dyn SchemaValidatorFactory>) -> Self {
         self.validator_factory = Some(factory);
         self
@@ -70,9 +74,10 @@ impl RegisterSchemaUseCase {
         &self,
         input: &RegisterSchemaInput,
     ) -> Result<ApiSchemaVersion, RegisterSchemaError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let existing = self
             .schema_repo
-            .find_by_name(&input.name)
+            .find_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| RegisterSchemaError::Internal(e.to_string()))?;
 
@@ -105,7 +110,7 @@ impl RegisterSchemaUseCase {
         );
 
         self.schema_repo
-            .create(&schema)
+            .create(&input.tenant_id, &schema)
             .await
             .map_err(|e| RegisterSchemaError::Internal(e.to_string()))?;
 
@@ -118,7 +123,7 @@ impl RegisterSchemaUseCase {
         );
 
         self.version_repo
-            .create(&version)
+            .create(&input.tenant_id, &version)
             .await
             .map_err(|e| RegisterSchemaError::Internal(e.to_string()))?;
 
@@ -153,14 +158,15 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
-        schema_mock.expect_create().returning(|_| Ok(()));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
+        schema_mock.expect_create().returning(|_, _| Ok(()));
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_create().returning(|_| Ok(()));
+        version_mock.expect_create().returning(|_, _| Ok(()));
 
         let uc = RegisterSchemaUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = RegisterSchemaInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             description: "Test API".to_string(),
             schema_type: SchemaType::OpenApi,
@@ -178,7 +184,7 @@ mod tests {
     #[tokio::test]
     async fn already_exists() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -190,6 +196,7 @@ mod tests {
 
         let uc = RegisterSchemaUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = RegisterSchemaInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             description: "Test API".to_string(),
             schema_type: SchemaType::OpenApi,
@@ -209,12 +216,13 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = RegisterSchemaUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = RegisterSchemaInput {
+            tenant_id: "tenant-a".to_string(),
             name: "test-api".to_string(),
             description: "Test API".to_string(),
             schema_type: SchemaType::OpenApi,

@@ -232,7 +232,26 @@ migrations/
 | 003 | add_updated_by_and_version | `tasks` テーブルに `updated_by` と `version` 列を追加 |
 | 004 | create_outbox | `outbox_events` テーブル・未配信イベント用部分インデックス |
 | 005 | add_tenant_id_and_rls | `tenant_id` カラム追加・RLS ポリシー設定 |
+| 006 | add_check_constraints | CHECK 制約追加 |
+| 007 | fix_updated_by_type | `updated_by` 型修正 |
 | 008 | alter_project_id_to_uuid | `tasks.project_id` を TEXT → UUID 型に変更（H-22 監査対応） |
+| 009 | add_outbox_rls | `outbox_events` に `tenant_id TEXT NOT NULL` と RLS ポリシー追加（HIGH-BIZ-005 対応） |
+| 010 | fix_status_check_constraint | `tasks` ステータス CHECK 制約に 'review' を追加（C-005 監査対応） |
+| 011 | fix_rls_force_restrictive | `tasks` / `task_checklist_items` に FORCE ROW LEVEL SECURITY、AS RESTRICTIVE、WITH CHECK を追加（HIGH-BIZ-005 対応） |
+
+---
+
+## マルチテナント対応（HIGH-BIZ-005）
+
+`tasks` / `task_checklist_items` に FORCE / AS RESTRICTIVE / WITH CHECK を追加（migration 011）。
+
+```sql
+ALTER TABLE task_service.tasks FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON task_service.tasks
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ### 004_create_outbox.up.sql
 

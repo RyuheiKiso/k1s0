@@ -4,7 +4,7 @@ use crate::domain::entity::service::Service;
 use crate::domain::repository::service_repository::ServiceListFilters;
 use crate::domain::repository::ServiceRepository;
 
-/// ListServicesUseCase はサービス一覧取得ユースケース。
+/// `ListServicesUseCase` はサービス一覧取得ユースケース。
 pub struct ListServicesUseCase {
     service_repo: Arc<dyn ServiceRepository>,
 }
@@ -14,8 +14,13 @@ impl ListServicesUseCase {
         Self { service_repo }
     }
 
-    pub async fn execute(&self, filters: ServiceListFilters) -> anyhow::Result<Vec<Service>> {
-        self.service_repo.list(filters).await
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        filters: ServiceListFilters,
+    ) -> anyhow::Result<Vec<Service>> {
+        self.service_repo.list(tenant_id, filters).await
     }
 }
 
@@ -51,10 +56,13 @@ mod tests {
     #[tokio::test]
     async fn test_list_services_empty() {
         let mut mock = MockServiceRepository::new();
-        mock.expect_list().returning(|_| Ok(vec![]));
+        mock.expect_list().returning(|_, _| Ok(vec![]));
 
         let uc = ListServicesUseCase::new(Arc::new(mock));
-        let result = uc.execute(ServiceListFilters::default()).await.unwrap();
+        let result = uc
+            .execute("tenant-1", ServiceListFilters::default())
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -65,10 +73,13 @@ mod tests {
         let services_clone = services.clone();
         let mut mock = MockServiceRepository::new();
         mock.expect_list()
-            .returning(move |_| Ok(services_clone.clone()));
+            .returning(move |_, _| Ok(services_clone.clone()));
 
         let uc = ListServicesUseCase::new(Arc::new(mock));
-        let result = uc.execute(ServiceListFilters::default()).await.unwrap();
+        let result = uc
+            .execute("tenant-1", ServiceListFilters::default())
+            .await
+            .unwrap();
         assert_eq!(result.len(), 3);
     }
 }

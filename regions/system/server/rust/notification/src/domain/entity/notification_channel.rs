@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// H-012 監査対応: tenant_id フィールドを追加してマルチテナント分離を実現する
+/// H-012 監査対応: `tenant_id` フィールドを追加してマルチテナント分離を実現する
 /// C-005 監査対応: config フィールドは DB 保存時に AES-256-GCM で暗号化される
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationChannel {
@@ -9,7 +9,7 @@ pub struct NotificationChannel {
     pub name: String,
     pub channel_type: String,
     /// チャンネル設定（SMTP ホスト、API キー等の機密情報を含む可能性がある）
-    /// DB 保存時は encrypted_config として AES-256-GCM で暗号化される
+    /// DB 保存時は `encrypted_config` として AES-256-GCM で暗号化される
     pub config: serde_json::Value,
     /// H-012 監査対応: テナント識別子。システム共通チャンネルは "system"
     pub tenant_id: String,
@@ -20,6 +20,7 @@ pub struct NotificationChannel {
 
 impl NotificationChannel {
     /// テナント ID を指定してチャンネルを作成する
+    #[must_use]
     pub fn new(
         name: String,
         channel_type: String,
@@ -40,8 +41,9 @@ impl NotificationChannel {
         }
     }
 
-    /// システムチャンネル（tenant_id = "system"）として作成する（テスト・将来用）
+    /// `システムチャンネル（tenant_id` = "system"）として作成する（テスト・将来用）
     #[allow(dead_code)]
+    #[must_use]
     pub fn new_system(
         name: String,
         channel_type: String,

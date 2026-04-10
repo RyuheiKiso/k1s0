@@ -11,6 +11,7 @@ pub struct QuotaUsagePostgresRepository {
 }
 
 impl QuotaUsagePostgresRepository {
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -23,7 +24,13 @@ struct UsageRow {
 
 #[async_trait]
 impl QuotaUsageRepository for QuotaUsagePostgresRepository {
-    async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
+    async fn get_usage(&self, quota_id: &str, tenant_id: &str) -> anyhow::Result<Option<u64>> {
+        // CRITICAL-RUST-001 監査対応: SELECT 前に RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         let row: Option<UsageRow> = sqlx::query_as(
             "SELECT u.current_usage \
              FROM quota.quota_usage u \
@@ -36,11 +43,20 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        Ok(row.map(|r| r.current_usage as u64))
+        // LOW-008: 安全な型変換（usage は非負であることが前提）
+        Ok(row.map(|r| u64::try_from(r.current_usage).unwrap_or(0)))
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
+    async fn increment(&self, quota_id: &str, amount: u64, tenant_id: &str) -> anyhow::Result<u64> {
+        // CRITICAL-RUST-001 監査対応: UPSERT 前に RLS テナント分離のためセッション変数を設定する。
+        // tenant_id を INSERT にも含め、FORCE ROW LEVEL SECURITY の WITH CHECK を満たす。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         // UPSERT: policy が指す subject_type/subject_id を主キーとして加算する
+        // ON CONFLICT の対象は migration 004 の UNIQUE INDEX (policy_id, subject_type, subject_id)
         let row: (i64,) = sqlx::query_as(
             "WITH policy_subject AS ( \
                  SELECT subject_type, subject_id \
@@ -48,8 +64,8 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
                  WHERE id = $1 \
              ) \
              INSERT INTO quota.quota_usage \
-                 (policy_id, subject_type, subject_id, current_usage, last_incremented_at) \
-             SELECT $1, subject_type, subject_id, $2, NOW() \
+                 (policy_id, subject_type, subject_id, current_usage, last_incremented_at, tenant_id) \
+             SELECT $1, subject_type, subject_id, $2, NOW(), $3 \
              FROM policy_subject \
              ON CONFLICT (policy_id, subject_type, subject_id) \
              DO UPDATE SET current_usage = quota.quota_usage.current_usage + $2, \
@@ -57,14 +73,23 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
              RETURNING current_usage",
         )
         .bind(quota_id)
-        .bind(amount as i64)
+        // LOW-008: 安全な型変換（amount は i64 範囲内が前提）
+        .bind(i64::try_from(amount).unwrap_or(i64::MAX))
+        .bind(tenant_id)
         .fetch_one(self.pool.as_ref())
         .await?;
 
-        Ok(row.0 as u64)
+        // LOW-008: 安全な型変換（current_usage は非負であることが前提）
+        Ok(u64::try_from(row.0).unwrap_or(0))
     }
 
-    async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
+    async fn reset(&self, quota_id: &str, tenant_id: &str) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: UPDATE 前に RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         sqlx::query(
             "UPDATE quota.quota_usage \
              SET current_usage = 0, window_start = NOW(), last_incremented_at = NULL \
@@ -89,7 +114,14 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
         quota_id: &str,
         amount: u64,
         limit: u64,
+        tenant_id: &str,
     ) -> anyhow::Result<CheckAndIncrementResult> {
+        // CRITICAL-RUST-001 監査対応: UPDATE 前に RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         // アトミックに current_usage + amount <= limit の場合のみ UPDATE する
         let row: Option<(i64,)> = sqlx::query_as(
             "UPDATE quota.quota_usage \
@@ -106,24 +138,25 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
              RETURNING current_usage",
         )
         .bind(quota_id)
-        .bind(amount as i64)
-        .bind(limit as i64)
+        // LOW-008: 安全な型変換（amount/limit は i64 範囲内が前提）
+        .bind(i64::try_from(amount).unwrap_or(i64::MAX))
+        .bind(i64::try_from(limit).unwrap_or(i64::MAX))
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        match row {
-            Some((new_usage,)) => Ok(CheckAndIncrementResult {
-                used: new_usage as u64,
+        if let Some((new_usage,)) = row {
+            Ok(CheckAndIncrementResult {
+                // LOW-008: 安全な型変換（current_usage は非負であることが前提）
+                used: u64::try_from(new_usage).unwrap_or(0),
                 allowed: true,
-            }),
-            None => {
-                // UPDATE が 0 行 → リミット超過。現在の使用量を取得して返す
-                let current = self.get_usage(quota_id).await?.unwrap_or(0);
-                Ok(CheckAndIncrementResult {
-                    used: current,
-                    allowed: false,
-                })
-            }
+            })
+        } else {
+            // UPDATE が 0 行 → リミット超過。現在の使用量を取得して返す
+            let current = self.get_usage(quota_id, tenant_id).await?.unwrap_or(0);
+            Ok(CheckAndIncrementResult {
+                used: current,
+                allowed: false,
+            })
         }
     }
 }

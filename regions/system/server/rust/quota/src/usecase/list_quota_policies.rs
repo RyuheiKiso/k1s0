@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::quota::QuotaPolicy;
 use crate::domain::repository::QuotaPolicyRepository;
 
+/// CRITICAL-RUST-001 監査対応: `tenant_id` を追加して RLS テナント分離を有効にする。
 #[derive(Debug, Clone)]
 pub struct ListQuotaPoliciesInput {
     pub page: u32,
@@ -10,6 +11,7 @@ pub struct ListQuotaPoliciesInput {
     pub subject_type: Option<String>,
     pub subject_id: Option<String>,
     pub enabled_only: Option<bool>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -47,11 +49,11 @@ impl ListQuotaPoliciesUseCase {
         if !has_filters {
             let (quotas, total_count) = self
                 .repo
-                .find_all(input.page, input.page_size)
+                .find_all(input.page, input.page_size, &input.tenant_id)
                 .await
                 .map_err(|e| ListQuotaPoliciesError::Internal(e.to_string()))?;
 
-            let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+            let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
             return Ok(ListQuotaPoliciesOutput {
                 quotas,
@@ -70,10 +72,11 @@ impl ListQuotaPoliciesUseCase {
         loop {
             let (items, total_count) = self
                 .repo
-                .find_all(fetch_page, fetch_page_size)
+                .find_all(fetch_page, fetch_page_size, &input.tenant_id)
                 .await
                 .map_err(|e| ListQuotaPoliciesError::Internal(e.to_string()))?;
-            fetched += items.len() as u64;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            fetched += u64::try_from(items.len()).unwrap_or(u64::MAX);
 
             all_filtered.extend(items.into_iter().filter(|policy| {
                 if let Some(ref subject_type) = input.subject_type {
@@ -98,14 +101,16 @@ impl ListQuotaPoliciesUseCase {
             fetch_page += 1;
         }
 
-        let total_count = all_filtered.len() as u64;
-        let start = ((input.page.saturating_sub(1)) * input.page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total_count = u64::try_from(all_filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(input.page.saturating_sub(1) * input.page_size).unwrap_or(0);
+        let take_count = usize::try_from(input.page_size).unwrap_or(usize::MAX);
         let quotas = all_filtered
             .into_iter()
             .skip(start)
-            .take(input.page_size as usize)
+            .take(take_count)
             .collect();
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
         Ok(ListQuotaPoliciesOutput {
             quotas,
@@ -124,8 +129,10 @@ mod tests {
     use crate::domain::entity::quota::{Period, SubjectType};
     use crate::domain::repository::quota_repository::MockQuotaPolicyRepository;
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy(name: &str) -> QuotaPolicy {
         QuotaPolicy::new(
+            "test-tenant".to_string(),
             name.to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),
@@ -143,8 +150,8 @@ mod tests {
         let return_policies = policies.clone();
 
         mock.expect_find_all()
-            .withf(|page, page_size| *page == 1 && *page_size == 20)
-            .returning(move |_, _| Ok((return_policies.clone(), 2)));
+            .withf(|page, page_size, _tenant_id| *page == 1 && *page_size == 20)
+            .returning(move |_, _, _| Ok((return_policies.clone(), 2)));
 
         let uc = ListQuotaPoliciesUseCase::new(Arc::new(mock));
         let input = ListQuotaPoliciesInput {
@@ -153,6 +160,7 @@ mod tests {
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -170,7 +178,7 @@ mod tests {
         let return_policies = policies.clone();
 
         mock.expect_find_all()
-            .returning(move |_, _| Ok((return_policies.clone(), 25)));
+            .returning(move |_, _, _| Ok((return_policies.clone(), 25)));
 
         let uc = ListQuotaPoliciesUseCase::new(Arc::new(mock));
         let input = ListQuotaPoliciesInput {
@@ -179,6 +187,7 @@ mod tests {
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -191,7 +200,7 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockQuotaPolicyRepository::new();
         mock.expect_find_all()
-            .returning(|_, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListQuotaPoliciesUseCase::new(Arc::new(mock));
         let input = ListQuotaPoliciesInput {
@@ -200,6 +209,7 @@ mod tests {
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

@@ -4,7 +4,7 @@ use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest, CreateAu
 use crate::domain::repository::AuditLogRepository;
 use crate::infrastructure::kafka_producer::AuditEventPublisher;
 
-/// RecordAuditLogError は監査ログ記録に関するエラーを表す。
+/// `RecordAuditLogError` は監査ログ記録に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum RecordAuditLogError {
     #[error("validation error: {0}")]
@@ -14,7 +14,7 @@ pub enum RecordAuditLogError {
     Internal(String),
 }
 
-/// RecordAuditLogUseCase は監査ログ記録ユースケース。
+/// `RecordAuditLogUseCase` は監査ログ記録ユースケース。
 pub struct RecordAuditLogUseCase {
     audit_repo: Arc<dyn AuditLogRepository>,
     publisher: Option<Arc<dyn AuditEventPublisher>>,

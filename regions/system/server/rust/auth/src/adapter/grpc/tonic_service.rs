@@ -1,12 +1,12 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の AuthService / AuditService トレイトを実装する。
-//! AuthGrpcService / AuditGrpcService が直接 proto 型を返すため、変換なしで委譲する。
+//! proto 生成コード (`src/proto/`) の `AuthService` / `AuditService` トレイトを実装する。
+//! `AuthGrpcService` / `AuditGrpcService` が直接 proto 型を返すため、変換なしで委譲する。
 //!
 //! # gRPC トランスポートセキュリティ
 //!
 //! 本サービスの gRPC エンドポイントは Istio サービスメッシュの mTLS を一次防御として利用する。
-//! Istio の PeerAuthentication ポリシーにより、メッシュ内の全通信は自動的に mTLS で暗号化される。
+//! Istio の `PeerAuthentication` ポリシーにより、メッシュ内の全通信は自動的に mTLS で暗号化される。
 //! そのため、アプリケーションレベルでの TLS 設定（`ServerTlsConfig`）は冗長であり、
 //! 現時点では有効化していない。
 //!
@@ -63,12 +63,13 @@ impl From<GrpcError> for Status {
 
 // --- AuthService tonic ラッパー ---
 
-/// AuthServiceTonic は tonic の AuthService として AuthGrpcService をラップする。
+/// `AuthServiceTonic` は tonic の `AuthService` として `AuthGrpcService` をラップする。
 pub struct AuthServiceTonic {
     inner: Arc<AuthGrpcService>,
 }
 
 impl AuthServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<AuthGrpcService>) -> Self {
         Self { inner }
     }
@@ -139,12 +140,13 @@ impl AuthService for AuthServiceTonic {
 
 // --- AuditService tonic ラッパー ---
 
-/// AuditServiceTonic は tonic の AuditService として AuditGrpcService をラップする。
+/// `AuditServiceTonic` は tonic の `AuditService` として `AuditGrpcService` をラップする。
 pub struct AuditServiceTonic {
     inner: Arc<AuditGrpcService>,
 }
 
 impl AuditServiceTonic {
+    #[must_use]
     pub fn new(inner: Arc<AuditGrpcService>) -> Self {
         Self { inner }
     }

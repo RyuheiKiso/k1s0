@@ -5,7 +5,7 @@ pub struct WorkflowStep {
     pub step_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
-    /// Deprecated: use step_type_enum instead.
+    /// Deprecated: use `step_type_enum` instead.
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "3")]
@@ -18,7 +18,7 @@ pub struct WorkflowStep {
     pub on_approve: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "7")]
     pub on_reject: ::core::option::Option<::prost::alloc::string::String>,
-    /// ステップ種別の enum 版（step_type の型付き版）。
+    /// ステップ種別の enum `版（step_type` の型付き版）。
     #[prost(enumeration = "WorkflowStepType", tag = "8")]
     pub step_type_enum: i32,
 }
@@ -326,24 +326,25 @@ pub struct RejectTaskResponse {
     #[prost(string, tag = "4")]
     pub instance_status: ::prost::alloc::string::String,
 }
-/// WorkflowStepType はワークフローステップの種別。
+/// `WorkflowStepType` はワークフローステップの種別。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum WorkflowStepType {
-    /// WORKFLOW_STEP_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+    /// `WORKFLOW_STEP_TYPE_UNSPECIFIED` は未指定（デフォルト値）。
     Unspecified = 0,
-    /// WORKFLOW_STEP_TYPE_APPROVAL は人間による承認タスク。
+    /// `WORKFLOW_STEP_TYPE_APPROVAL` は人間による承認タスク。
     Approval = 1,
-    /// WORKFLOW_STEP_TYPE_AUTOMATED は自動実行タスク。
+    /// `WORKFLOW_STEP_TYPE_AUTOMATED` は自動実行タスク。
     Automated = 2,
-    /// WORKFLOW_STEP_TYPE_NOTIFICATION は通知のみのタスク。
+    /// `WORKFLOW_STEP_TYPE_NOTIFICATION` は通知のみのタスク。
     Notification = 3,
 }
 impl WorkflowStepType {
-    /// String value of the enum field names used in the ProtoBuf definition.
+    /// String value of the enum field names used in the `ProtoBuf` definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    /// (if the `ProtoBuf` definition does not change) and safe for programmatic use.
+    #[must_use] 
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "WORKFLOW_STEP_TYPE_UNSPECIFIED",
@@ -352,7 +353,8 @@ impl WorkflowStepType {
             Self::Notification => "WORKFLOW_STEP_TYPE_NOTIFICATION",
         }
     }
-    /// Creates an enum from field names used in the ProtoBuf definition.
+    /// Creates an enum from field names used in the `ProtoBuf` definition.
+    #[must_use] 
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "WORKFLOW_STEP_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
@@ -373,7 +375,7 @@ pub mod workflow_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with WorkflowServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `WorkflowServiceServer`.
     #[async_trait]
     pub trait WorkflowService: std::marker::Send + std::marker::Sync + 'static {
         async fn list_workflows(

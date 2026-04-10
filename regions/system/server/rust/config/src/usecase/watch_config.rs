@@ -1,7 +1,7 @@
 use tokio::sync::broadcast;
 
-/// ConfigChangeEvent は設定値変更イベントを表す。
-/// UpdateConfigUseCase から broadcast channel 経由で送信される。
+/// `ConfigChangeEvent` は設定値変更イベントを表す。
+/// `UpdateConfigUseCase` から broadcast channel 経由で送信される。
 #[derive(Debug, Clone)]
 pub struct ConfigChangeEvent {
     pub namespace: String,
@@ -11,8 +11,8 @@ pub struct ConfigChangeEvent {
     pub version: i32,
 }
 
-/// WatchConfigUseCase は broadcast channel を使って設定変更を監視するユースケース。
-/// UpdateConfigUseCase の notify() 呼び出しにより、すべての subscribe() 受信者に
+/// `WatchConfigUseCase` は broadcast channel を使って設定変更を監視するユースケース。
+/// `UpdateConfigUseCase` の `notify()` 呼び出しにより、すべての `subscribe()` 受信者に
 /// 変更通知が届く。
 pub struct WatchConfigUseCase {
     sender: broadcast::Sender<ConfigChangeEvent>,
@@ -26,16 +26,19 @@ impl Default for WatchConfigUseCase {
 }
 
 impl WatchConfigUseCase {
-    /// 新しい WatchConfigUseCase を生成する。
+    /// 新しい `WatchConfigUseCase` を生成する。
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn sender(&self) -> broadcast::Sender<ConfigChangeEvent> {
         self.sender.clone()
     }
 
     /// 変更通知を受け取る Receiver を購読する。
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<ConfigChangeEvent> {
         self.sender.subscribe()
     }

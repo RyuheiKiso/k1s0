@@ -28,6 +28,13 @@ spec:
              Istio サイドカーより前に起動し、アプリ起動前にシークレットが確実にマウントされる。 */}}
         {{- include "k1s0-common.vaultAnnotations" . | nindent 8 }}
         {{- include "k1s0-common.istioAnnotations" . | nindent 8 }}
+        {{/* CRIT-010 対応: Prometheus が Pod をスクレイプするために必要なアノテーションを付与する。
+             prometheus.io/scrape を true に設定することで Prometheus がこの Pod をスクレイプ対象に含める。
+             ポートはアプリの HTTP ポート（デフォルト 8080）を使用し、/metrics パスでメトリクスを公開する。
+             container.httpPort が設定されている場合はその値を使用し、未設定の場合は 8080 をデフォルトとする。 */}}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ if .Values.container }}{{ .Values.container.httpPort | default (.Values.container.port | default 8080) }}{{ else }}8080{{ end }}"
+        prometheus.io/path: "/metrics"
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

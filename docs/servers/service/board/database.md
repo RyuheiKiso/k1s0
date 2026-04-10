@@ -195,6 +195,24 @@ migrations/
 |------|-----------|------|
 | 001 | create_board_columns | `board_service` スキーマ・`board_columns` テーブル・UNIQUE 制約・CHECK 制約・インデックス |
 | 002 | create_outbox | `outbox_events` テーブル・未配信イベント用部分インデックス |
+| 003 | add_tenant_id_and_rls | `board_columns` に `tenant_id TEXT NOT NULL` と RLS ポリシー追加 |
+| 004 | add_outbox_rls | `outbox_events` に `tenant_id TEXT NOT NULL` と RLS ポリシー追加（HIGH-BIZ-002 対応） |
+| 005 | project_id_uuid | `project_id` を UUID 型に変更 |
+| 006 | fix_rls_force_restrictive | `board_columns` に FORCE ROW LEVEL SECURITY、AS RESTRICTIVE、WITH CHECK を追加（HIGH-BIZ-002 対応） |
+
+---
+
+## マルチテナント対応（HIGH-BIZ-002）
+
+`board_columns` に FORCE / AS RESTRICTIVE / WITH CHECK を追加（migration 006）。
+
+```sql
+ALTER TABLE board_service.board_columns FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON board_service.board_columns
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ### 001_create_board_columns.up.sql
 

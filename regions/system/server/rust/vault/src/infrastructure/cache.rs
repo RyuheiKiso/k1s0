@@ -1,5 +1,5 @@
-/// SecretCache は秘密情報のインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きで秘密情報をキャッシュする。
+/// `SecretCache` は秘密情報のインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きで秘密情報をキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,11 +13,12 @@ pub struct SecretCache {
 }
 
 impl SecretCache {
-    /// 新しい SecretCache を作成する。
+    /// 新しい `SecretCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -27,10 +28,11 @@ impl SecretCache {
     }
 
     /// キャッシュキーを生成する。
+    #[must_use]
     pub fn cache_key(path: &str, version: Option<i64>) -> String {
         match version {
-            Some(v) => format!("{}:{}", path, v),
-            None => format!("{}:latest", path),
+            Some(v) => format!("{path}:{v}"),
+            None => format!("{path}:latest"),
         }
     }
 
@@ -48,7 +50,7 @@ impl SecretCache {
 
     /// 特定のパスに関連するすべてのキャッシュエントリを削除する。
     pub async fn invalidate(&self, path: &str) {
-        let prefix = format!("{}:", path);
+        let prefix = format!("{path}:");
         let keys_to_remove: Vec<String> = self
             .inner
             .iter()

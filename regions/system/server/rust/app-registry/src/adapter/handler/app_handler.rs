@@ -2,13 +2,14 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use chrono::Utc;
 use serde::Deserialize;
 
 use super::{AppState, ErrorResponse};
 use crate::domain::entity::app::App;
+use crate::domain::entity::claims::Claims;
 use crate::usecase::create_app::CreateAppInput;
 use crate::usecase::get_download_stats::DownloadStatsSummary;
 use crate::usecase::update_app::UpdateAppInput;
@@ -130,13 +131,15 @@ pub struct ListAppsQuery {
     security(("bearer_auth" = []))
 )]
 /// アプリ一覧取得ハンドラー（カテゴリ・検索文字列でフィルタリング可能）
+/// CRIT-004 監査対応: Claims extension から `tenant_id` を取得して RLS に渡す。
 pub async fn list_apps(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Query(params): Query<ListAppsQuery>,
 ) -> impl IntoResponse {
     match state
         .list_apps_uc
-        .execute(params.category, params.search)
+        .execute(&claims.tenant_id, params.category, params.search)
         .await
     {
         Ok(apps) => (StatusCode::OK, Json(AppListResponse { apps })).into_response(),
@@ -158,12 +161,18 @@ pub async fn list_apps(
     security(("bearer_auth" = []))
 )]
 /// アプリのダウンロード統計取得ハンドラー
+/// CRIT-004 監査対応: Claims extension から `tenant_id` を取得して RLS に渡す。
 pub async fn get_download_stats(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_download_stats_uc.execute(&id).await {
-        Ok(stats) => (StatusCode::OK, Json(stats)).into_response(),
+    match state
+        .get_download_stats_uc
+        .execute(&claims.tenant_id, &id)
+        .await
+    {
+        Ok(download_stats) => (StatusCode::OK, Json(download_stats)).into_response(),
         Err(crate::usecase::get_download_stats::GetDownloadStatsError::AppNotFound(_)) => {
             let err =
                 ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
@@ -187,8 +196,13 @@ pub async fn get_download_stats(
     security(("bearer_auth" = []))
 )]
 /// アプリ詳細取得ハンドラー
-pub async fn get_app(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match state.get_app_uc.execute(&id).await {
+/// CRIT-004 監査対応: Claims extension から `tenant_id` を取得して RLS に渡す。
+pub async fn get_app(
+    State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    match state.get_app_uc.execute(&claims.tenant_id, &id).await {
         Ok(app) => (StatusCode::OK, Json(app)).into_response(),
         Err(crate::usecase::get_app::GetAppError::NotFound(_)) => {
             let err =
@@ -231,8 +245,10 @@ pub struct UpdateAppRequest {
     security(("bearer_auth" = []))
 )]
 /// アプリ新規作成ハンドラー
+/// CRIT-004 監査対応: Claims extension から `tenant_id` を取得して RLS に渡す。
 pub async fn create_app(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Json(req): Json<CreateAppRequest>,
 ) -> impl IntoResponse {
     let input = CreateAppInput {
@@ -242,7 +258,7 @@ pub async fn create_app(
         icon_url: req.icon_url,
     };
 
-    match state.create_app_uc.execute(input).await {
+    match state.create_app_uc.execute(&claims.tenant_id, input).await {
         Ok(app) => (StatusCode::CREATED, Json(app)).into_response(),
         Err(crate::usecase::CreateAppError::ValidationError(msg)) => {
             let err = ErrorResponse::new("SYS_APPS_VALIDATION_ERROR", &msg);
@@ -268,8 +284,10 @@ pub async fn create_app(
     security(("bearer_auth" = []))
 )]
 /// アプリ更新ハンドラー
+/// CRIT-004 監査対応: Claims extension から `tenant_id` を取得して RLS に渡す。
 pub async fn update_app(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<String>,
     Json(req): Json<UpdateAppRequest>,
 ) -> impl IntoResponse {
@@ -281,7 +299,7 @@ pub async fn update_app(
         icon_url: req.icon_url,
     };
 
-    match state.update_app_uc.execute(input).await {
+    match state.update_app_uc.execute(&claims.tenant_id, input).await {
         Ok(app) => (StatusCode::OK, Json(app)).into_response(),
         Err(crate::usecase::UpdateAppError::NotFound(_)) => {
             let err =
@@ -310,11 +328,13 @@ pub async fn update_app(
     security(("bearer_auth" = []))
 )]
 /// アプリ削除ハンドラー
+/// CRIT-004 監査対応: Claims extension から `tenant_id` を取得して RLS に渡す。
 pub async fn delete_app(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.delete_app_uc.execute(&id).await {
+    match state.delete_app_uc.execute(&claims.tenant_id, &id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(crate::usecase::DeleteAppError::NotFound(_)) => {
             let err =

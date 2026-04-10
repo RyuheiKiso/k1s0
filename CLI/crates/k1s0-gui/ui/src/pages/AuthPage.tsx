@@ -58,24 +58,29 @@ export default function AuthPage() {
   useEffect(() => {
     let active = true;
 
-    void getDeviceAuthorizationDefaults()
-      .then((resolvedDefaults) => {
+    // Tauri Store への移行後は非同期で設定を読み込む必要があるため、async 関数として処理する
+    async function loadSettings() {
+      try {
+        const [resolvedDefaults, stored] = await Promise.all([
+          getDeviceAuthorizationDefaults(),
+          loadStoredDeviceAuthSettings(),
+        ]);
         if (!active) {
           return;
         }
-
         setDefaults(resolvedDefaults);
-        setSettings(mergeSettings(resolvedDefaults, loadStoredDeviceAuthSettings()));
+        setSettings(mergeSettings(resolvedDefaults, stored));
         setSettingsReady(true);
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!active) {
           return;
         }
-
         setErrorMessage(String(error));
         setSettingsReady(true);
-      });
+      }
+    }
+
+    void loadSettings();
 
     return () => {
       active = false;
@@ -87,7 +92,8 @@ export default function AuthPage() {
       return;
     }
 
-    storeDeviceAuthSettings(settings);
+    // Tauri Store は非同期のため void で起動し、エラーは無視する（保存失敗はユーザー操作を妨げない）
+    void storeDeviceAuthSettings(settings).catch(() => undefined);
   }, [settings, settingsReady]);
 
   useEffect(() => {
@@ -173,7 +179,8 @@ export default function AuthPage() {
     setMessage('');
 
     try {
-      storeDeviceAuthSettings(settings);
+      // デバイスフロー開始前に設定を Tauri Store へ保存する（非同期）
+      await storeDeviceAuthSettings(settings);
       const nextChallenge = await startDeviceAuthorization(settings);
       setChallenge(nextChallenge);
       setStatus('waiting');
@@ -189,7 +196,8 @@ export default function AuthPage() {
       return;
     }
 
-    clearStoredDeviceAuthSettings();
+    // Tauri Store は非同期のため void で起動し、エラーは無視する（削除失敗はユーザー操作を妨げない）
+    void clearStoredDeviceAuthSettings().catch(() => undefined);
     setSettings(defaults);
     setConnectionStatus('idle');
     setConnectionMessage('');

@@ -5,7 +5,7 @@ use crate::domain::entity::version::AppVersion;
 use crate::domain::repository::{AppRepository, VersionRepository};
 use crate::usecase::version_selection::select_latest;
 
-/// GetLatestError は最新バージョン取得に関するエラーを表す。
+/// `GetLatestError` は最新バージョン取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetLatestError {
     #[error("app not found: {0}")]
@@ -18,7 +18,7 @@ pub enum GetLatestError {
     Internal(String),
 }
 
-/// GetLatestUseCase は最新バージョン取得ユースケース。
+/// `GetLatestUseCase` は最新バージョン取得ユースケース。
 pub struct GetLatestUseCase {
     app_repo: Arc<dyn AppRepository>,
     version_repo: Arc<dyn VersionRepository>,
@@ -32,15 +32,17 @@ impl GetLatestUseCase {
         }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         app_id: &str,
         platform: Option<&Platform>,
         arch: Option<&str>,
     ) -> Result<AppVersion, GetLatestError> {
         let app = self
             .app_repo
-            .find_by_id(app_id)
+            .find_by_id(tenant_id, app_id)
             .await
             .map_err(|e| GetLatestError::Internal(e.to_string()))?;
 
@@ -70,7 +72,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_latest_success() {
         let mut app_repo = MockAppRepository::new();
-        app_repo.expect_find_by_id().returning(|_| {
+        app_repo.expect_find_by_id().returning(|_, _| {
             Ok(Some(App {
                 id: "cli".to_string(),
                 name: "CLI".to_string(),
@@ -95,6 +97,7 @@ mod tests {
                 storage_key: "cli/2.0.0/linux/amd64/k1s0".to_string(),
                 release_notes: None,
                 mandatory: false,
+                cosign_signature: None,
                 published_at: chrono::Utc::now(),
                 created_at: chrono::Utc::now(),
             }])
@@ -102,7 +105,7 @@ mod tests {
 
         let uc = GetLatestUseCase::new(Arc::new(app_repo), Arc::new(version_repo));
         let result = uc
-            .execute("cli", Some(&Platform::Linux), Some("amd64"))
+            .execute("tenant-1", "cli", Some(&Platform::Linux), Some("amd64"))
             .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().version, "2.0.0");
@@ -111,7 +114,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_latest_not_found() {
         let mut app_repo = MockAppRepository::new();
-        app_repo.expect_find_by_id().returning(|_| {
+        app_repo.expect_find_by_id().returning(|_, _| {
             Ok(Some(App {
                 id: "cli".to_string(),
                 name: "CLI".to_string(),
@@ -128,7 +131,7 @@ mod tests {
 
         let uc = GetLatestUseCase::new(Arc::new(app_repo), Arc::new(version_repo));
         let result = uc
-            .execute("cli", Some(&Platform::Macos), Some("arm64"))
+            .execute("tenant-1", "cli", Some(&Platform::Macos), Some("arm64"))
             .await;
         assert!(matches!(result, Err(GetLatestError::VersionNotFound(_))));
     }

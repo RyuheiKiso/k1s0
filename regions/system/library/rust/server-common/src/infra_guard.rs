@@ -4,8 +4,9 @@
 use std::fmt;
 
 /// インフラ設定のバイパスが許可されているか判定する。
-/// dev/test 環境かつ ALLOW_IN_MEMORY_INFRA=true の場合のみ有効。
+/// dev/test 環境かつ `ALLOW_IN_MEMORY_INFRA=true` の場合のみ有効。
 #[cfg(any(debug_assertions, feature = "dev-infra-bypass"))]
+#[must_use]
 pub fn allow_in_memory_infra(environment: &str) -> bool {
     // dev/test 環境でのみバイパスを許可
     let is_dev = matches!(environment, "development" | "dev" | "test" | "local");
@@ -67,10 +68,7 @@ pub fn require_infra<T>(
                 Ok(None)
             } else {
                 anyhow::bail!(
-                    "{}の{}設定が必要です。環境: {} — 開発環境では ALLOW_IN_MEMORY_INFRA=true で回避できます",
-                    name,
-                    kind,
-                    environment,
+                    "{name}の{kind}設定が必要です。環境: {environment} — 開発環境では ALLOW_IN_MEMORY_INFRA=true で回避できます",
                 )
             }
         }

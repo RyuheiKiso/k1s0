@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::DlqMessage;
 use crate::domain::repository::DlqMessageRepository;
 
-/// GetMessageUseCase は DLQ メッセージ詳細取得を担う。
+/// `GetMessageUseCase` は DLQ メッセージ詳細取得を担う。
 pub struct GetMessageUseCase {
     repo: Arc<dyn DlqMessageRepository>,
 }
@@ -15,12 +15,12 @@ impl GetMessageUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから ID で DLQ メッセージを取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してから ID で DLQ メッセージを取得する。
     pub async fn execute(&self, id: Uuid, tenant_id: &str) -> anyhow::Result<DlqMessage> {
         self.repo
             .find_by_id(id, tenant_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("dlq message not found: {}", id))
+            .ok_or_else(|| anyhow::anyhow!("dlq message not found: {id}"))
     }
 }
 

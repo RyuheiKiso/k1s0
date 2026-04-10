@@ -1,6 +1,6 @@
 use tokio::sync::broadcast;
 
-/// FeatureFlagChangeEvent はフラグ変更イベント。broadcast チャンネル経由で配信される。
+/// `FeatureFlagChangeEvent` はフラグ変更イベント。broadcast チャンネル経由で配信される。
 #[derive(Debug, Clone)]
 pub struct FeatureFlagChangeEvent {
     pub flag_key: String,
@@ -9,15 +9,16 @@ pub struct FeatureFlagChangeEvent {
     pub description: String,
 }
 
-/// WatchFeatureFlagUseCase はフラグ変更の publish/subscribe を管理するユースケース。
+/// `WatchFeatureFlagUseCase` はフラグ変更の publish/subscribe を管理するユースケース。
 #[allow(dead_code)]
 pub struct WatchFeatureFlagUseCase {
     sender: broadcast::Sender<FeatureFlagChangeEvent>,
 }
 
 impl WatchFeatureFlagUseCase {
-    /// 新しい WatchFeatureFlagUseCase を生成する。
-    /// broadcast::Sender も返し、更新系ユースケースが変更通知を発行できるようにする。
+    /// 新しい `WatchFeatureFlagUseCase` を生成する。
+    /// `broadcast::Sender` も返し、更新系ユースケースが変更通知を発行できるようにする。
+    #[must_use]
     pub fn new() -> (Self, broadcast::Sender<FeatureFlagChangeEvent>) {
         let (tx, _) = broadcast::channel(256);
         let sender = tx.clone();
@@ -26,6 +27,7 @@ impl WatchFeatureFlagUseCase {
 
     /// 新しい Receiver を返す。
     #[allow(dead_code)]
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<FeatureFlagChangeEvent> {
         self.sender.subscribe()
     }

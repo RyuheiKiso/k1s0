@@ -125,6 +125,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_quota_usage_policy_subject
 | `006_convert_prefixed_ids.down.sql` | ID 変換復元 |
 | `007_improve_quota_policies.up.sql` | quota_policies テーブル改善 |
 | `007_improve_quota_policies.down.sql` | 改善復元 |
+| `008_add_quota_usage_rls.up.sql` | quota_usage に RLS 追加（H-010 対応） |
+| `009_fix_quota_usage_rls_cast.up.sql` | RLS ポリシーの ::TEXT キャスト修正 |
+| `010_add_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `011_add_quota_policies_tenant_rls.up.sql` | quota_policies に `tenant_id TEXT NOT NULL` と RLS ポリシー追加、UNIQUE(name) → UNIQUE(tenant_id, name)（HIGH-DB-001 + HIGH-DB-007 対応） |
+
+---
+
+## マルチテナント対応（HIGH-DB-001 / HIGH-DB-007）
+
+`quota_policies` に `tenant_id TEXT NOT NULL` カラムと RLS ポリシーを追加（migration 011）。
+
+```sql
+ALTER TABLE quota.quota_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quota.quota_policies FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON quota.quota_policies
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 | `008_add_quota_usage_rls.up.sql` | quota_usage テーブルに RLS（行レベルセキュリティ）追加（H-010 監査対応） |
 | `008_add_quota_usage_rls.down.sql` | RLS ポリシー・設定削除 |
 

@@ -56,6 +56,9 @@ message CheckRateLimitRequest {
   // 識別子は1文字以上256文字以下であること
   string identifier = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   int64 window = 3;
+  // CRITICAL-ARCH-001 監査対応: テナント分離のために追加したテナント識別子。
+  // gRPC クライアントは JWT Claims から取得した tenant_id を設定すること。
+  string tenant_id = 4;
 }
 
 message CheckRateLimitResponse {
@@ -153,6 +156,8 @@ message RateLimitRule {
 message GetUsageRequest {
   // ルールIDは1文字以上であること
   string rule_id = 1 [(buf.validate.field).string.min_len = 1];
+  // CRITICAL-ARCH-001 監査対応: テナント分離のために追加したテナント識別子。
+  string tenant_id = 2;
 }
 
 message GetUsageResponse {
@@ -176,6 +181,8 @@ message ResetLimitRequest {
   string scope = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   // 識別子は1文字以上256文字以下であること
   string identifier = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // CRITICAL-ARCH-001 監査対応: テナント分離のために追加したテナント識別子。
+  string tenant_id = 3;
 }
 
 message ResetLimitResponse {

@@ -30,12 +30,14 @@ const RETRY_MAX_DELAY_MS: u64 = 30_000;
 /// use k1s0_messaging::dlq::dlq_topic_name;
 /// assert_eq!(dlq_topic_name("k1s0.service.task.created.v1"), "k1s0.service.task.created.v1.dlq");
 /// ```
+#[must_use]
 pub fn dlq_topic_name(original_topic: &str) -> String {
-    format!("{}{}", original_topic, DLQ_SUFFIX)
+    format!("{original_topic}{DLQ_SUFFIX}")
 }
 
 /// DLQ トピック名から元トピック名を復元する。
 /// `.dlq` サフィックスがない場合は None を返す。
+#[must_use]
 pub fn original_topic_name(dlq_topic: &str) -> Option<&str> {
     dlq_topic.strip_suffix(DLQ_SUFFIX)
 }
@@ -107,10 +109,10 @@ where
         }
     }
 
-    let error_message = last_error
-        .as_ref()
-        .map(|e| e.to_string())
-        .unwrap_or_else(|| "unknown error".to_string());
+    let error_message = last_error.as_ref().map_or_else(
+        || "unknown error".to_string(),
+        std::string::ToString::to_string,
+    );
 
     forward_to_dlq(producer, original_topic, key, payload, &error_message).await
 }

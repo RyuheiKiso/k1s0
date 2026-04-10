@@ -15,7 +15,7 @@ impl TenantMutationResolver {
     }
 
     /// テナント作成ユースケース。
-    /// C-003 監査対応: display_name, owner_id, plan を追加引数として受け取り、gRPC クライアントに渡す。
+    /// C-003 監査対応: `display_name`, `owner_id`, plan を追加引数として受け取り、gRPC クライアントに渡す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn create_tenant(
         &self,
@@ -24,7 +24,11 @@ impl TenantMutationResolver {
         owner_id: &str,
         plan: &str,
     ) -> CreateTenantPayload {
-        match self.client.create_tenant(name, display_name, owner_id, plan).await {
+        match self
+            .client
+            .create_tenant(name, display_name, owner_id, plan)
+            .await
+        {
             Ok(tenant) => CreateTenantPayload {
                 tenant: Some(tenant),
                 errors: vec![],
@@ -39,8 +43,8 @@ impl TenantMutationResolver {
         }
     }
 
-    /// CRIT-007 対応: UpdateTenantInput を proto UpdateTenantRequest に整合させる
-    /// display_name と plan を直接渡す（status は suspend/activate 専用ミューテーションで変更する）
+    /// CRIT-007 対応: `UpdateTenantInput` を proto `UpdateTenantRequest` に整合させる
+    /// `display_name` と plan を直接渡す（status は suspend/activate 専用ミューテーションで変更する）
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_tenant(
         &self,

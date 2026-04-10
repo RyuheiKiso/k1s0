@@ -302,6 +302,11 @@ impl FileEventPublisher for StubEventPublisher {
             .push((event_type.to_string(), payload.clone()));
         Ok(())
     }
+
+    // テスト用スタブのため close は何もしない
+    async fn close(&self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -314,10 +319,11 @@ fn sample_tags() -> HashMap<String, String> {
     tags
 }
 
-// C-01 監査対応: tenant_id 引数削除後のシグネチャに合わせて pending_file を修正
+// テナント分離対応: tenant_id 引数を追加してペンディング状態のファイルを生成する
 fn pending_file(id: &str) -> FileMetadata {
     FileMetadata::new(
         id.to_string(),
+        "tenant-abc".to_string(),
         "report.pdf".to_string(),
         2048,
         "application/pdf".to_string(),
@@ -858,9 +864,10 @@ mod list_files {
         let metadata = Arc::new(StubMetadataRepository::new());
         metadata.seed(pending_file("file_001")).await;
 
-        // C-01 監査対応: tenant_id 引数削除後の 7 引数シグネチャを使用する
+        // テナント分離対応: tenant_id 引数を追加（別テナントのファイル）
         let other_file = FileMetadata::new(
             "file_other".to_string(),
+            "tenant-xyz".to_string(),
             "other.txt".to_string(),
             512,
             "text/plain".to_string(),
@@ -892,9 +899,10 @@ mod list_files {
         let metadata = Arc::new(StubMetadataRepository::new());
         metadata.seed(pending_file("file_tagged")).await;
 
-        // C-01 監査対応: tenant_id 引数削除後の 7 引数シグネチャを使用する
+        // テナント分離対応: tenant_id 引数を追加（タグなしファイル）
         let untagged = FileMetadata::new(
             "file_untagged".to_string(),
+            "tenant-abc".to_string(),
             "untagged.txt".to_string(),
             512,
             "text/plain".to_string(),

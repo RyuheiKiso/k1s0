@@ -30,27 +30,50 @@ struct StubDefinitionRepo;
 
 #[async_trait]
 impl WorkflowDefinitionRepository for StubDefinitionRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    // テナントスコープでIDによるワークフロー定義検索（テスト用スタブ）
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        _id: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         Ok(None)
     }
-    async fn find_by_name(&self, _name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    // テナントスコープで名前によるワークフロー定義検索（テスト用スタブ）
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        _name: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         Ok(None)
     }
+    // テナントスコープでフィルタ付きワークフロー定義一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
+        _tenant_id: &str,
         _enabled_only: bool,
         _page: u32,
         _page_size: u32,
     ) -> anyhow::Result<(Vec<WorkflowDefinition>, u64)> {
         Ok((vec![], 0))
     }
-    async fn create(&self, _definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    // テナントスコープでワークフロー定義を新規作成（テスト用スタブ）
+    async fn create(
+        &self,
+        _tenant_id: &str,
+        _definition: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn update(&self, _definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    // テナントスコープでワークフロー定義を更新（テスト用スタブ）
+    async fn update(
+        &self,
+        _tenant_id: &str,
+        _definition: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    // テナントスコープでワークフロー定義を削除（テスト用スタブ）
+    async fn delete(&self, _tenant_id: &str, _id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }
@@ -62,11 +85,18 @@ struct StubInstanceRepo;
 
 #[async_trait]
 impl WorkflowInstanceRepository for StubInstanceRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    // テナントスコープでIDによるインスタンス検索（テスト用スタブ）
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        _id: &str,
+    ) -> anyhow::Result<Option<WorkflowInstance>> {
         Ok(None)
     }
+    // テナントスコープでフィルタ付きインスタンス一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
+        _tenant_id: &str,
         _status: Option<String>,
         _workflow_id: Option<String>,
         _initiator_id: Option<String>,
@@ -75,10 +105,12 @@ impl WorkflowInstanceRepository for StubInstanceRepo {
     ) -> anyhow::Result<(Vec<WorkflowInstance>, u64)> {
         Ok((vec![], 0))
     }
-    async fn create(&self, _instance: &WorkflowInstance) -> anyhow::Result<()> {
+    // テナントスコープでインスタンスを新規作成（テスト用スタブ）
+    async fn create(&self, _tenant_id: &str, _instance: &WorkflowInstance) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn update(&self, _instance: &WorkflowInstance) -> anyhow::Result<()> {
+    // テナントスコープでインスタンスを更新（テスト用スタブ）
+    async fn update(&self, _tenant_id: &str, _instance: &WorkflowInstance) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -90,11 +122,18 @@ struct StubTaskRepo;
 
 #[async_trait]
 impl WorkflowTaskRepository for StubTaskRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<WorkflowTask>> {
+    // テナントスコープでIDによるタスク検索（テスト用スタブ）
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        _id: &str,
+    ) -> anyhow::Result<Option<WorkflowTask>> {
         Ok(None)
     }
+    // テナントスコープでフィルタ付きタスク一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
+        _tenant_id: &str,
         _assignee_id: Option<String>,
         _status: Option<String>,
         _instance_id: Option<String>,
@@ -104,13 +143,16 @@ impl WorkflowTaskRepository for StubTaskRepo {
     ) -> anyhow::Result<(Vec<WorkflowTask>, u64)> {
         Ok((vec![], 0))
     }
+    // 全テナント横断で期限超過タスクを取得（スケジューラ用スタブ）
     async fn find_overdue(&self) -> anyhow::Result<Vec<WorkflowTask>> {
         Ok(vec![])
     }
-    async fn create(&self, _task: &WorkflowTask) -> anyhow::Result<()> {
+    // テナントスコープでタスクを新規作成（テスト用スタブ）
+    async fn create(&self, _tenant_id: &str, _task: &WorkflowTask) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn update(&self, _task: &WorkflowTask) -> anyhow::Result<()> {
+    // テナントスコープでタスクを更新（テスト用スタブ）
+    async fn update(&self, _tenant_id: &str, _task: &WorkflowTask) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -180,6 +222,8 @@ fn make_test_app() -> axum::Router {
             "k1s0-workflow-server-test",
         )),
         auth_state: None,
+        // DB プールはテスト環境では不要のため None を設定する
+        db_pool: None,
     };
 
     // metrics_enabled = false, metrics_path は未使用

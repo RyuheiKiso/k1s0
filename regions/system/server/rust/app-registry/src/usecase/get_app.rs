@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::app::App;
 use crate::domain::repository::AppRepository;
 
-/// GetAppError はアプリ取得に関するエラーを表す。
+/// `GetAppError` はアプリ取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetAppError {
     #[error("app not found: {0}")]
@@ -13,7 +13,7 @@ pub enum GetAppError {
     Internal(String),
 }
 
-/// GetAppUseCase はアプリ情報取得ユースケース。
+/// `GetAppUseCase` はアプリ情報取得ユースケース。
 pub struct GetAppUseCase {
     app_repo: Arc<dyn AppRepository>,
 }
@@ -23,8 +23,9 @@ impl GetAppUseCase {
         Self { app_repo }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<App, GetAppError> {
-        match self.app_repo.find_by_id(id).await {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(&self, tenant_id: &str, id: &str) -> Result<App, GetAppError> {
+        match self.app_repo.find_by_id(tenant_id, id).await {
             Ok(Some(app)) => Ok(app),
             Ok(None) => Err(GetAppError::NotFound(id.to_string())),
             Err(e) => Err(GetAppError::Internal(e.to_string())),
@@ -42,8 +43,8 @@ mod tests {
     async fn test_get_app_success() {
         let mut mock = MockAppRepository::new();
         mock.expect_find_by_id()
-            .withf(|id| id == "cli")
-            .returning(|_| {
+            .withf(|_tenant_id, id| id == "cli")
+            .returning(|_, _| {
                 Ok(Some(App {
                     id: "cli".to_string(),
                     name: "k1s0 CLI".to_string(),
@@ -56,7 +57,7 @@ mod tests {
             });
 
         let uc = GetAppUseCase::new(Arc::new(mock));
-        let result = uc.execute("cli").await;
+        let result = uc.execute("tenant-1", "cli").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, "cli");
     }
@@ -64,10 +65,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_app_not_found() {
         let mut mock = MockAppRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetAppUseCase::new(Arc::new(mock));
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("tenant-1", "nonexistent").await;
         assert!(matches!(result, Err(GetAppError::NotFound(_))));
     }
 }
