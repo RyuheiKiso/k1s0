@@ -1802,6 +1802,7 @@ security-gate:
 | `image-scan` を security-gate に追加（MED-008 監査対応） | image-scan が PR 時 skipped でも security-gate が正しく判定するよう needs に追加。skipped/success は許容、failure のみゲートをブロック |
 | `example.com` 検出ステップ追加（LOW-005 監査対応） | config-validation ジョブに Helm values.yaml の example.com プレースホルダー検出ステップを追加（INFO レベル） |
 | `fresh-deploy-smoke.yaml` 追加（報告書 7.3 監査対応） | CRIT-001/002/003 のリグレッション防止 CI。毎週日曜・workflow_dispatch・critical ファイル変更時に docker compose --profile infra up → migrate-all → kafka トピック数検証を実施。 |
+| `docker-compose.dev.yaml` 使用ポリシー明確化（MEDIUM-006 監査対応） | `docker-compose.dev.yaml` を使用するのは `fresh-deploy-smoke.yaml`（CI スモークテスト）のみ。staging/production デプロイでは一切使用しない。Vault dev モード（`VAULT_DEV_ROOT_TOKEN_ID`）はエフェメラル CI ランナー上でのみ有効であり、本番環境への流用は設計上防止されている。 |
 
 ---
 

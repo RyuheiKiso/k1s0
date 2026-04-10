@@ -159,7 +159,8 @@ pub async fn run() -> anyhow::Result<()> {
         snapshot_repo.clone(),
     ));
 
-    // gRPC service（event_publisher を渡して REST と同様に Kafka publish を行う）
+    // gRPC service（event_publisher と db_pool を渡して REST と同様に Kafka publish / DLQ 記録を行う）
+    // LOW-010 監査対応: db_pool を渡すことでパブリッシュ失敗時に DB へ失敗状態を記録する。
     let grpc_svc = Arc::new(EventStoreGrpcService::new(
         append_events_uc.clone(),
         read_events_uc.clone(),
@@ -169,6 +170,7 @@ pub async fn run() -> anyhow::Result<()> {
         delete_stream_uc.clone(),
         stream_repo.clone(),
         event_publisher.clone(),
+        db_pool.clone(),
     ));
 
     let grpc_addr: std::net::SocketAddr =
@@ -227,6 +229,9 @@ pub async fn run() -> anyhow::Result<()> {
 
     // REST AppState
     // MED-013 監査対応: readyz で SELECT 1 ping を使えるよう db_pool を渡す
+    // LOW-010 監査対応: event_publisher は AppState への move 前に clone して
+    // spawn_publish_failed_retry_job（下記）でも使用できるようにする
+    let publisher_for_retry = event_publisher.clone();
     let mut state = AppState {
         append_events_uc,
         read_events_uc,
@@ -281,6 +286,17 @@ pub async fn run() -> anyhow::Result<()> {
     let rest_future = axum::serve(listener, app).with_graceful_shutdown(async {
         let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
+
+    // LOW-010 監査対応（ADR-0118 Phase A + B）: publish_failed イベントの定期監視と自動再送。
+    // DB と Kafka が利用可能な場合に起動する。
+    // migration 010 の SECURITY DEFINER 関数で RLS をバイパスして全テナント横断で処理する。
+    if let Some(ref pool) = db_pool {
+        crate::adapter::handler::event_handler::spawn_publish_failed_retry_job(
+            pool.clone(),
+            publisher_for_retry,
+        );
+        info!("publish_failed retry job started (ADR-0118 Phase A+B)");
+    }
 
     // REST と gRPC を並行起動
     tokio::select! {

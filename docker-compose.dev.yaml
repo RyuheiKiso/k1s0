@@ -380,6 +380,11 @@ services:
   # ============================================================
   # Vault — 開発環境専用の dev モード設定（L-13 監査対応）
   # ============================================================
+  # MEDIUM-006 / LOW-009 監査対応: DEV_ENV_GUARD の確認。
+  # このファイルは fresh-deploy-smoke.yaml（CI スモークテスト）のみで使用される。
+  # staging/production デプロイでは docker-compose.dev.yaml は参照しない。
+  # VAULT_DEV_ROOT_TOKEN_ID は .env.dev で必須設定であり、未設定時はエラーで起動失敗する（:? 構文）。
+  #
   # Vault dev モード設定（L-04 監査対応）
   #
   # !! WARNING: dev モードのリスク一覧 !!

@@ -269,9 +269,11 @@ services:
   # Kafka の JMX ポート 9999 に接続し、ブローカーメトリクス・リクエストレイテンシ等を収集する。
   # Prometheus は http://kafka-jmx-exporter:9101/metrics をスクレイプする。
   kafka-jmx-exporter:
-    # LOW-006 監査対応: latest タグは再現性がなくセキュリティリスクがあるため固定バージョンに変更する
-    # HIGH-002 対応: 1.0.1 は Docker Hub に存在しないため実在するバージョンに変更
-    image: bitnami/jmx-exporter:0.20.0
+    # HIGH-002 監査対応: bitnami/jmx-exporter:0.20.0 は Docker Hub に存在しないため latest に変更する。
+    # digest pinning で再現性を確保する（2026-04-10 確認済み digest を使用）。
+    # tag@digest 形式は Docker Compose でサポートされており、digest がマッチング用・tag は視認性のため。
+    # 将来的には Renovate/Dependabot によるバージョン自動更新を推奨する。
+    image: bitnami/jmx-exporter:latest@sha256:dadaa2f99c078003e7f4b05e8c225b1ab76e2c96ca0abb5793506bcefc09bdc2
     profiles: [infra]
     restart: unless-stopped
     mem_limit: 256m
@@ -595,8 +597,10 @@ services:
       # ホストへの公開は不要であり、外部からのメトリクスエンドポイント露出を防止する。
     # CRITICAL-004 対応: Kong の起動には時間がかかるため start_period を十分に確保し、
     # interval/timeout/retries も余裕を持たせて不要な再起動を防止する
+    # HIGH-001 監査対応: kong health は read_only: true 環境で内部ソケットにアクセスできずタイムアウトする。
+    # Kong Status API (8100) への curl チェックに変更することで確実にヘルスチェックが機能する。
     healthcheck:
-      test: ["CMD", "kong", "health"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8100/status || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5

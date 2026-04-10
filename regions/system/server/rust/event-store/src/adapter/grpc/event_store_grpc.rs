@@ -56,6 +56,7 @@ pub enum GrpcError {
 }
 
 /// gRPC サービスの実装。各ユースケースとリポジトリ、Kafka パブリッシャーを保持する。
+/// LOW-010 監査対応: db_pool を保持し、パブリッシュ失敗時の DB 記録に使用する。
 pub struct EventStoreGrpcService {
     append_events_uc: Arc<AppendEventsUseCase>,
     read_events_uc: Arc<ReadEventsUseCase>,
@@ -66,6 +67,8 @@ pub struct EventStoreGrpcService {
     stream_repo: Arc<dyn EventStreamRepository>,
     /// Kafka イベントパブリッシャー。REST と同様に append 後にイベントを発行する。
     event_publisher: Arc<dyn EventPublisher>,
+    /// LOW-010 監査対応: DB 接続プール（Some: PostgreSQL 使用中 / None: インメモリ dev モード）
+    db_pool: Option<sqlx::PgPool>,
 }
 
 impl EventStoreGrpcService {
@@ -79,6 +82,7 @@ impl EventStoreGrpcService {
         delete_stream_uc: Arc<DeleteStreamUseCase>,
         stream_repo: Arc<dyn EventStreamRepository>,
         event_publisher: Arc<dyn EventPublisher>,
+        db_pool: Option<sqlx::PgPool>,
     ) -> Self {
         Self {
             append_events_uc,
@@ -89,6 +93,7 @@ impl EventStoreGrpcService {
             delete_stream_uc,
             stream_repo,
             event_publisher,
+            db_pool,
         }
     }
 
@@ -190,10 +195,15 @@ impl EventStoreGrpcService {
         match self.append_events_uc.execute(&input).await {
             Ok(output) => {
                 // REST と同様にバックグラウンドで Kafka にイベントを発行する
+                // LOW-010 監査対応: db_pool と tenant_id を渡すことで、リトライ上限到達時に
+                // RLS を満たした上で DB へ失敗状態を記録する。
+                let tenant_id_for_dlq = output.events.first().map(|e| e.tenant_id.clone()).unwrap_or_default();
                 spawn_publish_events_with_retry(
                     self.event_publisher.clone(),
                     output.stream_id.clone(),
+                    tenant_id_for_dlq,
                     output.events.clone(),
+                    self.db_pool.clone(),
                 );
 
                 // シリアライズ失敗をエラーとして収集し、失敗時はINTERNALを返す
@@ -510,6 +520,7 @@ mod tests {
             snapshot_repo.clone(),
         ));
 
+        // テストではインメモリモードのため db_pool は None とする
         EventStoreGrpcService::new(
             append_uc,
             read_events_uc,
@@ -519,6 +530,7 @@ mod tests {
             delete_uc,
             stream_repo,
             publisher,
+            None,
         )
     }
 
@@ -624,6 +636,7 @@ mod tests {
             event_repo.clone(),
             snapshot_repo.clone(),
         ));
+        // テストではインメモリモードのため db_pool は None とする
         let svc = EventStoreGrpcService::new(
             append_uc,
             read_events_uc,
@@ -633,6 +646,7 @@ mod tests {
             delete_uc,
             stream_repo,
             publisher,
+            None,
         );
 
         let req = ProtoAppendEventsRequest {

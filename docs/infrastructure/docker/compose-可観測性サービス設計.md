@@ -4,6 +4,36 @@ docker-compose における Prometheus・Grafana・Loki・Jaeger の詳細設定
 
 ---
 
+## 起動方法
+
+### 一括起動コマンド
+
+observability スタック（Grafana・Prometheus・Jaeger・Loki・Promtail）は以下のいずれかのコマンドで一括起動できる。
+
+```bash
+# MEDIUM-003 / LOW-003 監査対応: "local-up-" プレフィックスで統一されたエイリアス（推奨）
+just local-up-obs
+
+# 上記と同等のコマンド（実体は同じ）
+just observability-up
+```
+
+`just local-up-dev`（フル開発環境起動）でも `--profile observability` が含まれるため、通常の開発環境セットアップでは個別起動は不要。
+
+### サービスポート一覧
+
+| サービス | ホストポート | 用途 |
+| --- | --- | --- |
+| Grafana | **3200** | ダッシュボード UI（`http://localhost:3200`）。ポート 3000 はフロントエンド開発サーバーと競合するため 3200 を使用。 |
+| Prometheus | **9090** | メトリクス収集 UI・クエリ（`http://localhost:9090`） |
+| Jaeger | **16686** | 分散トレーシング UI（`http://localhost:16686`） |
+| Loki | **3100** | ログ集約 API（Grafana からのクエリ専用。直接アクセス不要） |
+| Promtail | **9080** | ログ収集エージェント状態確認（`http://localhost:9080/ready`） |
+
+> **Grafana ポートの注意**: ホストポートは `3200` であり、一般的な `3000` ではない。詳細は「Grafana アクセスポートに関する注意（MED-002 対応）」セクションを参照。
+
+---
+
 ## Observability サービス詳細設定
 
 ### Prometheus scrape 設定

@@ -496,25 +496,53 @@ local-up-dev: _check-env
       echo "[WARN] Vault 初期化が失敗しました。手動で 'bash infra/docker/vault/init-vault.sh' を実行してください" >&2
     fi
     echo "--- Phase 1.5: データベースマイグレーション実行 (CRIT-004 / HIGH-003 監査対応) ---"
-    # CRIT-004 監査対応: sqlx-cli が未インストールの場合はハード失敗する。
-    # マイグレーションなしでサービスを起動すると、テーブル未存在でサービスが全滅するリスクがある。
-    # 代替手段: just migrate-all-docker（sqlx-cli 不要の Docker 経由マイグレーション）を使用すること。
+    # HIGH-003 監査対応: sqlx-cli 未インストール時は Docker 経由マイグレーションにフォールバックする。
+    # 新規開発者のオンボーディングコストを削減し、sqlx-cli なしでも local-up が動作するようにする。
+    # ⚠️ migrate-all-docker は raw SQL 実行のため _sqlx_migrations テーブルを更新しない。
+    # sqlx-cli がある場合は migrate-all を使用することを強く推奨する。
     if ! command -v sqlx &>/dev/null; then
-        echo "[ERROR] sqlx-cli が未インストールのため local-up-dev を中断します。" >&2
-        echo "  インストール: cargo install sqlx-cli --no-default-features --features postgres" >&2
-        echo "  または Docker 経由: just migrate-all-docker" >&2
-        exit 1
-    fi
-    if just migrate-all; then
-        echo "--- Phase 1.5: マイグレーション完了 ---"
+        echo "⚠️  sqlx-cli が未インストールのため Docker 経由マイグレーションにフォールバックします。"
+        echo "   インストール推奨: cargo install sqlx-cli --no-default-features --features postgres"
+        echo "--- Phase 1.5: migrate-all-docker 実行中 ---"
+        if just migrate-all-docker; then
+            echo "--- Phase 1.5: Docker 経由マイグレーション完了 ---"
+        else
+            echo "[ERROR] Docker 経由マイグレーションが失敗しました。サービス起動を中断します。" >&2
+            echo "  手動でのマイグレーション: just migrate-all-docker" >&2
+            exit 1
+        fi
     else
-        echo "[ERROR] マイグレーションが失敗しました。サービス起動を中断します。" >&2
-        echo "  手動でのマイグレーション: just migrate-all" >&2
-        exit 1
+        # sqlx-cli がインストール済みの場合は通常の migrate-all を実行する
+        if just migrate-all; then
+            echo "--- Phase 1.5: マイグレーション完了 ---"
+        else
+            echo "[ERROR] マイグレーションが失敗しました。サービス起動を中断します。" >&2
+            echo "  手動でのマイグレーション: just migrate-all" >&2
+            exit 1
+        fi
     fi
     echo "--- Phase 2: システム/ビジネス/サービス層の起動 ---"
     # CRIT-002 監査対応: --build フラグでスタレイメージを防止する（Phase 1 と同様）
     docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile system --profile business --profile service --profile observability up -d --build
+    # MEDIUM-007 監査対応: graphql-gateway は 18 サービスへの service_healthy 依存を持つため、
+    # 全依存が healthy になる前に起動試行して Created 状態で停止することがある。
+    # 自動で再起動を試みて healthy になるまで待機する。
+    echo "--- Phase 2.5: graphql-gateway 起動状態チェック ---"
+    for i in $(seq 1 12); do
+        GW_STATUS=$(docker inspect --format='{{{{.State.Status}}}}' k1s0-graphql-gateway-rust-1 2>/dev/null || echo "not_found")
+        GW_HEALTH=$(docker inspect --format='{{{{.State.Health.Status}}}}' k1s0-graphql-gateway-rust-1 2>/dev/null || echo "none")
+        if [ "${GW_HEALTH}" = "healthy" ]; then
+            echo "graphql-gateway: healthy ✓"
+            break
+        elif [ "${GW_STATUS}" = "created" ] || [ "${GW_STATUS}" = "exited" ]; then
+            echo "graphql-gateway が停止状態 (${GW_STATUS})。再起動します... (${i}/12)"
+            docker start k1s0-graphql-gateway-rust-1 || true
+            sleep 15
+        else
+            echo "graphql-gateway 起動待機中... status=${GW_STATUS} health=${GW_HEALTH} (${i}/12)"
+            sleep 10
+        fi
+    done
     echo "=== [C-01] Setting up Kong JWT RSA public key (waiting for Keycloak...) ==="
     if bash infra/kong/setup-kong-jwt.sh; then
         echo "=== Restarting Kong to apply new RSA public key configuration ==="
@@ -532,6 +560,10 @@ local-up-profile profile: _check-env
     echo "=== Starting profile: {{profile}} ==="
     # CRIT-002 監査対応: --build フラグを追加してスタレイメージを防止する
     docker compose --profile {{profile}} up -d --build
+
+# MEDIUM-003 / LOW-003 監査対応: observability スタック一括起動のエイリアスを提供する。
+# just observability-up の代わりに "local-up-" プレフィックスで直感的に見つけられるようにする。
+local-up-obs: observability-up
 
 # 可観測性スタック（Jaeger / Prometheus / Grafana / Loki）を起動
 observability-up: _check-env

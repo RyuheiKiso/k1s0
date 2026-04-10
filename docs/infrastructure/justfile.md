@@ -96,7 +96,8 @@ just proto
 | `docker-build-safe` | **OOM 防止**のための安全なビルド（`--parallel 2` に制限）。WSL2 や Docker Desktop でメモリ不足が発生する場合に使用（HIGH-2 監査対応） |
 | `migrate path` | 指定パスの DB マイグレーションを実行（`sqlx migrate run`） |
 | `migrate-all` | **全 DB のマイグレーション一括実行**（初回セットアップ用）。`just local-up-profile infra` の後に実行する（HIGH-3/HIGH-4 監査対応）。AVAIL-002 対応: system tier は `dev` ユーザー、business/service tier は `k1s0` ユーザーで実行。`K1S0_DB_PASSWORD` 環境変数でパスワードを設定可能（デフォルト: `dev-k1s0-local`） |
-| `migrate-all-docker` | **sqlx-cli 未インストール環境向け Docker 経由マイグレーション**（C-03 監査対応）。`docker compose --env-file .env.dev -f docker-compose.yaml exec postgres` 経由で `*.up.sql` を適用する。DB名マッピングは `migrate-all` と統一（`event-monitor-db`→`k1s0_event_monitor`、`master-maintenance-db`→`k1s0_master_maintenance`）。⚠️ **制限**: raw SQL 実行のため `_sqlx_migrations` を更新しない。このコマンド実行後にサービスを起動すると `sqlx::migrate!()` との競合（`CREATE TRIGGER` 再実行エラー）が発生する。**診断・手動検証専用**。通常のセットアップには `just migrate-all` または `just local-up-dev` を使用すること（RUNTIME-001 / HIGH-013 監査対応） |
+| `migrate-all-docker` | **sqlx-cli 未インストール環境向け Docker 経由マイグレーション**（C-03 監査対応）。`docker compose --env-file .env.dev -f docker-compose.yaml exec postgres` 経由で `*.up.sql` を適用する。DB名マッピングは `migrate-all` と統一（`event-monitor-db`→`k1s0_event_monitor`、`master-maintenance-db`→`k1s0_master_maintenance`）。⚠️ **制限**: raw SQL 実行のため `_sqlx_migrations` を更新しない。このコマンド実行後にサービスを起動すると `sqlx::migrate!()` との競合（`CREATE TRIGGER` 再実行エラー）が発生する。**診断・手動検証専用**。通常のセットアップには `just migrate-all` または `just local-up-dev` を使用すること（RUNTIME-001 / HIGH-013 監査対応）。`local-up-dev` では sqlx-cli 未インストール時に自動フォールバック先として使用される（HIGH-003 対応）。 |
+| `local-up-obs` | `just observability-up` のエイリアス（MEDIUM-003 / LOW-003 監査対応）。`local-up-` プレフィックスで統一的にコマンドを探せるようにするためのショートカット。実体は `observability-up` と同一。 |
 | `proto` | Proto コード生成 (`scripts/generate-proto.sh`) |
 | `ci` | CI 全実行 (`lint` + `test` + `build`) |
 | `security` | 全言語セキュリティスキャン (`security-go` + `security-rust` + `security-ts` + `security-dart`) |
@@ -128,6 +129,33 @@ docker build -f regions/system/server/rust/auth/Dockerfile \
 
 `docker-compose.yaml` では `graphql-gateway-rust` サービスの `build.context` が `'.'` に設定されており、この挙動と一致している。詳細は `regions/system/server/rust/graphql-gateway/Dockerfile` の冒頭コメントを参照。
 
+### Phase 1.5 マイグレーションフォールバック（HIGH-003 対応）
+
+`local-up-dev` の Phase 1.5 では、`sqlx-cli` のインストール有無に応じて自動的にマイグレーション手段を切り替える。
+
+| 状況 | 実行されるコマンド | 備考 |
+| --- | --- | --- |
+| `sqlx-cli` インストール済み | `just migrate-all` | 推奨。`_sqlx_migrations` テーブルを正しく更新する |
+| `sqlx-cli` 未インストール | `just migrate-all-docker` | フォールバック。新規開発者のオンボーディングコスト削減のため |
+
+以前は `sqlx-cli` 未インストール時に `exit 1` でハード失敗していたが、`migrate-all-docker` へのフォールバックに変更した。これにより `cargo install sqlx-cli` を実行せずとも `just local-up` で環境構築が完了する。
+
+> **⚠️ 注意**: `migrate-all-docker` は raw SQL 実行のため `_sqlx_migrations` テーブルを更新しない。フォールバックで起動した後に `sqlx-cli` をインストールして `just migrate-all` を再実行すると、マイグレーション競合が発生する可能性がある。本番相当の確認や継続開発には `sqlx-cli` のインストールを強く推奨する。
+
+### Phase 2.5 graphql-gateway 自動再起動（MEDIUM-007 対応）
+
+`local-up-dev` の Phase 2.5 では、graphql-gateway の起動状態を自動チェックし、停止状態（`created` または `exited`）だった場合に自動再起動を試みる。
+
+**背景**: `graphql-gateway-rust` は 18 以上のサービスに対する `service_healthy` 依存を持つ。全依存サービスが healthy になる前に Docker Compose が起動試行し、`Created` 状態（コンテナは作成されたが起動していない）で停止するケースがある。
+
+| 状態 | 動作 |
+| --- | --- |
+| `healthy` | チェック終了、正常 |
+| `created` または `exited` | `docker start` で再起動し 15 秒待機 |
+| その他（`starting` 等） | 10 秒待機して再チェック |
+
+最大 12 回（約 2 分）リトライする。12 回経過後も unhealthy の場合は後続の Kong JWT セットアップに進む（graphql-gateway の起動遅延が Kong 設定を阻害しないようにするため）。
+
 ### `local-up` コマンドの修正（C-02 対応）
 
 `just local-up` が `docker-compose.dev.yaml` を使用せず、`KEYCLOAK_ADMIN_PASSWORD` 等の必須環境変数が未定義でエラーになる問題を修正した。
@@ -141,7 +169,7 @@ docker build -f regions/system/server/rust/auth/Dockerfile \
 | コマンド | `--build` | `migrate-all` | 説明 |
 |---------|-----------|--------------|------|
 | `just local-up` | ✅ 自動 | ✅ 自動 | **推奨**。`local-up-dev` の別名。開発環境の標準起動コマンド。 |
-| `just local-up-dev` | ✅ 自動 | ✅ 自動 | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003/AVAIL-002 対応: system/business/service 全 tier 対象）、Phase 2 でシステム/ビジネス/サービス層を起動。 |
+| `just local-up-dev` | ✅ 自動 | ✅ 自動 | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**4フェーズ起動**（RUNTIME-001/HIGH-003/MEDIUM-007 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みなら `just migrate-all` を自動実行、未インストールの場合は `just migrate-all-docker` にフォールバック**（HIGH-003 対応）、Phase 2 でシステム/ビジネス/サービス層を起動、**Phase 2.5 で graphql-gateway の起動状態を確認し Created/exited 状態なら自動再起動**（MEDIUM-007 対応）。 |
 | `just local-up-base` | ✅ 自動 | ❌ 手動 | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
 | `docker compose up` | ❌ **手動指定必須** | ❌ **手動** | **非推奨**。`--build` が省略されると古いイメージが使われ config-rust / featureflag-rust が起動ループに陥る（CRIT-002/CRIT-003）。`docker-compose.dev.yaml` の指定も忘れると dev-auth-bypass が無効になる。 |
 

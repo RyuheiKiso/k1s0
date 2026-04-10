@@ -121,6 +121,9 @@
 | [ADR-0113](./0113-tauri-csp-unsafe-inline.md) | Tauri GUI の CSP に `unsafe-inline` を許可する | 承認済み |
 | [ADR-0114](./0114-grpc-port-binding-strategy.md) | gRPC ポートバインド戦略（Windows Hyper-V 動的排除範囲への対応） | 承認済み |
 | [ADR-0115](./0115-migration-execution-strategy.md) | DB マイグレーション実行戦略（外部実行 vs 起動時自動実行） | 承認済み |
+| [ADR-0116](./0116-session-redis-jti-fail-open-tradeoff.md) | session-redis jti 失効チェックの fail-open 設計（外部監査 MEDIUM-004 対応） | 承認済み |
+| [ADR-0117](./0117-k8s-integration-testing-ci.md) | K8s 統合テスト CI 環境の整備（外部監査 LOW-006 対応） | 提案 |
+| [ADR-0118](./0118-event-store-publish-failed-retry.md) | event-store publish_failed 再送ジョブの設計（外部監査 LOW-010 二次対応） | 承認済み |
 
 ## ADR の追加方法
 

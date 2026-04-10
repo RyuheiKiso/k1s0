@@ -9,18 +9,18 @@
 #   - CORS は localhost:3000 を許可
 #
 # ================================================================
-# 【L-02 監査対応】rate-limiting policy: local の制限事項
+# 【LOW-002 監査対応】rate-limiting policy: local の制限事項
 # ================================================================
+# 開発環境では policy: local を使用してシングルノード前提でレートリミットを管理する。
 # このファイルの全 rate-limiting プラグインは `policy: local` を使用している。
 #
 # local ポリシーの特性と制限:
 #   - 各 Kong ノードが独立してカウンターを管理する（メモリ内）
-#   - Redis 等の共有ストアを使用しないため、Redis 依存をゼロにできる
-#   - ただし、Kong が複数ノード（Horizontal Pod Autoscaler 等）で起動する場合、
-#     ノード間でカウンターが共有されないため、実質的な制限値が緩くなる
-#     （例: 3ノードなら 1ノード1000req/min × 3 = 最大3000req/min が通過する）
+#   - ノードローカルのカウンターを使用するため、Redis 等の共有ストアが不要
+#   - ただし、複数 Kong ノード構成では、ノード間でカウンターが共有されず
+#     制限が意図通りに機能しない（例: 3ノード時は最大 3 倍のリクエストが通過する）
 #
-# 本番環境では必ず `policy: redis` を使用すること:
+# 本番環境（kong.yaml）では Redis ポリシーを使用しており、負荷試験は本番構成で行うこと:
 #   - infra/kong/kong.yaml（本番設定）を参照
 #   - Redis クラスターを Kong の rate-limiting バックエンドとして設定する
 #
@@ -649,6 +649,11 @@ plugins:
             end
             kong.service.request.set_header("X-User-Roles", roles)
             kong.service.request.set_header("X-User-Email", claims.email or "")
+            -- MEDIUM-002 監査対応: テナントIDをバックエンドに転送する。
+            -- Kong 層で統一的に設定することで、バックエンドが個別に JWT から
+            -- テナントIDを取得する必要をなくし、テナント境界の一貫性を保証する。
+            -- Keycloak JWT のカスタムクレーム名は "tenant_id"（BFF Proxy oauth/client.go:328 と一致）。
+            kong.service.request.set_header("X-Tenant-ID", claims.tenant_id or "")
           end
 
   # セキュリティレスポンスヘッダー（開発環境でも本番と同一のヘッダーを確認できるようにする）

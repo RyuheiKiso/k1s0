@@ -10,6 +10,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 k1s0-core = { path = "../k1s0-core" }
 tauri = { version = "2", features = [] }
+# MEDIUM-009 監査対応: localStorage に代わる安全なストレージとして Tauri Store プラグインを使用する。
+# OS アプリデータディレクトリに JSON ファイルとして保存されるため、WebView スクリプトから直接アクセス不可能になる。
+tauri-plugin-store = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"

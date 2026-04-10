@@ -112,10 +112,15 @@ const MAX_PUBLISH_RETRY_ATTEMPTS: u32 = 10;
 
 /// イベントの Kafka パブリッシュをバックグラウンドで実行し、失敗時はリトライする。
 /// `リトライ上限（MAX_PUBLISH_RETRY_ATTEMPTS）に達した場合はエラーログを出力して終了する`。
+/// LOW-010 監査対応: pool が Some の場合、リトライ上限到達時に DB へ失敗状態を記録し
+/// イベント消失を防止する。成功時は 'published' に更新する。
+/// tenant_id は RLS ポリシー満足のために必要（set_config でセッション変数を設定する）。
 pub(crate) fn spawn_publish_events_with_retry(
     publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
     stream_id: String,
+    tenant_id: String,
     events: Vec<crate::domain::entity::event::StoredEvent>,
+    pool: Option<sqlx::PgPool>,
 ) {
     tokio::spawn(async move {
         let mut attempt: u32 = 0;
@@ -133,6 +138,12 @@ pub(crate) fn spawn_publish_events_with_retry(
                             "event publish succeeded after retry"
                         );
                     }
+                    // LOW-010 監査対応: パブリッシュ成功時に publish_status を 'published' に更新する。
+                    if let Some(ref p) = pool {
+                        if let Err(db_err) = mark_events_as_published(p, &stream_id, &tenant_id).await {
+                            tracing::warn!(error = %db_err, stream_id = %stream_id, "failed to update publish_status to published");
+                        }
+                    }
                     break;
                 }
                 Err(e) => {
@@ -145,6 +156,18 @@ pub(crate) fn spawn_publish_events_with_retry(
                             max_attempts = MAX_PUBLISH_RETRY_ATTEMPTS,
                             "failed to publish events to kafka after max retry attempts, giving up"
                         );
+                        // LOW-010 監査対応: Kafka パブリッシュ失敗をDBに記録し、イベント消失を防止する。
+                        // spawn_publish_failed_monitor が定期的に publish_failed を検知し、
+                        // ADR-0118 の再送ジョブ（Phase B）で回収する設計。
+                        if let Some(ref p) = pool {
+                            if let Err(db_err) = mark_events_as_publish_failed(p, &stream_id, &tenant_id).await {
+                                tracing::error!(
+                                    error = %db_err,
+                                    stream_id = %stream_id,
+                                    "failed to mark events as publish_failed in DB"
+                                );
+                            }
+                        }
                         break;
                     }
 
@@ -165,6 +188,221 @@ pub(crate) fn spawn_publish_events_with_retry(
             }
         }
     });
+}
+
+/// LOW-010 監査対応: Kafka パブリッシュ失敗時に eventstore.events テーブルの
+/// publish_status を 'publish_failed' に更新してイベント消失を防止する。
+/// eventstore.events には FORCE ROW LEVEL SECURITY が適用されているため、
+/// トランザクション内で set_config('app.current_tenant_id', tenant_id, true) を実行して
+/// RLS ポリシーを満たす必要がある（lessons.md: SET LOCAL にバインドは使えない→ set_config 使用）。
+async fn mark_events_as_publish_failed(
+    pool: &sqlx::PgPool,
+    stream_id: &str,
+    tenant_id: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    // RLS ポリシー（tenant_id = current_setting('app.current_tenant_id', true)）を満たす
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+        .bind(tenant_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query(
+        "UPDATE eventstore.events SET publish_status = 'publish_failed' \
+         WHERE stream_id = $1 AND tenant_id = $2 AND publish_status = 'pending'"
+    )
+    .bind(stream_id)
+    .bind(tenant_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// LOW-010 監査対応: Kafka パブリッシュ成功時に eventstore.events テーブルの
+/// publish_status を 'published' に更新する。
+/// eventstore.events の RLS ポリシーを満たすため set_config でテナント ID を設定する。
+/// 通常フロー（pending → published）と再送ジョブ（publish_failed → published）の
+/// 両方に対応するため、publish_status != 'published' の全行を対象とする。
+async fn mark_events_as_published(
+    pool: &sqlx::PgPool,
+    stream_id: &str,
+    tenant_id: &str,
+) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await?;
+    // RLS ポリシー満足のためテナント ID を設定する
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+        .bind(tenant_id)
+        .execute(&mut *tx)
+        .await?;
+    // publish_status IN ('pending', 'publish_failed') を対象とする。
+    // 通常フロー（pending）と再送ジョブ（publish_failed）の両方で呼ばれるため。
+    sqlx::query(
+        "UPDATE eventstore.events SET publish_status = 'published' \
+         WHERE stream_id = $1 AND tenant_id = $2 \
+         AND publish_status IN ('pending', 'publish_failed')"
+    )
+    .bind(stream_id)
+    .bind(tenant_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// LOW-010 監査対応（ADR-0118 Phase A + B 統合実装）:
+/// publish_failed イベントの定期監視と自動再送を行うバックグラウンドジョブ。
+///
+/// 設計方針（ADR-0118）:
+/// - FORCE ROW LEVEL SECURITY 下では通常の COUNT/SELECT は全行が RLS で隠される。
+///   migration 010 で追加した SECURITY DEFINER 関数
+///   `eventstore.count_publish_failed_all_tenants()` /
+///   `eventstore.list_publish_failed_events()` を経由することで、
+///   関数オーナー（スーパーユーザー）権限で全テナント横断のアクセスが可能になる。
+/// - 60 秒間隔でバッチ（最大 100 件）を取得し、stream_id+tenant_id 単位で
+///   Kafka パブリッシュを再試行する。成功時は 'published' に更新する。
+///   失敗時はログを出力し次のインターバルで再試行する（無限ループ防止）。
+pub fn spawn_publish_failed_retry_job(
+    pool: sqlx::PgPool,
+    publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
+) {
+    /// 再送ジョブの実行間隔（秒）
+    const RETRY_INTERVAL_SECS: u64 = 60;
+    /// 1 バッチで取得する最大イベント件数（負荷制御）
+    const BATCH_LIMIT: i32 = 100;
+
+    tokio::spawn(async move {
+        let mut interval =
+            tokio::time::interval(Duration::from_secs(RETRY_INTERVAL_SECS));
+        // 起動直後の即時実行を避けるため最初の tick をスキップする
+        interval.tick().await;
+
+        loop {
+            interval.tick().await;
+
+            // Phase A: SECURITY DEFINER 関数で全テナント横断の publish_failed 件数を取得する
+            let count = match sqlx::query_scalar::<_, i64>(
+                "SELECT eventstore.count_publish_failed_all_tenants()"
+            )
+            .fetch_one(&pool)
+            .await
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "failed to count publish_failed events"
+                    );
+                    continue;
+                }
+            };
+
+            if count == 0 {
+                // 失敗件数ゼロ: 正常、次のインターバルまでスキップ
+                continue;
+            }
+
+            tracing::warn!(
+                count = count,
+                "publish_failed events detected: attempting retry (ADR-0118 Phase B)"
+            );
+
+            // Phase B: SECURITY DEFINER 関数でイベントを取得してリパブリッシュする
+            let rows = match sqlx::query_as::<_, PublishFailedEventRow>(
+                "SELECT * FROM eventstore.list_publish_failed_events($1)"
+            )
+            .bind(BATCH_LIMIT)
+            .fetch_all(&pool)
+            .await
+            {
+                Ok(rows) => rows,
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "failed to fetch publish_failed events for retry"
+                    );
+                    continue;
+                }
+            };
+
+            // stream_id + tenant_id 単位でグループ化してパブリッシュする
+            let mut groups: std::collections::HashMap<
+                (String, String),
+                Vec<crate::domain::entity::event::StoredEvent>,
+            > = std::collections::HashMap::new();
+
+            for row in rows {
+                // metadata は JSONB → EventMetadata に変換（失敗時は空メタデータ）
+                let metadata = serde_json::from_value(row.r_metadata)
+                    .unwrap_or_else(|_| crate::domain::entity::event::EventMetadata::new(
+                        None, None, None,
+                    ));
+                let event = crate::domain::entity::event::StoredEvent {
+                    stream_id: row.r_stream_id.clone(),
+                    tenant_id: row.r_tenant_id.clone(),
+                    // DB の sequence は i64 だが、ドメインでは u64 を使用する
+                    sequence: u64::try_from(row.r_sequence).unwrap_or(0),
+                    event_type: row.r_event_type,
+                    version: row.r_version,
+                    payload: row.r_payload,
+                    metadata,
+                    occurred_at: row.r_occurred_at,
+                    stored_at: row.r_stored_at,
+                };
+                groups
+                    .entry((row.r_stream_id, row.r_tenant_id))
+                    .or_default()
+                    .push(event);
+            }
+
+            for ((stream_id, tenant_id), events) in groups {
+                match publisher.publish_events(&stream_id, &events).await {
+                    Ok(()) => {
+                        tracing::info!(
+                            stream_id = %stream_id,
+                            tenant_id = %tenant_id,
+                            count = events.len(),
+                            "retry publish succeeded for publish_failed events"
+                        );
+                        // 成功: publish_failed → published に更新する
+                        // mark_events_as_published は IN ('pending', 'publish_failed') を対象とする
+                        if let Err(e) =
+                            mark_events_as_published(&pool, &stream_id, &tenant_id).await
+                        {
+                            tracing::warn!(
+                                error = %e,
+                                stream_id = %stream_id,
+                                "failed to mark retried events as published"
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        // 失敗: ログのみ、次のインターバルで再試行する
+                        tracing::warn!(
+                            error = %e,
+                            stream_id = %stream_id,
+                            tenant_id = %tenant_id,
+                            "retry publish failed, will try again at next interval"
+                        );
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// publish_failed 再送ジョブが DB から読み取るイベント行の構造体。
+/// migration 010 の SECURITY DEFINER 関数 `list_publish_failed_events` の返却型と対応する。
+#[derive(sqlx::FromRow)]
+struct PublishFailedEventRow {
+    r_stream_id:   String,
+    r_tenant_id:   String,
+    r_sequence:    i64,
+    r_event_type:  String,
+    r_version:     i64,
+    r_payload:     serde_json::Value,
+    r_metadata:    serde_json::Value,
+    r_occurred_at: chrono::DateTime<chrono::Utc>,
+    r_stored_at:   chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]
@@ -336,10 +574,14 @@ pub async fn append_events(
         })?;
 
     // Publish in background with retry for at-least-once delivery semantics.
+    // LOW-010 監査対応: db_pool を渡すことで、リトライ上限到達時に DB へ失敗状態を記録する。
+    // tenant_id は mark 関数内の RLS ポリシー（set_config）に必要。
     let publisher = state.event_publisher.clone();
     let stream_id = output.stream_id.clone();
+    let tenant_id = output.events.first().map(|e| e.tenant_id.clone()).unwrap_or_default();
     let events = output.events.clone();
-    spawn_publish_events_with_retry(publisher, stream_id, events);
+    let pool = state.db_pool.clone();
+    spawn_publish_events_with_retry(publisher, stream_id, tenant_id, events, pool);
 
     let event_responses: Vec<StoredEventResponse> =
         output.events.iter().map(to_stored_event_response).collect();
