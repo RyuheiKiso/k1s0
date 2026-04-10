@@ -7,7 +7,7 @@ TypeScript を使用した CLI / GUI 統合ツールです。
 | モジュール | 技術スタック | 説明 |
 |-----------|------------|------|
 | `cli`     | TypeScript | コマンドラインインターフェース |
-| `gui`     | React Native (Windows / macOS / Linux) + MUI | グラフィカルユーザーインターフェース |
+| `gui`     | React Native (Windows / macOS) + MUI | グラフィカルユーザーインターフェース |
 | `common`  | TypeScript | CLI・GUI 双方から呼び出す共通ロジック |
 
 ## ビルド
