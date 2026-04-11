@@ -35,7 +35,7 @@ common = { path = "../common" }
 コード内では以下のようにインポートします。
 
 ```rust
-use common::xxx;
+use common::install_check;
 ```
 
 ---
@@ -45,3 +45,11 @@ use common::xxx;
 | モジュール | 説明 |
 |-----------|------|
 | `install_check` | 必要なソフトウェアのインストール確認ロジック |
+
+---
+
+## テスト
+
+```bash
+cargo test
+```
