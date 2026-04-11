@@ -25,11 +25,18 @@ common/
 
 ## 利用方法
 
-`cli` または `gui` の `Cargo.toml` に依存関係を追記します。
+`cli` の `Cargo.toml` に依存関係を追記します。
 
 ```toml
 [dependencies]
 common = { path = "../common" }
+```
+
+`gui` の `src-tauri/Cargo.toml` に依存関係を追記します。
+
+```toml
+[dependencies]
+common = { path = "../../common" }
 ```
 
 コード内では以下のようにインポートします。
