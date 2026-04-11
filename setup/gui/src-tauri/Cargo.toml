@@ -1,0 +1,29 @@
+# GUIバックエンド（Tauri）クレートのパッケージ設定ファイル。k1s0-guiのクレート定義を行う。
+
+[package]
+# パッケージ名を指定する
+name = "k1s0-gui"
+# バージョンを指定する
+version = "0.1.0"
+# Rustエディションを指定する
+edition = "2024"
+
+[lib]
+# ライブラリクレート名を指定する
+name = "k1s0_gui_lib"
+# クレートタイプを指定する
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+# Tauriビルドヘルパーを指定する
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# TauriフレームワークのRust実装を指定する
+tauri = { version = "2", features = [] }
+# シリアライズ・デシリアライズライブラリを指定する
+serde = { version = "1", features = ["derive"] }
+# JSONシリアライズライブラリを指定する
+serde_json = "1"
+# commonクレートをローカルパスで参照する
+common = { path = "../../common" }
