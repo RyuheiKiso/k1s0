@@ -94,3 +94,4 @@ desktop.ini
 # 一時ファイル
 *.tmp
 *.temp
+docs/99_壁打ち/*
