@@ -1,9 +1,0 @@
-# Dart/Flutter ルートレベルの静的解析設定
-# 各サブパッケージは自身の analysis_options.yaml で package:lints を参照する
-# ルートには pubspec.yaml がないため、パッケージ URI は使用しない
-linter:
-  rules:
-    - prefer_const_constructors
-    - prefer_const_declarations
-    - avoid_print
-    - prefer_single_quotes

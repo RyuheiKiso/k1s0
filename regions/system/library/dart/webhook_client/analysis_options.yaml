@@ -1,9 +1,0 @@
-include: package:lints/recommended.yaml
-
-linter:
-  rules:
-    - prefer_single_quotes
-    - prefer_final_fields
-    - avoid_print
-    # 型安全性の強化: dynamic 型への暗黙的な呼び出しを禁止する
-    - avoid_dynamic_calls

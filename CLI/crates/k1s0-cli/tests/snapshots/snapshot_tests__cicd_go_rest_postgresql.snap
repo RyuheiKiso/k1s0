@@ -1,6 +1,0 @@
----
-source: tests/snapshot_tests.rs
-expression: sorted
----
-- ci.yaml
-- deploy.yaml

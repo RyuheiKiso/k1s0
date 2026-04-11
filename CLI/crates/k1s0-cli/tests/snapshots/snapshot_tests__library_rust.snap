@@ -1,9 +1,0 @@
----
-source: tests/snapshot_tests.rs
-expression: sorted
----
-- Cargo.toml
-- README.md
-- src/lib.rs
-- src/task_lib.rs
-- tests/integration_test.rs

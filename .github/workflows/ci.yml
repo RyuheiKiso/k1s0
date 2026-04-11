@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main, remake]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Rust テスト (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: リポジトリをチェックアウトする
+        uses: actions/checkout@v4
+
+      - name: Rust stable ツールチェインをセットアップする
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust ビルドキャッシュを設定する
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: setup -> setup/target
+
+      - name: Linux 向け Tauri 依存ライブラリをインストールする
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: common クレートをビルドする
+        working-directory: setup
+        run: cargo build -p common
+
+      - name: CLI クレートをビルドする
+        working-directory: setup
+        run: cargo build -p k1s0-cli
+
+      - name: GUI バックエンドクレートをビルドする
+        working-directory: setup
+        run: cargo build -p k1s0-gui
+
+      - name: common クレートのテストを実行する
+        working-directory: setup
+        run: cargo test -p common
+
+      - name: CLI クレートのテストを実行する
+        working-directory: setup
+        run: cargo test -p k1s0-cli
+
+  frontend:
+    name: フロントエンド ビルド
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: リポジトリをチェックアウトする
+        uses: actions/checkout@v4
+
+      - name: Node.js をセットアップする
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: setup/gui/package-lock.json
+
+      - name: フロントエンド依存関係をインストールする
+        working-directory: setup/gui
+        run: npm install
+
+      - name: フロントエンドをビルドする
+        working-directory: setup/gui
+        run: npm run build
+
+      - name: フロントエンドのテストを実行する
+        working-directory: setup/gui
+        run: npm test

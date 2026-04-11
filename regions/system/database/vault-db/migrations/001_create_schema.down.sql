@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS vault.update_updated_at();
-DROP SCHEMA IF EXISTS vault CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

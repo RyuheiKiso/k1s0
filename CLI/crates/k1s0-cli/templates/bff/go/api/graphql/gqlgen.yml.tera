@@ -1,8 +1,0 @@
-schema:
-  - api/graphql/schema.graphql
-exec:
-  filename: internal/handler/generated.go
-  package: handler
-model:
-  filename: internal/handler/models_gen.go
-  package: handler

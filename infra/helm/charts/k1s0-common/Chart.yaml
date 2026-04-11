@@ -1,5 +1,0 @@
-apiVersion: v2
-name: k1s0-common
-description: k1s0 共通 Helm Library Chart
-type: library
-version: 0.1.0

@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS session.update_updated_at();
-DROP SCHEMA IF EXISTS session CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

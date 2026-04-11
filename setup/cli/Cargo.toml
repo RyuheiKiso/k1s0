@@ -1,0 +1,13 @@
+# CLIクレートのパッケージ設定ファイル。k1s0-cliバイナリのクレート定義を行う。
+
+[package]
+# パッケージ名を指定する
+name = "k1s0-cli"
+# バージョンを指定する
+version = "0.1.0"
+# Rustエディションを指定する
+edition = "2024"
+
+[dependencies]
+# commonクレートをローカルパスで参照する
+common = { path = "../common" }

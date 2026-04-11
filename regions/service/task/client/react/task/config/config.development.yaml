@@ -1,3 +1,0 @@
-# 開発環境固有の設定オーバーライド
-app:
-  env: "development"

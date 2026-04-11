@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS dlq.update_updated_at();
-DROP SCHEMA IF EXISTS dlq CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

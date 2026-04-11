@@ -1,5 +1,0 @@
-# JMXアクセス権限ファイル（開発環境用）
-# jmx_monitor: 読み取り専用権限（Prometheus JMX Exporter 用）
-# jmx_admin: 読み書き権限（管理操作用）
-jmx_monitor readonly
-jmx_admin readwrite
