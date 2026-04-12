@@ -1,0 +1,64 @@
+<mxfile host="draw.io">
+  <diagram name="deploy" id="deploy">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="onp" value="オンプレミス / クラウド VM (k8s クラスタ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1020" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="nsInfra" value="namespace: infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="80" width="460" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="iC1" value="Envoy Gateway" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="90" y="115" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="iC2" value="Istio Control Plane" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="250" y="115" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="iC3" value="Prometheus / Loki / Jaeger / Grafana" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="90" y="170" width="420" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="iC4" value="Kafka (Strimzi) / Harbor / Valkey" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="90" y="225" width="420" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nsTier1" value="namespace: tier1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="560" y="80" width="480" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="t1C1" value="Dapr Control Plane&#xa;(operator / injector / sentry)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="580" y="115" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1C2" value="tier1 Go サービス群&#xa;Daprファサード / 認証プロキシ / OTel 集約" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="580" y="175" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1C3" value="tier1 Rust サービス群&#xa;ZEN Engine / JTC 固有機能 / 雛形 CLI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+          <mxGeometry x="810" y="115" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="nsTier2" value="namespace: tier2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="310" width="460" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="t2C1" value="ドメインサービス Pod&#xa;(app container + Dapr sidecar)&#xa;※ sidecar は tier1 責任で自動注入" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="90" y="350" width="420" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="nsTier3" value="namespace: tier3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="560" y="310" width="480" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="t3C1" value="業務アプリ Pod / アプリ配信ポータル Pod&#xa;(app container + Dapr sidecar)&#xa;※ sidecar は tier1 責任で自動注入" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="580" y="350" width="440" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="nsOp" value="namespace: operation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="70" y="540" width="970" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="opC1" value="Backstage Pod (開発者ポータル / Software Catalog / TechDocs / Software Templates)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="90" y="580" width="930" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="opC2" value="Argo CD / Keycloak / GitHub Actions self-hosted runner" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="90" y="635" width="930" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="opC3" value="(クラウドマネージド k8s は使用しない / kubeadm / k3s / RKE2 前提)" style="text;html=1;align=center;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="90" y="690" width="930" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

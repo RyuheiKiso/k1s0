@@ -1,0 +1,40 @@
+<mxfile host="draw.io">
+  <diagram name="dapr-hiding" id="hiding">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="760" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="layer1" value="tier2 / tier3 コード (C# / Go / Java / TS / Python)&#xa;→ tier1 公開 API のみを import / 呼び出し" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="880" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="layer2" value="tier1 公開 API (多言語クライアントライブラリ)&#xa;k1s0 固有の統一 API: log / telemetry / state / pub-sub / secrets / workflow / auth / audit / decision" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="880" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="layer3" value="tier1 内部実装 (Go + Rust ハイブリッド, tier2/3 からは不可視)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;align=center;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="60" y="310" width="880" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="goSvc" value="Go サービス (Daprファサード)&#xa;stable Dapr Go SDK を直接利用&#xa;state / pub-sub / secrets / workflow / bindings / 認証プロキシ / OTel 集約" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;align=center" vertex="1" parent="1">
+          <mxGeometry x="80" y="355" width="420" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="rustSvc" value="Rust サービス (自作領域)&#xa;ZEN Engine in-process&#xa;JTC 固有機能 / 監査改ざん防止&#xa;雛形生成 CLI / Component バリデータ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;align=center" vertex="1" parent="1">
+          <mxGeometry x="520" y="355" width="400" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dapr" value="Dapr Control Plane + サイドカー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;align=center" vertex="1" parent="1">
+          <mxGeometry x="80" y="475" width="840" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="infra" value="infra 層 (k8s / Istio / Envoy Gateway / Kafka / Loki / Prometheus / Jaeger / Harbor / Valkey)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="60" y="590" width="880" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="layer1" target="layer2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="layer2" target="layer3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="layer3" target="infra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
