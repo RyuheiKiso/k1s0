@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="architecture" id="arch1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="480" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="480" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;pgvector アーキテクチャ概要&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="230" y="8" width="300" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="embed" value="&lt;b&gt;埋め込みモデル&lt;/b&gt;&lt;br&gt;(OpenAI, Cohere 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FB8C00;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="52" width="180" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="app" value="&lt;b&gt;アプリケーション&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="310" y="52" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" value="" style="rounded=1;strokeColor=#FB8C00;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="embed" target="app">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1_label" value="ベクトル生成" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pg" value="&lt;b&gt;PostgreSQL Server&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#F5F5F5;strokeColor=#666666;fontSize=13;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="145" width="700" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="" style="rounded=1;strokeColor=#1976D2;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="app" target="pg">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2_label" value="SQL + ベクトル操作" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pv_title" value="&lt;b&gt;pgvector 拡張が提供する機能&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fillColor=none;strokeColor=none;fontColor=#D6B656;" vertex="1" parent="pg">
+          <mxGeometry x="20" y="32" width="220" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="vtypes" value="&lt;b&gt;ベクトル型&lt;/b&gt;&lt;br&gt;vector (単精度)&lt;br&gt;halfvec (半精度)&lt;br&gt;sparsevec (疎)&lt;br&gt;bit (バイナリ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;fontColor=#333333;align=left;spacingLeft=8;" vertex="1" parent="pg">
+          <mxGeometry x="20" y="60" width="155" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="ops" value="&lt;b&gt;距離演算子&lt;/b&gt;&lt;br&gt;&amp;lt;-&amp;gt;  L2 距離&lt;br&gt;&amp;lt;=&amp;gt;  コサイン距離&lt;br&gt;&amp;lt;#&amp;gt;  負の内積&lt;br&gt;&amp;lt;+&amp;gt;  L1 距離" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;fontColor=#333333;align=left;spacingLeft=8;" vertex="1" parent="pg">
+          <mxGeometry x="195" y="60" width="165" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="hnsw_box" value="&lt;b&gt;HNSW&lt;/b&gt;&lt;br&gt;階層型グラフ索引&lt;br&gt;高い検索精度&lt;br&gt;メモリ使用量: 大" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;align=left;spacingLeft=8;" vertex="1" parent="pg">
+          <mxGeometry x="380" y="60" width="145" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="ivf_box" value="&lt;b&gt;IVFFlat&lt;/b&gt;&lt;br&gt;転置ファイル索引&lt;br&gt;構築速度: 速い&lt;br&gt;メモリ使用量: 小" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;align=left;spacingLeft=8;" vertex="1" parent="pg">
+          <mxGeometry x="545" y="60" width="135" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="st_title" value="&lt;b&gt;ストレージ&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fillColor=none;strokeColor=none;fontColor=#1976D2;" vertex="1" parent="pg">
+          <mxGeometry x="20" y="172" width="100" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="tbl" value="&lt;b&gt;テーブル&lt;/b&gt;&lt;br&gt;id | name | data | embedding vector(1536)&lt;br&gt;リレーショナルデータとベクトルを同一行に格納" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;align=left;spacingLeft=8;" vertex="1" parent="pg">
+          <mxGeometry x="20" y="200" width="330" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="hnsw_idx" value="&lt;b&gt;HNSW インデックス&lt;/b&gt;&lt;br&gt;embedding 列を高速検索" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="pg">
+          <mxGeometry x="370" y="200" width="155" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ivf_idx" value="&lt;b&gt;IVFFlat インデックス&lt;/b&gt;&lt;br&gt;embedding 列を高速検索" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="pg">
+          <mxGeometry x="545" y="200" width="135" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="" style="rounded=1;strokeColor=#388E3C;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="pg" source="hnsw_box" target="hnsw_idx">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" value="" style="rounded=1;strokeColor=#388E3C;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="pg" source="ivf_box" target="ivf_idx">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

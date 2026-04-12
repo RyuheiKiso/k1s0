@@ -1,0 +1,104 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="License Compatibility" id="license-compatibility">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="主要 OSS ライセンスの互換性と分類" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="280" y="15" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="permissive_area" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7f0;strokeColor=#82b366;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="440" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="permissive_label" value="寛容型（Permissive）ライセンス" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontStyle=1;fontColor=#4a8c4a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="75" width="250" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="copyleft_area" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff5f0;strokeColor=#b85450;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="70" width="420" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="copyleft_label" value="コピーレフト型ライセンス" style="text;html=1;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontStyle=1;fontColor=#a84432;" vertex="1" parent="1">
+          <mxGeometry x="520" y="75" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="mit" value="MIT License&#xa;最も制約が少ない / 著作権表示のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=0;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="115" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="bsd" value="BSD 2-Clause&#xa;MIT とほぼ同等 / 著作権表示のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=0;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="270" y="115" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="apache" value="Apache License 2.0&#xa;特許条項 + NOTICE 要件 / 企業利用に最適" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=0;fontColor=#333333;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="270" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="lgpl" value="LGPL v2.1 / v3&#xa;弱いコピーレフト / リンクは許容" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=0;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="530" y="115" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="mpl" value="MPL 2.0&#xa;ファイル単位のコピーレフト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=0;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="740" y="115" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="gplv3" value="GPL v3&#xa;強いコピーレフト / 派生物もGPLで公開" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=0;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="600" y="270" width="230" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="agpl" value="AGPL v3&#xa;ネットワーク経由の利用にも適用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=0;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="600" y="345" width="230" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_mit_apache" value="" style="rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" source="mit" target="apache" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="200" />
+              <mxPoint x="162" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_mit_label" value="互換" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#4a8c4a;" vertex="1" parent="1">
+          <mxGeometry x="95" y="200" width="40" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_bsd_apache" value="" style="rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" source="bsd" target="apache" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="200" />
+              <mxPoint x="358" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_bsd_label" value="互換" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#4a8c4a;" vertex="1" parent="1">
+          <mxGeometry x="375" y="200" width="40" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_apache_gplv3" value="" style="rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#6c8ebf;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" source="apache" target="gplv3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="compat_note" value="一方向互換：Apache 2.0 → GPL v3 は可&#xa;（逆は不可）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#6c8ebf;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="415" y="250" width="180" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="spectrum_label" value="← 制約が少ない　　　　　　　　　　　　　　　　　　　　　　制約が多い →" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontStyle=2;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="155" y="415" width="660" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="spectrum_line" value="" style="endArrow=classic;html=1;strokeColor=#CCCCCC;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="455" as="sourcePoint" />
+            <mxPoint x="900" y="455" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pos_mit" value="MIT / BSD" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="460" width="80" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="pos_apache" value="Apache 2.0" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="460" width="90" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="pos_lgpl" value="LGPL / MPL" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#d6b656;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="460" width="90" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="pos_gpl" value="GPL v3" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="460" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="pos_agpl" value="AGPL v3" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="460" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="enterprise_note" value="Apache 2.0 が企業で好まれる理由: 明示的な特許付与 + ソースコード公開義務なし" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="185" y="510" width="590" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

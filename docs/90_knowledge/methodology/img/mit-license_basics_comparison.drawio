@@ -1,0 +1,91 @@
+<mxfile>
+  <diagram name="License Comparison" id="comparison">
+    <mxGraphModel dx="820" dy="320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="320">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="オープンソースライセンスの位置づけ" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="mit_box" value="MIT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="93" y="55" width="140" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="lgpl_box" value="LGPL 2.1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="60" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="gpl_box" value="GPL 3.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="587" y="60" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="conn1" value="" style="endArrow=none;strokeColor=#82b366;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="163" y="110" as="sourcePoint"/>
+            <mxPoint x="163" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn2" value="" style="endArrow=none;strokeColor=#d6b656;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="105" as="sourcePoint"/>
+            <mxPoint x="410" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn3" value="" style="endArrow=none;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="657" y="105" as="sourcePoint"/>
+            <mxPoint x="657" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bar_g" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="135" width="246" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="bar_y" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="286" y="135" width="248" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="bar_r" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="534" y="135" width="246" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="zl1" value="寛容型（Permissive）" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="246" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="zl2" value="準コピーレフト（Weak Copyleft）" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="286" y="160" width="248" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="zl3" value="コピーレフト（Copyleft）" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="534" y="160" width="246" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1" value="条件: 著作権表示の保持のみ&lt;br&gt;ソースコード公開は不要" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="246" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2" value="条件: 変更したライブラリの&lt;br&gt;ソースコード公開が必要" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="286" y="190" width="248" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3" value="条件: 派生物全体の&lt;br&gt;ソースコード公開が必要" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="534" y="190" width="246" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="BSD, ISC, Unlicense など" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="235" width="246" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="MPL 2.0, EPL 2.0 など" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="286" y="235" width="248" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="AGPL 3.0 など" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="534" y="235" width="246" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="275" as="sourcePoint"/>
+            <mxPoint x="780" y="275" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="al" value="自由度が高い" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="120" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="ar_label" value="制限が多い" style="text;html=1;align=right;verticalAlign=top;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="660" y="280" width="120" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
