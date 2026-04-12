@@ -1,0 +1,34 @@
+<mxfile host="draw.io">
+  <diagram name="layer" id="layer">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t3" value="tier3: 個別アプリケーション層&#xa;業務アプリ / アプリ配信ポータル&#xa;(C# / Go / MAUI / React)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="40" width="620" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="tier2: ドメインサービス層&#xa;業務ドメインロジック (C# / Go 自由)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="620" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="tier1: 共通基盤サービス層&#xa;公開 API (C# / Go / Java / TS / Python クライアントライブラリ)&#xa;内部実装 (tier2/3 からは不可視)&#xa;Dapr Control Plane + Go ファサード + Rust 自作領域" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="270" width="620" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="inf" value="infra: インフラ層&#xa;Kubernetes / Istio / Envoy Gateway / Kafka / Loki / Prometheus / Jaeger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="620" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="op" value="operation&#xa;運用 / 監視 /&#xa;オンコール /&#xa;リリース管理&#xa;(横断)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="40" width="140" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="t3" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="t2" target="t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="t1" target="inf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

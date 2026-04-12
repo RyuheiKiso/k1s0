@@ -1,0 +1,218 @@
+<mxfile host="draw.io">
+  <diagram name="Kubernetes Architecture" id="k8s-arch">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 白背景（GitHub ダークテーマ対応） -->
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="600" as="geometry" />
+        </mxCell>
+
+        <!-- 全体タイトル -->
+        <mxCell id="title" value="Kubernetes クラスタ アーキテクチャ" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Control Plane グループ -->
+        <mxCell id="cp-group" value="Control Plane（コントロールプレーン）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;fontStyle=1;fontSize=13;dashed=1;dashPattern=5 5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="520" height="340" as="geometry" />
+        </mxCell>
+
+        <!-- kube-apiserver -->
+        <mxCell id="apiserver" value="kube-apiserver&#xa;（API サーバー）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD966;strokeColor=#D6B656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="130" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- etcd -->
+        <mxCell id="etcd" value="etcd&#xa;（分散 KV ストア）" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#FFD966;strokeColor=#D6B656;fontStyle=1;fontSize=11;size=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="230" width="140" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- kube-scheduler -->
+        <mxCell id="scheduler" value="kube-scheduler&#xa;（スケジューラ）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD966;strokeColor=#D6B656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="250" y="240" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- kube-controller-manager -->
+        <mxCell id="controller" value="kube-controller-manager&#xa;（コントローラマネージャ）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD966;strokeColor=#D6B656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="240" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Worker Node 1 グループ -->
+        <mxCell id="node1-group" value="Worker Node 1（ワーカーノード）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=13;dashed=1;dashPattern=5 5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="340" height="340" as="geometry" />
+        </mxCell>
+
+        <!-- kubelet -->
+        <mxCell id="kubelet1" value="kubelet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A9D18E;strokeColor=#82B366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="130" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- kube-proxy -->
+        <mxCell id="proxy1" value="kube-proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BDD7EE;strokeColor=#6C8EBF;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="830" y="130" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Container Runtime -->
+        <mxCell id="runtime1" value="コンテナランタイム&#xa;（containerd）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A9D18E;strokeColor=#82B366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="195" width="300" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Pod 1 -->
+        <mxCell id="pod1" value="Pod A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="260" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Container in Pod 1 -->
+        <mxCell id="container1a" value="Container" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6B8AF;strokeColor=#B85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="675" y="280" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Pod 2 -->
+        <mxCell id="pod2" value="Pod B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="830" y="260" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Container in Pod 2 -->
+        <mxCell id="container2a" value="Container" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6B8AF;strokeColor=#B85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="845" y="280" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Worker Node 2 グループ -->
+        <mxCell id="node2-group" value="Worker Node 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=13;dashed=1;dashPattern=5 5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="80" width="340" height="340" as="geometry" />
+        </mxCell>
+
+        <!-- kubelet2 -->
+        <mxCell id="kubelet2" value="kubelet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A9D18E;strokeColor=#82B366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="130" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- kube-proxy2 -->
+        <mxCell id="proxy2" value="kube-proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BDD7EE;strokeColor=#6C8EBF;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="130" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Container Runtime 2 -->
+        <mxCell id="runtime2" value="コンテナランタイム&#xa;（containerd）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A9D18E;strokeColor=#82B366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="195" width="300" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Pod 3 -->
+        <mxCell id="pod3" value="Pod C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="260" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Container in Pod 3 -->
+        <mxCell id="container3a" value="Container" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6B8AF;strokeColor=#B85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="280" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ユーザー -->
+        <mxCell id="user" value="ユーザー / kubectl" style="shape=actor;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="500" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印: ユーザー → apiserver -->
+        <mxCell id="edge-user-api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" edge="1" source="user" target="apiserver" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="155" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-user-api-label" value="API リクエスト" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="edge-user-api">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint x="10" y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: apiserver → etcd -->
+        <mxCell id="edge-api-etcd" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;exitX=0;exitY=1;entryX=1;entryY=0.5;" edge="1" source="apiserver" target="etcd" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-api-etcd-label" value="状態保存" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="edge-api-etcd">
+          <mxGeometry x="0.2" relative="1" as="geometry">
+            <mxPoint y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: apiserver → scheduler -->
+        <mxCell id="edge-api-sched" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="apiserver" target="scheduler" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-api-sched-label" value="Pod 配置指示" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="edge-api-sched">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-45" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: apiserver → controller -->
+        <mxCell id="edge-api-ctrl" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D6B656;strokeWidth=2;exitX=1;exitY=1;entryX=0.5;entryY=0;" edge="1" source="apiserver" target="controller" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-api-ctrl-label" value="状態監視" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="edge-api-ctrl">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: apiserver → kubelet1 -->
+        <mxCell id="edge-api-kubelet1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="apiserver" target="kubelet1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-api-kubelet1-label" value="Pod 管理" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="edge-api-kubelet1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: apiserver → kubelet2 -->
+        <mxCell id="edge-api-kubelet2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;exitX=1;exitY=0;entryX=0;entryY=0.5;" edge="1" source="apiserver" target="kubelet2" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="100" />
+              <mxPoint x="1020" y="100" />
+              <mxPoint x="1020" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="640" y="450" width="400" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="660" y="455" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-cp" value="" style="rounded=1;fillColor=#FFD966;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="660" y="480" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-cp-text" value="Control Plane コンポーネント" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="685" y="478" width="170" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-node" value="" style="rounded=1;fillColor=#A9D18E;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="660" y="500" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-node-text" value="Node コンポーネント" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="685" y="498" width="170" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-pod" value="" style="rounded=1;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="660" y="520" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-pod-text" value="Pod（アプリケーション実行単位）" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="685" y="518" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-net" value="" style="rounded=1;fillColor=#BDD7EE;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="870" y="480" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-net-text" value="ネットワークコンポーネント" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="895" y="478" width="170" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
