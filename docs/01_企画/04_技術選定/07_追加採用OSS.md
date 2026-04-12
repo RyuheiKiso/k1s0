@@ -126,6 +126,58 @@
 
 ---
 
+## P. 統合テスト基盤
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **Testcontainers** | 採用 | AtomicJar (Docker 社傘下)。Go / Rust / C# / TS の全言語に公式 or 準公式ライブラリ。テストコード内からコンテナを宣言的に起動・破棄 |
+| Docker Compose + テストスクリプト | 却下 | テストコードとインフラ定義が分離し、テスト実行手順が属人化する |
+| k8s test namespace に手動デプロイ | 却下 | フィードバックが遅い (デプロイ待ち)。ローカル実行不可 |
+| in-memory 実装のみ | 却下 | Dapr in-memory backend は軽量統合テストに有用だが、PostgreSQL / Valkey / Kafka の実挙動との乖離を検出できない |
+
+### 採用理由 (Testcontainers)
+
+1. **テストコード内でコンテナのライフサイクルを完結** — テスト開始時に PostgreSQL / Valkey / Kafka コンテナを自動起動し、テスト終了後に自動破棄。外部のテスト環境管理が不要
+2. **ローカルと CI で同一テストが実行可能** — 開発者 PC (Docker Desktop / Rancher Desktop) でも GHA runner Pod (DinD sidecar) でも同じテストコードが動く
+3. **k1s0 の全言語をカバー** — Go (`testcontainers-go`)、Rust (`testcontainers-rs`)、C# (`Testcontainers for .NET`)、TypeScript (`testcontainers-node`) の公式 or コミュニティライブラリが存在
+4. **in-memory バックエンドでは検出できない不具合を捕捉** — PostgreSQL の制約違反、Valkey の TTL 挙動、Kafka のパーティション分散など、実バックエンドでのみ再現する問題を CI で早期検出
+5. **k8s test namespace への依存を削減** — 統合テストの大半をコンテナベースで実行できるため、k8s へのデプロイが不要になりフィードバックループが短縮される
+
+### Tilt との棲み分け
+
+| ツール | 目的 | 対象 | k8s 依存 |
+|---|---|---|---|
+| Tilt | 開発中の即時確認・探索的開発 | 開発者がコード変更を手元で確認 | あり (ローカル k3s) |
+| Testcontainers | 自動化された統合テスト | CI + ローカルで実行される再現可能なテスト | なし (Docker のみ) |
+
+Tilt は「人間が画面を見て確認する」探索的開発を高速化する。Testcontainers は「機械が自動で検証する」統合テストを高速化する。両者は補完関係にあり、競合しない。
+
+### CI 環境での実行
+
+GHA self-hosted runner Pod で Testcontainers を実行するには、Docker ソケットへのアクセスが必要。以下のいずれかの方式で対応する。
+
+| 方式 | 評価 |
+|---|---|
+| DinD (Docker-in-Docker) sidecar | 推奨。runner Pod に DinD sidecar を追加し、Testcontainers がコンテナを起動する。セキュリティ境界が明確 |
+| ホスト Docker ソケットマウント | 次点。パフォーマンスは良いが、ホストへのアクセス権限が広がるためセキュリティリスクがある |
+
+MVP-1a の runner イメージ (Kaniko / Trivy / crane 同梱) に DinD sidecar を追加する。
+
+### MVP スコープ
+
+- Phase 1 (MVP-1a) から導入
+- tier1 Go サービスの PostgreSQL 統合テストで初適用
+- GHA runner Pod に DinD sidecar を追加
+- 雛形生成 CLI が Testcontainers のテストテンプレートを生成
+
+### トレードオフ
+
+- テスト実行時間がユニットテストより長い (コンテナ起動に 3〜10 秒)。ユニットテストの代替ではなく補完として位置付ける
+- DinD sidecar のメモリ消費 (約 0.5 GB) が GHA runner Pod に追加される
+- Testcontainers for Rust (`testcontainers-rs`) はコミュニティ管理であり、他言語と比較して成熟度がやや低い。ただし Rust テストの実行には十分な機能を持つ
+
+---
+
 ## 関連ドキュメント
 
 - [`02_周辺OSS.md`](./02_周辺OSS.md) — 周辺 OSS の選定 (A〜K)
@@ -134,3 +186,4 @@
 - [`../02_アーキテクチャ/05_障害復旧とバックアップ.md`](../02_アーキテクチャ/05_障害復旧とバックアップ.md) — Longhorn によるデータ保護
 - [`../02_アーキテクチャ/09_データアーキテクチャ.md`](../02_アーキテクチャ/09_データアーキテクチャ.md) — PgBouncer による接続管理
 - [`../05_CICDと配信/00_CICDパイプライン.md`](../05_CICDと配信/00_CICDパイプライン.md) — Renovate / Argo Events のパイプライン統合
+- [`../05_CICDと配信/03_テスト戦略.md`](../05_CICDと配信/03_テスト戦略.md) — Testcontainers のテスト戦略への統合
