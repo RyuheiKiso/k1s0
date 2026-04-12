@@ -10,7 +10,7 @@
         <mxCell id="t2" value="tier2: ドメインサービス層&#xa;業務ドメインロジック (C# / Go 自由)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="60" y="160" width="620" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="t1" value="tier1: 共通基盤サービス層&#xa;公開 API (C# / Go / Java / TS / Python クライアントライブラリ)&#xa;内部実装 (tier2/3 からは不可視)&#xa;Dapr Control Plane + Go ファサード + Rust 自作領域" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1" vertex="1" parent="1">
+        <mxCell id="t1" value="tier1: 共通基盤サービス層&#xa;公開 API (C# / Go / Java / TS クライアントライブラリ)&#xa;内部実装 (tier2/3 からは不可視)&#xa;Dapr Control Plane + Go ファサード + Rust 自作領域" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="60" y="270" width="620" height="130" as="geometry" />
         </mxCell>
         <mxCell id="inf" value="infra: インフラ層&#xa;Kubernetes / Istio / Envoy Gateway / Kafka / Loki / Prometheus / Jaeger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1" vertex="1" parent="1">
