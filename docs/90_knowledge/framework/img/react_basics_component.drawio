@@ -1,0 +1,86 @@
+<mxfile>
+  <diagram name="React Component Model" id="component-model">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="540" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="React コンポーネントモデル" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="280" y="15" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="parent-comp" value="&lt;b&gt;親コンポーネント&lt;/b&gt;&lt;br&gt;（App）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="370" y="70" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="child-a" value="&lt;b&gt;子コンポーネント A&lt;/b&gt;&lt;br&gt;（Header）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="120" y="200" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="child-b" value="&lt;b&gt;子コンポーネント B&lt;/b&gt;&lt;br&gt;（Counter）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="390" y="200" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="child-c" value="&lt;b&gt;子コンポーネント C&lt;/b&gt;&lt;br&gt;（Footer）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="660" y="200" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="props-a" value="Props（データを渡す）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;fontColor=#6c8ebf;labelBackgroundColor=#FFFFFF;" edge="1" source="parent-comp" target="child-a" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="props-b" value="Props" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;fontColor=#6c8ebf;labelBackgroundColor=#FFFFFF;" edge="1" source="parent-comp" target="child-b" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="props-c" value="Props" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;fontColor=#6c8ebf;labelBackgroundColor=#FFFFFF;" edge="1" source="parent-comp" target="child-c" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="hooks-label" value="Hooks（コンポーネント内部で使用）" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=3;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="300" y="290" width="360" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="usestate-box" value="&lt;b&gt;useState&lt;/b&gt;&lt;br&gt;状態管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="useeffect-box" value="&lt;b&gt;useEffect&lt;/b&gt;&lt;br&gt;副作用処理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="340" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="usecontext-box" value="&lt;b&gt;useContext&lt;/b&gt;&lt;br&gt;コンテキスト参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="340" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="useref-box" value="&lt;b&gt;useRef&lt;/b&gt;&lt;br&gt;DOM / 値の参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="340" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="usememo-box" value="&lt;b&gt;useMemo / useCallback&lt;/b&gt;&lt;br&gt;パフォーマンス最適化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="780" y="340" width="160" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="hook-arrow" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="child-b" target="usestate-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="280" />
+              <mxPoint x="130" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="hook-arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="child-b" target="useeffect-box" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="280" />
+              <mxPoint x="310" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="50" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-comp" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-comp-text" value="コンポーネント" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="90" y="455" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-hook" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="490" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-hook-text" value="Hook" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="90" y="485" width="100" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
