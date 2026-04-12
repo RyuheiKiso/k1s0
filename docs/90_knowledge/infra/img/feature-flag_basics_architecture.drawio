@@ -1,0 +1,54 @@
+<mxfile host="draw.io">
+  <diagram name="Feature Flag アーキテクチャ" id="arch">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="940" pageHeight="380" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="940" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="Feature Flag アーキテクチャ" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="270" y="20" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="app" value="&lt;b&gt;アプリケーション&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;フラグの利用側&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="20" y="120" width="150" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="sdk" value="&lt;b&gt;OpenFeature SDK&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ベンダー非依存 API&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="260" y="120" width="170" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="provider" value="&lt;b&gt;プロバイダー&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;アダプター&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="520" y="120" width="150" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="backend" value="&lt;b&gt;フラグ管理システム&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;バックエンド&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="context" value="&lt;b&gt;評価コンテキスト&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ユーザー属性・環境情報&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="275" y="290" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="examples" value="例: LaunchDarkly, Unleash,&lt;br&gt;flagd, Split, Flipt" style="text;html=1;fontSize=10;align=center;verticalAlign=top;fontColor=#666666;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="760" y="215" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" value="フラグ評価" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=10;" edge="1" parent="1" source="app" target="sdk">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow2" value="委譲" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=10;" edge="1" parent="1" source="sdk" target="provider">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow3" value="値の取得" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=10;" edge="1" parent="1" source="provider" target="backend">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow4" value="コンテキスト注入" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;fontColor=#9673a6;fontSize=10;dashed=1;" edge="1" parent="1" source="context" target="sdk">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
