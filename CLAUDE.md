@@ -38,3 +38,10 @@
 矢印は常にボックスやテキストに重ならないように折り曲げたりして配置すること。
 githubのダークテーマに対応するために全体の背景は白で統一すること。
 背景色を透明にすることは禁止する。
+SVG エクスポート時、mxGraphModel の `background` 属性は無視される。`<root>` 直下の最初の要素としてページ全体を覆う白矩形を配置すること。
+
+```xml
+<mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+  <mxGeometry x="0" y="0" width="{pageWidth}" height="{pageHeight}" as="geometry" />
+</mxCell>
+```
