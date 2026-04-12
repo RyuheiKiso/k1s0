@@ -2,7 +2,7 @@
 
 ## 目的
 
-実行基盤中核 ([`01_実行基盤中核OSS.md`](./01_実行基盤中核OSS.md)) の周辺で必須となる OSS の選定根拠を整理する。対象カテゴリは以下の 5 つ。
+実行基盤中核 ([`01_実行基盤中核OSS.md`](./01_実行基盤中核OSS.md)) の周辺で必須となる OSS の選定根拠を整理する。対象カテゴリは以下のとおり。
 
 - A. ID / 認証基盤
 - B. GitOps / 継続的デリバリ
@@ -10,6 +10,8 @@
 - D. コンテナレジストリ / 脆弱性スキャン
 - E. キャッシュ / KV ストア
 - F. RDBMS
+- G. ポリシーエンジン / Admission Controller
+- H. 証明書管理
 
 ルールエンジン (BRE) は [`03_ルールエンジン.md`](./03_ルールエンジン.md) で別扱いとする。
 
@@ -191,6 +193,92 @@
 
 ---
 
+## G. ポリシーエンジン / Admission Controller
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **Kyverno** | 採用 | CNCF Graduated。YAML ネイティブでポリシーを記述。学習コストが低い |
+| OPA / Gatekeeper | 次点 | CNCF Graduated。Rego 言語によるポリシー記述。表現力は高いが Rego の習得コストが JTC 向きではない |
+| Kubewarden | 却下 | CNCF Sandbox。WASM ベースで柔軟だがエコシステムが発展途上 |
+| Polaris | 却下 | ベストプラクティス検証に特化。Admission 制御の汎用性が不足 |
+
+### 採用理由 (Kyverno)
+
+1. **ポリシーが k8s ネイティブ YAML** — Rego のような独自言語を覚える必要がない。JTC 情シスの学習曲線を最小化
+2. **Validate / Mutate / Generate の 3 機能** — リソース検証だけでなく、デフォルト値の自動付与やリソースの自動生成が可能
+3. **PSS (PodSecurityStandards) を完全に代替可能** — PSA (PodSecurityAdmission) より柔軟な例外制御。namespace / ワークロード単位で例外定義が可能
+4. **cosign 署名検証を Admission で実行** — Phase 2 の署名済みイメージのみデプロイ許可を実現
+5. **ClusterPolicy / Policy の分離** — クラスタ全体ポリシーと namespace 個別ポリシーを明確に分離管理
+6. **CNCF Graduated (Apache 2.0)** — k1s0 の OSS ライセンス方針に完全適合
+
+### k1s0 における役割
+
+Kyverno は API 設計原則の「規律はツールで強制する」を k8s クラスタレベルに拡張する。
+
+| ポリシーカテゴリ | 具体例 |
+|---|---|
+| Pod セキュリティ | privileged 禁止、root 実行禁止、hostNetwork 禁止 (PSS Restricted 相当) |
+| イメージ制御 | `harbor.k1s0.internal/*` 以外の pull 禁止、`:latest` タグ禁止 |
+| ラベル強制 | `app.kubernetes.io/part-of`、`k1s0.io/tier` 等の必須ラベル付与 |
+| リソース制限 | `resources.requests` / `resources.limits` の必須化 |
+| Dapr 隠蔽保護 | scaffold CLI が生成した annotation パターン以外の `dapr.io/*` を拒否 |
+| サプライチェーン (Phase 2) | cosign 未署名イメージの deploy 拒否 |
+
+### MVP スコープ
+
+- MVP-1b で Kyverno を `infra` namespace にデプロイ (HA 3 replicas)
+- PSS Restricted 相当の ClusterPolicy を適用し、PodSecurityAdmission を無効化
+- Harbor レジストリ制限ポリシーと必須ラベルポリシーを適用
+- Phase 2 で cosign 署名検証ポリシーを追加
+
+### トレードオフ
+
+- Admission Webhook の可用性 — Kyverno が停止すると Pod 作成が止まる → HA 構成 (3 replicas) + `failurePolicy: Fail` で安全側に倒す
+- ポリシー数の増大による管理コスト → ポリシーを Git 管理し、Argo CD で GitOps 適用
+
+---
+
+## H. 証明書管理
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **cert-manager** | 採用 | CNCF Graduated。k8s ネイティブの証明書ライフサイクル管理 |
+| 手動証明書管理 | 却下 | 証明書の期限切れによる障害リスクが高い |
+| Istio CA のみ | 不十分 | Istio mTLS は Istio CA が管理するが、Istio 外 (Envoy Gateway / Harbor / Keycloak) の TLS 証明書は管理できない |
+
+### 採用理由 (cert-manager)
+
+1. **証明書の自動発行・自動更新** — 証明書期限切れによるサービス停止を根本的に排除
+2. **Istio 外の TLS 証明書を管理** — Envoy Gateway (外部向け TLS 終端)、Harbor (HTTPS)、Keycloak (HTTPS)、Backstage (HTTPS) の証明書を自動管理
+3. **内部 CA / 外部 CA に対応** — オンプレ環境では自己署名 CA (SelfSigned / CA Issuer)、将来は Let's Encrypt や企業 CA との連携が可能
+4. **Certificate / Issuer が k8s CRD** — 証明書の状態を `kubectl` で宣言的に管理・監視できる
+5. **CNCF Graduated (Apache 2.0)** — k1s0 の OSS ライセンス方針に完全適合
+
+### k1s0 における役割
+
+| 管理対象 | Issuer 種別 | 備考 |
+|---|---|---|
+| Envoy Gateway の外部向け TLS | CA Issuer (内部 CA) | クライアントが信頼する証明書を自動発行 |
+| Harbor の HTTPS | CA Issuer (内部 CA) | レジストリアクセスの暗号化 |
+| Keycloak の HTTPS | CA Issuer (内部 CA) | OIDC エンドポイントの暗号化 |
+| Backstage の HTTPS | CA Issuer (内部 CA) | 開発者ポータルの暗号化 |
+| Argo CD の HTTPS | CA Issuer (内部 CA) | GitOps ダッシュボードの暗号化 |
+| Istio メッシュ内 mTLS | (対象外) | Istio CA が管理。cert-manager は関与しない |
+
+### MVP スコープ
+
+- MVP-1a で cert-manager を `infra` namespace にデプロイ
+- SelfSigned Issuer → CA Issuer のチェーンで内部 CA を構築
+- Envoy Gateway / Harbor / Keycloak / Backstage / Argo CD の TLS 証明書を自動発行
+- 証明書の自動更新を有効化 (デフォルト: 期限 30 日前に更新)
+
+### トレードオフ
+
+- 自己署名 CA の信頼配布 — クライアント端末に CA 証明書を信頼させる必要がある → JTC では Active Directory グループポリシーでの配布が一般的
+- cert-manager 自体の可用性 — 停止しても既存証明書は有効期限まで動作する。新規発行・更新のみ止まる → HA 構成と証明書期限の監視で緩和
+
+---
+
 ## 結論
 
 | カテゴリ | 採用 OSS | ライセンス |
@@ -203,6 +291,8 @@
 | 脆弱性スキャン | Trivy (Harbor 内蔵) | Apache 2.0 |
 | キャッシュ / KV | Valkey | BSD-3-Clause |
 | RDBMS | CloudNativePG + PostgreSQL | Apache 2.0 |
+| ポリシーエンジン | Kyverno | Apache 2.0 |
+| 証明書管理 | cert-manager | Apache 2.0 |
 
 すべて OSI 承認された OSS ライセンスで、RSALv2 / SSPL / BSL のような制限ライセンスを含まない。Keycloak OIDC を中心とした SSO で統合され、利用者は 1 アカウントで全ポータルにアクセスできる。
 

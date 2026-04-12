@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Monolith vs Microservice" id="comp1">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="860" pageHeight="400" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="860" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="title_left" value="モノリシックアーキテクチャ" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="10" width="260" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="title_right" value="マイクロサービスアーキテクチャ" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="520" y="10" width="300" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="mono_container" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="340" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="mono_ui" value="UI 層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="70" width="280" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mono_biz" value="ビジネスロジック層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="130" width="280" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mono_data" value="データアクセス層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="190" width="280" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="mono_db" value="共有データベース" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="310" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_a" value="サービス A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="70" width="100" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_b" value="サービス B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="70" width="100" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_c" value="サービス C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="70" width="100" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="db_a" value="DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="190" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="db_b" value="DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="190" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="db_c" value="DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="760" y="190" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="separator" style="strokeColor=#cccccc;strokeWidth=1;dashed=1;endArrow=none;html=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="20" as="sourcePoint"/>
+            <mxPoint x="420" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_mono_db" style="html=1;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="mono_container" target="mono_db" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_svc_a_db" style="html=1;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="svc_a" target="db_a" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_svc_b_db" style="html=1;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="svc_b" target="db_b" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_svc_c_db" style="html=1;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="svc_c" target="db_c" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_api_ab" style="html=1;strokeColor=#82b366;strokeWidth=1.5;endArrow=block;endFill=1;startArrow=block;startFill=1;dashed=1;dashPattern=6 3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="svc_a" target="svc_b" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_api_bc" style="html=1;strokeColor=#82b366;strokeWidth=1.5;endArrow=block;endFill=1;startArrow=block;startFill=1;dashed=1;dashPattern=6 3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="svc_b" target="svc_c" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_coupling" value="密結合" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="155" y="370" width="110" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_loose" value="疎結合・独立デプロイ" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="565" y="255" width="150" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_api" value="API" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=9;fontColor=#82b366;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="553" y="72" width="30" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_api2" value="API" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=9;fontColor=#82b366;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="713" y="72" width="30" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
