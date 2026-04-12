@@ -9,6 +9,7 @@
 - C. CI / パイプライン
 - D. コンテナレジストリ / 脆弱性スキャン
 - E. キャッシュ / KV ストア
+- F. RDBMS
 
 ルールエンジン (BRE) は [`03_ルールエンジン.md`](./03_ルールエンジン.md) で別扱いとする。
 
@@ -41,7 +42,7 @@
 ### トレードオフ
 
 - ローカル DB 運用の煩雑さ → Phase 2 以降で AD 連携に切替える前提で、MVP 中はユーザー数を絞る
-- 高可用構成の難しさ → Keycloak は PostgreSQL バックエンド + 複数レプリカ構成が推奨。CloudNativePG と組み合わせて HA を確保
+- 高可用構成の難しさ → Keycloak は PostgreSQL バックエンド + 複数レプリカ構成が推奨。`infra` 層の CloudNativePG 共有クラスタ上に `keycloak` DB を作成し HA を確保 (セクション F 参照)
 
 ---
 
@@ -156,6 +157,40 @@
 
 ---
 
+## F. RDBMS
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **CloudNativePG + PostgreSQL** | 採用 | CNCF Sandbox の k8s ネイティブ PostgreSQL Operator。HA / 自動フェイルオーバー / バックアップを宣言的に管理 |
+| Percona Operator for PostgreSQL | 次点 | 機能豊富だが CloudNativePG よりコミュニティ規模が小さい |
+| Zalando postgres-operator | 次点 | 実績あるが CNCF 外。CloudNativePG の方がエコシステム整合性が高い |
+| CrunchyData PGO | 次点 | 商用版との機能差がやや不透明 |
+| MySQL (各種 Operator) | 却下 | PostgreSQL の方が Keycloak / Backstage / Dapr Component との親和性が高い |
+
+### 採用理由 (CloudNativePG + PostgreSQL)
+
+1. **Keycloak / Backstage / Argo CD が PostgreSQL を推奨バックエンド** — 統一すれば運用が 1 系統で済む
+2. **Dapr State Store / Configuration の PostgreSQL Component** — Valkey 障害時のフォールバック先として機能する
+3. **tier2 業務サービスの RDBMS ニーズ** — 業務ドメインロジックが RDBMS を要求するケースは JTC で極めて多い。tier1 が共有クラスタを提供し、tier2 / tier3 がスキーマを分離して利用する
+4. **CloudNativePG は CNCF Sandbox (Apache 2.0)** — k1s0 の OSS ライセンス方針に完全適合
+5. **宣言的 HA** — プライマリ障害時に自動フェイルオーバー。JTC 情シスの夜間対応負荷を軽減
+6. **バックアップを CRD で宣言** — `ScheduledBackup` リソースで定期バックアップを自動化。オンプレ NFS / S3 互換 (MinIO) にバックアップ可能
+
+### MVP スコープ
+
+- CloudNativePG Operator を `infra` namespace にデプロイ
+- PostgreSQL クラスタを 1 つ作成 (プライマリ 1 + レプリカ 1 の最小 HA 構成)
+- データベースを論理分離: `keycloak` / `backstage` / `argocd` / `harbor`
+- 定期バックアップ (ローカル PV へのベースバックアップ + WAL アーカイブ)
+- tier2 / tier3 サービス向けのデータベースプロビジョニングは Phase 2 以降
+
+### トレードオフ
+
+- 共有 PostgreSQL クラスタの障害は複数コンポーネントに波及する → レプリカ + 自動フェイルオーバーで緩和。Phase 3 でクリティカル度に応じたクラスタ分離を検討
+- ストレージ I/O がボトルネックになりやすい → SSD を必須とし、Longhorn / ローカル PV で低レイテンシを確保
+
+---
+
 ## 結論
 
 | カテゴリ | 採用 OSS | ライセンス |
@@ -167,6 +202,7 @@
 | レジストリ | Harbor | Apache 2.0 |
 | 脆弱性スキャン | Trivy (Harbor 内蔵) | Apache 2.0 |
 | キャッシュ / KV | Valkey | BSD-3-Clause |
+| RDBMS | CloudNativePG + PostgreSQL | Apache 2.0 |
 
 すべて OSI 承認された OSS ライセンスで、RSALv2 / SSPL / BSL のような制限ライセンスを含まない。Keycloak OIDC を中心とした SSO で統合され、利用者は 1 アカウントで全ポータルにアクセスできる。
 
@@ -178,4 +214,5 @@
 - [`01_実行基盤中核OSS.md`](./01_実行基盤中核OSS.md) — k8s / Istio / Kafka / Dapr 等
 - [`03_ルールエンジン.md`](./03_ルールエンジン.md) — ZEN Engine
 - [`04_選定一覧.md`](./04_選定一覧.md) — 採用 OSS の全体一覧
+- [`05_IaC.md`](./05_IaC.md) — OpenTofu (IaC) の採用根拠
 - [`../05_CICDと配信/00_CICDパイプライン.md`](../05_CICDと配信/00_CICDパイプライン.md) — GHA / Argo CD / Harbor の統合フロー
