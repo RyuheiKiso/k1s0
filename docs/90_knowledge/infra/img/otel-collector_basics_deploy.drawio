@@ -1,0 +1,88 @@
+<mxfile>
+  <diagram name="Page-1" id="deploy">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="700" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="700" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="OpenTelemetry Collector デプロイパターン" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="150" y="10" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent_title" value="Agent モード（サイドカー / DaemonSet）" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="50" width="310" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="host1" value="ホスト / Pod 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="85" width="310" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="app1" value="アプリ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="35" y="108" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent1" value="OTel Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="175" y="108" width="135" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="host2" value="ホスト / Pod 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="180" width="310" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="app2" value="アプリ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="35" y="203" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="agent2" value="OTel Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="175" y="203" width="135" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_agent" value="バックエンド&lt;br&gt;(Jaeger, Prometheus 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="120" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="aa1" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="app1" target="agent1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="aa2" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="app2" target="agent2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="aa3" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="agent1" target="be_agent" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="aa4" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="agent2" target="be_agent" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="divider" value="" style="endArrow=none;strokeColor=#CCCCCC;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="20" y="285" as="sourcePoint"/>
+            <mxPoint x="680" y="285" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gw_title" value="Gateway モード（集中型）" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="295" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="aa_box1" value="ホスト 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="330" width="140" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="gw_app1" value="アプリ + Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="348" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="aa_box2" value="ホスト 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;verticalAlign=top;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="410" width="140" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="gw_app2" value="アプリ + Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="428" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="gateway" value="OTel Collector&lt;br&gt;（Gateway）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="270" y="350" width="170" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_gw" value="バックエンド" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="360" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ga1" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="gw_app1" target="gateway" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ga2" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="gw_app2" target="gateway" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ga3" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="gateway" target="be_gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

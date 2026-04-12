@@ -1,0 +1,124 @@
+<mxfile>
+  <diagram name="Page-1" id="arch">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="860" pageHeight="390" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="860" height="390" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="OpenTelemetry Collector パイプラインアーキテクチャ" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="180" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="src_header" value="テレメトリソース" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="15" y="72" width="130" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="app_a" value="アプリ A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="110" width="120" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="app_b" value="アプリ B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="170" width="120" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="app_c" value="アプリ C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="230" width="120" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="collector" value="OpenTelemetry Collector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="175" y="50" width="500" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="recv_header" value="Receivers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="210" y="78" width="80" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="proc_header" value="Processors" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="355" y="78" width="80" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="exp_header" value="Exporters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="78" width="80" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="recv_otlp" value="OTLP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="110" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="recv_prom" value="Prometheus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="170" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="recv_filelog" value="Filelog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="230" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="proc_batch" value="Batch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="110" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="proc_memlim" value="Memory Limiter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="170" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="proc_filter" value="Filter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="230" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="exp_otlp" value="OTLP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="485" y="110" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="exp_prom" value="Prometheus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="485" y="170" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="exp_debug" value="Debug" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="485" y="230" width="110" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_label" value="Extensions" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="305" y="278" width="80" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_health" value="Health Check" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="225" y="300" width="100" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext_zpages" value="zpages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="300" width="100" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_header" value="バックエンド" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="72" width="120" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_jaeger" value="Jaeger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="110" width="120" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_prom" value="Prometheus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="170" width="120" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="be_loki" value="Loki" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="230" width="120" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="app_a" target="recv_otlp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="recv_otlp" target="proc_batch" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="proc_batch" target="exp_otlp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="exp_otlp" target="be_jaeger" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a5" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="app_b" target="recv_prom" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a6" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="recv_prom" target="proc_memlim" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a7" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="proc_memlim" target="exp_prom" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a8" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="exp_prom" target="be_prom" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a9" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="app_c" target="recv_filelog" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a10" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="recv_filelog" target="proc_filter" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a11" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="proc_filter" target="exp_debug" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a12" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=1.5;" edge="1" source="exp_debug" target="be_loki" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
