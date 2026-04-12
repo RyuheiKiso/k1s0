@@ -1,0 +1,74 @@
+<mxfile>
+  <diagram name="architecture" id="arch1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="830" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="830" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="k8s" value="&lt;b&gt;Kubernetes Cluster&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;verticalAlign=top;fontSize=13;align=left;spacingLeft=10;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="10" y="10" width="810" height="480" as="geometry"/>
+        </mxCell>
+        <mxCell id="op" value="CloudNativePG Operator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="35" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_manage" value="管理" style="endArrow=classic;html=1;strokeColor=#333333;fontColor=#333333;fontSize=10;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="op" target="cr" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="-8" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cr" value="Cluster リソース (postgresql.cnpg.io/v1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#0066CC;dashed=1;dashPattern=8 4;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#0066CC;spacingTop=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="105" width="780" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="primary" value="&lt;b&gt;Primary Pod&lt;/b&gt;&lt;br&gt;読み書き可能&lt;br&gt;PVC: データ + WAL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="135" width="180" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="sb1" value="&lt;b&gt;Standby Pod 1&lt;/b&gt;&lt;br&gt;読み取り専用&lt;br&gt;PVC: データ + WAL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="135" width="180" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="sb2" value="&lt;b&gt;Standby Pod 2&lt;/b&gt;&lt;br&gt;読み取り専用&lt;br&gt;PVC: データ + WAL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="135" width="180" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_repl1" value="レプリケーション" style="endArrow=classic;html=1;strokeColor=#CC0000;strokeWidth=2;fontColor=#CC0000;fontSize=9;exitX=1;exitY=0.4;entryX=0;entryY=0.4;" edge="1" source="primary" target="sb1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="0" y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_repl2" value="" style="endArrow=classic;html=1;strokeColor=#CC0000;strokeWidth=2;rounded=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="180" as="sourcePoint"/>
+            <mxPoint x="610" y="180" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="275" y="180"/>
+              <mxPoint x="275" y="220"/>
+              <mxPoint x="585" y="220"/>
+              <mxPoint x="585" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="svc_rw" value="&lt;b&gt;Service: cluster-rw&lt;/b&gt;&lt;br&gt;→ Primary に接続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="320" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_ro" value="&lt;b&gt;Service: cluster-ro&lt;/b&gt;&lt;br&gt;→ Standby に接続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="330" y="320" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc_r" value="&lt;b&gt;Service: cluster-r&lt;/b&gt;&lt;br&gt;→ 全インスタンスに接続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="320" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="app" value="&lt;b&gt;アプリケーション&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6E6E6;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="425" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_app_rw" value="" style="endArrow=classic;html=1;strokeColor=#6C8EBF;exitX=0.2;exitY=0;entryX=0.5;entryY=1;" edge="1" source="app" target="svc_rw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_app_ro" value="" style="endArrow=classic;html=1;strokeColor=#6C8EBF;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" source="app" target="svc_ro" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_app_r" value="" style="endArrow=classic;html=1;strokeColor=#6C8EBF;exitX=0.8;exitY=0;entryX=0.5;entryY=1;" edge="1" source="app" target="svc_r" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

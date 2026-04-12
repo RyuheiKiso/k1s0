@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="architecture" id="arch1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="850" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="sre" value="&lt;b&gt;SRE /&lt;br&gt;エンジニア&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="250" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="pf" value="&lt;b&gt;カオスエンジニアリング&lt;br&gt;プラットフォーム&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f5ff;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="250" y="30" width="220" height="540" as="geometry"/>
+        </mxCell>
+        <mxCell id="ss" value="定常状態仮説" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="275" y="90" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="fi" value="障害注入エンジン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="275" y="195" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ob" value="観測・検証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="275" y="300" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="rb" value="ロールバック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="275" y="405" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ts" value="&lt;b&gt;対象システム&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;strokeWidth=2;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="30" width="240" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Pod A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="85" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="Pod B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="85" width="80" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sv" value="Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="170" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="mo" value="&lt;b&gt;モニタリング&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffef0;strokeColor=#d6b656;strokeWidth=2;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="380" width="240" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="mt" value="メトリクス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="430" width="90" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="al" value="アラート" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="710" y="430" width="90" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" value="実験実行" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="280" as="sourcePoint"/>
+            <mxPoint x="250" y="280" as="targetPoint"/>
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" value="障害注入" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="470" y="165" as="sourcePoint"/>
+            <mxPoint x="580" y="165" as="targetPoint"/>
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a3" value="監視データ" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#d6b656;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="260" as="sourcePoint"/>
+            <mxPoint x="700" y="380" as="targetPoint"/>
+            <mxPoint x="12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a4" value="検証結果" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="490" as="sourcePoint"/>
+            <mxPoint x="470" y="490" as="targetPoint"/>
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Build-Measure-Learn サイクル" id="bml-cycle">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="660" pageHeight="460" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="660" height="460" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="Build-Measure-Learn サイクル" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="180" y="5" width="300" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="build" value="構築&lt;br&gt;Build" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="60" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="build_desc" value="最小限の機能で構築" style="text;html=1;fontSize=10;align=center;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="260" y="125" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="measure" value="計測&lt;br&gt;Measure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="measure_desc" value="ユーザー行動を計測" style="text;html=1;fontSize=10;align=center;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="450" y="365" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="learn" value="学習&lt;br&gt;Learn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="learn_desc" value="データから仮説を検証" style="text;html=1;fontSize=10;align=center;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="70" y="365" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" value="MVP プロダクト" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#FFFFFF;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="build" target="measure">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="90"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow2" value="データ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#FFFFFF;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="measure" target="learn">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow3" value="アイデア / 仮説" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;labelBackgroundColor=#FFFFFF;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1" source="learn" target="build">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="140" y="90"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

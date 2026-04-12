@@ -1,0 +1,117 @@
+<mxfile>
+  <diagram name="GitOps Flow" id="flow1">
+    <mxGraphModel dx="1200" dy="520" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="520" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="520" as="geometry" />
+        </mxCell>
+
+        <!-- Title -->
+        <mxCell id="title" value="Argo CD GitOps ワークフロー" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="15" width="400" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Developer pushes -->
+        <mxCell id="step1" value="① 開発者が&#xa;コードを Push" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Git Repository -->
+        <mxCell id="step2" value="② Git リポジトリ&#xa;（マニフェスト更新）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="230" y="90" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Argo CD detects -->
+        <mxCell id="step3" value="③ Argo CD が&#xa;変更を検知" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="90" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Compare -->
+        <mxCell id="step4" value="④ 望ましい状態 vs&#xa;実際の状態を比較" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="790" y="90" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 5: OutOfSync or Synced -->
+        <mxCell id="step5a" value="⑤ OutOfSync&#xa;（差分あり）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="90" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Sync -->
+        <mxCell id="step6" value="⑥ Sync 実行&#xa;（自動 or 手動）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="220" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 7: Apply to K8s -->
+        <mxCell id="step7" value="⑦ Kubernetes に&#xa;マニフェストを適用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="360" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Step 8: Synced -->
+        <mxCell id="step8" value="⑧ Synced&#xa;（状態一致）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="360" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Self-Heal box -->
+        <mxCell id="selfheal" value="自動修復（Self-Heal）&#xa;手動変更やドリフトを&#xa;検知して自動で戻す" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="430" y="350" width="190" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="step1" target="step2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="step2" target="step3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2_label" value="ポーリング&#xa;(3分間隔)" style="edgeLabel;html=1;fontSize=9;fontColor=#666666;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-18" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="step3" target="step4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="step4" target="step5a" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="step5a" target="step6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="step6" target="step7" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#333333;strokeWidth=2;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="step7" target="step8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Self-Heal arrow -->
+        <mxCell id="a8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;exitX=0;exitY=0.5;entryX=0;entryY=1;" edge="1" source="selfheal" target="step3" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="385" />
+              <mxPoint x="380" y="200" />
+              <mxPoint x="520" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a8_label" value="ドリフト検知で&#xa;再同期" style="edgeLabel;html=1;fontSize=9;fontColor=#9673a6;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a8">
+          <mxGeometry x="0.3" relative="1" as="geometry">
+            <mxPoint x="-50" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Synced -> Self-Heal -->
+        <mxCell id="a9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" source="step8" target="selfheal" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a9_label" value="状態を監視" style="edgeLabel;html=1;fontSize=9;fontColor=#9673a6;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a9">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

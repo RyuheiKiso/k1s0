@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Architecture" id="arch1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="550" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="550" as="geometry"/>
+        </mxCell>
+        <mxCell id="dev" value="開発者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="15" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe" value="フロントエンド (React App)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="100" width="500" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" value="" style="strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="dev" target="fe" parent="1"/>
+        <mxCell id="be" value="バックエンド (Node.js)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="780" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="" style="strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="fe" target="be" parent="1"/>
+        <mxCell id="catalog" value="Software&#xa;Catalog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="270" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="templates" value="Software&#xa;Templates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="275" y="270" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="techdocs" value="TechDocs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="270" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="search" value="Search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="645" y="270" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="db" value="データベース&#xa;(PostgreSQL)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;fontStyle=1;size=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="435" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ext" value="外部サービス&#xa;(GitHub, CI/CD 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="" style="strokeColor=#333333;strokeWidth=2;exitX=0.22;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="be" target="db" parent="1"/>
+        <mxCell id="a4" value="" style="strokeColor=#333333;strokeWidth=2;exitX=0.78;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="be" target="ext" parent="1"/>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
