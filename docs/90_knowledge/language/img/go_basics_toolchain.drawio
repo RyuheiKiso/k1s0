@@ -1,0 +1,46 @@
+<mxfile>
+  <diagram name="Go ツールチェーン" id="toolchain">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="780" pageHeight="290" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="780" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value=".go ソースコード" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="compiler" value="Go コンパイラ&lt;br&gt;(go build)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="50" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="binary" value="実行バイナリ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="src" target="compiler" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="compiler" target="binary" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label" value="Go ツールチェーン" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="fmt" value="go fmt&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;コード整形&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="175" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="test" value="go test&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;テスト実行&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="190" y="175" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="vet" value="go vet&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;静的解析&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="340" y="175" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mod" value="go mod&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;依存管理&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="490" y="175" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="run" value="go run&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;直接実行&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="175" width="120" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

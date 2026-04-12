@@ -4,7 +4,7 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="layer1" value="tier2 / tier3 コード (C# / Go / Java / TS / Python)&#xa;→ tier1 公開 API のみを import / 呼び出し" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
+        <mxCell id="layer1" value="tier2 / tier3 コード (C# / Go / TS)&#xa;→ tier1 公開 API のみを import / 呼び出し" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
           <mxGeometry x="60" y="40" width="880" height="90" as="geometry" />
         </mxCell>
         <mxCell id="layer2" value="tier1 公開 API (多言語クライアントライブラリ)&#xa;k1s0 固有の統一 API: log / telemetry / state / pub-sub / secrets / workflow / auth / audit / decision" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">

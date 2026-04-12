@@ -26,7 +26,7 @@ tier1 は以下の 3 要素から成る。どれか 1 つでも欠けると tier
 ### 2.1 tier1 公開 API (多言語クライアントライブラリ)
 
 - tier2 / tier3 が利用する **唯一の接点**
-- C# / Go / Java / TypeScript / Python 向けに提供
+- C# / Go / TypeScript 向けに提供
 - 薄いラッパーであり、内部では tier1 内部の Go / Rust サービスに gRPC で振り分ける
 - Dapr SDK や infra コンポーネントを一切露出させない
 
