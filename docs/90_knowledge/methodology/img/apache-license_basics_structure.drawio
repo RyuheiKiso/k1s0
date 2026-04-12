@@ -1,0 +1,130 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="License Structure" id="license-structure">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Apache License 2.0 の権利構造" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="310" y="20" width="340" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="center" value="Apache License 2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="80" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="perm_header" value="許可される行為（Permissions）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="perm1" value="商用利用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="perm2" value="改変" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="180" y="260" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="perm3" value="再配布" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="315" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="perm4" value="特許利用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="180" y="315" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="perm5" value="私的利用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="perm6" value="サブライセンス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="180" y="370" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="note_perm" value="ソースコード公開義務なし&#xa;（非コピーレフト）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cond_header" value="必須条件（Conditions）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="200" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cond1" value="著作権表示の保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="260" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="cond2" value="ライセンス文の同梱" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="315" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="cond3" value="変更箇所の明示（NOTICE）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="370" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="note_cond" value="NOTICE ファイルがある場合&#xa;派生物にも含める必要がある" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="365" y="420" width="230" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="limit_header" value="制限事項（Limitations）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="660" y="200" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="limit1" value="商標使用の禁止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="660" y="260" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="limit2" value="責任の免除（無保証）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="660" y="315" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="limit3" value="損害賠償責任の否認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="660" y="370" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="note_limit" value="&quot;Apache&quot; の名称を製品名に&#xa;使用することはできない" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="685" y="420" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;strokeWidth=2;" edge="1" source="center" target="perm_header" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;" edge="1" source="center" target="cond_header" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=2;" edge="1" source="center" target="limit_header" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="divider" value="" style="line;strokeWidth=2;strokeColor=#CCCCCC;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="880" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="patent_title" value="特許に関する条項（Apache 2.0 の特徴的な条項）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="260" y="515" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="patent_box" value="特許ライセンスの自動付与&#xa;（Section 3）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="patent_desc" value="コントリビューターは、自身の特許権に基づく&#xa;永続的・取消不能な特許ライセンスを自動付与する" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="55" y="620" width="290" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="retaliation_box" value="特許報復条項&#xa;（Patent Retaliation）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="620" y="560" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="retaliation_desc" value="特許訴訟を起こした場合&#xa;付与された特許ライセンスは自動終了する" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="625" y="620" width="250" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_patent_retali" value="訴訟を起こすと" style="rounded=1;orthogonalLoop=1;jettySize=auto;strokeColor=#9673a6;strokeWidth=2;fontSize=10;fontColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" source="patent_box" target="retaliation_box" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="685" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1_text" value="許可" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="125" y="680" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="185" y="685" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2_text" value="条件" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="210" y="680" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="270" y="685" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3_text" value="制限" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="295" y="680" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="355" y="685" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4_text" value="特許条項" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="380" y="680" width="70" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -8,6 +8,10 @@
 - M. 接続プーリング
 - N. 依存パッケージ自動更新
 - O. イベント駆動自動化
+- P. 統合テスト基盤
+- Q. DB スキーママイグレーション (Go)
+- R. DB スキーママイグレーション (Rust)
+- S. ベクトル検索拡張 (PostgreSQL)
 
 ---
 
@@ -178,12 +182,130 @@ MVP-1a の runner イメージ (Kaniko / Trivy / crane 同梱) に DinD sidecar 
 
 ---
 
+## Q. DB スキーママイグレーション (Go)
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **golang-migrate** | 採用 | Go エコシステム標準。SQL ベースのマイグレーションで宣言的に管理。CLI + ライブラリの 2 形態で利用可能 |
+| goose | 却下 | 機能的には十分だがコミュニティ規模と GitHub Star 数で golang-migrate に劣る |
+| Atlas | 却下 | 宣言的スキーマ管理は魅力的だが商用モデル (Ariga 社) への依存リスク |
+
+### 採用理由 (golang-migrate)
+
+1. **SQL ベースのマイグレーション** — Up / Down の SQL ファイルを `migrations/` ディレクトリに格納し、バージョン番号で順序管理する。ORM に依存しないため、tier1 Go サービスと tier2 Go サービスの双方で統一的に利用可能
+2. **CLI + ライブラリの 2 形態** — CI パイプラインでは CLI (`migrate` コマンド) を使用し、アプリケーション起動時にはライブラリとして組み込むことも可能。Argo CD PreSync Hook での実行にも対応
+3. **PostgreSQL ドライバ対応** — `pgx` / `lib/pq` の双方をサポート。CloudNativePG + PgBouncer 構成でも動作確認済みのコミュニティ事例が豊富
+4. **Testcontainers との統合** — Testcontainers で起動した PostgreSQL コンテナに対してマイグレーションを適用し、統合テストでスキーマの正しさを自動検証できる
+5. **CI でのマイグレーション検証** — 空の PostgreSQL コンテナに対して全マイグレーションを適用し、構文エラーや互換性違反を PR 時に検出する
+
+### 実行方式
+
+| タイミング | 実行方式 | 環境 |
+|---|---|---|
+| CI (PR 時) | GHA step で `migrate` CLI を実行。Testcontainers の PostgreSQL に全マイグレーション適用 | GHA runner Pod |
+| デプロイ時 | Argo CD PreSync Hook (Job) で `migrate up` を実行 | k8s |
+| ローカル開発 | `migrate` CLI を直接実行、または Tilt の `local_resource` で自動適用 | 開発者 PC |
+
+### MVP スコープ
+
+- Phase 1 (MVP-1a) から導入
+- tier1 Go サービス (`k1s0_audit` DB) のマイグレーションで初適用
+- 雛形生成 CLI がマイグレーションディレクトリ構造と初期マイグレーションファイルを自動生成
+- `down` マイグレーション (ロールバック SQL) の作成を必須とする
+
+### トレードオフ
+
+- マイグレーションファイルの手書き管理が必要 (ORM 自動生成ではない) だが、SQL を直接管理する方が長期的な可読性と制御性が高い
+- マイグレーション順序の衝突 (複数開発者が同時にマイグレーション追加) は CI で検出する
+
+---
+
+## R. DB スキーママイグレーション (Rust)
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **sqlx-cli** | 採用 | Rust エコシステム標準。コンパイル時 SQL 検証と統合されたマイグレーション管理 |
+| diesel_cli | 却下 | ORM (Diesel) と密結合。sqlx の方が軽量で SQL 直書きとの親和性が高い |
+| refinery | 却下 | 機能は十分だがコミュニティ規模が sqlx に劣る |
+
+### 採用理由 (sqlx-cli)
+
+1. **コンパイル時 SQL 検証** — `sqlx::query!` マクロが実行する SQL をコンパイル時に PostgreSQL に対して検証する。型の不一致やテーブル/カラムの不存在をビルド時に検出でき、ランタイムエラーを未然に防止する
+2. **SQL ベースのマイグレーション** — golang-migrate と同様に Up / Down の SQL ファイルで管理する。ORM に依存しないため、監査ログの複雑なスキーマも SQL で直接定義できる
+3. **tier1 Rust サービスとの統合** — `sqlx` は tier1 Rust サービス (監査ログ・PII マスキング) の PostgreSQL クライアントとしても採用するため、マイグレーションツールとアプリケーションコードが同一エコシステムで統一される
+4. **Testcontainers との統合** — `testcontainers-rs` で起動した PostgreSQL に対してマイグレーションを適用し、監査ログ永続化のテストを自動化できる
+
+### 実行方式
+
+| タイミング | 実行方式 | 環境 |
+|---|---|---|
+| CI (PR 時) | GHA step で `sqlx migrate run` を実行。Testcontainers の PostgreSQL でスキーマ検証 | GHA runner Pod |
+| デプロイ時 | Argo CD PreSync Hook (Job) で `sqlx migrate run` を実行 | k8s |
+| ローカル開発 | `sqlx migrate run` を直接実行、または Tilt の `local_resource` で自動適用 | 開発者 PC |
+| コンパイル時 | `sqlx::query!` マクロが `.sqlx/` キャッシュを参照してオフラインでも検証可能 | GHA runner Pod / 開発者 PC |
+
+### sqlx オフラインモード
+
+CI 環境や DB 未接続の開発環境では、`cargo sqlx prepare` で生成した `.sqlx/` ディレクトリ (クエリメタデータのキャッシュ) をリポジトリにコミットすることで、PostgreSQL に接続せずにコンパイル時検証を実行できる。
+
+### MVP スコープ
+
+- Phase 2 から導入 (tier1 Rust サービスの本格実装と同時)
+- tier1 Rust サービス (`k1s0_audit` DB の監査テーブル) のマイグレーションで初適用
+- `down` マイグレーション (ロールバック SQL) の作成を必須とする
+- `.sqlx/` ディレクトリをリポジトリにコミットし、オフラインコンパイル時検証を有効化
+
+### トレードオフ
+
+- `cargo sqlx prepare` の実行を忘れるとオフラインビルドが失敗する → CI で `.sqlx/` の最新性を検証する step を追加
+- sqlx-cli のバージョンと sqlx クレートのバージョンを一致させる必要がある → Renovate で統一管理
+
+---
+
+## S. ベクトル検索拡張 (PostgreSQL)
+
+| 候補 | 採否 | 評価 |
+|---|---|---|
+| **pgvector** | 採用 | PostgreSQL 拡張。既存の CloudNativePG クラスタに追加するだけでベクトル検索が利用可能。追加インフラ不要 |
+| Weaviate | 却下 | 専用のベクトル DB サーバーが必要。インフラ追加のコストと運用負荷が大きい |
+| Qdrant | 却下 | 同上。Rust 製で高性能だが 2 名体制で別 DB を運用する余裕がない |
+| Milvus | 却下 | 大規模向け。JTC の利用規模にはオーバースペックでリソース消費が大きい |
+| ベクトル検索なし | 却下 | Phase 4 以降の AI/ML 連携 (RAG / セマンティック検索) で必要になる |
+
+### 採用理由 (pgvector)
+
+1. **既存インフラへの追加のみ** — CloudNativePG の PostgreSQL インスタンスに `CREATE EXTENSION vector;` を実行するだけで利用可能。追加の DB サーバー・Operator・ストレージが不要
+2. **PostgreSQL エコシステムとの統合** — `WHERE` 句のフィルタリング、`JOIN`、トランザクションなど PostgreSQL の全機能とベクトル検索を組み合わせられる。ACID 保証の中でベクトルデータを管理できる
+3. **バックアップ戦略の統合** — CloudNativePG の barman-cloud バックアップにベクトルデータも含まれる。専用ベクトル DB の場合は別途バックアップ戦略が必要
+4. **将来の AI/ML ユースケース** — 社内文書のセマンティック検索、ナレッジベース構築、RAG (Retrieval-Augmented Generation) のバックエンドとして利用可能。tier1 公開 API として `k1s0.Search.*` を将来追加する際の基盤技術となる
+5. **接続プーリングとの共存** — PgBouncer 経由でのベクトル検索クエリ実行に問題がない
+
+### インデックス方式
+
+| インデックス | 特徴 | 推奨用途 |
+|---|---|---|
+| IVFFlat | 構築が高速。精度はやや劣る | データ量が少ない初期段階 (Phase 2-3) |
+| HNSW | 検索精度が高い。構築にメモリを消費する | データ量が増えた Phase 4 以降 |
+
+### MVP スコープ
+
+- Phase 2 で PostgreSQL 拡張として有効化 (CloudNativePG の `postgresql.conf` に追加)
+- Phase 2 時点では拡張の有効化のみ。実際のベクトルデータ格納は Phase 4 以降
+- tier1 Rust サービスでの利用を想定 (sqlx は pgvector 型をサポート)
+
+### トレードオフ
+
+- 大量のベクトルデータ (100 万件以上) を扱う場合は HNSW インデックスのメモリ消費が大きくなる → Phase 4 以降の実データ量に応じてインデックス戦略を再評価
+- PostgreSQL のメジャーバージョンアップ時に pgvector の互換性を確認する必要がある → Renovate の対象に含める (CloudNativePG イメージに pgvector が同梱されるコミュニティイメージを利用)
+
+---
+
 ## 関連ドキュメント
 
 - [`02_周辺OSS.md`](./02_周辺OSS.md) — 周辺 OSS の選定 (A〜K)
 - [`04_選定一覧.md`](./04_選定一覧.md) — 採用 OSS 選定一覧
 - [`../02_アーキテクチャ/10_レート制限.md`](../02_アーキテクチャ/10_レート制限.md) — Rate Limiting
 - [`../02_アーキテクチャ/05_障害復旧とバックアップ.md`](../02_アーキテクチャ/05_障害復旧とバックアップ.md) — Longhorn によるデータ保護
-- [`../02_アーキテクチャ/09_データアーキテクチャ.md`](../02_アーキテクチャ/09_データアーキテクチャ.md) — PgBouncer による接続管理
+- [`../02_アーキテクチャ/09_データアーキテクチャ.md`](../02_アーキテクチャ/09_データアーキテクチャ.md) — PgBouncer による接続管理 / スキーマ進化戦略
 - [`../05_CICDと配信/00_CICDパイプライン.md`](../05_CICDと配信/00_CICDパイプライン.md) — Renovate / Argo Events のパイプライン統合
 - [`../05_CICDと配信/03_テスト戦略.md`](../05_CICDと配信/03_テスト戦略.md) — Testcontainers のテスト戦略への統合

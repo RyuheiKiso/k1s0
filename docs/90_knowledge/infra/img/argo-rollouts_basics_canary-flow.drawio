@@ -1,0 +1,121 @@
+<mxfile host="draw.io">
+  <diagram name="Canary Deployment Flow" id="canary-flow">
+    <mxGraphModel dx="700" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="700" pageHeight="600" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 白背景（GitHub ダークテーマ対応） -->
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="700" height="600" as="geometry" />
+        </mxCell>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="Canary デプロイメントフロー" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="150" y="10" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- デプロイ開始 -->
+        <mxCell id="s1" value="デプロイ開始" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="55" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- setWeight: 20% -->
+        <mxCell id="s2" value="setWeight: 20%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- メトリクス分析 1 -->
+        <mxCell id="s3" value="メトリクス分析" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="230" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- setWeight: 60% -->
+        <mxCell id="s4" value="setWeight: 60%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- メトリクス分析 2 -->
+        <mxCell id="s5" value="メトリクス分析" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- プロモート -->
+        <mxCell id="s6" value="プロモート（100%）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 自動ロールバック -->
+        <mxCell id="rb" value="自動ロールバック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=13;dashed=1;dashPattern=5 5;" vertex="1" parent="1">
+          <mxGeometry x="480" y="340" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印: デプロイ開始 → setWeight 20% -->
+        <mxCell id="ea" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="s1" target="s2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印: setWeight 20% → メトリクス分析 1 -->
+        <mxCell id="eb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="s2" target="s3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印: メトリクス分析 1 → setWeight 60%（成功） -->
+        <mxCell id="ec" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="s3" target="s4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ec-label" value="成功" style="edgeLabel;html=1;fontSize=11;fontColor=#82B366;fontStyle=1;" vertex="1" connectable="0" parent="ec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: setWeight 60% → メトリクス分析 2 -->
+        <mxCell id="ed" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="s4" target="s5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印: メトリクス分析 2 → プロモート（成功） -->
+        <mxCell id="ee" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="s5" target="s6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ee-label" value="成功" style="edgeLabel;html=1;fontSize=11;fontColor=#82B366;fontStyle=1;" vertex="1" connectable="0" parent="ee">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-20" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: メトリクス分析 1 → 自動ロールバック（失敗） -->
+        <mxCell id="ef" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;dashed=1;dashPattern=8 4;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" source="s3" target="rb" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="252" />
+              <mxPoint x="390" y="355" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ef-label" value="失敗" style="edgeLabel;html=1;fontSize=11;fontColor=#B85450;fontStyle=1;" vertex="1" connectable="0" parent="ef">
+          <mxGeometry x="-0.6" relative="1" as="geometry">
+            <mxPoint y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 矢印: メトリクス分析 2 → 自動ロールバック（失敗） -->
+        <mxCell id="eg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;dashed=1;dashPattern=8 4;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" source="s5" target="rb" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="452" />
+              <mxPoint x="390" y="375" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eg-label" value="失敗" style="edgeLabel;html=1;fontSize=11;fontColor=#B85450;fontStyle=1;" vertex="1" connectable="0" parent="eg">
+          <mxGeometry x="-0.6" relative="1" as="geometry">
+            <mxPoint y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
