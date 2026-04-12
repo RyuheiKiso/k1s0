@@ -88,7 +88,7 @@ tier1 の実装規模が劇的に縮小し、Kafka / state store / secret store 
 
 | 層 | 役割 | 言語 |
 |---|---|---|
-| tier2 / tier3 コード | 業務ロジック / UI / API | C# / Go / Java / TS 等 |
+| tier2 / tier3 コード | 業務ロジック / UI / API | C# / Go / TS 等 |
 | tier1 公開 API (多言語クライアントライブラリ) | tier2 / tier3 との唯一の接点。薄いラッパー | 対象言語に合わせる |
 | tier1 内部実装 | Dapr Control Plane + Go ファサード + Rust 自作サービス | Go + Rust ハイブリッド |
 

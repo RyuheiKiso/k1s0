@@ -148,13 +148,12 @@ tier1 が提供する共通機能 (service invocation / state / pub-sub / secret
 
 ## 8. tier1 実装言語 (内部サービス)
 
-tier1 の内部サービスの実装言語選定。公開クライアントライブラリは別系統で各対象言語 (C# / Go / Java / TS) に提供する。
+tier1 の内部サービスの実装言語選定。公開クライアントライブラリは別系統で各対象言語 (C# / Go / TS) に提供する。
 
 | 候補 | 採否 | 評価 |
 |---|---|---|
 | **Go (Daprファサード)** | 採用 | Dapr Go SDK が stable。Daprファサード系の薄いハンドラで生産性が高い。k8s / OTel / Loki / oauth2-proxy 等のエコシステムが Go 中心で人材も豊富 |
 | **Rust (自作領域)** | 採用 | メモリ安全・高性能・長期保守性。ZEN Engine の in-process 統合 / 雛形生成 CLI / JTC 固有機能で Rust の優位性が出る |
-| Java | 却下 | JVM 起動コスト・メモリ消費が tier1 サービス群には重い |
 | C# (.NET) | 却下 | Linux 対応は実用だが、Dapr Go SDK と同等の枯れ具合がなく k8s 周辺エコシステムとの整合性で Go に劣る |
 
 **採用方針**: tier1 内部は Daprファサード = Go、自作領域 = Rust のハイブリッド構成。詳細は [`../03_tier1設計/02_内部言語ハイブリッド.md`](../03_tier1設計/02_内部言語ハイブリッド.md) を参照。
