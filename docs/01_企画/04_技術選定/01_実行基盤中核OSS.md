@@ -73,16 +73,16 @@ k1s0 の実行基盤を構成する中核 OSS (k8s / Istio / Envoy Gateway / Kaf
 
 | カテゴリ | 候補 | 採否 | 評価 |
 |---|---|---|---|
-| 分散トレース | **OpenTelemetry + Jaeger** | 採用 | OTel は計装の業界標準、Jaeger はバックエンドとして実績十分 |
-| | Zipkin | 却下 | Jaeger と同等だが k8s 親和性で Jaeger が優位 |
-| | Grafana Tempo | 次点 | 将来的に移行検討余地あり |
+| 分散トレース | **OpenTelemetry + Grafana Tempo** | 採用 | OTel は計装の業界標準、Tempo は OTLP ネイティブで MinIO (S3) をバックエンドに使用可能。LGTM スタックを完成させる |
+| | Jaeger | 不採用 | CNCF Graduated で実績豊富だが、バックエンドに Elasticsearch / Cassandra が必要であり 2 名体制での運用が困難。Red Hat が 2025 年 11 月に Jaeger サポートを終了し Tempo 移行を公式推奨 |
+| | Zipkin | 却下 | バックエンドストレージの運用負荷が高い。コミュニティ規模も Jaeger に劣る |
 | メトリクス | **Prometheus** | 採用 | デファクト。k8s との統合完成 |
 | | VictoriaMetrics | 次点 | Prometheus 互換で高性能。スケール時に検討 |
 | | Thanos | 次点 | 長期保存要件が出たら追加導入 |
 | ログ | **Loki** | 採用 | 軽量・低コスト・Grafana 統合 |
 | | Elasticsearch (ELK) | 却下 | リソース消費大、オンプレ小規模にはオーバースペック |
 
-**採用方針**: OTel を計装層として統一し、バックエンドは差し替え可能な構成にする。tier1 公開 API (`k1s0.Telemetry.*`) が各バックエンドを抽象化する。**OTel Collector** (Agent モード / DaemonSet) をテレメトリパイプラインの中継地点として配置し、サービスからバックエンドへの直接送信を排除する。これにより、バックエンド追加・変更時にサービスの再デプロイが不要になる。OTel Collector の選定根拠は [`09_ネットワークとテレメトリ基盤.md#S`](./09_ネットワークとテレメトリ基盤.md) を参照。
+**採用方針**: OTel を計装層として統一し、バックエンドは差し替え可能な構成にする。tier1 公開 API (`k1s0.Telemetry.*`) が各バックエンドを抽象化する。**OTel Collector** (Agent モード / DaemonSet) をテレメトリパイプラインの中継地点として配置し、サービスからバックエンドへの直接送信を排除する。これにより、バックエンド追加・変更時にサービスの再デプロイが不要になる。トレーシングバックエンドは Grafana Tempo を採用し、Loki / Prometheus / Grafana と合わせて LGTM スタックを構成する。OTel Collector の選定根拠は [`09_ネットワークとテレメトリ基盤.md#S`](./09_ネットワークとテレメトリ基盤.md)、Grafana Tempo の選定根拠は [`11_追加採用OSS_3.md#W`](./11_追加採用OSS_3.md) を参照。
 
 ---
 

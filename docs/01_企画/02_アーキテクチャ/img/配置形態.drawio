@@ -16,7 +16,7 @@
         <mxCell id="iC2" value="Istio Control Plane" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
           <mxGeometry x="250" y="115" width="140" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="iC3" value="Prometheus / Loki / Jaeger / Grafana" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
+        <mxCell id="iC3" value="Prometheus / Loki / Tempo / Grafana" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">
           <mxGeometry x="90" y="170" width="420" height="40" as="geometry" />
         </mxCell>
         <mxCell id="iC4" value="Kafka (Strimzi) / Harbor / Valkey" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450" vertex="1" parent="1">

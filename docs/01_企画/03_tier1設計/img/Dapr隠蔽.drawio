@@ -22,7 +22,7 @@
         <mxCell id="dapr" value="Dapr Control Plane + サイドカー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=11;align=center" vertex="1" parent="1">
           <mxGeometry x="80" y="475" width="840" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="infra" value="infra 層 (k8s / Istio / Envoy Gateway / Kafka / Loki / Prometheus / Jaeger / Harbor / Valkey)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
+        <mxCell id="infra" value="infra 層 (k8s / Istio / Envoy Gateway / Kafka / Loki / Prometheus / Tempo / Harbor / Valkey)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;align=center" vertex="1" parent="1">
           <mxGeometry x="60" y="590" width="880" height="90" as="geometry" />
         </mxCell>
         <mxCell id="a1" style="endArrow=classic;html=1;strokeWidth=2;" edge="1" parent="1" source="layer1" target="layer2">
