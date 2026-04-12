@@ -117,7 +117,7 @@ tier2 / tier3 開発者は **この判断に一切関与しない**。
 | Secrets | `k1s0.Secrets.*` | Go ファサード → Dapr Go SDK → OpenBao (MVP-1b 以降) |
 | Bindings | `k1s0.Binding.*` | Go ファサード → Dapr Go SDK |
 | Actors | `k1s0.Actor.*` (必要に応じて) | Go ファサード → Dapr Go SDK |
-| Workflow (Saga) | `k1s0.Workflow.*` | Go ファサード → Dapr Workflow |
+| Workflow (Saga / 長期実行) | `k1s0.Workflow.*` | Go ファサード → Temporal Go SDK (Saga / 長期実行) / Dapr Workflow (軽量短期処理) |
 | Configuration | `k1s0.Config.*` | Go ファサード → Dapr Go SDK |
 | Distributed lock | `k1s0.Lock.*` | Go ファサード → Dapr Go SDK |
 | ログ標準化 | `k1s0.Log.*` | tier1 各言語ライブラリで構造化ログ実装 |
