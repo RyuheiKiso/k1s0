@@ -22,7 +22,8 @@ Phase 1 (MVP) で **何を含め、何を含めないか** を明示する。MVP
 
 | コンポーネント | スコープ | 備考 |
 |---|---|---|
-| Kubernetes | 最小 3 ノード構成 | オンプレまたは VM 上 |
+| OpenTofu | k8s ノード用 VM 作成 + k8s bootstrap の最小 HCL | `tofu apply` で環境再現可能にする |
+| Kubernetes | 最小 3 ノード構成 | オンプレまたは VM 上 (OpenTofu で構築) |
 | Istio | サービスメッシュ (mTLS + トラフィック制御) | サイドカー自動注入 |
 | Envoy Gateway | API Gateway | k8s Gateway API 準拠 |
 | Apache Kafka (Strimzi) | KRaft モード | Phase 1 は最小クラスタ |
@@ -107,6 +108,7 @@ Phase 1 (MVP) で **何を含め、何を含めないか** を明示する。MVP
 | 運用 | Backstage から Software Catalog / TechDocs / Argo CD 同期状態を確認できる |
 | 認証 | Argo CD / Harbor / Backstage / 配信ポータルが Keycloak SSO で統一される |
 | 監査 | 配信ポータルの全起動イベントが tier1 監査ログ (スタブでも可) に記録される |
+| 再現性 | `tofu apply` で k8s クラスタが再構築できる (バス係数の緩和) |
 | 差別化 | オンプレ k8s で完結し、クラウド依存が一切ない状態で稼働する |
 
 ---
@@ -130,4 +132,5 @@ Phase 1 (MVP) で **何を含め、何を含めないか** を明示する。MVP
 - [`../05_CICDと配信/00_CICDパイプライン.md`](../05_CICDと配信/00_CICDパイプライン.md) — GHA ワークフローの MVP スコープ
 - [`../05_CICDと配信/02_アプリ配信ポータル.md`](../05_CICDと配信/02_アプリ配信ポータル.md) — 配信ポータルの MVP スコープ
 - [`../04_技術選定/04_選定一覧.md`](../04_技術選定/04_選定一覧.md) — 採用 OSS 一覧
+- [`../04_技術選定/05_IaC.md`](../04_技術選定/05_IaC.md) — OpenTofu の採用根拠と MVP スコープ
 - [`../06_競合と差別化/03_TCOとBuildVsBuy.md`](../06_競合と差別化/03_TCOとBuildVsBuy.md) — MVP 最小化と Build リスク低減の関係
