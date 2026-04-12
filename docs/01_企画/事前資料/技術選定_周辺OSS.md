@@ -5,13 +5,14 @@
 `技術選定比較表.md` は実行基盤中核 (k8s / Istio / Envoy Gateway / Kafka / Dapr 等) に焦点を絞っている。
 本資料はその **周辺で必須になる OSS** (認証・CI/CD・レジストリ・脆弱性スキャン・キャッシュ) の選定根拠を補完する。
 
-対象カテゴリは以下の 5 つ。
+対象カテゴリは以下の 6 つ。
 
 - A. ID / 認証基盤
 - B. GitOps / 継続的デリバリ
 - C. CI / パイプライン
 - D. コンテナレジストリ / 脆弱性スキャン
 - E. キャッシュ / KV ストア
+- F. ルールエンジン (BRE)
 
 ## 選定の前提条件
 
@@ -212,6 +213,42 @@
 
 ---
 
+## F. ルールエンジン (BRE)
+
+### 候補一覧
+
+| 候補 | 採用可否 | 評価 |
+|---|---|---|
+| **ZEN Engine** (GoRules) | ◎ 採用 | Rust 製の軽量 BRE。JDM (JSON Decision Model) を採用。Node / Python / Go の公式バインディングあり。MIT ライセンス。 |
+| OPA (Open Policy Agent) | ◎ 別採用 | CNCF Graduated。**認可 / アクセス制御**領域で別途併用 (k8s admission / Envoy ext_authz)。BRE とは役割を分離する。 |
+| Drools | △ 却下 | JVM 依存。k1s0 の Rust / Go 中心構成と食い合わせが悪い。 |
+| Camunda DMN (Camunda 8) | △ 却下 | DMN 標準準拠で表現力は高いが Camunda 8 以降は商用寄りで Zeebe 結合が強く、tier1 単体採用が難しい。 |
+| 自前実装 (Rust で決定表評価器を書く) | × 却下 | 車輪の再発明。MVP スコープ縮小方針に反する。 |
+
+### 採用理由 (ZEN Engine)
+
+1. **tier1 Rust 実装と整合** — Rust ネイティブで in-process 評価が可能。tier1 Rust サービスから直接埋め込める
+2. **JDM (JSON) を Git で管理できる** — エンジン差し替え時の退路を確保。JDM ファイルが一次資産になる
+3. **業務担当 / 情シスでも編集可能な決定表形式** — k1s0 のコア主張「JTC 情シスでも運用できる」に直接寄与
+4. **Dapr Workflow と役割分担** — Workflow = オーケストレーション、ZEN = 単発の決定評価。両者は補完関係
+5. **MIT ライセンスで完全無償** — 商用ロックインなし
+
+### MVP スコープ
+
+- **実装は Phase 2 以降**。MVP では **tier1 公開 API `k1s0.Decision` のインタフェース定義のみ**を行い、評価実体は常に「承認」を返すスタブで稼働させる
+- 本格利用は Phase 3 (アプリ配信ポータルの権限ポリシー / 申請ワークフロー) から
+- tier2 / tier3 は ZEN Engine / JDM の語彙を一切意識しない (`k1s0.Decision.EvaluateAsync` のみを呼ぶ)
+
+詳細は `BRE_ZEN_Engine活用.md` を参照。
+
+### トレードオフ
+
+- **GoRules の方向転換リスク** — 商用 BRMS のエンジン部分を OSS 切り出ししているため、商用側戦略によって OSS 更新が止まる可能性。**JDM ファイルを Git 管理して移行可能性を担保**
+- **コミュニティが Drools / Camunda より小さい** — 日本語情報が少ない。tier1 チームが運用ノウハウを内製
+- **Function ノードの JavaScript 実行** — サンドボックス逸脱リスク。**tier1 ガバナンスとして Function ノードの利用を原則禁止**し、決定表と Expression に限定
+
+---
+
 ## 結論
 
 | カテゴリ | 採用 OSS | ライセンス |
@@ -223,6 +260,7 @@
 | レジストリ | **Harbor** | Apache 2.0 |
 | 脆弱性スキャン | **Trivy (Harbor 内蔵)** | Apache 2.0 |
 | キャッシュ / KV | **Valkey** | BSD-3-Clause |
+| ルールエンジン (BRE) | **ZEN Engine** | MIT |
 
 - いずれも **OSI 承認された OSS ライセンス**で、RSALv2 / SSPL / BSL のような制限ライセンスを含まない
 - すべて **Keycloak OIDC** を中心とした SSO で統合可能。利用者は 1 アカウントで全ポータルにアクセスできる
