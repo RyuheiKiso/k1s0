@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Page-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="780" pageHeight="520" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="780" height="520" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="kube-vip アーキテクチャ概要（ARP モード）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="190" y="10" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="client" value="クライアント / kubectl" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="50" width="200" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="vip" value="&lt;b&gt;仮想 IP (VIP)&lt;/b&gt;&lt;br&gt;192.168.1.100:6443" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="275" y="145" width="230" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_client_vip" value="" style="endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="client" target="vip" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="node2_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="270" width="220" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="node2_label" value="&lt;b&gt;Node 2&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="430" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="node1_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="280" y="270" width="220" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="node1_label" value="&lt;b&gt;Node 1 ★ リーダー&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=11;fontColor=#2D7600;" vertex="1" parent="1">
+          <mxGeometry x="410" y="272" width="140" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="node3_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="270" width="220" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="node3_label" value="&lt;b&gt;Node 3&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="430" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="kvip2" value="kube-vip&lt;br&gt;(standby)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="305" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="kvip1" value="kube-vip&lt;br&gt;+ IPVS LB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="315" y="305" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="kvip3" value="kube-vip&lt;br&gt;(standby)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="575" y="305" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="api2" value="kube-apiserver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="380" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="api1" value="kube-apiserver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="315" y="380" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="api3" value="kube-apiserver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="575" y="380" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_vip_kvip1" value="ARP でリーダーへ" style="endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;fontSize=10;fontColor=#B09500;labelBackgroundColor=#FFFFFF;" edge="1" source="vip" target="kvip1" parent="1">
+          <mxGeometry x="-0.15" y="-15" relative="1" as="geometry">
+            <mxPoint as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_kvip1_api1" value="" style="endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;dashed=1;strokeWidth=1;" edge="1" source="kvip1" target="api1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_kvip1_api2" value="" style="endArrow=block;endFill=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;dashed=1;strokeWidth=1;" edge="1" source="kvip1" target="api2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_kvip1_api3" value="" style="endArrow=block;endFill=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;dashed=1;strokeWidth=1;" edge="1" source="kvip1" target="api3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ipvs_note" value="IPVS Round Robin（L4）で全 kube-apiserver に分散" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="245" y="480" width="290" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="failover_note" value="リーダー障害時: 新リーダーが選出され VIP を引き継ぐ" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=10;fontColor=#999999;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="480" width="280" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_kvip" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="475" width="14" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_kvip_t" value="kube-vip" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="658" y="472" width="55" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_api" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="640" y="495" width="14" height="14" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg_api_t" value="API Server" style="text;html=1;align=left;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="658" y="492" width="60" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

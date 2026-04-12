@@ -114,7 +114,7 @@ tier2 / tier3 開発者は **この判断に一切関与しない**。
 | Service invocation | `k1s0.Service.Invoke*` | Go ファサード → Dapr Go SDK |
 | State management | `k1s0.State.*` | Go ファサード → Dapr Go SDK |
 | Pub / Sub | `k1s0.PubSub.*` | Go ファサード → Dapr Go SDK |
-| Secrets | `k1s0.Secrets.*` | Go ファサード → Dapr Go SDK |
+| Secrets | `k1s0.Secrets.*` | Go ファサード → Dapr Go SDK → OpenBao (MVP-1b 以降) |
 | Bindings | `k1s0.Binding.*` | Go ファサード → Dapr Go SDK |
 | Actors | `k1s0.Actor.*` (必要に応じて) | Go ファサード → Dapr Go SDK |
 | Workflow (Saga) | `k1s0.Workflow.*` | Go ファサード → Dapr Workflow |

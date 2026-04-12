@@ -1,0 +1,43 @@
+<mxfile>
+  <diagram name="OpenBao Architecture" id="arch">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="560" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="560" as="geometry"/>
+        </mxCell>
+        <mxCell id="client" value="&lt;b&gt;クライアント（CLI / HTTP API）&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="265" y="15" width="230" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="client" target="server" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="server" value="&lt;b&gt;OpenBao Server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="700" height="370" as="geometry"/>
+        </mxCell>
+        <mxCell id="auth" value="&lt;b&gt;認証メソッド&lt;/b&gt;&lt;br&gt;&lt;br&gt;Token / AppRole&lt;br&gt;Kubernetes / Userpass / LDAP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="125" width="320" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="policy" value="&lt;b&gt;ポリシーエンジン（ACL）&lt;/b&gt;&lt;br&gt;&lt;br&gt;パスベースのアクセス制御&lt;br&gt;create / read / update / delete / list" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="125" width="310" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="core" value="&lt;b&gt;コア（暗号化バリア / Seal・Unseal）&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="50" y="240" width="660" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="secrets" value="&lt;b&gt;シークレットエンジン&lt;/b&gt;&lt;br&gt;&lt;br&gt;KV（キーバリュー） / PKI（証明書）&lt;br&gt;Transit（暗号化） / Database（動的認証情報）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="315" width="430" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="audit" value="&lt;b&gt;監査デバイス&lt;/b&gt;&lt;br&gt;&lt;br&gt;全リクエストの&lt;br&gt;ログ記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;fontSize=12;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="315" width="200" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="server" target="storage" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="storage" value="&lt;b&gt;ストレージバックエンド（Raft / File / Consul）&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="220" y="490" width="320" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

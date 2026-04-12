@@ -240,7 +240,7 @@ Phase 1 (MVP-1a) から導入。tier1 Go / Rust 依存 + Dockerfile + Helm chart
 ### Phase 3 以降
 
 - マルチクラスタ (staging / prod 分離)
-- External Secrets Operator + Keycloak バックアップ
+- OpenBao PKI Engine (中間 CA + cert-manager 連携)
 - Argo Image Updater による自動タグ更新の検討
 - Tekton Chains によるサプライチェーン証跡 (代替フロー採用時)
 
@@ -251,7 +251,7 @@ Phase 1 (MVP-1a) から導入。tier1 Go / Rust 依存 + Dockerfile + Helm chart
 以下は本資料では扱わず、ADR として個別に決定する。
 
 - GitOps リポジトリを単一リポ / 別リポのどちらにするか (MVP は単一、Phase 2 で再検討)
-- Secret 管理方式 (SealedSecrets vs External Secrets Operator)
+- ~~Secret 管理方式~~ → **決定済み**: OpenBao (MPL 2.0) を MVP-1b で導入。SealedSecrets は GitOps 内 Secret の暗号化用途で併用。詳細は [`../04_技術選定/08_シークレット管理.md`](../04_技術選定/08_シークレット管理.md)
 - 環境別 overlay 設計 (kustomize / helm のどちらを主軸にするか)
 - Trivy DB の更新経路 (インターネット接続制限環境での定期同期手順)
 - Harbor のストレージバックエンド (Longhorn / Rook-Ceph / MinIO)
