@@ -1,0 +1,72 @@
+<mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="840" pageHeight="520" background="#FFFFFF">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="840" height="520" as="geometry"/>
+    </mxCell>
+    <mxCell id="t23" value="tier2 / tier3 サービス群" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="270" y="30" width="300" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="a_main" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="420" y="80" as="sourcePoint"/>
+        <mxPoint x="420" y="140" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="a_main_label" value="tier1 API 経由のみ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+      <mxGeometry x="435" y="97" width="120" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="t1" value="tier1 公開 API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="120" y="140" width="600" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="api_wf" value="k1s0.Workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="125" y="250" width="130" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="api_audit" value="k1s0.Audit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="275" y="250" width="115" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="api_state" value="k1s0.State" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="415" y="250" width="110" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="api_pubsub" value="k1s0.PubSub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="555" y="250" width="115" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="pg" value="PostgreSQL (CloudNativePG)&#xa;&#xa;永続的業務データ / トランザクション" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="70" y="355" width="290" height="100" as="geometry"/>
+    </mxCell>
+    <mxCell id="valkey" value="Valkey&#xa;&#xa;状態 / キャッシュ / セッション" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="390" y="355" width="170" height="100" as="geometry"/>
+    </mxCell>
+    <mxCell id="kafka" value="Apache Kafka (Strimzi)&#xa;&#xa;イベントバス / イベントソーシング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="590" y="355" width="200" height="100" as="geometry"/>
+    </mxCell>
+    <mxCell id="a_wf_pg" value="" style="endArrow=block;endFill=1;strokeColor=#82b366;strokeWidth=1.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="190" y="285" as="sourcePoint"/>
+        <mxPoint x="190" y="355" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="a_audit_pg" value="" style="endArrow=block;endFill=1;strokeColor=#82b366;strokeWidth=1.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="320" y="285" as="sourcePoint"/>
+        <mxPoint x="300" y="355" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="a_state_valkey" value="" style="endArrow=block;endFill=1;strokeColor=#b85450;strokeWidth=1.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="470" y="285" as="sourcePoint"/>
+        <mxPoint x="475" y="355" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="a_pubsub_kafka" value="" style="endArrow=block;endFill=1;strokeColor=#9673a6;strokeWidth=1.5;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="612" y="285" as="sourcePoint"/>
+        <mxPoint x="690" y="355" as="targetPoint"/>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="note" value="注意: tier2 / tier3 からデータストアへの直接アクセスは禁止 (tier1 公開 API 経由のみ)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#FFF2CC;strokeColor=#d6b656;fontColor=#CC0000;fontSize=10;fontStyle=1;align=left;spacingLeft=8;spacingRight=5;" vertex="1" parent="1">
+      <mxGeometry x="460" y="468" width="360" height="40" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>
