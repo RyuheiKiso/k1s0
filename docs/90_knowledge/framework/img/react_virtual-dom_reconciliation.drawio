@@ -1,0 +1,60 @@
+<mxfile>
+  <diagram name="Reconciliation差分検出アルゴリズム">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="n1" value="ノードの比較開始" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="160" y="30" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n2" value="要素タイプは&lt;br&gt;同じか？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="130" width="160" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="n3" value="サブツリー全体を&lt;br&gt;破棄して再作成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="150" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="n4" value="属性の差分のみ更新し&lt;br&gt;子要素の比較へ進む" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="140" y="290" width="280" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n5" value="子要素にkeyが&lt;br&gt;指定されているか？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="390" width="160" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="n6" value="keyで要素を識別し&lt;br&gt;移動・追加・削除を最小化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="410" width="230" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="n7" value="インデックス順に比較&lt;br&gt;（要素の移動を検出不可）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="160" y="540" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n1" target="n2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontStyle=1;" edge="1" source="n2" target="n3" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-15"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontStyle=1;" edge="1" source="n2" target="n4" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="15" y="0"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n4" target="n5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontStyle=1;" edge="1" source="n5" target="n6" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-15"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontStyle=1;" edge="1" source="n5" target="n7" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="15" y="0"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

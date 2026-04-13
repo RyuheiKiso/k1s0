@@ -211,7 +211,7 @@ fn main() {
 - 公式ドキュメント（The Rust Programming Language）: https://doc.rust-lang.org/book/
 - Rust by Example: https://doc.rust-lang.org/rust-by-example/
 - Rust リファレンス: https://doc.rust-lang.org/reference/
-- 関連 Knowledge: 所有権の詳細は `rust_ownership.md`（作成予定）を参照
+- 関連 Knowledge: [Rust: 所有権（Ownership）](./rust_ownership.md)
 
 ## 13. 参考資料
 
