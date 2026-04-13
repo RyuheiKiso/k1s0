@@ -1,0 +1,122 @@
+<mxfile host="draw.io">
+  <diagram name="Terraform Workflow" id="terraform-workflow">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="540" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="540" as="geometry" />
+        </mxCell>
+        <!-- Title -->
+        <mxCell id="title" value="Terraform ワークフロー（Write → Plan → Apply）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="230" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        <!-- Step 1: Write -->
+        <mxCell id="step1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_title" value="① Write（記述）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="90" y="110" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_desc" value="HCL で望ましいインフラの&#xa;状態を定義する" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="70" y="145" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_file" value="main.tf&#xa;variables.tf&#xa;outputs.tf" style="shape=document;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="120" height="70" as="geometry" />
+        </mxCell>
+        <!-- Step 2: Init -->
+        <mxCell id="step_init" value="terraform init" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#999999;fontSize=12;fontStyle=1;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="100" y="340" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step_init_desc" value="Provider を&#xa;ダウンロード" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#777777;" vertex="1" parent="1">
+          <mxGeometry x="100" y="380" width="80" height="40" as="geometry" />
+        </mxCell>
+        <!-- Step 2: Plan -->
+        <mxCell id="step2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="360" y="100" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_title" value="② Plan（計画）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="415" y="110" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_desc" value="設定と現在の状態を比較し&#xa;変更内容をプレビューする" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="390" y="145" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_output" value="+ aws_instance.web&#xa;~ aws_s3_bucket.data&#xa;- aws_vpc.old" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=11;fontFamily=Courier New;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="200" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="plan_legend" value="+ 追加　~ 変更　- 削除" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#777777;" vertex="1" parent="1">
+          <mxGeometry x="410" y="275" width="150" height="20" as="geometry" />
+        </mxCell>
+        <!-- Step 2 command -->
+        <mxCell id="step_plan" value="terraform plan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#999999;fontSize=12;fontStyle=1;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="420" y="340" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step_plan_desc" value="差分を確認&#xa;（変更なし）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#777777;" vertex="1" parent="1">
+          <mxGeometry x="420" y="380" width="80" height="40" as="geometry" />
+        </mxCell>
+        <!-- Step 3: Apply -->
+        <mxCell id="step3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="680" y="100" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_title" value="③ Apply（適用）" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="735" y="110" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_desc" value="承認後、実インフラに&#xa;変更を適用する" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="720" y="145" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_infra" value="クラウドインフラ" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="200" width="160" height="70" as="geometry" />
+        </mxCell>
+        <!-- Step 3 command -->
+        <mxCell id="step_apply" value="terraform apply" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8E8E8;strokeColor=#999999;fontSize=12;fontStyle=1;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="740" y="340" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step_apply_desc" value="実行して&#xa;State を更新" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#777777;" vertex="1" parent="1">
+          <mxGeometry x="740" y="380" width="80" height="40" as="geometry" />
+        </mxCell>
+        <!-- State at bottom -->
+        <mxCell id="state_file" value="terraform.tfstate&#xa;（状態ファイル）" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;size=12;" vertex="1" parent="1">
+          <mxGeometry x="420" y="450" width="140" height="70" as="geometry" />
+        </mxCell>
+        <!-- Arrows: Write -> Plan -->
+        <mxCell id="a1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="step1_box" target="step2_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Plan -> Apply -->
+        <mxCell id="a2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="step2_box" target="step3_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Init -> Write (below) -->
+        <mxCell id="a_init" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#999999;strokeWidth=1;dashed=1;" edge="1" parent="1" source="step_init" target="step1_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Plan cmd -> Plan box -->
+        <mxCell id="a_plan_cmd" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#999999;strokeWidth=1;dashed=1;" edge="1" parent="1" source="step_plan" target="step2_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Apply cmd -> Apply box -->
+        <mxCell id="a_apply_cmd" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#999999;strokeWidth=1;dashed=1;" edge="1" parent="1" source="step_apply" target="step3_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Apply -> State -->
+        <mxCell id="a_state" value="状態を保存" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1;fontColor=#9673a6;fontSize=10;" edge="1" parent="1" source="step_apply" target="state_file">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="485" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- State -> Plan (feedback) -->
+        <mxCell id="a_state_plan" value="現在の状態を参照" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1;dashed=1;fontColor=#9673a6;fontSize=10;" edge="1" parent="1" source="state_file" target="step_plan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="485" />
+              <mxPoint x="380" y="430" />
+              <mxPoint x="480" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
