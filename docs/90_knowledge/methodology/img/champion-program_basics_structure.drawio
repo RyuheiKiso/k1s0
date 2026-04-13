@@ -1,0 +1,94 @@
+<mxfile>
+  <diagram name="Page-1" id="structure">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="specialist" value="専門チーム&#xa;（例: セキュリティチーム）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="255" y="30" width="250" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="community" value="チャンピオンコミュニティ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="105" y="150" width="550" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;startArrow=block;startFill=1;" edge="1" source="specialist" target="community" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1label" value="知識共有・方針伝達" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" vertex="1" connectable="0" parent="e1">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint x="80" as="offset"/></mxGeometry>
+        </mxCell>
+        <mxCell id="teamA" value="開発チーム A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=11;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="30" y="270" width="210" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="champA" value="★ チャンピオン A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="305" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberA1" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="350" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberA2" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="390" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberA3" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="430" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="teamB" value="開発チーム B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=11;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="275" y="270" width="210" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="champB" value="★ チャンピオン B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="305" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberB1" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="350" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberB2" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="390" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberB3" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="430" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="teamC" value="開発チーム C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=11;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="520" y="270" width="210" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="champC" value="★ チャンピオン C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="545" y="305" width="160" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberC1" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="545" y="350" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberC2" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="545" y="390" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="memberC3" value="メンバー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="545" y="430" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="community" target="teamA" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="community" target="teamB" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="community" target="teamC" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="legTitle" value="凡例" style="text;html=1;fontSize=10;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="15" y="10" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="10" width="16" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="専門チーム" style="text;html=1;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="80" y="8" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;" vertex="1" parent="1">
+          <mxGeometry x="145" y="10" width="16" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="チャンピオン" style="text;html=1;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="165" y="8" width="70" height="20" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
