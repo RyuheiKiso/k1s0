@@ -17,20 +17,12 @@
           <mxGeometry x="60" y="75" width="680" height="185" as="geometry"/>
         </mxCell>
 
-        <mxCell id="service" value="自サービス&#xa;(dotnet watch / air)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="80" y="130" width="180" height="55" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="dapr-sc" value="Dapr サイドカー&#xa;(dapr run)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="370" y="130" width="180" height="55" as="geometry"/>
+        <mxCell id="service" value="自サービス&#xa;(k1s0 クライアントライブラリ内蔵)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="340" height="70" as="geometry"/>
         </mxCell>
 
         <mxCell id="docker" value="Docker CE&#xa;(ビルド・テスト用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=10;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="590" y="130" width="130" height="55" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="arrow-local" value="localhost" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=10;endArrow=block;endFill=1;startArrow=block;startFill=1;strokeWidth=1;" edge="1" source="service" target="dapr-sc" parent="1">
-          <mxGeometry relative="1" as="geometry"/>
+          <mxGeometry x="470" y="130" width="250" height="55" as="geometry"/>
         </mxCell>
 
         <mxCell id="note" value="k8s 不要&#xa;Docker Desktop 不要&#xa;Tilt 不要" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
@@ -85,7 +77,7 @@
           <mxGeometry x="575" y="574" width="160" height="42" as="geometry"/>
         </mxCell>
 
-        <mxCell id="arrow-lan" value="gRPC / 社内 LAN" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.59;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;" edge="1" source="dapr-sc" target="infra" parent="1">
+        <mxCell id="arrow-lan" value="gRPC / 社内 LAN" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.29;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;" edge="1" source="service" target="infra" parent="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
