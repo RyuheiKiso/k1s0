@@ -1,0 +1,97 @@
+<mxfile>
+  <diagram name="llms.txt の利用フロー">
+    <mxGraphModel grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="500">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="llms.txt による情報提供の仕組み" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="210" y="15" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="problem_label" value="従来の課題" style="text;html=1;fontSize=13;fontStyle=1;align=left;fontColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="150" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="website_old" value="&lt;b&gt;Web サイト&lt;/b&gt;&lt;br&gt;HTML / CSS / JS&lt;br&gt;ナビゲーション / 広告" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_old" value="" style="endArrow=classic;html=1;strokeColor=#B85450;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="125" as="sourcePoint" />
+            <mxPoint x="370" y="125" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_old_label" value="HTML をパース" style="text;html=1;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="235" y="100" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm_old" value="&lt;b&gt;LLM&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="100" width="100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_problem" value="" style="endArrow=classic;html=1;strokeColor=#B85450;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="470" y="125" as="sourcePoint" />
+            <mxPoint x="530" y="125" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="problem_desc" value="&lt;b&gt;課題&lt;/b&gt;&lt;br&gt;● コンテキストウィンドウに収まらない&lt;br&gt;● HTML → テキスト変換でノイズが混入&lt;br&gt;● サイト構造の把握が困難" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="80" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="solution_label" value="llms.txt による解決" style="text;html=1;fontSize=13;fontStyle=1;align=left;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="30" y="195" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="owner" value="&lt;b&gt;サイト所有者&lt;/b&gt;&lt;br&gt;コンテンツを厳選" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="230" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_create" value="" style="endArrow=classic;html=1;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="260" as="sourcePoint" />
+            <mxPoint x="260" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_create_label" value="作成" style="text;html=1;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="190" y="237" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llmstxt" value="&lt;b&gt;/llms.txt&lt;/b&gt;&lt;br&gt;Markdown 形式&lt;br&gt;構造化された情報" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="225" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_read" value="" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="260" as="sourcePoint" />
+            <mxPoint x="560" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_read_label" value="推論時に取得" style="text;html=1;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="440" y="237" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="llm_new" value="&lt;b&gt;LLM&lt;/b&gt;&lt;br&gt;正確なコンテキスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="235" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_answer" value="" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="680" y="260" as="sourcePoint" />
+            <mxPoint x="730" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="user" value="&lt;b&gt;ユーザー&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="730" y="240" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_title" value="robots.txt との比較" style="text;html=1;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="210" y="330" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="robots" value="&lt;b&gt;robots.txt&lt;/b&gt;&lt;br&gt;検索エンジンに何を&lt;b&gt;クロールしない&lt;/b&gt;か指示&lt;br&gt;（制限・拒否）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="370" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="llmstxt_comp" value="&lt;b&gt;llms.txt&lt;/b&gt;&lt;br&gt;LLM に何を&lt;b&gt;読むべき&lt;/b&gt;か指示&lt;br&gt;（推奨・案内）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="370" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vs_label" value="⇔" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="375" y="380" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="※ 2024 年に Jeremy Howard（Answer.AI）が提案。2026 年現在、提案段階の標準規格" style="text;html=1;fontSize=9;fontStyle=2;align=center;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="160" y="460" width="500" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

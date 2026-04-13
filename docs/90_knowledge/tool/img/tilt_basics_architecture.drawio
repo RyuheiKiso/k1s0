@@ -1,0 +1,63 @@
+<mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="880" pageHeight="490" background="#FFFFFF">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+      <mxGeometry x="0" y="0" width="880" height="490" as="geometry"/>
+    </mxCell>
+    <mxCell id="dev" value="開発者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+      <mxGeometry x="20" y="20" width="170" height="440" as="geometry"/>
+    </mxCell>
+    <mxCell id="src" value="ソースコード" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#4a6fa5;fontColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="40" y="80" width="130" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="tiltfile" value="Tiltfile&#xa;(Starlark)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#4a6fa5;fontColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="40" y="210" width="130" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="tilt" value="Tilt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+      <mxGeometry x="280" y="20" width="210" height="330" as="geometry"/>
+    </mxCell>
+    <mxCell id="watch" value="ファイル監視" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffd966;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="300" y="80" width="170" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="build" value="ビルド制御" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffd966;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="300" y="150" width="170" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="resource" value="リソース管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffd966;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="300" y="220" width="170" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="log" value="ログ集約" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffd966;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="300" y="290" width="170" height="40" as="geometry"/>
+    </mxCell>
+    <mxCell id="webui" value="Web UI Dashboard&#xa;localhost:10350" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="310" y="410" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="k8s" value="Kubernetes クラスタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+      <mxGeometry x="610" y="20" width="250" height="440" as="geometry"/>
+    </mxCell>
+    <mxCell id="podA" value="Pod A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6b8b7;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="630" y="80" width="210" height="55" as="geometry"/>
+    </mxCell>
+    <mxCell id="podB" value="Pod B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6b8b7;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="630" y="200" width="210" height="55" as="geometry"/>
+    </mxCell>
+    <mxCell id="svc" value="Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6b8b7;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="630" y="340" width="210" height="55" as="geometry"/>
+    </mxCell>
+    <mxCell id="a1" value="変更を検知" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;fontColor=#333333;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="src" target="watch">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="a2" value="設定を読み込む" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;fontColor=#333333;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="tiltfile" target="resource">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="a3" value="イメージビルド &amp;&#xa;デプロイ" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;fontColor=#333333;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="build" target="podA">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="a4" value="ライブアップデート" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;fontColor=#333333;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="resource" target="podB">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="a5" value="状態を表示" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#333333;fontColor=#333333;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="tilt" target="webui">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>

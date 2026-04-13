@@ -1,0 +1,87 @@
+<mxfile>
+  <diagram name="共有開発インフラ構成" id="shared-dev-infra">
+    <mxGraphModel dx="960" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="720" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="720" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dev-pc" value="開発者 PC (Windows 11)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontStyle=1;fontSize=13;verticalAlign=top;align=left;spacingTop=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="720" height="250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="wsl2" value="WSL2 (Ubuntu)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1;fontSize=12;verticalAlign=top;align=left;spacingTop=5;spacingLeft=10;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="60" y="75" width="680" height="185" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="service" value="自サービス&#xa;(k1s0 クライアントライブラリ内蔵)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="340" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="docker" value="Docker CE&#xa;(ビルド・テスト用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="470" y="130" width="250" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="note" value="k8s 不要&#xa;Docker Desktop 不要&#xa;Tilt 不要" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#FFF9C4;strokeColor=#F57F17;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="55" width="155" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="infra" value="共有 infra サーバー (k8s クラスタ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;fontStyle=1;fontSize=13;verticalAlign=top;align=left;spacingTop=8;spacingLeft=15;" vertex="1" parent="1">
+          <mxGeometry x="40" y="390" width="720" height="300" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="kafka" value="Kafka (Strimzi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="440" width="155" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="valkey" value="Valkey" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="440" width="155" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="temporal" value="Temporal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="415" y="440" width="155" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="postgres" value="PostgreSQL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="440" width="145" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="keycloak" value="Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="507" width="155" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dapr-cp" value="Dapr Control Plane" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="507" width="155" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="grafana" value="Grafana / Loki / Tempo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="415" y="507" width="175" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="minio" value="MinIO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="507" width="125" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tier1-go" value="tier1 Go ファサード" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2F1;strokeColor=#00695C;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="574" width="235" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="tier1-rust" value="tier1 Rust サービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2F1;strokeColor=#00695C;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="574" width="235" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="otel" value="OTel Collector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="574" width="160" height="42" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="arrow-lan" value="gRPC / 社内 LAN" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.29;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;fontColor=#333333;fontSize=11;fontStyle=1;endArrow=block;endFill=1;strokeWidth=2;" edge="1" source="service" target="infra" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
