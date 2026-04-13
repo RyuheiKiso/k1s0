@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="flow" id="flow1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="720" pageHeight="630" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="720" height="630" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="&lt;b&gt;Runbook インシデント対応フロー&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="165" y="5" width="400" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="c1" value="&lt;b&gt;監視・アラート&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="40" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c2" value="&lt;b&gt;オンコール担当者&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="190" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c3" value="&lt;b&gt;Runbook&lt;/b&gt;" style="shape=document;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="545" y="175" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c4" value="&lt;b&gt;対応・復旧&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="320" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c5" value="&lt;b&gt;解決&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="150" y="440" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c6" value="&lt;b&gt;エスカレーション&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="440" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c7" value="&lt;b&gt;ポストモーテム&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="560" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="アラート発報" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;fontSize=10;fontColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="345" y="90" as="sourcePoint"/>
+            <mxPoint x="345" y="190" as="targetPoint"/>
+            <mxPoint x="15" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="参照" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;fontSize=10;fontColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="455" y="215" as="sourcePoint"/>
+            <mxPoint x="545" y="215" as="targetPoint"/>
+            <mxPoint x="0" y="-15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="345" y="240" as="sourcePoint"/>
+            <mxPoint x="345" y="320" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="285" y="370" as="sourcePoint"/>
+            <mxPoint x="220" y="440" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="405" y="370" as="sourcePoint"/>
+            <mxPoint x="460" y="440" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="220" y="490" as="sourcePoint"/>
+            <mxPoint x="295" y="560" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="460" y="490" as="sourcePoint"/>
+            <mxPoint x="395" y="560" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="Runbook を更新" style="endArrow=block;endFill=1;rounded=1;html=1;strokeColor=#666666;strokeWidth=1.5;dashed=1;fontSize=10;fontColor=#666666;" edge="1" parent="1">
+          <mxGeometry x="0.5" y="0" relative="1" as="geometry">
+            <mxPoint x="455" y="585" as="sourcePoint"/>
+            <mxPoint x="685" y="215" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="700" y="585"/>
+              <mxPoint x="700" y="215"/>
+            </Array>
+            <mxPoint x="15" y="0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

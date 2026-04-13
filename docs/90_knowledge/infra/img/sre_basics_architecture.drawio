@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="SRE の責務領域" id="sre-arch">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="dev" value="開発チーム" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="30" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ops" value="運用チーム" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="30" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sre" value="&lt;b&gt;SRE チーム&lt;/b&gt;&lt;br&gt;信頼性をソフトウェア工学で実現する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="200" y="170" width="400" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" source="dev" target="sre" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ops" target="sre" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sli" value="&lt;b&gt;SLI/SLO 管理&lt;/b&gt;&lt;br&gt;信頼性の定量化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="350" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="toil" value="&lt;b&gt;Toil 削減&lt;/b&gt;&lt;br&gt;自動化による効率化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="220" y="350" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="incident" value="&lt;b&gt;インシデント管理&lt;/b&gt;&lt;br&gt;障害対応と振り返り" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="410" y="350" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="capacity" value="&lt;b&gt;キャパシティ計画&lt;/b&gt;&lt;br&gt;需要予測と確保" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="350" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="250" as="sourcePoint"/>
+            <mxPoint x="110" y="350" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="260" y="300"/>
+              <mxPoint x="110" y="300"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="352" y="250" as="sourcePoint"/>
+            <mxPoint x="300" y="350" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="352" y="300"/>
+              <mxPoint x="300" y="300"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="448" y="250" as="sourcePoint"/>
+            <mxPoint x="490" y="350" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="448" y="300"/>
+              <mxPoint x="490" y="300"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="250" as="sourcePoint"/>
+            <mxPoint x="685" y="350" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="540" y="300"/>
+              <mxPoint x="685" y="300"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

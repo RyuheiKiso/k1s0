@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="SLI 定義プロセス" id="sli-def-flow">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="400" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="cuj" value="&lt;b&gt;CUJ 特定&lt;/b&gt;&lt;br&gt;ユーザーの重要行動" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="30" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="spec" value="&lt;b&gt;SLI スペック&lt;/b&gt;&lt;br&gt;何を測るか定義" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="230" y="30" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="impl" value="&lt;b&gt;SLI 実装&lt;/b&gt;&lt;br&gt;どう測るか決定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="430" y="30" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="slo" value="&lt;b&gt;SLO 設定&lt;/b&gt;&lt;br&gt;目標値を設定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="630" y="30" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="cuj" target="spec" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="spec" target="impl" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="impl" target="slo" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="rounded=1;strokeColor=#82b366;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="305" y="85" as="sourcePoint"/>
+            <mxPoint x="305" y="145" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl1" value="種類の選定" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="315" y="97" width="80" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="可用性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="150" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2" value="レイテンシ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="145" y="150" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3" value="スループット" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="270" y="150" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t4" value="鮮度" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="205" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5" value="耐久性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="145" y="205" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="t6" value="正確性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="270" y="205" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="rounded=1;strokeColor=#9673a6;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="505" y="85" as="sourcePoint"/>
+            <mxPoint x="505" y="145" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl2" value="計測方法" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="515" y="97" width="70" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="&lt;b&gt;サーバーサイド&lt;/b&gt;&lt;br&gt;LB / サーバーログ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="150" width="160" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m2" value="&lt;b&gt;クライアントサイド&lt;/b&gt;&lt;br&gt;ブラウザ / モバイル" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="205" width="160" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="m3" value="&lt;b&gt;合成モニタリング&lt;/b&gt;&lt;br&gt;外部プローブ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="260" width="160" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="formula" value="&lt;b&gt;SLI = Good Events ÷ Total Events × 100%&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="340" width="460" height="45" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

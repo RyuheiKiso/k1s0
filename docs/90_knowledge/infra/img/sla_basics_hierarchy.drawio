@@ -1,0 +1,69 @@
+<mxfile>
+  <diagram name="SLA-SLO-SLI-Hierarchy" id="sla-hierarchy">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="600" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="SLA / SLO / SLI の階層関係" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+        <!-- SLA Layer -->
+        <mxCell id="sla-box" value="&lt;b&gt;SLA（Service Level Agreement）&lt;/b&gt;&lt;br&gt;顧客との契約&lt;br&gt;違反時の補償・ペナルティを含む" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="80" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sla-label-left" value="&lt;i&gt;外部向け（ビジネス）&lt;/i&gt;" style="text;html=1;fontSize=11;align=right;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="150" height="30" as="geometry" />
+        </mxCell>
+        <!-- SLO Layer -->
+        <mxCell id="slo-box" value="&lt;b&gt;SLO（Service Level Objective）&lt;/b&gt;&lt;br&gt;内部の信頼性目標値&lt;br&gt;例: 可用性 99.95%、レイテンシ p99 &amp;lt; 300ms" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="230" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="slo-label-left" value="&lt;i&gt;内部向け（エンジニアリング）&lt;/i&gt;" style="text;html=1;fontSize=11;align=right;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="30" y="250" width="180" height="30" as="geometry" />
+        </mxCell>
+        <!-- SLI Layer -->
+        <mxCell id="sli-box" value="&lt;b&gt;SLI（Service Level Indicator）&lt;/b&gt;&lt;br&gt;実際の計測値・メトリクス&lt;br&gt;例: リクエスト成功率、応答時間" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="380" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sli-label-left" value="&lt;i&gt;計測（モニタリング）&lt;/i&gt;" style="text;html=1;fontSize=11;align=right;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="150" height="30" as="geometry" />
+        </mxCell>
+        <!-- Arrows between layers -->
+        <mxCell id="arrow-sla-slo" value="SLA は SLO に基づいて設定" style="endArrow=classic;startArrow=none;html=1;strokeColor=#333333;fontSize=11;fontColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="sla-box" target="slo-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-slo-sli" value="SLO は SLI で達成度を計測" style="endArrow=classic;startArrow=none;html=1;strokeColor=#333333;fontSize=11;fontColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="slo-box" target="sli-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Error Budget -->
+        <mxCell id="eb-box" value="&lt;b&gt;Error Budget&lt;/b&gt;&lt;br&gt;= 100% − SLO&lt;br&gt;許容される障害量" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="230" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-slo-eb" value="" style="endArrow=classic;startArrow=none;html=1;strokeColor=#b85450;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="slo-box" target="eb-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Penalty box -->
+        <mxCell id="penalty-box" value="&lt;b&gt;ペナルティ&lt;/b&gt;&lt;br&gt;SLA 違反時の補償&lt;br&gt;（返金・クレジット等）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-sla-penalty" value="" style="endArrow=classic;startArrow=none;html=1;strokeColor=#b85450;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="sla-box" target="penalty-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Monitoring tools -->
+        <mxCell id="monitor-box" value="&lt;b&gt;モニタリング基盤&lt;/b&gt;&lt;br&gt;Prometheus / Grafana&lt;br&gt;Datadog / Cloud Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;verticalAlign=middle;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="380" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-sli-monitor" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="sli-box" target="monitor-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Bottom note -->
+        <mxCell id="note" value="SLI が SLO を下回ると Error Budget が消費され、&lt;br&gt;SLA の違反リスクが上昇する" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="230" y="510" width="440" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
