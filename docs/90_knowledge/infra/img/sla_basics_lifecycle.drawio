@@ -1,0 +1,102 @@
+<mxfile>
+  <diagram name="SLA-Lifecycle" id="sla-lifecycle">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="550" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="550" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="SLA ライフサイクル管理" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="270" y="15" width="360" height="40" as="geometry" />
+        </mxCell>
+        <!-- Step 1: Define -->
+        <mxCell id="s1" value="&lt;b&gt;1. 定義&lt;/b&gt;&lt;br&gt;SLI/SLO を選定し&lt;br&gt;SLA 条件を策定する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="180" height="80" as="geometry" />
+        </mxCell>
+        <!-- Step 2: Agree -->
+        <mxCell id="s2" value="&lt;b&gt;2. 合意&lt;/b&gt;&lt;br&gt;顧客と交渉し&lt;br&gt;契約を締結する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="180" height="80" as="geometry" />
+        </mxCell>
+        <!-- Step 3: Monitor -->
+        <mxCell id="s3" value="&lt;b&gt;3. 監視&lt;/b&gt;&lt;br&gt;SLI を継続的に&lt;br&gt;計測・記録する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="180" height="80" as="geometry" />
+        </mxCell>
+        <!-- Step 4: Report -->
+        <mxCell id="s4" value="&lt;b&gt;4. レポート&lt;/b&gt;&lt;br&gt;SLA 達成状況を&lt;br&gt;定期的に報告する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="240" width="180" height="80" as="geometry" />
+        </mxCell>
+        <!-- Step 5: Review -->
+        <mxCell id="s5" value="&lt;b&gt;5. レビュー&lt;/b&gt;&lt;br&gt;SLA の妥当性を&lt;br&gt;評価・分析する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="240" width="180" height="80" as="geometry" />
+        </mxCell>
+        <!-- Step 6: Improve -->
+        <mxCell id="s6" value="&lt;b&gt;6. 改善&lt;/b&gt;&lt;br&gt;SLO/SLA の調整&lt;br&gt;アーキテクチャ改善" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="240" width="180" height="80" as="geometry" />
+        </mxCell>
+        <!-- Arrows: clockwise flow -->
+        <mxCell id="a12" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a23" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a34" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a45" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a56" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a61" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="s6" target="s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Center label -->
+        <mxCell id="center-label" value="&lt;b&gt;継続的な&lt;br&gt;改善サイクル&lt;/b&gt;" style="text;html=1;fontSize=13;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="370" y="185" width="160" height="50" as="geometry" />
+        </mxCell>
+        <!-- Breach handling -->
+        <mxCell id="breach-box" value="&lt;b&gt;SLA 違反発生時&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="310" y="390" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b1" value="顧客への通知・補償" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" value="根本原因分析（RCA）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="450" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" value="再発防止策の実施" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="460" y="450" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" value="SLA 条件の見直し" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="450" width="170" height="40" as="geometry" />
+        </mxCell>
+        <!-- Arrows from breach -->
+        <mxCell id="ab1" value="" style="endArrow=classic;html=1;strokeColor=#b85450;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="breach-box" target="b1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab2" value="" style="endArrow=classic;html=1;strokeColor=#b85450;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="breach-box" target="b2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab3" value="" style="endArrow=classic;html=1;strokeColor=#b85450;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="breach-box" target="b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ab4" value="" style="endArrow=classic;html=1;strokeColor=#b85450;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="breach-box" target="b4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Phase labels -->
+        <mxCell id="phase-plan" value="計画フェーズ" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#6c8ebf;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="60" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="phase-operate" value="運用フェーズ" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="60" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="phase-improve" value="改善フェーズ" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#d6b656;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="220" width="100" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

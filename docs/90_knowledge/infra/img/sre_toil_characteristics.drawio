@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="SRE の作業分類と Toil の特性" id="toil-chars">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="470" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="470" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="&lt;b&gt;SRE の作業分類&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="15" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="eng" value="&lt;b&gt;エンジニアリング作業&lt;/b&gt;&lt;br&gt;≥ 50%&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;ソフトウェア開発・自動化・&lt;br&gt;アーキテクチャ改善&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="55" width="260" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="toil" value="&lt;b&gt;Toil（トイル）&lt;/b&gt;&lt;br&gt;≤ 50%&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;手動的・繰り返しの運用作業&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="175" width="260" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="overhead" value="&lt;b&gt;オーバーヘッド&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;会議・管理業務・レポート&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="295" width="260" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2" value="&lt;b&gt;Toil の 6 つの特性&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="470" y="15" width="160" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="c1" value="&lt;b&gt;手動的&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;人間が手で実行する作業&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="55" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c2" value="&lt;b&gt;繰り返し&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;同じ作業を何度も行う&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="590" y="55" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c3" value="&lt;b&gt;自動化可能&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;機械やソフトウェアで代替できる&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="140" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c4" value="&lt;b&gt;戦術的&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;その場限りの対応&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="590" y="140" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c5" value="&lt;b&gt;永続的価値なし&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;恒久的なサービス改善に寄与しない&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="225" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="c6" value="&lt;b&gt;サービス成長に比例&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;規模に応じて作業量が増加&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="590" y="225" width="195" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" value="定義" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;strokeWidth=2;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" source="toil" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="370" y="170" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="330" y="225"/>
+              <mxPoint x="330" y="170"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="Google SRE では Toil が 50% を超えた場合、Toil 削減の自動化プロジェクトを優先するルールを定めている" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="400" width="755" height="45" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
