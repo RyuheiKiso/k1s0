@@ -1,0 +1,61 @@
+<mxfile host="draw.io">
+  <diagram name="reading-flow" id="reading-flow">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="本書の読解フロー — 読者タイプ別に推奨する読み順" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="920" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="全員が 01 (用語集) を辞書として並読する前提" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="36" width="920" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="start" value="本書を開く" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="85" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hajime" value="00 はじめに&#xa;(読み方のルール)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="85" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="decide" value="あなたの役割は？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="75" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="exec" value="決裁者・経営層&#xa;→ 02 / 03 / 04 / 09" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="85" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dev" value="tier1 / tier2 / tier3 開発者&#xa;→ 01 / 05 / 06 / 07 / 08" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="160" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ops" value="運用・SRE&#xa;→ 05 / 06 / 07 / 10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="235" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="biz" value="要件定義 (業務側)&#xa;→ 02 / 03 / 04" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="310" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" value="監査・コンプライアンス&#xa;→ 06 セキュリティ節 / 07" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="385" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="partner" value="パートナー (SIer / ベンダー)&#xa;→ 01 / 02 / 07 / 09" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="460" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="glossary" value="01 用語集&#xa;(常に辞書として並読)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="350" width="200" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="start" target="hajime"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="hajime" target="decide"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decide" target="exec"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decide" target="dev"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decide" target="ops"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decide" target="biz"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decide" target="audit"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decide" target="partner"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#A8710F;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="hajime" target="glossary"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="note" value="破線 = 全読者が 01 用語集を常に参照。太線 = メインの読み順。役割が複数ある場合は上から順に読むとよい。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FAFAFA;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="920" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

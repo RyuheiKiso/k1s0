@@ -1,0 +1,56 @@
+<mxfile host="draw.io">
+  <diagram name="phase-scope" id="phase-scope">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1080" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1080" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Phase 別スコープの積み上げ — MVP から本番展開まで" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1000" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="右の Phase は左の Phase の内容をすべて引き継いだ上で新機能を積む" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="36" width="1000" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a" value="Phase 1a (MVP-0)&#xa;2 週間 / 単独 / VM 1 台" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="p1b" value="Phase 1b (MVP-1)&#xa;2 名体制 / VM × 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="260" y="80" width="200" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="Phase 2&#xa;部分本番化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="200" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="Phase 3&#xa;拡張期" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="700" y="80" width="200" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="Phase 5&#xa;本番展開" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="920" y="80" width="140" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a_items" value="・k8s (kubeadm)&#xa;・Keycloak 最小&#xa;・tier1 最小 API&#xa;・Kafka 最小&#xa;・PostgreSQL 1 台&#xa;・Harbor&#xa;・Trivy&#xa;・雛形 CLI&#xa;・配信ポータル (PWA 1本)&#xa;・Grafana 最小" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;spacingTop=4;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="50" y="130" width="180" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="p1b_items" value="+ HA (VM × 3)&#xa;+ Istio / Envoy GW&#xa;+ Backstage&#xa;+ Argo CD&#xa;+ OpenTofu&#xa;+ LGTMP 完全構成&#xa;+ Pyroscope&#xa;+ OpenBao&#xa;+ ZEN Engine&#xa;+ Renovate&#xa;+ OpenFeature + flagd&#xa;+ C# / Go / TS ライブラリ&#xa;+ CI ガード&#xa;+ パイロット業務 1 件" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=10;verticalAlign=top;spacingTop=4;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="270" y="130" width="180" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_items" value="+ k1s0.Workflow&#xa;+ tier2 サンプル&#xa;+ 端末台帳&#xa;+ CI ガード強化&#xa;+ Backstage プラグイン&#xa;+ Cosign 署名&#xa;+ Kyverno 検証&#xa;+ DLQ 自動化&#xa;+ 長期ワークフロー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=10;verticalAlign=top;spacingTop=4;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="490" y="130" width="180" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_items" value="+ tier3 サンプル&#xa;+ ネイティブ配信 (MSIX)&#xa;+ 端末設定コピー&#xa;+ Chaos Engineering&#xa;+ cert-manager&#xa;+ 長期メトリクス (Mimir)&#xa;+ DR 訓練 (四半期)&#xa;+ SBOM 生成義務化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;verticalAlign=top;spacingTop=4;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="710" y="130" width="180" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="p5_items" value="+ マルチクラスタ&#xa;+ DR 本番訓練&#xa;+ 申請ワークフロー&#xa;+ .NET FW 本格共存&#xa;+ 全社ロールアウト" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#b85450;fontSize=10;verticalAlign=top;spacingTop=4;align=left;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="930" y="130" width="120" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="240" y="330" as="sourcePoint"/><mxPoint x="260" y="330" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="460" y="330" as="sourcePoint"/><mxPoint x="480" y="330" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="680" y="330" as="sourcePoint"/><mxPoint x="700" y="330" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="900" y="330" as="sourcePoint"/><mxPoint x="920" y="330" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="note" value="各 Phase 内に「+」で示したのはその Phase で追加される項目。前 Phase のスコープは引き継がれる前提。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FAFAFA;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="590" width="1020" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

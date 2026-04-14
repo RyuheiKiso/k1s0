@@ -1,0 +1,51 @@
+<mxfile host="draw.io">
+  <diagram name="tier1-sequence" id="tier1-sequence">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1040" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1040" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="代表シーケンス — tier2 サービスが k1s0.Auth と k1s0.Log を呼び出す" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="60" y="10" width="920" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="tier2 は k1s0.* のみを呼ぶ — 内部 OSS は tier1 ファサードが隠蔽" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="60" y="36" width="920" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_user" value="エンドユーザー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_tier2" value="tier2 業務サービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_tier1" value="tier1 ファサード&#xa;(k1s0.Auth / k1s0.Log)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="74" width="180" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_kc" value="Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_loki" value="Loki / Tempo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_user" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="110" y="125" as="sourcePoint"/><mxPoint x="110" y="580" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="lane_tier2" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="125" as="sourcePoint"/><mxPoint x="300" y="580" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="lane_tier1" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="510" y="130" as="sourcePoint"/><mxPoint x="510" y="580" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="lane_kc" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="710" y="125" as="sourcePoint"/><mxPoint x="710" y="580" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="lane_loki" value="" style="endArrow=none;html=1;strokeWidth=1;strokeColor=#999999;dashed=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="900" y="125" as="sourcePoint"/><mxPoint x="900" y="580" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg1" value="① HTTP リクエスト + Bearer トークン" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;fontSize=11;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="110" y="160" as="sourcePoint"/><mxPoint x="300" y="160" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg2" value="② k1s0.Auth.ValidateToken(token)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2F5B8C;fontSize=11;fontStyle=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="205" as="sourcePoint"/><mxPoint x="510" y="205" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg3" value="③ JWKS 公開鍵 (初回のみ取得、以後キャッシュ)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#A93226;fontSize=11;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="510" y="250" as="sourcePoint"/><mxPoint x="710" y="250" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg4" value="④ 署名検証 OK / クレーム返却" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2F5B8C;fontSize=11;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="510" y="295" as="sourcePoint"/><mxPoint x="300" y="295" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg5" value="⑤ 業務ロジック実行" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#4C8C4A;fontSize=11;fontStyle=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="340" as="sourcePoint"/><mxPoint x="300" y="380" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg5_label" value="(tier2 内で処理)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#555555;" vertex="1" parent="1"><mxGeometry x="130" y="345" width="150" height="20" as="geometry" /></mxCell>
+        <mxCell id="msg6" value="⑥ k1s0.Log.Info(msg, ctx) + traceId" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2F5B8C;fontSize=11;fontStyle=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="410" as="sourcePoint"/><mxPoint x="510" y="410" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg7" value="⑦ Loki / Tempo へ非同期送信 (呼び出し側ブロックしない)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#A93226;fontSize=11;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="510" y="455" as="sourcePoint"/><mxPoint x="900" y="455" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="msg8" value="⑧ HTTP レスポンス 200 OK" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;fontSize=11;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="300" y="500" as="sourcePoint"/><mxPoint x="110" y="500" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="note" value="青矢印 = tier2 が呼ぶ k1s0.* 公開 API  /  赤矢印 = tier1 ファサード内で完結する OSS 呼び出し (tier2 からは不可視)" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FAFAFA;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="555" width="960" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

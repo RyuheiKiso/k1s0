@@ -1,0 +1,107 @@
+<mxfile host="draw.io">
+  <diagram name="quality-targets" id="quality-targets">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Phase 別の非機能要件目標の引き上げ方" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="60" y="10" width="880" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="MVP で過剰品質を避け、Phase 進行に合わせて段階的に強化する" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="60" y="36" width="880" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="col_cat" value="カテゴリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col_p1" value="Phase 1 (MVP)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="80" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col_p3" value="Phase 3 (パイロット拡張)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col_p5" value="Phase 5 (本番展開)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_cat" value="tier1 API レイテンシ (p99)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_p1" value="&lt; 500 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="120" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_p3" value="&lt; 400 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="120" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_p5" value="&lt; 300 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="120" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_cat" value="可用性 (tier1 公開 API)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_p1" value="99% (月 7.2h 許容)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_p3" value="99.5% (月 3.6h 許容)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_p5" value="99.9% (月 43.2min 許容)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_cat" value="ログ保持 (Loki)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_p1" value="15 日" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="240" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_p3" value="30 日" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="240" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_p5" value="90 日" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="240" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_cat" value="ノード数 / Pod 数" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_p1" value="3 ノード / 30〜50 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="300" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_p3" value="5〜8 ノード / 80〜150 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="300" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_p5" value="10+ ノード / 200+ Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="300" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_cat" value="自動化レベル" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_p1" value="GitOps デプロイのみ自動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="360" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_p3" value="HPA + KEDA + Renovate 自動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="360" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_p5" value="DR 訓練含む完全自動化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_cat" value="CVE 対応 (Critical)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_p1" value="48 時間 (手動プロセス)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="420" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_p3" value="24 時間 (Renovate 自動 PR)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="420" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_p5" value="12 時間 (一部自動マージ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="420" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_grow" value="段階的引き上げ" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#333333;fontSize=12;fontStyle=1;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="260" y="505" as="sourcePoint"/><mxPoint x="940" y="505" as="targetPoint"/></mxGeometry></mxCell>
+        <mxCell id="note" value="Phase 1 はパイロット運用を成立させるラインを狙い、Phase 3 でスコープ拡大、Phase 5 で全社ロールアウト相当の品質に到達する。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FAFAFA;strokeColor=#CCCCCC;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="920" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
