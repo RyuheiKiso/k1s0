@@ -659,20 +659,29 @@
                 <mxCell id="iotDMZnote" value="※ OpenBao / Argo CD / Harbor は既存拡張。EMQX / Mender が新規追加。" style="text;html=1;align=left;fontSize=10;fontStyle=2" parent="1" vertex="1">
                     <mxGeometry x="1080" y="3625" width="500" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="iotFrameT1" value="tier1 / infra 追加 + tier2 / tier3 既存への流入ルート" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
+                <mxCell id="iotFrameT1" value="tier1 ファサードによる infra 隠蔽 + tier2 / tier3 接点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
                     <mxGeometry x="1620" y="3060" width="700" height="620" as="geometry"/>
                 </mxCell>
-                <mxCell id="iotIngress" value="k1s0.Edge.Ingress (tier1 Go ファサード 新規追加)&#xa;━━━━━━━━━━━━━━━&#xa;Dapr MQTT binding で EMQX を subscribe&#xa;→ JSON schema 検証 + 単位正規化&#xa;→ k1s0.PubSub.Publish で infra Kafka へ&#xa;※ tier1 Go サービス群 (nsTier1) に crate として組込" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;fontSize=11;fontStyle=1" parent="1" vertex="1">
-                    <mxGeometry x="1640" y="3090" width="660" height="140" as="geometry"/>
+                <mxCell id="iotT1Boundary" value="tier1 facade 境界 — 下記 Ingress / Dispatcher / Kafka は tier1 が内包 (tier2 / tier3 からは不可視)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3bf;strokeColor=#b8941d;strokeWidth=2;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+                    <mxGeometry x="1635" y="3085" width="670" height="330" as="geometry"/>
                 </mxCell>
-                <mxCell id="iotKafkaTopics" value="infra Kafka 新規 topic (既存 Strimzi クラスタに追加 / RF=3, partitions=6)&#xa;• edge.device.measurement  (計測値 / 1〜10 Hz)&#xa;• edge.device.alarm  (閾値超過 / イベント)&#xa;• edge.device.heartbeat  (接続監視 / 1 min)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1640" y="3260" width="660" height="105" as="geometry"/>
+                <mxCell id="iotIngress" value="k1s0.Edge.Ingress (上り / Rust 自作)&#xa;━━━━━━━━━━━&#xa;EMQX を subscribe&#xa;→ CN allowlist / schema 検証&#xa;→ 単位正規化 + 重複排除&#xa;→ Dapr PubSub で Kafka 投入" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b8941d;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1650" y="3115" width="280" height="90" as="geometry"/>
                 </mxCell>
-                <mxCell id="iotT2sub" value="tier2 ドメイン購読パス (既存 k1s0.PubSub.Subscribe 経由)&#xa;━━━━━━━━━━━━━━━&#xa;• 品質管理 Service: edge.device.alarm を購読&#xa;• 稼働分析 Service: edge.device.measurement を購読&#xa;※ tier2/tier3 のコード変更は不要 (案 C の最重要不変条件)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1640" y="3395" width="660" height="125" as="geometry"/>
+                <mxCell id="iotDispatcher" value="k1s0.Edge.Dispatcher (下り / Rust 自作)&#xa;━━━━━━━━━━━&#xa;Dapr PubSub で Kafka subscribe&#xa;→ ポリシー検証 (ACL / rate limit)&#xa;→ EMQX へ MQTT Publish&#xa;   factory/{site}/device/{id}/cmd" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6a1b9a;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1650" y="3215" width="280" height="90" as="geometry"/>
                 </mxCell>
-                <mxCell id="iotT3obs" value="tier3 / operation 可視化 (既存 LGTM+P に統合)&#xa;Grafana 「エッジデバイス」ダッシュボード追加&#xa;Loki: edge-agent ログ / Prometheus: metrics scrape" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1640" y="3550" width="660" height="90" as="geometry"/>
+                <mxCell id="iotKafkaTopics" value="Kafka topics (tier1 所有 / Strimzi 拡張 / RF=3)&#xa;━━━━━━━━━━━━━━━&#xa;上り telemetry :&#xa;  • edge.device.measurement (1〜10 Hz)&#xa;  • edge.device.alarm (閾値超過)&#xa;  • edge.device.heartbeat (1 min)&#xa;下り command :&#xa;  • edge.device.command&#xa;  • edge.device.command.ack&#xa;※ tier2 / tier3 は Kafka を直接参照しない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1940" y="3115" width="350" height="275" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT1FacadeExpose" value="▼ tier1 公開 API (この接点のみ tier2 / tier3 から可視)&#xa;上り : k1s0.PubSub.Subscribe(&quot;edge.device.measurement | alarm | heartbeat&quot;)&#xa;下り : k1s0.PubSub.Publish(&quot;edge.device.command&quot;, cmd)  /  Subscribe(&quot;edge.device.command.ack&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#8a6d00;align=center" parent="1" vertex="1">
+                    <mxGeometry x="1640" y="3425" width="660" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT2sub" value="tier2 ドメインサービス (k1s0.PubSub のみ使用 / Kafka は不可視)&#xa;━━━━━━━━━━━━━━━&#xa;上り : 品質管理 Service → alarm 購読  /  稼働分析 Service → measurement 購読&#xa;下り : 操業制御 Service → command 発行 (認可 + 監査 + 冪等化)&#xa;※ tier2 / tier3 のコード変更は不要 (案 C の最重要不変条件)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1640" y="3495" width="660" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT3obs" value="tier3 UI / 可視化 (既存 LGTM+P に統合)&#xa;Grafana 「エッジデバイス」ダッシュボード (Prometheus scrape / Loki は edge-agent ログ — Kafka 非経由)&#xa;操作 UI → tier2 操業制御 Service へ Service.Invoke → 下り command を tier2 から発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1640" y="3615" width="660" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="iotEdgeD1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
@@ -715,36 +724,64 @@
                 </mxCell>
                 <mxCell id="iotEdgeEmqxIng" value="" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=3" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1580" y="3150" as="sourcePoint"/>
-                        <mxPoint x="1640" y="3150" as="targetPoint"/>
+                        <mxPoint x="1580" y="3155" as="sourcePoint"/>
+                        <mxPoint x="1650" y="3155" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="iotEdgeIngKafka" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=3;dashed=1" parent="1" edge="1">
+                <mxCell id="iotEdgeIngKafka" value="" style="endArrow=classic;html=1;strokeColor=#888888;strokeWidth=2;dashed=1" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1970" y="3230" as="sourcePoint"/>
-                        <mxPoint x="1970" y="3260" as="targetPoint"/>
+                        <mxPoint x="1930" y="3160" as="sourcePoint"/>
+                        <mxPoint x="1940" y="3160" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="iotEdgeKafkaT2" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=3;dashed=1" parent="1" edge="1">
+                <mxCell id="iotEdgeKafkaDispatch" value="" style="endArrow=classic;html=1;strokeColor=#888888;strokeWidth=2;dashed=1" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1970" y="3365" as="sourcePoint"/>
-                        <mxPoint x="1970" y="3395" as="targetPoint"/>
+                        <mxPoint x="1940" y="3260" as="sourcePoint"/>
+                        <mxPoint x="1930" y="3260" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="iotEdgeKafkaT3" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1" parent="1" edge="1">
+                <mxCell id="iotEdgeDispatchEmqx" value="" style="endArrow=classic;html=1;strokeColor=#6a1b9a;strokeWidth=3" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1970" y="3520" as="sourcePoint"/>
-                        <mxPoint x="1970" y="3550" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1610" y="3260"/>
+                            <mxPoint x="1610" y="3195"/>
+                        </Array>
+                        <mxPoint x="1650" y="3260" as="sourcePoint"/>
+                        <mxPoint x="1580" y="3195" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="iotFlowLabel3" value="k1s0.PubSub.Publish" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#558b2f" parent="1" vertex="1">
-                    <mxGeometry x="1990" y="3235" width="160" height="18" as="geometry"/>
+                <mxCell id="iotEdgeFacadeT2" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1800" y="3475" as="sourcePoint"/>
+                        <mxPoint x="1800" y="3495" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
-                <mxCell id="iotFlowLabel4" value="k1s0.PubSub.Subscribe" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#558b2f" parent="1" vertex="1">
-                    <mxGeometry x="1990" y="3370" width="160" height="18" as="geometry"/>
+                <mxCell id="iotFlowLabelSub" value="Subscribe (上り)" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#558b2f" parent="1" vertex="1">
+                    <mxGeometry x="1820" y="3478" width="120" height="14" as="geometry"/>
                 </mxCell>
-                <mxCell id="iotFlowLabel5" value="metrics / logs" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#9673a6" parent="1" vertex="1">
-                    <mxGeometry x="1990" y="3525" width="100" height="18" as="geometry"/>
+                <mxCell id="iotEdgeT2Facade" value="" style="endArrow=classic;html=1;strokeColor=#6a1b9a;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2140" y="3495" as="sourcePoint"/>
+                        <mxPoint x="2140" y="3475" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotFlowLabelPub" value="Publish (下り cmd)" style="text;html=1;align=right;fontSize=10;fontStyle=1;fontColor=#6a1b9a" parent="1" vertex="1">
+                    <mxGeometry x="2010" y="3478" width="125" height="14" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeT3T2" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1970" y="3615" as="sourcePoint"/>
+                        <mxPoint x="1970" y="3605" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgePiActCmd" value="" style="endArrow=classic;html=1;strokeColor=#6a1b9a;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="752" y="3415" as="sourcePoint"/>
+                        <mxPoint x="752" y="3490" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgePiActCmdLbl" value="cmd" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#6a1b9a" parent="1" vertex="1">
+                    <mxGeometry x="758" y="3440" width="40" height="18" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
