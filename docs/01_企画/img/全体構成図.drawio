@@ -1,12 +1,12 @@
 <mxfile host="draw.io">
   <diagram name="k1s0-overview" id="overview">
-    <mxGraphModel dx="2400" dy="3020" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="3020" math="0" shadow="0">
+    <mxGraphModel dx="2400" dy="3700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="3700" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="2400" height="3020" as="geometry" />
+          <mxGeometry x="0" y="0" width="2400" height="3700" as="geometry" />
         </mxCell>
 
         <mxCell id="title" value="k1s0 全体構成図 (インフラ + アーキテクチャ詳細 / サンプルフロー = 注文確定)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" vertex="1" parent="1">
@@ -638,6 +638,167 @@
         </mxCell>
         <mxCell id="s3" value="storage-03&#10;10.0.100.33&#10;━━━━━━&#10;Longhorn replica&#10;Postgres Replica 2 PV&#10;MinIO (server 3)&#10;Kafka Broker 3 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" vertex="1" parent="1">
           <mxGeometry x="2080" y="2750" width="240" height="210" as="geometry" />
+        </mxCell>
+
+
+        <mxCell id="iotSep" value="" style="endArrow=none;html=1;strokeColor=#999999;strokeWidth=1;dashed=1" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="3010" as="sourcePoint" />
+            <mxPoint x="2340" y="3010" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotTitle" value="案 C 採用時の IoT エッジ拡張 (詳細 : 13_IoTエッジ接続 フォルダ / 05_3案の深掘り評価.md)" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1565c0" vertex="1" parent="1">
+          <mxGeometry x="60" y="3020" width="2280" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotFrameOT" value="OT 閉域ネットワーク (Purdue Level 0-2 / VLAN 10.0.200.0/24 / Default deny)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="3060" width="800" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="iotK3s" value="k3s v1.30 HA エッジクラスタ (3 ノード / embedded etcd on NVMe)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f8f4;strokeColor=#82b366;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="3090" width="760" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="iotPi1" value="Pi-01 (cp + worker)&#10;10.0.200.11&#10;━━━━━━&#10;kubelet / containerd&#10;edge-agent (Rust)&#10;daprd sidecar&#10;argocd-agent&#10;mender-client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#558b2f;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="115" y="3125" width="235" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="iotPi2" value="Pi-02 (cp + worker)&#10;10.0.200.12&#10;━━━━━━&#10;kubelet / containerd&#10;edge-agent (Rust)&#10;daprd sidecar&#10;argocd-agent&#10;mender-client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#558b2f;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="365" y="3125" width="235" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="iotPi3" value="Pi-03 (worker)&#10;10.0.200.13&#10;━━━━━━&#10;kubelet / containerd&#10;edge-agent (Rust)&#10;daprd sidecar&#10;Protocol Parsers&#10;Local-Path PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#558b2f;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="615" y="3125" width="235" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotDev1" value="温度計&#10;(Modbus RTU)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6a24f;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="115" y="3490" width="235" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="iotDev2" value="計測器&#10;(RS-232C ASCII)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6a24f;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="365" y="3490" width="235" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="iotDev3" value="アクチュエータ&#10;(Modbus RTU)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6a24f;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="615" y="3490" width="235" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="iotOTnote" value="HW: 13_IoTエッジ接続/01 の Pi 4B 8GB × 3 + NVMe + UPS HAT + 産業筐体 (詳細 : 05_3案の深掘り評価.md §3.1.3 案 C)&#10;OS/SW: Ubuntu Core + rauc A/B + k3s + Dapr + Cosign 署名 / LUKS 全ディスク暗号化 / Secure Boot" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="3595" width="760" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotFrameFW" value="境界" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;verticalAlign=top;fontSize=12;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="900" y="3060" width="140" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="iotFW" value="OT / IT&#10;境界 FW&#10;━━━━━━&#10;IEC 62443&#10;SL2&#10;━━━━━━&#10;TCP 8883&#10;out only&#10;TCP 443&#10;out only&#10;ICMP drop&#10;Default&#10;deny" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c62828;fontSize=10;fontStyle=1;align=center" vertex="1" parent="1">
+          <mxGeometry x="915" y="3100" width="110" height="560" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotFrameDMZ" value="DMZ / infra 追加 (既存 infra namespace に常設)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1060" y="3060" width="540" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="iotEMQX" value="EMQX MQTT Broker (3 ノード HA)&#10;:8883 mTLS / ACL 強制&#10;topic: factory/+/device/+/*&#10;→ infra namespace の新規コンポーネント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1080" y="3095" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="iotMender" value="Mender サーバ (OTA 配信)&#10;mender.ops.k1s0.internal&#10;Pi 側 mender-client が pull 型&#10;bundle 署名 Cosign 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1080" y="3220" width="500" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="iotBao" value="OpenBao PKI secrets engine&#10;(既存 OpenBao を機能拡張)&#10;AppRole 認証 + TTL 24h 証明書署名&#10;ATECC608B 連携で秘密鍵不持出" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1080" y="3325" width="500" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="iotArgoEdge" value="Argo CD ApplicationSet (edge)&#10;既存 operation の Argo CD を拡張&#10;GitOps pull 型 → k3s エッジ同期&#10;argocd.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1080" y="3430" width="500" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="iotHarbor" value="Harbor / MinIO (既存共用)&#10;エッジ用 image + bundle 保管&#10;harbor-edge-mirror (拠点内 pull-through cache)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1080" y="3535" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="iotDMZnote" value="※ OpenBao / Argo CD / Harbor は既存拡張。EMQX / Mender が新規追加。" style="text;html=1;align=left;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="1080" y="3625" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotFrameT1" value="tier1 / infra 追加 + tier2 / tier3 既存への流入ルート" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1620" y="3060" width="700" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="iotIngress" value="k1s0.Edge.Ingress (tier1 Go ファサード 新規追加)&#10;━━━━━━━━━━━━━━━&#10;Dapr MQTT binding で EMQX を subscribe&#10;→ JSON schema 検証 + 単位正規化&#10;→ k1s0.PubSub.Publish で infra Kafka へ&#10;※ tier1 Go サービス群 (nsTier1) に crate として組込" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1640" y="3090" width="660" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="iotKafkaTopics" value="infra Kafka 新規 topic (既存 Strimzi クラスタに追加 / RF=3, partitions=6)&#10;• edge.device.measurement  (計測値 / 1〜10 Hz)&#10;• edge.device.alarm  (閾値超過 / イベント)&#10;• edge.device.heartbeat  (接続監視 / 1 min)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1640" y="3260" width="660" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="iotT2sub" value="tier2 ドメイン購読パス (既存 k1s0.PubSub.Subscribe 経由)&#10;━━━━━━━━━━━━━━━&#10;• 品質管理 Service: edge.device.alarm を購読&#10;• 稼働分析 Service: edge.device.measurement を購読&#10;※ tier2/tier3 のコード変更は不要 (案 C の最重要不変条件)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1640" y="3395" width="660" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="iotT3obs" value="tier3 / operation 可視化 (既存 LGTM+P に統合)&#10;Grafana 「エッジデバイス」ダッシュボード追加&#10;Loki: edge-agent ログ / Prometheus: metrics scrape" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1640" y="3550" width="660" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotEdgeD1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="232" y="3490" as="sourcePoint" />
+            <mxPoint x="232" y="3415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeD1lbl" value="RS-485" style="text;html=1;align=center;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="170" y="3440" width="55" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="iotEdgeD2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="482" y="3490" as="sourcePoint" />
+            <mxPoint x="482" y="3415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeD2lbl" value="RS-232C" style="text;html=1;align=center;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="418" y="3440" width="60" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="iotEdgeD3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="732" y="3490" as="sourcePoint" />
+            <mxPoint x="732" y="3415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeD3lbl" value="RS-485" style="text;html=1;align=center;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="670" y="3440" width="55" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iotEdgeClFW" value="" style="endArrow=classic;html=1;strokeColor=#1565c0;strokeWidth=3" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="860" y="3150" as="sourcePoint" />
+            <mxPoint x="915" y="3150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeFWemqx" value="" style="endArrow=classic;html=1;strokeColor=#1565c0;strokeWidth=3" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1025" y="3150" as="sourcePoint" />
+            <mxPoint x="1080" y="3150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeEmqxIng" value="" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=3" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1580" y="3150" as="sourcePoint" />
+            <mxPoint x="1640" y="3150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="iotEdgeIngKafka" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=3;dashed=1" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1970" y="3230" as="sourcePoint" />
+            <mxPoint x="1970" y="3260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeKafkaT2" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=3;dashed=1" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1970" y="3365" as="sourcePoint" />
+            <mxPoint x="1970" y="3395" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="iotEdgeKafkaT3" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1970" y="3520" as="sourcePoint" />
+            <mxPoint x="1970" y="3550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="iotFlowLabel3" value="k1s0.PubSub.Publish" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#558b2f" vertex="1" parent="1">
+          <mxGeometry x="1990" y="3235" width="160" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="iotFlowLabel4" value="k1s0.PubSub.Subscribe" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#558b2f" vertex="1" parent="1">
+          <mxGeometry x="1990" y="3370" width="160" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="iotFlowLabel5" value="metrics / logs" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="1990" y="3525" width="100" height="18" as="geometry" />
         </mxCell>
 
       </root>
