@@ -1,0 +1,97 @@
+<mxfile host="draw.io">
+  <diagram name="poc-milestones" id="poc-milestones">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="PoC マイルストーン (6 ヶ月)" style="text;html=1;align=center;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hdrTask" value="フェーズ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM1" value="月 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="320" y="60" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM2" value="月 2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="510" y="60" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM3" value="月 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="60" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM4" value="月 4" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="890" y="60" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM5" value="月 5" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1080" y="60" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrM6" value="月 6" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1270" y="60" width="190" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rowPrep" value="準備&#xa;(機材調達 / 検証室 / 機器借用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="barPrep" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#558b2f" vertex="1" parent="1">
+          <mxGeometry x="320" y="130" width="190" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rowImpl" value="案 A エージェント実装&#xa;(SQLite WAL / MQTT TLS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="barImpl" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#558b2f" vertex="1" parent="1">
+          <mxGeometry x="510" y="190" width="190" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rowSite1" value="案 A 拠点 1 デプロイ&#xa;(機器 1 台目)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="barSite1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#558b2f" vertex="1" parent="1">
+          <mxGeometry x="700" y="250" width="190" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rowSite2" value="案 A 拠点 2 + 案 C 検証室&#xa;(k3s クラスタ立ち上げ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="barSite2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1" vertex="1" parent="1">
+          <mxGeometry x="890" y="310" width="190" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rowChaos" value="障害試験&#xa;(NW 断 / 電源断 / OTA / 鍵)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="barChaos" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#c62828;strokeColor=#8b0000" vertex="1" parent="1">
+          <mxGeometry x="1080" y="370" width="190" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rowReport" value="評価 + 報告書&#xa;(TCO 再計算 / Go-NoGo)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="barReport" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6a24f;strokeColor=#a37316" vertex="1" parent="1">
+          <mxGeometry x="1270" y="430" width="190" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="msAlpha" value="α 版 連続稼働 24h" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d6a24f;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="630" y="500" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="msSiteOK" value="拠点 1: 1 週間 publish 失敗 0" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="820" y="500" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="msChaosOK" value="カオス 10 シナリオ全合格" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1060" y="500" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="msSteer" value="ステアリング Go/No-Go" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#d6a24f;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="1300" y="500" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例 :  緑 = 案 A 系 / 青 = 案 C 系 / 赤 = 障害試験 / 橙 = 評価&#xa;マイルストーンは各フェーズ末週末に判定。失敗時は次フェーズの分岐を再計画。" style="text;html=1;align=left;fontSize=12;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="1420" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

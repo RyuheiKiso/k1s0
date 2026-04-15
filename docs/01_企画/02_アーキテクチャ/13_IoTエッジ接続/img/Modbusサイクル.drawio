@@ -1,0 +1,82 @@
+<mxfile host="draw.io">
+  <diagram name="modbus-cycle" id="modbus-cycle">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Modbus RTU 1 機器サイクルの時系列内訳 (9600 bps / 10 レジスタ読み出し)" style="text;html=1;align=center;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="laneM" value="マスタ (Pi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="laneS" value="スレーブ (機器)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#d6a24f;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="busLine" value="" style="endArrow=none;html=1;strokeColor=#999999;strokeWidth=2;dashed=1" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="160" as="sourcePoint" />
+            <mxPoint x="1460" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="busLine2" value="" style="endArrow=none;html=1;strokeColor=#999999;strokeWidth=2;dashed=1" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="360" as="sourcePoint" />
+            <mxPoint x="1460" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="seg1" value="REQ&#xa;9.17 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#558b2f;fontColor=#ffffff;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="260" y="135" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="seg2" value="silent&#xa;4.01 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bdbdbd;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="390" y="200" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="seg3" value="機器応答遅延&#xa;20.00 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#d6a24f" vertex="1" parent="1">
+          <mxGeometry x="460" y="280" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="seg4" value="RESP&#xa;28.65 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6a24f;strokeColor=#a37316;fontColor=#ffffff;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="690" y="335" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="seg5" value="silent&#xa;4.01 ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#bdbdbd;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="1020" y="200" width="60" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="seg1Arrow" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="190" as="sourcePoint" />
+            <mxPoint x="320" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="seg4Arrow" value="" style="endArrow=classic;html=1;strokeColor=#a37316;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="850" y="335" as="sourcePoint" />
+            <mxPoint x="850" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="totalLabel" value="T_cycle ≈ 65.84 ms / 1 機器" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#c62828" vertex="1" parent="1">
+          <mxGeometry x="260" y="430" width="820" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="totalArrow" value="" style="endArrow=classic;html=1;startArrow=classic;strokeColor=#c62828;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="465" as="sourcePoint" />
+            <mxPoint x="1080" y="465" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="formula" value="T_char = 11 / 9600 ≈ 1.146 ms&#xa;T_silent = 3.5 × T_char ≈ 4.01 ms&#xa;T_frame_req = 8 × T_char ≈ 9.17 ms&#xa;T_frame_resp = (5 + 2×10) × T_char ≈ 28.65 ms&#xa;T_device = 機器仕様 (典型 5〜50 ms)" style="text;html=1;align=left;fontSize=12;verticalAlign=middle;fontFamily=Courier New" vertex="1" parent="1">
+          <mxGeometry x="1100" y="135" width="380" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="formulaNote" value="100 機器を 1 バスでポーリング :&#xa;100 × 65.84 ms ≈ 6.58 秒 / サイクル&#xa;→ 業務要件 5 秒 / サイクル を満たさない場合&#xa;  バス分割 / ボーレート上げ / Pi 増設で対処。" style="text;html=1;align=left;fontSize=12;verticalAlign=middle;fontStyle=2;fontColor=#c62828" vertex="1" parent="1">
+          <mxGeometry x="1100" y="320" width="380" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,171 @@
+<mxfile host="draw.io">
+  <diagram name="purdue-model" id="purdue-model">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Purdue モデル境界と k1s0 エッジ配置" style="text;html=1;align=center;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lvl4" value="Level 4 : IT 情報系 / k1s0 本体" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="1380" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="lvl35" value="Level 3.5 : DMZ (tier1 公開部)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c0578f;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5" vertex="1" parent="1">
+          <mxGeometry x="60" y="190" width="1380" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="lvl3" value="Level 3 : MES / 製造実行 (k1s0 範囲外)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8eaf6;strokeColor=#6c8ebf;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="1380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lvl2" value="Level 2 : 監視 / SCADA / k1s0 エッジ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="1380" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="lvl1" value="Level 1 : 基本制御 (PLC / DCS, k1s0 範囲外)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="1380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lvl0" value="Level 0 : センサ / アクチュエータ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#d6a24f;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=5" vertex="1" parent="1">
+          <mxGeometry x="60" y="730" width="1380" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier1" value="tier1 Dapr / Kafka" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="95" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2" value="tier2 ドメイン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0" vertex="1" parent="1">
+          <mxGeometry x="780" y="95" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="tier3 業務アプリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0" vertex="1" parent="1">
+          <mxGeometry x="1040" y="95" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bao" value="OpenBao PKI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c0578f" vertex="1" parent="1">
+          <mxGeometry x="160" y="235" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="broker" value="MQTT Broker (EMQX)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c0578f;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="235" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="mender" value="Mender サーバ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c0578f" vertex="1" parent="1">
+          <mxGeometry x="760" y="235" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Loki / Mimir" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c0578f" vertex="1" parent="1">
+          <mxGeometry x="1000" y="235" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mes" value="MES (既存)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#777777;fontStyle=2;fontColor=#777777" vertex="1" parent="1">
+          <mxGeometry x="1220" y="375" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge1" value="エッジ Pi&#xa;(RS-232C / RS-485 収容)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="460" y="490" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fwL2" value="OT / IT 境界 FW&#xa;TCP 8883 out のみ許可" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#c62828;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="1220" y="490" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="plc" value="PLC (既存)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#777777;fontStyle=2;fontColor=#777777" vertex="1" parent="1">
+          <mxGeometry x="1220" y="645" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev1" value="温度計" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#555555" vertex="1" parent="1">
+          <mxGeometry x="260" y="755" width="160" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dev2" value="計測器" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#555555" vertex="1" parent="1">
+          <mxGeometry x="460" y="755" width="160" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dev3" value="アクチュエータ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#555555" vertex="1" parent="1">
+          <mxGeometry x="660" y="755" width="160" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eD1" value="RS-232C" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="720" />
+              <mxPoint x="540" y="720" />
+            </Array>
+            <mxPoint x="340" y="755" as="sourcePoint" />
+            <mxPoint x="540" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eD2" value="RS-485" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="755" as="sourcePoint" />
+            <mxPoint x="540" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eD3" value="RS-232C" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="720" />
+              <mxPoint x="580" y="720" />
+            </Array>
+            <mxPoint x="740" y="755" as="sourcePoint" />
+            <mxPoint x="580" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eEB" value="MQTT publish" style="endArrow=classic;html=1;strokeColor=#c0578f" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="490" as="sourcePoint" />
+            <mxPoint x="560" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eBT" value="pub/sub" style="endArrow=classic;html=1;strokeColor=#1565c0" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="235" as="sourcePoint" />
+            <mxPoint x="560" y="145" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eEBao" value="cert rotate" style="endArrow=classic;html=1;strokeColor=#c0578f" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="511" />
+              <mxPoint x="410" y="262" />
+            </Array>
+            <mxPoint x="460" y="511" as="sourcePoint" />
+            <mxPoint x="340" y="262" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eEM" value="OTA pull" style="endArrow=classic;html=1;strokeColor=#c0578f" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="511" />
+              <mxPoint x="710" y="262" />
+            </Array>
+            <mxPoint x="660" y="511" as="sourcePoint" />
+            <mxPoint x="760" y="262" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eEL" value="metrics / logs" style="endArrow=classic;html=1;strokeColor=#c0578f" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="539" />
+              <mxPoint x="960" y="262" />
+            </Array>
+            <mxPoint x="660" y="539" as="sourcePoint" />
+            <mxPoint x="1000" y="262" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eT1T2" value="" style="endArrow=classic;html=1;strokeColor=#1565c0" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="120" as="sourcePoint" />
+            <mxPoint x="780" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eT2T3" value="" style="endArrow=classic;html=1;strokeColor=#1565c0" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="960" y="120" as="sourcePoint" />
+            <mxPoint x="1040" y="120" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

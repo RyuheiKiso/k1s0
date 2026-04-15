@@ -1,0 +1,68 @@
+<mxfile host="draw.io">
+  <diagram name="edge-software-stack" id="edge-software-stack">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="エッジソフトウェアスタック (案 A ベース / 案 B・C でも同一構成が再利用可能)" style="text;html=1;align=center;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="L1" value="外部接続: USB-Serial / Ethernet (MQTT / HTTPS / gRPC) / SD Card / GPIO / PoE-IN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="60" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L2" value="観測性: OTel SDK (Trace / Metrics / Logs) / Prometheus node_exporter / Fluent Bit" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#0277bd;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="120" width="900" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="L3" value="エッジエージェント (Rust or Go / 静的リンクシングルバイナリ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#d6b656;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="180" width="900" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="L3a" value="Serial I/O&#xa;(tokio-serial / serialport-rs)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="170" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L3b" value="Protocol Parser&#xa;(Modbus RTU / 独自)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="390" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L3c" value="Local Queue&#xa;(SQLite + WAL)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="610" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L3d" value="Publisher&#xa;(MQTT / HTTPS / Dapr API)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="830" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="L3e" value="Retry / Exponential Backoff / Idempotency Key 付与 / スループット制御 (token bucket)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="170" y="300" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="L3f" value="Health / Liveness / Config Reload" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="790" y="300" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="L3g" value="Config: YAML or TOML / シークレットは OpenBao から起動時取得 / 鍵は X.509 mTLS クライアント証明書" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#d6b656;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="170" y="350" width="860" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="L4" value="システムサービス: systemd / chrony (NTP 時刻同期) / iptables (firewall) / hardware watchdog" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="410" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L5" value="セキュリティ基盤: LUKS dm-crypt (SD 暗号化) / read-only rootfs + overlayfs / Secure Boot (Pi 5 / 起動時署名検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c2185b;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="470" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L6" value="ブート & 更新: U-Boot + A/B partition 方式 (rauc / mender-client) / healthcheck 失敗時の自動ロールバック" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ede7f6;strokeColor=#512da8;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="530" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L7" value="OS: Raspberry Pi OS Lite 64-bit (Debian 12) または Ubuntu Server for ARM 24.04 LTS / kernel 6.x / PREEMPT_RT 非必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0f7fa;strokeColor=#00838f;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="590" width="900" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="L8" value="Hardware: Raspberry Pi 4 (4 GB / 8 GB) または Pi 5 / 産業用代替: CM4 キャリアボード / Moxa UC / Siemens IOT2050" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="150" y="650" width="900" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note" value="補足: 案 B では L3 (エージェント) の横に Dapr sidecar (daprd) を追加し、Publisher から localhost:3500 への gRPC に差し替える。&#xa;案 C ではスタック全体を k3s の Pod に収め、L4・L5・L6 の一部 (chrony / iptables / ブート更新) がホスト OS 責務のまま、残りは Pod 内で完結する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="150" y="720" width="900" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
