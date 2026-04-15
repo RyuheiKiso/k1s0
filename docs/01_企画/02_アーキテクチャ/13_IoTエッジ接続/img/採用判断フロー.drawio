@@ -1,0 +1,55 @@
+<mxfile host="draw.io">
+  <diagram name="iot-edge-decision" id="iot-edge-decision">
+    <mxGraphModel dx="1600" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="IoTエッジ接続方式 採用判断フロー" style="text;html=1;align=center;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="start" value="IoT 機器接続の検討開始" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="660" y="70" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="q1" value="機器数 ≤ 10 台&#xa;かつ 単拠点 か?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="630" y="170" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="q2" value="複数拠点 または&#xa;k8s 運用チームあり?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="980" y="170" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="caseA" value="案 A&#xa;エッジゲートウェイ方式&#xa;(軽量エージェント + MQTT/HTTPS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="100" y="420" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="caseB" value="案 B&#xa;Dapr サイドカー方式&#xa;(Pi 単体で Dapr 起動)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#d6a24f;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="980" y="420" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="caseC" value="案 C&#xa;k3s エッジクラスタ方式&#xa;(Pi 群をクラスタ化 + GitOps)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#6c8ebf;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1280" y="180" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_start_q1" value="" style="endArrow=classic;html=1;strokeColor=#333333;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="start" target="q1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_q1_caseA" value="Yes" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=12;exitX=0;exitY=0.5;entryX=0.5;entryY=0" edge="1" parent="1" source="q1" target="caseA">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_q1_q2" value="No" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=12;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="q1" target="q2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_q2_caseB" value="No" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=12;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="q2" target="caseB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_q2_caseC" value="Yes" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=12;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="q2" target="caseC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

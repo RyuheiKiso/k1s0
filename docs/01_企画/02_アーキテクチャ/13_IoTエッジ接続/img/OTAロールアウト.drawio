@@ -1,0 +1,151 @@
+<mxfile host="draw.io">
+  <diagram name="ota-rollout" id="ota-rollout">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="OTA 段階ロールアウトと自動ロールバック" style="text;html=1;align=center;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci" value="GitHub Actions&#xa;(タグ push 検出)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="build" value="bundle ビルド + 署名&#xa;(rauc / Mender + Cosign)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="harbor" value="Harbor / MinIO&#xa;(アーティファクト保管)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mender" value="Mender サーバ&#xa;(配信オーケストレーション)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="canary" value="canary&#xa;(全体の 5 %)&#xa;観察 24h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d6a24f;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="200" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="staging" value="staging&#xa;(全体の 25 %)&#xa;観察 48h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#d6a24f;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="680" y="200" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="fleet" value="fleet&#xa;(残り 100 %)&#xa;観察 72h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="960" y="200" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="done" value="リリース完了&#xa;次バージョンの standby" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1240" y="220" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rollback" value="自動ロールバック&#xa;(A/B partition 切戻し)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="680" y="540" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="alert" value="運用通知&#xa;(Alertmanager / Slack)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828" vertex="1" parent="1">
+          <mxGeometry x="960" y="540" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rca" value="RCA + 修正版 bundle&#xa;(再ロールアウト)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828" vertex="1" parent="1">
+          <mxGeometry x="1240" y="540" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="critOK" value="判定 OK&#xa;失敗 0" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#2e7d32" vertex="1" parent="1">
+          <mxGeometry x="605" y="175" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="critOK2" value="判定 OK&#xa;失敗 &lt; 0.5 %" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#2e7d32" vertex="1" parent="1">
+          <mxGeometry x="885" y="175" width="70" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="critFail" value="healthcheck 連続 3 回失敗" style="text;html=1;align=center;fontSize=11;fontStyle=2;fontColor=#c62828" vertex="1" parent="1">
+          <mxGeometry x="400" y="440" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eCB" value="" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="170" as="sourcePoint" />
+            <mxPoint x="160" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eBH" value="" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="280" as="sourcePoint" />
+            <mxPoint x="160" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eHM" value="" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="390" as="sourcePoint" />
+            <mxPoint x="160" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eMC" value="ステージ開始" style="endArrow=classic;html=1;strokeColor=#333333" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="465" />
+              <mxPoint x="340" y="260" />
+            </Array>
+            <mxPoint x="260" y="465" as="sourcePoint" />
+            <mxPoint x="400" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eCS" value="" style="endArrow=classic;html=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="260" as="sourcePoint" />
+            <mxPoint x="680" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eSF" value="" style="endArrow=classic;html=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="880" y="260" as="sourcePoint" />
+            <mxPoint x="960" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eFD" value="" style="endArrow=classic;html=1;strokeColor=#82b366" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1160" y="260" as="sourcePoint" />
+            <mxPoint x="1240" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eCanaryRb" value="" style="endArrow=classic;html=1;strokeColor=#c62828" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="420" />
+              <mxPoint x="720" y="420" />
+            </Array>
+            <mxPoint x="480" y="320" as="sourcePoint" />
+            <mxPoint x="720" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eStagingRb" value="" style="endArrow=classic;html=1;strokeColor=#c62828" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="780" y="320" as="sourcePoint" />
+            <mxPoint x="780" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eFleetRb" value="" style="endArrow=classic;html=1;strokeColor=#c62828" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="420" />
+              <mxPoint x="840" y="420" />
+            </Array>
+            <mxPoint x="1060" y="320" as="sourcePoint" />
+            <mxPoint x="840" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="eRbAlert" value="" style="endArrow=classic;html=1;strokeColor=#c62828" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="880" y="580" as="sourcePoint" />
+            <mxPoint x="960" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eAlertRca" value="" style="endArrow=classic;html=1;strokeColor=#c62828" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1160" y="580" as="sourcePoint" />
+            <mxPoint x="1240" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
