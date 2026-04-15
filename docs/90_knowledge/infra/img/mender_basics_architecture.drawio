@@ -1,0 +1,67 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="mender-architecture" id="mender-architecture">
+    <mxGraphModel dx="900" dy="620" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Mender 全体アーキテクチャ" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="server-box" value="Mender Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="780" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="web-ui" value="Web UI&#10;(管理者向け画面)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="api-gw" value="API Gateway&#10;(Traefik)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="280" y="110" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="services" value="Microservices&#10;Deployments / Device Auth /&#10;Inventory / UserAdm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="470" y="110" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mongo" value="MongoDB&#10;(メタデータ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="720" y="110" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="addons" value="Add-on&#10;Remote Terminal / File Transfer /&#10;Monitor / Configure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="90" y="220" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="artifacts" value="Artifact Storage&#10;(S3 / Azure Blob)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="470" y="220" width="350" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="comm-label" value="HTTPS (Poll + Artifact Download)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="510" y="355" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-s2d" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#B85450;strokeWidth=2.5;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="450" y="320" as="sourcePoint" />
+            <mxPoint x="450" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="devices-box" value="Edge Devices (組み込み Linux / Zephyr)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="780" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dev1" value="Device (Debian)&#10;- Mender Client (C++)&#10;- A/B Rootfs&#10;- Update Module" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="90" y="460" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dev2" value="Device (Yocto)&#10;- Mender Client&#10;- U-Boot 連携&#10;- Delta Update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="290" y="460" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dev3" value="Device (Zephyr)&#10;- MCUboot&#10;- Dual-slot 更新" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="490" y="460" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="devN" value="... N 台&#10;(最大 100 万台規模)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="690" y="460" width="130" height="120" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
