@@ -1,0 +1,73 @@
+<mxfile host="app.diagrams.net" modified="2026-04-15T00:00:00.000Z" version="24.0.0">
+  <diagram id="oasis_standards" name="Page-1">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="OASIS が策定する代表的な標準（分野別）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="center" value="OASIS Open" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="410" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="IoT / メッセージング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d1s" value="• MQTT（IoT 向け軽量 Pub/Sub）&#10;• AMQP（エンタープライズ Pub/Sub）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d2s" value="• SAML（シングルサインオン）&#10;• XACML（アクセス制御）&#10;• KMIP（鍵管理）&#10;• PKCS #11（暗号トークン）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="50" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="セキュリティ / 認証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="180" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="API / データアクセス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="120" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d3s" value="• OData（REST 型データアクセス）&#10;• UBL（電子商取引文書）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="200" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d4s" value="• ODF（OpenDocument Format）&#10;• DITA（技術文書マークアップ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="520" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="ドキュメント / コンテンツ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="脅威情報 / 緊急対応" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="660" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d5s" value="• STIX / TAXII（脅威インテリジェンス）&#10;• CSAF（脆弱性情報の機械可読化）&#10;• CAP（共通警報プロトコル）&#10;• SARIF（静的解析結果の標準形式）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="740" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="d6s" value="• BPEL（ビジネスプロセス実行言語）&#10;• WS-* 系（SOAP Web サービス）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="520" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d6" value="ビジネスプロセス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D0E0E3;strokeColor=#134F5C;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="620" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;endArrow=none;strokeColor=#82B366;strokeWidth=2;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="center" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;endArrow=none;strokeColor=#B85450;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="center" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;endArrow=none;strokeColor=#6C8EBF;strokeWidth=2;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="center" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;endArrow=none;strokeColor=#9673A6;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="center" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;endArrow=none;strokeColor=#D6B656;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="center" target="d5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;endArrow=none;strokeColor=#134F5C;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="center" target="d6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

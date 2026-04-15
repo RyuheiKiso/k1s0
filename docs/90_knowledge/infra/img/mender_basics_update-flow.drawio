@@ -1,0 +1,118 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="mender-update-flow" id="mender-update-flow">
+    <mxGraphModel dx="800" dy="780" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="A/B パーティション方式による Mender 更新フロー" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="10" width="500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="box1" value="Mender Client が Server を&#10;HTTPS で定期ポーリング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="70" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="diamond1" value="新しい Artifact が&#10;配布中？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="310" y="160" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nobox" value="処理終了&#10;(次回ポーリングを待機)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="175" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="box2" value="非アクティブ側 (Partition B) に&#10;Artifact をダウンロードして書き込み" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="280" width="320" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="box3" value="ブートローダ環境変数 (U-Boot / GRUB) を&#10;Partition B へ切替" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="380" width="320" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="box4" value="デバイス再起動" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="480" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="diamond2" value="起動後の Health Check&#10;に成功？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="570" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="box-success" value="Partition B を Commit&#10;(以降 B がアクティブとして確定)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="690" width="320" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="box-fail" value="ブートローダが自動で&#10;Partition A へロールバック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="580" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="120" as="sourcePoint" />
+            <mxPoint x="400" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="240" as="sourcePoint" />
+            <mxPoint x="400" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l-yes1" value="Yes" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="405" y="245" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="490" y="200" as="sourcePoint" />
+            <mxPoint x="610" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l-no1" value="No" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="525" y="155" width="30" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="340" as="sourcePoint" />
+            <mxPoint x="400" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="440" as="sourcePoint" />
+            <mxPoint x="400" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="530" as="sourcePoint" />
+            <mxPoint x="400" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e-yes2" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="650" as="sourcePoint" />
+            <mxPoint x="400" y="690" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l-yes2" value="Yes" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FFFFFF;strokeColor=none;fontColor=#22873A;" vertex="1" parent="1">
+          <mxGeometry x="405" y="655" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-no2" style="endArrow=classic;html=1;strokeColor=#B85450;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="290" y="610" as="sourcePoint" />
+            <mxPoint x="240" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l-no2" value="No" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FFFFFF;strokeColor=none;fontColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="245" y="560" width="30" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

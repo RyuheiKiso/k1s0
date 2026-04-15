@@ -1,646 +1,789 @@
-<mxfile host="draw.io">
-  <diagram name="k1s0-overview" id="overview">
-    <mxGraphModel dx="2400" dy="3020" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="3020" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-
-        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="2400" height="3020" as="geometry" />
-        </mxCell>
-
-        <mxCell id="title" value="k1s0 全体構成図 (インフラ + アーキテクチャ詳細 / サンプルフロー = 注文確定)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="60" y="10" width="2280" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="subtitle" value="JTC 情報システム部門向け マイクロサービス基盤プラットフォーム / Pod = app container + Dapr sidecar + Istio sidecar の 3 コンテナ構成" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="60" y="50" width="2280" height="20" as="geometry" />
-        </mxCell>
-
-        <mxCell id="extUser" value="エンドユーザー&#10;(社内端末: PWA / MAUI / WinUI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="380" y="90" width="240" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="extDev" value="開発者 / 運用担当者&#10;(社内端末: ブラウザ / git push)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1860" y="90" width="380" height="80" as="geometry" />
-        </mxCell>
-
-        <mxCell id="legend" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1340" y="90" width="480" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="lg1" value="━━━ 黒太線: 同期リクエスト / ┄┄ 緑破線: GitOps デプロイ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1355" y="115" width="450" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="lg2" value="┄┄ 橙破線: CI/CD パイプライン / ── 灰細線: tier1 内部ルーティング" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1355" y="135" width="450" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="lg3" value="青箱: Dapr sidecar (daprd) / 灰箱: app container" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1355" y="155" width="450" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="lg4" value="橙◯: 注文確定サンプルフローのステップ (詳細は最下段)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#ef6c00;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1355" y="172" width="450" height="16" as="geometry" />
-        </mxCell>
-
-        <mxCell id="edgeFrame" value="Edge / 閉域ネットワーク (オンプレ / VPN) — MetalLB VIP range: 10.0.100.10〜10.0.100.50 / Pod CIDR: 10.244.0.0/16 / Service CIDR: 10.96.0.0/12" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="60" y="220" width="2280" height="160" as="geometry" />
-        </mxCell>
-        <mxCell id="eDns" value="社内 DNS / VPN&#10;*.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="90" y="275" width="220" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="eMetal" value="MetalLB (L2 モード)&#10;VIP: 10.0.100.20:443&#10;→ Envoy Gateway" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="380" y="275" width="240" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="eEnvoy" value="Envoy Gateway&#10;(k8s Gateway API / TLS 終端 :443 / HTTP/2 / gRPC)&#10;HTTPRoute: app.k1s0.internal → tier3 / *.ops.k1s0.internal → operation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="700" y="275" width="380" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="eAuthz" value="ext_authz → Keycloak&#10;OIDC authorization_code&#10;JWT (RS256) 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1130" y="275" width="280" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="eCertNote" value="* TLS 証明書は infra の cert-manager が ACME で自動発行・更新 (Edge / Pod 共通) / cert-manager ClusterIssuer: letsencrypt-staging" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="90" y="352" width="1690" height="22" as="geometry" />
-        </mxCell>
-
-        <mxCell id="cluster" value="k8s クラスタ v1.30 (kubeadm メイン / k3s サブ — クラウドマネージド非採用) / Control Plane x3 + Worker x3〜N + Storage x3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#333333;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="60" y="400" width="2280" height="2080" as="geometry" />
-        </mxCell>
-        <mxCell id="kubevip" value="kube-vip (API Server HA VIP: 10.0.100.5:6443 / 各 Master ノードに static Pod 配置 — namespace 非所属)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="80" y="415" width="900" height="25" as="geometry" />
-        </mxCell>
-
-        <mxCell id="nsTier3" value="namespace: tier3 (個別アプリ Pod / 初級〜中級開発者)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="460" width="1650" height="250" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t3PodA" value="業務アプリ Pod (replicas=3, HPA)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="110" y="510" width="500" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t3PodAapp" value="app container&#10;PWA UI (TSX / React 19)&#10;k1s0 Client (TS)&#10;:8080 HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="555" width="230" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="t3PodAsc" value="sidecar: daprd&#10;(自動注入 / app-id: biz-app)&#10;:3500 HTTP / :50001 gRPC&#10;state / pubsub / secrets / bindings" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="380" y="555" width="220" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t3PodB" value="アプリ配信ポータル Pod (k1s0 自製 / replicas=2)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="640" y="510" width="500" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t3PodBapp" value="app container&#10;配信 UI / API&#10;(C# / ASP.NET Core 10)&#10;k1s0 Client (C#)&#10;:8080 HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="660" y="555" width="230" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="t3PodBsc" value="sidecar: daprd&#10;(app-id: app-portal)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="910" y="555" width="210" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t3PodC" value="レガシー .NET ラップ Pod (移行期のみ)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1170" y="510" width="540" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t3PodCapp" value="app container&#10;ClickOnce / MSIX&#10;ラップ配信サーバ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1190" y="555" width="250" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="t3PodCsc" value="sidecar: daprd&#10;(app-id: legacy-wrap)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1460" y="555" width="230" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="step1" value="①" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="385" y="95" width="26" height="26" as="geometry" />
-        </mxCell>
-        <mxCell id="step2" value="②" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1135" y="280" width="26" height="26" as="geometry" />
-        </mxCell>
-        <mxCell id="step3" value="③" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="115" y="515" width="26" height="26" as="geometry" />
-        </mxCell>
-
-        <mxCell id="nsTier2" value="namespace: tier2 (ドメインサービス / ドメイン上級開発者) — resource quota: cpu=8 / memory=16Gi / pods=30" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="730" width="1650" height="250" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t2Pod1" value="顧客管理 Service Pod (replicas=2)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="110" y="780" width="360" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t2Pod1app" value="app container&#10;顧客管理 (C# 14)&#10;k1s0 Client (C#)&#10;:8080 HTTP / :9090 gRPC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="825" width="180" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="t2Pod1sc" value="daprd&#10;app-id:&#10;customer-svc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="320" y="825" width="140" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t2Pod2" value="注文処理 Service Pod (replicas=3, KEDA)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="490" y="780" width="360" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t2Pod2app" value="app container&#10;注文処理 (Go 1.25)&#10;k1s0 Client (Go)&#10;:8080 HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="510" y="825" width="180" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="t2Pod2sc" value="daprd&#10;app-id:&#10;order-svc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="700" y="825" width="140" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t2Pod3" value="在庫管理 Service Pod (replicas=2)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="870" y="780" width="360" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t2Pod3app" value="app container&#10;在庫管理 (C# 14)&#10;k1s0 Client (C#)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="890" y="825" width="180" height="130" as="geometry" />
-        </mxCell>
-        <mxCell id="t2Pod3sc" value="daprd&#10;app-id:&#10;inventory-svc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1080" y="825" width="140" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t2Spec" value="ドメイン共通仕様" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1250" y="780" width="460" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="t2SpecBody" value="画面仕様 (.fig / Storybook)&#10;IF 定義 (.proto / .cs interface)&#10;抽象クラス (ライブラリ配布)&#10;例: ICustomerRepository / IOrderFlow&#10;tier3 はこの仕様に準拠" style="text;html=1;align=center;verticalAlign=middle;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1270" y="825" width="420" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="step4" value="④" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="495" y="785" width="26" height="26" as="geometry" />
-        </mxCell>
-        <mxCell id="step7" value="⑦" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="115" y="785" width="26" height="26" as="geometry" />
-        </mxCell>
-
-        <mxCell id="nsTier1" value="namespace: tier1 (共通基盤 / アーキテクト級チーム — Dapr を隠蔽)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="1000" width="1650" height="500" as="geometry" />
-        </mxCell>
-        <mxCell id="t1Api" value="k1s0 公開 API (多言語クライアントライブラリ Go / C# / TS) — tier2/tier3 から見える唯一の接点&#10;k1s0.Log │ Telemetry │ State │ PubSub │ Secrets │ Workflow │ Auth │ Audit │ Decision │ Settings │ Feature" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="110" y="1050" width="1590" height="90" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t1Dapr" value="Dapr Control Plane (dapr-system)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="110" y="1160" width="360" height="160" as="geometry" />
-        </mxCell>
-        <mxCell id="t1DaprBody" value="• dapr-operator&#10;• dapr-sidecar-injector&#10;• dapr-sentry (mTLS CA)&#10;• dapr-placement&#10;• Component CRDs:&#10;  statestore.valkey / pubsub.kafka /&#10;  secretstore.openbao /&#10;  bindings.postgres" style="text;html=1;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="125" y="1185" width="335" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t1Go" value="tier1 Go サービス群 (Go 1.25 / Dapr SDK 1.17 + Temporal SDK 1.35)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="490" y="1160" width="580" height="160" as="geometry" />
-        </mxCell>
-        <mxCell id="t1GoBody" value="• Dapr ファサード (state / pubsub / secrets / bindings)&#10;• 認証プロキシ (oauth2-proxy → Keycloak)&#10;• Saga ワークフローオーケストレータ (Temporal Worker)&#10;  例: OrderSaga = 在庫確保 → 与信 → 決済 → 通知&#10;• OTel 集約 / Loki クライアント&#10;• 管理 Dapr Components YAML 一式" style="text;html=1;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="505" y="1185" width="555" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t1Rust" value="tier1 Rust サービス群 (Rust Edition 2024 / 高安全性・高性能)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1090" y="1160" width="610" height="160" as="geometry" />
-        </mxCell>
-        <mxCell id="t1RustBody" value="• ZEN Engine 1.x 統合 (k1s0.Decision — 単発ルール評価)&#10;  例: 承認者決定, 割引率判定, 与信ランク判定&#10;• 暗号 (AES-256-GCM / Ed25519) / 監査改ざん防止ハッシュ (SHA-256 Merkle)&#10;• 個人情報マスキング (正規表現 + 辞書ベース)&#10;• Dapr Component YAML バリデータ (雛形 CLI と共通 crate)" style="text;html=1;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1105" y="1185" width="585" height="130" as="geometry" />
-        </mxCell>
-
-        <mxCell id="t1Cli" value="雛形生成 CLI `k1s0-init` (Rust 単一バイナリ): tier1 公開 API / Dapr annotation (dapr.io/enabled, app-id, app-port) / CI ガード (禁止 import 検出) を自動付与&#10;→ tier2 / tier3 開発者は Dapr / OSS の存在を意識しない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=11;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="110" y="1340" width="1590" height="70" as="geometry" />
-        </mxCell>
-
-        <mxCell id="step5" value="⑤" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="495" y="1165" width="26" height="26" as="geometry" />
-        </mxCell>
-
-        <mxCell id="nsInfra" value="namespace: infra (実行基盤 / インフラチーム — tier2/3 から直接参照禁止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="1520" width="1650" height="940" as="geometry" />
-        </mxCell>
-
-        <mxCell id="iG1" value="サービスメッシュ &amp; スケーリング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="110" y="1570" width="480" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="iG1a" value="Istio Control Plane (istiod)&#10;:15443 mTLS / :15006 inbound / :15001 outbound / :15090 Envoy admin" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="1615" width="440" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG1b" value="KEDA ScaledObject&#10;例: kafka-lag-order.created &gt; 100 → 注文処理 Pod replicas +2 (max=10)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="1685" width="440" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG1c" value="* tier2/3 Pod は「app + daprd + istio-proxy」の 3 コンテナ構成 (後 2 者は自動注入)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="130" y="1755" width="440" height="45" as="geometry" />
-        </mxCell>
-
-        <mxCell id="iG2" value="メッセージング (Kafka / Strimzi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="610" y="1570" width="480" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="iG2head" value="Kafka 3-broker Cluster (Strimzi Operator) — :9092 TLS / :9093 plain (in-mesh)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="630" y="1615" width="440" height="35" as="geometry" />
-        </mxCell>
-        <mxCell id="iG2b1" value="Broker 1&#10;(leader)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="630" y="1660" width="140" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG2b2" value="Broker 2&#10;(follower)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="780" y="1660" width="140" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG2b3" value="Broker 3&#10;(follower)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="930" y="1660" width="140" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG2topics" value="主要 Topics (RF=3 / partitions=6):&#10;• order.created / order.validated / order.failed&#10;• inventory.reserved / inventory.released&#10;• payment.requested / payment.completed&#10;• audit.event / security.alert" style="text;html=1;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="630" y="1725" width="440" height="80" as="geometry" />
-        </mxCell>
-
-        <mxCell id="step6" value="⑥" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="635" y="1665" width="26" height="26" as="geometry" />
-        </mxCell>
-
-        <mxCell id="iG3" value="可観測性 (LGTM+P スタック)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1110" y="1570" width="590" height="240" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3otel" value="OTel Collector (DaemonSet / OTLP :4317 gRPC / :4318 HTTP) — 全 Pod から受信" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1130" y="1615" width="550" height="35" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3prom" value="Prometheus&#10;:9090" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1130" y="1660" width="100" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3loki" value="Loki&#10;:3100" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1240" y="1660" width="100" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3tempo" value="Tempo&#10;:3200" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1350" y="1660" width="100" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3pyro" value="Pyroscope&#10;:4040" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1460" y="1660" width="110" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3graf" value="Grafana&#10;:3000" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1580" y="1660" width="100" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3url" value="Grafana UI: https://grafana.ops.k1s0.internal (Envoy 経由 OIDC SSO)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="1130" y="1725" width="550" height="25" as="geometry" />
-        </mxCell>
-        <mxCell id="iG3dash" value="主要ダッシュボード: SLO エラーバジェット / Kafka consumer lag / Saga 実行状況 / Pod health / Continuous Profiling" style="text;html=1;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1130" y="1755" width="550" height="45" as="geometry" />
-        </mxCell>
-
-        <mxCell id="iG4" value="データストア (Longhorn 上の PV / ReadWriteOnce)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="110" y="1830" width="870" height="620" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4pgHead" value="CloudNativePG + PostgreSQL 17 (1 Primary + 2 Replica / :5432 / 同期レプリケーション)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="130" y="1880" width="830" height="35" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4pgPrim" value="Postgres Primary&#10;(RW / 共有 DB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="150" y="1925" width="250" height="65" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4pgR1" value="Postgres Replica 1&#10;(RO / async read)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="420" y="1925" width="250" height="65" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4pgR2" value="Postgres Replica 2&#10;(RO / async read)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="690" y="1925" width="250" height="65" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4dbHead" value="管理対象 Database:" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="130" y="2000" width="830" height="22" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4dbs" value="• k1s0_keycloak (認証)     • k1s0_backstage (Software Catalog)     • k1s0_order (注文ドメイン)&#10;• k1s0_customer (顧客ドメイン)     • k1s0_inventory (在庫ドメイン)     • k1s0_audit (監査ログ / append-only)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
-          <mxGeometry x="130" y="2025" width="830" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4pgb" value="PgBouncer (CloudNativePG Pooler / :6432) — 接続プーリング (transaction pool)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="2095" width="830" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4val" value="Valkey 8 (Redis fork / :6379) — Dapr state store / セッションキャッシュ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="2145" width="830" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4mio" value="MinIO (S3 互換 / :9000 API / :9001 console)&#10;bucket: harbor-images / harbor-charts / loki-chunks / tempo-blocks / backstage-techdocs / backup" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="130" y="2195" width="830" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4lh" value="Longhorn v1.7 (CNCF Incubating / 分散ブロックストレージ / replica=3 / Storage Class: longhorn-replicated)&#10;上記すべての PV を提供 / Storage ノード x3 上に複製" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff0d0;strokeColor=#b85450;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="130" y="2265" width="830" height="65" as="geometry" />
-        </mxCell>
-        <mxCell id="iG4volTable" value="PV 割り当て例: k1s0_order=50Gi / k1s0_customer=30Gi / k1s0_audit=200Gi (append-only) / minio=500Gi / kafka=300Gi (per broker)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="130" y="2340" width="830" height="95" as="geometry" />
-        </mxCell>
-
-        <mxCell id="step8" value="⑧" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="155" y="1930" width="26" height="26" as="geometry" />
-        </mxCell>
-
-        <mxCell id="iG5" value="セキュリティ &amp; サプライチェーン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1000" y="1830" width="700" height="620" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5bao" value="OpenBao 2.x (Vault LF fork / :8200 API)&#10;動的シークレット / PKI / Transit 暗号化 / 自動ローテーション (TTL 24h)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1020" y="1880" width="660" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5baoEng" value="enabled secret engines:&#10;  pki/ — 内部 TLS CA    transit/ — 暗号化 API    kv-v2/ — 静的シークレット    database/postgresql/ — DB 動的 credential" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffaf0;strokeColor=#b85450;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
-          <mxGeometry x="1020" y="1950" width="660" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5kyv" value="Kyverno 1.12 (Admission ポリシー)&#10;• PSS Restricted 相当 / イメージ Pull 元制限 (Harbor のみ)&#10;• dapr.io/app-id 必須 / CPU limit 必須 / runAsNonRoot 必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1020" y="2020" width="660" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5cm" value="cert-manager 1.17 (TLS 自動発行 / 自動更新 / Edge 兼 Pod 用 / :9402)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1020" y="2110" width="660" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5harbor" value="Harbor 2.12 (コンテナレジストリ / :443)&#10;バックエンド: MinIO / 脆弱性スキャン: Trivy 内蔵" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1020" y="2160" width="660" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5harborP" value="projects:&#10;  k1s0/base-images    k1s0/tier1    k1s0/tier2    k1s0/tier3    k1s0/legacy    k1s0/helm-charts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffaf0;strokeColor=#b85450;fontSize=10;fontFamily=monospace" vertex="1" parent="1">
-          <mxGeometry x="1020" y="2230" width="660" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5cosign" value="Cosign (Phase 2: イメージ署名 + Kyverno 未署名 Pod 拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1020" y="2295" width="660" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="iG5note" value="* Pod イメージ Pull 制御: GHA → Harbor push → Kyverno verifyImages → Pod 起動&#10;* イメージ Pull secret は OpenBao から cert-manager 同等の mechanism で自動 rotate" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" vertex="1" parent="1">
-          <mxGeometry x="1020" y="2345" width="660" height="90" as="geometry" />
-        </mxCell>
-
-        <mxCell id="nsOp" value="namespace: operation (運用 / 横断 — 運用チーム + 基盤チーム)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1750" y="460" width="590" height="2000" as="geometry" />
-        </mxCell>
-        <mxCell id="opBs" value="Backstage 1.x&#10;Software Catalog / TechDocs / Templates&#10;backstage.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1770" y="510" width="560" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="opArgo" value="Argo CD 2.12&#10;GitOps デプロイ (tier1/2/3 manifest を sync)&#10;argocd.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1770" y="625" width="560" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="opKc" value="Keycloak 26&#10;OIDC SSO / Realm: k1s0 / Client: *.k1s0.internal&#10;keycloak.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1770" y="740" width="560" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="opGha" value="GitHub Actions self-hosted runner (ARC)&#10;runner group: k1s0-build (scale 3→20)&#10;build / unit test / Trivy scan" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1770" y="855" width="560" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="opRen" value="Renovate&#10;依存パッケージ自動更新 PR&#10;対象: Go mod / npm / NuGet / Docker / Helm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1770" y="970" width="560" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="opAe" value="Argo Events (Phase 2)&#10;GitHub webhook → Harbor push → Kafka audit&#10;EventSource / Sensor / Trigger" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1770" y="1085" width="560" height="100" as="geometry" />
-        </mxCell>
-        <mxCell id="opLi" value="Litmus 3.x&#10;Chaos Engineering / 縮退動作の自動検証&#10;例: pod-delete / network-loss / kafka-broker-kill" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1770" y="1200" width="560" height="100" as="geometry" />
-        </mxCell>
-
-        <mxCell id="cicdHead" value="CI/CD パイプライン 詳細フロー" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#ef6c00" vertex="1" parent="1">
-          <mxGeometry x="1770" y="1320" width="560" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd1" value="① 開発者 git push (GitHub) → main branch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1360" width="520" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd2" value="② GHA Runner: build / unit test / golangci-lint / Roslyn analyzer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1440" width="520" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd3" value="③ Harbor へ image push (harbor.k1s0.internal/k1s0/tier2/order-svc:abc1234)&#10;   + Trivy 脆弱性スキャン (HIGH 以上で block)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1520" width="520" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd4" value="④ GitOps repo (k1s0/manifests) の image tag 更新 PR → merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1610" width="520" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd5" value="⑤ Argo CD が Helm chart diff を検知 → sync (3 分以内)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1690" width="520" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd6" value="⑥ Kyverno Admission がポリシー検証 (違反なら deploy 拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1770" width="520" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="cicd7" value="⑦ tier2 namespace に Pod 起動 (rolling update)&#10;   daprd + istio-proxy を自動注入 → Ready → トラフィック開始" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="1790" y="1850" width="520" height="70" as="geometry" />
-        </mxCell>
-
-        <mxCell id="portA1" value=":443 TLS" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="510" y="210" width="80" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="portA2" value="HTTP/2" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="625" y="318" width="70" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="portA3" value="Istio mTLS :15443 / HTTPRoute" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="440" y="422" width="260" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="portT3T2" value="Dapr Service Invocation :50001 gRPC" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="915" y="712" width="290" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="portT2T1" value="in-proc SDK call (C#/Go ライブラリ)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="915" y="982" width="290" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="portT1Infra" value="daprd :3500 HTTP / :50001 gRPC → Components" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="915" y="1502" width="340" height="18" as="geometry" />
-        </mxCell>
-        <mxCell id="portDev" value=":443 HTTPS + OIDC" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="2060" y="190" width="170" height="18" as="geometry" />
-        </mxCell>
-
-        <mxCell id="a1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="500" y="170" as="sourcePoint" />
-            <mxPoint x="500" y="275" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="a2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="620" y="310" as="sourcePoint" />
-            <mxPoint x="700" y="310" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="a3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="890" y="345" as="sourcePoint" />
-            <mxPoint x="360" y="510" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="890" y="445" />
-              <mxPoint x="360" y="445" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="aT3T2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="900" y="710" as="sourcePoint" />
-            <mxPoint x="900" y="730" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="aT2T1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="900" y="980" as="sourcePoint" />
-            <mxPoint x="900" y="1000" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="aT1Infra" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="900" y="1500" as="sourcePoint" />
-            <mxPoint x="900" y="1520" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="t1aDapr" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#666666;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="290" y="1140" as="sourcePoint" />
-            <mxPoint x="290" y="1160" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="t1aGo" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#666666;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="780" y="1140" as="sourcePoint" />
-            <mxPoint x="780" y="1160" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="t1aRust" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#666666;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1395" y="1140" as="sourcePoint" />
-            <mxPoint x="1395" y="1160" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="aDev" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="170" as="sourcePoint" />
-            <mxPoint x="2050" y="510" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="g1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1770" y="650" as="sourcePoint" />
-            <mxPoint x="1730" y="580" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="1745" y="650" />
-              <mxPoint x="1745" y="580" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="g2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1770" y="685" as="sourcePoint" />
-            <mxPoint x="1730" y="850" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="1740" y="685" />
-              <mxPoint x="1740" y="850" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="g3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1770" y="720" as="sourcePoint" />
-            <mxPoint x="1730" y="1250" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="1735" y="720" />
-              <mxPoint x="1735" y="1250" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="ci12" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="1415" as="sourcePoint" />
-            <mxPoint x="2050" y="1440" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ci23" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="1495" as="sourcePoint" />
-            <mxPoint x="2050" y="1520" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ci34" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="1590" as="sourcePoint" />
-            <mxPoint x="2050" y="1610" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ci45" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="1665" as="sourcePoint" />
-            <mxPoint x="2050" y="1690" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ci56" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="1745" as="sourcePoint" />
-            <mxPoint x="2050" y="1770" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ci67" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="2050" y="1825" as="sourcePoint" />
-            <mxPoint x="2050" y="1850" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="flowFrame" value="サンプルフロー: 「注文確定」ボタン押下 → Kafka イベント発行 → DB 更新完了" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ef6c00;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#ef6c00" vertex="1" parent="1">
-          <mxGeometry x="60" y="2500" width="2280" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="fs1" value="① エンドユーザー&#10;「注文確定」押下&#10;HTTPS :443 リクエスト" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="85" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs2" value="② Envoy Gateway&#10;ext_authz → Keycloak&#10;JWT (RS256) 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="365" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs3" value="③ Istio mTLS で&#10;tier3 業務アプリ Pod へ&#10;POST /api/orders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="645" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs4" value="④ Dapr Service Invocation&#10;biz-app → order-svc&#10;daprd :50001 gRPC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="925" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs5" value="⑤ 注文処理 (Go) が&#10;k1s0.Workflow.Start(&quot;OrderSaga&quot;)&#10;tier1 Go / Temporal で起動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1205" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs6" value="⑥ k1s0.PubSub.Publish&#10;→ Kafka topic&#10;`order.created` 発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1485" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs7" value="⑦ 顧客管理 subscribe&#10;⑧ Postgres Primary&#10;k1s0_customer.orders 更新" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1765" y="2540" width="270" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="fs12" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="355" y="2580" as="sourcePoint" />
-            <mxPoint x="365" y="2580" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="fs23" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="635" y="2580" as="sourcePoint" />
-            <mxPoint x="645" y="2580" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="fs34" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="915" y="2580" as="sourcePoint" />
-            <mxPoint x="925" y="2580" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="fs45" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1195" y="2580" as="sourcePoint" />
-            <mxPoint x="1205" y="2580" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="fs56" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1475" y="2580" as="sourcePoint" />
-            <mxPoint x="1485" y="2580" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="fs67" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1755" y="2580" as="sourcePoint" />
-            <mxPoint x="1765" y="2580" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="nodeFrame" value="物理ノード構成 (例: Control Plane x3 + Worker x3 + Storage x3 — オンプレ VM / 閉域ネットワーク 10.0.100.0/24)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#333333;verticalAlign=top;fontSize=13;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="60" y="2670" width="2280" height="330" as="geometry" />
-        </mxCell>
-        <mxCell id="cpGroup" value="Control Plane (x3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f4c3;strokeColor=#827717;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="2710" width="700" height="270" as="geometry" />
-        </mxCell>
-        <mxCell id="cp1" value="cp-01&#10;10.0.100.11&#10;━━━━━━&#10;kube-vip (static Pod)&#10;kube-apiserver&#10;etcd (member 1)&#10;scheduler / cm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#827717;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="100" y="2750" width="210" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="cp2" value="cp-02&#10;10.0.100.12&#10;━━━━━━&#10;kube-vip&#10;kube-apiserver&#10;etcd (member 2)&#10;scheduler / cm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#827717;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="330" y="2750" width="210" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="cp3" value="cp-03&#10;10.0.100.13&#10;━━━━━━&#10;kube-vip&#10;kube-apiserver&#10;etcd (member 3)&#10;scheduler / cm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#827717;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="560" y="2750" width="210" height="210" as="geometry" />
-        </mxCell>
-
-        <mxCell id="wGroup" value="Worker (x3 〜 N)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="800" y="2710" width="720" height="270" as="geometry" />
-        </mxCell>
-        <mxCell id="w1" value="worker-01&#10;10.0.100.21&#10;━━━━━━&#10;kubelet / containerd&#10;OTel Collector (DS)&#10;Istio / Dapr sidecar&#10;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="820" y="2750" width="215" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="w2" value="worker-02&#10;10.0.100.22&#10;━━━━━━&#10;kubelet / containerd&#10;OTel Collector (DS)&#10;Istio / Dapr sidecar&#10;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1055" y="2750" width="215" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="w3" value="worker-03&#10;10.0.100.23&#10;━━━━━━&#10;kubelet / containerd&#10;OTel Collector (DS)&#10;Istio / Dapr sidecar&#10;operation Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1290" y="2750" width="215" height="210" as="geometry" />
-        </mxCell>
-
-        <mxCell id="sGroup" value="Storage (x3) — taint: storage=dedicated:NoSchedule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#ad1457;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="1540" y="2710" width="780" height="270" as="geometry" />
-        </mxCell>
-        <mxCell id="s1" value="storage-01&#10;10.0.100.31&#10;━━━━━━&#10;Longhorn replica&#10;Postgres Primary PV&#10;MinIO (server 1)&#10;Kafka Broker 1 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1560" y="2750" width="240" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="s2" value="storage-02&#10;10.0.100.32&#10;━━━━━━&#10;Longhorn replica&#10;Postgres Replica 1 PV&#10;MinIO (server 2)&#10;Kafka Broker 2 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="1820" y="2750" width="240" height="210" as="geometry" />
-        </mxCell>
-        <mxCell id="s3" value="storage-03&#10;10.0.100.33&#10;━━━━━━&#10;Longhorn replica&#10;Postgres Replica 2 PV&#10;MinIO (server 3)&#10;Kafka Broker 3 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" vertex="1" parent="1">
-          <mxGeometry x="2080" y="2750" width="240" height="210" as="geometry" />
-        </mxCell>
-
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram name="k1s0-overview" id="overview">
+        <mxGraphModel dx="1412" dy="774" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="3700" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry width="2400" height="3700" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="k1s0 全体構成図 (インフラ + アーキテクチャ詳細 / サンプルフロー = 注文確定)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="10" width="2280" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle" value="JTC 情報システム部門向け マイクロサービス基盤プラットフォーム / Pod = app container + Dapr sidecar + Istio sidecar の 3 コンテナ構成" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="60" y="50" width="2280" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="extUser" value="エンドユーザー&#xa;(社内端末: PWA / MAUI / WinUI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="380" y="90" width="240" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="extDev" value="開発者 / 運用担当者&#xa;(社内端末: ブラウザ / git push)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1860" y="90" width="380" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1340" y="90" width="480" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg1" value="━━━ 黒太線: 同期リクエスト / ┄┄ 緑破線: GitOps デプロイ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1355" y="115" width="450" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg2" value="┄┄ 橙破線: CI/CD パイプライン / ── 灰細線: tier1 内部ルーティング" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1355" y="135" width="450" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg3" value="青箱: Dapr sidecar (daprd) / 灰箱: app container" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1355" y="155" width="450" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg4" value="橙◯: 注文確定サンプルフローのステップ (詳細は最下段)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#ef6c00;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1355" y="172" width="450" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="edgeFrame" value="Edge / 閉域ネットワーク (オンプレ / VPN) — MetalLB VIP range: 10.0.100.10〜10.0.100.50 / Pod CIDR: 10.244.0.0/16 / Service CIDR: 10.96.0.0/12" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="220" width="2280" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="eDns" value="社内 DNS / VPN&#xa;*.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="90" y="275" width="220" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="eMetal" value="MetalLB (L2 モード)&#xa;VIP: 10.0.100.20:443&#xa;→ Envoy Gateway" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="380" y="275" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="eEnvoy" value="Envoy Gateway&#xa;(k8s Gateway API / TLS 終端 :443 / HTTP/2 / gRPC)&#xa;HTTPRoute: app.k1s0.internal → tier3 / *.ops.k1s0.internal → operation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="700" y="275" width="380" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="eAuthz" value="ext_authz → Keycloak&#xa;OIDC authorization_code&#xa;JWT (RS256) 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1130" y="275" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="eCertNote" value="* TLS 証明書は infra の cert-manager が ACME で自動発行・更新 (Edge / Pod 共通) / cert-manager ClusterIssuer: letsencrypt-staging" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="90" y="352" width="1690" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="cluster" value="k8s クラスタ v1.30 (kubeadm メイン / k3s サブ — クラウドマネージド非採用) / Control Plane x3 + Worker x3〜N + Storage x3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#333333;verticalAlign=top;fontSize=14;fontStyle=1;arcSize=1;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="400" width="2280" height="2080" as="geometry"/>
+                </mxCell>
+                <mxCell id="kubevip" value="kube-vip (API Server HA VIP: 10.0.100.5:6443 / 各 Master ノードに static Pod 配置 — namespace 非所属)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="80" y="415" width="900" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="nsTier3" value="namespace: tier3 (個別アプリ Pod / 初級〜中級開発者)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=8;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="460" width="1650" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodA" value="業務アプリ Pod (replicas=3, HPA)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="110" y="510" width="500" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodAapp" value="app container&#xa;PWA UI (TSX / React 19)&#xa;k1s0 Client (TS)&#xa;:8080 HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="555" width="230" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodAsc" value="sidecar: daprd&#xa;(自動注入 / app-id: biz-app)&#xa;:3500 HTTP / :50001 gRPC&#xa;state / pubsub / secrets / bindings" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="380" y="555" width="220" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodB" value="アプリ配信ポータル Pod (k1s0 自製 / replicas=2)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="640" y="510" width="500" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodBapp" value="app container&#xa;配信 UI / API&#xa;(C# / ASP.NET Core 10)&#xa;k1s0 Client (C#)&#xa;:8080 HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="660" y="555" width="230" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodBsc" value="sidecar: daprd&#xa;(app-id: app-portal)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="910" y="555" width="210" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodC" value="レガシー .NET ラップ Pod (移行期のみ)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1170" y="510" width="540" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodCapp" value="app container&#xa;ClickOnce / MSIX&#xa;ラップ配信サーバ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1190" y="555" width="250" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t3PodCsc" value="sidecar: daprd&#xa;(app-id: legacy-wrap)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1460" y="555" width="230" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="step1" value="①" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="385" y="95" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="step2" value="②" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1135" y="280" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="step3" value="③" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="115" y="515" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="nsTier2" value="namespace: tier2 (ドメインサービス / ドメイン上級開発者) — resource quota: cpu=8 / memory=16Gi / pods=30" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=9;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="730" width="1650" height="250" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod1" value="顧客管理 Service Pod (replicas=2)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="110" y="780" width="360" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod1app" value="app container&#xa;顧客管理 (C# 14)&#xa;k1s0 Client (C#)&#xa;:8080 HTTP / :9090 gRPC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="825" width="180" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod1sc" value="daprd&#xa;app-id:&#xa;customer-svc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="320" y="825" width="140" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod2" value="注文処理 Service Pod (replicas=3, KEDA)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="490" y="780" width="360" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod2app" value="app container&#xa;注文処理 (Go 1.25)&#xa;k1s0 Client (Go)&#xa;:8080 HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="510" y="825" width="180" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod2sc" value="daprd&#xa;app-id:&#xa;order-svc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="700" y="825" width="140" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod3" value="在庫管理 Service Pod (replicas=2)" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="870" y="780" width="360" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod3app" value="app container&#xa;在庫管理 (C# 14)&#xa;k1s0 Client (C#)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="890" y="825" width="180" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Pod3sc" value="daprd&#xa;app-id:&#xa;inventory-svc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6e4f5;strokeColor=#1a5490;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="825" width="140" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2Spec" value="ドメイン共通仕様" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#ffffff;strokeColor=#444444;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1250" y="780" width="460" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="t2SpecBody" value="画面仕様 (.fig / Storybook)&#xa;IF 定義 (.proto / .cs interface)&#xa;抽象クラス (ライブラリ配布)&#xa;例: ICustomerRepository / IOrderFlow&#xa;tier3 はこの仕様に準拠" style="text;html=1;align=center;verticalAlign=middle;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1270" y="825" width="420" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="step4" value="④" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="495" y="785" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="step7" value="⑦" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="115" y="785" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="nsTier1" value="namespace: tier1 (共通基盤 / アーキテクト級チーム — Dapr を隠蔽)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="1000" width="1650" height="500" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1Api" value="k1s0 公開 API (多言語クライアントライブラリ Go / C# / TS) — tier2/tier3 から見える唯一の接点&#xa;k1s0.Log │ Telemetry │ State │ PubSub │ Secrets │ Workflow │ Auth │ Audit │ Decision │ Settings │ Feature" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="110" y="1050" width="1590" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1Dapr" value="Dapr Control Plane (dapr-system)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="110" y="1160" width="360" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1DaprBody" value="• dapr-operator&#xa;• dapr-sidecar-injector&#xa;• dapr-sentry (mTLS CA)&#xa;• dapr-placement&#xa;• Component CRDs:&#xa;  statestore.valkey / pubsub.kafka /&#xa;  secretstore.openbao /&#xa;  bindings.postgres" style="text;html=1;align=left;verticalAlign=top;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="125" y="1185" width="335" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1Go" value="tier1 Go サービス群 (Go 1.25 / Dapr SDK 1.17 + Temporal SDK 1.35)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="490" y="1160" width="580" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1GoBody" value="• Dapr ファサード (state / pubsub / secrets / bindings)&#xa;• 認証プロキシ (oauth2-proxy → Keycloak)&#xa;• Saga ワークフローオーケストレータ (Temporal Worker)&#xa;  例: OrderSaga = 在庫確保 → 与信 → 決済 → 通知&#xa;• OTel 集約 / Loki クライアント&#xa;• 管理 Dapr Components YAML 一式" style="text;html=1;align=left;verticalAlign=top;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="505" y="1185" width="555" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1Rust" value="tier1 Rust サービス群 (Rust Edition 2024 / 高安全性・高性能)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1090" y="1160" width="610" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1RustBody" value="• ZEN Engine 1.x 統合 (k1s0.Decision — 単発ルール評価)&#xa;  例: 承認者決定, 割引率判定, 与信ランク判定&#xa;• 暗号 (AES-256-GCM / Ed25519) / 監査改ざん防止ハッシュ (SHA-256 Merkle)&#xa;• 個人情報マスキング (正規表現 + 辞書ベース)&#xa;• Dapr Component YAML バリデータ (雛形 CLI と共通 crate)" style="text;html=1;align=left;verticalAlign=top;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1105" y="1185" width="585" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="t1Cli" value="雛形生成 CLI `k1s0-init` (Rust 単一バイナリ): tier1 公開 API / Dapr annotation (dapr.io/enabled, app-id, app-port) / CI ガード (禁止 import 検出) を自動付与&#xa;→ tier2 / tier3 開発者は Dapr / OSS の存在を意識しない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=11;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="110" y="1340" width="1590" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="step5" value="⑤" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="495" y="1165" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="nsInfra" value="namespace: infra (実行基盤 / インフラチーム — tier2/3 から直接参照禁止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=2;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="1520" width="1650" height="940" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG1" value="サービスメッシュ &amp; スケーリング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="110" y="1570" width="480" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG1a" value="Istio Control Plane (istiod)&#xa;:15443 mTLS / :15006 inbound / :15001 outbound / :15090 Envoy admin" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="1615" width="440" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG1b" value="KEDA ScaledObject&#xa;例: kafka-lag-order.created &gt; 100 → 注文処理 Pod replicas +2 (max=10)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="1685" width="440" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG1c" value="* tier2/3 Pod は「app + daprd + istio-proxy」の 3 コンテナ構成 (後 2 者は自動注入)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="130" y="1755" width="440" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG2" value="メッセージング (Kafka / Strimzi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="610" y="1570" width="480" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG2head" value="Kafka 3-broker Cluster (Strimzi Operator) — :9092 TLS / :9093 plain (in-mesh)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="630" y="1615" width="440" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG2b1" value="Broker 1&#xa;(leader)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="630" y="1660" width="140" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG2b2" value="Broker 2&#xa;(follower)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="780" y="1660" width="140" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG2b3" value="Broker 3&#xa;(follower)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="930" y="1660" width="140" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG2topics" value="主要 Topics (RF=3 / partitions=6):&#xa;• order.created / order.validated / order.failed&#xa;• inventory.reserved / inventory.released&#xa;• payment.requested / payment.completed&#xa;• audit.event / security.alert" style="text;html=1;align=left;verticalAlign=top;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="630" y="1725" width="440" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="step6" value="⑥" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="635" y="1665" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3" value="可観測性 (LGTM+P スタック)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1110" y="1570" width="590" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3otel" value="OTel Collector (DaemonSet / OTLP :4317 gRPC / :4318 HTTP) — 全 Pod から受信" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1130" y="1615" width="550" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3prom" value="Prometheus&#xa;:9090" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1130" y="1660" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3loki" value="Loki&#xa;:3100" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1240" y="1660" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3tempo" value="Tempo&#xa;:3200" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1350" y="1660" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3pyro" value="Pyroscope&#xa;:4040" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1460" y="1660" width="110" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3graf" value="Grafana&#xa;:3000" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1580" y="1660" width="100" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3url" value="Grafana UI: https://grafana.ops.k1s0.internal (Envoy 経由 OIDC SSO)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="1130" y="1725" width="550" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG3dash" value="主要ダッシュボード: SLO エラーバジェット / Kafka consumer lag / Saga 実行状況 / Pod health / Continuous Profiling" style="text;html=1;align=left;verticalAlign=top;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1130" y="1755" width="550" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4" value="データストア (Longhorn 上の PV / ReadWriteOnce)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="110" y="1830" width="870" height="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4pgHead" value="CloudNativePG + PostgreSQL 17 (1 Primary + 2 Replica / :5432 / 同期レプリケーション)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="130" y="1880" width="830" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4pgPrim" value="Postgres Primary&#xa;(RW / 共有 DB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="150" y="1925" width="250" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4pgR1" value="Postgres Replica 1&#xa;(RO / async read)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="420" y="1925" width="250" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4pgR2" value="Postgres Replica 2&#xa;(RO / async read)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="690" y="1925" width="250" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4dbHead" value="管理対象 Database:" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2000" width="830" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4dbs" value="• k1s0_keycloak (認証)     • k1s0_backstage (Software Catalog)     • k1s0_order (注文ドメイン)&#xa;• k1s0_customer (顧客ドメイン)     • k1s0_inventory (在庫ドメイン)     • k1s0_audit (監査ログ / append-only)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontFamily=monospace" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2025" width="830" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4pgb" value="PgBouncer (CloudNativePG Pooler / :6432) — 接続プーリング (transaction pool)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2095" width="830" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4val" value="Valkey 8 (Redis fork / :6379) — Dapr state store / セッションキャッシュ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2145" width="830" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4mio" value="MinIO (S3 互換 / :9000 API / :9001 console)&#xa;bucket: harbor-images / harbor-charts / loki-chunks / tempo-blocks / backstage-techdocs / backup" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2195" width="830" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4lh" value="Longhorn v1.7 (CNCF Incubating / 分散ブロックストレージ / replica=3 / Storage Class: longhorn-replicated)&#xa;上記すべての PV を提供 / Storage ノード x3 上に複製" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff0d0;strokeColor=#b85450;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2265" width="830" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG4volTable" value="PV 割り当て例: k1s0_order=50Gi / k1s0_customer=30Gi / k1s0_audit=200Gi (append-only) / minio=500Gi / kafka=300Gi (per broker)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="130" y="2340" width="830" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="step8" value="⑧" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ef6c00;strokeColor=#e65100;fontColor=#ffffff;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="155" y="1930" width="26" height="26" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5" value="セキュリティ &amp; サプライチェーン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="1830" width="700" height="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5bao" value="OpenBao 2.x (Vault LF fork / :8200 API)&#xa;動的シークレット / PKI / Transit 暗号化 / 自動ローテーション (TTL 24h)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="1880" width="660" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5baoEng" value="enabled secret engines:&#xa;  pki/ — 内部 TLS CA    transit/ — 暗号化 API    kv-v2/ — 静的シークレット    database/postgresql/ — DB 動的 credential" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffaf0;strokeColor=#b85450;fontSize=10;fontFamily=monospace" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="1950" width="660" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5kyv" value="Kyverno 1.12 (Admission ポリシー)&#xa;• PSS Restricted 相当 / イメージ Pull 元制限 (Harbor のみ)&#xa;• dapr.io/app-id 必須 / CPU limit 必須 / runAsNonRoot 必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="2020" width="660" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5cm" value="cert-manager 1.17 (TLS 自動発行 / 自動更新 / Edge 兼 Pod 用 / :9402)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="2110" width="660" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5harbor" value="Harbor 2.12 (コンテナレジストリ / :443)&#xa;バックエンド: MinIO / 脆弱性スキャン: Trivy 内蔵" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="2160" width="660" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5harborP" value="projects:&#xa;  k1s0/base-images    k1s0/tier1    k1s0/tier2    k1s0/tier3    k1s0/legacy    k1s0/helm-charts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffaf0;strokeColor=#b85450;fontSize=10;fontFamily=monospace" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="2230" width="660" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5cosign" value="Cosign (Phase 2: イメージ署名 + Kyverno 未署名 Pod 拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="2295" width="660" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="iG5note" value="* Pod イメージ Pull 制御: GHA → Harbor push → Kyverno verifyImages → Pod 起動&#xa;* イメージ Pull secret は OpenBao から cert-manager 同等の mechanism で自動 rotate" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="2345" width="660" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="nsOp" value="namespace: operation (運用 / 横断 — 運用チーム + 基盤チーム)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="1750" y="460" width="590" height="2000" as="geometry"/>
+                </mxCell>
+                <mxCell id="opBs" value="Backstage 1.x&#xa;Software Catalog / TechDocs / Templates&#xa;backstage.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="510" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="opArgo" value="Argo CD 2.12&#xa;GitOps デプロイ (tier1/2/3 manifest を sync)&#xa;argocd.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="625" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="opKc" value="Keycloak 26&#xa;OIDC SSO / Realm: k1s0 / Client: *.k1s0.internal&#xa;keycloak.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="740" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="opGha" value="GitHub Actions self-hosted runner (ARC)&#xa;runner group: k1s0-build (scale 3→20)&#xa;build / unit test / Trivy scan" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="855" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="opRen" value="Renovate&#xa;依存パッケージ自動更新 PR&#xa;対象: Go mod / npm / NuGet / Docker / Helm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="970" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="opAe" value="Argo Events (Phase 2)&#xa;GitHub webhook → Harbor push → Kafka audit&#xa;EventSource / Sensor / Trigger" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="1085" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="opLi" value="Litmus 3.x&#xa;Chaos Engineering / 縮退動作の自動検証&#xa;例: pod-delete / network-loss / kafka-broker-kill" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="1200" width="560" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicdHead" value="CI/CD パイプライン 詳細フロー" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="1320" width="560" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd1" value="① 開発者 git push (GitHub) → main branch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1360" width="520" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd2" value="② GHA Runner: build / unit test / golangci-lint / Roslyn analyzer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1440" width="520" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd3" value="③ Harbor へ image push (harbor.k1s0.internal/k1s0/tier2/order-svc:abc1234)&#xa;   + Trivy 脆弱性スキャン (HIGH 以上で block)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1520" width="520" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd4" value="④ GitOps repo (k1s0/manifests) の image tag 更新 PR → merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1610" width="520" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd5" value="⑤ Argo CD が Helm chart diff を検知 → sync (3 分以内)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1690" width="520" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd6" value="⑥ Kyverno Admission がポリシー検証 (違反なら deploy 拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1770" width="520" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicd7" value="⑦ tier2 namespace に Pod 起動 (rolling update)&#xa;   daprd + istio-proxy を自動注入 → Ready → トラフィック開始" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1850" width="520" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="portA1" value=":443 TLS" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="510" y="210" width="80" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="portA2" value="HTTP/2" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="625" y="318" width="70" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="portA3" value="Istio mTLS :15443 / HTTPRoute" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="440" y="422" width="260" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="portT3T2" value="Dapr Service Invocation :50001 gRPC" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="915" y="712" width="290" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="portT2T1" value="in-proc SDK call (C#/Go ライブラリ)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="915" y="982" width="290" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="portT1Infra" value="daprd :3500 HTTP / :50001 gRPC → Components" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="915" y="1502" width="340" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="portDev" value=":443 HTTPS + OIDC" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="2060" y="190" width="170" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="500" y="170" as="sourcePoint"/>
+                        <mxPoint x="500" y="275" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="a2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="620" y="310" as="sourcePoint"/>
+                        <mxPoint x="700" y="310" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="a3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="890" y="345" as="sourcePoint"/>
+                        <mxPoint x="360" y="510" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="890" y="445"/>
+                            <mxPoint x="360" y="445"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aT3T2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="900" y="710" as="sourcePoint"/>
+                        <mxPoint x="900" y="730" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aT2T1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="900" y="980" as="sourcePoint"/>
+                        <mxPoint x="900" y="1000" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aT1Infra" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="900" y="1500" as="sourcePoint"/>
+                        <mxPoint x="900" y="1520" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="t1aDapr" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#666666;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="290" y="1140" as="sourcePoint"/>
+                        <mxPoint x="290" y="1160" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="t1aGo" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#666666;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="780" y="1140" as="sourcePoint"/>
+                        <mxPoint x="780" y="1160" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="t1aRust" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#666666;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1395" y="1140" as="sourcePoint"/>
+                        <mxPoint x="1395" y="1160" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aDev" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="170" as="sourcePoint"/>
+                        <mxPoint x="2050" y="510" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="g1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1770" y="650" as="sourcePoint"/>
+                        <mxPoint x="1730" y="580" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1745" y="650"/>
+                            <mxPoint x="1745" y="580"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="g2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1770" y="685" as="sourcePoint"/>
+                        <mxPoint x="1730" y="850" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1740" y="685"/>
+                            <mxPoint x="1740" y="850"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="g3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1770" y="720" as="sourcePoint"/>
+                        <mxPoint x="1730" y="1250" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1735" y="720"/>
+                            <mxPoint x="1735" y="1250"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ci12" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1415" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1440" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ci23" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1495" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1520" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ci34" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1590" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1610" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ci45" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1665" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1690" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ci56" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1745" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1770" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ci67" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1825" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="flowFrame" value="サンプルフロー: 「注文確定」ボタン押下 → Kafka イベント発行 → DB 更新完了" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ef6c00;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="60" y="2500" width="2280" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs1" value="① エンドユーザー&#xa;「注文確定」押下&#xa;HTTPS :443 リクエスト" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="85" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs2" value="② Envoy Gateway&#xa;ext_authz → Keycloak&#xa;JWT (RS256) 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="365" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs3" value="③ Istio mTLS で&#xa;tier3 業務アプリ Pod へ&#xa;POST /api/orders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="645" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs4" value="④ Dapr Service Invocation&#xa;biz-app → order-svc&#xa;daprd :50001 gRPC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="925" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs5" value="⑤ 注文処理 (Go) が&#xa;k1s0.Workflow.Start(&quot;OrderSaga&quot;)&#xa;tier1 Go / Temporal で起動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1205" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs6" value="⑥ k1s0.PubSub.Publish&#xa;→ Kafka topic&#xa;`order.created` 発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1485" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs7" value="⑦ 顧客管理 subscribe&#xa;⑧ Postgres Primary&#xa;k1s0_customer.orders 更新" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1765" y="2540" width="270" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="fs12" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="355" y="2580" as="sourcePoint"/>
+                        <mxPoint x="365" y="2580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="fs23" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="635" y="2580" as="sourcePoint"/>
+                        <mxPoint x="645" y="2580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="fs34" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="915" y="2580" as="sourcePoint"/>
+                        <mxPoint x="925" y="2580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="fs45" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1195" y="2580" as="sourcePoint"/>
+                        <mxPoint x="1205" y="2580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="fs56" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1475" y="2580" as="sourcePoint"/>
+                        <mxPoint x="1485" y="2580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="fs67" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1755" y="2580" as="sourcePoint"/>
+                        <mxPoint x="1765" y="2580" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="nodeFrame" value="物理ノード構成 (例: Control Plane x3 + Worker x3 + Storage x3 — オンプレ VM / 閉域ネットワーク 10.0.100.0/24)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#333333;verticalAlign=top;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="2670" width="2280" height="330" as="geometry"/>
+                </mxCell>
+                <mxCell id="cpGroup" value="Control Plane (x3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f4c3;strokeColor=#827717;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="80" y="2710" width="700" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="cp1" value="cp-01&#xa;10.0.100.11&#xa;━━━━━━&#xa;kube-vip (static Pod)&#xa;kube-apiserver&#xa;etcd (member 1)&#xa;scheduler / cm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#827717;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="100" y="2750" width="210" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="cp2" value="cp-02&#xa;10.0.100.12&#xa;━━━━━━&#xa;kube-vip&#xa;kube-apiserver&#xa;etcd (member 2)&#xa;scheduler / cm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#827717;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="330" y="2750" width="210" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="cp3" value="cp-03&#xa;10.0.100.13&#xa;━━━━━━&#xa;kube-vip&#xa;kube-apiserver&#xa;etcd (member 3)&#xa;scheduler / cm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#827717;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="560" y="2750" width="210" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="wGroup" value="Worker (x3 〜 N)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=7;" parent="1" vertex="1">
+                    <mxGeometry x="800" y="2710" width="720" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="w1" value="worker-01&#xa;10.0.100.21&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;Istio / Dapr sidecar&#xa;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="820" y="2750" width="215" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="w2" value="worker-02&#xa;10.0.100.22&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;Istio / Dapr sidecar&#xa;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1055" y="2750" width="215" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="w3" value="worker-03&#xa;10.0.100.23&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;Istio / Dapr sidecar&#xa;operation Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1290" y="2750" width="215" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="sGroup" value="Storage (x3) — taint: storage=dedicated:NoSchedule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#ad1457;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=7;" parent="1" vertex="1">
+                    <mxGeometry x="1540" y="2710" width="780" height="270" as="geometry"/>
+                </mxCell>
+                <mxCell id="s1" value="storage-01&#xa;10.0.100.31&#xa;━━━━━━&#xa;Longhorn replica&#xa;Postgres Primary PV&#xa;MinIO (server 1)&#xa;Kafka Broker 1 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1560" y="2750" width="240" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="s2" value="storage-02&#xa;10.0.100.32&#xa;━━━━━━&#xa;Longhorn replica&#xa;Postgres Replica 1 PV&#xa;MinIO (server 2)&#xa;Kafka Broker 2 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1820" y="2750" width="240" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="s3" value="storage-03&#xa;10.0.100.33&#xa;━━━━━━&#xa;Longhorn replica&#xa;Postgres Replica 2 PV&#xa;MinIO (server 3)&#xa;Kafka Broker 3 PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ad1457;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="2080" y="2750" width="240" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotSep" value="" style="endArrow=none;html=1;strokeColor=#999999;strokeWidth=1;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="60" y="3010" as="sourcePoint"/>
+                        <mxPoint x="2340" y="3010" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotTitle" value="案 C 採用時の IoT エッジ拡張 (詳細 : 13_IoTエッジ接続 フォルダ / 05_3案の深掘り評価.md)" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1565c0" parent="1" vertex="1">
+                    <mxGeometry x="60" y="3020" width="2280" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotFrameOT" value="OT 閉域ネットワーク (Purdue Level 0-2 / VLAN 10.0.200.0/24 / Default deny)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="80" y="3060" width="800" height="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotK3s" value="k3s v1.30 HA エッジクラスタ (3 ノード / embedded etcd on NVMe)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f1f8f4;strokeColor=#82b366;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=7;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="3090" width="760" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotPi1" value="Pi-01 (cp + worker)&#xa;10.0.200.11&#xa;━━━━━━&#xa;kubelet / containerd&#xa;edge-agent (Rust)&#xa;daprd sidecar&#xa;argocd-agent&#xa;mender-client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#558b2f;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="115" y="3125" width="235" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotPi2" value="Pi-02 (cp + worker)&#xa;10.0.200.12&#xa;━━━━━━&#xa;kubelet / containerd&#xa;edge-agent (Rust)&#xa;daprd sidecar&#xa;argocd-agent&#xa;mender-client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#558b2f;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="365" y="3125" width="235" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotPi3" value="Pi-03 (worker)&#xa;10.0.200.13&#xa;━━━━━━&#xa;kubelet / containerd&#xa;edge-agent (Rust)&#xa;daprd sidecar&#xa;Protocol Parsers&#xa;Local-Path PV" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#558b2f;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="615" y="3125" width="235" height="290" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotDev1" value="温度計&#xa;(Modbus RTU)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6a24f;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="115" y="3490" width="235" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotDev2" value="計測器&#xa;(RS-232C ASCII)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6a24f;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="365" y="3490" width="235" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotDev3" value="アクチュエータ&#xa;(Modbus RTU)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6a24f;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="615" y="3490" width="235" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotOTnote" value="HW: 13_IoTエッジ接続/01 の Pi 4B 8GB × 3 + NVMe + UPS HAT + 産業筐体 (詳細 : 05_3案の深掘り評価.md §3.1.3 案 C)&#xa;OS/SW: Ubuntu Core + rauc A/B + k3s + Dapr + Cosign 署名 / LUKS 全ディスク暗号化 / Secure Boot" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="100" y="3595" width="760" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotFrameFW" value="境界" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;verticalAlign=top;fontSize=12;fontStyle=1;align=center" parent="1" vertex="1">
+                    <mxGeometry x="900" y="3060" width="140" height="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotFW" value="OT / IT&#xa;境界 FW&#xa;━━━━━━&#xa;IEC 62443&#xa;SL2&#xa;━━━━━━&#xa;TCP 8883&#xa;out only&#xa;TCP 443&#xa;out only&#xa;ICMP drop&#xa;Default&#xa;deny" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c62828;fontSize=10;fontStyle=1;align=center" parent="1" vertex="1">
+                    <mxGeometry x="915" y="3100" width="110" height="560" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotFrameDMZ" value="DMZ / infra 追加 (既存 infra namespace に常設)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="3060" width="540" height="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEMQX" value="EMQX MQTT Broker (3 ノード HA)&#xa;:8883 mTLS / ACL 強制&#xa;topic: factory/+/device/+/*&#xa;→ infra namespace の新規コンポーネント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="3095" width="500" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotMender" value="Mender サーバ (OTA 配信)&#xa;mender.ops.k1s0.internal&#xa;Pi 側 mender-client が pull 型&#xa;bundle 署名 Cosign 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="3220" width="500" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotBao" value="OpenBao PKI secrets engine&#xa;(既存 OpenBao を機能拡張)&#xa;AppRole 認証 + TTL 24h 証明書署名&#xa;ATECC608B 連携で秘密鍵不持出" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="3325" width="500" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotArgoEdge" value="Argo CD ApplicationSet (edge)&#xa;既存 operation の Argo CD を拡張&#xa;GitOps pull 型 → k3s エッジ同期&#xa;argocd.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="3430" width="500" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotHarbor" value="Harbor / MinIO (既存共用)&#xa;エッジ用 image + bundle 保管&#xa;harbor-edge-mirror (拠点内 pull-through cache)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="3535" width="500" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotDMZnote" value="※ OpenBao / Argo CD / Harbor は既存拡張。EMQX / Mender が新規追加。" style="text;html=1;align=left;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="1080" y="3625" width="500" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotFrameT1" value="tier1 ファサードによる infra 隠蔽 + tier2 / tier3 接点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
+                    <mxGeometry x="1620" y="3060" width="700" height="620" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT1Boundary" value="tier1 facade 境界 — 下記 Ingress / Dispatcher / Kafka は tier1 が内包 (tier2 / tier3 からは不可視)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3bf;strokeColor=#b8941d;strokeWidth=2;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+                    <mxGeometry x="1635" y="3085" width="670" height="330" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotIngress" value="k1s0.Edge.Ingress (上り / Rust 自作)&#xa;━━━━━━━━━━━&#xa;EMQX を subscribe&#xa;→ CN allowlist / schema 検証&#xa;→ 単位正規化 + 重複排除&#xa;→ Dapr PubSub で Kafka 投入" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b8941d;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1650" y="3115" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotDispatcher" value="k1s0.Edge.Dispatcher (下り / Rust 自作)&#xa;━━━━━━━━━━━&#xa;Dapr PubSub で Kafka subscribe&#xa;→ ポリシー検証 (ACL / rate limit)&#xa;→ EMQX へ MQTT Publish&#xa;   factory/{site}/device/{id}/cmd" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6a1b9a;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1650" y="3215" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotKafkaTopics" value="Kafka topics (tier1 所有 / Strimzi 拡張 / RF=3)&#xa;━━━━━━━━━━━━━━━&#xa;上り telemetry :&#xa;  • edge.device.measurement (1〜10 Hz)&#xa;  • edge.device.alarm (閾値超過)&#xa;  • edge.device.heartbeat (1 min)&#xa;下り command :&#xa;  • edge.device.command&#xa;  • edge.device.command.ack&#xa;※ tier2 / tier3 は Kafka を直接参照しない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1940" y="3115" width="350" height="275" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT1FacadeExpose" value="▼ tier1 公開 API (この接点のみ tier2 / tier3 から可視)&#xa;上り : k1s0.PubSub.Subscribe(&quot;edge.device.measurement | alarm | heartbeat&quot;)&#xa;下り : k1s0.PubSub.Publish(&quot;edge.device.command&quot;, cmd)  /  Subscribe(&quot;edge.device.command.ack&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8d0;strokeColor=#d6b656;strokeWidth=2;fontSize=10;fontStyle=1;fontColor=#8a6d00;align=center" parent="1" vertex="1">
+                    <mxGeometry x="1640" y="3425" width="660" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT2sub" value="tier2 ドメインサービス (k1s0.PubSub のみ使用 / Kafka は不可視)&#xa;━━━━━━━━━━━━━━━&#xa;上り : 品質管理 Service → alarm 購読  /  稼働分析 Service → measurement 購読&#xa;下り : 操業制御 Service → command 発行 (認可 + 監査 + 冪等化)&#xa;※ tier2 / tier3 のコード変更は不要 (案 C の最重要不変条件)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1640" y="3495" width="660" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotT3obs" value="tier3 UI / 可視化 (既存 LGTM+P に統合)&#xa;Grafana 「エッジデバイス」ダッシュボード (Prometheus scrape / Loki は edge-agent ログ — Kafka 非経由)&#xa;操作 UI → tier2 操業制御 Service へ Service.Invoke → 下り command を tier2 から発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1640" y="3615" width="660" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeD1" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="232" y="3490" as="sourcePoint"/>
+                        <mxPoint x="232" y="3415" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeD1lbl" value="RS-485" style="text;html=1;align=center;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="170" y="3440" width="55" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeD2" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="482" y="3490" as="sourcePoint"/>
+                        <mxPoint x="482" y="3415" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeD2lbl" value="RS-232C" style="text;html=1;align=center;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="418" y="3440" width="60" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeD3" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="732" y="3490" as="sourcePoint"/>
+                        <mxPoint x="732" y="3415" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeD3lbl" value="RS-485" style="text;html=1;align=center;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="670" y="3440" width="55" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeClFW" value="" style="endArrow=classic;html=1;strokeColor=#1565c0;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="860" y="3150" as="sourcePoint"/>
+                        <mxPoint x="915" y="3150" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeFWemqx" value="" style="endArrow=classic;html=1;strokeColor=#1565c0;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1025" y="3150" as="sourcePoint"/>
+                        <mxPoint x="1080" y="3150" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeEmqxIng" value="" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1580" y="3155" as="sourcePoint"/>
+                        <mxPoint x="1650" y="3155" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeIngKafka" value="" style="endArrow=classic;html=1;strokeColor=#888888;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1930" y="3160" as="sourcePoint"/>
+                        <mxPoint x="1940" y="3160" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeKafkaDispatch" value="" style="endArrow=classic;html=1;strokeColor=#888888;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1940" y="3260" as="sourcePoint"/>
+                        <mxPoint x="1930" y="3260" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeDispatchEmqx" value="" style="endArrow=classic;html=1;strokeColor=#6a1b9a;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1610" y="3260"/>
+                            <mxPoint x="1610" y="3195"/>
+                        </Array>
+                        <mxPoint x="1650" y="3260" as="sourcePoint"/>
+                        <mxPoint x="1580" y="3195" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgeFacadeT2" value="" style="endArrow=classic;html=1;strokeColor=#558b2f;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1800" y="3475" as="sourcePoint"/>
+                        <mxPoint x="1800" y="3495" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotFlowLabelSub" value="Subscribe (上り)" style="text;html=1;align=left;fontSize=10;fontStyle=1;fontColor=#558b2f" parent="1" vertex="1">
+                    <mxGeometry x="1820" y="3478" width="120" height="14" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeT2Facade" value="" style="endArrow=classic;html=1;strokeColor=#6a1b9a;strokeWidth=3" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2140" y="3495" as="sourcePoint"/>
+                        <mxPoint x="2140" y="3475" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotFlowLabelPub" value="Publish (下り cmd)" style="text;html=1;align=right;fontSize=10;fontStyle=1;fontColor=#6a1b9a" parent="1" vertex="1">
+                    <mxGeometry x="2010" y="3478" width="125" height="14" as="geometry"/>
+                </mxCell>
+                <mxCell id="iotEdgeT3T2" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1970" y="3615" as="sourcePoint"/>
+                        <mxPoint x="1970" y="3605" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgePiActCmd" value="" style="endArrow=classic;html=1;strokeColor=#6a1b9a;strokeWidth=2" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="752" y="3415" as="sourcePoint"/>
+                        <mxPoint x="752" y="3490" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iotEdgePiActCmdLbl" value="cmd" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#6a1b9a" parent="1" vertex="1">
+                    <mxGeometry x="758" y="3440" width="40" height="18" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
