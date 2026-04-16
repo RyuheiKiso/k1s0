@@ -64,7 +64,14 @@ docs/
 │   ├── 05_CICDと配信/
 │   ├── 06_競合と差別化/
 │   └── 07_ロードマップと体制/
-├── 02_要件定義/        # 要件定義書（BR/FR/NFR/CON/ASM/RISK）
+├── 02_要件定義/        # 要件定義書（7 カテゴリ構造）
+│   ├── 00_共通/              # 横断要件・assumption・constraint・risk・stakeholder・error_taxonomy・glossary
+│   ├── 10_アーキテクチャ/    # infra・tier1-3・integration・api/sdk contract・rule_engine・eventing
+│   ├── 20_品質特性/          # performance・availability・observability・sla_slo・tenant_isolation・DR_BCP・accessibility
+│   ├── 30_セキュリティ_データ/ # security・IAM・kms_crypto・audit・data・privacy・data_residency・backup_restore・artifact_integrity・compliance
+│   ├── 40_運用ライフサイクル/ # operation・CICD・release・environment_config・migration・incident_response・support・deprecation_EOL・exit_strategy
+│   ├── 50_開発者体験/        # test・devex・feature_management
+│   └── 60_事業_契約/         # UX・i18n_l10n・tenant_onboarding・training・cost・licensing・billing_metering・legal_contract・vendor_supplychain・governance・ai_governance・analytics・sustainability
 ├── 90_knowledge/       # 技術学習用ドキュメント（/knowledge コマンドで生成）
 └── 99_壁打ち/          # ブレスト・検討メモ
 ```
