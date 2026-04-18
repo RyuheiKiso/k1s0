@@ -2,7 +2,7 @@
 
 ## 目的
 
-[`../04_技術選定/02_周辺OSS.md`](../04_技術選定/02_周辺OSS.md) で採用決定した GitHub Actions / Harbor / Trivy / Argo CD を、**どう組み合わせて 1 本のパイプラインにするか** を整理する。個別の OSS 選定根拠は参照先を見ること。
+[`../04_技術選定/03_周辺OSS/02_周辺OSS.md`](../04_技術選定/03_周辺OSS/02_周辺OSS.md) で採用決定した GitHub Actions / Harbor / Trivy / Argo CD を、**どう組み合わせて 1 本のパイプラインにするか** を整理する。個別の OSS 選定根拠は参照先を見ること。
 
 ---
 
@@ -105,11 +105,11 @@ MVP では Argo Events はインストールしない。Phase 2 で Kafka と同
 
 ## 6. イメージ品質ゲート
 
-| チェ���ク点 | ツール | 検出時の動作 | 導入時期 |
+| チェック点 | ツール | 検出時の動作 | 導入時期 |
 |---|---|---|---|
-| ���ルド前 (FS スキャン) | Trivy FS (GHA step) | `HIGH` 以上で警告、`CRITICAL` でパイプライン失敗 | MVP-1b |
-| push 後 (イメージスキャン) | Harbor 内蔵 Trivy | `CRITICAL` を含むイメージ��� `pull` を拒否 (Harbor プロジェクトポ���シー) | MVP-1b |
-| 開発ブランチ例外 | — | `dev` ブランチは警告���み、`main` の���厳格適用 | MVP-1b |
+| ビルド前 (FS スキャン) | Trivy FS (GHA step) | `HIGH` 以上で警告、`CRITICAL` でパイプライン失敗 | MVP-1b |
+| push 後 (イメージスキャン) | Harbor 内蔵 Trivy | `CRITICAL` を含むイメージの `pull` を拒否 (Harbor プロジェクトポリシー) | MVP-1b |
+| 開発ブランチ例外 | — | `dev` ブランチは警告のみ、`main` のみ厳格適用 | MVP-1b |
 | イメージソース制限 | Kyverno | `harbor.k1s0.internal/*` 以外のイメージを含む Pod を Admission で拒否 | MVP-1b |
 | `:latest` タグ禁止 | Kyverno | `:latest` タグ指定を Admission で拒否 | MVP-1b |
 | イメージ署名検証 | Cosign + Kyverno | 未署名イメージの deploy を k8s Admission Webhook で拒否 | Phase 2 |
@@ -253,8 +253,8 @@ Phase 1 (MVP-1a) から導入。tier1 Go / Rust 依存 + Dockerfile + Helm chart
 以下は本資料では扱わず、ADR として個別に決定する。
 
 - GitOps リポジトリを単一リポ / 別リポのどちらにするか (MVP は単一、Phase 2 で再検討)
-- ~~Secret 管理方式~~ → **決定済み**: OpenBao (MPL 2.0) を MVP-1b で導入。SealedSecrets は GitOps 内 Secret の暗号化用途で併用。詳細は [`../04_技術選定/08_シ���クレット管理.md`](../04_技術選定/08_シークレ���ト管理.md)
-- ~~環境別 overlay 設計 (kustomize / helm のどちらを主軸にするか)~~ → **決定済み**: Kustomize を主軸 (自製サービスの base/overlay)、Helm はサードパーティ Chart 用。詳細は [`../04_技術選定/12_マニフェストとワークフロー.md`](../04_技術��定/12_マニフェストとワークフロー.md)
+- ~~Secret 管理方式~~ → **決定済み**: OpenBao (MPL 2.0) を MVP-1b で導入。SealedSecrets は GitOps 内 Secret の暗号化用途で併用。詳細は [`../04_技術選定/03_周辺OSS/08_シークレット管理.md`](../04_技術選定/03_周辺OSS/08_シークレット管理.md)
+- ~~環境別 overlay 設計 (kustomize / helm のどちらを主軸にするか)~~ → **決定済み**: Kustomize を主軸 (自製サービスの base/overlay)、Helm はサードパーティ Chart 用。詳細は [`../04_技術選定/03_周辺OSS/12_マニフェストとワークフロー.md`](../04_技術選定/03_周辺OSS/12_マニフェストとワークフロー.md)
 - Trivy DB の更新経路 (インターネット接続制限環境での定期同期手順)
 - Harbor のストレージバックエンド (Longhorn / Rook-Ceph / MinIO)
 
@@ -262,11 +262,11 @@ Phase 1 (MVP-1a) から導入。tier1 Go / Rust 依存 + Dockerfile + Helm chart
 
 ## 関連ドキュメント
 
-- [`../04_技術選定/02_周辺OSS.md`](../04_技術選定/02_周辺OSS.md) — GHA / Harbor / Argo CD / Keycloak / Valkey の個別選定根拠
-- [`../04_技術選定/04_選定一覧.md`](../04_技術選定/04_選定一覧.md) — 採用 OSS 一覧
+- [`../04_技術選定/03_周辺OSS/02_周辺OSS.md`](../04_技術選定/03_周辺OSS/02_周辺OSS.md) — GHA / Harbor / Argo CD / Keycloak / Valkey の個別選定根拠
+- [`../04_技術選定/01_俯瞰/04_選定一覧.md`](../04_技術選定/01_俯瞰/04_選定一覧.md) — 採用 OSS 一覧
 - [`01_開発者ポータル_Backstage.md`](./01_開発者ポータル_Backstage.md) — Backstage 側の統合方針
 - [`02_アプリ配信ポータル.md`](./02_アプリ配信ポータル.md) — tier3 アプリのエンドユーザー配信
 - [`04_ローカル開発環境.md`](./04_ローカル開発環境.md) — Tilt によるローカル開発環境
-- [`../03_tier1設計/03_API設計原則.md`](../03_tier1設計/03_API設計原則.md) — 雛形生成 CLI の設計原則
-- [`../04_技術選定/06_イベントスキーマレジストリ.md`](../04_技術選定/06_イベントスキーマレジストリ.md) — Apicurio Registry の採用根拠
-- [`../04_技術選定/12_マニフェストとワークフロー.md`](../04_技術選定/12_マニフェストとワークフロー.md) — Kustomize + Helm の採用根拠
+- [`../03_tier1設計/02_API契約/03_API設計原則.md`](../03_tier1設計/02_API契約/03_API設計原則.md) — 雛形生成 CLI の設計原則
+- [`../04_技術選定/03_周辺OSS/06_イベントスキーマレジストリ.md`](../04_技術選定/03_周辺OSS/06_イベントスキーマレジストリ.md) — Apicurio Registry の採用根拠
+- [`../04_技術選定/03_周辺OSS/12_マニフェストとワークフロー.md`](../04_技術選定/03_周辺OSS/12_マニフェストとワークフロー.md) — Kustomize + Helm の採用根拠
