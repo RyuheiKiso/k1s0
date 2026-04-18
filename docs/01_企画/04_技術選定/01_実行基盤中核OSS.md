@@ -82,7 +82,7 @@ k1s0 の実行基盤を構成する中核 OSS (k8s / Istio / Envoy Gateway / Kaf
 | ログ | **Loki** | 採用 | 軽量・低コスト・Grafana 統合 |
 | | Elasticsearch (ELK) | 却下 | リソース消費大、オンプレ小規模にはオーバースペック |
 
-**採用方針**: OTel を計装層として統一し、バックエンドは差し替え可能な構成にする。tier1 公開 API (`k1s0.Telemetry.*`) が各バックエンドを抽象化する。**OTel Collector** (Agent モード / DaemonSet) をテレメトリパイプラインの中継地点として配置し、サービスからバックエンドへの直接送信を排除する。これにより、バックエンド追加・変更時にサービスの再デプロイが不要になる。トレーシングバックエンドは Grafana Tempo を採用し、Loki / Prometheus / Grafana と合わせて LGTM スタックを構成する。OTel Collector の選定根拠は [`09_ネットワークとテレメトリ基盤.md#S`](./09_ネットワークとテレメトリ基盤.md)、Grafana Tempo の選定根拠は [`11_追加採用OSS_3.md#W`](./11_追加採用OSS_3.md) を参照。
+**採用方針**: OTel を計装層として統一し、バックエンドは差し替え可能な構成にする。tier1 公開 API (`k1s0.Telemetry.*`) が各バックエンドを抽象化する。**OTel Collector** (Agent モード / DaemonSet) をテレメトリパイプラインの中継地点として配置し、サービスからバックエンドへの直接送信を排除する。これにより、バックエンド追加・変更時にサービスの再デプロイが不要になる。トレーシングバックエンドは Grafana Tempo を採用し、Loki / Prometheus / Grafana と合わせて LGTM スタックを構成する。OTel Collector の選定根拠は [`09_ネットワークとテレメトリ基盤.md#S`](./09_ネットワークとテレメトリ基盤.md)、Grafana Tempo の選定根拠は [`11_トレーシングとDB補助.md#W`](./11_トレーシングとDB補助.md) を参照。
 
 ---
 

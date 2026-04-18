@@ -46,8 +46,15 @@
 | ルールエンジン | `03_ルールエンジン.md` — ZEN Engine 採用根拠 |
 | IaC | `05_IaC.md` — OpenTofu 選定 |
 | イベントスキーマ | `06_イベントスキーマレジストリ.md` |
-| シークレット | `08_シークレット管理.md` |
-| ネットワーク / テレメトリ | `09_ネットワークとテレメトリ基盤.md` |
-| 追加採用 OSS 詳細 (テーマ別の詳細根拠) | `07_追加採用OSS.md` / `10_追加採用OSS_2.md` / `11_追加採用OSS_3.md` / `12_追加採用OSS_4.md` / `13_追加採用OSS_5.md` / `14_追加採用OSS_6.md` / `15_追加採用OSS_7.md` / `16_追加採用OSS_8.md` |
+| ストレージと運用補助 | `07_ストレージと運用補助.md` — Longhorn / PgBouncer / Renovate / Argo Events / Testcontainers / golang-migrate |
+| シークレット管理 | `08_シークレット管理.md` — OpenBao |
+| ネットワークとテレメトリ | `09_ネットワークとテレメトリ基盤.md` — MetalLB / kube-vip / OTel Collector |
+| スキーマとロールアウト | `10_Protobufとロールアウト.md` — Buf / Argo Rollouts / kube-state-metrics |
+| トレーシングと DB 補助 | `11_トレーシングとDB補助.md` — Grafana Tempo / pg_partman |
+| マニフェストとワークフロー | `12_マニフェストとワークフロー.md` — Kustomize + Helm / Temporal |
+| 運用 UI とシークレット同期 | `13_運用UIとシークレット同期.md` — Headlamp / Kubeshark / External Secrets Operator |
+| オートスケーラー | `14_オートスケーラー.md` — KEDA |
+| サプライチェーンセキュリティ | `15_サプライチェーンセキュリティ.md` — Cosign / Syft / Grype |
+| プロファイリング | `16_プロファイリング.md` — Grafana Pyroscope |
 
-「追加採用 OSS」系の 8 ファイルは時系列で追加した履歴の産物で、**現在は参照用の詳細根拠として位置付けている**。採用判断そのものは `04_選定一覧.md` の責務マトリクスを正とし、個別根拠に踏み込むときのみ該当ファイルを参照する運用とする。
+詳細レイヤの個別ファイルは責務ドメイン別に分かれている。採用判断そのものは `04_選定一覧.md` の責務マトリクスを正とし、個別根拠に踏み込むときのみ該当ファイルを参照する運用とする。
