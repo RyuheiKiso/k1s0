@@ -1,0 +1,64 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="comparison-matrix" name="comparison-matrix">
+    <mxGraphModel dx="960" dy="540" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="540" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="前期・後期ウィトゲンシュタインと LLM の三者対比" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="920" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col1" value="前期（Tractatus, 1921）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="160" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col2" value="LLM（2020年代〜）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="col3" value="後期（Philosophical Investigations, 1953）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="680" y="80" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="row1h" value="&lt;b&gt;意味論&lt;br&gt;モデル&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="120" width="140" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="row2h" value="&lt;b&gt;世界との&lt;br&gt;接地&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="240" width="140" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="row3h" value="&lt;b&gt;語りえぬ&lt;br&gt;ものの扱い&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="360" width="140" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c11" value="有意味性＝事態の論理的写像。要素命題の真理関数で全命題を構成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#D6B656;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="160" y="120" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c12" value="分布意味論。トークンの共起パターンから次トークンを確率的に生成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF2FB;strokeColor=#6C8EBF;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="120" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" value="意味＝使用。言語ゲームごとに異なる文法を持つ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2E0;strokeColor=#82B366;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="680" y="120" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c21" value="共通の論理形式が世界と命題を一意に対応させる（2.18, 4.12）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#D6B656;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="160" y="240" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c22" value="直接接地なし。コーパス尤度のみが基準となり、真偽は事後的にしか検証できない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF2FB;strokeColor=#6C8EBF;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="240" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c23" value="生活形式（Lebensform）への埋め込みが意味を支える" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2E0;strokeColor=#82B366;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="680" y="240" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c31" value="命題 7 により沈黙を命じる。倫理・美・神は語りの領域外" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#D6B656;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="160" y="360" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c32" value="区別せず全領域を流暢に生成。hallucination はこの区別の不在から生じる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF2FB;strokeColor=#6C8EBF;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="c33" value="沈黙から『語り方の多様性』へ。治療的哲学として哲学的混乱を解く" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2E0;strokeColor=#82B366;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="680" y="360" width="260" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="footnote" value="※ LLM 列は論考と探究いずれに対しても「構造的類似と本質的相違」を同時に示す。どちらの陣営からも読み解きが可能。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="20" y="490" width="920" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
