@@ -1,0 +1,79 @@
+<mxfile host="draw.io">
+  <diagram name="istio_failsafe" id="if">
+    <mxGraphModel dx="1100" dy="640" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Istio / Envoy Gateway 障害 - フェイルセーフ階層と RTO" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" value="レイヤ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="障害シナリオ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="260" y="80" width="290" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="フェイルセーフ機構" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="560" y="80" width="370" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="RTO 目標" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="940" y="80" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="L1: istiod&#xa;(Control Plane)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="130" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l1f" value="新規 Pod の sidecar 注入失敗&#xa;mTLS 証明書の新規発行停止&#xa;Envoy 設定の動的配信停止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="130" width="290" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l1s" value="既存 Envoy は最後の xDS 設定で動作継続&#xa;既存証明書の有効期限内 (24h) は通信維持&#xa;istiod は HA レプリカ 2 で自動再起動&#xa;復旧手順: Argo CD で Helm 再デプロイ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="560" y="130" width="370" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l1r" value="15 分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="940" y="130" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="L2: Envoy Sidecar&#xa;(Data Plane)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="240" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l2f" value="単一 Pod の Envoy クラッシュ&#xa;サービス間 mTLS 通信不能&#xa;(該当 Pod のみ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="240" width="290" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l2s" value="ReplicaSet による Pod 自動再生成&#xa;Istio DestinationRule のサーキットブレーカー&#xa;(連続 5 回失敗で 30 秒 open)&#xa;tier1 クライアントが fail-fast で例外を返却" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="560" y="240" width="370" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l2r" value="5 分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="940" y="240" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="L3: Envoy Gateway&#xa;(外部入口)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l3f" value="外部からの全インバウンド停止&#xa;tier2/tier3 への HTTP/gRPC 全断&#xa;(最も外部影響が大きい)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="350" width="290" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l3s" value="Multi-replica + PodDisruptionBudget&#xa;NodeAntiAffinity で複数ノード分散&#xa;Argo CD による自動再デプロイ&#xa;LB ヘルスチェック失敗時に DNS 切り替え" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="560" y="350" width="370" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l3r" value="10 分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="940" y="350" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="L4: mTLS 証明書&#xa;(信頼チェーン)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="460" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l4f" value="ワークロード証明書の TTL 切れ&#xa;ルート CA 失効&#xa;(istiod 長期停止と複合した場合)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="260" y="460" width="290" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l4s" value="cert-manager による自動更新&#xa;期限 30 日前から Warning アラート&#xa;ルート CA は OpenBao で管理&#xa;失効時の手動ローテーション手順を整備" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="560" y="460" width="370" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l4r" value="30 分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="940" y="460" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例: 青=コンポーネント / 赤=障害 / 緑=フェイルセーフ。RTO はコンポーネント単独障害時の業務復旧目標 (istiod 長期停止と他レイヤ障害が複合した場合は 04_セキュリティモデル / 05_障害復旧 を参照)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="50" y="580" width="1010" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
