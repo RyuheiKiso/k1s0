@@ -56,15 +56,21 @@
 ```
 docs/
 ├── 00_format/          # フォーマットテンプレート・規約
-├── 01_企画/            # 企画書・設計ドキュメント
+├── 01_企画/            # 稟議向け企画資料（薄い提案書）
 │   ├── 01_背景と目的/
-│   ├── 02_アーキテクチャ/
-│   ├── 03_tier1設計/
-│   ├── 04_技術選定/
-│   ├── 05_CICDと配信/
-│   ├── 06_競合と差別化/
-│   └── 07_ロードマップと体制/
-├── 02_要件定義/        # 要件定義書（7 カテゴリ構造）
+│   ├── 02_競合と差別化/
+│   ├── 03_ロードマップと体制/
+│   ├── 04_定量試算/
+│   ├── README.md
+│   ├── 企画書.md       # Marp スライド
+│   └── 全体構成図.md
+├── 02_構想設計/        # 技術深掘り資料（稟議通過後に着手する設計層）
+│   ├── 01_アーキテクチャ/
+│   ├── 02_tier1設計/
+│   ├── 03_技術選定/
+│   ├── 04_CICDと配信/
+│   └── 05_法務とコンプライアンス/
+├── 03_要件定義/        # 要件定義書（7 カテゴリ構造）
 │   ├── 00_共通/              # 横断要件・assumption・constraint・risk・stakeholder・error_taxonomy・glossary
 │   ├── 10_アーキテクチャ/    # infra・tier1-3・integration・api/sdk contract・rule_engine・eventing
 │   ├── 20_品質特性/          # performance・availability・observability・sla_slo・tenant_isolation・DR_BCP・accessibility
@@ -72,6 +78,7 @@ docs/
 │   ├── 40_運用ライフサイクル/ # operation・CICD・release・environment_config・migration・incident_response・support・deprecation_EOL・exit_strategy
 │   ├── 50_開発者体験/        # test・devex・feature_management
 │   └── 60_事業_契約/         # UX・i18n_l10n・tenant_onboarding・training・cost・licensing・billing_metering・legal_contract・vendor_supplychain・governance・ai_governance・analytics・sustainability
+├── 04_概要設計/        # 概要設計（要件定義後のフェーズ、現在はひな形）
 ├── 90_knowledge/       # 技術学習用ドキュメント（/knowledge コマンドで生成）
 └── 99_壁打ち/          # ブレスト・検討メモ
 ```

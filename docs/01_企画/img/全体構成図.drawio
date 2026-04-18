@@ -301,50 +301,242 @@
                 <mxCell id="nsOp" value="namespace: operation (運用 / 横断 — 運用チーム + 基盤チーム)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontSize=12;fontStyle=1;arcSize=4;" parent="1" vertex="1">
                     <mxGeometry x="1750" y="460" width="590" height="2000" as="geometry"/>
                 </mxCell>
+                <mxCell id="opGroupIDP" value="① 開発者体験 — Internal Developer Portal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#6a1b9a;strokeWidth=1;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#6a1b9a;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="490" width="555" height="130" as="geometry"/>
+                </mxCell>
                 <mxCell id="opBs" value="Backstage 1.x&#xa;Software Catalog / TechDocs / Templates&#xa;backstage.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="510" width="560" height="100" as="geometry"/>
+                    <mxGeometry x="1785" y="525" width="525" height="85" as="geometry"/>
                 </mxCell>
-                <mxCell id="opArgo" value="Argo CD 2.12&#xa;GitOps デプロイ (tier1/2/3 manifest を sync)&#xa;argocd.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;fontStyle=1" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="625" width="560" height="100" as="geometry"/>
+                <mxCell id="opGroupCICD" value="② CI/CD パイプライン (GitOps) — Renovate → GHA → Harbor → Argo CD → Kyverno → tier Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;strokeWidth=1;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#ef6c00;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="640" width="555" height="580" as="geometry"/>
                 </mxCell>
-                <mxCell id="opKc" value="Keycloak 26&#xa;OIDC SSO / Realm: k1s0 / Client: *.k1s0.internal&#xa;keycloak.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="740" width="560" height="100" as="geometry"/>
+                <mxCell id="opRen" value="① Renovate&#xa;依存パッケージ自動更新 PR (月次)&#xa;対象: Go mod / npm / NuGet / Docker / Helm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="680" width="525" height="85" as="geometry"/>
                 </mxCell>
-                <mxCell id="opGha" value="GitHub Actions self-hosted runner (ARC)&#xa;runner group: k1s0-build (scale 3→20)&#xa;build / unit test / Trivy scan" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="855" width="560" height="100" as="geometry"/>
+                <mxCell id="opGha" value="② GitHub Actions self-hosted runner (ARC)&#xa;runner group: k1s0-build (scale 3→20)&#xa;build / unit test / golangci-lint / Roslyn / Trivy scan&#xa;→ Harbor push (harbor.k1s0.internal/k1s0/tier*/svc:sha)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="790" width="525" height="105" as="geometry"/>
                 </mxCell>
-                <mxCell id="opRen" value="Renovate&#xa;依存パッケージ自動更新 PR&#xa;対象: Go mod / npm / NuGet / Docker / Helm" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="970" width="560" height="100" as="geometry"/>
+                <mxCell id="opArgo" value="③ Argo CD 2.12 (GitOps 同期エンジン)&#xa;manifests repo を watch → Helm diff → sync (3 分以内)&#xa;Kyverno Admission 違反は自動 deploy 拒否&#xa;argocd.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="920" width="525" height="105" as="geometry"/>
                 </mxCell>
-                <mxCell id="opAe" value="Argo Events (Phase 2)&#xa;GitHub webhook → Harbor push → Kafka audit&#xa;EventSource / Sensor / Trigger" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="1085" width="560" height="100" as="geometry"/>
+                <mxCell id="opAe" value="④ Argo Events (Phase 2)&#xa;GitHub webhook → GHA workflow_dispatch 起動&#xa;Harbor push → audit Kafka 発行&#xa;EventSource → Sensor → Trigger" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1050" width="525" height="95" as="geometry"/>
                 </mxCell>
-                <mxCell id="opLi" value="Litmus 3.x&#xa;Chaos Engineering / 縮退動作の自動検証&#xa;例: pod-delete / network-loss / kafka-broker-kill" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="1200" width="560" height="100" as="geometry"/>
+                <mxCell id="cicdNoteExit" value="※ CI/CD の出口: GHA → Harbor push / Argo CD → tier1-3 sync (緑破線) / Kyverno Admission 検証 は infra / tier 側の矢印で可視化する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1160" width="525" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicdHead" value="CI/CD パイプライン 詳細フロー" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
-                    <mxGeometry x="1770" y="1320" width="560" height="30" as="geometry"/>
+                <mxCell id="opGroupCross" value="③ 横断基盤 — SSO ハブ &amp; 非機能検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;strokeWidth=1;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#b85450;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1770" y="1240" width="555" height="1205" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd1" value="① 開発者 git push (GitHub) → main branch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1360" width="520" height="55" as="geometry"/>
+                <mxCell id="opKc" value="Keycloak 26 (OIDC SSO ハブ)&#xa;Realm: k1s0 / Client: *.k1s0.internal&#xa;keycloak.ops.k1s0.internal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1280" width="525" height="85" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd2" value="② GHA Runner: build / unit test / golangci-lint / Roslyn analyzer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1440" width="520" height="55" as="geometry"/>
+                <mxCell id="opSSOnote" value="SSO 依存関係 (OIDC authorization_code → JWT RS256 検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#b85450;fontSize=10;fontStyle=1;verticalAlign=top;fontColor=#b85450" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1380" width="525" height="28" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd3" value="③ Harbor へ image push (harbor.k1s0.internal/k1s0/tier2/order-svc:abc1234)&#xa;   + Trivy 脆弱性スキャン (HIGH 以上で block)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1520" width="520" height="70" as="geometry"/>
+                <mxCell id="opSSOlist" value="• Envoy ext_authz (tier3 入口 :443) — 最重要&#xa;• Backstage / Argo CD UI (operation namespace 内)&#xa;• Grafana UI / Harbor UI (infra namespace)&#xa;• tier3 業務アプリ (PWA / 配信ポータル)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10;align=left;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1413" width="525" height="82" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd4" value="④ GitOps repo (k1s0/manifests) の image tag 更新 PR → merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1610" width="520" height="55" as="geometry"/>
+                <mxCell id="opLi" value="Litmus 3.x (Chaos Engineering)&#xa;対象: tier2 ドメインサービス Pod&#xa;実験: pod-delete / network-loss / kafka-broker-kill / disk-fill&#xa;週次スケジュール実行 / Grafana で縮退挙動を確認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1510" width="525" height="110" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd5" value="⑤ Argo CD が Helm chart diff を検知 → sync (3 分以内)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1690" width="520" height="55" as="geometry"/>
+                <mxCell id="opPurposeHead" value="operation 3 サブグループと tier1-3 への作用関係 (図)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;fontStyle=1;verticalAlign=top;fontColor=#6a1b9a" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1640" width="525" height="28" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd6" value="⑥ Kyverno Admission がポリシー検証 (違反なら deploy 拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1770" width="520" height="55" as="geometry"/>
+                <mxCell id="opDiagDev" value="開発者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1985" y="1673" width="125" height="25" as="geometry"/>
                 </mxCell>
-                <mxCell id="cicd7" value="⑦ tier2 namespace に Pod 起動 (rolling update)&#xa;   daprd + istio-proxy を自動注入 → Ready → トラフィック開始" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11" parent="1" vertex="1">
-                    <mxGeometry x="1790" y="1850" width="520" height="70" as="geometry"/>
+                <mxCell id="opDiagDevArr" value="git push / UI ログイン" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=2;fontSize=10;fontStyle=2;labelBackgroundColor=#FFFFFF" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2047" y="1698" as="sourcePoint"/>
+                        <mxPoint x="2047" y="1735" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opDiagIDP" value="①IDP&#xa;Backstage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#6a1b9a;fontSize=10;fontStyle=1;fontColor=#6a1b9a" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1735" width="160" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="opDiagCICD" value="②CI/CD&#xa;Renovate → GHA → Argo CD" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1970" y="1735" width="160" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="opDiagCross" value="③横断基盤&#xa;Keycloak / Litmus" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;fontSize=10;fontStyle=1;fontColor=#b85450" parent="1" vertex="1">
+                    <mxGeometry x="2150" y="1735" width="160" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="opDiagIDPArr" value="参照のみ" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#6a1b9a;strokeWidth=2;fontSize=9;fontStyle=2;fontColor=#6a1b9a;labelBackgroundColor=#FFFFFF" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1870" y="1810" as="sourcePoint"/>
+                        <mxPoint x="1870" y="1850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opDiagCICDArr" value="配信" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;fontSize=9;fontStyle=2;fontColor=#ef6c00;labelBackgroundColor=#FFFFFF" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2050" y="1810" as="sourcePoint"/>
+                        <mxPoint x="2050" y="1850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opDiagCrossArr" value="SSO / Chaos" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontStyle=2;fontColor=#b85450;labelBackgroundColor=#FFFFFF" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2230" y="1810" as="sourcePoint"/>
+                        <mxPoint x="2230" y="1850" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opDiagTierBar" value="tier1-3 namespace (配信先 / 稼働環境)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#444444;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1850" width="520" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="opDiagForbidden" value="※ tier2/3 → operation への直接参照は禁止 (接点は git push と UI ログインのみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=10;fontStyle=1;fontColor=#c62828;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1790" y="1880" width="520" height="22" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowHead" value="CI/CD トリガーフロー (Phase 1 ベースライン / Phase 2 イベント駆動拡張)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=1;verticalAlign=top;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1914" width="525" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1Head" value="Phase 1 (稼働中) — Renovate 月次 PR を起点とした同期 CI/CD" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="1947" width="525" height="15" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1B1" value="Renovate&#xa;PR merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9" parent="1" vertex="1">
+                    <mxGeometry x="1786" y="1965" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1B2" value="GHA&#xa;(build+test)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9" parent="1" vertex="1">
+                    <mxGeometry x="1894" y="1965" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1B3" value="Harbor&#xa;(image push)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9" parent="1" vertex="1">
+                    <mxGeometry x="2002" y="1965" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1B4" value="manifests&#xa;repo 更新" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9" parent="1" vertex="1">
+                    <mxGeometry x="2110" y="1965" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1B5" value="Argo CD&#xa;自然 sync" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="2218" y="1965" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP1A1" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1876" y="1980" as="sourcePoint"/>
+                        <mxPoint x="1894" y="1980" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP1A2" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1984" y="1980" as="sourcePoint"/>
+                        <mxPoint x="2002" y="1980" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP1A3" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2092" y="1980" as="sourcePoint"/>
+                        <mxPoint x="2110" y="1980" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP1A4" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2200" y="1980" as="sourcePoint"/>
+                        <mxPoint x="2218" y="1980" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP2aHead" value="Phase 2 (予定) ① — GitHub push を契機に GHA を Webhook 経由で自動起動" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="2002" width="525" height="15" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2aB1" value="GitHub push webhook" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="2020" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2aB2" value="Argo Events&#xa;EventSource → Sensor" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;fontStyle=1;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1972" y="2020" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2aB3" value="GHA workflow_dispatch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="2160" y="2020" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2aA1" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1935" y="2035" as="sourcePoint"/>
+                        <mxPoint x="1972" y="2035" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP2aA2" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2122" y="2035" as="sourcePoint"/>
+                        <mxPoint x="2160" y="2035" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP2bHead" value="Phase 2 (予定) ② — Harbor push を監査イベントとして Kafka に発行 (監査突合)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="2057" width="525" height="15" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2bB1" value="Harbor push webhook" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="2075" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2bB2" value="Argo Events&#xa;EventSource → Sensor" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;fontStyle=1;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="1972" y="2075" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2bB3" value="audit.event topic&#xa;(Kafka 発行)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=9;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="2160" y="2075" width="150" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="opFlowP2bA1" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1935" y="2090" as="sourcePoint"/>
+                        <mxPoint x="1972" y="2090" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opFlowP2bA2" style="endArrow=classic;html=1;strokeColor=#ef6c00;strokeWidth=1.5;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2122" y="2090" as="sourcePoint"/>
+                        <mxPoint x="2160" y="2090" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opChaosHead" value="Chaos 実験の運用ルール (Litmus)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;fontSize=10;fontStyle=1;verticalAlign=top;fontColor=#b85450" parent="1" vertex="1">
+                    <mxGeometry x="1785" y="2117" width="525" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="opChaosB1" value="Setup&#xa;━━━━&#xa;毎週月曜 03:00&#xa;事前告知&#xa;(tier2 本番 対象)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=9;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="1786" y="2150" width="115" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="opChaosB2" value="Execute&#xa;━━━━&#xa;tier2 Pod に故障注入 (Litmus)&#xa;pod-delete / network-loss&#xa; / kafka-broker-kill&#xa;Grafana で挙動観測" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=9;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="1914" y="2150" width="140" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="opChaosB3" value="Judge (any 1 hit → 失敗)&#xa;━━━━━━━━━━━━&#xa;SLO Budget &gt; 10%&#xa;Saga 再実行率 &gt; 5%&#xa;Kafka lag 増大 &gt; 5 分継続" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#b85450;fontSize=9;fontStyle=1;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="2067" y="2150" width="140" height="85" as="geometry"/>
+                </mxCell>
+                <mxCell id="opChaosB4" value="成功&#xa;━━━&#xa;正常完了&#xa;Backstage TechDocs 記録" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=9;fontColor=#2e7d32;fontStyle=1;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="2220" y="2150" width="90" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="opChaosB5" value="失敗&#xa;━━━&#xa;自動 rollback&#xa;Backstage TechDocs 記録" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=9;fontColor=#c62828;fontStyle=1;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="2220" y="2196" width="90" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="opChaosA1" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1901" y="2192" as="sourcePoint"/>
+                        <mxPoint x="1914" y="2192" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opChaosA2" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2054" y="2192" as="sourcePoint"/>
+                        <mxPoint x="2067" y="2192" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opChaosA3" style="endArrow=classic;html=1;strokeColor=#2e7d32;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2207" y="2171" as="sourcePoint"/>
+                        <mxPoint x="2220" y="2171" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="opChaosA4" style="endArrow=classic;html=1;strokeColor=#c62828;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2207" y="2217" as="sourcePoint"/>
+                        <mxPoint x="2220" y="2217" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="cicdRenGha" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2047" y="765" as="sourcePoint"/>
+                        <mxPoint x="2047" y="790" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="cicdGhaArgo" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2047" y="895" as="sourcePoint"/>
+                        <mxPoint x="2047" y="920" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="cicdRenGhaLbl" value="PR merge" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="2060" y="767" width="90" height="18" as="geometry"/>
+                </mxCell>
+                <mxCell id="cicdGhaArgoLbl" value="manifests 更新 → Argo CD sync" style="text;html=1;align=center;fontSize=10;fontStyle=2;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="2060" y="897" width="220" height="18" as="geometry"/>
                 </mxCell>
                 <mxCell id="portA1" value=":443 TLS" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="510" y="210" width="80" height="18" as="geometry"/>
@@ -433,71 +625,35 @@
                 </mxCell>
                 <mxCell id="g1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1770" y="650" as="sourcePoint"/>
+                        <mxPoint x="1785" y="940" as="sourcePoint"/>
                         <mxPoint x="1730" y="580" as="targetPoint"/>
                         <Array as="points">
-                            <mxPoint x="1745" y="650"/>
-                            <mxPoint x="1745" y="580"/>
+                            <mxPoint x="1742" y="940"/>
+                            <mxPoint x="1742" y="580"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="g2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1770" y="685" as="sourcePoint"/>
+                        <mxPoint x="1785" y="975" as="sourcePoint"/>
                         <mxPoint x="1730" y="850" as="targetPoint"/>
                         <Array as="points">
-                            <mxPoint x="1740" y="685"/>
-                            <mxPoint x="1740" y="850"/>
+                            <mxPoint x="1744" y="975"/>
+                            <mxPoint x="1744" y="850"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="g3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#2e7d32;strokeWidth=2;dashed=1" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1770" y="720" as="sourcePoint"/>
+                        <mxPoint x="1785" y="1010" as="sourcePoint"/>
                         <mxPoint x="1730" y="1250" as="targetPoint"/>
                         <Array as="points">
-                            <mxPoint x="1735" y="720"/>
-                            <mxPoint x="1735" y="1250"/>
+                            <mxPoint x="1746" y="1010"/>
+                            <mxPoint x="1746" y="1250"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="ci12" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2050" y="1415" as="sourcePoint"/>
-                        <mxPoint x="2050" y="1440" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="ci23" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2050" y="1495" as="sourcePoint"/>
-                        <mxPoint x="2050" y="1520" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="ci34" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2050" y="1590" as="sourcePoint"/>
-                        <mxPoint x="2050" y="1610" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="ci45" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2050" y="1665" as="sourcePoint"/>
-                        <mxPoint x="2050" y="1690" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="ci56" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2050" y="1745" as="sourcePoint"/>
-                        <mxPoint x="2050" y="1770" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="ci67" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#ef6c00;strokeWidth=2;dashed=1" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2050" y="1825" as="sourcePoint"/>
-                        <mxPoint x="2050" y="1850" as="targetPoint"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="flowFrame" value="サンプルフロー: 「注文確定」ボタン押下 → Kafka イベント発行 → DB 更新完了" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ef6c00;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+<mxCell id="flowFrame" value="サンプルフロー: 「注文確定」ボタン押下 → Kafka イベント発行 → DB 更新完了" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ef6c00;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
                     <mxGeometry x="60" y="2500" width="2280" height="140" as="geometry"/>
                 </mxCell>
                 <mxCell id="fs1" value="① エンドユーザー&#xa;「注文確定」押下&#xa;HTTPS :443 リクエスト" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">

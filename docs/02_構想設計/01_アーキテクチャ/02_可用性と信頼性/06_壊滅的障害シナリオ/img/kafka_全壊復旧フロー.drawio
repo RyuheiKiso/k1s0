@@ -1,0 +1,67 @@
+<mxfile host="draw.io">
+  <diagram name="kafka_recovery" id="kr">
+    <mxGraphModel dx="1100" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="760" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="760" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Kafka 全クラスタ障害 - Runbook (Strimzi Operator + KRaft 3 broker)" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="b1" value="T+0: 全 broker 停止を Strimzi Operator が検知&#xa;(Prometheus alert / Pod liveness 連続失敗)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" value="T+1min: tier1 PubSub が PublishUnavailable を返却&#xa;呼び出し元が Outbox Pattern で DB に滞留" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="200" y="180" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" value="T+5min: Strimzi が KRaft メタデータの整合性を確認&#xa;自動再起動 / Pod 再スケジュールで部分復旧を試行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="200" y="280" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" value="T+15min: 自動復旧不能と判断&#xa;Argo CD で Strimzi CR を再適用し新クラスタを起動" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="200" y="380" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b5" value="T+25min: KafkaTopic CR から Topic 自動再作成&#xa;(replication.factor=3, min.insync.replicas=2, acks=all)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="200" y="480" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b6" value="T+45min: Consumer Group オフセットを earliest にリセット&#xa;Outbox 滞留分を冪等再送 (Subscribe ハンドラは冪等実装)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="200" y="580" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="b7" value="T+60min: 業務復旧完了 (RTO 達成)&#xa;Producer 側欠損ゼロ / Consumer 側は冪等で重複処理を許容" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="680" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="検知経路&#xa;Strimzi Operator + Prometheus Alertmanager&#xa;期待検知時間: 60 秒以内" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="同期処理 (State / Auth / Service.Invoke) は無影響&#xa;非同期処理のみ滞留。Outbox により欠損ゼロ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="640" y="180" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="MVP は単一クラスタ。Phase 3 で MirrorMaker 2 による&#xa;別クラスタ DR を導入し RTO を 15 分に短縮する計画" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="640" y="380" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="冪等性は雛形 CLI が Subscribe ハンドラに自動注入&#xa;(リファレンス実装のパターンに準拠)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="640" y="580" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="b1" target="b2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="b2" target="b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" value="自動復旧失敗" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="b3" target="b4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e45" value="" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="b4" target="b5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e56" value="" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="b5" target="b6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e67" value="" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0" edge="1" parent="1" source="b6" target="b7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

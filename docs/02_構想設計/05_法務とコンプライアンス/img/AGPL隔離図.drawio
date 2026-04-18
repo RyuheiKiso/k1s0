@@ -1,0 +1,165 @@
+<mxfile host="app.diagrams.net" modified="2026-04-18T00:00:00.000Z" agent="k1s0-plan" version="24.0.0" type="device">
+  <diagram name="AGPLisolation" id="agplisol1">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="AGPL-3.0 OSS の段階的採用とネットワーク隔離" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#111111;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Phase 1a では AGPL OSS 6 本を全て除外 / Phase 1b 以降で段階採用 / いずれも外部境界の内側に隔離し AGPL 義務発動を構造的に防止" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="100" y="56" width="1200" height="22" as="geometry" />
+        </mxCell>
+
+        <mxCell id="paneTitle1" value="左: Phase 1a MVP-0 (AGPL 完全除外)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;fontColor=#BF360C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="400" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pane1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FFB74D;dashed=0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="400" height="640" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1a-vm" value="VM 1 台 (MVP-0)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E65100;fontSize=11;fontStyle=1;fontColor=#BF360C;verticalAlign=top;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="360" height="590" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-label1" value="AGPL OSS: 0 件&#10;MPL 2.0: 0 件 (後続フェーズで採用)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#BF360C;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="98" y="194" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1a-k8s" value="Kubernetes (kubeadm)&#10;Apache 2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="100" y="244" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-dapr" value="Dapr&#10;Apache 2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="280" y="244" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-tier1" value="tier1 Go ファサード (最小)&#10;BSD-3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="100" y="294" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-kc" value="Keycloak&#10;Apache 2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="280" y="294" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-prom" value="Prometheus&#10;Apache 2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="100" y="344" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-cnpg" value="CloudNativePG&#10;Apache 2.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="280" y="344" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-portal" value="アプリ配信ポータル (自製)&#10;k1s0 の成果物" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#FF8F00;fontSize=10;fontColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="100" y="394" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p1a-excludeTitle" value="★ 除外する AGPL OSS (Phase 1a)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="98" y="452" width="324" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-grafanaX" value="Grafana (代替: Prometheus 標準 UI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="480" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-lokiX" value="Loki (代替: 直接ログ tail / kubectl logs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="516" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-tempoX" value="Grafana Tempo (代替: Jaeger all-in-one)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="552" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-pyroX" value="Grafana Pyroscope (未採用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="588" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-minioX" value="MinIO (代替: ローカルボリューム + NFS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="624" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-renovateX" value="Renovate (代替: 手動版数ロック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="660" width="320" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a-reason" value="理由: AGPL 義務解釈のリスク評価を MVP-0 デモに持ち込まない&#10;稟議時点で「AGPL OSS 不使用」と明言することで論点簡素化" style="text;html=1;strokeColor=#BF360C;fillColor=#FFF3E0;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=9;fontColor=#BF360C;fontStyle=2;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="paneTitle2" value="右: Phase 1b 以降 (AGPL 段階採用 + 隔離構造)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;fontColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="490" y="100" width="880" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="pane2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F8E9;strokeColor=#A5D6A7;dashed=0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="490" y="130" width="880" height="640" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internet" value="インターネット (JTC 外部)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B71C1C;fontSize=11;fontStyle=1;fontColor=#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="990" y="150" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="intExt" value="AGPL 第 13 条の&#10;&quot;remote users&quot; はここ&#10;↓ 境界を超えさせない" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#B71C1C;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="155" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="boundary" value="JTC 社内ネットワーク境界 (Envoy Gateway + Keycloak OIDC 認証)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F57F17;strokeWidth=3;fontSize=12;fontStyle=1;fontColor=#E65100;verticalAlign=top;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="510" y="210" width="840" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jtcUsers" value="JTC 社員&#10;(認証済 OIDC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=10;fontColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="540" y="260" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="jtcOps" value="JTC 運用担当&#10;(認証済 OIDC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=10;fontColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="540" y="320" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier1Layer" value="tier1 (Go + Rust、AGPL OSS と同一プロセスで実行しない)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;fontSize=11;fontStyle=1;fontColor=#1A237E;verticalAlign=top;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="690" y="250" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1Api" value="tier1 公開 API (BSD/Apache 許容ライセンス)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="700" y="280" width="280" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1Audit" value="k1s0.Audit.* / k1s0.Telemetry.*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#7986CB;fontSize=9;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="700" y="310" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1Other" value="k1s0.State.* / k1s0.PubSub.*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#7986CB;fontSize=9;fontColor=#1A237E;" vertex="1" parent="1">
+          <mxGeometry x="844" y="310" width="138" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="infra" value="infra namespace (AGPL OSS の隔離ゾーン)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11;fontStyle=1;fontColor=#BF360C;verticalAlign=top;spacing=6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="530" y="400" width="800" height="330" as="geometry" />
+        </mxCell>
+
+        <mxCell id="grafana" value="Grafana (AGPL)&#10;Phase 1b Intro&#10;独立 Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;" vertex="1" parent="1">
+          <mxGeometry x="550" y="440" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Loki (AGPL 一部)&#10;Phase 1b Intro&#10;独立 Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;" vertex="1" parent="1">
+          <mxGeometry x="710" y="440" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tempo" value="Grafana Tempo (AGPL)&#10;Phase 1b Intro&#10;独立 Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;" vertex="1" parent="1">
+          <mxGeometry x="870" y="440" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pyro" value="Pyroscope (AGPL)&#10;Phase 2 Intro&#10;独立 Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="440" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO (AGPL)&#10;Phase 1c Intro&#10;独立 Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;" vertex="1" parent="1">
+          <mxGeometry x="550" y="520" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="renovate" value="Renovate (AGPL)&#10;Phase 1c Intro&#10;GHA runner Pod" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#B71C1C;fontSize=10;fontColor=#7B1818;" vertex="1" parent="1">
+          <mxGeometry x="710" y="520" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rules" value="隔離ルール (構造的に AGPL 義務発動を防止)&#10;① AGPL OSS と自作コードを同一プロセスで実行しない (プロセス分離)&#10;② AGPL OSS のライブラリ / SDK を自作コードに直接リンクしない&#10;③ Grafana プラグイン / Loki 改変 / MinIO fork を行わない (無改変利用)&#10;④ Envoy Gateway + Keycloak OIDC 認証を境界とし JTC 内部のみに閉じる&#10;⑤ Kafka 監査ログに AGPL Pod への認証済アクセスのみ記録され外部公開経路が存在しないことを立証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#F57F17;fontSize=10;fontColor=#E65100;verticalAlign=top;align=left;spacing=8;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="550" y="600" width="760" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrUser" value="OIDC 認証" style="endArrow=classic;html=1;rounded=0;strokeColor=#2E7D32;strokeWidth=2;fontSize=9;fontColor=#1B5E20;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="jtcUsers" target="tier1Layer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrOps" value="OIDC 認証" style="endArrow=classic;html=1;rounded=0;strokeColor=#2E7D32;strokeWidth=2;fontSize=9;fontColor=#1B5E20;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=1;" edge="1" parent="1" source="jtcOps" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrAudit" value="HTTP/gRPC" style="endArrow=classic;html=1;rounded=0;strokeColor=#3949AB;strokeWidth=2;fontSize=9;fontColor=#1A237E;labelBackgroundColor=#FFFFFF;exitX=0.25;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="tier1Audit" target="loki">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrTempo" value="OTel" style="endArrow=classic;html=1;rounded=0;strokeColor=#3949AB;strokeWidth=2;fontSize=9;fontColor=#1A237E;labelBackgroundColor=#FFFFFF;exitX=0.75;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="tier1Other" target="tempo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrBlock" value="外部通信を遮断" style="endArrow=classicThin;startArrow=classicThin;html=1;rounded=0;strokeColor=#B71C1C;strokeWidth=3;fontSize=10;fontStyle=1;fontColor=#B71C1C;labelBackgroundColor=#FFFFFF;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1190" y="170" as="sourcePoint" />
+            <mxPoint x="1350" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
