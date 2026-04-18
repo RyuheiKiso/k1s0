@@ -84,6 +84,47 @@ AGPL は強い copyleft として、AGPL OSS とリンクしたコードも AGPL
 
 ---
 
+## 2.5 Phase 別採用戦略と隔離構造
+
+AGPL-3.0 OSS の義務解釈を「社内利用のため問題ない」と一枚岩で処理するのは稟議の場で論点が散らかる。k1s0 は **フェーズを分けて段階採用** し、「Phase 1a (MVP-0) では AGPL OSS を一切導入しない」方針を明示することで、稟議時点の法務論点を構造的に簡素化する。Phase 1b 以降は AGPL OSS を採用するが、全件を `infra` namespace の内側にプロセス分離し、外部境界には出さない。
+
+### 2.5.1 Phase 1a で AGPL OSS を全件除外する理由
+
+MVP-0 は「決裁者を説得するための最小デモ構成」であり、AGPL の義務解釈という技術外の論点を持ち込むとデモ評価の焦点がぶれる。そこで Phase 1a では AGPL OSS 6 本 (Grafana / Loki / Grafana Tempo / Grafana Pyroscope / MinIO / Renovate) を **全て採用しない**。代わりに以下の代替手段で最低限の可視化・ログ参照を成立させる。
+
+| 除外 OSS (Phase 1a) | Phase 1a での代替 | Phase 1b 以降の採用計画 |
+|---|---|---|
+| Grafana (AGPL-3.0) | Prometheus 標準 Web UI + シンプルな HTML ダッシュボード | Phase 1b Intro (社内閲覧限定) |
+| Loki (AGPL-3.0 エージェント含む) | `kubectl logs` 直接参照 + 短期保持のみ | Phase 1b Intro (`infra` namespace 内限定) |
+| Grafana Tempo (AGPL-3.0) | Jaeger all-in-one (Apache 2.0) で暫定置換 | Phase 1b Intro で Tempo に移行 |
+| Grafana Pyroscope (AGPL-3.0) | 未採用 (profiling 自体を後回し) | Phase 2 Intro |
+| MinIO (AGPL-3.0) | ローカルボリューム + NFS | Phase 1c Intro (`infra` namespace 内限定) |
+| Renovate (AGPL-3.0 self-hosted) | 手動版数ロック (Renovate 相当の自動更新なし) | Phase 1c Intro (GHA runner Pod 内限定) |
+
+この方針により **稟議時点で「AGPL OSS 不使用」と明言可能** となる。デモ後、Phase 1b 以降の採用計画を法務部門と個別確認するプロセスに切り替える (第 5 節の事前相談フロー)。Phase 1a の段階で AGPL OSS を使わないことは、本企画書が Phase 0 承認で「AGPL の社内利用論点をすべて先送りできる」ことを意味する。
+
+### 2.5.2 Phase 1b 以降の採用 + 隔離構造
+
+Phase 1b 以降で AGPL OSS を順次採用する際は、以下の隔離構造を満たすことを前提とする。具体的なネットワーク隔離構造は下図のとおり。
+
+![AGPL 隔離図](img/AGPL隔離図.svg)
+
+図の左ペインは Phase 1a の構成 (AGPL OSS ゼロ)、右ペインは Phase 1b 以降の構成を示す。右ペインでは 6 本の AGPL OSS がすべて `infra` namespace に隔離され、外部境界 (Envoy Gateway + Keycloak OIDC) の内側でのみ動作する。tier1 (自作コード) と AGPL OSS は独立 Pod として配置され、HTTP/gRPC 経由でのみ通信する。この構造が 2.4 節で述べた「派生物に該当しない」構成要件を物理的に担保する。
+
+### 2.5.3 隔離ルール 5 箇条 (監査時の回答スクリプト)
+
+AGPL OSS を `infra` 内に閉じ込めるだけでなく、以下の 5 つのルールを設計原則として固定する。各ルールは監査で問われた際の「回答スクリプト」として機能し、証跡となる Git / SBOM / k8s manifest を指し示せる構造にする。
+
+1. **プロセス分離**: AGPL OSS と k1s0 自作コードは同一プロセスで動作させない。Grafana / Tempo / Loki / MinIO / Pyroscope / Renovate はそれぞれ独立した Pod として配置し、通信は HTTP / gRPC / S3 API に限定する。証跡は k8s Deployment manifest。
+2. **ライブラリリンクなし**: AGPL OSS のライブラリ / SDK を自作コードに直接リンクしない。利用するのは公開 API のみ。証跡は SBOM (Syft 出力) と `go.mod` / `Cargo.toml` の依存リスト。
+3. **無改変利用**: Grafana プラグイン / Loki 改変 / MinIO fork を行わない。必要な拡張はプロビジョニング YAML / ダッシュボード JSON で表現する。証跡は Renovate による版数固定レポートと Helm Chart の upstream 追従履歴。
+4. **外部境界遮断**: Envoy Gateway + Keycloak OIDC 認証を境界とし、JTC 認証ユーザー以外のアクセスを物理的に遮断する。証跡は Envoy ルート設定と Keycloak クライアント定義。
+5. **監査ログの可検証性**: AGPL Pod への全アクセスが Kafka 監査ログに記録され、外部公開経路が存在しないことを立証できる状態を維持する。証跡は `k1s0.Audit.*` の監査トピックと四半期レポート (第 4.3 節)。
+
+このルールが崩れた (例: 外部公開コンソール化 / 改変コード配布) 時点で AGPL 第 13 条の義務が発動する。Phase 1b 以降の PR は 5 箇条との整合性を CODEOWNERS で強制レビューする ([`../07_ロードマップと体制/02_体制と役割.md`](../07_ロードマップと体制/02_体制と役割.md) 第 8 節)。
+
+---
+
 ## 3. OSS 別の義務チェックリスト
 
 k1s0 が採用する 40+ OSS のうち、義務が発生するものを「社内利用 / 配布」別に分類する。
