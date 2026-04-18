@@ -1,0 +1,111 @@
+<mxfile host="draw.io">
+  <diagram name="trust_boundaries" id="tb">
+    <mxGraphModel dx="1400" dy="640" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="z1" value="Zone 1: Untrusted（外部）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;dashed=1;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="240" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="enduser" value="エンドユーザー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="attacker" value="攻撃者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="externalidp" value="外部 IdP&#xa;(Phase 4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2dev" value="tier2 開発者&#xa;(クライアント Lib)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="z2" value="Zone 2: Edge DMZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;dashed=1;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="320" y="40" width="240" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="envoy" value="Envoy Gateway&#xa;TLS 終端 / RateLimit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="360" y="150" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="keycloak" value="Keycloak&#xa;OIDC IdP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="360" y="295" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="z3" value="Zone 3: Platform（mTLS 網 / AuthZ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="600" y="40" width="400" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="t1api" value="tier1 k1s0 API&#xa;(Pii / Audit / Workflow / PubSub)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="630" y="100" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2svc" value="tier2 業務サービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="630" y="240" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3svc" value="tier3 アプリ&#xa;(.NET 既存含む)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="810" y="240" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="daprsidecar" value="Dapr サイドカー（各 Pod 同梱）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="630" y="360" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="z4" value="Zone 4: Data（暗号化 / 鍵管理）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;dashed=1;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="1040" y="40" width="320" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="PostgreSQL（業務DB / TDE）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="1080" y="100" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="openbao" value="OpenBao（Secrets / Transit）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="1080" y="180" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Kafka（イベントブローカ）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="1080" y="260" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="etcd" value="etcd（k8s 設定）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="1080" y="340" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO（アーティファクト）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="1080" y="420" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="TLS + OIDC" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="enduser" target="envoy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="拒否 (OIDC / RateLimit)" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;strokeColor=#b85450;exitX=1;exitY=0.5;entryX=0;entryY=0.8;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="attacker" target="envoy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="SAML / OIDC 連携" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="externalidp" target="keycloak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="Client Credentials" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.3;entryX=0;entryY=1;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="tier2dev" target="envoy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="418" />
+              <mxPoint x="300" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="mTLS + AuthZ" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="envoy" target="t1api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="mTLS (Istio)" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.25;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="t1api" target="t2svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="mTLS (Istio)" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.75;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="t1api" target="t3svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="localhost" style="endArrow=classic;html=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.25;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="t2svc" target="daprsidecar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="localhost" style="endArrow=classic;html=1;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.75;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="t3svc" target="daprsidecar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="TLS + RBAC" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.3;entryX=0;entryY=0.5;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="daprsidecar" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="Token" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="daprsidecar" target="openbao">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="SASL + TLS" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.7;entryX=0;entryY=0.5;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="daprsidecar" target="kafka">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

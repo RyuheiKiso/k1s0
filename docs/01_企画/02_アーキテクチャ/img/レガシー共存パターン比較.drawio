@@ -1,0 +1,102 @@
+<mxfile host="draw.io">
+  <diagram name="legacy_patterns" id="lp">
+    <mxGraphModel dx="1280" dy="400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1280" pageHeight="400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1280" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="ta" value="パターン A: Dapr サイドカー共存" style="text;html=1;align=center;fontSize=13;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="30" y="20" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="a_app" value=".NET Core / 6+ 本体" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="a_dapr" value="Dapr サイドカー（同 Pod）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a_t1" value="tier1 k1s0 API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="60" y="230" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ea1" value="localhost" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="a_app" target="a_dapr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ea2" value="gRPC" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="a_dapr" target="a_t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_note" value="改修可 × 高頻度 × 塩漬け可能" style="text;html=1;align=center;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tb" value="パターン B: バッチ + Gateway" style="text;html=1;align=center;fontSize=13;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="340" y="20" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="b_batch" value=".NET バッチ (k8s CronJob)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="370" y="70" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="b_gw" value="Envoy Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="370" y="150" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b_t1" value="tier1 k1s0 API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="370" y="230" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="eb1" value="scheduled" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="b_batch" target="b_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eb2" value="OIDC" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="b_gw" target="b_t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b_note" value="改修可 × 低頻度・非対話型" style="text;html=1;align=center;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="340" y="310" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tc" value="パターン C: API Gateway ブラックボックス化" style="text;html=1;align=center;fontSize=13;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="650" y="20" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c_t2" value="tier2 新規サービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="680" y="70" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c_gw" value="Envoy Gateway（逆プロキシ）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="680" y="150" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c_legacy" value=".NET Framework 既存（改修不可）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="680" y="230" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ec1" value="REST" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="c_t2" target="c_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2" value="SOAP / REST" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="c_gw" target="c_legacy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c_note" value="改修不可 × Istio 外に隔離" style="text;html=1;align=center;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="650" y="310" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="td" value="パターン D: Strangler Fig 段階的リライト" style="text;html=1;align=center;fontSize=13;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="960" y="20" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d_gw" value="Envoy Gateway（ルーティング切替）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="990" y="70" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d_legacy" value=".NET 既存（縮小中）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="990" y="160" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d_new" value="tier2 新実装（拡大中）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="990" y="230" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ed1" value="縮小" style="endArrow=classic;html=1;strokeWidth=1;dashed=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="d_gw" target="d_legacy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ed2" value="拡大" style="endArrow=classic;html=1;strokeWidth=3;exitX=0.7;exitY=1;entryX=0.7;entryY=0;labelBackgroundColor=#FFFFFF" edge="1" parent="1" source="d_gw" target="d_new">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1144" y="140" />
+              <mxPoint x="1144" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d_note" value="改修可 × 新規開発継続" style="text;html=1;align=center;fontSize=11;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="960" y="310" width="280" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
