@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="game-elements" name="game-elements">
+    <mxGraphModel dx="1000" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="言語ゲームの 4 要素と LLM プロンプトの対応" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="960" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hg" value="&lt;b&gt;言語ゲーム（Sprachspiel）の 4 要素&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="20" y="75" width="960" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="&lt;b&gt;規則（Rules）&lt;/b&gt;&#xa;何が許され禁じられるか。&#xa;手の打ち方の制約" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="&lt;b&gt;プレイヤー（Players）&lt;/b&gt;&#xa;誰がどの立場で&#xa;発話・応答するか" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="280" y="100" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="&lt;b&gt;目的（Purpose）&lt;/b&gt;&#xa;何を達成する&#xa;ゲームか" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="520" y="100" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="&lt;b&gt;訓練（Training）&lt;/b&gt;&#xa;ゲームに習熟するための&#xa;範例・練習" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="760" y="100" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="hp" value="&lt;b&gt;LLM プロンプトでの対応&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="20" y="270" width="960" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="&lt;b&gt;システム指示・制約&lt;/b&gt;&#xa;禁則・出力形式・&#xa;文体指定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="295" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="&lt;b&gt;役割指定（Role）&lt;/b&gt;&#xa;応答者の立場・&#xa;ペルソナの宣言" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="280" y="295" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="&lt;b&gt;タスク定義（Goal）&lt;/b&gt;&#xa;何を生成させるか・&#xa;評価基準" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="520" y="295" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="&lt;b&gt;few-shot 例示&lt;/b&gt;&#xa;入出力ペアでの&#xa;範例提示" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="760" y="295" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g1" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g2" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g3" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" style="endArrow=classic;html=1;strokeColor=#82B366;strokeWidth=2;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="g4" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="プロンプト設計は、言語ゲームを立ち上げるための 4 要素の宣言である。欠落した要素は LLM の学習分布からの類推で補われるため、意図せぬ『別のゲーム』が起動しうる。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="410" width="920" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
