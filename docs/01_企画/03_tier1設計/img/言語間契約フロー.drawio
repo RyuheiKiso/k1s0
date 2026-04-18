@@ -1,0 +1,82 @@
+<mxfile host="app.diagrams.net" modified="2026-04-18T00:00:00.000Z" agent="claude" version="24.0.0">
+  <diagram id="contract-flow" name="言語間契約フロー">
+    <mxGraphModel dx="1200" dy="830" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="830" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="830" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="tier1 内部 Go ↔ Rust 言語間契約管理フロー" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="1. 契約定義" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="10" y="60" width="80" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="2. コード生成" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="10" y="190" width="80" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="3. CI 検証" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="10" y="460" width="80" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="4. 実行時" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="10" y="600" width="80" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="proto" value="src/tier1/contracts/&#10;Protobuf 契約ソース&#10;(単一のソースリポジトリ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="480" y="55" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="buf" value="buf generate&#10;(Go + Rust 両方のコード生成)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="480" y="180" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="gogen" value="Go 生成コード&#10;protoc-gen-go +&#10;protoc-gen-go-grpc" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="180" y="305" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rustgen" value="Rust 生成コード&#10;prost + tonic&#10;(build.rs 統合)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="305" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ciL" value="CI 検証ゲート (Go 側)&#10;• buf lint (スタイル検証)&#10;• buf breaking (後方互換性)&#10;• protoc-gen-validate (値制約)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="440" width="340" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ciR" value="CI 検証ゲート (Rust 側)&#10;• buf lint / buf breaking&#10;• prost-validate で値制約&#10;• シリアライズ互換性テスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="780" y="440" width="340" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="gosvc" value="tier1 Go サービス&#10;(Dapr ファサード)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="180" y="590" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rustsvc" value="tier1 Rust サービス&#10;(ZEN / Audit / PII 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="590" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="grpcLabel" value="gRPC (mTLS) 呼び出し&#10;Istio が証明書を自動付与" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="470" y="605" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="proto" target="buf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.25;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="buf" target="gogen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.75;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="buf" target="rustgen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="gogen" target="ciL">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="rustgen" target="ciR">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ciL" target="gosvc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a7" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ciR" target="rustsvc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a8" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="gosvc" target="rustsvc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="policybox" value="契約管理の原則&#10;&#10;• Protobuf 定義は src/tier1/contracts/ に単一集中。Go と Rust は同一 .proto から生成&#10;• 生成コードは Git にコミットしない (buf generate を CI / ビルドで毎回実行)&#10;• buf breaking で PR 単位で後方互換性違反を CI ブロック (稟議不要で失敗扱い)&#10;• エラーコードは共通 Protobuf enum で定義 → Go / Rust で同じ識別子を参照&#10;• 互換性テスト: Go で生成→Rust で parse, Rust で生成→Go で parse の双方向 CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9F9F9;strokeColor=#999999;fontSize=11;align=left;verticalAlign=top;spacingLeft=15;spacingTop=10;spacingRight=15;" vertex="1" parent="1">
+          <mxGeometry x="60" y="680" width="1080" height="130" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
