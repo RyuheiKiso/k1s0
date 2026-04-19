@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="p1" name="AGPL_13_trigger">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title1" value="AGPL §13 ソース公開義務の起動条件 (FSF 一次条文)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="16" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cA" value="条件 A&#xa;ソースコードの改変" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cB" value="条件 B&#xa;ネットワーク経由で&#xa;外部ユーザに提供" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="210" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="andBox" value="AND&#xa;(両方成立)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="340" y="150" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="trig" value="§13 起動&#xa;= ソース公開義務発生" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="150" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="arrA" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" parent="1" source="cA" target="andBox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrB" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" parent="1" source="cB" target="andBox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" parent="1" source="andBox" target="trig">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sep" value="" style="endArrow=none;html=1;strokeColor=#999999;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="310" as="sourcePoint" />
+            <mxPoint x="860" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title2" value="k1s0 の設計 (tier1 未改変 / 内部通信のみ)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="326" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cA2" value="条件 A: FALSE&#xa;未改変バイナリのみ採用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="390" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cB2" value="条件 B: FALSE&#xa;infra namespace 内部のみ&#xa;外部境界遮断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="andBox2" value="AND&#xa;= FALSE" style="rhombus;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="445" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="trig2" value="§13 不起動&#xa;= ソース公開義務なし" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="445" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="arrA2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" parent="1" source="cA2" target="andBox2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrB2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" parent="1" source="cB2" target="andBox2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrT2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" parent="1" source="andBox2" target="trig2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="出典: FSF AGPLv3 一次条文 / Grafana Labs CEO Q&amp;amp;A 2021" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="595" width="900" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

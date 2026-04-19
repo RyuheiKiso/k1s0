@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="p1" name="IT_jp_us">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="title1" value="日米 IT 人材の所属分布 (IPA DX 白書 2023)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="16" width="960" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82B366;strokeColor=#6A9955;" vertex="1" parent="1">
+          <mxGeometry x="280" y="56" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legL1" value="ユーザー企業所属" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="308" y="52" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D79B00;strokeColor=#C48710;" vertex="1" parent="1">
+          <mxGeometry x="480" y="56" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legL2" value="IT 企業 (SIer) 所属" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="508" y="52" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="jpLbl" value="日本" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="100" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="jpBar1" value="26.4%" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82B366;strokeColor=#6A9955;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="100" y="105" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jpBar2" value="73.6%" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D79B00;strokeColor=#C48710;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="260" y="105" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="jpTotal" value="総数 約 33 万人" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="105" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="usLbl" value="米国" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usBar1" value="64.9%" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82B366;strokeColor=#6A9955;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="100" y="165" width="390" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="usBar2" value="35.1%" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D79B00;strokeColor=#C48710;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="490" y="165" width="210" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="usTotal" value="総数 約 323 万人" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="165" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="note1" value="日本のユーザー企業 IT 人材は比率で米国の約 1/2.5、絶対数では約 1/10。「内製したくても人がいない」構造的制約。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="215" width="900" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sep" value="" style="endArrow=none;html=1;strokeColor=#999999;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="270" as="sourcePoint" />
+            <mxPoint x="930" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title2" value="JTC の領域別選択分岐 (公開事例による観察)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="286" width="960" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="coreHdr" value="基幹近接・モダナイズ・市民開発" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="330" width="420" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="coreBox" value="三菱 UFJ 銀行 (勘定系の生成 AI リライト)&#xa;トヨタ自動車 (Power Platform 5,000 人規模の市民開発)&#xa;トヨタシステムズ (OutSystems 10 年運用)&#xa;日立物流 (kintone + 統制ルール)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="364" width="420" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="coreConc" value="→ 内製・ローコード優勢 (ロックイン忌避)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#1A5490;" vertex="1" parent="1">
+          <mxGeometry x="40" y="488" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="genHdr" value="汎用稟議・申請系ワークフロー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="500" y="330" width="420" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="genBox" value="イントラマート (大企業ワークフロー 18 年連続 No.1)&#xa;SmartDB (稟議系シェア 54.1%)&#xa;ServiceNow (導入は広いが内製化志向も並行)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF4E6;strokeColor=#D79B00;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="364" width="420" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="genConc" value="→ 商用継続優勢 (スイッチコスト高)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#8B5A00;" vertex="1" parent="1">
+          <mxGeometry x="500" y="488" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="k1s0" value="k1s0 の位置付け: 左側 (基幹近接) の内製代替を「OSS ベース + サポート + ロックインなし」で提供" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="880" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="出典: IPA DX 白書 2023, IT Leaders, Microsoft News, 日経 xTECH, intra-mart, DreamArts 公開資料" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="650" width="960" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
