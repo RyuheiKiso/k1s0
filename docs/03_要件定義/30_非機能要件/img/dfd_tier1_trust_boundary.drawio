@@ -1,0 +1,208 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="dfd-trust-boundary" name="tier1 DFD + Trust Boundary">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 Data Flow Diagram + Trust Boundary" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="STRIDE 脅威分析の対象データフローとトラストバウンダリ。境界を跨ぐエッジが攻撃面の起点" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="300" y="56" width="1000" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-external" value="Trust Boundary 0: Internet / 社外" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;strokeWidth=3;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="280" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-dmz" value="Trust Boundary 1: DMZ (Ingress)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;strokeWidth=3;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="100" width="240" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-cluster" value="Trust Boundary 2: Kubernetes Cluster (mTLS 必須)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;strokeWidth=3;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="100" width="620" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-data" value="Trust Boundary 3: Data Plane (PG/Kafka/MinIO/OpenBao)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;strokeWidth=3;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="100" width="320" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="エンドユーザ&lt;br&gt;(tier3 UI 経由)" style="shape=umlActor;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="180" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legacy" value="レガシー&lt;br&gt;.NET FW 資産&lt;br&gt;(VPN 経由)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="90" y="300" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="管理者&lt;br&gt;(Backstage / kubectl)" style="shape=umlActor;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="420" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="attacker" value="攻撃者&lt;br&gt;(想定)" style="shape=umlActor;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="560" width="60" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ingress" value="Ingress Gateway&lt;br&gt;(Envoy)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="200" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waf" value="WAF / Rate Limit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="290" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="keycloak-front" value="Keycloak&lt;br&gt;(OIDC IdP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="370" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apigw" value="API Gateway&lt;br&gt;(Envoy Gateway)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="470" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ztunnel" value="Istio Ambient&lt;br&gt;ztunnel (mTLS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="180" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="waypoint" value="Istio Ambient&lt;br&gt;Waypoint (L7 Policy)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="270" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="tier3 UI / BFF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="180" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2" value="tier2 ドメインアプリ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="270" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1" value="tier1 Dapr ファサード&lt;br&gt;(Go SDK + Rust 自作)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="360" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1-audit" value="Audit API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="360" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1-pii" value="Pii API&lt;br&gt;(Masking)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="430" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="spire" value="SPIRE Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="510" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="kyverno" value="Kyverno&lt;br&gt;(Policy + Sigstore)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="580" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="otel" value="OTel Collector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="510" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="temporal" value="Temporal Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="580" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd" value="flagd&lt;br&gt;(Feature Flag)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="650" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="CloudNativePG&lt;br&gt;(PostgreSQL)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="170" width="160" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Strimzi Kafka" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="290" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO (S3)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="400" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="openbao" value="OpenBao&lt;br&gt;(Secrets)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="510" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="valkey" value="Valkey (Cache)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="620" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f1" value="HTTPS + OIDC" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="210" as="sourcePoint" />
+            <mxPoint x="380" y="230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f2" value="OIDC Redirect" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="400" as="sourcePoint" />
+            <mxPoint x="820" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f3" value="REST/gRPC" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="500" as="sourcePoint" />
+            <mxPoint x="820" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f4" value="legacy → Sidecar" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="230" y="325" as="sourcePoint" />
+            <mxPoint x="820" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5" value="kubectl + SSO" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="455" as="sourcePoint" />
+            <mxPoint x="620" y="590" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f6" value="tier3→tier2 gRPC" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="240" as="sourcePoint" />
+            <mxPoint x="890" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f7" value="tier2→tier1 Dapr" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="330" as="sourcePoint" />
+            <mxPoint x="890" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f8" value="State / Workflow" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1000" y="390" as="sourcePoint" />
+            <mxPoint x="1280" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f9" value="PubSub" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1000" y="400" as="sourcePoint" />
+            <mxPoint x="1280" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10" value="Binding/Audit(WORM)" style="endArrow=classic;html=1;strokeColor=#9673a6;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="390" as="sourcePoint" />
+            <mxPoint x="1280" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f11" value="Secrets Read" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1000" y="420" as="sourcePoint" />
+            <mxPoint x="1280" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f12" value="Cache" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1000" y="420" as="sourcePoint" />
+            <mxPoint x="1280" y="660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f-att1" value="攻撃: SQLi / XSS / DDoS" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=10;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="580" as="sourcePoint" />
+            <mxPoint x="380" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-hdr" value="&lt;b&gt;凡例&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="910" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-tb0" value="TB0: Internet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;strokeWidth=2;dashed=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="910" width="140" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-tb1" value="TB1: DMZ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="270" y="910" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-tb2" value="TB2: Cluster (mTLS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;strokeWidth=2;dashed=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="910" width="160" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-tb3" value="TB3: Data Plane" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;strokeWidth=2;dashed=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="570" y="910" width="140" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-att" value="想定攻撃経路" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="730" y="922" as="sourcePoint" />
+            <mxPoint x="860" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg-att-lbl" value="想定攻撃" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="912" width="80" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

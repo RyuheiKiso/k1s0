@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="flow-incident" name="インシデント対応フロー">
+    <mxGraphModel dx="1600" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Severity 1 インシデント対応: 現行 1〜3 時間 → k1s0 導入後 30 分" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1000" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="RTO 4 時間、初動応答 30 分、ポストモーテム自動補助。分散トレースで根本原因を特定する時間を短縮" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="250" y="56" width="1100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="as-hdr" value="現行フロー (初動 1〜3 時間、完全復旧 6〜24 時間)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-hdr" value="k1s0 導入後 (初動 30 分、RTO 4 時間)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="as1" value="&lt;b&gt;アラート到達&lt;/b&gt;&lt;br&gt;Zabbix / SCOM / 独自スクリプトから別々の通知先&lt;br&gt;SRE は複数画面を横断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="660" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="as2" value="&lt;b&gt;状況把握 (30〜60 分)&lt;/b&gt;&lt;br&gt;サービス間依存関係を各サービスのログを個別 grep で追う&lt;br&gt;A → B → C の因果仮説検証を 2〜3 サイクル" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="as3" value="&lt;b&gt;Runbook 特定 (鮮度劣化)&lt;/b&gt;&lt;br&gt;サービスごとに別文書、バージョン不統一&lt;br&gt;最終更新半年前のケースあり、対応中に Runbook 修正が発生" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="350" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="as4" value="&lt;b&gt;復旧実施 (根本原因は推測ベース)&lt;/b&gt;&lt;br&gt;対症療法的な再起動・ロールバック&lt;br&gt;根本原因が判明しないまま収束するケース多" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="as5" value="&lt;b&gt;ポストモーテム (個人記憶ベース)&lt;/b&gt;&lt;br&gt;事実とタイムラインが口頭ベース&lt;br&gt;再発防止策は組織知として残らない" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="550" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="as-pain" value="痛点: 分散トレース欠如 / Runbook 分散・鮮度劣化 / 組織知化失敗" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="650" width="660" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="tb1" value="&lt;b&gt;アラート集約 (Alertmanager)&lt;/b&gt;&lt;br&gt;メール / 社内チャット / Dead Man&apos;s Switch の 3 系統同時通知&lt;br&gt;Severity 判定は Prometheus ルールで一元化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="160" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb2" value="&lt;b&gt;1 画面で俯瞰 (Grafana インシデント Dashboard)&lt;/b&gt;&lt;br&gt;影響範囲: Pod 状態 / Kafka Lag / PG 接続数 / Istio エラー率&lt;br&gt;Tempo Traces-to-Profiles でコードレベルまで 数クリックで辿れる" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="260" width="660" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tb3" value="&lt;b&gt;Runbook 自動導線&lt;/b&gt;&lt;br&gt;15 本を Git で一元管理、冒頭に検出 Grafana クエリ&lt;br&gt;アラート → Runbook へ機械的導線" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="370" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb4" value="&lt;b&gt;根本原因特定 + 復旧&lt;/b&gt;&lt;br&gt;分散トレースで因果 A → B → C を 1 画面で確認&lt;br&gt;Argo Rollouts でロールバック、Feature Flag で機能遮断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="470" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb5" value="&lt;b&gt;ポストモーテム自動補助&lt;/b&gt;&lt;br&gt;Audit ログから特権操作タイムラインを自動抽出&lt;br&gt;再発防止策は Runbook / Prometheus ルールに反映、次回検知精度向上" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="570" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-total" value="SLA 99.5% / RTO 4h / MTTR 大幅短縮、組織知が自動蓄積" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="670" width="660" height="36" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

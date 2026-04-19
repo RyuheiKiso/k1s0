@@ -1,0 +1,316 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="seq-tier1-patterns" name="tier1 API 主要シーケンスパターン">
+    <mxGraphModel dx="1800" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="tier1 API 主要シーケンスパターン (Service Invoke / PubSub / Workflow)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1200" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p1hdr" value="① Service Invoke (同期 RPC / mTLS 自動付与 / Audit 自動)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1720" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="t2a" value="tier2 A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sa" value="tier1 Dapr (A 側)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="120" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="mesh" value="Istio Ambient (ztunnel + Waypoint)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="120" width="260" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sb" value="tier1 Dapr (B 側)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="120" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="t2b" value="tier2 B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="120" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="audit1" value="Audit API (WORM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="120" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="ll-t2a" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="160" as="sourcePoint" />
+            <mxPoint x="120" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-sa" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="160" as="sourcePoint" />
+            <mxPoint x="360" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-mesh" value="" style="endArrow=none;html=1;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="670" y="160" as="sourcePoint" />
+            <mxPoint x="670" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-sb" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="160" as="sourcePoint" />
+            <mxPoint x="980" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-t2b" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1220" y="160" as="sourcePoint" />
+            <mxPoint x="1220" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-au" value="" style="endArrow=none;html=1;strokeColor=#9673a6;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1460" y="160" as="sourcePoint" />
+            <mxPoint x="1460" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-1" value="InvokeService(B, payload)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="185" as="sourcePoint" />
+            <mxPoint x="360" y="185" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-2" value="tenant_id 付与 + OTel Span 発行" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="220" as="sourcePoint" />
+            <mxPoint x="670" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-3" value="mTLS 透過暗号化 (ztunnel)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="670" y="255" as="sourcePoint" />
+            <mxPoint x="980" y="255" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-4" value="gRPC 転送 (Protobuf)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="290" as="sourcePoint" />
+            <mxPoint x="1220" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-5" value="処理結果" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1220" y="325" as="sourcePoint" />
+            <mxPoint x="120" y="325" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-6" value="Audit Log (呼出元・呼出先・latency・trace_id)" style="endArrow=classic;html=1;strokeColor=#9673a6;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="385" as="sourcePoint" />
+            <mxPoint x="1460" y="385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1-7" value="p99 &lt; 50ms (同一 AZ) / 200ms (跨 AZ)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#555555;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="425" width="800" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="p2hdr" value="② PubSub (At-least-once / Kafka / Consumer コミット)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="1720" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="pub" value="tier2 Publisher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="520" width="140" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sp" value="tier1 Dapr" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="520" width="140" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Strimzi Kafka (KRaft)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="520" width="180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="ssb" value="tier1 Dapr (Sub 側)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="520" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sub" value="tier2 Subscriber" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="520" width="140" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="dlq" value="DLQ (Kafka + MinIO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="520" width="180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="ll-pub" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="560" as="sourcePoint" />
+            <mxPoint x="130" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-sp" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="370" y="560" as="sourcePoint" />
+            <mxPoint x="370" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-kafka" value="" style="endArrow=none;html=1;strokeColor=#9673a6;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="630" y="560" as="sourcePoint" />
+            <mxPoint x="630" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-ssb" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="900" y="560" as="sourcePoint" />
+            <mxPoint x="900" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-sub" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1150" y="560" as="sourcePoint" />
+            <mxPoint x="1150" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-dlq" value="" style="endArrow=none;html=1;strokeColor=#9673a6;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="560" as="sourcePoint" />
+            <mxPoint x="1410" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-1" value="Publish(topic, payload)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="585" as="sourcePoint" />
+            <mxPoint x="370" y="585" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-2" value="CloudEvents 変換 + tenant 付与" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="370" y="620" as="sourcePoint" />
+            <mxPoint x="630" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-3" value="Produce ack (RF=3)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="630" y="655" as="sourcePoint" />
+            <mxPoint x="130" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-4" value="Fetch (Consumer poll)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="900" y="690" as="sourcePoint" />
+            <mxPoint x="630" y="690" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-5" value="Deliver(event) 処理依頼" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="900" y="725" as="sourcePoint" />
+            <mxPoint x="1150" y="725" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-6" value="Ack → Commit offset" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1150" y="760" as="sourcePoint" />
+            <mxPoint x="630" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2-7" value="失敗時: Retry N → DLQ 送出" style="endArrow=classic;html=1;strokeColor=#9673a6;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="900" y="795" as="sourcePoint" />
+            <mxPoint x="1410" y="795" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3hdr" value="③ Workflow (Temporal 永続 / Signal 待ち / Replay 決定論)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="850" width="1720" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-t2" value="tier2 Starter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="890" width="140" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-s" value="tier1 Dapr" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="890" width="140" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-srv" value="Temporal Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="890" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-pg" value="PostgreSQL (CNPG)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="890" width="160" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-wk" value="Worker (tier2 Activity)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="890" width="180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-user" value="承認者 (tier3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="890" width="140" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="ll-wft2" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="930" as="sourcePoint" />
+            <mxPoint x="130" y="1160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-wfs" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="370" y="930" as="sourcePoint" />
+            <mxPoint x="370" y="1160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-wfsrv" value="" style="endArrow=none;html=1;strokeColor=#9673a6;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="930" as="sourcePoint" />
+            <mxPoint x="620" y="1160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-wfpg" value="" style="endArrow=none;html=1;strokeColor=#9673a6;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="880" y="930" as="sourcePoint" />
+            <mxPoint x="880" y="1160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-wfwk" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1150" y="930" as="sourcePoint" />
+            <mxPoint x="1150" y="1160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll-wfuser" value="" style="endArrow=none;html=1;strokeColor=#d79b00;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="930" as="sourcePoint" />
+            <mxPoint x="1410" y="1160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3-1" value="StartWorkflow(approval, payload)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="955" as="sourcePoint" />
+            <mxPoint x="370" y="955" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3-2" value="Persist state (history event)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="990" as="sourcePoint" />
+            <mxPoint x="880" y="990" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3-3" value="Schedule Task" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="1025" as="sourcePoint" />
+            <mxPoint x="1150" y="1025" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3-4" value="承認待ち: sleep until Signal" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=10;fontColor=#555555;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1045" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="m3-5" value="SendSignal(approve)" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="1080" as="sourcePoint" />
+            <mxPoint x="620" y="1080" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3-6" value="Workflow 再開 → Activity 実行" style="endArrow=classic;html=1;strokeColor=#333333;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="1115" as="sourcePoint" />
+            <mxPoint x="1150" y="1115" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-hdr" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1170" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="アプリ層 (tier2/tier3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1168" width="160" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="tier1 抽象 (Dapr 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="270" y="1168" width="160" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="ネットワーク層 (Istio)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="440" y="1168" width="160" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="データ層 (PG/Kafka/MinIO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="1168" width="180" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
