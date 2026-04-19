@@ -1,0 +1,70 @@
+<mxfile host="Electron" version="28.0.6">
+  <diagram name="要件カテゴリ俯瞰" id="req-overview">
+    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 要件定義書 カテゴリ俯瞰" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="30" width="600" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="IPA 共通フレーム 2013 / 非機能要求グレード 2018 準拠、7 カテゴリ + 付録で構成" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="300" y="70" width="800" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="col1-label" value="事業・機能・品質" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="col2-label" value="運用・体験・契約" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="415" y="110" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="col3-label" value="横断・参照" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="770" y="110" width="570" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" value="&lt;b&gt;10 業務要件&lt;/b&gt;&lt;br&gt;&lt;br&gt;業務背景、主要ユースケース、&lt;br&gt;ビジネスプロセスと利害関係者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="320" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c20" value="&lt;b&gt;20 機能要件&lt;/b&gt;&lt;br&gt;&lt;br&gt;tier1 公開 11 API（Invoke / State /&lt;br&gt;PubSub / Secrets / Binding / Workflow /&lt;br&gt;Log / Telemetry / Decision / Audit /&lt;br&gt;Feature）・外部連携・情報要件・IDL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="c30" value="&lt;b&gt;30 非機能要件（A〜I）&lt;/b&gt;&lt;br&gt;&lt;br&gt;A 可用性 / B 性能拡張 / C 運用保守 /&lt;br&gt;D 移行 / E セキュリティ / F 環境 /&lt;br&gt;G データ保護 / H 完整性コンプラ /&lt;br&gt;I SLI-SLO-エラーバジェット" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="c40" value="&lt;b&gt;40 運用ライフサイクル&lt;/b&gt;&lt;br&gt;&lt;br&gt;インシデント / サポート階層 /&lt;br&gt;環境構成管理 / 非推奨 EOL /&lt;br&gt;撤退戦略 / FMEA / 負荷試験" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="415" y="140" width="320" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="c50" value="&lt;b&gt;50 開発者体験&lt;/b&gt;&lt;br&gt;&lt;br&gt;テスト戦略 / ゴールデンパス /&lt;br&gt;DevEx 指標 / Feature Management /&lt;br&gt;ローカル開発環境" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="415" y="300" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="c60" value="&lt;b&gt;60 事業契約&lt;/b&gt;&lt;br&gt;&lt;br&gt;UX / i18n / オンボーディング /&lt;br&gt;教育 / コスト / 課金 / OSS ライセンス /&lt;br&gt;法務 / サプライチェーン / ガバナンス /&lt;br&gt;AI ガバナンス / 分析 / サステナビリティ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="415" y="480" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="c80" value="&lt;b&gt;80 トレーサビリティ&lt;/b&gt;&lt;br&gt;&lt;br&gt;要件 ID 索引 /&lt;br&gt;企画要件マトリクス /&lt;br&gt;構想設計マトリクス /&lt;br&gt;要件間依存マトリクス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4e1f5;strokeColor=#5e81b5;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="770" y="140" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="c90" value="&lt;b&gt;90 付録&lt;/b&gt;&lt;br&gt;&lt;br&gt;共通フレーム 2013 対応 /&lt;br&gt;非機能要求グレード判定 /&lt;br&gt;参考文献索引" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d4e1f5;strokeColor=#5e81b5;fontSize=13;verticalAlign=top;spacingTop=12;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="140" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="c00" value="&lt;b&gt;00 要件定義方針（共通基盤）&lt;/b&gt;&lt;br&gt;スコープ / 前提と制約 / ステークホルダ / 用語集 / エラータクソノミ / リスクレジスタ / ADR 索引 / データ辞書" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#111111;fontSize=13;fontColor=#FFFFFF;verticalAlign=middle;align=center;spacingTop=8;spacingLeft=16;spacingRight=16;" vertex="1" parent="1">
+          <mxGeometry x="60" y="680" width="1290" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;配色の意味&lt;/b&gt;: 10 事業 / 20 機能 / 30 品質特性 / 40 運用 / 50 DevEx / 60 契約 / 80-90 横断索引 / 00 全体基盤" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#F5F5F5;strokeColor=#CCCCCC;rounded=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="810" width="1290" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="e00-10" style="endArrow=none;html=1;strokeColor=#888888;strokeWidth=1;dashed=1;" edge="1" parent="1" source="c00" target="c10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e00-40" style="endArrow=none;html=1;strokeColor=#888888;strokeWidth=1;dashed=1;" edge="1" parent="1" source="c00" target="c40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e00-80" style="endArrow=none;html=1;strokeColor=#888888;strokeWidth=1;dashed=1;" edge="1" parent="1" source="c00" target="c80">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e00-90" style="endArrow=none;html=1;strokeColor=#888888;strokeWidth=1;dashed=1;" edge="1" parent="1" source="c00" target="c90">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

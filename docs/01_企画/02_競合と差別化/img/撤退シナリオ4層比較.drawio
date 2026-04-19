@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="exit_scenarios" name="exit_scenarios">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="撤退シナリオ 4 層比較 (中規模 3,000 名 / 3 年目撤退)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="12" width="1200" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legL1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="18" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legT1" value="軽 (0〜最小)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="325" y="46" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legL2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="470" y="50" width="18" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legT2" value="中 (要個別対応)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="495" y="46" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legL3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="660" y="50" width="18" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legT3" value="重 (事業影響大)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="685" y="46" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="colH_k1s0" value="k1s0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4472C4;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="160" y="90" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="colH_ocp" value="OpenShift (Red Hat/IBM)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#666666;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="360" y="90" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="colH_tap" value="Tanzu (Broadcom)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#666666;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="560" y="90" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="colH_hum" value="Humanitec" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#666666;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="760" y="90" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="colH_mia" value="Mia-Platform" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#666666;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="960" y="90" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rowH_con" value="契約層&#xa;(違約金・残期間)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4472C4;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="130" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rowH_tech" value="技術層&#xa;(独自仕様の剥離)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4472C4;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="210" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rowH_data" value="データ層&#xa;(抽出・再構成)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4472C4;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="290" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rowH_ops" value="運用知見層&#xa;(SLO 低下期)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4472C4;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="370" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_k1s0_con" value="0 円&#xa;(ライセンス費ゼロ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ocp_con" value="残期間 20〜50%&#xa;(約 2,400 万円)&#xa;Red Hat 契約慣行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_tap_con" value="残期間ほぼ全額&#xa;(2,400〜3,000 万円)&#xa;AT&amp;amp;T/Tesco 訴訟水準" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_hum_con" value="残期間全額&#xa;(約 1,350 万円)&#xa;Enterprise SaaS 標準" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="760" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_mia_con" value="残期間 50〜100%&#xa;(2,160〜4,050 万円)&#xa;欧州事例から推定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_k1s0_tech" value="1〜2 人月&#xa;(tier1 ライブラリ差替)&#xa;公開 API は gRPC で保持" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="210" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ocp_tech" value="3〜6 人月&#xa;Route→Ingress / S2I 置換&#xa;AWS 移行ツールキット有" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="210" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_tap_tech" value="3〜6 人月&#xa;TAP GUI / Supply Chain&#xa;Application Accelerator 置換" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="210" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_hum_tech" value="1〜3 人月&#xa;Score 仕様は残存&#xa;Environment 管理を自作" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="760" y="210" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_mia_tech" value="5〜10 人月&#xa;マーケットプレイス剥離&#xa;共通コンポーネント再実装" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="210" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_k1s0_data" value="0&#xa;標準 OSS 形式のみ&#xa;(Postgres / Kafka / etcd)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ocp_data" value="軽&#xa;etcd / image registry は&#xa;標準 OSS 形式で抽出可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_tap_data" value="中&#xa;kpack buildpack 再構成&#xa;Supply Chain のデータ保持" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_hum_data" value="中&#xa;クラウド API 経由&#xa;独自 JSON エクスポート" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="760" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_mia_data" value="重&#xa;独自 DB 再構築必須&#xa;マーケットプレイス履歴" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_k1s0_ops" value="0〜3 か月&#xa;OSS 知識は残存&#xa;(他組織でも通用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="370" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_ocp_ops" value="3〜6 か月&#xa;Runbook 再作成&#xa;オンコール判断の再学習" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="370" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_tap_ops" value="3〜6 か月&#xa;Runbook 再作成&#xa;2025/5 Platform SaaS EOA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="370" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_hum_ops" value="1〜3 か月&#xa;SaaS 切替 中心&#xa;運用影響は限定的" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="760" y="370" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c_mia_ops" value="6〜12 か月&#xa;マーケットプレイス依存&#xa;多数アプリへの波及" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="370" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="concl" value="4 層を通してみると、Red Hat は技術層が軽いが契約層で縛る (RHEL ソース制限 2023/6)。Broadcom は契約層も技術層も重い (AT&amp;amp;T +1,050% / Platform SaaS EOA)。k1s0 は 4 層すべてで 0 か最小に収まる数少ない構造。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#999999;fontSize=12;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="20" y="470" width="1160" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="出典: 01_主要製品別評価.md §12.3 / 04_外部根拠_商用価格とロックイン.md §2 / SUSE amazee.io / Fairwinds / Broadcom KB" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="524" width="1200" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

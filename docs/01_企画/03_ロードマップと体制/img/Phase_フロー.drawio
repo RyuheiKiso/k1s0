@@ -31,7 +31,7 @@
         <mxCell id="p1b" value="Phase 1b&#10;MVP-1a パイロット" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=14;fontStyle=1;fontColor=#BF360C;" vertex="1" parent="1">
           <mxGeometry x="570" y="120" width="180" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="p1bbody" value="体制: 起案者 + 協力者 2 名&#10;環境: VM 3 台 (HA)&#10;KPI: バス係数 2 必達&#10;追加 OSS (Intro 15 件):&#10;Istio / Kafka / Rust / Loki&#10;Tempo / ArgoCD / Harbor&#10;Valkey / ZEN / Kyverno&#10;flagd / Longhorn / MetalLB&#10;kube-vip / Cosign+Syft+Grype" style="text;html=1;strokeColor=#FFB74D;fillColor=#FFF8E1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;spacing=6;fontColor=#BF360C;" vertex="1" parent="1">
+        <mxCell id="p1bbody" value="体制: 起案者 + 協力者 2 名&#10;環境: VM 3 台 (HA)&#10;KPI: バス係数 2 必達&#10;追加 OSS (Intro 15 件):&#10;Istio Ambient / Kafka / Rust / Loki&#10;Tempo / ArgoCD / Harbor&#10;Valkey / ZEN / Kyverno&#10;flagd / Longhorn / MetalLB&#10;kube-vip / Cosign+Syft+Grype" style="text;html=1;strokeColor=#FFB74D;fillColor=#FFF8E1;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=9;spacing=6;fontColor=#BF360C;" vertex="1" parent="1">
           <mxGeometry x="570" y="200" width="180" height="170" as="geometry" />
         </mxCell>
 

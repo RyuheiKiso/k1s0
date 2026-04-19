@@ -1,0 +1,115 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="slo-hierarchy" name="SLI SLO SLA エラーバジェット階層">
+    <mxGraphModel dx="1300" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1300" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="SLI / SLO / SLA / エラーバジェット 階層" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="600" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="測定 (SLI) → 内部目標 (SLO) → 対外契約 (SLA) / 予算 (エラーバジェット) / 警報 (バーンレート) の 4 層契約" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="200" y="56" width="900" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="source-header" value="メトリクス源 (観測層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="1180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="source-mimir" value="&lt;b&gt;Grafana Mimir&lt;/b&gt;&lt;br&gt;Prometheus 互換&lt;br&gt;時系列メトリクス保管" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="140" y="144" width="260" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="source-loki" value="&lt;b&gt;Grafana Loki&lt;/b&gt;&lt;br&gt;構造化ログ&lt;br&gt;エラー率/成功率算出元" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="520" y="144" width="260" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="source-tempo" value="&lt;b&gt;Grafana Tempo&lt;/b&gt;&lt;br&gt;分散トレース&lt;br&gt;レイテンシ分布算出元" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="900" y="144" width="260" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="sli-header" value="SLI (Service Level Indicator) — 実測値" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="1180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sli-avail" value="&lt;b&gt;Availability&lt;/b&gt;&lt;br&gt;成功応答割合&lt;br&gt;(2xx/3xx ÷ 総数)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="294" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="sli-latency" value="&lt;b&gt;Latency&lt;/b&gt;&lt;br&gt;閾値内応答割合&lt;br&gt;(p99 &lt; 500ms 達成率)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="370" y="294" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="sli-fresh" value="&lt;b&gt;Freshness&lt;/b&gt;&lt;br&gt;データ新鮮度&lt;br&gt;(レプリ遅延, 配信遅延)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="660" y="294" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="sli-correct" value="&lt;b&gt;Correctness&lt;/b&gt;&lt;br&gt;意味的正しさ&lt;br&gt;(契約テスト合格率)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="294" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="slo-header" value="SLO (Service Level Objective) — 内部目標 / 28 日ローリング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="1180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="slo-tier1" value="&lt;b&gt;tier1 Service Invoke&lt;/b&gt;&lt;br&gt;99.9% / p99 &lt; 500ms&lt;br&gt;月間ダウン 43 分以内" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="444" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="slo-state" value="&lt;b&gt;tier1 State (Postgres)&lt;/b&gt;&lt;br&gt;99.95% / p99 &lt; 100ms&lt;br&gt;レプリ遅延 &lt; 5 秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="370" y="444" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="slo-cp" value="&lt;b&gt;コントロールプレーン&lt;/b&gt;&lt;br&gt;Keycloak 99.95%&lt;br&gt;OpenBao / Argo CD 99.9%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="660" y="444" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="slo-data" value="&lt;b&gt;データプレーン&lt;/b&gt;&lt;br&gt;Kafka / Valkey / MinIO&lt;br&gt;99.9% / 配信遅延 &lt; 1 秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="444" width="270" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="eb-header" value="エラーバジェット (許容違反量) &amp; バーンレートアラート" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="550" width="1180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="eb-calc" value="&lt;b&gt;バジェット計算&lt;/b&gt;&lt;br&gt;(1 - SLO) × 28 日&lt;br&gt;例: 99.9% → 40.3 分/月" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="594" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="eb-policy" value="&lt;b&gt;消費率別対応&lt;/b&gt;&lt;br&gt;&lt;50% 通常 / 50-80% 強化&lt;br&gt;80-100% 非必須凍結 / 超過 全凍結" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="370" y="594" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="eb-fast" value="&lt;b&gt;Fast Burn アラート&lt;/b&gt;&lt;br&gt;1 時間で 2% 消費&lt;br&gt;バーンレート 14.4x → Sev2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="660" y="594" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="eb-slow" value="&lt;b&gt;Slow Burn アラート&lt;/b&gt;&lt;br&gt;6 時間で 5% 消費&lt;br&gt;バーンレート 6x → Sev3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="594" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sla-header" value="SLA (Service Level Agreement) — 対外契約 / BC-LGL-005" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="700" width="1180" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sla-inner" value="&lt;b&gt;tier1 全般 SLA: 99.5%&lt;/b&gt; (月間 216 分以内) ／ SLO 99.9% から 0.4 ポイント緩め ／ 違反時ペナルティ 課金割引 10% ／ SLO との差分 173 分 = 体質改善の余地" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;verticalAlign=middle;align=center;spacingLeft=20;spacingRight=20;" vertex="1" parent="1">
+          <mxGeometry x="80" y="744" width="1140" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e-src-sli1" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="source-mimir" target="sli-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-src-sli2" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="source-loki" target="sli-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-src-sli3" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="source-tempo" target="sli-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-sli-slo" value="集計→目標比較" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="sli-header" target="slo-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="385" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-slo-eb" value="バジェット算出" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="slo-header" target="eb-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="535" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-eb-sla" value="緩和して契約化" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="eb-header" target="sla-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="685" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;読み方&lt;/b&gt;: 観測層 (灰) から SLI (青) を算出 → SLO (紫) と比較 → エラーバジェット (赤) を計算 → バーンレートで警報 → SLA (橙) は対外契約として SLO より緩く設定" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#F5F5F5;strokeColor=#CCCCCC;rounded=1;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="820" width="1180" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

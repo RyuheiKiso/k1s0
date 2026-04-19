@@ -1,0 +1,202 @@
+<mxfile host="app.diagrams.net" modified="2026-04-19T00:00:00.000Z" agent="Claude Code" version="24.8.8">
+  <diagram id="layer-catalog" name="レイヤ別構成図">
+    <mxGraphModel dx="2100" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="2100" height="1300" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 コンポーネント レイヤ別配置 ― 4 レーン参照図" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="k1s0 に登場する全コンポーネントを 4 レイヤに配置した参照図。「このコンポーネントはどの層?」と迷ったら本図で位置を確認する。色は ADR-0002 の規約準拠。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="50" y="70" width="1600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="laneApp" value="アプリ層&#10;&#10;アプリが明示的に&#10;呼び出す抽象&#10;&#10;暖色" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d79b00;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="130" width="220" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="app_tier3" value="tier3 業務アプリ&#10;&#10;JTC 業務ロジック" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="app_tier2" value="tier2 ドメインサービス&#10;&#10;業種共通ドメイン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="app_tier1" value="tier1 ファサード&#10;&#10;Go + Dapr SDK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="app_daprd" value="daprd サイドカー&#10;&#10;State / PubSub 等" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="app_sdk" value="k1s0 Client SDK&#10;&#10;Rust / Go / TS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="app_zen" value="ZEN Rule Engine&#10;&#10;業務ルール評価" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="app_mgmt_lbl" value="── 運用基盤 (管理プレーン) ──" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="290" y="245" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="app_bs" value="Backstage&#10;&#10;IDP カタログ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="275" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_argo" value="Argo CD&#10;&#10;GitOps" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="275" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_grafana" value="Grafana / LGTM+P&#10;&#10;Observability UI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="275" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_keycloak" value="Keycloak&#10;&#10;SSO / IdP (アプリ面)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="275" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_harbor" value="Harbor (UI)&#10;&#10;コンテナレジストリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="275" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_litmus" value="Litmus&#10;&#10;Chaos Engineering" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="275" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="app_note" value="判定基準: アプリコードから SDK/API を通じて明示的に呼ばれるか。daprd は localhost:3500 で「呼び出し先」として見え、ztunnel は見えない。&#10;運用基盤はアプリから呼ばれないが、アプリ関係者 (開発者/運用担当) が直接操作する UI/管理プレーン。暖色で同系統として扱う。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#444444;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1610" y="140" width="470" height="215" as="geometry" />
+        </mxCell>
+        <mxCell id="sep1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="478" as="sourcePoint" />
+            <mxPoint x="2080" y="478" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="laneNet" value="ネットワーク層&#10;&#10;アプリから透過的に&#10;効く機構&#10;&#10;寒色" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eaf2fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="490" width="220" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="net_zt" value="Istio ztunnel&#10;&#10;L4 HBONE DaemonSet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="500" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_wp" value="Istio waypoint&#10;&#10;L7 policy (Envoy)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="500" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_istiod" value="istiod&#10;&#10;Control Plane" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="500" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_eg" value="Envoy Gateway&#10;&#10;Ingress / 入口" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="500" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_mlb" value="MetalLB&#10;&#10;L2/BGP LB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="500" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_vip" value="kube-vip&#10;&#10;Control Plane VIP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="500" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_dns" value="CoreDNS&#10;&#10;クラスタ内 DNS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="605" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_cert" value="cert-manager&#10;&#10;TLS 証明書自動発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="605" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_authz" value="Keycloak (ext_authz)&#10;&#10;ネットワーク認可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="605" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="net_note" value="判定基準: アプリコードに名前が出てこないのにパケットに効いているか。ztunnel/waypoint は iptables/eBPF で透過捕捉、MetalLB は L2 ARP 応答で透過配信、CoreDNS は Pod の /etc/resolv.conf に自動注入。&#10;Keycloak は SSO (アプリ層) と ext_authz (ネットワーク層) の両面で働くため文脈ごとに分類。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#444444;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1610" y="500" width="470" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="sep2" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="758" as="sourcePoint" />
+            <mxPoint x="2080" y="758" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="laneInfra" value="インフラ層&#10;&#10;K8s と Node 自体の&#10;実行基盤&#10;&#10;中性灰" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="770" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_kubelet" value="kubelet&#10;&#10;Node エージェント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="780" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_cri" value="containerd (CRI)&#10;&#10;コンテナランタイム" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="780" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_cni" value="CNI&#10;&#10;Pod ネットワーク基盤" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="780" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_os" value="Node OS&#10;&#10;Linux kernel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="780" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_etcd" value="etcd&#10;&#10;K8s state store" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="780" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_cp" value="Control Plane&#10;&#10;API server / scheduler" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="780" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_kyv" value="Kyverno&#10;&#10;Admission Policy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="880" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_mc" value="metrics-server&#10;&#10;HPA 用 CPU/Mem" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="880" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="inf_note" value="判定基準: K8s や Node OS 自体に属する構成要素。アプリ/ネットワーク/データのどのレイヤも、この基盤の上に乗って動く。&#10;Kyverno は Admission 時点で Pod spec を弾く (透過的にも明示的にもアプリ層/ネットワーク層に効かない) ため、独立した基盤統制としてここに置く。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#444444;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1610" y="780" width="470" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="sep3" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="50" y="978" as="sourcePoint" />
+            <mxPoint x="2080" y="978" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="laneData" value="データ層&#10;&#10;永続化 / メッセージ /&#10;シークレット&#10;&#10;薄紫" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3ecf7;strokeColor=#9673a6;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="990" width="220" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_pg" value="PostgreSQL&#10;&#10;主 OLTP (1P + 2R)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="1000" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_vk" value="Valkey&#10;&#10;キャッシュ / state" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="1000" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_kafka" value="Kafka&#10;&#10;3 broker イベントバス" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="1000" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_minio" value="MinIO&#10;&#10;S3 互換オブジェクト" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="1000" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_bao" value="OpenBao&#10;&#10;シークレット / KMS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="1000" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_lh" value="Longhorn&#10;&#10;分散ブロックストレージ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="1000" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_harbor" value="Harbor (Registry)&#10;&#10;イメージ永続化実体" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="290" y="1100" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_loki" value="Loki / Tempo / Mimir&#10;&#10;観測データ永続化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="510" y="1100" width="200" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="dat_note" value="判定基準: 状態を持つか / 永続化が本質か。Kafka は「メッセージパイプ」にも見えるが、at-least-once 配信保証のため内部で永続化しており、本質はデータ層。&#10;Longhorn は Postgres/MinIO/Harbor の PVC を支える下層ストレージ。データ層内でレイヤ構造を持つ (Longhorn → Postgres)。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#444444;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1610" y="1000" width="470" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingTop=6;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1610" y="1200" width="470" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lgA" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1625" y="1228" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgAT" value="アプリ層 (濃): 本体 / (薄): 運用基盤" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1650" y="1222" width="250" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgN" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1625" y="1252" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgNT" value="ネットワーク層" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1650" y="1246" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgI" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="1252" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgIT" value="インフラ層" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1805" y="1246" width="100" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgD" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1910" y="1252" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgDT" value="データ層" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1935" y="1246" width="100" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

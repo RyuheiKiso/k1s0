@@ -1,0 +1,331 @@
+# C. 運用・保守性
+
+本書は IPA 非機能要求グレード 2018 の「C. 運用・保守性」に準拠し、k1s0 の通常運用、保守運用、障害時運用、運用環境、サポート体制、運用管理方針の要件を定義する。小規模 SRE チーム（Phase 1c で 2〜3 名）で回す運用を前提に、属人化防止と自動化を軸に水準化する。
+
+## 本章の位置付け
+
+運用・保守性は「24 時間運用の美談」ではなく、「2 名体制で持続可能な運用」の設計である。Phase 1〜3 では運用 OSS を最小化し、差し替え可能性（Dapr / Istio Ambient）を確保することで、単一 OSS 障害が cascade しない構成を要件化する。
+
+## C1. 通常運用
+
+### NFR-C-NOP-001: 監視と可視化
+
+**現状**: 既存業務システムの監視は Zabbix / SCOM / 独自スクリプトの混在で、相関が取れず障害調査が属人的。
+
+**要件達成後**: 以下の監視スタックを構築し、Grafana ダッシュボードで一元表示する。
+
+- Prometheus（メトリクス）
+- Grafana Tempo（分散トレース）
+- Grafana Loki（ログ）
+- Grafana Pyroscope（Profiling）
+- OpenTelemetry Collector（計装パイプライン）
+- Dead Man's Switch（監視基盤自己監視、独立した外部 CronJob）
+
+**崩れた時**: 障害調査で「このログはどのサービスのどのリクエストか」の特定に時間がかかり、MTTR が悪化する。
+
+**受け入れ基準**:
+- Grafana ダッシュボード 5 本以上（システム概況、API レイテンシ、リソース使用率、Workflow、Audit）
+- Dead Man's Switch が 5 分以上メトリクス途絶で発報
+- Phase 1b で基本ダッシュボード、Phase 1c で運用成熟化
+
+**優先度**: MUST
+
+### NFR-C-NOP-002: バックアップ運用
+
+**現状**: バックアップ取得・検証が手作業で、定期実行の信頼性が低い。
+
+**要件達成後**: 以下の自動バックアップを実施する。
+
+- PostgreSQL: CloudNativePG の WAL アーカイブ（5 秒間隔）+ 日次フルダンプ
+- etcd: 日次スナップショット
+- MinIO: Object Lock + 週次スナップショット
+- Valkey: ディスク永続化 + 日次 RDB ダンプ
+
+すべて MinIO 集約、保管期間は 30 日（PostgreSQL）、7 日（etcd）、90 日（MinIO スナップショット）。
+
+**崩れた時**: バックアップが取得されていない期間の障害でデータ喪失が発生する。
+
+**受け入れ基準**:
+- バックアップ成功・失敗を Prometheus で可視化、失敗時 Severity 2 アラート
+- 復旧訓練（NFR-A-REC-001）で実際にリストア成功を確認
+- 保管期間満了後の自動削除
+
+**優先度**: MUST
+
+### NFR-C-NOP-003: ログ保管期間
+
+**現状**: ログの保管期間が曖昧で、監査要求時に「データが無い」事態が発生しうる。
+
+**要件達成後**: ログ種別ごとの保管期間を以下に定義する（FR-INFO-LOGMODEL-001 と整合）。
+
+- アプリケーションログ: Loki 7 日
+- 監査ログ: Loki 90 日 / PostgreSQL 1 年 / MinIO 7 年（3 層）
+- メトリクス: Prometheus 15 日 / Thanos Mimir 13 か月
+- 分散トレース: Tempo 7 日
+- Profiling: Pyroscope 7 日
+- Feature Flag 変更履歴: Git 無期限
+- Decision 決定表履歴: Git 無期限
+
+**崩れた時**: 監査要求・調査要求で必要な期間のログが無く、対応不能になる。
+
+**受け入れ基準**:
+- 保管期間の Prometheus / Loki / Tempo 設定の ConfigMap 管理
+- 層別移行（Loki → PostgreSQL → MinIO）の自動化
+- 優先度 MUST、Phase 1c で完成
+
+**優先度**: MUST
+
+### NFR-C-NOP-004: 時刻同期
+
+**現状**: ログ・監査のタイムスタンプずれでインシデント調査が混乱する。
+
+**要件達成後**: 全 VM / Pod は社内 NTP（または外部 NTP）で時刻同期し、ずれが 100ms 以内。chrony / systemd-timesyncd を利用。
+
+**崩れた時**: 複数サービス間のログタイムラインがずれ、障害原因の時系列追跡が困難になる。
+
+**受け入れ基準**:
+- 全 Pod で chrony が動作、NTP ずれを Prometheus で監視
+- ずれ 100ms 以上で Severity 3 アラート
+
+**優先度**: MUST
+
+## C2. 保守運用
+
+### NFR-C-MNT-001: 計画停止ウィンドウ
+
+**現状**: 保守停止が業務時間帯に発生し、業務断が頻発する。
+
+**要件達成後**: 計画停止は原則土曜日 22:00〜日曜日 6:00（8 時間ウィンドウ）に限定。緊急保守（Critical CVE 対応）は業務時間外に実施するが、やむを得ない場合は事前告知で業務時間内も許容。
+
+**崩れた時**: 業務時間中の停止が頻発、業務部門から苦情が増える。
+
+**受け入れ基準**:
+- 計画停止は 1 週間前までに tier2/tier3 部門へ通知
+- Argo Rollouts による zero-downtime デプロイを標準とし、停止回数を最小化
+- 計画停止実績を月次レポートで報告
+
+**優先度**: MUST
+
+### NFR-C-MNT-002: OSS バージョン追従
+
+**現状**: OSS バージョン追従が月 1〜2 回のミーティングベースで、追従遅延で脆弱性リスクが蓄積する。
+
+**要件達成後**: Renovate が自動で PR を作成、SRE は CVE 情報と CHANGELOG を確認して approve する。Argo CD が staging → prod の順で同期。Critical CVE は 48 時間以内（企画書.md:310）、High は 1 週間、Medium 以下は月次まとめ。
+
+**崩れた時**: 脆弱性対応が遅れ、監査指摘・インシデント発生のリスクが増す。
+
+**受け入れ基準**:
+- Renovate 自動 PR 発行 100%
+- Critical CVE 対応 48 時間以内の実績を 90% 以上
+- PR から approve までのリードタイムを可視化
+
+**優先度**: MUST
+
+### NFR-C-MNT-003: API 互換方針
+
+**現状**: tier1 API の互換破壊で tier2/tier3 が一斉に動かなくなる事故が発生しうる。
+
+**要件達成後**: tier1 公開 API（Protobuf 契約）は minor version を越えた後方互換破壊を Phase 1〜2 では発生させない。互換破壊が必要な場合は DEPRECATED マーク → 3 か月猶予 → 削除の段階手順。Buf breaking 検出で CI ブロック。
+
+**崩れた時**: tier2/tier3 の全アプリが一斉に影響を受け、再テスト・再リリースで数人月の工数ロスが発生する。
+
+**受け入れ基準**:
+- Protobuf 契約の Buf breaking 検出で CI ブロック
+- 互換破壊は重大改訂として扱い、ステークホルダー承認
+- DEPRECATED 期間を最低 3 か月
+
+**優先度**: MUST
+
+## C3. 障害時運用
+
+### NFR-C-IR-001: Severity 別応答時間
+
+**現状**: 既存運用の応答時間が曖昧で、業務部門から「いつ直るか」の問い合わせに答えられない。
+
+**要件達成後**: Severity 別に以下を約束する。
+
+- Severity 1（サービス全停止相当）: 初動 30 分以内、完全復旧 4 時間以内（RTO）
+- Severity 2（機能縮退）: 初動 2 時間以内、完全復旧 1 営業日
+- Severity 3（単発不具合）: 初動 1 営業日、完全復旧 1 週間
+
+Phase 1c 以降、2〜3 名体制の 8 × 5 オンコール（平日 8:00〜20:00）で回す。夜間 / 休日はベストエフォート。
+
+**崩れた時**: 業務部門からの信頼を失い、k1s0 継続判断で不利になる。
+
+**受け入れ基準**:
+- Severity 判定基準を Runbook-INCIDENT-CLASSIFY に文書化
+- 各 Severity の実績を月次レポート
+- Severity 1 のポストモーテムを翌営業日までに公開
+
+**優先度**: MUST
+
+### NFR-C-IR-002: Circuit Breaker 監視
+
+**現状**: サーキットブレーカの状態が可視化されないと、部分障害が見逃される。
+
+**要件達成後**: Service Invoke API の Circuit Breaker 状態（closed / open / half-open）を Prometheus メトリクスで公開、Grafana で可視化、open 遷移でアラート発報（Severity 2）。
+
+**崩れた時**: 下流サービス障害の兆候を見逃し、部分障害が全停止に拡大する。
+
+**受け入れ基準**:
+- Circuit Breaker 状態の Grafana ダッシュボード
+- open 遷移から 5 分以内にアラート
+- Phase 1b で実装
+
+**優先度**: SHOULD
+
+## C4. 運用環境
+
+### NFR-C-ENV-001: 環境構成
+
+**現状**: 環境が 1 つしかないと、変更検証が本番に直接影響する。
+
+**要件達成後**: Phase 1b 以降、以下の 3 環境を維持する。
+
+- **dev**: 開発者自己環境（ローカル docker-compose / kind）
+- **staging**: 結合試験・性能試験環境（本番と同構成、スケール 1/3）
+- **prod**: 本番環境
+
+Argo CD の ApplicationSet で staging → prod 順序同期。
+
+**崩れた時**: 変更検証が不十分なまま本番適用、事故が頻発する。
+
+**受け入れ基準**:
+- staging が常時稼働、prod と同構成（スケールのみ異なる）
+- dev のローカル環境構築手順が 30 分以内で完了
+
+**優先度**: MUST
+
+### NFR-C-ENV-002: 運用ドキュメント鮮度
+
+**現状**: ドキュメントが古くなっても気づかず、実態とずれる。
+
+**要件達成後**: Phase 1c で対応コードから 30 日以内に更新されたドキュメント割合 90% を目標とする（KPIと承認基準.md:176）。四半期ごとにドキュメント鮮度レビューを実施、古いドキュメントを検出して改訂または DEPRECATED マーク。
+
+**崩れた時**: 新規参加者の立ち上がりが遅れ、属人化が進む。
+
+**受け入れ基準**:
+- Phase 1c で鮮度 90% 達成
+- 四半期レビューの実績を記録
+
+**優先度**: MUST
+
+## C5. サポート体制
+
+### NFR-C-SUP-001: 内部 SRE 体制
+
+**現状**: 情シス SRE 体制が少数で、ベンダー依存になりがち。
+
+**要件達成後**: Phase 1c 以降、内部 SRE 2〜3 名体制で平日 8:00〜20:00 のオンコールを運用。Severity 1 初動 30 分、商用 PaaS の SLA 外務（営業時間のみ対応等）を回避する（企画書差別化ポイント）。
+
+**崩れた時**: 商用 PaaS との差別化が崩れ、オンコール対応の品質が低下する。
+
+**受け入れ基準**:
+- オンコール担当の週次ローテーション
+- バス係数 2 以上（Phase 1a 必達、Phase 2 で 3 以上）
+- 年次の採用・育成計画を明文化
+
+**優先度**: MUST
+
+### NFR-C-SUP-002: コミュニティサポートの活用
+
+**現状**: OSS の不具合・相談をコミュニティに頼る場合の手順が曖昧。
+
+**要件達成後**: 主要 OSS（Dapr、ZEN Engine、Istio、CloudNativePG、OpenBao）のコミュニティ（GitHub Issues、Slack、Discord）を情シスが監視。重大な不具合は社内内製対応 + コミュニティ報告の並行で進める。商用サポート契約は持たない（C-VEND-001 制約）。
+
+**崩れた時**: 未報告の不具合が社内で累積し、OSS コミュニティからの取り残しが発生する。
+
+**受け入れ基準**:
+- 主要 OSS のコミュニティ窓口を Backstage で一覧化
+- 過去 1 年のコミュニティ活性度を年次レポートでレビュー
+
+**優先度**: SHOULD
+
+### NFR-C-SUP-003: ベンダー撤退シナリオ
+
+**現状**: OSS / 商用製品のベンダー撤退・フォークが発生した場合の退路が不明。
+
+**要件達成後**: 主要 OSS について代替候補を常に 1 つ以上確保する。
+
+- Dapr → 自作代替（Rust ファサード全面化）
+- Istio Ambient → Linkerd / Consul Service Mesh
+- CloudNativePG → Crunchy Postgres Operator
+- OpenBao → Infisical（fork）または自作 Secret 管理
+
+年次で代替案の活性度を再評価、必要に応じて採用判断を更新する。
+
+**崩れた時**: ベンダー撤退時に再移行先が無く、基盤全面刷新が必要になる。
+
+**受け入れ基準**:
+- 年次で代替案レポートを作成、情シスマネージャ承認
+- 90_付録/02_非機能要求グレード判定.md で撤退シナリオを記述
+
+**優先度**: MUST
+
+## C6. 運用管理方針
+
+### NFR-C-MGMT-001: 設定の Git 管理
+
+**現状**: Dapr Component YAML、Feature Flag、Decision 決定表、Binding 設定が散在する。
+
+**要件達成後**: 全 tier1 基盤設定を Git 管理、Argo CD で自動同期。変更は PR レビュー必須、Audit API に記録。
+
+**崩れた時**: 設定変更の履歴が追えず、障害調査で「誰が何を変えたか」が不明になる。
+
+**受け入れ基準**:
+- `src/tier1/` 配下の設定ディレクトリ構造
+- 全変更が Audit 記録される
+- Phase 1b で整備、Phase 1c で運用安定化
+
+**優先度**: MUST
+
+### NFR-C-MGMT-002: Feature Flag / Decision 決定表の Git 管理
+
+**現状**: ランタイム設定（Feature Flag、決定表）の変更履歴が追えない。
+
+**要件達成後**: flagd JSON / JDM ファイルを `src/tier1/flags/`、`src/tier1/decisions/` で Git 管理、Argo CD 同期。Backstage で一覧・変更履歴を可視化。Phase 4 以降の JDM エディタ化でも、編集結果は Git commit として残す。
+
+**崩れた時**: ランタイム設定の変更監査ができず、業務ルールの不正変更を検知できない。
+
+**受け入れ基準**:
+- 変更は Git commit として残る
+- Backstage で履歴表示
+
+**優先度**: MUST
+
+### NFR-C-MGMT-003: SBOM 生成率
+
+**現状**: SBOM（Software Bill of Materials）が無いと、脆弱性発覚時の影響範囲特定が困難。
+
+**要件達成後**: Phase 1c で SBOM 生成率 100%（KPIと承認基準.md:177）。CI で全コンテナイメージに対し CycloneDX / SPDX 形式の SBOM を自動生成、Cosign 署名。
+
+**崩れた時**: 脆弱性対応の初動が遅れる。
+
+**受け入れ基準**:
+- 全コンテナイメージで SBOM 生成
+- Backstage で SBOM 一覧表示
+- Phase 1c で 100% 達成
+
+**優先度**: MUST
+
+## サマリ
+
+| ID | タイトル | Phase | 優先度 |
+|---|---|---|---|
+| NFR-C-NOP-001 | 監視スタック構築 | 1b/1c | MUST |
+| NFR-C-NOP-002 | バックアップ運用 | 1b | MUST |
+| NFR-C-NOP-003 | ログ保管期間 | 1c | MUST |
+| NFR-C-NOP-004 | 時刻同期 | 1a | MUST |
+| NFR-C-MNT-001 | 計画停止ウィンドウ | 1b | MUST |
+| NFR-C-MNT-002 | OSS バージョン追従 | 1b | MUST |
+| NFR-C-MNT-003 | API 互換方針 | 1b | MUST |
+| NFR-C-IR-001 | Severity 別応答 | 1c | MUST |
+| NFR-C-IR-002 | Circuit Breaker 監視 | 1b | SHOULD |
+| NFR-C-ENV-001 | 3 環境構成 | 1b | MUST |
+| NFR-C-ENV-002 | ドキュメント鮮度 | 1c | MUST |
+| NFR-C-SUP-001 | 内部 SRE 体制 | 1c | MUST |
+| NFR-C-SUP-002 | コミュニティサポート | 1b | SHOULD |
+| NFR-C-SUP-003 | ベンダー撤退シナリオ | 2 | MUST |
+| NFR-C-MGMT-001 | 設定 Git 管理 | 1b | MUST |
+| NFR-C-MGMT-002 | Flag/Decision Git 管理 | 1b | MUST |
+| NFR-C-MGMT-003 | SBOM 生成率 100% | 1c | MUST |
