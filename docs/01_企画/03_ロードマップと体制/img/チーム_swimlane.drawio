@@ -139,7 +139,7 @@
         <mxCell id="r5c1c" value="協力者が兼務" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;fontColor=#E65100;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="760" y="356" width="140" height="54" as="geometry" />
         </mxCell>
-        <mxCell id="r5c2" value="k8s / Istio / Kafka&#10;専任化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;fontColor=#1B5E20;" vertex="1" parent="1">
+        <mxCell id="r5c2" value="k8s / Istio Ambient / Kafka&#10;専任化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;fontColor=#1B5E20;" vertex="1" parent="1">
           <mxGeometry x="900" y="356" width="140" height="54" as="geometry" />
         </mxCell>
         <mxCell id="r5c3" value="SRE として独立" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;fontColor=#1B5E20;" vertex="1" parent="1">

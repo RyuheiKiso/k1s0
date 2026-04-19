@@ -10,7 +10,7 @@
                 <mxCell id="title" value="k1s0 全体構成図 (インフラ + アーキテクチャ詳細 / サンプルフロー = 注文確定)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="60" y="10" width="2280" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="subtitle" value="JTC 情報システム部門向け マイクロサービス基盤プラットフォーム / Pod = app container + Dapr sidecar + Istio sidecar の 3 コンテナ構成" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" parent="1" vertex="1">
+                <mxCell id="subtitle" value="JTC 情報システム部門向け マイクロサービス基盤プラットフォーム / Pod = app container + Dapr sidecar の 2 コンテナ構成 (Istio Ambient Mesh: L4 は Node の ztunnel, L7 は namespace の waypoint proxy — Pod 内 Envoy 不要)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" parent="1" vertex="1">
                     <mxGeometry x="60" y="50" width="2280" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="extUser" value="エンドユーザー&#xa;(社内端末: PWA / MAUI / WinUI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11" parent="1" vertex="1">
@@ -175,13 +175,13 @@
                 <mxCell id="iG1" value="サービスメッシュ &amp; スケーリング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="110" y="1570" width="480" height="240" as="geometry"/>
                 </mxCell>
-                <mxCell id="iG1a" value="Istio Control Plane (istiod)&#xa;:15443 mTLS / :15006 inbound / :15001 outbound / :15090 Envoy admin" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
+                <mxCell id="iG1a" value="Istio Ambient Mesh (istiod + ztunnel DS + waypoint proxy)&#xa;ztunnel :15008 HBONE mTLS (L4) / waypoint は namespace 単位で配置 (L7)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="130" y="1615" width="440" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="iG1b" value="KEDA ScaledObject&#xa;例: kafka-lag-order.created &gt; 100 → 注文処理 Pod replicas +2 (max=10)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="130" y="1685" width="440" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="iG1c" value="* tier2/3 Pod は「app + daprd + istio-proxy」の 3 コンテナ構成 (後 2 者は自動注入)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" parent="1" vertex="1">
+                <mxCell id="iG1c" value="* tier2/3 Pod は「app + daprd」の 2 コンテナ構成 (Pod 内 Envoy なし)。L4 mTLS は Node の ztunnel、L7 ポリシーは namespace の waypoint proxy が担当" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2" parent="1" vertex="1">
                     <mxGeometry x="130" y="1755" width="440" height="45" as="geometry"/>
                 </mxCell>
                 <mxCell id="iG2" value="メッセージング (Kafka / Strimzi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdecea;strokeColor=#b85450;verticalAlign=top;fontSize=11;fontStyle=1" parent="1" vertex="1">
@@ -544,7 +544,7 @@
                 <mxCell id="portA2" value="HTTP/2" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="625" y="318" width="70" height="18" as="geometry"/>
                 </mxCell>
-                <mxCell id="portA3" value="Istio mTLS :15443 / HTTPRoute" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                <mxCell id="portA3" value="Istio Ambient HBONE :15008 / HTTPRoute" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="440" y="422" width="260" height="18" as="geometry"/>
                 </mxCell>
                 <mxCell id="portT3T2" value="Dapr Service Invocation :50001 gRPC" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1" parent="1" vertex="1">
@@ -662,7 +662,7 @@
                 <mxCell id="fs2" value="② Envoy Gateway&#xa;ext_authz → Keycloak&#xa;JWT (RS256) 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="365" y="2540" width="270" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="fs3" value="③ Istio mTLS で&#xa;tier3 業務アプリ Pod へ&#xa;POST /api/orders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
+                <mxCell id="fs3" value="③ ztunnel HBONE (L4 mTLS) で&#xa;tier3 業務アプリ Pod へ&#xa;POST /api/orders" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="645" y="2540" width="270" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="fs4" value="④ Dapr Service Invocation&#xa;biz-app → order-svc&#xa;daprd :50001 gRPC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10" parent="1" vertex="1">
@@ -731,13 +731,13 @@
                 <mxCell id="wGroup" value="Worker (x3 〜 N)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=7;" parent="1" vertex="1">
                     <mxGeometry x="800" y="2710" width="720" height="270" as="geometry"/>
                 </mxCell>
-                <mxCell id="w1" value="worker-01&#xa;10.0.100.21&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;Istio / Dapr sidecar&#xa;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
+                <mxCell id="w1" value="worker-01&#xa;10.0.100.21&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;ztunnel (DS) / daprd sidecar&#xa;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="820" y="2750" width="215" height="210" as="geometry"/>
                 </mxCell>
-                <mxCell id="w2" value="worker-02&#xa;10.0.100.22&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;Istio / Dapr sidecar&#xa;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
+                <mxCell id="w2" value="worker-02&#xa;10.0.100.22&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;ztunnel (DS) / daprd sidecar&#xa;tier1/2/3 Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="1055" y="2750" width="215" height="210" as="geometry"/>
                 </mxCell>
-                <mxCell id="w3" value="worker-03&#xa;10.0.100.23&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;Istio / Dapr sidecar&#xa;operation Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
+                <mxCell id="w3" value="worker-03&#xa;10.0.100.23&#xa;━━━━━━&#xa;kubelet / containerd&#xa;OTel Collector (DS)&#xa;ztunnel (DS) / daprd sidecar&#xa;operation Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1565c0;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="1290" y="2750" width="215" height="210" as="geometry"/>
                 </mxCell>
                 <mxCell id="sGroup" value="Storage (x3) — taint: storage=dedicated:NoSchedule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#ad1457;verticalAlign=top;fontSize=11;fontStyle=1;arcSize=7;" parent="1" vertex="1">
