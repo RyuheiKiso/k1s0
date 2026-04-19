@@ -1,0 +1,175 @@
+<mxfile host="app.diagrams.net" modified="2026-04-19T00:00:00.000Z" agent="Claude Code" version="24.8.8">
+  <diagram id="app-dapr-flow" name="アプリ層_Dapr呼び出しフロー">
+    <mxGraphModel dx="2200" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="2200" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="アプリ層の Dapr 呼び出しフロー ― 明示呼び出しチェーン" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="tier3 アプリが k1s0.State.Save() を呼んだ瞬間に、tier1 ファサード → daprd → Dapr Component → Valkey まで明示的に呼び出される。すべてアプリコードに表現される層 = アプリ層。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="50" y="70" width="1700" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="tier3 アプリ&#10;&#10;k1s0.State.Save(key, value)&#10;が書かれるコード" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="k1s0 Client SDK&#10;&#10;Rust / Go / TypeScript&#10;(アプリに組み込む薄い SDK)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="380" y="140" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="tier1 Go ファサード&#10;&#10;Dapr Go SDK +&#10;JTC ポリシー適用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="700" y="140" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="daprd サイドカー&#10;&#10;Pod 内 localhost:3500&#10;(明示呼び出し先)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="140" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="Dapr Component&#10;&#10;state.valkey /&#10;pubsub.kafka / 等" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;strokeWidth=1;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="140" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" value="データストア&#10;&#10;Valkey / Postgres /&#10;Kafka / MinIO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1660" y="140" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ll1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;dashPattern=2 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="220" as="sourcePoint" />
+            <mxPoint x="180" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll2" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;dashPattern=2 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="220" as="sourcePoint" />
+            <mxPoint x="500" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll3" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;dashPattern=2 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="220" as="sourcePoint" />
+            <mxPoint x="820" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll4" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;dashPattern=2 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="220" as="sourcePoint" />
+            <mxPoint x="1140" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll5" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;dashPattern=2 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1460" y="220" as="sourcePoint" />
+            <mxPoint x="1460" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll6" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#9673a6;strokeWidth=1;dashed=1;dashPattern=2 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1780" y="220" as="sourcePoint" />
+            <mxPoint x="1780" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m1" value="① k1s0.State.Save(key, value)" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#d79b00;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="180" y="280" as="sourcePoint" />
+            <mxPoint x="500" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="② gRPC SaveRequest" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#d79b00;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="350" as="sourcePoint" />
+            <mxPoint x="820" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="③ HTTP POST /v1.0/state/valkey" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#d79b00;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="420" as="sourcePoint" />
+            <mxPoint x="1140" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="④ internal dispatch (config で選択)" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#d79b00;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="490" as="sourcePoint" />
+            <mxPoint x="1460" y="490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="⑤ SET key value" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#9673a6;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1460" y="560" as="sourcePoint" />
+            <mxPoint x="1780" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r1" value="OK" style="endArrow=open;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1780" y="630" as="sourcePoint" />
+            <mxPoint x="1460" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r2" value="ACK" style="endArrow=open;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1460" y="690" as="sourcePoint" />
+            <mxPoint x="1140" y="690" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r3" value="200 OK" style="endArrow=open;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1140" y="750" as="sourcePoint" />
+            <mxPoint x="820" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r4" value="gRPC response" style="endArrow=open;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="820" y="810" as="sourcePoint" />
+            <mxPoint x="500" y="810" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r5" value="Result&lt;(), k1s0.Error&gt;" style="endArrow=open;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="500" y="870" as="sourcePoint" />
+            <mxPoint x="180" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note1" value="特徴: すべての矢印の出発点がアプリコードから辿れる。tier3 のソースを読むと ①②③④⑤ の呼び出しチェーンが完全に追える。&#10;これが「アプリ層」の定義 ― アプリから明示的に呼び出す抽象。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;verticalAlign=middle;align=left;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="940" width="1840" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note2" value="比較: もし同じ Pod 内で ztunnel が動いていたら、Pod から外へ出る全パケットが ztunnel に透過的に捕捉される。しかしアプリコードには ztunnel の名前は 1 度も出てこない。これが「ネットワーク層」の定義 ― アプリから透過的に効く機構。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=left;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1020" width="1840" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingTop=8;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1940" y="140" width="240" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="lgA" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1955" y="175" width="28" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lgAT" value="アプリ層 (明示呼び出し)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1990" y="170" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgD" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1955" y="205" width="28" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lgDT" value="データ層" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1990" y="200" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgL1" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1955" y="240" as="sourcePoint" />
+            <mxPoint x="1985" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgL1T" value="実線太 = 明示呼び出し" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1995" y="228" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgL2" value="" style="endArrow=open;html=1;rounded=0;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1955" y="270" as="sourcePoint" />
+            <mxPoint x="1985" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgL2T" value="実線細 = 戻り値" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1995" y="258" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgLLT" value="(戻り矢印の細線は本図の&#10;sequence 表記専用。規約の&#10;点線=透過捕捉 とは別。)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="1955" y="285" width="220" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

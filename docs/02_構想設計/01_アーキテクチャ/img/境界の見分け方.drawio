@@ -1,0 +1,197 @@
+<mxfile host="65bd71144e">
+    <diagram name="dapr-vs-istio-boundary" id="boundary">
+        <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1300" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry x="0" y="0" width="1800" height="1300" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="Dapr と Istio Ambient の責務境界の見分け方" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="15" width="1720" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle" value="同じ Pod 近傍に在るが責務レイヤが異なる (ADR-0001 / ADR-0002)。色=レイヤ (暖色=アプリ層 / 寒色=ネットワーク層)。" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" parent="1" vertex="1">
+                    <mxGeometry x="40" y="52" width="1720" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="qCol" value="問い" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#333333;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="90" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="daprCol" value="Dapr (アプリ層)&#xa;アプリが SDK で明示的に呼ぶ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#8a6d00" parent="1" vertex="1">
+                    <mxGeometry x="370" y="90" width="680" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="istioCol" value="Istio Ambient (ネットワーク層)&#xa;アプリから見えず透過的に効く" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#1a4c80" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="90" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="q1q" value="アプリのソースコードに&#xa;この機能への呼び出しは書くか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="40" y="140" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q1d" value="はい — 書く。&#xa;例: `k1s0.State.Save(&quot;order&quot;, order)` / `k1s0.PubSub.Publish(topic, msg)`&#xa;→ tier1 ファサード → daprd :3500 HTTP 呼び出し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="370" y="140" width="680" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q1i" value="いいえ — 書かない。&#xa;アプリは通常の HTTP/gRPC 呼び出しをするだけで、ノードの ztunnel が&#xa;iptables/eBPF で捕捉し HBONE (L4 mTLS) で運ぶ。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="140" width="700" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q2q" value="機能を止めると何が壊れるか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="40" y="220" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q2d" value="アプリのビジネスロジックが動かない。&#xa;例: daprd を止めると `State.Save` が失敗 → 注文データが保存されない → 機能不全。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="370" y="220" width="680" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q2i" value="暗号化・認可・ポリシーが消える (ただしアプリは通信自体はできる)。&#xa;例: ztunnel を止めても HTTP 通信は流れるが、mTLS が無効化され&#xa;平文になる → セキュリティ欠陥だが、アプリ処理は継続。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="220" width="700" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q3q" value="誰がコンポーネントを&#xa;直接操作・設定するか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="40" y="300" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q3d" value="tier1 基盤チーム (Dapr Components YAML を管理) + アプリ開発者 (SDK 呼び出し)&#xa;→ アプリ開発者は tier1 ファサード越しに触るだけ (Dapr 直接呼び出しは禁止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="370" y="300" width="680" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q3i" value="インフラチーム (istiod / PeerAuthentication / AuthorizationPolicy を管理)&#xa;→ アプリ開発者はコンポーネント自体の存在を知らなくても動く" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="300" width="700" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="q4q" value="どんな問題を解決するか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="40" y="380" width="320" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="q4d" value="「どのミドルウェアを使うか」をアプリコードから剥がす。&#xa;• State: Valkey or Postgres or Cosmos を SDK で選べる&#xa;• PubSub: Kafka or NATS or Redis Streams を SDK で選べる&#xa;• Secrets: Bao or AWS SM or Azure KV を SDK で選べる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="370" y="380" width="680" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="q4i" value="「アプリ間通信の横断的品質」をアプリコードから剥がす。&#xa;• mTLS (SPIFFE identity で相互認証)&#xa;• L7 AuthZ (どの Service が何を呼べるか)&#xa;• トラフィック分割 (canary / blue-green)&#xa;• 可観測性 (L4/L7 メトリクス・分散トレース)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="380" width="700" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="q5q" value="どこで動いているか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="40" y="480" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="q5d" value="Pod 内のサイドカー (daprd コンテナ) として各アプリ Pod に同居。&#xa;Pod の中に「アプリ + daprd」の 2 コンテナが在る。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="370" y="480" width="680" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="q5i" value="Pod の外 (Node 単位の DaemonSet = ztunnel / namespace 単位の waypoint proxy)。&#xa;Pod の中には Ambient 由来のコンテナは無い — Dapr サイドカーとの二重注入を&#xa;構造的に回避している (ADR-0001)。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="480" width="700" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="q6q" value="視覚的な見分け方&#xa;(本プロジェクトの drawio 規約)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="40" y="570" width="320" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="q6d" value="暖色 (#fff2cc / #d79b00) で描画される。&#xa;アプリと同じ系統色でレーンに配置。&#xa;矢印は実線太 (明示呼び出し)。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="370" y="570" width="680" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="q6i" value="寒色 (#dae8fc / #6c8ebf) で描画される。&#xa;ネットワーク層レーンに配置。&#xa;Pod への矢印は点線細 (透過捕捉)。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="570" width="700" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="scenarioFrame" value="シナリオ: tier3 業務アプリが「注文確定」を処理するとき、Dapr と Istio Ambient がそれぞれ何をするか" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#ef6c00;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#ef6c00" parent="1" vertex="1">
+                    <mxGeometry x="40" y="685" width="1720" height="340" as="geometry"/>
+                </mxCell>
+                <mxCell id="scenarioStep1" value="① ユーザ PWA → Envoy Gateway → tier3 Pod&#xa;(外部 → Pod 到達まで)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="725" width="280" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc1dapr" value="Dapr: 何もしない。&#xa;(まだアプリのコードが走っていない)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="355" y="725" width="695" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc1istio" value="Istio: Envoy Gateway が TLS 終端・OIDC 認可 (ext_authz → Keycloak) → ztunnel HBONE :15008 で tier3 Pod のノードへ転送。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="725" width="700" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="scenarioStep2" value="② tier3 業務アプリの Go コード&#xa;`k1s0.Workflow.Start(&quot;OrderSaga&quot;)` 呼び出し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="785" width="280" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc2dapr" value="Dapr: k1s0 SDK → tier1 ファサード → daprd :3500 (HTTP) → dapr-placement でアクタ配置決定 → Temporal Worker に到達。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="355" y="785" width="695" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc2istio" value="Istio: tier3 Pod → tier1 Pod の通信も ztunnel で HBONE 化。アプリは localhost 宛に呼んだつもりでも Pod 間は暗号化されている。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="785" width="700" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="scenarioStep3" value="③ tier1 Go が `k1s0.PubSub.Publish`&#xa;Kafka topic 'order.created' へ発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="850" width="280" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc3dapr" value="Dapr: daprd の PubSub building block → Dapr Component (pubsub.kafka) → Kafka Broker に発行。&#xa;アプリは Kafka のアドレスを知らない (Dapr Component YAML だけが知っている)。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="355" y="850" width="695" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc3istio" value="Istio: tier1 Pod → Kafka Broker Pod の通信を ztunnel が HBONE 化。L7 AuthZ が必要なら waypoint proxy 経由。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="850" width="700" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="scenarioStep4" value="④ 顧客管理サービスが&#xa;subscribe → DB 更新" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="915" width="280" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc4dapr" value="Dapr: daprd Subscribe → アプリへ POST / → アプリが `k1s0.State.Save` → daprd :3500 → Dapr Component → Postgres。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="355" y="915" width="695" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="sc4istio" value="Istio: daprd Pod → Postgres Pod の通信も ztunnel。Postgres Pod には Ambient が入っていないため通常 TCP で届き、Postgres 側で再度 TLS を張る。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f5fc;strokeColor=#6c8ebf;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="915" width="700" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="scenarioObs" value="観察: アプリコードに `k1s0.Workflow.Start` / `k1s0.PubSub.Publish` / `k1s0.State.Save` は書かれているが、Istio Ambient に関する呼び出しは 1 行も書かれていない。&#xa;前者 = Dapr (アプリ層 / 明示呼び出し) / 後者 = Istio Ambient (ネットワーク層 / 透過適用)。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#e65100;fontSize=11;fontStyle=1;fontColor=#5d4037" parent="1" vertex="1">
+                    <mxGeometry x="60" y="985" width="1700" height="35" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleFrame" value="判定フローチャート: 目の前のコンポーネントはどちらのレイヤか?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;verticalAlign=top;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1050" width="1720" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ1" value="Q1. そのコンポーネントをアプリコードから明示的に呼んでいるか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1090" width="520" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ1y" value="Yes → アプリ層 (暖色)&#xa;Dapr / tier1-3 / operation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="600" y="1090" width="220" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ1n" value="No → Q2 へ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="600" y="1140" width="220" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ2" value="Q2. Pod 間通信の暗号化・認可・ルーティング・可観測性を担っているか?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="840" y="1090" width="520" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ2y" value="Yes → ネットワーク層 (寒色)&#xa;Istio Ambient / MetalLB / Envoy / DNS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1380" y="1090" width="370" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ2n" value="No → Q3 へ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                    <mxGeometry x="1380" y="1140" width="370" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ3" value="Q3. 状態を保持するコンポーネントか (DB / Cache / MQ / Storage / Secret / Registry)?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;fontSize=11;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="60" y="1185" width="520" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ3y" value="Yes → データ層 (紫)&#xa;Postgres / Kafka / Valkey / MinIO / OpenBao / Harbor" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="600" y="1185" width="400" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="ruleQ3n" value="No → インフラ層 (中性灰)&#xa;Kyverno / CNI / kubelet / containerd / scheduler / etcd (k8s 状態)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="1020" y="1185" width="730" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="aRuleQ1toY" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="580" y="1112" as="sourcePoint"/>
+                        <mxPoint x="600" y="1112" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aRuleQ1toN" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="820" y="1155" as="sourcePoint"/>
+                        <mxPoint x="840" y="1112" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aRuleQ2toY" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1360" y="1112" as="sourcePoint"/>
+                        <mxPoint x="1380" y="1112" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aRuleQ2toQ3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1565" y="1170" as="sourcePoint"/>
+                        <mxPoint x="320" y="1185" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1565" y="1180"/>
+                            <mxPoint x="320" y="1180"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aRuleQ3toY" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="580" y="1207" as="sourcePoint"/>
+                        <mxPoint x="600" y="1207" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="aRuleQ3toN" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#333333;strokeWidth=1.5" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1000" y="1207" as="sourcePoint"/>
+                        <mxPoint x="1020" y="1207" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="legend" value="凡例: ■暖色=アプリ層 (明示呼び出し) / ■寒色=ネットワーク層 (透過適用) / ■紫=データ層 (状態保持) / ■灰=インフラ層 (k8s/Node基盤)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;align=center;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="40" y="1285" width="1720" height="18" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
