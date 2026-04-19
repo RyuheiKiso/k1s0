@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="p1" name="sec_incident">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1040" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1040" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="JTC に対するランサムウェア被害の公開実例 (2022-2024)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="16" width="1040" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="c1Hdr" value="2022/02 小島プレス工業 (トヨタ系サプライヤー)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="320" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="c1Body" value="事件: Emotet 経由のランサムウェア&#xa;業種: 自動車部品サプライチェーン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="104" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c1Qty" value="トヨタ国内 14 工場 28 ライン停止 (1 日)&#xa;生産見送り 約 13,000 台" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#D6B656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="164" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c1Cause" value="原因: 子会社 VPN 装置経由で本丸へ侵入&#xa;含意: サプライチェーン 1 社の情シス脆弱性が完成車メーカーを停止させる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="224" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c2Hdr" value="2022/10 大阪急性期・総合医療センター" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#7B2E2E;fontStyle=1;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="360" y="70" width="320" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="c2Body" value="事件: Phobos 系ランサムウェア&#xa;業種: 公立医療機関 (電子カルテ停止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="104" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c2Qty" value="完全復旧まで 約 2.5 ヶ月&#xa;直接被害 数億円 + 診療逸失 十数億円" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#D6B656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="164" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c2Cause" value="原因: VPN 脆弱性放置 / 全員管理者権限 / 共通パスワード&#xa;含意: 情シス基盤の老朽運用そのものが病院を止めた" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="224" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c3Hdr" value="2024/06 KADOKAWA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#7B2E2E;strokeColor=#4A1A1A;fontStyle=1;fontSize=12;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="690" y="70" width="320" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="c3Body" value="事件: BlackSuit によるネットワーク侵入&#xa;業種: 出版・映像・ニコニコ動画" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="104" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c3Qty" value="個人情報 254,241 人分流出&#xa;データ持ち出し 約 1.5TB / サービス長期停止" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#D6B656;fontSize=12;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="164" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c3Cause" value="原因: 社内ネットワーク横断侵害&#xa;含意: 25 万件超の漏洩と長期停止、株価と信用への直接打撃" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="224" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="sep" value="" style="endArrow=none;html=1;strokeColor=#999999;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="340" as="sourcePoint" />
+            <mxPoint x="1010" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="costHdr" value="インシデント対応の典型費用 (JNSA 2024)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="360" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="costBody" value="フォレンジック調査: 300-400 万円&#xa;コールセンター 3 ヶ月設置: 700-1,000 万円&#xa;(中小規模でも数千万〜数億円の実損ケース多数)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="390" width="480" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="threatHdr" value="IPA 情報セキュリティ 10 大脅威 2024 / 2025 (組織編)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="530" y="360" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="threatBody" value="1 位: ランサムウェアによる被害 (4 年連続 1 位)&#xa;2 位: サプライチェーンの弱点を悪用した攻撃&#xa;→ 古い VPN / 権限設計 / 共通パスワードが主な入口" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="390" width="480" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="concl" value="含意: 情シス基盤の老朽化は直接的にインシデント被害を増幅する。k1s0 の tier1 (監査ログ・暗号・アクセス制御の横串基盤) はこのリスク縮減の投資として説明可能。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="500" width="980" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="出典: 小島プレス調査報告書 2022/3 / 大阪急性期センター報告書 2023/3 / KADOKAWA 2024/8/5 / JNSA 2024 / IPA 10 大脅威 2025" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="580" width="1040" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
