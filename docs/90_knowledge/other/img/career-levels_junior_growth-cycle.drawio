@@ -1,0 +1,49 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="junior-growth-cycle" name="junior-growth-cycle">
+    <mxGraphModel dx="1000" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ジュニアの成長ループ（1 タスクあたり 3〜7 日）" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="960" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="task" value="&lt;b&gt;① タスク受領&lt;/b&gt;&#xa;明確な仕様・範囲・期限が定まった&#xa;チケットを受け取る" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="180" y="130" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="impl" value="&lt;b&gt;② 実装&lt;/b&gt;&#xa;既存コードの作法を倣う&#xa;不明点はシニアに早めに質問する" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="review" value="&lt;b&gt;③ コードレビュー&lt;/b&gt;&#xa;シニアから指摘を受ける&#xa;設計・命名・テストの観点を学ぶ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="370" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="learn" value="&lt;b&gt;④ 学習と内面化&lt;/b&gt;&#xa;指摘を記録し次回に反映する&#xa;同じ指摘を二度受けないことが要" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="180" y="370" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="着手" style="endArrow=classic;html=1;strokeColor=#444444;fontSize=11;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="task" target="impl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="PR 提出" style="endArrow=classic;html=1;strokeColor=#444444;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="impl" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="フィードバック" style="endArrow=classic;html=1;strokeColor=#444444;fontSize=11;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="review" target="learn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="次のタスク" style="endArrow=classic;html=1;strokeColor=#444444;fontSize=11;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="learn" target="task">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note_top" value="ジュニアの評価はタスク消化量ではなく「同じ指摘を繰り返さない学習速度」で決まる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#D6B656;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="180" y="80" width="640" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="note_bottom" value="次レベル（Mid）への準備サイン: (1) 仕様に曖昧さがあっても自分で仮説を立てられる (2) 既存コードから作法を推測して適用できる (3) 他人の PR にコメントで意味ある質問ができる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#999999;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="560" width="940" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note_pitfall" value="よくある落とし穴: (1) 不明点を抱え込んで数日消耗する (2) 既存コード作法を無視して自己流を導入する (3) レビュー指摘を記録せず同じミスを繰り返す" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBE5E5;strokeColor=#B85450;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="630" width="940" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,37 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="mid-transition" name="mid-transition">
+    <mxGraphModel dx="1000" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Mid: Junior から Senior への過渡期" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="960" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="left_header" value="&lt;b&gt;Mid として定着済み&lt;/b&gt;&#xa;（Junior からの卒業点）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="left_body" value="• 仕様に曖昧さが残っても自分で仮説を立てて着手できる&#xa;&#xa;• 既存コードベースの作法を推測・適用できる&#xa;&#xa;• 他者の PR に意味のあるコメントを書ける&#xa;&#xa;• ログや計装から障害を自力で原因特定できる&#xa;&#xa;• チケットの範囲をスコープ化して提案できる&#xa;&#xa;• 単体テストを設計とセットで書く習慣がある" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="150" width="400" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="right_header" value="&lt;b&gt;Senior に向けて獲得中&lt;/b&gt;&#xa;（次レベルへのギャップ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="570" y="90" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="right_body" value="• チーム横断の設計レビューで建設的に反論できる&#xa;&#xa;• 大きな機能を設計ドキュメントに落とせる&#xa;&#xa;• PM やデザイナと要件の詰めができる&#xa;&#xa;• 障害対応でインシデントコマンダを務められる&#xa;&#xa;• ジュニアに教える・引き上げる責任を持てる&#xa;&#xa;• 技術的負債の優先度をビジネス文脈で語れる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="570" y="150" width="400" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="growth_arrow" value="成長方向" style="endArrow=classic;html=1;strokeColor=#444444;strokeWidth=3;fontSize=13;fontStyle=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="370" as="sourcePoint" />
+            <mxPoint x="560" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="warn" value="⚠ Mid の最大の落とし穴: 「Junior は脱した」という自己認識に留まり、シニア相当のスコープを避け続けること。実装スキルだけでは Senior に昇進できない（設計・調整・育成の 3 つが不足する）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBE5E5;strokeColor=#B85450;fontSize=12;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="620" width="940" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

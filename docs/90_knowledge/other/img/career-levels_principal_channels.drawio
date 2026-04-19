@@ -1,0 +1,43 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="principal-channels" name="principal-channels">
+    <mxGraphModel dx="1000" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Principal の 4 つの影響チャネル" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="960" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="core" value="&lt;b&gt;Principal&lt;/b&gt;&#xa;組織全体の&#xa;技術方向性に責任" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="320" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="north" value="&lt;b&gt;① 技術戦略ペーパー&lt;/b&gt;&#xa;&#xa;• 数年単位の技術投資計画&#xa;• 競合分析と差別化方針&#xa;• 主要技術選定の方向付け&#xa;• 技術負債の優先度策定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="380" y="90" width="240" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="east" value="&lt;b&gt;② 役員対話&lt;/b&gt;&#xa;&#xa;• CTO・VPE との同期&#xa;• 技術判断の経営説明&#xa;• 予算・投資配分の合意&#xa;• 買収・提携の技術評価" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="720" y="310" width="240" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="south" value="&lt;b&gt;③ 技術文化形成&lt;/b&gt;&#xa;&#xa;• エンジニアリング価値観の言語化&#xa;• ドキュメント文化の醸成&#xa;• レビュー・設計基準の整備&#xa;• 外部ブランディング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="380" y="500" width="240" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="west" value="&lt;b&gt;④ 採用・育成&lt;/b&gt;&#xa;&#xa;• レベル別採用基準の策定&#xa;• 最終面接・レベル判定&#xa;• Staff 以下の育成ロードマップ&#xa;• Principal 候補の発掘" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="240" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="a_n" style="endArrow=classic;html=1;strokeColor=#444444;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="core" target="north">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_e" style="endArrow=classic;html=1;strokeColor=#444444;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="core" target="east">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_s" style="endArrow=classic;html=1;strokeColor=#444444;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="core" target="south">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_w" style="endArrow=classic;html=1;strokeColor=#444444;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="core" target="west">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
