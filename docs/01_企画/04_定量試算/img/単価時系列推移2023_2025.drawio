@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="p1" name="unit_price_trend">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="IT 人月単価の時系列推移 (2023-2025) / k1s0 前提 100-115 万円との位置関係" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="16" width="1000" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="axY" value="" style="endArrow=none;html=1;strokeColor=#333333;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="80" as="sourcePoint" />
+            <mxPoint x="140" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="axX" value="" style="endArrow=none;html=1;strokeColor=#333333;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="420" as="sourcePoint" />
+            <mxPoint x="920" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="y60" value="60" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="413" width="34" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="y80" value="80" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="345" width="34" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="y100" value="100" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="277" width="34" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="y120" value="120" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="209" width="34" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="y140" value="140" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="141" width="34" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="yUnit" value="(万円/月)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="90" y="86" width="60" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="k1Band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=none;opacity=60;" vertex="1" parent="1">
+          <mxGeometry x="140" y="226" width="780" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="k1Lbl" value="k1s0 前提帯 100-115 万円" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontColor=#2D5D2F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="232" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="x1" value="2023/07" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="426" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" value="2024/01" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="260" y="426" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="x3" value="2024/07" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="410" y="426" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="x4" value="2025/01" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="560" y="426" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="x5" value="2025/07" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="710" y="426" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="x6" value="2025/10" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="850" y="426" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="rL1" value="" style="endArrow=none;html=1;strokeColor=#9673A6;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="175" y="332" as="sourcePoint" />
+            <mxPoint x="745" y="294" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rL2" value="" style="endArrow=none;html=1;strokeColor=#9673A6;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="745" y="294" as="sourcePoint" />
+            <mxPoint x="885" y="272" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rP1" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#69458F;" vertex="1" parent="1">
+          <mxGeometry x="169" y="326" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="rP2" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#69458F;" vertex="1" parent="1">
+          <mxGeometry x="739" y="288" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="rP3" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#69458F;" vertex="1" parent="1">
+          <mxGeometry x="879" y="266" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="rV1" value="86.0" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#69458F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="152" y="306" width="46" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="rV2" value="91.9" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#69458F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="722" y="268" width="46" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="rV3" value="93.7" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#69458F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="862" y="246" width="46" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="gL1" value="" style="endArrow=none;html=1;strokeColor=#D79B00;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="175" y="326" as="sourcePoint" />
+            <mxPoint x="745" y="318" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gP1" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D79B00;strokeColor=#C48710;" vertex="1" parent="1">
+          <mxGeometry x="169" y="320" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="gP2" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D79B00;strokeColor=#C48710;" vertex="1" parent="1">
+          <mxGeometry x="739" y="312" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="gV1" value="87.0" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#8B5A00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="152" y="340" width="46" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="gV2" value="88.5" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#8B5A00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="722" y="330" width="46" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sL1" value="" style="endArrow=none;html=1;strokeColor=#B85450;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="745" y="261" as="sourcePoint" />
+            <mxPoint x="885" y="232" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sP1" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#7B2E2E;" vertex="1" parent="1">
+          <mxGeometry x="739" y="255" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sP2" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#7B2E2E;" vertex="1" parent="1">
+          <mxGeometry x="879" y="226" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="sV1" value="99.5" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#7B2E2E;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="722" y="237" width="46" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="sV2" value="108.2" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#7B2E2E;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="862" y="206" width="50" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="dP" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6C8EBF;strokeColor=#23445D;" vertex="1" parent="1">
+          <mxGeometry x="409" y="188" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="dV" value="120 (DX コンサル 2024)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#23445D;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="427" y="184" width="170" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="leg" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="90" width="60" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legR" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#69458F;" vertex="1" parent="1">
+          <mxGeometry x="196" y="92" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="legRL" value="Rust" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="213" y="88" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legG" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D79B00;strokeColor=#C48710;" vertex="1" parent="1">
+          <mxGeometry x="260" y="92" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="legGL" value="Go" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="277" y="88" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legS" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#7B2E2E;" vertex="1" parent="1">
+          <mxGeometry x="314" y="92" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="legSL" value="SRE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="331" y="88" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legD" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#6C8EBF;strokeColor=#23445D;" vertex="1" parent="1">
+          <mxGeometry x="378" y="92" width="12" height="12" as="geometry" />
+        </mxCell>
+        <mxCell id="legDL" value="DX コンサル" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="395" y="88" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="note1" value="Rust は 2025/5-10 で 6 ヶ月連続上昇。SRE は 2025/9 に前月比 +8.7 万円で全職種トップ躍進。DX コンサルは 2024 年ランキング首位。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="30" y="450" width="940" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="concl" value="k1s0 の 100-115 万円帯は Rust 上位 (93.7 万円) に 10-20% の元請マージンを乗せた中位帯で、2023/7 比で +8% の名目上昇局面に位置する「6 ヶ月連続トレンド上の水準」。単年の振れではない。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="30" y="482" width="940" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="出典: エン・ジャパン フリーランススタート 2025/3-10 / レバテックフリーランス 2024 推移 / HiPro Tech 2024" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="580" width="1000" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
