@@ -1,0 +1,55 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="flow-onboarding" name="テナントオンボーディングフロー">
+    <mxGraphModel dx="1600" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="新規部門オンボーディング: 現行 4 週間 → k1s0 導入後 2 営業日" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1000" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="申請 → 承認 → プロビジョニング → 開発者招待 を Self-Service 化。ZEN Engine の決定表がポリシー適用を駆動" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="250" y="56" width="1100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="as-hdr" value="現行フロー (4 週間 / スキル差で 2〜6 週ブレ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-hdr" value="k1s0 導入後 (2 営業日 / 標準化)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="as1" value="&lt;b&gt;部門申請書提出 (紙 / PDF)&lt;/b&gt;&lt;br&gt;部門長・情シス・経理の承認ハンコ回付" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as2" value="&lt;b&gt;情シス承認会議 (週次)&lt;/b&gt;&lt;br&gt;承認待ちで 1〜2 週間経過" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as3" value="&lt;b&gt;手動プロビジョニング&lt;/b&gt;&lt;br&gt;namespace / RBAC / NetworkPolicy / CI/CD 雛形 を担当者が個別作成&lt;br&gt;担当者スキル差により 2〜6 週間の幅" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="as4" value="&lt;b&gt;サンプルアプリ動作確認 + 研修 (対面 2 日)&lt;/b&gt;&lt;br&gt;開発者の現地集合、講師工数" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="420" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as5" value="&lt;b&gt;利用開始&lt;/b&gt;&lt;br&gt;しかし部門ごとに設定ばらつき、保守時に個別対応" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tb1" value="&lt;b&gt;Backstage Self-Service 申請 (部門長)&lt;/b&gt;&lt;br&gt;フォーム入力 10 分、承認者・予算・必要機能を選択&lt;br&gt;Git PR が自動作成され、申請内容の Diff が可視化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="160" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb2" value="&lt;b&gt;情シスマネージャ承認 (ボタン 1 回)&lt;/b&gt;&lt;br&gt;ZEN Engine の決定表が適用条件を判定&lt;br&gt;ガードレール自動適用、承認のリードタイム最小化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="260" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb3" value="&lt;b&gt;自動プロビジョニング (Argo CD + Kyverno)&lt;/b&gt;&lt;br&gt;namespace / Keycloak Realm / RBAC / NetworkPolicy / Argo CD Application を GitOps で一括作成&lt;br&gt;Audit ログ初期化、Feature Flag デフォルト設定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="360" width="660" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tb4" value="&lt;b&gt;開発者招待メール + Self-Training&lt;/b&gt;&lt;br&gt;SDK ダウンロードリンク / サンプルアプリ Hands-on&lt;br&gt;録画ビデオ (2h) と Backstage TechDocs で自学自習" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="470" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb5" value="利用開始 / 部門設定は標準テンプレート準拠で統一" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="570" width="660" height="36" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

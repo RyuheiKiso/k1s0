@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="flow-new-service" name="新規業務アプリ立ち上げフロー">
+    <mxGraphModel dx="1600" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="新規業務アプリ立ち上げ: 現行 12 週 → k1s0 導入後 4 週" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1000" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="寒色セルは k1s0 基盤が吸収する共通工程。暖色セルは tier2 が本来集中すべき業務ロジック工程" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="250" y="56" width="1100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="as-is-hdr" value="現行フロー (12 週間、共通基盤も自作)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="tobe-hdr" value="k1s0 導入後 (4 週間、基盤は tier1 に吸収)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="as1" value="&lt;b&gt;週 1-2: 要件取りまとめ&lt;/b&gt;&lt;br&gt;情シス企画 + tier2 発注書&lt;br&gt;認証方式決定会議 (週次)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="660" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="as2" value="&lt;b&gt;週 3-4: 技術設計 (自作)&lt;/b&gt;&lt;br&gt;k8s YAML / Istio VS / PG スキーマ / Kafka トピック&lt;br&gt;Redis キー / Secret 管理 / 監査ログ方式をすべて自前設計" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="as3" value="&lt;b&gt;週 5-8: 実装 + インフラ往復 (2 週ロス)&lt;/b&gt;&lt;br&gt;業務ロジック実装と並行して、ネットワーク / PVC / RBAC の調整が発生&lt;br&gt;共通基盤層が tier2 工数の 40% を占める" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="350" width="660" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="as4" value="&lt;b&gt;週 9-10: 結合試験&lt;/b&gt;&lt;br&gt;監視ダッシュボード / 監査ログ / バックアップを個別構築" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="460" width="660" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="as5" value="&lt;b&gt;週 11: 性能試験 + 脆弱性スキャン&lt;/b&gt;&lt;br&gt;シナリオ自作、負荷基盤自作、スキャン手動実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="550" width="660" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="as6" value="&lt;b&gt;週 12: 本番リリース + 監査部門への通知&lt;/b&gt;&lt;br&gt;SBOM 手動作成、監査通知資料を個別作成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="640" width="660" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="as-total" value="合計 12 週間 / tier2 工数の 40% が共通基盤層で消費" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="730" width="660" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="tb1" value="&lt;b&gt;週 1: 業務要件詰め&lt;/b&gt;&lt;br&gt;認証・監査・監視・バックアップは k1s0 基盤が提供&lt;br&gt;設計会議は業務ロジックに集中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="160" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb2" value="&lt;b&gt;週 2: scaffold + 業務ロジック実装&lt;/b&gt;&lt;br&gt;k1s0 CLI init で Go プロジェクト自動生成、ZEN JDM で承認ルール宣言記述&lt;br&gt;tenant_id 発行は Backstage Self-Service で 1 日以内" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="260" width="660" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tb3" value="&lt;b&gt;週 3: 結合試験&lt;/b&gt;&lt;br&gt;監査ログ・監視ダッシュボード・SBOM は CI で自動生成&lt;br&gt;業務ロジックのテストに集中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="370" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb4" value="&lt;b&gt;週 4: 性能試験 + Canary リリース&lt;/b&gt;&lt;br&gt;k1s0 標準負荷試験テンプレートを流用&lt;br&gt;Argo Rollouts で 10% → 50% → 100%、監査通知は自動抽出" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="470" width="660" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-absorbed" value="&lt;b&gt;k1s0 基盤が吸収する共通工程&lt;/b&gt;&lt;br&gt;k8s YAML / Istio / PG / Kafka / Secret / 監査ログ / 監視 / バックアップ / SBOM / Canary&lt;br&gt;これらは複数アプリで 1 回分の工数に縮約" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="580" width="660" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-total" value="合計 4 週間 / tier2 は業務ロジックに 100% 集中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="730" width="660" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-hdr" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="790" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-app" value="アプリ層 (業務ロジック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="140" y="790" width="180" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-net" value="ネットワーク / 基盤層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="330" y="790" width="180" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-bad" value="現行の痛点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="520" y="790" width="120" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-good" value="改善後の効果" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="650" y="790" width="120" height="26" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

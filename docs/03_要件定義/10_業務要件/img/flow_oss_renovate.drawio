@@ -1,0 +1,55 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="flow-oss-renovate" name="OSS バージョン追従フロー">
+    <mxGraphModel dx="1600" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="OSS バージョン追従: 現行 手作業 数百時間/年 → k1s0 自動 PR + Argo CD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1200" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Critical CVE 48 時間以内 / 通常は月次計画ウィンドウで処理 / Phase 2 以降は Cosign + Kyverno で未署名デプロイ禁止" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="200" y="56" width="1200" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="as-hdr" value="現行フロー (月 1-2 回の議論、OSS 1 種 2〜4 日、年間 数百時間)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="tb-hdr" value="k1s0 導入後 (自動 PR → approve → 自動同期)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="700" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="as1" value="&lt;b&gt;月次チームミーティング&lt;/b&gt;&lt;br&gt;何を上げるか議論、担当者割当" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as2" value="&lt;b&gt;手動 CVE 情報収集&lt;/b&gt;&lt;br&gt;NVD / GitHub Advisory / ベンダーサイトを個別確認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as3" value="&lt;b&gt;検証環境で手動動作確認&lt;/b&gt;&lt;br&gt;担当者スキル差で検証品質にばらつき、漏れが発生" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as4" value="&lt;b&gt;本番適用 (手運用)&lt;/b&gt;&lt;br&gt;平日夜間・休日の適用作業、オペミスリスク" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="as5" value="&lt;b&gt;痛点: Critical CVE 対応遅延&lt;/b&gt;&lt;br&gt;月次サイクルなので発見 → 対応に 2〜4 週間、脆弱性の窓が広がる" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tb1" value="&lt;b&gt;Renovate 自動 PR 作成&lt;/b&gt;&lt;br&gt;バージョン検知、CHANGELOG 自動抽出、影響範囲解析" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="160" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tb2" value="&lt;b&gt;CI 自動検証&lt;/b&gt;&lt;br&gt;ユニット / 結合 / 契約 / E2E / セキュリティスキャン (Trivy / Snyk) を自動実行&lt;br&gt;Pact 契約テストで破壊変更を検出" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="240" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb3" value="&lt;b&gt;SRE が CVE 情報と Diff を確認 → approve&lt;/b&gt;&lt;br&gt;Critical は 48 時間以内、それ以外は月次ウィンドウ&lt;br&gt;approve 自体は数分、レビュー内容は Git 履歴に残る" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="340" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb4" value="&lt;b&gt;Argo CD 自動同期 (staging → prod)&lt;/b&gt;&lt;br&gt;Argo Rollouts Canary + SLO 自動ロールバック&lt;br&gt;Cosign 未署名は Kyverno で deploy 拒否" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="440" width="660" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tb5" value="工数: OSS 1 種あたり 数十分、年間数十時間。Critical CVE の検知 → 本番反映が 48h 以内" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="540" width="660" height="36" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
