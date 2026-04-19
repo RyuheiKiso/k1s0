@@ -70,14 +70,16 @@ docs/
 │   ├── 03_技術選定/
 │   ├── 04_CICDと配信/
 │   └── 05_法務とコンプライアンス/
-├── 03_要件定義/        # 要件定義書（7 カテゴリ構造）
-│   ├── 00_共通/              # 横断要件・assumption・constraint・risk・stakeholder・error_taxonomy・glossary
-│   ├── 10_アーキテクチャ/    # infra・tier1-3・integration・api/sdk contract・rule_engine・eventing
-│   ├── 20_品質特性/          # performance・availability・observability・sla_slo・tenant_isolation・DR_BCP・accessibility
-│   ├── 30_セキュリティ_データ/ # security・IAM・kms_crypto・audit・data・privacy・data_residency・backup_restore・artifact_integrity・compliance
-│   ├── 40_運用ライフサイクル/ # operation・CICD・release・environment_config・migration・incident_response・support・deprecation_EOL・exit_strategy
-│   ├── 50_開発者体験/        # test・devex・feature_management
-│   └── 60_事業_契約/         # UX・i18n_l10n・tenant_onboarding・training・cost・licensing・billing_metering・legal_contract・vendor_supplychain・governance・ai_governance・analytics・sustainability
+├── 03_要件定義/        # 要件定義書（IPA 共通フレーム 2013 / 非機能要求グレード 2018 準拠）
+│   ├── 00_要件定義方針/      # スコープ・前提制約・ステークホルダ・用語集・エラータクソノミ・リスクレジスタ・ADR 索引・データ辞書
+│   ├── 10_業務要件/          # 業務背景・ビジネスプロセス・主要ユースケース
+│   ├── 20_機能要件/          # tier1 公開 11 API（Service Invoke/State/PubSub/Secrets/Binding/Workflow/Log/Telemetry/Decision/Audit-Pii/Feature）・外部連携・情報要件
+│   ├── 30_非機能要件/        # A 可用性・B 性能拡張・C 運用保守・D 移行・E セキュリティ・F システム環境エコロジー・G データ保護プライバシー・H 完整性コンプライアンス
+│   ├── 40_運用ライフサイクル/ # インシデント対応・サポート階層・環境構成管理・非推奨と EOL・撤退戦略
+│   ├── 50_開発者体験/        # テスト戦略・ゴールデンパス・DevEx 指標・Feature Management・ローカル開発環境
+│   ├── 60_事業契約/          # UX・i18n/l10n・テナントオンボーディング・教育訓練・コスト・課金・OSS ライセンス・法務契約・サプライチェーン・ガバナンス・AI ガバナンス・分析・サステナビリティ
+│   ├── 80_トレーサビリティ/  # 要件 ID 索引・企画要件マトリクス・構想設計マトリクス・要件間依存マトリクス
+│   └── 90_付録/              # 共通フレーム 2013 対応表・非機能要求グレード判定・参考文献
 ├── 04_概要設計/        # 概要設計（要件定義後のフェーズ、現在はひな形）
 ├── 90_knowledge/       # 技術学習用ドキュメント（/knowledge コマンドで生成）
 └── 99_壁打ち/          # ブレスト・検討メモ

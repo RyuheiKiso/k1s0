@@ -1,0 +1,209 @@
+# 08. ADR 索引
+
+本書は k1s0 プロジェクトの Architecture Decision Records（ADR）を一元索引する。ADR の本体は構想設計フェーズで発番・記述するが、要件定義時点で既に確定している技術判断を ADR 化することで、要件と判断理由の双方向トレーサビリティを担保する。
+
+## 本書の位置付け
+
+要件定義は「何を作るか」、ADR は「なぜその技術で作るか」を記述する。両者を分離することで、要件は変わっても技術判断が有効であり続ける場合や、逆に技術判断が更新されても要件は維持される場合を明確にできる。ADR 索引は要件定義から技術判断へのリンク集として機能する。
+
+## ADR 記述ルール
+
+k1s0 の ADR は以下の構造で記述する。
+
+- **Title**: `ADR-<NUMBER>: <短い判断名>`
+- **Status**: Proposed / Accepted / Deprecated / Superseded
+- **Context**: なぜこの判断が必要になったか、関連する要件・制約
+- **Decision**: 選択した方針
+- **Consequences**: この判断による正負の影響
+- **Alternatives**: 検討した他の選択肢と却下理由
+- **Related Requirements**: 要件 ID のリスト
+
+ADR ファイルは `docs/02_構想設計/` 配下の適切なサブフォルダに配置する。本索引はリンク集であり、ADR 本体のリポジトリではない。
+
+## ADR 一覧
+
+以下は要件定義時点で既に確定している、または Phase 1a で確定すべき主要 ADR のリストである。
+
+### アーキテクチャ基盤
+
+- **ADR-0001: Istio Ambient Mesh 採用**
+  - 判断: サービスメッシュに Istio Ambient（sidecar なし）を採用する
+  - 理由: sidecar 版の運用負担と比べ、ztunnel + waypoint 構成の簡潔性、メモリ効率が JTC 規模に適合
+  - 関連要件: NFR-B-PERF-001（p99 レイテンシ）、NFR-C-NOP-001（運用負荷）
+
+- **ADR-0002: 4 レイヤ図解規約**
+  - 判断: drawio 図は 4 レイヤ（アプリ / ネットワーク / インフラ / データ）で色分け
+  - 理由: レイヤ間の責務境界を視覚的に明確化、認識齟齬を回避
+  - 関連要件: ドキュメント規約（CLAUDE.md）
+
+- **ADR-0003: AGPL 分離アーキテクチャ**
+  - 判断: AGPL OSS（Grafana 等）はプロセス分離してリンクを回避
+  - 理由: AGPL 義務の自社コード波及を防ぐ、法務リスク低減
+  - 関連要件: BC-LIC-004、NFR-E-LIC-001
+
+### tier1 設計
+
+- **ADR-TIER1-001: Go + Rust ハイブリッド方針**
+  - 判断: Dapr ファサード層は Go（stable SDK）、ZEN Engine/crypto/雛形 CLI/JTC 固有は Rust
+  - 理由: Go Dapr SDK の成熟度と、Rust 領域での性能・型安全性の両取り
+  - 関連要件: 全 tier1 API 要件
+
+- **ADR-TIER1-002: 内部通信は gRPC/Protobuf 必須**
+  - 判断: tier1 内部サービス間は Protobuf gRPC、型安全と性能の両立
+  - 理由: スキーマ駆動で破壊的変更を CI 検出、バイナリプロトコルで低レイテンシ
+  - 関連要件: NFR-B-PERF-001、OR-EOL-001（SemVer 互換）
+
+- **ADR-TIER1-003: tier2/tier3 からは言語不可視**
+  - 判断: クライアント SDK と gRPC 公開 API のみ公開、内部 Go/Rust は不可視
+  - 理由: tier2/tier3 実装言語を自由化、内部再実装を透過可能
+  - 関連要件: FR-T1-INVOKE 系、OR-EOL-001
+
+### データとストレージ
+
+- **ADR-DATA-001: PostgreSQL 採用（CloudNativePG）**
+  - 判断: 業務データの RDB は PostgreSQL、運用は CloudNativePG Operator
+  - 理由: AGPL 相当の強い copyleft を持たず、Kubernetes Operator が成熟
+  - 関連要件: NFR-A-CONT（RPO）、FR-T1-STATE
+
+- **ADR-DATA-002: Kafka 採用（Strimzi）**
+  - 判断: イベントバスは Kafka、運用は Strimzi Operator
+  - 理由: 業界デファクト、Strimzi で Kubernetes ネイティブ運用、Dapr PubSub 対応
+  - 関連要件: FR-T1-PUBSUB、NFR-B-WL
+
+- **ADR-DATA-003: MinIO 採用**
+  - 判断: オブジェクトストレージは MinIO、S3 互換 API
+  - 理由: OSS で S3 互換、オンプレ運用確立、Longhorn との相性
+  - 関連要件: FR-T1-BINDING
+
+- **ADR-DATA-004: Valkey 採用（Redis 代替）**
+  - 判断: インメモリ KVS は Valkey（Redis の BSD フォーク後継）
+  - 理由: Redis が RSAL ライセンスに変更されたため、真の OSS である Valkey を採用
+  - 関連要件: FR-T1-STATE、NFR-B-PERF
+
+### セキュリティと認証
+
+- **ADR-SEC-001: Keycloak 採用**
+  - 判断: ID プロバイダは Keycloak、OIDC 準拠
+  - 理由: 成熟 OSS、Federation 機能で既存 AD/LDAP 統合容易、Apache License 2.0
+  - 関連要件: NFR-E-AC、FR-EXT-IDP
+
+- **ADR-SEC-002: OpenBao 採用（HashiCorp Vault 代替）**
+  - 判断: Secret 管理は OpenBao（HashiCorp Vault の MPL 2.0 時代のフォーク）
+  - 理由: Vault の BUSL ライセンス変更を回避、コミュニティ主導の OpenBao で OSS 継続性を確保
+  - 関連要件: NFR-E-ENC、FR-T1-SECRETS
+
+- **ADR-SEC-003: SPIFFE/SPIRE + Istio ワークロード ID**
+  - 判断: ワークロード ID は SPIFFE 標準、Istio Ambient に統合
+  - 理由: 業界標準、マルチクラウド移行時の互換性確保
+  - 関連要件: NFR-E-AC、NFR-F-STD-001
+
+### CI/CD と配信
+
+- **ADR-CICD-001: Argo CD 採用**
+  - 判断: GitOps ツールは Argo CD
+  - 理由: CNCF Graduated、Kubernetes ネイティブ、成熟度と機能性で Flux を上回る実績
+  - 関連要件: OR-ENV-002、NFR-C-MNT
+
+- **ADR-CICD-002: Argo Rollouts 採用**
+  - 判断: Canary / Blue-Green デプロイは Argo Rollouts
+  - 理由: Argo CD との統合、progressive delivery の実績
+  - 関連要件: NFR-D-MTH-002、DX-FM-004
+
+- **ADR-CICD-003: Kyverno ポリシーエンジン**
+  - 判断: Kubernetes Admission Controller は Kyverno
+  - 理由: 宣言的ポリシー（YAML）で Rego 言語学習不要、OPA 比で運用負荷低減
+  - 関連要件: NFR-E-AC、OR-ENV-006
+
+### ワークフローとルール
+
+- **ADR-RULE-001: ZEN Engine + JDM 採用**
+  - 判断: ルールエンジンは ZEN Engine、判断モデルは JDM（JSON Decision Model）
+  - 理由: Rust 実装で性能良好、JDM エディタの UX、DMN 標準より軽量
+  - 関連要件: FR-T1-DECISION
+
+- **ADR-RULE-002: Temporal 採用**
+  - 判断: 複雑な業務ワークフローは Temporal、軽量は Dapr Workflow
+  - 理由: 業界トップクラスの Durable Execution、エンタープライズ実績
+  - 関連要件: FR-T1-WORKFLOW
+
+### 可観測性
+
+- **ADR-OBS-001: OpenTelemetry 標準準拠**
+  - 判断: 全言語の計装は OpenTelemetry SDK
+  - 理由: CNCF 標準、ベンダーロックイン回避、Trace/Metric/Log の統一
+  - 関連要件: FR-T1-TELEMETRY、NFR-F-STD-001
+
+- **ADR-OBS-002: Grafana LGTM スタック**
+  - 判断: Loki（ログ）、Grafana（可視化）、Tempo（トレース）、Mimir（メトリクス）
+  - 理由: 統合された OSS 観測基盤、低コスト、Kubernetes ネイティブ
+  - 関連要件: NFR-C-NOP、FR-T1-LOG
+
+- **ADR-OBS-003: Prometheus + Mimir**
+  - 判断: メトリクス収集は Prometheus、長期保存は Mimir
+  - 理由: デファクト標準、PromQL エコシステム、スケーラブル長期保存
+  - 関連要件: NFR-B-PERF、NFR-C-MNT
+
+### Feature Management
+
+- **ADR-FM-001: flagd 採用（OpenFeature 準拠）**
+  - 判断: Feature Flag バックエンドは flagd
+  - 理由: OpenFeature 標準（CNCF）、ベンダーロックイン回避
+  - 関連要件: FR-T1-FEATURE、DX-FM
+
+### Backstage
+
+- **ADR-BS-001: Backstage 採用**
+  - 判断: Developer Portal は Backstage
+  - 理由: CNCF Incubating、エコシステム豊富、Software Template と TechDocs 統合
+  - 関連要件: DX-GP、BC-ONB-002
+
+### ストレージ基盤
+
+- **ADR-STOR-001: Longhorn 採用**
+  - 判断: Kubernetes CSI ストレージは Longhorn
+  - 理由: オンプレ運用で実績、レプリケーション・スナップショット機能
+  - 関連要件: NFR-A-CONT、NFR-F-CHR-002
+
+- **ADR-STOR-002: MetalLB 採用**
+  - 判断: オンプレ LoadBalancer は MetalLB
+  - 理由: L2 モード（Phase 1b）、BGP モード（Phase 3+）、オンプレ標準
+  - 関連要件: NFR-F-CHR-003
+
+### 移行と共存
+
+- **ADR-MIG-001: .NET Framework サイドカー方式**
+  - 判断: 既存 .NET Framework 資産統合の第一選択はサイドカー
+  - 理由: 既存アプリに最小変更で統合、HTTP/1.1 で k1s0 API 呼出
+  - 関連要件: NFR-D-MTH-001、FR-EXT-DOTNET-001
+
+- **ADR-MIG-002: .NET Framework API Gateway 方式**
+  - 判断: VM 直接稼働の既存アプリは Envoy Gateway 経由
+  - 理由: Pod 化できない資産も k1s0 統合可能
+  - 関連要件: NFR-D-MTH-001、FR-EXT-DOTNET-002
+
+## ADR ライフサイクル
+
+ADR は以下のステータスを持つ。
+
+- **Proposed**: 提案中、Product Council でレビュー待ち
+- **Accepted**: 承認済み、プラットフォームの現行判断
+- **Deprecated**: 非推奨、新規適用禁止（既存利用は許容）
+- **Superseded**: 後継 ADR に置換、旧 ADR として保全
+
+ADR は削除せず、Superseded として保全する。ステータス変更は Product Council 承認が必要。
+
+## ADR レビューサイクル
+
+- **新規 ADR**: Product Council 月次ミーティングで承認
+- **既存 ADR の陳腐化レビュー**: 年次で全 ADR を Product Council がレビュー、現行方針との整合を確認
+- **要件改訂時**: 関連 ADR への影響を必ず確認、必要に応じて ADR 更新
+
+## ADR と要件のトレーサビリティ
+
+要件定義書の各要件は、関連する ADR へのリンクを持つことが望ましい。逆に ADR は影響する要件 ID のリストを `Related Requirements` セクションに記述する。これにより以下が実現する。
+
+- 要件変更時に影響する ADR を即座に特定
+- ADR 変更時に影響する要件を即座に特定
+- 新規参画者が「この仕様の理由」を ADR 経由で理解
+
+トレーサビリティの詳細は [../80_トレーサビリティ/](../80_トレーサビリティ/) を参照。
