@@ -1,0 +1,31 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="staff-archetypes" name="staff-archetypes">
+    <mxGraphModel dx="1000" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Staff エンジニアの 4 アーキタイプ（Will Larson, 2021）" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="960" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tl" value="&lt;b&gt;Tech Lead&lt;/b&gt;（最多）&#xa;&#xa;&lt;b&gt;役割:&lt;/b&gt; 単一または複数チーム群を率いて、設計の複雑性を引き受けて前に進める&#xa;&#xa;&lt;b&gt;典型:&lt;/b&gt; プロダクトの新機能群を責任持って出す&#xa;&#xa;&lt;b&gt;評価軸:&lt;/b&gt; チームのアウトプットと品質&#xa;&#xa;&lt;b&gt;一日の中心:&lt;/b&gt; 設計ドキュメント、同期ミーティング、レビュー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="465" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="ar" value="&lt;b&gt;Architect&lt;/b&gt;&#xa;&#xa;&lt;b&gt;役割:&lt;/b&gt; 特定の技術領域（データ基盤・認証・決済など）の方向性と品質を保つ&#xa;&#xa;&lt;b&gt;典型:&lt;/b&gt; 認証基盤の刷新を数年スパンで主導&#xa;&#xa;&lt;b&gt;評価軸:&lt;/b&gt; 領域の技術的健全性と長期性&#xa;&#xa;&lt;b&gt;一日の中心:&lt;/b&gt; 深い調査、プロトタイプ、技術ペーパ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="505" y="90" width="465" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="sv" value="&lt;b&gt;Solver&lt;/b&gt;&#xa;&#xa;&lt;b&gt;役割:&lt;/b&gt; 既存チームで解けない困難課題に投入される遊軍。短期〜中期の火消し&#xa;&#xa;&lt;b&gt;典型:&lt;/b&gt; 経営課題化した大規模障害の根本対応、性能再設計&#xa;&#xa;&lt;b&gt;評価軸:&lt;/b&gt; 解決した問題の難易度とインパクト&#xa;&#xa;&lt;b&gt;一日の中心:&lt;/b&gt; 集中調査、深い実装、ステークホルダ報告" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="380" width="465" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="rh" value="&lt;b&gt;Right Hand&lt;/b&gt;（稀）&#xa;&#xa;&lt;b&gt;役割:&lt;/b&gt; 組織リーダー（VPE・CTO）の分身として意思決定と実行を補佐&#xa;&#xa;&lt;b&gt;典型:&lt;/b&gt; 役員の参謀として複数組織を束ね、方針を全社に下ろす&#xa;&#xa;&lt;b&gt;評価軸:&lt;/b&gt; 組織運営の質、役員の時間節約&#xa;&#xa;&lt;b&gt;一日の中心:&lt;/b&gt; 役員同席、戦略会議、全社ドキュメント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="505" y="380" width="465" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="同じ「Staff」でもアーキタイプによりやることが全く異なる。会社内に 4 種類すべて揃うとは限らず、採用時は「どのアーキタイプを求めているか」の合意が最初に必要" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#999999;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="660" width="940" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
