@@ -1,0 +1,199 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="観測性3シグナル収集経路" id="obs-3signals">
+    <mxGraphModel dx="1800" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="観測性 3 シグナル収集経路 — OpenTelemetry Collector から Grafana LGTM (Loki / Tempo / Mimir) へ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1720" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="src_bg" value="生成元 (tier1 / tier2 / tier3 / infra)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="360" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="src_go" value="tier1 Go ファサード&#10;go.opentelemetry.io/otel v1.26+&#10;k1s0-otel-go ラッパ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="src_rust" value="tier1 Rust 自作領域&#10;opentelemetry-rust v0.23+&#10;k1s0-otel-rust ラッパ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="src_cs" value="tier2 / tier3 (.NET)&#10;OpenTelemetry.NET v1.8+" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="src_ts" value="tier3 TypeScript / SPA&#10;@opentelemetry/sdk-node v1.24+" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="src_infra" value="Kubernetes ノード / Pod メトリクス&#10;kube-state-metrics / node-exporter&#10;(Prometheus Remote Write)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="src_tcx" value="W3C Trace Context (traceparent / tracestate) を全サービス間で必須伝播 (HTTP / gRPC / Kafka header)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="554" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="col_bg" value="OpenTelemetry Collector (DaemonSet + Gateway)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eaf2fb;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="500" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="col_recv" value="Receivers&#10;OTLP gRPC / HTTP&#10;Prometheus scrape (pull)&#10;Filelog (Pod stdout)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="120" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="col_proc" value="Processors&#10;batch / memory_limiter&#10;resource (k1s0 標準属性付与)&#10;tail_sampling (error / latency)&#10;attributes (PII redaction)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="120" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="col_exp" value="Exporters&#10;otlphttp → Tempo&#10;loki → Loki&#10;prometheusremotewrite → Mimir" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="280" width="460" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="col_note" value="head sampling 10% (parent-based)&#10;tail sampling 補足 +3% (error / latency / feature flag)&#10;想定 2,500 万 Span/日 ≒ 20 GB/日" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f9ff;strokeColor=#6c8ebf;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="410" width="460" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="col_agpl" value="ADR-0003 原則遵守: tier1 コードは OTel Collector に OTLP 送信のみ&#10;Loki / Tempo / Mimir の SDK を直接 import しない (AGPL 境界遮断)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="510" width="460" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lgtm_bg" value="Grafana LGTM スタック (独立 Namespace / Pod)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3eaf5;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="80" width="660" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="tempo" value="Grafana Tempo&#10;(Trace)&#10;保管 30 日 / Critical Path 90 日&#10;バックエンド: MinIO (S3 互換)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="120" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Grafana Loki&#10;(Log)&#10;保管 30 日&#10;バックエンド: MinIO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="120" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="mimir" value="Grafana Mimir&#10;(Metrics / Exemplar)&#10;保管 13 ヶ月&#10;バックエンド: MinIO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="260" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO Object Storage (3 シグナル共通バックエンド)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="400" width="620" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana" value="Grafana UI&#10;Trace ↔ Log ↔ Metrics pivot (trace_id / Exemplar 相関)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="480" width="620" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana_note" value="Envoy Gateway + Keycloak OIDC で閲覧制御 (外部公開しない)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="555" width="620" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_go_col" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=0.2;" edge="1" parent="1" source="src_go" target="col_recv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rust_col" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="src_rust" target="col_recv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cs_col" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=0.8;" edge="1" parent="1" source="src_cs" target="col_recv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ts_col" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=1;" edge="1" parent="1" source="src_ts" target="col_recv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_infra_col" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" edge="1" parent="1" source="src_infra" target="col_recv">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="490" />
+              <mxPoint x="440" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_infra_col_label" value="OTLP push / Prometheus scrape" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="404" y="430" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_recv_proc" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="col_recv" target="col_proc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_proc_exp" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="col_proc" target="col_exp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_exp_tempo" value="Trace (OTLP)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.3;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="col_exp" target="tempo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="310" />
+              <mxPoint x="1040" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_exp_loki" value="Log (Loki API)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.7;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="col_exp" target="loki">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="350" />
+              <mxPoint x="1080" y="245" />
+              <mxPoint x="1430" y="245" />
+              <mxPoint x="1430" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_exp_mimir" value="Metrics (Remote Write)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="col_exp" target="mimir">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="330" />
+              <mxPoint x="1080" y="315" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_tempo_minio" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#9673a6;dashed=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="tempo" target="minio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_loki_minio" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#9673a6;dashed=1;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="loki" target="minio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mimir_minio" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#9673a6;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="mimir" target="minio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_tempo_grafana" style="endArrow=none;html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=0.5;exitY=1;entryX=0.15;entryY=0;" edge="1" parent="1" source="minio" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_grafana_pivot" value="pivot: trace_id / Exemplar / LogQL フィルタ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="455" width="540" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="1200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="■ アプリ層 (暖色 #fff2cc / #d79b00): tier1 Go / Rust / tier2 / tier3 (OpenTelemetry 計装を含むアプリ)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="656" width="1160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="■ ネットワーク層 (寒色 #dae8fc / #6c8ebf): OpenTelemetry Collector (OTLP 受信 / 加工 / ルーティング)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="679" width="1160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="■ データ層 (薄紫 #e1d5e7 / #9673a6): Grafana Tempo / Loki / Mimir / MinIO (3 シグナルの保管庫)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="702" width="1160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="■ インフラ層 (中性灰 #f5f5f5 / #666666): Kubernetes ノード / kube-state-metrics / node-exporter" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="725" width="1160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_solid" value="→ 実線太: 同期の明示送信 (OTLP push / Remote Write / Loki API)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="748" width="1160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashed" value="→ 破線: 非同期永続化 (Tempo / Loki / Mimir → MinIO の chunk flush)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="771" width="1160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="spec" value="設計 ID / 採用理由" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="630" width="500" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="sv1" value="DS-CF-TRACE-001 OTLP を tier1/2/3 標準" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="656" width="480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sv2" value="DS-CF-TRACE-004 head 10% + tail 補足 (error / latency)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="679" width="480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sv3" value="DS-CF-TRACE-007 Tempo / Loki / Mimir 保管期間" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="702" width="480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sv4" value="DS-CF-TRACE-008 ADR-0003 AGPL 5 原則遵守" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="725" width="480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sv5" value="DS-CF-TRACE-009 trace_id / Exemplar で 3 シグナル pivot" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="748" width="480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sv6" value="DS-CF-TRACE-010 日次 20 GB / 30 日 600 GB ストレージ予算" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="771" width="480" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

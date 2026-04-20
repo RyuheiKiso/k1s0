@@ -1,0 +1,152 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="env_separation_overview" id="env-sep-overview">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1180" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1180" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 環境分離の全体像（dev / staging / prod + DR Phase2）— ネットワーク境界 / 権限境界 / データ境界の三重分離" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1620" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gitops_bar" value="GitOps Single Source of Truth（Git リポジトリ env/dev, env/staging, env/prod）→ Argo CD が各クラスタへ同期" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="70" width="1540" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="360" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="dev_lane_title" value="dev 環境（開発者日常作業）&#10;VLAN-A / cluster-dev / 3 VM 最小構成" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="170" width="360" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="stg_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="470" y="160" width="360" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="stg_lane_title" value="staging 環境（本番同等性検証）&#10;VLAN-B / cluster-staging / prod 構成の 1/3 スケール" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="170" width="360" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prd_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="860" y="160" width="360" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="prd_lane_title" value="prod 環境（本番稼働）&#10;VLAN-C / cluster-prod / 3〜6 VM 拡張" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="170" width="360" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dr_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="160" width="360" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_lane_title" value="DR 環境（Phase 2 以降追加）&#10;隔離サイト / cluster-dr / コールドスタンバイ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;fontStyle=3;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="170" width="360" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="net_row_lbl" value="ネットワーク境界&#10;(VLAN / VPC)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="240" width="60" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="auth_row_lbl" value="権限境界&#10;(Keycloak /&#10; RBAC)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="460" width="60" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="data_row_lbl" value="データ境界&#10;(PG / MinIO /&#10; OpenBao)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="700" width="60" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_net" value="ztunnel-dev + Envoy Gateway&#10;Istio Ambient mesh-dev&#10;Firewall: inbound 社内のみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="240" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="stg_net" value="ztunnel-stg + Envoy Gateway&#10;Istio Ambient mesh-stg&#10;Firewall: inbound 社内のみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="240" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="prd_net" value="ztunnel-prd + Envoy Gateway&#10;Istio Ambient mesh-prd&#10;Firewall: inbound 外部公開 + WAF" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="240" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_net" value="ztunnel-dr（コールド）&#10;Istio mesh-dr 別制御面&#10;Firewall: prod から複製のみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="240" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_auth" value="ns: dev / k8s cluster-dev&#10;Keycloak realm: dev&#10;RBAC: 開発者 read/write&#10;Dapr Operator + tier1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="460" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="stg_auth" value="ns: staging / k8s cluster-staging&#10;Keycloak realm: staging&#10;RBAC: SRE read + 承認者 write&#10;Dapr Operator + tier1 (prod 同)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="460" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="prd_auth" value="ns: prod / k8s cluster-prod&#10;Keycloak realm: prod&#10;RBAC: SRE read のみ / Argo CD write&#10;Dapr Operator + tier1（正本）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="460" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_auth" value="ns: prod-dr / k8s cluster-dr&#10;Keycloak realm: prod-dr&#10;RBAC: DR 切替時のみ有効化&#10;Dapr Operator（停止状態）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="460" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev_data" value="PG-dev / Valkey-dev&#10;MinIO-dev / OpenBao-dev&#10;合成データのみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="700" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="stg_data" value="PG-stg / Valkey-stg&#10;MinIO-stg / OpenBao-stg&#10;合成データ + 匿名化サンプル" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="700" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="prd_data" value="PG-prd / Valkey-prd&#10;MinIO-prd / OpenBao-prd&#10;実テナントデータ（電帳法対象）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="700" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_data" value="PG-dr（WAL 受信）&#10;MinIO-dr（非同期複製）&#10;OpenBao-dr（鍵 shamir 分散）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="700" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gitops_arrow_dev" style="html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;dashPattern=6 4;endArrow=classic;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gitops_bar" target="dev_lane">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops_arrow_stg" style="html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;dashPattern=6 4;endArrow=classic;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gitops_bar" target="stg_lane">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops_arrow_prd" style="html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;dashPattern=6 4;endArrow=classic;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gitops_bar" target="prd_lane">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops_arrow_dr" style="html=1;strokeWidth=2;strokeColor=#666666;dashed=1;dashPattern=2 4;endArrow=classic;exitX=0.9;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="gitops_bar" target="dr_lane">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wall_dev_stg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#c62828;strokeWidth=3;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="453" y="230" width="2" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="wall_stg_prd" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#c62828;strokeWidth=3;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="843" y="230" width="2" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="wall_prd_dr" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#c62828;strokeWidth=3;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="1233" y="230" width="2" height="660" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wall_note1" value="境界壁：kubectl 直接操作禁止 / RBAC クロス不可 / Firewall 明示許可のみ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="600" y="900" width="520" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1010" width="1540" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例（drawio 4 レイヤ記法規約準拠）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="95" y="1015" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="アプリ層（GitOps / Dapr）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1045" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="ネットワーク層（Istio / Firewall）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="1045" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf" value="インフラ層（k8s / Keycloak realm）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="1045" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dat" value="データ層（PG / MinIO / OpenBao）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1045" width="220" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_phase2" value="Phase 2 で追加（破線＝未構築）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="1045" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_wall" value="境界壁（赤破線）：クロス通信禁止" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#c62828;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="1045" width="290" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow" value="橙破線矢印：GitOps 同期（Argo CD）。DR は Phase 2 で有効化。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1085" width="1500" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

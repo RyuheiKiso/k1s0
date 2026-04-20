@@ -1,0 +1,228 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T22:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="tier1全体コンポーネント俯瞰" id="tier1-comp-overview">
+    <mxGraphModel dx="1800" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="tier1 全体コンポーネント俯瞰（6 Pod × 11 公開 API）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1720" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier23_bg" value="tier2 / tier3（公開 API のみ可視）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1720" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="api_label" value="11 公開 API: Service Invoke / State / PubSub / Secrets / Binding / Workflow / Log / Telemetry / Decision / Audit-Pii / Feature" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="1680" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2" value="tier2 ドメインサービス" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="128" width="300" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="tier3 業務アプリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="960" y="128" width="300" height="32" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier1_bg" value="tier1 内部（tier2/3 から不可視・6 Pod 構成）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="1720" height="500" as="geometry" />
+        </mxCell>
+
+        <mxCell id="facade_bg" value="Dapr ファサード層（Go）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;verticalAlign=top;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="240" width="820" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_state" value="COMP-T1-STATE（Go）&#10;Deployment + HPA 3-10&#10;Service Invoke / State / PubSub / Binding / Feature" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="280" width="360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_secret" value="COMP-T1-SECRET（Go）&#10;Leader Election active1/standby2&#10;Secrets API（OpenBao リース排他）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="280" width="360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_workflow" value="COMP-T1-WORKFLOW（Go）&#10;Deployment 固定 3 replica（sticky）&#10;Workflow API / Saga" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="400" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="dapr_note" value="Dapr Go SDK（Building Blocks: invoke / state / pubsub / bindings / secrets / workflow）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="540" width="760" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="daprd_note" value="daprd サイドカー（Pod 毎・facade 層のみ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="760" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rust_bg" value="自作 Rust 領域（sidecar-free）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;verticalAlign=top;fontStyle=1;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="910" y="240" width="820" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_audit" value="COMP-T1-AUDIT（Rust）&#10;StatefulSet + PVC per replica&#10;Audit-Pii API（ハッシュチェーン）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="280" width="360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_decision" value="COMP-T1-DECISION（Rust）&#10;Deployment + HPA 2-8&#10;Decision API（ZEN Engine in-process）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="280" width="360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="comp_pii" value="COMP-T1-PII（Rust）&#10;Deployment + HPA 2-6（Dapr sidecar なし）&#10;PII マスキング（純関数）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="400" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tonic_note" value="tonic gRPC サーバ（純 Rust・外部 Dapr 依存なし）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="540" width="760" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="zen_note" value="ZEN Engine（JDM 評価・in-process・外部ストア無し） / PII parser+crypto" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="600" width="760" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data_bg" value="データ層（Stateful バックエンド）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3eaf5;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="730" width="1720" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="valkey" value="Valkey Cluster&#10;(State / Feature)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="770" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Apache Kafka&#10;(PubSub)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="770" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="openbao" value="OpenBao&#10;(Secrets)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="770" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="PostgreSQL (CloudNativePG)&#10;WORM append-only" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="770" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="temporal" value="Temporal PostgreSQL&#10;または Valkey（U-WORKFLOW-001）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="770" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd" value="flagd / 外部 HTTP&#10;(Feature / Binding)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="770" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO Object Lock&#10;(Audit 長期保管)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="770" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="worm_note" value="Audit は StatefulSet の PVC ごとに WORM append → 定期的に MinIO Object Lock へ転送" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="850" width="1680" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="940" width="500" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="アプリ層（暖色）: tier2/3・tier1 コンポーネント・Dapr" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="966" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="データ層（薄紫）: Valkey/Kafka/OpenBao/Postgres/MinIO" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="988" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_solid" value="実線太: 明示的な同期呼び出し（gRPC/HTTP/SDK）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="1010" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashed" value="破線紫: 非同期イベント（Kafka PubSub）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="1032" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_thin" value="実線細: tier1 内部の Go ⇔ Rust 内部 gRPC 呼び出し" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="1054" width="460" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_tier2_state" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="tier2" target="comp_state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier3_state" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.3;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="tier3" target="comp_state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier2_secret" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.8;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="tier2" target="comp_secret">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier3_audit" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="tier3" target="comp_audit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier2_decision" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.9;exitY=1;entryX=0.4;entryY=0;" edge="1" parent="1" source="tier2" target="comp_decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_state_valkey" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="comp_state" target="valkey">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="75" y="390" />
+              <mxPoint x="75" y="710" />
+              <mxPoint x="180" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_state_kafka" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;exitX=0.4;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="comp_state" target="kafka">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="244" y="390" />
+              <mxPoint x="85" y="390" />
+              <mxPoint x="85" y="715" />
+              <mxPoint x="400" y="715" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_secret_openbao" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="comp_secret" target="openbao">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="390" />
+              <mxPoint x="875" y="390" />
+              <mxPoint x="875" y="710" />
+              <mxPoint x="620" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_audit_pg" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="comp_audit" target="pg">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1048" y="390" />
+              <mxPoint x="925" y="390" />
+              <mxPoint x="925" y="710" />
+              <mxPoint x="870" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_audit_minio" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;exitX=0.8;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="comp_audit" target="minio">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1228" y="390" />
+              <mxPoint x="1720" y="390" />
+              <mxPoint x="1720" y="710" />
+              <mxPoint x="1600" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_workflow_temporal" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.7;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="comp_workflow" target="temporal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="556" y="520" />
+              <mxPoint x="875" y="520" />
+              <mxPoint x="875" y="705" />
+              <mxPoint x="1098" y="705" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_state_flagd" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.78;entryX=0.5;entryY=0;" edge="1" parent="1" source="comp_state" target="flagd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="350" />
+              <mxPoint x="480" y="390" />
+              <mxPoint x="900" y="390" />
+              <mxPoint x="900" y="720" />
+              <mxPoint x="1410" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_state_decision" value="内部 gRPC" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.95;exitY=0;entryX=0.5;entryY=0;fontSize=9;" edge="1" parent="1" source="comp_state" target="comp_decision">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="442" y="250" />
+              <mxPoint x="1520" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_state_pii" value="内部 gRPC" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=1;exitY=1;entryX=0;entryY=0.3;fontSize=9;" edge="1" parent="1" source="comp_state" target="comp_pii">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_state_audit" value="内部 gRPC" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.85;exitY=0;entryX=0.5;entryY=0;fontSize=9;" edge="1" parent="1" source="comp_state" target="comp_audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="406" y="265" />
+              <mxPoint x="1120" y="265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_workflow_decision" value="内部 gRPC" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=1;exitY=0.3;entryX=0;entryY=1;fontSize=9;" edge="1" parent="1" source="comp_workflow" target="comp_decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

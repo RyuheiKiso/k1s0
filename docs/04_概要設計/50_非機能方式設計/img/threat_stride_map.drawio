@@ -1,0 +1,418 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T07:20:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="STRIDE_map" id="stride-map">
+    <mxGraphModel dx="1800" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="STRIDE 脅威モデリングと対策コンポーネントの対応マップ（DS-NFR-THM-001〜017）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1720" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="左: STRIDE 6 カテゴリ / 中: 代表脅威 / 右: 緩和対策コンポーネント群。矢印は「脅威 → 緩和統制」の主参照を示す。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1720" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="stride_header" value="STRIDE カテゴリ" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="threat_header" value="代表脅威（DS-NFR-THM-*）" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="90" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_header" value="緩和対策コンポーネント" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="90" width="520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s_cat" value="S: Spoofing&#10;(なりすまし)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fadbd8;strokeColor=#d6453c;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="s_t1" value="THM-002 JWT Token Theft" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6453c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="140" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="s_t2" value="THM-003 Tenant ID Spoofing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6453c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="183" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="s_t3" value="THM-004 Workload Identity Spoofing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6453c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="226" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="t_cat" value="T: Tampering&#10;(改ざん)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdebd0;strokeColor=#ca6f1e;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="t_t1" value="THM-005 Audit Log Tampering" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ca6f1e;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="280" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="t_t2" value="THM-006 Container Image Tampering" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ca6f1e;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="323" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="t_t3" value="THM-007 GitOps Desired State Tamper" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ca6f1e;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="366" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="r_cat" value="R: Repudiation&#10;(否認)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fcf3cf;strokeColor=#b7950b;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r_t1" value="THM-008 Admin Action Repudiation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b7950b;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="420" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="r_t2" value="（監査証跡連動 / THM-005と合流）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="460" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="i_cat" value="I: Information Disclosure&#10;(情報漏洩)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d4efdf;strokeColor=#1e8449;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="i_t1" value="THM-009 PII Leakage via Logs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1e8449;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="520" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="i_t2" value="THM-010 PII Leakage via Error Resp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1e8449;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="563" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="i_t3" value="THM-011 Secrets Leakage via Git" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1e8449;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="606" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="d_cat" value="D: Denial of Service&#10;(サービス拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6eaf8;strokeColor=#2874a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="d_t1" value="THM-012 DDoS Attack" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2874a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="660" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="d_t2" value="THM-013 Resource Exhaustion" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2874a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="703" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="d_t3" value="THM-014 Dependency Exhaustion" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2874a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="746" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cat" value="E: Elevation of Privilege&#10;(権限昇格)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8daef;strokeColor=#6c3483;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t1" value="THM-015 Container Escape" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c3483;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="800" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t2" value="THM-016 RBAC Misconfiguration" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c3483;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="843" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t3" value="THM-017 OpenBao Root Token Abuse" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c3483;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="886" width="280" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_keycloak" value="Keycloak&#10;(OIDC / JWT 15 分 / MFA)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="140" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_bao" value="OpenBao&#10;(Secrets / Transit / AppRole)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="140" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_spiffe" value="SPIFFE / SPIRE&#10;(Workload Identity / SVID)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="210" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_istio" value="Istio Ambient&#10;(STRICT mTLS / L7 AuthZ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="210" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_kyverno" value="Kyverno&#10;(Admission Policy)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="280" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_cosign" value="Cosign + Rekor&#10;(イメージ署名 / 透明性ログ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="280" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_audit" value="監査 DB + ハッシュチェーン&#10;(専用 PG / 週次検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="350" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_worm" value="MinIO Object Lock&#10;(WORM / 7 年保管)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="350" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_gitops" value="Git Branch Protection&#10;(PR 2 承認 / 署名コミット)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="420" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_argo" value="Argo CD diff 監視&#10;(desired vs actual)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="420" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_piimask" value="Audit-Pii API&#10;(自動マスキング / tokenize)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="490" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_gitleaks" value="Gitleaks + pre-commit&#10;(Secret Scanning CI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="490" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_envoy_rl" value="Envoy Gateway Rate Limit&#10;(Tenant 1000RPS / IP 100RPS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="560" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_coraza" value="Coraza WAF&#10;(DDoS シグネチャ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="560" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_hpa" value="HPA + KEDA&#10;(自動スケール / Lag 連動)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="630" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_podlimit" value="Pod resource limits&#10;(CPU / Mem / Body size)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="630" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_pss" value="Pod Security Standards&#10;(Restricted / seccomp)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="700" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_falco" value="Falco Runtime Detection&#10;(Root Token 検知)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="700" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_rbac" value="RBAC 最小権限&#10;(Kyverno で過剰付与 block)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="770" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ctl_rls" value="PostgreSQL RLS&#10;(tenant_id 強制)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="770" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s1_kc" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6453c;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s_t1" target="ctl_keycloak">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="157" />
+              <mxPoint x="1100" y="165" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s2_rls" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6453c;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="s_t2" target="ctl_rls">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1490" y="200" />
+              <mxPoint x="1490" y="760" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s2_kc" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6453c;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s_t2" target="ctl_keycloak">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="200" />
+              <mxPoint x="1090" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s3_spiffe" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6453c;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s_t3" target="ctl_spiffe">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1110" y="243" />
+              <mxPoint x="1110" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s3_istio" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d6453c;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s_t3" target="ctl_istio">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1130" y="243" />
+              <mxPoint x="1130" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t1_audit" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ca6f1e;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="t_t1" target="ctl_audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="297" />
+              <mxPoint x="1100" y="375" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t1_worm" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ca6f1e;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="t_t1" target="ctl_worm">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1085" y="297" />
+              <mxPoint x="1085" y="340" />
+              <mxPoint x="1630" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t2_cosign" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ca6f1e;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="t_t2" target="ctl_cosign">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="340" />
+              <mxPoint x="1100" y="270" />
+              <mxPoint x="1630" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t2_kyverno" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ca6f1e;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="t_t2" target="ctl_kyverno">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1115" y="340" />
+              <mxPoint x="1115" y="305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t3_gitops" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ca6f1e;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="t_t3" target="ctl_gitops">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1095" y="383" />
+              <mxPoint x="1095" y="445" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_t3_argo" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ca6f1e;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="t_t3" target="ctl_argo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1110" y="383" />
+              <mxPoint x="1110" y="410" />
+              <mxPoint x="1630" y="410" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_r1_audit" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b7950b;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="r_t1" target="ctl_audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="437" />
+              <mxPoint x="1140" y="375" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_r1_gitops" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b7950b;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="r_t1" target="ctl_gitops">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1155" y="437" />
+              <mxPoint x="1155" y="445" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_i1_piimask" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1e8449;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="i_t1" target="ctl_piimask">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="537" />
+              <mxPoint x="1100" y="515" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_i2_piimask" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1e8449;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="i_t2" target="ctl_piimask">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1090" y="580" />
+              <mxPoint x="1090" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_i3_gitleaks" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1e8449;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="i_t3" target="ctl_gitleaks">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1160" y="623" />
+              <mxPoint x="1160" y="480" />
+              <mxPoint x="1630" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_i3_bao" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#1e8449;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="i_t3" target="ctl_bao">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1210" y="623" />
+              <mxPoint x="1210" y="130" />
+              <mxPoint x="1630" y="130" />
+              <mxPoint x="1630" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_d1_envoy" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2874a6;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="d_t1" target="ctl_envoy_rl">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="677" />
+              <mxPoint x="1100" y="585" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_d1_coraza" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2874a6;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="d_t1" target="ctl_coraza">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1115" y="677" />
+              <mxPoint x="1115" y="550" />
+              <mxPoint x="1630" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_d1_hpa" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2874a6;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="d_t1" target="ctl_hpa">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1130" y="677" />
+              <mxPoint x="1130" y="655" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_d2_podlimit" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2874a6;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="d_t2" target="ctl_podlimit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="720" />
+              <mxPoint x="1140" y="620" />
+              <mxPoint x="1630" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_d3_hpa" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2874a6;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="d_t3" target="ctl_hpa">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="763" />
+              <mxPoint x="1100" y="655" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_e1_pss" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c3483;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e_t1" target="ctl_pss">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="817" />
+              <mxPoint x="1100" y="725" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_e2_rbac" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c3483;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e_t2" target="ctl_rbac">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1110" y="860" />
+              <mxPoint x="1110" y="795" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_e2_kyverno" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c3483;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e_t2" target="ctl_kyverno">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="860" />
+              <mxPoint x="1200" y="305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_e3_bao" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c3483;exitX=1;exitY=0.5;entryX=0.5;entryY=1;" edge="1" parent="1" source="e_t3" target="ctl_bao">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1225" y="903" />
+              <mxPoint x="1225" y="120" />
+              <mxPoint x="1630" y="120" />
+              <mxPoint x="1630" y="135" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_e3_falco" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c3483;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e_t3" target="ctl_falco">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="903" />
+              <mxPoint x="1120" y="940" />
+              <mxPoint x="1485" y="940" />
+              <mxPoint x="1485" y="725" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="950" width="1720" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="960" width="120" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="994" width="28" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層統制: Keycloak / OpenBao / Kyverno / Cosign / Argo CD 等" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="98" y="992" width="560" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1020" width="28" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層統制: SPIFFE/SPIRE / Istio Ambient / Envoy Rate Limit / WAF" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="98" y="1018" width="560" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="680" y="994" width="28" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_t" value="インフラ層統制: HPA/KEDA / Pod limits / PSS / Falco / containerd" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="718" y="992" width="560" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="680" y="1020" width="28" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層統制: 監査 DB ハッシュチェーン / MinIO Object Lock / PostgreSQL RLS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="718" y="1018" width="560" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow_note" value="矢印の色は STRIDE カテゴリ色（S=赤 / T=橙 / R=黄 / I=緑 / D=青 / E=紫）と一致。脅威から主要な緩和統制への参照。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="992" width="460" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

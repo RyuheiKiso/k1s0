@@ -1,0 +1,155 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="並行稼働・Canary切替・ロールバック" id="parallel-cutover">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="980" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="並行稼働・Argo Rollouts 5 ステップ Canary 切替・ロールバック" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ctrl_bg" value="制御プレーン（Argo Rollouts Controller が KPI 判定し Step を進める / flagd が Envoy Weight を配信）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1520" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="metrics" value="Prometheus / Grafana&#10;(エラー率 / p99 / SLO)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="105" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="argo" value="Argo Rollouts Controller&#10;(AnalysisTemplate 判定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="105" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd" value="flagd&#10;(Feature Flag 配信)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="105" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="steps_bg" value="Canary 5 ステップ（Argo Rollouts Step Weight 定義）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8eefc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="1520" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="Step 1&#10;Canary 5%&#10;期間 1 週間&#10;内部 1 名&#10;(初期不具合検出)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="270" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="Step 2&#10;Canary 25%&#10;期間 2-4 週&#10;パイロット部署 10 名&#10;(UX / 教育検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="270" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="Step 3&#10;Canary 50%&#10;期間 4 週&#10;中期 100 名&#10;(負荷 / 運用検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="270" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="Step 4&#10;Canary 75%&#10;期間 4-8 週&#10;後期 500 名&#10;(本番相当負荷)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="270" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" value="Step 5&#10;100% 切替&#10;期間 2-4 週&#10;全社展開&#10;(旧系廃止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="270" width="220" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gate_note" value="各 Step 間: Go/No-Go ゲート（KPI 5 指標 機械判定: エラー率 &lt; 0.1% / p99 ≤ 設計値 / 満足度 ≥ 3.5 / 問合せ ≤ 3件週 / SLO 予算 ≤ 50%月）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="455" width="1520" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="env_bg" value="実行環境（並行稼働: 既存 .NET Framework / k1s0 新系）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="1520" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="users" value="利用者&#10;(tier3 クライアント)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="585" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="envoy" value="Envoy Gateway&#10;(Weight 制御 / トラフィック分岐)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="585" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="legacy" value="既存 .NET Framework&#10;(旧系 / Windows VM)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="530" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k1s0" value="k1s0 新系&#10;(tier1 API / k8s Pod)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="640" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rollback" value="ロールバック分岐&#10;(Feature Flag OFF&#10;5 分以内切戻し)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="530" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="trigger_note" value="切戻しトリガ:&#10;・エラー率 &gt; 1%&#10;・p99 &gt; 設計値 2 倍&#10;・SLO 予算 1 日&#10;  で 30% 消費&#10;・P1 / P2 重大障害" style="text;html=1;strokeColor=#c62828;fillColor=#fff5f5;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="530" width="200" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_s1_s2" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="step1" target="step2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_s2_s3" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="step2" target="step3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_s3_s4" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="step3" target="step4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_s4_s5" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="step4" target="step5"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_metrics_argo" style="edgeStyle=none;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="metrics" target="argo"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_argo_flagd" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="argo" target="flagd"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_argo_steps" value="Step 進行" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="165" as="sourcePoint" />
+            <mxPoint x="800" y="215" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_flagd_envoy" value="Weight 配信" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=1;entryY=1;" edge="1" parent="1" source="flagd" target="envoy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1570" y="135" />
+              <mxPoint x="1570" y="755" />
+              <mxPoint x="630" y="755" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_user_envoy" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="users" target="envoy"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_envoy_legacy" value="(100-w)%" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" edge="1" parent="1" source="envoy" target="legacy"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_envoy_k1s0" value="w% Canary" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" edge="1" parent="1" source="envoy" target="k1s0"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_k1s0_rb" value="異常検知" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" parent="1" source="k1s0" target="rollback"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_rb_legacy" value="100% 復帰" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.3;entryX=1;entryY=0.5;" edge="1" parent="1" source="rollback" target="legacy"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="780" width="560" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="812" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（flagd / Argo / 利用者 / 旧新系 / Grafana）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="810" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="834" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層（Envoy Gateway / Canary Step）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="832" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="856" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_t" value="インフラ層（実行環境レーン / Windows VM / k8s Pod）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="854" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rb" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="80" y="878" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rb_t" value="ロールバック領域（失敗時経路）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="876" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sync_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry x="340" y="822" as="geometry"><mxPoint x="340" y="822" as="sourcePoint" /><mxPoint x="390" y="822" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_sync_t" value="明示呼び出し（HTTP / gRPC）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="812" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_obs_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="340" y="847" as="geometry"><mxPoint x="340" y="847" as="sourcePoint" /><mxPoint x="390" y="847" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_obs_t" value="観測メトリクス収集（並行）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="837" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rb_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="340" y="872" as="geometry"><mxPoint x="340" y="872" as="sourcePoint" /><mxPoint x="390" y="872" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_rb_t2" value="ロールバック経路（異常時）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="862" width="210" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

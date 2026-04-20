@@ -1,0 +1,265 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="24.7.17">
+  <diagram id="saga-compensation-flow" name="SagaCompensationFlow">
+    <mxGraphModel dx="1800" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1260" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="Orchestration Saga: 注文処理の正常系と補償系フロー (Temporal + Dapr Workflow)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1200" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="subtitle_normal" value="正常系フロー (4 ステップ直列、Temporal がオーケストレータ)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="820" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="subtitle_compensation" value="補償系フロー (決済失敗、既完了ステップを逆順補償)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="920" y="80" width="820" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_normal" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f9f1;strokeColor=#2e7d32;strokeWidth=1.5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="820" height="820" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_compensation" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdf3f3;strokeColor=#c62828;strokeWidth=1.5;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="120" width="820" height="820" as="geometry" />
+        </mxCell>
+
+        <mxCell id="orchestrator_normal" value="Temporal Workflow (OrderSaga オーケストレータ)&#xa;Event Sourcing で状態永続化 / Activity Retry / Compensation API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="740" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="orchestrator_compensation" value="Temporal Workflow (Compensation フェーズに遷移)&#xa;失敗検出後 10 秒以内に補償開始 / 逆順で Compensation Activity を呼び出し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="960" y="150" width="740" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1_normal" value="ステップ 1: 在庫引当&#xa;State.BulkTransaction&#xa;stock:SKU-001 -= 1&#xa;stock log 追記 (原子)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="270" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2_normal" value="ステップ 2: 決済&#xa;Binding.Invoke&#xa;外部決済ゲートウェイ&#xa;(timeout 10s, retry 5)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="410" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3_normal" value="ステップ 3: 出荷手配&#xa;PubSub.Publish&#xa;ShipmentRequested&#xa;(at-least-once)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="550" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step4_normal" value="ステップ 4: 通知&#xa;PubSub.Publish&#xa;OrderConfirmed&#xa;(軽微、3 回 retry 許容)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="690" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="success_normal" value="Saga ステータス: completed&#xa;全ステップ正常 30 秒以内 (p95)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="830" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="valkey_normal" value="Valkey&#xa;(Dapr Workflow state&#xa;短期 Saga の fallback)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="290" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg_normal" value="PostgreSQL&#xa;(Temporal History Store&#xa;Event Sourcing 永続化)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="430" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="kafka_normal" value="Kafka&#xa;(ShipmentRequested&#xa;OrderConfirmed topic)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="570" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="role_note_normal" value="役割分担 (ZEN Engine JDM)&#xa;Temporal: 長期 (数分〜24h)&#xa;Dapr Workflow: 短期 (5 分以内)&#xa;判定: 実行時間 / スループット" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;fontColor=#000000;align=left;spacingLeft=8;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="610" y="710" width="230" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1_comp_success" value="ステップ 1: 在庫引当 [完了]&#xa;既完了状態で History 記録済" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="270" width="230" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2_comp_fail" value="ステップ 2: 決済 [失敗]&#xa;5 回 retry 全失敗&#xa;503 Service Unavailable" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="380" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trigger_comp" value="Compensation フェーズ開始&#xa;既完了ステップを逆順処理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="380" width="250" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="comp1" value="補償 1: InventoryReleased&#xa;(在庫解放イベント発行)&#xa;retry 最大 5 回 backoff 1s-60s" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="520" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="comp2" value="補償 2: OrderCancelled&#xa;(注文取消イベント発行)&#xa;saga_id で元注文と相関" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="650" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="comp_result" value="Saga ステータス: compensated&#xa;補償完了 60 秒以内&#xa;Backstage Saga Inspector で確認可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdf3f3;strokeColor=#c62828;fontSize=11;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="980" y="790" width="250" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq_box" value="DLQ + Saga Inspector&#xa;補償 5 回全失敗時のみ停留&#xa;人的介入 escalation&#xa;(Slack / PagerDuty 1 分以内)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="650" width="250" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="valkey_comp" value="Valkey&#xa;(冪等キー 24h TTL&#xa;補償イベント重複排除)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="520" width="250" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg_comp" value="PostgreSQL&#xa;(Temporal History&#xa;補償 Event も永続化)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="270" width="250" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n_orch_s1" value="1" style="edgeStyle=none;rounded=0;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#2e7d32;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#2e7d32;" edge="1" parent="1" source="orchestrator_normal" target="step1_normal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="285" y="240" />
+              <mxPoint x="230" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_n_s1_s2" value="2" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#2e7d32;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#2e7d32;" edge="1" parent="1" source="step1_normal" target="step2_normal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n_s2_s3" value="3" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#2e7d32;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#2e7d32;" edge="1" parent="1" source="step2_normal" target="step3_normal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n_s3_s4" value="4" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#2e7d32;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#2e7d32;" edge="1" parent="1" source="step3_normal" target="step4_normal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n_s4_done" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#2e7d32;strokeWidth=2;" edge="1" parent="1" source="step4_normal" target="success_normal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n_s1_valkey" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1.5;" edge="1" parent="1" source="step1_normal" target="valkey_normal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="315" />
+              <mxPoint x="475" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_n_s2_pg" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1.5;" edge="1" parent="1" source="step2_normal" target="pg_normal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="455" />
+              <mxPoint x="475" y="465" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_n_s3_kafka" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="step3_normal" target="kafka_normal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="475" y="595" />
+              <mxPoint x="475" y="605" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_c_orch_s1" value="1 [完了]" style="edgeStyle=none;rounded=0;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#2e7d32;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#2e7d32;" edge="1" parent="1" source="orchestrator_compensation" target="step1_comp_success">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1145" y="240" />
+              <mxPoint x="1095" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_c_s1_s2" value="2 [試行]" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c62828;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#c62828;" edge="1" parent="1" source="step1_comp_success" target="step2_comp_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c_s2_trigger" value="失敗検出" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#ef6c00;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#ef6c00;dashed=1;" edge="1" parent="1" source="step2_comp_fail" target="trigger_comp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="415" />
+              <mxPoint x="1290" y="415" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_c_trigger_c1" value="逆順 a" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#ef6c00;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#ef6c00;" edge="1" parent="1" source="trigger_comp" target="comp1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="485" />
+              <mxPoint x="1105" y="485" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_c_c1_c2" value="逆順 b" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#ef6c00;strokeWidth=2;fontSize=11;fontStyle=1;fontColor=#ef6c00;" edge="1" parent="1" source="comp1" target="comp2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c_c2_result" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#c62828;strokeWidth=2;" edge="1" parent="1" source="comp2" target="comp_result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c_c1_valkey" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1.5;" edge="1" parent="1" source="comp1" target="valkey_comp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c_s1_pgc" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1.5;" edge="1" parent="1" source="step1_comp_success" target="pg_comp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c_c2_dlq" value="補償 5 回全失敗時のみ" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#c62828;strokeWidth=1.5;fontSize=10;fontColor=#c62828;dashed=1;" edge="1" parent="1" source="comp2" target="dlq_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;fontColor=#000000;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="970" width="480" height="260" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_app" value="■ アプリ層 (暖色): Temporal / Dapr Workflow / Saga ステップ" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="994" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_data" value="■ データ層 (薄紫): Valkey / PostgreSQL / Kafka" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#9673a6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1014" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_ok" value="■ 成功状態 (緑): Saga completed" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#2e7d32;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1034" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_fail" value="■ 失敗状態 (赤): ステップ失敗 / Saga compensated" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#c62828;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1054" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_comp" value="■ 補償遷移 (橙): Compensation フェーズトリガ / 逆順実行" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#ef6c00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1074" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_green_arrow" value="― 緑実線太: 正常系のステップ遷移 (1 から 4 順次)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1094" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_red_arrow" value="― 赤実線太: 補償系のステップ状態遷移 / 補償結果" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1114" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_orange_arrow" value="― 橙実線太: 補償フェーズ逆順トリガ" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1134" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_purple_arrow" value="― 紫実線細: データ層書込 (Valkey / PostgreSQL)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1154" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_purple_dashed" value="--- 紫破線細: Kafka 非同期配送" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1174" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_dashed" value="--- 橙/赤破線細: 失敗検出シグナル / DLQ 転送 (5 回全失敗時のみ)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="1194" width="456" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

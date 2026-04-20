@@ -1,0 +1,261 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="incident_response_flow" id="inc-flow">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 インシデント対応フロー（検知 → Severity 分類 → エスカレーション → 対応 → ポストモーテム）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="det_bg" value="検知層" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8eefc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1520" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="det_am" value="Alertmanager&#10;(Prometheus ルール)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="115" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="det_user" value="利用者問合せ&#10;(Backstage / Slack / メール)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="115" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="det_chaos" value="Chaos Drill&#10;(計画検証／抜き打ち)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="115" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="det_sec" value="セキュリティ検知&#10;(CVE / TruffleHog / IDS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="115" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="det_cb" value="Circuit Breaker&#10;(open 遷移アラート)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="115" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="det_audit" value="監査ハッシュチェーン&#10;検証ジョブ（四半期）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="115" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="triage" value="L1 トリアージ&#10;(15 分以内：影響範囲確認 + Severity 暫定判定 + インシデント ID 発番)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="240" width="560" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="to_triage1" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="det_am" target="triage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="220" />
+              <mxPoint x="632" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to_triage2" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="det_user" target="triage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="225" />
+              <mxPoint x="716" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to_triage3" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="det_chaos" target="triage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="to_triage4" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.65;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="det_sec" target="triage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="225" />
+              <mxPoint x="884" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to_triage5" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="det_cb" target="triage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="220" />
+              <mxPoint x="968" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="to_triage6" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.95;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="det_audit" target="triage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="215" />
+              <mxPoint x="1052" y="215" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sev_title" value="Severity 分類（triage 内で確定、動員 / SLA / 通知が連動）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="900" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sev1" value="SEV1 全停止／データ損失／セキュリティ&#10;・応答 15 分 / 復旧 4 時間&#10;・起案者 + 協力者 + 役員 + 全利用者通知&#10;・L2 + L3 並行動員" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="sev2" value="SEV2 機能停止／大幅劣化&#10;・応答 1 時間 / 復旧 24 時間&#10;・影響テナント担当者に個別通知&#10;・L2 主担当（必要に応じ L3）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="sev3" value="SEV3 部分機能劣化&#10;・応答 4 時間 / 復旧 72 時間&#10;・Slack 通知のみ、業務時間内対応&#10;・L1 または L2 単独対応" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="800" y="360" width="360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="sev4" value="SEV4 低影響&#10;・応答 翌営業日 / 復旧 次 Sprint&#10;・Jira 登録のみ、即応せず&#10;・Sprint プランニングで組込み" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="360" width="360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="triage_to_sev1" style="html=1;strokeWidth=2;strokeColor=#c62828;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="triage" target="sev1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="604" y="320" />
+              <mxPoint x="220" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="triage_to_sev2" style="html=1;strokeWidth=2;strokeColor=#ef6c00;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="triage" target="sev2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="716" y="325" />
+              <mxPoint x="600" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="triage_to_sev3" style="html=1;strokeWidth=2;strokeColor=#d6b656;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="triage" target="sev3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="884" y="325" />
+              <mxPoint x="980" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="triage_to_sev4" style="html=1;strokeWidth=2;strokeColor=#2e7d32;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="triage" target="sev4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="996" y="320" />
+              <mxPoint x="1360" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="phase_title" value="対応 5 フェーズ（SEV1 時間軸を基準、SEV2 以降は順次長くなる）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="900" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="Phase 1&#10;検知・トリアージ&#10;0 〜 15 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="Phase 2&#10;一次対応・暫定復旧&#10;15 分 〜 4 時間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="540" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="Phase 3&#10;根本原因特定&#10;4 〜 24 時間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="540" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="Phase 4&#10;恒久対策実装&#10;24 時間 〜 1 週間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="540" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="Phase 5&#10;ポストモーテム・学習&#10;1 週間以内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="540" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_d" value="・Alertmanager 受領&#10;・インシデント ID 発番&#10;・#k1s0-incident-active 宣言&#10;・SEV1 時は役員 30 分以内通知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="625" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_d" value="・Runbook 選定（`runbook_url` ラベル）&#10;・failover / Pod 再起動 / 迂回&#10;・L2 主担当、SEV1 時 L3 並行&#10;・2 時間で復旧なき場合 L3 強制召集&#10;・3 時間超で DR Runbook 検討" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="340" y="625" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_d" value="・Loki / Tempo / Pyroscope 横断調査&#10;・why を 5 回繰返し&#10;・ドラフト 24 h 以内&#10;・長期化時は暫定クローズして別 Issue" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="640" y="625" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p4_d" value="・PR / レビュー / staging 検証&#10;・SEV1 / 2 は 1 週間以内デプロイ&#10;・監視強化（閾値下げ / 追加アラート）&#10;・Runbook 更新" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="625" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p5_d" value="・Blameless Postmortem 執筆&#10;・Product Council レビュー&#10;・再発防止 Jira アクション登録&#10;・FAQ / Runbook フィードバック" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="625" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_to_p2" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="p1" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_to_p3" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="p2" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_to_p4" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="p3" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4_to_p5" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="p4" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="Tier1 (L1) 受付" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="785" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Tier2 (L2) 暫定対応" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="785" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="Tier3 (L3) 根本原因／恒久対策／ポストモーテム" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="785" width="880" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_to_t1" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="p1_d" target="t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_to_t2" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="p2_d" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_to_t3" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="p3_d" target="t3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4_to_t3" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="p4_d" target="t3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p5_to_t3" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="p5_d" target="t3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_title" value="ポストモーテム成果の格納（組織学習）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="940" width="600" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_doc" value="ポストモーテムドキュメント&#10;(Backstage TechDocs, 5 年保管)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="975" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_jira" value="再発防止 Jira チケット&#10;(技術 / プロセス / 監視強化)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="975" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_rb" value="Runbook / FAQ 追加 PR&#10;(k1s0/runbooks + TechDocs)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="975" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_council" value="Product Council 月次レビュー&#10;(共通パターン / 構造改善)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="975" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3_to_pm" style="html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="t3" target="pm_doc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="772" y="870" />
+              <mxPoint x="170" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pm_doc_to_jira" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="pm_doc" target="pm_jira">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_jira_to_rb" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="pm_jira" target="pm_rb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pm_rb_to_council" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="pm_rb" target="pm_council">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="940" width="380" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="945" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="972" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（Tier 主担当 / Phase）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="970" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="994" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層（検知経路）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="992" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="1016" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（ポストモーテム成果物）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="1014" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sev" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="1038" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sev_t" value="Severity 強調色（SEV1=赤 / SEV2=橙 / SEV3=黄 / SEV4=緑）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="1036" width="330" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

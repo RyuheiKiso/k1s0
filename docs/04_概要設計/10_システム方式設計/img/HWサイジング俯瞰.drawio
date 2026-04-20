@@ -1,0 +1,172 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="HWサイジング俯瞰" id="hw-sizing">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1250" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 ハードウェアサイジング俯瞰（中規模 3,000 名想定 / Phase 2 拡張構成 16 ノード）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="前提：既存 VM 基盤（VMware / Hyper-V / KVM 問わず）／ゲスト Ubuntu 22.04 LTS ／Anti-Affinity 必須／オンプレ単一データセンター" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1520" height="22" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cp_bg" value="Control Plane ノード × 3（etcd クォーラム成立の最小冗長）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="740" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cp_spec" value="1 ノードあたり&#10;&#10;・4 vCPU&#10;・16 GB RAM（ECC）&#10;・200 GB SSD（OS / containerd / etcd）&#10;・1 Gbps NIC × 2（LACP）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cp_role" value="配置コンポーネント&#10;&#10;・kube-apiserver / etcd&#10;・scheduler / controller-manager&#10;・HAProxy + keepalived (VIP)&#10;・Kyverno 管理&#10;・Argo CD サーバ（冗長 1 台）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="130" width="230" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cp_sum" value="3 ノード小計&#10;&#10;・12 vCPU&#10;・48 GB RAM&#10;・600 GB SSD" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="550" y="130" width="210" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wk_bg" value="Worker ノード × 6（tier1 / tier2 / tier3 の Pod を収容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="820" y="90" width="740" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="wk_spec" value="1 ノードあたり&#10;&#10;・8 vCPU&#10;・32 GB RAM（ECC）&#10;・400 GB SSD（OS / Longhorn プール）&#10;・1 Gbps NIC × 2（LACP）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="840" y="130" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="wk_role" value="配置コンポーネント&#10;&#10;・tier1 公開 11 API × 3 レプリカ&#10;・tier2 ドメインサービス群&#10;・tier3 Web / ポータル Pod&#10;・Istio Ambient ztunnel（DaemonSet）&#10;・OTel Collector（DaemonSet）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="130" width="230" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="wk_sum" value="6 ノード小計&#10;&#10;・48 vCPU&#10;・192 GB RAM&#10;・2.4 TB SSD" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="130" width="210" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dp_bg" value="Data Plane ノード × 3（データ層専用 / IOPS 重視 / Anti-Affinity 必須）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5ecf5;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="740" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="dp_spec" value="1 ノードあたり&#10;&#10;・8 vCPU&#10;・64 GB RAM（ECC）&#10;・1 TB NVMe SSD（Longhorn 専用プール）&#10;・+ 500 GB 仮想ディスク（MinIO）&#10;・1 Gbps NIC × 2（LACP）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="dp_role" value="配置コンポーネント（データ層）&#10;&#10;・PostgreSQL CNPG × 3 インスタンス&#10;・Kafka Strimzi KRaft × 3 ブローカ&#10;・Valkey × 3 レプリカ&#10;・OpenBao Raft × 3&#10;・MinIO StatefulSet × 3（EC 4+2）&#10;・Longhorn レプリカ 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="360" width="230" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="dp_sum" value="3 ノード小計&#10;&#10;・24 vCPU&#10;・192 GB RAM&#10;・3 TB NVMe（Longhorn）&#10;・1.5 TB（MinIO 合計、EC 実効 ~1 TB）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="550" y="360" width="210" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ob_bg" value="Observability ノード × 2（観測 LGTM / AGPL 隔離）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="820" y="320" width="740" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="ob_spec" value="1 ノードあたり&#10;&#10;・8 vCPU&#10;・32 GB RAM（ECC）&#10;・500 GB SSD（ログ / メトリクス）&#10;・1 Gbps NIC × 2（LACP）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="840" y="360" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="ob_role" value="配置コンポーネント（AGPL 隔離）&#10;&#10;・Grafana（UI）&#10;・Loki（ログ）&#10;・Tempo（トレース）&#10;・Mimir（メトリクス、Apache 2.0）&#10;・Renovate（依存更新、プロセス分離）&#10;・Harbor / Trivy（CI/CD 補助）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#c62828;strokeWidth=2;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="360" width="230" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="ob_sum" value="2 ノード小計&#10;&#10;・16 vCPU&#10;・64 GB RAM&#10;・1 TB SSD" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="360" width="210" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dr_bg" value="DR ノード × 2（遠隔副拠点 / 週次バックアップレプリカ / 設計対象外 → Phase 2 で確保）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="1520" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_spec" value="1 ノードあたり&#10;&#10;・8 vCPU&#10;・32 GB RAM（ECC）&#10;・2 TB SSD（バックアップ受け入れ専用）&#10;・1 Gbps NIC × 2（LACP、WAN 経由 IPsec）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_role" value="配置コンポーネント（Standby）&#10;&#10;・PostgreSQL Streaming Replication（遠隔）&#10;・MirrorMaker2 で Kafka 受け&#10;・MinIO site-to-site レプリカ受け&#10;・barman cloud バックアップ先&#10;・通常は kube-apiserver 停止、DR 時のみ昇格" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="620" width="320" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_sum" value="2 ノード小計&#10;&#10;・16 vCPU&#10;・64 GB RAM&#10;・4 TB SSD&#10;・RPO 60 秒（Phase 2 目標）／RTO 30 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="700" y="620" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="dr_note" value="Phase 1b/1c では DR 2 ノードは未確保、週次オブジェクト複製で RPO 1 週間 / RTO 48 時間。&#10;Phase 2（3,000 名スケール）で本図の遠隔 DR 構成に移行し、MinIO・PostgreSQL・Kafka の&#10;site-to-site レプリケーションを実稼働させる。既存 JTC 別拠点 NAS を活用し、新規 DC 契約を回避する。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="620" width="540" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="total_bg" value="中規模 3,000 名構成の合計（16 ノード）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;verticalAlign=top;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="780" width="1520" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="total_cpu" value="合計 CPU&#10;&#10;116 vCPU" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="820" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="total_ram" value="合計 RAM&#10;&#10;560 GB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="820" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="total_ssd" value="合計 SSD&#10;&#10;約 11 TB（生容量）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="540" y="820" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="total_obj" value="オブジェクトストレージ&#10;&#10;MinIO EC 4+2 実効 約 1 TB&#10;（DR 副拠点 2 TB 別枠）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="780" y="820" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="total_net" value="合計 NIC&#10;&#10;32 本（16 × 2 LACP）&#10;業務系 VLAN 収容" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="820" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="total_vip" value="ロードバランサ&#10;&#10;MetalLB VIP 5 本&#10;keepalived VIP 1 本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="820" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scale_bg" value="規模別スケーリング差分（本図は中規模 = 基準）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="930" width="1520" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="scale_small" value="小規模（1,000 名想定 / Phase 1b〜1c 相当）&#10;&#10;・合計 3 ノード（CP 兼 Worker 兼 Data の混在）&#10;・12 vCPU / 48 GB RAM / 600 GB SSD&#10;・Observability / DR は非設置、Grafana LGTM も後回し&#10;・MinIO は standalone、Longhorn replica=3 のみ確保&#10;・目標 SLO 99%（月 7h ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="970" width="480" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="scale_mid" value="中規模（3,000 名想定 / Phase 2 基準 / 本図）&#10;&#10;・16 ノード構成（CP 3 / Worker 6 / Data 3 / Obs 2 / DR 2）&#10;・116 vCPU / 560 GB RAM / 約 11 TB SSD&#10;・Anti-Affinity で単一ハイパバイザ障害に耐える&#10;・MinIO EC 4+2、Longhorn NVMe 専用プール&#10;・目標 SLO 99.9%（月 43 分ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="970" width="480" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="scale_large" value="大規模（10,000 名想定 / Phase 3 想定）&#10;&#10;・30 ノード以上（Worker を 6 → 16 へ線形拡張、Data を 3 → 6 へシャード分割）&#10;・約 240 vCPU / 1.2 TB RAM / 30 TB 超 SSD&#10;・2 DC 同時稼働（Active-Active）／SPIFFE/SPIRE で Workload Identity 連邦&#10;・MinIO site-to-site レプリカ 3 リージョン、Kafka MirrorMaker2 常時稼働&#10;・目標 SLO 99.95%（月 22 分ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="970" width="480" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1100" width="1520" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1105" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1135" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_t" value="インフラ層（ノードスペック / VM 物理諸元）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1133" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="400" y="1135" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（tier1/2/3 Pod / Argo CD / Harbor / Trivy）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="1133" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1135" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（PG / Kafka / Valkey / OpenBao / MinIO / Longhorn / DR 受け）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="830" y="1133" width="440" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sum" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1165" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sum_t" value="小計・合計セル（サイジング結果）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1163" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_warn" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="400" y="1165" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_warn_t" value="DR / 大規模想定（Phase 2 以降で確保 / 設計対象外領域）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="1163" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_note" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;" vertex="1" parent="1">
+          <mxGeometry x="800" y="1165" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_note_t" value="注記・Phase 移行補足（小規模→中規模→大規模の差分）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="830" y="1163" width="360" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_agpl" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#c62828;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1195" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_agpl_t" value="AGPL-3.0 隔離運用（Grafana / Loki / Tempo / MinIO / Renovate）：プロセス分離・無改変・境界遮断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="1193" width="720" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

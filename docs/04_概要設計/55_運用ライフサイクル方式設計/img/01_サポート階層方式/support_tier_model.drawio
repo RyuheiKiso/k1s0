@@ -1,0 +1,190 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="support_tier_model" id="sup-tier-model">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 サポート階層エスカレーションモデル（顧客 → Tier1 → Tier2 → Tier3 → 製品）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_bg" value="エスカレーションとフィードバックの主経路" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1520" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="customer" value="顧客&#10;(tier2/tier3 開発チーム&#10; 運用管理者 / 社外テナント)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1" value="Tier1 受付／FAQ 初動&#10;(オンコール当番 1 名)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="130" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2" value="Tier2 技術調査／再現&#10;(起案者または協力者)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="130" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="Tier3 根本原因／実装&#10;(Rust / Go コア開発者)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="130" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="product" value="製品／ADR 化&#10;(Product Council)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="130" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="customer" target="tier1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_lbl" value="問合せ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="140" width="60" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="tier1" target="tier2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_lbl" value="15% エスカレ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="585" y="140" width="80" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="tier2" target="tier3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_lbl" value="5% エスカレ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="885" y="140" width="80" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="tier3" target="product">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_lbl" value="ADR 起案" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="140" width="70" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="eb1" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=1;entryDx=0;entryDy=0;endArrow=classic;dashed=1;dashPattern=1 2;" edge="1" parent="1" source="tier3" target="tier2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1004" y="250" />
+              <mxPoint x="836" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb1_lbl" value="Runbook 化して返却" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="255" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="eb2" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=1;entryDx=0;entryDy=0;endArrow=classic;dashed=1;dashPattern=1 2;" edge="1" parent="1" source="tier2" target="tier1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="704" y="290" />
+              <mxPoint x="536" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb2_lbl" value="FAQ 化して返却" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="550" y="295" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="eb3" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=1;entryDx=0;entryDy=0;endArrow=classic;dashed=1;dashPattern=1 2;" edge="1" parent="1" source="tier1" target="customer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="404" y="330" />
+              <mxPoint x="240" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb3_lbl" value="回答／一次応答" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="335" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="detail_title" value="各 Tier の責務・SLA・想定比率" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="d_t1" value="Tier1 (L1)&#10;・受付 / FAQ 引用 / 分類&#10;・SLA: 15 分 (SEV1-2) / 1 h (SEV3-4)&#10;・想定比率: 80%&#10;・FAQ 引用率 70% 以上" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="435" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="d_t2" value="Tier2 (L2)&#10;・Runbook 実行 / 再現調査&#10;・SLA: 30 分 (SEV1) / 1 h (SEV2) / 4 h (SEV3)&#10;・想定比率: 15%&#10;・Runbook 成功率 80% 以上" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="435" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="d_t3" value="Tier3 (L3)&#10;・根本原因特定 / 恒久対策実装&#10;・SLA: 着手 8 h / 原因 24 h&#10;・恒久対策: 1 週間以内&#10;・想定比率: 5% 以下" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="960" y="435" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="d_prod" value="製品／ADR 化&#10;・設計記録の永続化&#10;・構造的改善の意思決定&#10;・四半期 Product Council レビュー&#10;・NFR-C-SUP-001〜003 反映" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="435" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_title" value="受付チャネル 4 種（Tier1 入口の内訳）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="590" width="500" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_bs" value="Backstage Help&#10;(60%)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="625" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_sl" value="Slack #k1s0-support&#10;(25%)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="230" y="625" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_ml" value="メール（社外）&#10;(10%)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="625" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_tel" value="緊急電話 PagerDuty&#10;(SEV1 ≤ 5%)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="625" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch_note" value="非同期（Backstage / Slack / Mail）を優先。電話は SEV1 のみ。&#10;通常チケットは Jira Service Management にて統合管理。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="695" width="780" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="kb_title" value="ナレッジベース 3 層（各 Tier が主に参照する層）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="590" width="500" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="kb_faq" value="FAQ（Backstage TechDocs）&#10;Tier1 主参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="625" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kb_rb" value="Runbook 15 本（k1s0/runbooks）&#10;Tier2 主参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="625" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kb_ad" value="アーキテクチャ Doc / ADR&#10;Tier3 とオンボ参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="705" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kb_note" value="月次で FAQ ≥ 5 件追加。6 か月未更新 Runbook は棚卸し対象。&#10;ADR は Product Council 承認で新設・改廃。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="705" width="450" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="1520" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="810" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="840" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（Tier 役割ノード / 詳細 / 製品）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="838" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="862" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層（受付チャネル 4 種）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="860" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="884" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（FAQ / Runbook / ADR のナレッジ資産）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="882" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_esc_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry x="500" y="846" as="geometry">
+            <mxPoint x="500" y="846" as="sourcePoint" />
+            <mxPoint x="560" y="846" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_esc_t" value="エスカレーション（上位層への引き渡し）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="570" y="838" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_back_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry x="500" y="870" as="geometry">
+            <mxPoint x="500" y="870" as="sourcePoint" />
+            <mxPoint x="560" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_back_t" value="回答フィードバック（Runbook / FAQ 化して下位 Tier に返却）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="570" y="862" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_adr_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="500" y="892" as="geometry">
+            <mxPoint x="500" y="892" as="sourcePoint" />
+            <mxPoint x="560" y="892" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_adr_t" value="ADR 起案（Tier3 → 製品／Product Council）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="570" y="884" width="400" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,187 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="config_store_structure" id="config-store-structure">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1120" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 コンフィグストア 3 層構造（GitOps リポジトリ + OpenBao + ConfigMap/flagd）— 性質で格納先を分離し、注入経路を明示する" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1620" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier_source_title" value="階層 1: Source of Truth（Git リポジトリ・Backstage / 運用チームのみ書込）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="70" width="800" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="git_repo" value="Git リポジトリ&#10;（GitHub Enterprise）&#10;env/dev, env/staging, env/prod&#10;PR レビュー必須 / CODEOWNERS 2 名承認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="openbao_write" value="OpenBao（正本）&#10;運用チーム書込専用&#10;KV v2 / Transit / PKI エンジン&#10;Shamir 5-of-3 解錠" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd_src" value="flagd 設定 JSON&#10;（Git + 管理 API 二系統）&#10;Feature Flag の正本&#10;Backstage UI からも編集可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="jdm_src" value="ZEN Engine JDM ファイル&#10;（Git 管理、Phase 4 で GUI 化）&#10;Decision 決定表の正本&#10;`src/tier1/decisions/`" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="100" width="310" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier_mid_title" value="階層 2: 同期・変換レイヤ（Argo CD / External Secrets Operator / flagd Sync / Kustomize overlay）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="1100" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="argocd" value="Argo CD&#10;GitOps Controller&#10;ApplicationSet で環境順序同期&#10;DriftDetection で差分検知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="310" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="eso" value="External Secrets Operator&#10;OpenBao → k8s Secret へ注入&#10;リフレッシュ 60s&#10;ClusterSecretStore で環境分離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="310" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd_sync" value="flagd Sync&#10;Git commit → ConfigMap 即時反映&#10;緊急時は管理 API で直接 Patch&#10;変更は flagd 監査ログに保存" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="310" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="jdm_loader" value="ZEN Engine JDM Loader&#10;Git から Pod 起動時に読込&#10;ホットリロード対応（Watch）&#10;Decision API で評価結果配信" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="310" width="310" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier_runtime_title" value="階層 3: ランタイム注入（k8s Secret / ConfigMap / flagd Pod / Decision Service）— tier2/tier3 Pod は以下 4 種のみを参照する" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="490" width="1400" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rt_configmap" value="k8s ConfigMap&#10;非機密設定&#10;（エンドポイント URL / タイムアウト /&#10;ログレベル / Flag デフォルト）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="520" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rt_secret" value="k8s Secret&#10;機密情報&#10;（DB / API キー / TLS 鍵 /&#10;Keycloak / Kafka / SMTP）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="520" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rt_flagd" value="flagd Pod（HTTP/gRPC）&#10;動的 Feature Flag 配信&#10;A/B テスト / Kill Switch&#10;rollout 時の段階オン/オフ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="520" width="310" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rt_decision" value="tier1 Decision Service&#10;JDM ベース判定 API&#10;業務ルールの単一経路&#10;監査ログ自動記録" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="520" width="310" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pod_row_title" value="アプリケーション Pod（tier2 / tier3）— 上位 4 経路のみから設定値を受け取る" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="710" width="1100" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pod_body" value="tier2 / tier3 Pod（Dapr サイドカー経由）&#10;env 変数 / volume mount / Flag evaluation API / Decision API の 4 系で設定値を取得し、&#10;直接 OpenBao / Git / flagd 正本にアクセスすることは禁止（境界越え不可）。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="740" width="1390" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_git_argo" style="html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;dashPattern=6 4;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="git_repo" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_git_argo_lbl" value="git pull / webhook" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="100" y="240" width="130" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_bao_eso" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="openbao_write" target="eso">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_bao_eso_lbl" value="Vault API" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="470" y="240" width="100" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_flag_sync" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="flagd_src" target="flagd_sync">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_flag_sync_lbl" value="sync controller" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="830" y="240" width="110" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_jdm_load" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="jdm_src" target="jdm_loader">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_jdm_load_lbl" value="git clone / watch" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="240" width="120" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_argo_cm" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="argocd" target="rt_configmap">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_argo_cm_lbl" value="kubectl apply" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="100" y="450" width="110" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_eso_sec" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="eso" target="rt_secret">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_eso_sec_lbl" value="Secret CRD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="470" y="450" width="100" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_flag_flagd" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="flagd_sync" target="rt_flagd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_flag_flagd_lbl" value="ConfigMap patch" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="830" y="450" width="130" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_jdm_dec" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="jdm_loader" target="rt_decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_jdm_dec_lbl" value="in-memory eval" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="450" width="130" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_cm_pod" style="html=1;strokeWidth=2;strokeColor=#666666;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rt_configmap" target="pod_body">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_cm_pod_lbl" value="env var" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="150" y="660" width="60" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_sec_pod" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rt_secret" target="pod_body">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_sec_pod_lbl" value="volume mount" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="500" y="660" width="110" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_flagd_pod" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.6;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rt_flagd" target="pod_body">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_flagd_pod_lbl" value="flag eval API" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="870" y="660" width="110" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a_dec_pod" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rt_decision" target="pod_body">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_dec_pod_lbl" value="Decision API" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=#ffffff;fillOpacity=90;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="660" width="110" height="16" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="870" width="1390" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例と格納ルール（性質による分離）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="95" y="875" width="400" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app2" value="アプリ層（#fff2cc）：GitOps / flagd / Decision など、tier2/tier3 Pod から明示的に参照される抽象" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="905" width="1200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf2" value="インフラ層（#f5f5f5）：k8s ConfigMap（非機密設定の標準注入先）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="930" width="1200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dat2" value="データ層（#e1d5e7）：OpenBao 正本 + k8s Secret（機密情報の正本と注入先）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="955" width="1200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rule1" value="ルール 1: 機密は OpenBao のみ / 非機密は ConfigMap のみ / 動的は flagd のみ（クロスストア禁止）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="985" width="1300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rule2" value="ルール 2: 書込は運用チームのみ（開発者は read-only）、Git 以外のルート（手動 kubectl / Vault CLI 直接）は監査時以外禁止" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1010" width="1300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rule3" value="ルール 3: flagd 管理 API 直 Patch は緊急時限定。24h 以内に Git に事後 PR を戻し、Argo CD 次回 Sync での上書きを防ぐ。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1035" width="1300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_line" value="矢印：橙実線＝GitOps 同期経路、紫実線＝Secret 経路、橙破線＝Git → Argo CD Pull（非同期 reconcile）、灰実線＝ConfigMap の Pod 注入" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1060" width="1360" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,234 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="認証三層フロー" id="auth-three-layer-flow">
+    <mxGraphModel dx="1800" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="認証三層フロー — OIDC / JWT / SPIFFE による tier2→tier1 / tier1 内部の認証経路" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1720" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_tier2" value="tier2 / tier3&#10;クライアント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="180" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_envoy" value="Envoy Gateway&#10;(ext_authz)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="80" width="180" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_kc" value="Keycloak 25.x&#10;(OIDC / JWKS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="80" width="180" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_facade" value="tier1 Dapr ファサード&#10;(Go Interceptor)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="840" y="80" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_ztunnel" value="Istio Ambient&#10;ztunnel (HBONE)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="80" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_rust" value="tier1 自作 Rust&#10;(Audit / Decision / PII)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="80" width="200" height="48" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ll_tier2" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="128" as="sourcePoint" />
+            <mxPoint x="150" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_envoy" value="" style="endArrow=none;html=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="128" as="sourcePoint" />
+            <mxPoint x="410" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_kc" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="670" y="128" as="sourcePoint" />
+            <mxPoint x="670" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_facade" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="128" as="sourcePoint" />
+            <mxPoint x="940" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_ztunnel" value="" style="endArrow=none;html=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1220" y="128" as="sourcePoint" />
+            <mxPoint x="1220" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ll_rust" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1500" y="128" as="sourcePoint" />
+            <mxPoint x="1500" y="910" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="phase1_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="1540" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="phase1_label" value="第一層: エンドユーザー認証 (OIDC Authorization Code Flow + PKCE)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="60" y="136" width="1540" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" value="1. /authorize (code_challenge S256)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="200" as="sourcePoint" />
+            <mxPoint x="410" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" value="2. forward to Keycloak" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="235" as="sourcePoint" />
+            <mxPoint x="670" y="235" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a3" value="3. Authorization Code (寿命 60 秒)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="670" y="270" as="sourcePoint" />
+            <mxPoint x="150" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a4" value="4. /token (code + code_verifier)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="305" as="sourcePoint" />
+            <mxPoint x="670" y="305" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a5" value="5. JWT 発行 (RS256, kid, iss, aud, exp 15m, tenant_id, sub)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="670" y="340" as="sourcePoint" />
+            <mxPoint x="150" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="phase2_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="1540" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2_label" value="第二層: tier1 API 呼出時の JWT 検証 (Envoy ext_authz + Interceptor 二重検証)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#1565c0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="358" width="1540" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="b1" value="6. gRPC Call (Authorization: Bearer JWT)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="420" as="sourcePoint" />
+            <mxPoint x="410" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b2" value="7. ext_authz: JWKS 署名検証 (5 分 cache)" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashed=1;dashPattern=1 2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="455" as="sourcePoint" />
+            <mxPoint x="670" y="455" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b2n" value="JWKS fetch: kid 未知時のみ強制更新" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="430" y="436" width="250" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" value="8. forward to tier1 Dapr ファサード" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="490" as="sourcePoint" />
+            <mxPoint x="940" y="490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b4" value="9. JWT 二重検証 (iss / aud / exp ±5s / nbf / tenant_id / sub)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="525" as="sourcePoint" />
+            <mxPoint x="940" y="555" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="b4n" value="defense in depth: Envoy に加えて tier1 Interceptor でも検証" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="970" y="530" width="440" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase3_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="590" width="1540" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="phase3_label" value="第三層: tier1 内部コンポーネント間通信 (SPIFFE/SPIRE + Istio Ambient 自動 mTLS)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#6a1b9a;" vertex="1" parent="1">
+          <mxGeometry x="60" y="568" width="1540" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c1" value="10. 内部 gRPC (平文) facade → ztunnel" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="650" as="sourcePoint" />
+            <mxPoint x="1220" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c2" value="11. ztunnel: SPIFFE SVID 付与 + HBONE mTLS 終端 (L4 透過)" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashed=1;dashPattern=1 2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1220" y="685" as="sourcePoint" />
+            <mxPoint x="1220" y="720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c2n" value="SVID: spiffe://k1s0.internal/tier1/&lt;component&gt; 有効期限 1h / 30m 先行ローテ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="690" width="480" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="12. AuthorizationPolicy 強制 (SPIFFE ID 検証必須)" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1220" y="755" as="sourcePoint" />
+            <mxPoint x="1500" y="755" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4" value="13. tier1 Rust 到達 (平文 gRPC として受信)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1500" y="790" as="sourcePoint" />
+            <mxPoint x="1500" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c5" value="14. 業務処理結果 (return)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1500" y="855" as="sourcePoint" />
+            <mxPoint x="940" y="855" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c6" value="15. facade → Envoy → tier2/3 (response)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="890" as="sourcePoint" />
+            <mxPoint x="150" y="890" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="930" width="1080" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="■ アプリ層 (暖色 #fff2cc / #d79b00): tier2/3 クライアント / Keycloak / tier1 Dapr ファサード (Go) / tier1 Rust" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="955" width="1040" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="■ ネットワーク層 (寒色 #dae8fc / #6c8ebf): Envoy Gateway / Istio Ambient ztunnel" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="978" width="1040" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_s" value="→ 実線太: 同期 HTTP / gRPC の明示呼び出し (リクエスト)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1001" width="1040" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_d" value="→ 破線: 応答 / レスポンス（同期の戻り）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1024" width="1040" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dot" value="→ 点線細: 透過捕捉 (ext_authz 内部検証 / ztunnel L4 透過 mTLS 終端)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1047" width="1040" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="params" value="固定パラメータ (DS-CF-AUTH-003/005/007)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="930" width="600" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="pv1" value="Access Token 15 分 / Refresh Token 24 時間 / Auth Code 60 秒" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="955" width="580" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pv2" value="Clock Skew 許容 5 秒 / JWKS キャッシュ TTL 5 分" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="978" width="580" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pv3" value="Keycloak 鍵ローテ 180 日 / grace period 30 日" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1001" width="580" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pv4" value="SPIFFE SVID 有効 1 時間 / 30 分先行ローテ / k8s_psat Attestor" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1024" width="580" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pv5" value="JWT 検証オーバーヘッド 5ms 以内 (tier1 p99 500ms 予算)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="1047" width="580" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

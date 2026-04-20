@@ -1,0 +1,191 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T22:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="モジュール依存関係" id="module-deps">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="tier1 モジュール依存関係（循環依存なし・一方向）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="facade_bg" value="Dapr ファサード層（Go）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="720" height="390" as="geometry" />
+        </mxCell>
+        <mxCell id="state" value="COMP-T1-STATE&#10;(Go)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="secret" value="COMP-T1-SECRET&#10;(Go)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="workflow" value="COMP-T1-WORKFLOW&#10;(Go)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="120" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rust_bg" value="自作 Rust 領域" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="70" width="760" height="390" as="geometry" />
+        </mxCell>
+        <mxCell id="decision" value="COMP-T1-DECISION&#10;(Rust)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pii" value="COMP-T1-PII&#10;(Rust)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" value="COMP-T1-AUDIT&#10;(Rust)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="common_bg" value="共通ライブラリ（両言語）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="1520" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="proto" value="k1s0-proto&#10;(.proto 生成コード)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="550" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="common" value="k1s0-common&#10;(エラー/ID/時刻/設定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="550" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="otel" value="k1s0-otel&#10;(OTel span/metric 共通初期化)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="550" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="policy" value="k1s0-policy&#10;(RBAC/Tenant Enforcer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="550" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sdk_note" value="外部: Dapr Go SDK / tonic / prost / ZEN Engine / OpenTelemetry / pgx / aws-sdk-s3（最下層・依存方向の終端）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="670" width="1360" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="800" width="500" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="アプリ層（暖色）: tier1 コンポーネント本体" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="826" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_common" value="中性灰: 共通ライブラリ（言語横断・依存方向の下流）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="848" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_solid_bold" value="実線太: facade → rust の内部 gRPC 同期呼び出し" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="870" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_thin" value="実線細: 同一言語内・自作間の内部 gRPC" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="892" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dep" value="破線: ライブラリ依存（build time）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="914" width="460" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rule" value="循環依存は CI で禁止（go list / cargo-deps + custom lint）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="940" width="460" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_state_decision" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.8;exitY=1;entryX=0.3;entryY=1;" edge="1" parent="1" source="state" target="decision">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="205" />
+              <mxPoint x="900" y="205" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_state_pii" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.3;entryY=1;" edge="1" parent="1" source="state" target="pii">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="235" />
+              <mxPoint x="1140" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_state_audit" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.9;entryX=0;entryY=0.5;" edge="1" parent="1" source="state" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="260" />
+              <mxPoint x="1260" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_workflow_decision" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="workflow" target="decision">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="280" />
+              <mxPoint x="940" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_workflow_audit" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=0.9;" edge="1" parent="1" source="workflow" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="310" />
+              <mxPoint x="1260" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_decision_pii" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="decision" target="pii">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pii_audit" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="pii" target="audit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_state_proto" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.2;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="state" target="proto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_state_common" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="state" target="common">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_state_otel" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.8;exitY=1;entryX=0.1;entryY=0;" edge="1" parent="1" source="state" target="otel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_secret_proto" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="secret" target="proto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_secret_common" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.7;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="secret" target="common">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_secret_policy" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=1;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="secret" target="policy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_workflow_common" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.2;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="workflow" target="common">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_workflow_otel" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.5;exitY=1;entryX=0.4;entryY=0;" edge="1" parent="1" source="workflow" target="otel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_decision_proto" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.2;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="decision" target="proto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_decision_common" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="decision" target="common">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_decision_otel" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.8;exitY=1;entryX=0.6;entryY=0;" edge="1" parent="1" source="decision" target="otel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pii_common" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.2;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="pii" target="common">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pii_otel" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.5;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="pii" target="otel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_audit_proto" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.2;exitY=1;entryX=1;entryY=0;" edge="1" parent="1" source="audit" target="proto">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_audit_common" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.5;exitY=1;entryX=1;entryY=0;" edge="1" parent="1" source="audit" target="common">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_audit_otel" style="endArrow=classic;html=1;strokeWidth=1;strokeColor=#666666;dashed=1;exitX=0.8;exitY=1;entryX=1;entryY=0;" edge="1" parent="1" source="audit" target="otel">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
