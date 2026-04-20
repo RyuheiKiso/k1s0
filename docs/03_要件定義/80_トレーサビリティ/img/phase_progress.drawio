@@ -1,0 +1,157 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="phase-progress" name="Phase 進捗積み上げ図">
+    <mxGraphModel dx="1700" dy="1400" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Phase 進捗積み上げ図（機能要件 MUST/SHOULD/COULD の累積達成）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="1000" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="累積バーは「その Phase ゲート通過時点までに揃う要件総数」を表す。色分けは新規追加された Phase を示す（既存 Phase の達成項目は下層に維持）。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="200" y="58" width="1300" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="凡例（新規追加 Phase ごとの色）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="92" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1a" value="Phase 1a 追加分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="330" y="90" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1b" value="Phase 1b 追加分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="90" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1c" value="Phase 1c 追加分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="610" y="90" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2p" value="Phase 2+ 追加分" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="90" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-must" value="●MUST=必達 / ●SHOULD=Phase 内推奨 / ●COULD=未確定（要 PoC）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="900" y="90" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="yaxis-title" value="累積要件数" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;rotation=-90;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="80" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="yaxis-line" value="" style="endArrow=none;html=1;strokeColor=#888;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="160" as="sourcePoint" />
+            <mxPoint x="160" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="yaxis-base" value="" style="endArrow=none;html=1;strokeColor=#888;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="1100" as="sourcePoint" />
+            <mxPoint x="1640" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ytick-0" value="0" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1090" width="35" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ytick-17" value="17" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="826" width="35" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ytick-30" value="30" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="624" width="35" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ytick-51" value="51" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="298" width="35" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ytick-58" value="58" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="190" width="35" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ytick-59" value="59" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="172" width="35" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="grid-17" value="" style="endArrow=none;html=1;strokeColor=#bbbbbb;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="155" y="836" as="sourcePoint" />
+            <mxPoint x="180" y="836" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="grid-51" value="" style="endArrow=none;html=1;strokeColor=#bbbbbb;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="155" y="308" as="sourcePoint" />
+            <mxPoint x="180" y="308" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="grid-58" value="" style="endArrow=none;html=1;strokeColor=#bbbbbb;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="155" y="200" as="sourcePoint" />
+            <mxPoint x="180" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bar-1a-layer1" value="&lt;b&gt;Phase 1a 新規 17 件&lt;/b&gt;&lt;br&gt;MUST 17（API 13 / EXT 1 / INFO 3）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="836" width="240" height="264" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1a-cum" value="累積 17 件" style="text;html=1;strokeColor=none;fillColor=#fff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#222;" vertex="1" parent="1">
+          <mxGeometry x="220" y="800" width="240" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1b-layer1" value="Phase 1a 達成分（17 件継承）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;fontColor=#777;" vertex="1" parent="1">
+          <mxGeometry x="600" y="836" width="240" height="264" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1b-layer2" value="&lt;b&gt;Phase 1b 新規 34 件&lt;/b&gt;&lt;br&gt;MUST 14 / SHOULD 18 / COULD 2&lt;br&gt;（PubSub・Secrets・Workflow・Binding・PII・Feature 等が立ち上がる）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="308" width="240" height="528" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1b-cum" value="累積 51 件" style="text;html=1;strokeColor=none;fillColor=#fff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#222;" vertex="1" parent="1">
+          <mxGeometry x="600" y="272" width="240" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1c-layer1" value="Phase 1a 達成分（17 件継承）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;fontColor=#777;" vertex="1" parent="1">
+          <mxGeometry x="980" y="836" width="240" height="264" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1c-layer2" value="Phase 1b 達成分（34 件継承）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;fontColor=#777;" vertex="1" parent="1">
+          <mxGeometry x="980" y="308" width="240" height="528" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1c-layer3" value="&lt;b&gt;Phase 1c 新規 7 件&lt;/b&gt;&lt;br&gt;MUST 1（AUDIT-003 7 年保存）&lt;br&gt;SHOULD 3 / COULD 3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="980" y="200" width="240" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-1c-cum" value="累積 58 件" style="text;html=1;strokeColor=none;fillColor=#fff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#222;" vertex="1" parent="1">
+          <mxGeometry x="980" y="164" width="240" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-2p-layer1" value="Phase 1a 達成分（17 件継承）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;fontColor=#777;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="836" width="240" height="264" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-2p-layer2" value="Phase 1b 達成分（34 件継承）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;fontColor=#777;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="308" width="240" height="528" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-2p-layer3" value="Phase 1c 達成分（7 件継承）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=center;verticalAlign=middle;fontColor=#777;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="200" width="240" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-2p-layer4" value="&lt;b&gt;+1&lt;/b&gt; Phase 2+ 新規（FEATURE-004 A/B テスト COULD）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="184" width="240" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="bar-2p-cum" value="累積 59 件" style="text;html=1;strokeColor=none;fillColor=#fff;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#222;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="148" width="240" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="phase-1a-label" value="Phase 1a&lt;br&gt;&lt;span style='font-size:10px;color:#555'&gt;MVP-0 / 稟議通過直後&lt;/span&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="1110" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="phase-1b-label" value="Phase 1b&lt;br&gt;&lt;span style='font-size:10px;color:#555'&gt;MVP-1a / パイロット投入&lt;/span&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="1110" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="phase-1c-label" value="Phase 1c&lt;br&gt;&lt;span style='font-size:10px;color:#555'&gt;MVP-1b / 運用定着&lt;/span&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="1110" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="phase-2p-label" value="Phase 2+&lt;br&gt;&lt;span style='font-size:10px;color:#555'&gt;拡大 / A-B 等の高度化&lt;/span&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="1110" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-1a" value="&lt;b&gt;ゲート通過条件&lt;/b&gt;: tier2 アプリが 1 つ動く最小条件。同期呼出・状態管理・ログ・計装・JDM PoC・改ざん不可監査・AD 認証・データモデル基盤の 17 件 MUST 全件達成。&lt;br&gt;&lt;b&gt;ゲート審査者&lt;/b&gt;: Architecture Council&lt;br&gt;&lt;b&gt;主な達成証跡&lt;/b&gt;: 稟議デモ環境のスモークテスト pass、構造化ログの取得、JDM 評価デモ動画。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffaf0;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="180" y="1170" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-1b" value="&lt;b&gt;ゲート通過条件&lt;/b&gt;: パイロット 1 チームが業務投入できる条件。Phase 1a 17 件に加え、PubSub 4 件・Secrets 1 件・Workflow 2 件・Binding 1 件・PII 1 件・Audit 連携 1 件・Feature Flag 1 件・.NET サイドカー 1 件・既存監視連携 1 件・Decision Audit 連携 1 件 = 累計 51 件達成、達成率 100%。&lt;br&gt;&lt;b&gt;ゲート審査者&lt;/b&gt;: Product Council ＋ パイロットチーム&lt;br&gt;&lt;b&gt;主な達成証跡&lt;/b&gt;: パイロット業務 SLO の 30 日連続観測、p99 500ms 達成、RTO 4h 復旧訓練。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5faff;strokeColor=#6c8ebf;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="1170" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-1c" value="&lt;b&gt;ゲート通過条件&lt;/b&gt;: SRE オンコール体制で継続運用できる条件。新規 MUST は AUDIT-003（7 年保存）の 1 件のみ。NFR 側は HA 化・カオス試験・自動 Secret ローテーション・.NET サイドカー成熟・PII 仮名化が SHOULD/COULD として進む。&lt;br&gt;&lt;b&gt;ゲート審査者&lt;/b&gt;: SRE Lead ＋ コンプライアンス&lt;br&gt;&lt;b&gt;主な達成証跡&lt;/b&gt;: 監査ログ 7 年保存設定の運用記録、カオス試験 Runbook の演習結果。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f6fbf3;strokeColor=#82b366;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="940" y="1170" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-2p" value="&lt;b&gt;ゲート通過条件&lt;/b&gt;: Phase 1c で運用定着した上で、業務分析・品質高度化を扱う。新規 MUST は無し（既存要件の改善が主）。新機能 COULD は A/B テスト機構（FEATURE-004）の 1 件。&lt;br&gt;&lt;b&gt;ゲート審査者&lt;/b&gt;: Product Council&lt;br&gt;&lt;b&gt;主な達成証跡&lt;/b&gt;: A/B テスト基盤 PoC、テナント別コスト可視化、既存 EOL 製品の撤退記録。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#faf5fc;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="1170" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="解釈上の注: 本図は機能要件（FR-T1-* / FR-EXT-* / FR-INFO-*）の合計 59 件を対象とする。NFR・OR・DX・BC は別軸の Phase 進捗で管理しており本図には含まない。Phase ゲート通過判定は累計達成率 95% 以上を基準とする（02_機能一覧.md「要件総数と優先度分布」節）。Phase 1a → 1b の急増（17 → 51）は、パイロット投入で必要な API 基盤がほぼ全て立ち上がる構造を示す。" style="text;html=1;strokeColor=#888;fillColor=#fafafa;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fontSize=10;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="160" y="1378" width="1480" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

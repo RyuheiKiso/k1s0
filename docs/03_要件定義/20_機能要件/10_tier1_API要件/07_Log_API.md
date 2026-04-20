@@ -12,17 +12,23 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 
 ### FR-T1-LOG-001: 構造化ログ出力
 
-**現状**: tier2 が言語別のログライブラリ（Go の zap、C# の Serilog、Rust の tracing、Python の structlog）を選ぶと、フィールド名、ログレベル名、タイムスタンプ形式がバラつき、Loki 検索で部門横断ができない。
+**業務根拠**: BR-PLATOPS-003（障害調査の平均時間短縮による MTTR 削減）。
 
-**要件達成後**: `k1s0.Log.Info(msg, fields)` 等の統一 API で構造化ログを出力する。フィールド名は tier1 が定めた標準（`timestamp` / `level` / `message` / `tenant_id` / `service` / `trace_id` / `span_id` / `user_id` / `extra`）に正規化される。全言語で同じ JSON 形式で出力される。
+**現状**: tier2 が言語別のログライブラリ（Go の zap、C# の Serilog、Rust の tracing、Python の structlog）を選ぶと、フィールド名、ログレベル名、タイムスタンプ形式がバラつき、Loki 検索で部門横断ができない。社内既存システムの障害調査実績では、ログ横断検索の準備（言語別フィールド名の正規化、タイムスタンプ形式の揃え込み）だけで平均 45 分を要しており、年間の障害対応件数 200 件 × 45 分 = 150 人時が純粋な前処理コストとして消費されている。
 
-**崩れた時**: ログ検索で言語別の差異を意識する羽目になり、障害調査の時間が数倍に膨らむ。Loki の全文検索で同じクエリが言語別に別ヒットする。
+**要件達成後**: `k1s0.Log.Info(msg, fields)` 等の統一 API で構造化ログを出力する。フィールド名は tier1 が定めた標準（`timestamp` / `level` / `message` / `tenant_id` / `service` / `trace_id` / `span_id` / `user_id` / `extra`）に正規化される。全言語で同じ JSON 形式で出力される。前処理 150 人時/年が解消され、Loki の単一クエリで全言語横断検索が可能となり、MTTR は平均 15% 短縮見込み（業界ベンチマーク: 構造化ログ導入で MTTR 10〜20% 改善）。
 
-**受け入れ基準**:
+**崩れた時**: ログ検索で言語別の差異を意識する羽目になり、障害調査の時間が数倍に膨らむ。Loki の全文検索で同じクエリが言語別に別ヒットする。重大障害発生時の初動遅延は SLA 違反リスクに直結し、NFR-A-CONT-001 の 99% 稼働率から逸脱する可能性が生じる。
+
+**動作要件**:
 - Go / C# / Rust / Python SDK で同一のフィールド名で JSON 出力
 - ログレベルは `debug / info / warn / error / fatal` の 5 段階
 - timestamp は RFC3339 ナノ秒精度
 - 必須フィールド（timestamp、level、message、service、tenant_id、trace_id）は SDK が自動付与
+
+**品質基準**:
+- ログ出力レイテンシは NFR-B-PERF-006（tier2 業務処理への影響 5ms 以内）に従う
+- 標準フィールド逸脱は CI の Loki Schema チェックで検出（`grep` による static analysis）
 
 ### FR-T1-LOG-002: W3C Trace Context 自動注入
 
@@ -65,6 +71,8 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 - 優先度 SHOULD（Phase 1b で評価）
 
 ## 入出力仕様
+
+本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL.md の 07. Log API セクション](../40_tier1_API契約IDL.md#07-log-api) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `LogService` RPC と意味論的に対応する（同期書込は SDK 側で非同期バッファリングし、IDL の `LogBatch` メッセージにマッピングする）。
 
 ```
 k1s0.Log.Info(message: string, fields?: map<string, any>) -> void

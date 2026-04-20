@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1200" height="780" fill="#FFFFFF" stroke="none"/>
+  <text x="600" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#000000">リスクマトリクス 3 × 3 (発生確率 × 影響度・19 RISK- 項目)</text>
+  <text x="600" y="52" text-anchor="middle" font-size="11" fill="#666666">詳細は 07_リスクレジスタ.md。Product Council 四半期レビューで位置移動を再評価し、矢印注記で遷移履歴を残す。</text>
+
+  <!-- Y軸ラベル (回転) -->
+  <text x="45" y="376" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000" transform="rotate(-90 45 376)">影響度 Impact</text>
+
+  <!-- X軸ラベル -->
+  <text x="510" y="645" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">発生確率 Probability</text>
+
+  <!-- 列ヘッダ -->
+  <rect x="180" y="100" width="220" height="36" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="290" y="123" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">Low (&lt;10%)</text>
+  <rect x="400" y="100" width="220" height="36" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="510" y="123" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">Medium (10〜30%)</text>
+  <rect x="620" y="100" width="220" height="36" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="730" y="123" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">High (&gt;30%)</text>
+
+  <!-- 行ヘッダ -->
+  <rect x="100" y="136" width="80" height="160" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="140" y="208" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">High</text>
+  <text x="140" y="225" text-anchor="middle" font-size="9" fill="#000000">(事業継続影響)</text>
+  <rect x="100" y="296" width="80" height="160" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="140" y="368" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">Medium</text>
+  <text x="140" y="385" text-anchor="middle" font-size="9" fill="#000000">(部分障害</text>
+  <text x="140" y="400" text-anchor="middle" font-size="9" fill="#000000">数千万円)</text>
+  <rect x="100" y="456" width="80" height="160" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="140" y="528" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">Low</text>
+  <text x="140" y="545" text-anchor="middle" font-size="9" fill="#000000">(運用負荷増)</text>
+
+  <!-- Low × High -->
+  <rect x="180" y="136" width="220" height="160" fill="#ffe0b3" stroke="#d79b00" stroke-width="1"/>
+  <text x="190" y="156" font-size="11" font-weight="bold" fill="#000000">P1 優先</text>
+  <text x="190" y="178" font-size="10" fill="#000000">SEC-001 個人情報漏えい</text>
+  <text x="190" y="196" font-size="10" fill="#000000">SEC-003 内部不正</text>
+  <text x="190" y="214" font-size="10" fill="#000000">LGL-001 AGPL 違反</text>
+  <text x="190" y="232" font-size="10" fill="#000000">BUS-001 稟議否決</text>
+
+  <!-- Medium × High -->
+  <rect x="400" y="136" width="220" height="160" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+  <text x="410" y="156" font-size="11" font-weight="bold" fill="#000000">P1 優先</text>
+  <text x="410" y="178" font-size="10" fill="#000000">TEC-002 ZEN Engine 実装バグ</text>
+  <text x="410" y="196" font-size="10" fill="#000000">OPS-002 オンコール疲弊</text>
+  <text x="410" y="214" font-size="10" fill="#000000">SEC-002 サプライチェーン攻撃</text>
+  <text x="410" y="232" font-size="10" fill="#000000">LGL-002 個人情報保護法改正</text>
+  <text x="410" y="250" font-size="10" fill="#000000">BUS-002 テナント採用停滞</text>
+  <text x="410" y="268" font-size="10" fill="#000000">BUS-003 キーマン離職</text>
+
+  <!-- High × High -->
+  <rect x="620" y="136" width="220" height="160" fill="#e8b7b3" stroke="#8b3a36" stroke-width="1"/>
+  <text x="630" y="156" font-size="11" font-weight="bold" fill="#FFFFFF">P1 最優先</text>
+  <text x="630" y="178" font-size="10" fill="#FFFFFF">OPS-001 bus factor</text>
+  <text x="630" y="196" font-size="10" fill="#FFFFFF">(運用 1〜2 名依存)</text>
+  <text x="630" y="218" font-size="10" fill="#FFFFFF">→ 採用 + Runbook 化で</text>
+  <text x="630" y="236" font-size="10" fill="#FFFFFF">Medium 側へ移動目標</text>
+
+  <!-- Low × Medium -->
+  <rect x="180" y="296" width="220" height="160" fill="#ffffff" stroke="#cccccc" stroke-width="1"/>
+  <text x="190" y="316" font-size="11" font-weight="bold" fill="#999999">該当なし</text>
+  <text x="190" y="338" font-size="10" fill="#999999">(新規発生時に</text>
+  <text x="190" y="356" font-size="10" fill="#999999">このセルから</text>
+  <text x="190" y="374" font-size="10" fill="#999999">採番開始)</text>
+
+  <!-- Medium × Medium -->
+  <rect x="400" y="296" width="220" height="160" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+  <text x="410" y="316" font-size="11" font-weight="bold" fill="#000000">P2 優先</text>
+  <text x="410" y="338" font-size="10" fill="#000000">TEC-001 OSS 脆弱性</text>
+  <text x="410" y="356" font-size="10" fill="#000000">TEC-003 Istio 成熟度</text>
+  <text x="410" y="374" font-size="10" fill="#000000">TEC-004 Dapr SDK 変更</text>
+  <text x="410" y="392" font-size="10" fill="#000000">OPS-003 環境ドリフト</text>
+  <text x="410" y="410" font-size="10" fill="#000000">FIN-001 TCO 超過</text>
+  <text x="410" y="428" font-size="10" fill="#000000">FIN-002 通貨/エネルギー変動</text>
+  <text x="410" y="446" font-size="10" fill="#000000">HUM-001 文化的抵抗</text>
+
+  <!-- High × Medium -->
+  <rect x="620" y="296" width="220" height="160" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+  <text x="630" y="316" font-size="11" font-weight="bold" fill="#000000">P1 優先</text>
+  <text x="630" y="338" font-size="10" fill="#000000">HUM-002 スキルギャップ</text>
+  <text x="630" y="356" font-size="10" fill="#000000">(Rust 人材継続確保)</text>
+  <text x="630" y="378" font-size="10" fill="#000000">→ SES 並走 + 育成計画で</text>
+  <text x="630" y="396" font-size="10" fill="#000000">影響度 Low 側へ移動目標</text>
+
+  <!-- Low × Low -->
+  <rect x="180" y="456" width="220" height="160" fill="#ffffff" stroke="#cccccc" stroke-width="1"/>
+  <text x="190" y="476" font-size="11" font-weight="bold" fill="#999999">該当なし</text>
+
+  <!-- Medium × Low -->
+  <rect x="400" y="456" width="220" height="160" fill="#ffffff" stroke="#cccccc" stroke-width="1"/>
+  <text x="410" y="476" font-size="11" font-weight="bold" fill="#999999">該当なし</text>
+  <text x="410" y="498" font-size="10" fill="#999999">(現時点で</text>
+  <text x="410" y="516" font-size="10" fill="#999999">Medium×Low セルに</text>
+  <text x="410" y="534" font-size="10" fill="#999999">分類されるリスクなし)</text>
+
+  <!-- High × Low -->
+  <rect x="620" y="456" width="220" height="160" fill="#ffffff" stroke="#cccccc" stroke-width="1"/>
+  <text x="630" y="476" font-size="11" font-weight="bold" fill="#999999">該当なし</text>
+  <text x="630" y="498" font-size="10" fill="#999999">(High × Low 出現時は</text>
+  <text x="630" y="516" font-size="10" fill="#999999">Runbook 対応化を</text>
+  <text x="630" y="534" font-size="10" fill="#999999">優先)</text>
+
+  <!-- サイドバー -->
+  <rect x="870" y="136" width="310" height="480" fill="#fafafa" stroke="#999999" stroke-width="1"/>
+  <text x="882" y="158" font-size="11" font-weight="bold" fill="#000000">対応戦略分布</text>
+  <text x="882" y="186" font-size="10" fill="#000000">Avoid (回避) — 0 件</text>
+  <text x="882" y="206" font-size="10" fill="#000000">Mitigate (軽減) — 14 件</text>
+  <text x="882" y="226" font-size="10" fill="#000000">Transfer (移転) — 2 件 (SEC-002, FIN-002)</text>
+  <text x="882" y="246" font-size="10" fill="#000000">Accept (受容) — 3 件 (TEC-004, HUM-001, BUS-001)</text>
+  <text x="882" y="284" font-size="11" font-weight="bold" fill="#000000">優先度内訳</text>
+  <text x="882" y="306" font-size="10" fill="#000000">P1 (最優先) — 12 件</text>
+  <text x="882" y="326" font-size="10" fill="#000000">P2 (中優先) — 7 件</text>
+  <text x="882" y="346" font-size="10" fill="#000000">P3 (低優先) — 0 件</text>
+  <line x1="882" y1="370" x2="1170" y2="370" stroke="#cccccc"/>
+  <text x="882" y="394" font-size="11" font-weight="bold" fill="#000000">運用ルール</text>
+  <text x="882" y="416" font-size="10" fill="#000000">・Product Council 四半期</text>
+  <text x="882" y="434" font-size="10" fill="#000000">  レビューで再評価</text>
+  <text x="882" y="454" font-size="10" fill="#000000">・P1 セルは "移動目標" と</text>
+  <text x="882" y="472" font-size="10" fill="#000000">  移動達成期限を設定</text>
+  <text x="882" y="492" font-size="10" fill="#000000">・該当なしセルに新規リスクが</text>
+  <text x="882" y="510" font-size="10" fill="#000000">  配置された場合は即 PR</text>
+  <text x="882" y="530" font-size="10" fill="#000000">  (稟議前でも軽微改訂扱い)</text>
+  <text x="882" y="568" font-size="10" fill="#666666">※ BUS-001 は稟議通過前 Low、</text>
+  <text x="882" y="584" font-size="10" fill="#666666">  Phase 2 以降 Medium に遷移想定</text>
+  <text x="882" y="600" font-size="10" fill="#666666">  (本図は稟議通過前時点の位置)</text>
+
+  <!-- 凡例 -->
+  <rect x="100" y="660" width="1080" height="90" fill="#fafafa" stroke="#999999" stroke-width="1"/>
+  <text x="112" y="680" font-size="10" font-weight="bold" fill="#000000">セル色の意味:</text>
+  <text x="210" y="680" font-size="10" fill="#000000">赤濃=P1 最優先(移動対象) / 赤=P1 優先 / 橙=P1 優先 / 黄=P2 中優先 / 白=該当リスクなし。</text>
+  <text x="112" y="702" font-size="10" font-weight="bold" fill="#000000">期初目標:</text>
+  <text x="178" y="702" font-size="10" fill="#000000">P1 ⇒ P2 への 3 件移動 (OPS-001 / HUM-002 / BUS-002)。未移動のまま Phase 1c ゲートを迎えた場合は Product Council に報告必須。</text>
+  <text x="112" y="724" font-size="10" font-weight="bold" fill="#000000">参照:</text>
+  <text x="155" y="724" font-size="10" fill="#000000">07_リスクレジスタ.md §発生確率/§影響度/§対応戦略 定義。行ヘッダ数値は Impact 区分の JTC 社内規程基準。</text>
+</svg>

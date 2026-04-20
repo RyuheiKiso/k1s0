@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="780" viewBox="0 0 1400 780" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1400" height="780" fill="#FFFFFF" stroke="none"/>
+  <text x="700" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#000000">ステークホルダー 12 ロール × 4 階層 × Phase ゲート承認フロー</text>
+  <text x="700" y="52" text-anchor="middle" font-size="11" fill="#666666">RACI 詳細表は 02_ステークホルダー.md §対応マトリクスを正とし、本図は階層と承認フローのみ可視化</text>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#666666"/>
+    </marker>
+  </defs>
+
+  <!-- Layer 1: 意思決定層 -->
+  <rect x="20" y="70" width="1360" height="110" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+  <text x="32" y="88" font-size="11" font-weight="bold" fill="#000000">① 意思決定層 (A/R: Accountable/Responsible — 最終承認権限)</text>
+
+  <rect x="40" y="105" width="260" height="65" rx="6" ry="6" fill="#ffffff" stroke="#82b366" stroke-width="1.5"/>
+  <text x="170" y="124" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">経営層</text>
+  <text x="170" y="142" text-anchor="middle" font-size="10" fill="#000000">Product Council 議長 (L0)</text>
+  <text x="170" y="160" text-anchor="middle" font-size="10" fill="#000000">Phase ゲート A / 予算超過 R/A</text>
+
+  <rect x="320" y="105" width="260" height="65" rx="6" ry="6" fill="#ffffff" stroke="#82b366" stroke-width="1.5"/>
+  <text x="450" y="124" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">情シス部長</text>
+  <text x="450" y="142" text-anchor="middle" font-size="10" fill="#000000">L0 Council 兼 L1 PO</text>
+  <text x="450" y="160" text-anchor="middle" font-size="10" fill="#000000">Phase ゲート R / Sev1 A / 予算 R</text>
+
+  <rect x="600" y="105" width="260" height="65" rx="6" ry="6" fill="#ffffff" stroke="#82b366" stroke-width="1.5"/>
+  <text x="730" y="124" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">監査部門</text>
+  <text x="730" y="142" text-anchor="middle" font-size="10" fill="#000000">L0 Council 委員 + L4 監査</text>
+  <text x="730" y="160" text-anchor="middle" font-size="10" fill="#000000">個人情報 R/A / Sev1 R / OSS 照会</text>
+
+  <rect x="880" y="105" width="480" height="65" fill="#fafff0" stroke="#d6b656" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="892" y="124" font-size="10" font-weight="bold" fill="#000000">意思決定層ルール:</text>
+  <text x="892" y="142" font-size="10" fill="#000000">Phase ゲート承認は Product Council (L0) 合議必須。</text>
+  <text x="892" y="160" font-size="10" fill="#000000">重大改訂時の追加要件持ち込みは Council 再招集。</text>
+
+  <!-- Layer 2: 直接利用層 -->
+  <rect x="20" y="200" width="1360" height="120" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="32" y="218" font-size="11" font-weight="bold" fill="#000000">② 直接利用層 (R: 実行責任 — 起案・開発・運用)</text>
+
+  <rect x="40" y="235" width="250" height="75" rx="6" ry="6" fill="#ffffff" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="165" y="254" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">tier1 PF チーム</text>
+  <text x="165" y="272" text-anchor="middle" font-size="10" fill="#000000">L2 Platform</text>
+  <text x="165" y="290" text-anchor="middle" font-size="10" fill="#000000">ADR R / API R / Sev1 R</text>
+
+  <rect x="310" y="235" width="250" height="75" rx="6" ry="6" fill="#ffffff" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="435" y="254" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">運用・SRE チーム</text>
+  <text x="435" y="272" text-anchor="middle" font-size="10" fill="#000000">L2 Platform</text>
+  <text x="435" y="290" text-anchor="middle" font-size="10" fill="#000000">リリース R/A / Sev1 R</text>
+
+  <rect x="580" y="235" width="250" height="75" rx="6" ry="6" fill="#ffffff" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="705" y="254" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">tier2 開発チーム</text>
+  <text x="705" y="272" text-anchor="middle" font-size="10" fill="#000000">L3 Stream-aligned</text>
+  <text x="705" y="290" text-anchor="middle" font-size="10" fill="#000000">API 仕様 C / リリース C</text>
+
+  <rect x="850" y="235" width="250" height="75" rx="6" ry="6" fill="#ffffff" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="975" y="254" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">tier3 アプリチーム</text>
+  <text x="975" y="272" text-anchor="middle" font-size="10" fill="#000000">L3 Stream-aligned</text>
+  <text x="975" y="290" text-anchor="middle" font-size="10" fill="#000000">Feature Flag / SSO C</text>
+
+  <rect x="1120" y="235" width="240" height="75" rx="6" ry="6" fill="#ffffff" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="1240" y="254" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">エンドユーザー</text>
+  <text x="1240" y="272" text-anchor="middle" font-size="10" fill="#000000">現場マネージャ代表</text>
+  <text x="1240" y="290" text-anchor="middle" font-size="10" fill="#000000">SLA/移行計画 I</text>
+
+  <!-- Layer 3: 支援・監督層 -->
+  <rect x="20" y="340" width="1360" height="110" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="32" y="358" font-size="11" font-weight="bold" fill="#000000">③ 支援・監督層 (C: 相談 — 契約・法令・インフラ実装)</text>
+
+  <rect x="40" y="375" width="400" height="65" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="240" y="394" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">法務部門</text>
+  <text x="240" y="412" text-anchor="middle" font-size="10" fill="#000000">L4 法務</text>
+  <text x="240" y="430" text-anchor="middle" font-size="10" fill="#000000">OSS ライセンス R/A / 個人情報 R</text>
+
+  <rect x="460" y="375" width="440" height="65" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="680" y="394" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">調達部門</text>
+  <text x="680" y="412" text-anchor="middle" font-size="10" fill="#000000">L4 財務・調達</text>
+  <text x="680" y="430" text-anchor="middle" font-size="10" fill="#000000">予算超過 C / VM/SES 契約</text>
+
+  <rect x="920" y="375" width="440" height="65" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="1140" y="394" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">インフラ運用</text>
+  <text x="1140" y="412" text-anchor="middle" font-size="10" fill="#000000">L2 Platform (K8s/NW/Storage)</text>
+  <text x="1140" y="430" text-anchor="middle" font-size="10" fill="#000000">リリース R / Sev1 R</text>
+
+  <!-- Layer 4: 外部層 -->
+  <rect x="20" y="470" width="1360" height="90" fill="#f5f5f5" stroke="#666666" stroke-width="1.5"/>
+  <text x="32" y="488" font-size="11" font-weight="bold" fill="#000000">④ 外部層 (I: 共有 or 体制外 — 情報連携のみ)</text>
+
+  <rect x="40" y="495" width="400" height="55" rx="6" ry="6" fill="#ffffff" stroke="#999999" stroke-width="1.5"/>
+  <text x="240" y="514" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">OSS コミュニティ</text>
+  <text x="240" y="530" text-anchor="middle" font-size="10" fill="#000000">Dapr/K8s/Istio 他 上流</text>
+  <text x="240" y="545" text-anchor="middle" font-size="10" fill="#000000">ADR I / OSS 照会 C</text>
+
+  <rect x="460" y="495" width="440" height="55" rx="6" ry="6" fill="#ffffff" stroke="#999999" stroke-width="1.5"/>
+  <text x="680" y="514" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">SES ベンダー</text>
+  <text x="680" y="530" text-anchor="middle" font-size="10" fill="#000000">L2 並走支援 (Phase 1 限定)</text>
+  <text x="680" y="545" text-anchor="middle" font-size="10" fill="#000000">tier1 API 追加 C (スキル相談)</text>
+
+  <rect x="920" y="495" width="440" height="55" rx="6" ry="6" fill="#ffffff" stroke="#999999" stroke-width="1.5"/>
+  <text x="1140" y="514" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">競合商用 PaaS ベンダー</text>
+  <text x="1140" y="530" text-anchor="middle" font-size="10" fill="#000000">OpenShift / Tanzu / Anthos</text>
+  <text x="1140" y="545" text-anchor="middle" font-size="10" fill="#000000">撤退シナリオ退路先評価 C</text>
+
+  <!-- Phase ゲート承認フロー -->
+  <text x="40" y="595" font-size="12" font-weight="bold" fill="#000000">Phase ゲート承認フロー (順序違反時は ゲート未成立 扱い)</text>
+
+  <rect x="40" y="610" width="230" height="60" rx="6" ry="6" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1.5"/>
+  <text x="155" y="634" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">1. tier1 PF 起案</text>
+  <text x="155" y="654" text-anchor="middle" font-size="10" fill="#000000">(L2 → L1)</text>
+
+  <rect x="300" y="610" width="230" height="60" rx="6" ry="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+  <text x="415" y="630" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">2. 情シス部長(R)確認</text>
+  <text x="415" y="650" text-anchor="middle" font-size="10" fill="#000000">ゲート判定資料レビュー</text>
+
+  <rect x="560" y="610" width="230" height="60" rx="6" ry="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+  <text x="675" y="630" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">3. Product Council 合議</text>
+  <text x="675" y="650" text-anchor="middle" font-size="10" fill="#000000">経営層 A / 監査 C / 法務 C</text>
+
+  <rect x="820" y="610" width="230" height="60" rx="6" ry="6" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+  <text x="935" y="630" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">4. 議事録に判定記録</text>
+  <text x="935" y="650" text-anchor="middle" font-size="10" fill="#000000">承認 / 条件付 / 差戻し</text>
+
+  <rect x="1080" y="610" width="280" height="60" rx="6" ry="6" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="1220" y="630" text-anchor="middle" font-size="11" font-weight="bold" fill="#000000">5. 企画要件マトリクスを</text>
+  <text x="1220" y="650" text-anchor="middle" font-size="10" fill="#000000">"承認済"へ更新</text>
+
+  <line x1="270" y1="640" x2="300" y2="640" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="530" y1="640" x2="560" y2="640" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="790" y1="640" x2="820" y2="640" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1050" y1="640" x2="1080" y2="640" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="690" width="1320" height="60" fill="#fafafa" stroke="#999999" stroke-width="1"/>
+  <text x="52" y="708" font-size="10" font-weight="bold" fill="#000000">凡例</text>
+  <rect x="85" y="700" width="14" height="10" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="104" y="709" font-size="10" fill="#000000">意思決定層 (A/R)</text>
+  <rect x="220" y="700" width="14" height="10" fill="#dae8fc" stroke="#6c8ebf"/>
+  <text x="239" y="709" font-size="10" fill="#000000">直接利用層 (R)</text>
+  <rect x="350" y="700" width="14" height="10" fill="#fff2cc" stroke="#d79b00"/>
+  <text x="369" y="709" font-size="10" fill="#000000">支援・監督層 (C)</text>
+  <rect x="490" y="700" width="14" height="10" fill="#f5f5f5" stroke="#999999"/>
+  <text x="509" y="709" font-size="10" fill="#000000">外部層 (I or 体制外)</text>
+  <text x="52" y="730" font-size="10" fill="#666666">詳細 RACI 10 カラム表は 02_ステークホルダー.md §対応マトリクス。体制階層 L0〜L4 は 70_プロジェクト管理/01_体制と役割.md。</text>
+  <text x="52" y="745" font-size="10" fill="#666666">R=実行責任 / A=最終責任 / C=相談 / I=共有 / — =関与なし。1 ロールが複数階層に跨る場合は本図の所属階層で Sign-off を一意化する。</text>
+</svg>

@@ -279,6 +279,27 @@
 
 **優先度**: MUST
 
+### NFR-E-NW-004: レート制限と接続数上限（DoS 対策）
+
+**現状**: 呼出側の暴走（再試行嵐、バグループ、外部 DDoS）が tier1 API を飽和させると、正常トラフィックまで巻き込まれる。
+
+**要件達成後**: 以下 3 層でレート制限と接続数上限を強制する。
+
+- 外部境界（Envoy Gateway + WAF）: テナント単位の RPS 上限、同一 IP 同時接続数、Slowloris 検知
+- サービス間（Istio Ambient）: 呼出元 SPIFFE ID 単位の RPS クォータ、Circuit Breaker
+- バックエンド（Valkey / PostgreSQL）: Connection Pool 上限、Slow Query キル
+
+超過時は `K1s0Error.ResourceExhausted` を返す。テナント単位クォータは 60_事業契約/06_課金メータリング で定義された契約プラン値と連動する。
+
+**崩れた時**: 1 テナントの暴走で全テナントがダウン（ノイジーネイバー）、または外部 DDoS で SLA を毀損する。STRIDE DoS 脅威（T0→T1、T1→T2、T2→T3）の緩和策が不在となり、脅威モデリング（NFR-E-RSK-001）の想定と乖離する。
+
+**受け入れ基準**:
+- テナント RPS 上限を Backstage で確認可能
+- Chaos 試験（Phase 1c）で 10 倍負荷時に 1 テナントのみ 429 を返し他テナント正常稼働を確認
+- Circuit Breaker 発動を Grafana で可視化、5 分超の継続発動は Sev3 起票
+
+**優先度**: MUST（Phase 1b、STRIDE DoS 脅威の唯一の緩和策）
+
 ### NFR-E-NW-003: 外部境界遮断（AGPL OSS 対応）
 
 **現状**: AGPL-3.0 OSS（Grafana / Loki / Tempo / Pyroscope / MinIO / Renovate）はネットワーク経由の提供がソース開示義務を発生させる。
@@ -426,6 +447,7 @@
 | NFR-E-NW-001 | 外部 URL allowlist | 1b | MUST |
 | NFR-E-NW-002 | NetworkPolicy 隔離 | 1b | MUST |
 | NFR-E-NW-003 | AGPL 外部境界遮断 | 1b | MUST |
+| NFR-E-NW-004 | レート制限・接続数上限（DoS 対策） | 1b | MUST |
 | NFR-E-AV-001 | イメージスキャン | 1a/2 | MUST |
 | NFR-E-AV-002 | SBOM | 1c | MUST |
 | NFR-E-WEB-001 | OWASP Top 10 | 1b | SHOULD |

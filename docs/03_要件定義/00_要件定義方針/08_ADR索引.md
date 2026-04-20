@@ -20,6 +20,29 @@ k1s0 の ADR は以下の構造で記述する。
 
 ADR ファイルは `docs/02_構想設計/` 配下の適切なサブフォルダに配置する。本索引はリンク集であり、ADR 本体のリポジトリではない。
 
+### ADR 番号体系
+
+k1s0 の ADR 番号は以下の 2 体系を併用する。混用はあいまいにするためではなく、判断のスコープを番号自体で区別するための明示的な設計である。
+
+**横断 ADR（`ADR-NNNN` 4 桁フラット通番）**: 複数領域に同時に影響する基盤級の判断に付与する。例: `ADR-0001`（Istio Ambient Mesh、全通信レイヤに影響）、`ADR-0002`（4 レイヤ図解規約、全ドキュメントに影響）、`ADR-0003`（AGPL 分離、全 OSS 選定に影響）。新規発番は Product Council 承認必須、採番は 0004 以降を連番で消費する。
+
+**領域別 ADR（`ADR-<DOMAIN>-NNN` カテゴリネームスペース + 3 桁通番）**: 単一技術領域内で閉じる判断に付与する。`<DOMAIN>` は以下のいずれか。
+
+- `TIER1`: tier1 設計固有（例: `ADR-TIER1-001` Go/Rust ハイブリッド方針）
+- `DATA`: データストア選定（`ADR-DATA-001` PostgreSQL、`DATA-002` Kafka、`DATA-003` MinIO、`DATA-004` Valkey）
+- `SEC`: セキュリティ基盤（`SEC-001` Keycloak、`SEC-002` OpenBao、`SEC-003` SPIFFE/SPIRE）
+- `MIG`: 移行方式（`MIG-001` サイドカー、`MIG-002` API Gateway 共存）
+- `RULE`: ルール・ワークフローエンジン（`RULE-001` ZEN Engine、`RULE-002` Temporal）
+- `CICD`: CI/CD・配信（`CICD-001` Argo CD、`CICD-002` Argo Rollouts、`CICD-003` Kyverno）
+- `OBS`: 可観測性（`OBS-001`〜 Grafana LGTM）
+- `FM`: Feature Management（`FM-001` flagd / OpenFeature）
+- `BS`: Backstage 周辺（`BS-001`）
+- `STOR`: ストレージ・ネットワーク（`STOR-001` Longhorn、`STOR-002` MetalLB）
+
+**どちらを選ぶかの判定**: 判断の影響が「2 領域以上の DOMAIN を跨ぐ」または「全ドキュメント・全 OSS に波及する」場合は横断 ADR を選択する。それ以外は領域別 ADR とする。迷った場合は領域別を既定とし、Product Council レビュー時に昇格可否を議論する。
+
+**採番責任**: 横断 ADR は起案者が Product Council に諮り、承認後に 08_ADR索引.md で番号を予約する。領域別 ADR は各領域リード（tier1 設計リード、データ基盤リード、セキュリティリード等）が直接採番し、本索引への登録 PR を合わせて出す。
+
 ## ADR 一覧
 
 以下は要件定義時点で既に確定している、または Phase 1a で確定すべき主要 ADR のリストである。
@@ -39,7 +62,7 @@ ADR ファイルは `docs/02_構想設計/` 配下の適切なサブフォルダ
 - **ADR-0003: AGPL 分離アーキテクチャ**
   - 判断: AGPL OSS（Grafana 等）はプロセス分離してリンクを回避
   - 理由: AGPL 義務の自社コード波及を防ぐ、法務リスク低減
-  - 関連要件: BC-LIC-004、NFR-E-LIC-001
+  - 関連要件: BC-LIC-004（AGPL 分離の技術判定）、BC-LIC-005（禁止ライセンスリスト）、NFR-E-NW-003（外部境界遮断）
 
 ### tier1 設計
 

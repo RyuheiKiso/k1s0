@@ -4,6 +4,7 @@
 
 ## ファイル構成
 
+- [00_tier1_API共通規約.md](00_tier1_API共通規約.md): 11 API 横断の共通契約（認可・冪等性・バージョニング・エラー型・レート制限・監査）
 - [01_Service_Invoke_API.md](01_Service_Invoke_API.md): サービス間同期呼び出し
 - [02_State_API.md](02_State_API.md): 状態管理・キャッシュ
 - [03_PubSub_API.md](03_PubSub_API.md): イベント配信
@@ -29,13 +30,7 @@
 
 ## tier2/tier3 から見える契約
 
-すべての API は以下の共通契約を満たす。個別 API 要件では本契約の遵守を前提とする。
-
-- **通信プロトコル**: クライアント SDK は言語ネイティブな呼び出し（Go の関数呼び出し、C# のメソッド呼び出し等）。内部的には gRPC で tier1 エンドポイントを呼ぶ。HTTP/JSON は補助的なフォールバック（主に .NET Framework 共存用途）。
-- **認証**: 呼び出し時の Authorization ヘッダに Keycloak 発行の JWT を付与。tenant_id クレームは tier1 側で自動検証。
-- **エラー型**: k1s0 固有の統一エラー型（`K1s0Error` クラス / 構造体）を返す。Dapr の生エラーを露出させない。
-- **Telemetry**: すべての API 呼び出しは W3C Trace Context を自動継承し、span を生成する。tier1 Log API と連携。
-- **Audit**: 特権操作・業務データ変更を伴う API 呼び出しは自動的に Audit API へイベントを発行する。
+全 API 横断の共通契約は [00_tier1_API共通規約.md](00_tier1_API共通規約.md) に集約する。本 README は索引としての役割に限定し、共通規約の詳細は本書内で繰り返さない。個別 API ファイル（01〜11）は共通規約の遵守を前提に、その API 固有の振る舞いのみを記述する。
 
 ## クライアント SDK の提供言語
 
