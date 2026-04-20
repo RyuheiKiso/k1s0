@@ -23,7 +23,7 @@ tier1 は 11 API を Protobuf gRPC で公開し、tier2/tier3 および既存 .N
 - [10_tier1_API要件/](10_tier1_API要件/): tier1 公開 11 API の個別要件（1 API 1 ファイル）
 - [20_外部連携要件.md](20_外部連携要件.md): レガシー .NET Framework 連携、既存 IdP 連携、外部監視基盤連携
 - [30_情報要件.md](30_情報要件.md): 論理データモデル、監査スキーマ、設定情報モデル
-- [40_tier1_API契約IDL.md](40_tier1_API契約IDL.md): tier1 公開 11 API の Protobuf IDL スケルトン（共通型・RPC・メッセージ定義）
+- [40_tier1_API契約IDL/](40_tier1_API契約IDL/): tier1 公開 11 API の Protobuf IDL スケルトン（1 API 1 ファイル、共通型・RPC・メッセージ定義）
 
 ## 要件 ID 体系
 

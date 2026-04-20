@@ -82,13 +82,13 @@ tier1 API への匿名アクセスは禁止する（NFR-E-AC-001）。tier2/tier
 - **エンドユーザー文脈**: Keycloak 発行の JWT を gRPC メタデータ `authorization: Bearer <jwt>` に付与。`sub`、`tenant_id`、`roles` クレームを tier1 が検証
 - **ワークロード文脈**: SPIFFE ID（`spiffe://<trust-domain>/ns/<ns>/sa/<sa>`）を Istio Ambient の mTLS で検証（NFR-E-AC-003、ADR-SEC-003）
 
-`TenantContext`（[40_tier1_API契約IDL.md](../40_tier1_API契約IDL.md)）の `tenant_id` は呼び出し側が自己宣言するのではなく、tier1 が JWT / SPIFFE ID から導出して上書きする。クライアントから渡された値と不一致な場合は `K1s0Error.PermissionDenied` で即拒否する。
+`TenantContext`（[40_tier1_API契約IDL/00_共通型定義.md](../40_tier1_API契約IDL/00_共通型定義.md)）の `tenant_id` は呼び出し側が自己宣言するのではなく、tier1 が JWT / SPIFFE ID から導出して上書きする。クライアントから渡された値と不一致な場合は `K1s0Error.PermissionDenied` で即拒否する。
 
 認可は RBAC（Keycloak Role）を基本とし、細粒度の業務ルールは Decision API（ZEN Engine）に委譲する。tier1 は呼び出し時に「認可されているか」を判定し、Audit API に認可成功・失敗を記録する（NFR-E-MON-001）。
 
 ## エラー型 `K1s0Error`
 
-tier2/tier3 から観測されるエラーは統一型 `K1s0Error` のみとする。Dapr / OpenBao / Kafka 等のバックエンド固有エラー文字列を表層に漏らすことは禁止する。契約は [40_tier1_API契約IDL.md](../40_tier1_API契約IDL.md) 内の `ErrorDetail` に集約する。
+tier2/tier3 から観測されるエラーは統一型 `K1s0Error` のみとする。Dapr / OpenBao / Kafka 等のバックエンド固有エラー文字列を表層に漏らすことは禁止する。契約は [40_tier1_API契約IDL/00_共通型定義.md](../40_tier1_API契約IDL/00_共通型定義.md) 内の `ErrorDetail` に集約する。
 
 エラーカテゴリは以下 8 種で充足することを必達とし、未分類エラーは `Internal` に集約する。
 
@@ -165,7 +165,7 @@ tier2/tier3 から Audit API を直接呼ぶ場合は、上記必須フィール
 
 ## 参照
 
-- [40_tier1_API契約IDL.md](../40_tier1_API契約IDL.md) — 本規約を Protobuf に実装
+- [40_tier1_API契約IDL/](../40_tier1_API契約IDL/) — 本規約を Protobuf に実装
 - [50_tier1_APIシーケンス.md](../50_tier1_APIシーケンス.md) — 共通契約の呼出シーケンス
 - [../../30_非機能要件/E_セキュリティ.md](../../30_非機能要件/E_セキュリティ.md) — NFR-E-AC-* / NFR-E-MON-* / NFR-E-NW-004
 - [../../30_非機能要件/I_SLI_SLO_エラーバジェット.md](../../30_非機能要件/I_SLI_SLO_エラーバジェット.md) — SLI 計測と SLO 目標

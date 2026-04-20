@@ -1,6 +1,6 @@
 # tier1 API シーケンス
 
-本書は tier1 公開 11 API のうち、tier2/tier3 から呼出される典型的な 3 パターン（同期 RPC / 非同期 PubSub / 永続 Workflow）を時系列シーケンスで記述する。各 API の個別契約は [40_tier1_API契約IDL.md](40_tier1_API契約IDL.md) を参照し、本書ではそれらが実際にどう連携し、どこで観測性・監査・テナント境界が付与されるかを図解する。
+本書は tier1 公開 11 API のうち、tier2/tier3 から呼出される典型的な 3 パターン（同期 RPC / 非同期 PubSub / 永続 Workflow）を時系列シーケンスで記述する。各 API の個別契約は [40_tier1_API契約IDL/](40_tier1_API契約IDL/) を参照し、本書ではそれらが実際にどう連携し、どこで観測性・監査・テナント境界が付与されるかを図解する。
 
 ## なぜシーケンス図が必要か
 
@@ -65,7 +65,7 @@ Replay の Determinism 違反（実行環境ごとに異なる結果を返すコ
 
 ## 関連ドキュメント
 
-- [40_tier1_API契約IDL.md](40_tier1_API契約IDL.md): 各 API の Protobuf 契約
+- [40_tier1_API契約IDL/](40_tier1_API契約IDL/): 各 API の Protobuf 契約
 - [30_非機能要件/I_SLI_SLO_エラーバジェット.md](../30_非機能要件/I_SLI_SLO_エラーバジェット.md): SLO と測定点
 - [40_運用ライフサイクル/06_FMEA分析.md](../40_運用ライフサイクル/06_FMEA分析.md): 各段階の故障モード
 - ADR-0001（Istio Ambient）、ADR-DATA-002（Kafka）、ADR-RULE-002（Temporal）
