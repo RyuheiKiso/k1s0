@@ -1,0 +1,158 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="k1s0" version="24.7.17">
+  <diagram id="workflow-routing-decision" name="WorkflowRoutingDecision">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="ワークフロー振り分け判定フロー (Dapr Workflow / Temporal)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="entry" value="tier2 から&#xa;k1s0.Workflow.Start() 呼び出し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="650" y="90" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="jdm" value="ZEN Engine (JDM 決定表)&#xa;実行時間・スループット・ユース区分で分類" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="190" width="400" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cond_short" value="条件 A:&#xa;実行時間 &lt;= 5 分&#xa;かつ スループット &lt; 100/s&#xa;かつ tier1 内部ユース" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="120" y="380" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cond_long" value="条件 B:&#xa;実行時間 &gt; 5 分&#xa;または スループット &gt;= 1000/s&#xa;または tier2 業務フロー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="380" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cond_mid" value="条件 C:&#xa;実行時間 5 分〜数時間&#xa;かつ スループット 100〜1000/s&#xa;→ デフォルト Temporal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="670" y="380" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dapr_wf" value="Dapr Workflow&#xa;(短期 Saga)&#xa;State backend: Valkey&#xa;Signal / Query / Terminate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="580" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="temporal" value="Temporal&#xa;(長期 / 高スループット)&#xa;Event Sourcing, Activity Retry&#xa;Compensation API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="580" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="temporal_default" value="Temporal&#xa;(デフォルト)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="580" width="160" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="valkey" value="Valkey&#xa;(Dapr WF state store)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="120" y="760" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg_temporal" value="PostgreSQL&#xa;(Temporal History store)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="760" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg_temporal2" value="PostgreSQL&#xa;(Temporal History store)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="670" y="760" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backstage" value="Backstage プラグイン (Phase 2)&#xa;両エンジン統合ビューで相関 ID 検索" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontColor=#000000;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="900" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="entry" target="jdm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" value="条件 A 合致" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="jdm" target="cond_short">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="250" />
+              <mxPoint x="250" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e3" value="条件 B 合致" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="jdm" target="cond_long">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="250" />
+              <mxPoint x="1350" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4" value="中間帯" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="jdm" target="cond_mid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="cond_short" target="dapr_wf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="cond_long" target="temporal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="cond_mid" target="temporal_default">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="dapr_wf" target="valkey">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="temporal" target="pg_temporal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="temporal_default" target="pg_temporal2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="valkey" target="backstage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="870" />
+              <mxPoint x="700" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="pg_temporal" target="backstage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="870" />
+              <mxPoint x="900" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="pg_temporal2" target="backstage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;fontColor=#000000;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="990" width="480" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_app" value="■ アプリ層 (暖色): tier1 / Workflow エンジン / 判定 UI" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="72" y="1014" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_data" value="■ データ層 (薄紫): Valkey / PostgreSQL" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#9673a6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="72" y="1034" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_solid" value="― 実線太: 明示呼び出し (Workflow API / バックエンド書込)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="72" y="1054" width="456" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_dashed" value="--- 破線細: 可視化連携 (Backstage Plugin)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="72" y="1072" width="456" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

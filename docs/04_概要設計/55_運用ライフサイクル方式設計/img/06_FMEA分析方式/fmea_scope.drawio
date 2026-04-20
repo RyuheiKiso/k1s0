@@ -1,0 +1,221 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="fmea_scope" id="fmea-scope">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="FMEA 分析対象スコープ（tier1 コンポーネント × 主要 OSS × 業務フロー）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="分析対象を 3 カテゴリに限定し、コード全行ではなく「プラットフォーム全体に影響する主要箇所」のみを網羅する。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1520" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_tier1" value="カテゴリ 1: tier1 コンポーネント（10 件）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="460" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_api" value="COMP-T1-API&#10;tier1 公開 11 API ファサード" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_audit" value="COMP-T1-AUDIT&#10;監査ログ + 改ざん検知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="140" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_secret" value="COMP-T1-SECRET&#10;Secret 取得キャッシュ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_decision" value="COMP-T1-DECISION&#10;ZEN Engine ルール評価" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="200" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_workflow" value="COMP-T1-WORKFLOW&#10;Dapr Workflow / Temporal" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="260" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_telemetry" value="COMP-T1-TELEMETRY&#10;OTel Collector ブリッジ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="260" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_pubsub" value="COMP-T1-PUBSUB&#10;Kafka PubSub ブリッジ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_state" value="COMP-T1-STATE&#10;Valkey State ブリッジ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="320" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_feature" value="COMP-T1-FEATURE&#10;Feature Flag 配信" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_binding" value="COMP-T1-BINDING&#10;外部 Binding ブリッジ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="380" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_note" value="構想設計で確定した内部コンポーネント俯瞰に 1:1 対応。各コンポーネントに対して S × O × D で RPN を算出し、Runbook 整備の優先順位を決定する。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="420" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_oss" value="カテゴリ 2: 主要 OSS（10 件、ADR 採用確定）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="480" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_k8s" value="Kubernetes&#10;（インフラ層）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="140" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_istio" value="Istio Ambient&#10;（ネットワーク層）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="140" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_dapr" value="Dapr&#10;（アプリ層抽象）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="140" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_pg" value="PostgreSQL&#10;（データ層 / CNPG）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="200" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_kafka" value="Kafka&#10;（データ層 / Strimzi）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="200" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_valkey" value="Valkey&#10;（データ層）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="200" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_openbao" value="OpenBao&#10;（データ層 / Secret）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="260" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_keycloak" value="Keycloak&#10;（アプリ層 SSO）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="260" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_grafana" value="Grafana LGTM&#10;（アプリ層管理）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="260" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_argocd" value="Argo CD&#10;（アプリ層管理）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="320" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="oss_note" value="OSS は責務レイヤ（アプリ / ネットワーク / インフラ / データ）で色分けする。同一の故障モード名でも、レイヤが異なれば影響範囲と検知経路が異なる。レイヤ認識を誤ると FMEA の重要度スコアリング（S）が歪む。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="580" y="390" width="440" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_flow" value="カテゴリ 3: 主要業務フロー（6 件）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="100" width="460" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_auth" value="認証フロー&#10;Keycloak → tier1 API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="140" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_tenant" value="テナント作成フロー&#10;オンボーディング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="140" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_api" value="API 呼出フロー&#10;tier3 → tier2 → tier1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="200" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_audit" value="監査書込フロー&#10;tier1 → AUDIT DB" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="200" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_backup" value="バックアップフロー&#10;CNPG / Velero" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="260" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_restore" value="リストアフロー&#10;DR 発動時" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="260" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_note" value="業務クリティカルパス。フロー停止は業務停止に直結するため、単一コンポーネントではなく一連の呼び出し経路を FMEA 対象とする。連鎖故障（例: DB 障害 → 監査書込失敗 → 完整性違反）を抽出する。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="330" width="420" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="fmea_box" value="FMEA 分析（S × O × D = RPN）&#10;テンプレート 8 項目でエントリ化 / RPN 60 超は最優先対策 / RPN 100 超は対策計画必達" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="680" width="800" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="out_runbook" value="Runbook 優先順位決定&#10;（Phase 1b 15 本整備）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="830" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="out_monitor" value="監視アラート追加&#10;（D スコア低減）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="440" y="830" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="out_ha" value="冗長化 / HA 投資判断&#10;（O スコア低減）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="830" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="out_chaos" value="Chaos Drill シナリオ&#10;（四半期検証）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="830" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tier1_fmea" style="html=1;strokeWidth=2;strokeColor=#666666;endArrow=classic;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="cat_tier1" target="fmea_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="640" />
+              <mxPoint x="560" y="640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_oss_fmea" style="html=1;strokeWidth=2;strokeColor=#666666;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cat_oss" target="fmea_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_flow_fmea" style="html=1;strokeWidth=2;strokeColor=#666666;endArrow=classic;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="cat_flow" target="fmea_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1310" y="640" />
+              <mxPoint x="1040" y="640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fmea_runbook" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.125;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="fmea_box" target="out_runbook">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="790" />
+              <mxPoint x="210" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fmea_monitor" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.375;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="fmea_box" target="out_monitor">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="790" />
+              <mxPoint x="590" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fmea_ha" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.625;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="fmea_box" target="out_ha">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="900" y="790" />
+              <mxPoint x="970" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fmea_chaos" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.875;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="fmea_box" target="out_chaos">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="790" />
+              <mxPoint x="1350" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="940" width="480" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="970" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（明示呼び出し / tier1・Dapr・Keycloak・管理プレーン）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1112" y="965" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="995" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層（透過的に効く / Istio Ambient）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1112" y="990" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="1020" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf_t" value="インフラ層（Kubernetes / Node）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1112" y="1015" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="1045" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（Postgres / Kafka / Valkey / OpenBao）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1112" y="1040" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow_b" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ef6c00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1300" y="977" as="sourcePoint" />
+            <mxPoint x="1360" y="977" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_arrow_t" value="FMEA アウトプット反映" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="965" width="170" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

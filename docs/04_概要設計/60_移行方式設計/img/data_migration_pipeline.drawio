@@ -1,0 +1,216 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="データ移行パイプライン" id="data-migration-pipeline">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="980" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="データ移行パイプライン（初回一括 → CDC ダブルライト → 整合性検証 → 新 DB 単独）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phase_label" value="時間軸: 左（移行開始）→ 右（移行完了）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="1520" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="app_bg" value="アプリケーション層（デュアルライト期間は両系統に書き込み）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="85" width="1520" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="app" value="既存アプリ&#10;(.NET Framework)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="newapp" value="k1s0 新アプリ&#10;(tier2 / tier3)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="120" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="truth_source" value="Truth Source 境界&#10;(段階 1-3: 旧 DB / 段階 4+: 新 DB)" style="text;html=1;strokeColor=#d79b00;fillColor=#fff8e6;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="125" width="320" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="migrate_bg" value="移行パイプライン（初回一括 → CDC → 整合検証）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8eefc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="250" width="1520" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dump" value="Phase A: 初回一括&#10;pg_dump / expdp / mysqldump&#10;→ 変換スクリプト (Python)&#10;→ pg_restore / COPY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cdc" value="Phase B: CDC ダブルライト&#10;Debezium Source Connector&#10;(Binlog / Redo Log / CDC Stream)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="300" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="kafka" value="Kafka 中継トピック&#10;(Debezium Event Bus)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="800" y="310" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sink" value="Debezium Sink Connector&#10;(Kafka → PostgreSQL)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="310" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="validate" value="Phase C: 整合性検証&#10;(1) 行数一致 COUNT(*)&#10;(2) チェックサム MD5&#10;(3) サンプル比較 1000 行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="430" width="280" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rollback_point" value="Rollback Point&#10;(逆方向 CDC 起点)&#10;スナップショット保持" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="440" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data_bg" value="データ層（旧 DB → 新 DB 単独運用へ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#efe5f0;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="1520" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="olddb" value="旧 DB（Truth Source 段階 1-3）&#10;SQL Server / Oracle / MySQL&#10;(Shift_JIS / JST 格納)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="630" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="newdb" value="新 DB（最終的な Truth Source）&#10;CloudNativePG PostgreSQL 15&#10;(UTF-8 NFC / UTC / テナントスキーマ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="630" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="final_state" value="最終状態&#10;(新 DB 単独運用)&#10;旧 DB 凍結 → 段階 4 完了後 3 か月で廃止" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="630" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_app_olddb" value="書込 (段階 1-3)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=0;entryY=0.2;" edge="1" parent="1" source="app" target="olddb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="155" />
+              <mxPoint x="60" y="654" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_newapp_newdb" value="書込 (段階 4+)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=1;entryY=0.2;" edge="1" parent="1" source="newapp" target="newdb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1540" y="155" />
+              <mxPoint x="1540" y="654" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_olddb_dump" value="(A) 初回抽出" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0.4;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="olddb" target="dump"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_olddb_cdc" value="(B) CDC 抽出" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0.8;exitY=0;entryX=0.3;entryY=1;" edge="1" parent="1" source="olddb" target="cdc"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_cdc_kafka" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="cdc" target="kafka"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_kafka_sink" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="kafka" target="sink"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_dump_newdb" value="(A) 初回投入" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="410" as="sourcePoint" />
+            <mxPoint x="1280" y="630" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="210" y="570" />
+              <mxPoint x="435" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_sink_newdb" value="(B) 継続投入" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="sink" target="newdb"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="e_validate_olddb" value="照合" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#ef6c00;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.2;" edge="1" parent="1" source="validate" target="olddb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="480" />
+              <mxPoint x="440" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_validate_newdb" value="照合" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#ef6c00;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.2;" edge="1" parent="1" source="validate" target="newdb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="855" y="480" />
+              <mxPoint x="855" y="555" />
+              <mxPoint x="1160" y="555" />
+              <mxPoint x="1160" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_rb_point_newdb" value="異常時&#10;逆 CDC 発動" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1100" y="485" as="sourcePoint" />
+            <mxPoint x="1360" y="630" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1180" y="485" />
+              <mxPoint x="1180" y="600" />
+              <mxPoint x="1360" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_final" value="段階 4 以降&#10;新 DB 単独運用" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2e7d32;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="final_state" target="newdb"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e_old_final" value="段階 5&#10;旧 DB 廃止" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2e7d32;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="olddb" target="final_state"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="phase_a_label" value="Phase A&#10;初回一括" style="text;html=1;strokeColor=#6c8ebf;fillColor=#f5f8ff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="230" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="phase_b_label" value="Phase B&#10;CDC ダブルライト" style="text;html=1;strokeColor=#6c8ebf;fillColor=#f5f8ff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="230" width="910" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="820" width="560" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="825" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="852" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（既存アプリ / k1s0 新アプリ）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="850" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="80" y="874" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層（Debezium / pg_dump / 移行パイプライン）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="872" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="896" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（旧 DB / Kafka 中継 / 新 DB CNPG）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="894" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_validate" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="918" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_validate_t" value="整合性検証領域（行数 / MD5 / サンプル）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="916" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rb" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
+          <mxGeometry x="80" y="940" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rb_t" value="Rollback Point（逆 CDC 起点）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="938" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lg_sync_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry x="520" y="860" as="geometry"><mxPoint x="520" y="860" as="sourcePoint" /><mxPoint x="570" y="860" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_sync_t" value="同期書込 / 抽出投入" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="850" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_async_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="520" y="885" as="geometry"><mxPoint x="520" y="885" as="sourcePoint" /><mxPoint x="570" y="885" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_async_t" value="非同期 CDC ストリーム" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="875" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_validate_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#ef6c00;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="520" y="910" as="geometry"><mxPoint x="520" y="910" as="sourcePoint" /><mxPoint x="570" y="910" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_validate_line_t" value="整合性照合" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="900" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_rb_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#c62828;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="520" y="935" as="geometry"><mxPoint x="520" y="935" as="sourcePoint" /><mxPoint x="570" y="935" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_rb_line_t" value="逆方向ロールバック" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="925" width="150" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

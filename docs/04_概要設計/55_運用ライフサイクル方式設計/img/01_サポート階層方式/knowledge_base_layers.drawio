@@ -1,0 +1,194 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="knowledge_base_layers" id="kb-layers">
+    <mxGraphModel dx="1400" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 ナレッジベース 3 層（FAQ → Runbook → ADR）と循環更新モデル" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1320" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="下位層ほど量が多く頻繁に更新され、上位層ほど少数で長期不変。循環は下→上（昇格）と上→下（還元）の双方向。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_adr" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e7f5;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="800" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_adr_lbl" value="第 3 層: アーキテクチャ Doc / ADR" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="108" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_purpose" value="目的&#10;・設計判断の記録&#10;・新規参加者のオンボーディング&#10;・構造的問題の再発防止" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="130" y="140" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_content" value="保有形態&#10;・docs/02_構想設計/ADR-*.md&#10;・docs/04_概要設計/&#10;・Backstage TechDocs 連携&#10;・件数: 数十件（増加緩慢）&#10;・更新頻度: 四半期単位" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="390" y="140" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_users" value="主参照者&#10;・Tier3 コア開発者&#10;・新規協力者（オンボ 2 週間）&#10;・Product Council 意思決定&#10;・承認: Product Council" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="650" y="140" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_rb" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e7f5;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="330" width="800" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_rb_lbl" value="第 2 層: Runbook（運用手順書）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="338" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_purpose" value="目的&#10;・定型事象の機械的対応&#10;・Tier2 暫定復旧の成功率 80%&#10;・オンコール初心者の援助" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="130" y="370" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_content" value="保有形態&#10;・k1s0/runbooks リポジトリ&#10;・Markdown + コマンド例&#10;・Alertmanager runbook_url 連動&#10;・件数: 15 本（NFR-A-REC-002）&#10;・更新頻度: インシデント毎" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="390" y="370" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_users" value="主参照者&#10;・Tier2 起案者／協力者&#10;・Tier3 の事前準備として&#10;・Chaos Drill の検証対象&#10;・棚卸し: 6 か月未更新は対象" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="650" y="370" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_faq" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e7f5;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="560" width="800" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_faq_lbl" value="第 1 層: FAQ（よくある問合せ集）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="568" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="faq_purpose" value="目的&#10;・Tier1 一次応答の属人性排除&#10;・3 分以内で読める粒度&#10;・FAQ 引用率 70% 以上達成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="130" y="600" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="faq_content" value="保有形態&#10;・Backstage TechDocs&#10;・ID: FAQ-&lt;カテゴリ&gt;-&lt;通番&gt;&#10;・1 エントリ 1 問題&#10;・件数: 50 件〜（月 5 件追加）&#10;・更新頻度: 週単位" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="390" y="600" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="faq_users" value="主参照者&#10;・Tier1 受付スタッフ&#10;・利用者自身（Help ポータル）&#10;・棚卸し: 月次レビュー&#10;・廃止: 参照ゼロが 6 か月" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="650" y="600" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="promo_title" value="昇格経路（下位 → 上位）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="100" width="240" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="promo_inc" value="インシデント&#10;／新種事象発生" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="140" width="200" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="promo_faq_step" value="Tier2 が FAQ 起票&#10;月 5 件以上目標" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="610" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="promo_rb_step" value="Tier3 が Runbook 起票&#10;根本原因調査完了時" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="380" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="promo_adr_step" value="Product Council 承認&#10;ADR 発行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="205" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="metric_title" value="運用指標（Grafana 可視化）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="100" width="200" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="metric_box" value="・FAQ 引用率 ≥ 70%&#10;・Runbook 成功率 ≥ 80%&#10;・Tier1 解決率 ≥ 80%&#10;・Tier2 解決率 15%&#10;・Tier3 到達率 ≤ 5%&#10;・月次 FAQ 追加 5 件+&#10;・新規オンボ 2 週間&#10;&#10;未達時: Product Council&#10;四半期レビューで対処" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="128" width="200" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="reverse_title" value="還元経路（上位 → 下位）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="370" width="200" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="reverse_box" value="ADR 更新を契機に&#10;・関連 Runbook 見直し&#10;・関連 FAQ 見直し&#10;&#10;Runbook 追加を契機に&#10;・対応 FAQ を分割／追加&#10;・Tier1 受付マニュアル更新&#10;&#10;定期棚卸し（月次）&#10;・参照ゼロ FAQ の廃止&#10;・古い Runbook の改訂" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eef3fb;strokeColor=#6c8ebf;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="398" width="200" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_inc_to_faq" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="promo_inc" target="promo_faq_step">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1160" y="168" />
+              <mxPoint x="1160" y="635" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow_inc_to_faq_lbl" value="初回観測は&#10;FAQ として起票" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1166" y="350" width="110" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_faq_to_rb" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="promo_faq_step" target="promo_rb_step">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_faq_to_rb_lbl" value="再発 3 回以上で Runbook 化昇格" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="518" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_rb_to_adr" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="promo_rb_step" target="promo_adr_step">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_rb_to_adr_lbl" value="構造課題として ADR 昇華" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="290" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_adr_to_layer" style="html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="promo_adr_step" target="layer_adr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_rb_to_layer" style="html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="promo_rb_step" target="layer_rb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_faq_to_layer" style="html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="promo_faq_step" target="layer_faq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="back_adr_to_rb" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="layer_adr" target="layer_rb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="back_adr_to_rb_lbl" value="ADR 更新 → Runbook 見直し" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="285" width="180" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="back_rb_to_faq" style="html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="layer_rb" target="layer_faq">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="back_rb_to_faq_lbl" value="Runbook 追加 → FAQ 分割" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="515" width="180" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="770" width="1280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="778" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="808" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（ナレッジ資産：FAQ / Runbook / ADR）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="150" y="806" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="480" y="808" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（昇格プロセス・Tier2／Tier3／Council 操作）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="806" width="340" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="870" y="808" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf_t" value="インフラ層（指標パネル）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="806" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_up" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry as="geometry">
+            <mxPoint x="120" y="846" as="sourcePoint" />
+            <mxPoint x="170" y="846" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_up_t" value="昇格経路（下位層 → 上位層）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="180" y="838" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_prom" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry as="geometry">
+            <mxPoint x="450" y="846" as="sourcePoint" />
+            <mxPoint x="500" y="846" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_prom_t" value="層への登録（各層の件数増加）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="838" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_back" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry as="geometry">
+            <mxPoint x="780" y="846" as="sourcePoint" />
+            <mxPoint x="830" y="846" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_back_t" value="還元経路（上位層更新 → 下位層見直し）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="840" y="838" width="320" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

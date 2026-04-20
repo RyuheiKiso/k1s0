@@ -1,0 +1,180 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T22:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="State正常系シーケンス" id="seq-state-normal">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="シーケンス 1 — tier2 からの State.Get 正常系（Valkey → Log → Telemetry）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_tier2" value="tier2 サービス" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_sdk" value="k1s0 SDK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_daprd" value="Dapr sidecar (daprd)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_t1state" value="tier1 State Service (Go)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_valkey" value="Valkey" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_otel" value="OpenTelemetry Collector" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="80" width="220" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="line_tier2" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="120" as="sourcePoint" />
+            <mxPoint x="170" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="line_sdk" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="120" as="sourcePoint" />
+            <mxPoint x="410" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="line_daprd" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="650" y="120" as="sourcePoint" />
+            <mxPoint x="650" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="line_t1state" value="" style="endArrow=none;html=1;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="120" as="sourcePoint" />
+            <mxPoint x="890" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="line_valkey" value="" style="endArrow=none;html=1;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1130" y="120" as="sourcePoint" />
+            <mxPoint x="1130" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="line_otel" value="" style="endArrow=none;html=1;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1390" y="120" as="sourcePoint" />
+            <mxPoint x="1390" y="980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m1" value="1. Get(key='order-123')" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="160" as="sourcePoint" />
+            <mxPoint x="410" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. trace_id / tenant_id 自動付与" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="210" as="sourcePoint" />
+            <mxPoint x="410" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2_note" value="SDK 内部で OIDC トークンも取得・添付" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="440" y="205" width="350" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="3. gRPC: GetState (RPC)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="275" as="sourcePoint" />
+            <mxPoint x="650" y="275" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="4. ServiceInvoke tier1 State" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="650" y="320" as="sourcePoint" />
+            <mxPoint x="890" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="5. JWT 検証 + RBAC 評価" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="365" as="sourcePoint" />
+            <mxPoint x="890" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5_note" value="JwtCache ヒット: p99 &lt;1ms" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="925" y="365" width="270" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m6" value="6. GET tenant:jtc-demo:order-123" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="435" as="sourcePoint" />
+            <mxPoint x="1130" y="435" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="7. value + etag 返却" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1130" y="475" as="sourcePoint" />
+            <mxPoint x="890" y="475" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="8. OTel span export" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashed=1;dashPattern=1 2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="515" as="sourcePoint" />
+            <mxPoint x="1390" y="515" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8_note" value="非同期エクスポート（blocking なし）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="925" y="525" width="270" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="m9" value="9. Log: state.get ok (PII マスク済)" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashed=1;dashPattern=1 2;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="565" as="sourcePoint" />
+            <mxPoint x="1390" y="565" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="10. gRPC response (value)" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="890" y="610" as="sourcePoint" />
+            <mxPoint x="650" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m11" value="11. daprd → SDK 返却" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="650" y="650" as="sourcePoint" />
+            <mxPoint x="410" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m12" value="12. typed value 返却" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="410" y="695" as="sourcePoint" />
+            <mxPoint x="170" y="695" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="note_timing" value="タイミング目安（p99）: 1-3: 5ms / 4-7: 10ms / 8-9: 非同期 / 10-12: 5ms　合計 p99 20ms 以内（State Get 目標 10ms は 5-7 のみ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="760" width="1420" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="note_idem" value="冪等キー: Get は元来冪等 / リトライは SDK が自動実行（最大 3 回、指数バックオフ）/ タイムアウト: 全段合計 500ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="810" width="1420" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="870" width="480" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_app" value="■ アプリ層（暖色）: tier2 / SDK / daprd / tier1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="900" width="440" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_net" value="■ ネットワーク層（寒色）: OTel Collector" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="925" width="440" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_data" value="■ データ層（紫）: Valkey" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="950" width="440" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_solid" value="→ 実線太: 同期 gRPC 呼び出し / 実線細破線: レスポンス" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="975" width="440" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_dot" value="→ 点線細: OTel 非同期エクスポート（透過）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="1000" width="440" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

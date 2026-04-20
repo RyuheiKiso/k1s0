@@ -1,0 +1,227 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="GitOps パイプライン" id="gitops-pipeline">
+    <mxGraphModel dx="1700" dy="1050" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 GitOps 完全パイプライン（Gitea → Tekton → Harbor → Argo CD → Kubernetes → Argo Rollouts）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1620" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_label" value="主フロー（開発者コミット → 本番 Canary 配信）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="dev" value="開発者&#10;(feature ブランチ push)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="gitea_src" value="Gitea&#10;(ソースリポジトリ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="280" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="tekton" value="Tekton Pipelines&#10;(CI: Lint / UT / Build)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="harbor" value="Harbor&#10;(OCI レジストリ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="argocd" value="Argo CD&#10;(GitOps コントローラ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s" value="Kubernetes&#10;(本番クラスタ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rollouts" value="Argo Rollouts&#10;(Canary 配信)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="90" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_label" value="CI 内訳・供給チェーン保護（SBOM / 脆弱性 / 署名）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="215" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ci_tasks" value="Tekton Task 群&#10;clippy / cargo test / buf breaking / trivy fs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="245" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="trivy" value="Trivy 画像スキャン&#10;(HIGH/CRITICAL 検出で push 中止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="245" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sbom" value="Syft SBOM 生成&#10;(SPDX JSON を Harbor 添付)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="320" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cosign_sign" value="Cosign 署名&#10;(OpenBao Transit 鍵)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="395" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="appset" value="ApplicationSet&#10;(env × tenant 展開)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="980" y="245" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kyverno" value="Kyverno Admission&#10;(署名検証 / :latest 拒否 / Harbor 限定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="245" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="canary" value="Canary 段階&#10;10% → 25% → 50% → 100%" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="245" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="analysis" value="AnalysisTemplate&#10;(err率 / p99 / QPS 自動分析)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="320" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_label" value="データ層・監視層（GitOps の唯一真実の源泉 / Canary 判定用メトリクス）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="600" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops_repo" value="Gitea GitOps リポジトリ&#10;(k1s0-gitops: Helm Values / Kustomize)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="530" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="image_store" value="Harbor ストレージ&#10;(MinIO バックエンド / 署名・SBOM 添付)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="530" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="prom" value="Prometheus&#10;(Canary 自動分析メトリクス)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="530" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bao" value="OpenBao&#10;(Cosign 署名鍵 / Transit)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="140" y="530" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dev_src" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dev" target="gitea_src">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_src_tekton" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="gitea_src" target="tekton">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tekton_harbor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="tekton" target="harbor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_harbor_argocd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="harbor" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_argocd_k8s" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="argocd" target="k8s">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_k8s_rollouts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="k8s" target="rollouts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tekton_cit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="tekton" target="ci_tasks">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_harbor_trivy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="harbor" target="trivy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_trivy_sbom" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="trivy" target="sbom">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sbom_cosign" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sbom" target="cosign_sign">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_argocd_appset" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="argocd" target="appset">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_k8s_kyverno" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="k8s" target="kyverno">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rollouts_canary" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rollouts" target="canary">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_canary_analysis" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="canary" target="analysis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tekton_gitops_mf" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cosign_sign" target="gitops_repo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="490" />
+              <mxPoint x="870" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tekton_gitops_mf_lbl" value="manifest タグ更新 commit" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=9;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="880" y="480" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gitops_argocd" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="gitops_repo" target="argocd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="565" />
+              <mxPoint x="730" y="215" />
+              <mxPoint x="1090" y="215" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_harbor_store" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="harbor" target="image_store">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="175" />
+              <mxPoint x="430" y="175" />
+              <mxPoint x="430" y="565" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_cosign_bao" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cosign_sign" target="bao">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="425" />
+              <mxPoint x="720" y="640" />
+              <mxPoint x="270" y="640" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_analysis_prom" style="edgeStyle=none;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="analysis" target="prom">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1570" y="490" />
+              <mxPoint x="1510" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="1620" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="690" width="100" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="60" y="722" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層 - 明示呼び出しされる CI/CD コンポーネント（Tekton / Argo CD / Harbor 等）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="92" y="718" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="60" y="748" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層 - 透過的に効く機構（Kyverno 認可 Webhook による入口ポリシー）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="92" y="744" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="774" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_t" value="インフラ層 - Kubernetes クラスタ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="92" y="770" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層 - 状態保持（GitOps リポジトリ / Harbor ストレージ / Prometheus / OpenBao）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="92" y="796" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sync_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry x="860" y="726" as="geometry"><mxPoint x="860" y="726" as="sourcePoint" /><mxPoint x="920" y="726" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_sync_t" value="主フロー（コミット → 本番着弾）: 実線太=明示呼び出し" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="930" y="716" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_detail_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="860" y="752" as="geometry"><mxPoint x="860" y="752" as="sourcePoint" /><mxPoint x="920" y="752" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_detail_t" value="内訳（Task 展開 / ApplicationSet 展開 / Canary 段階）: 点線=構成要素の詳細" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="930" y="742" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_policy_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="860" y="778" as="geometry"><mxPoint x="860" y="778" as="sourcePoint" /><mxPoint x="920" y="778" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_policy_t" value="透過的ポリシー適用（admission 時に Kyverno が署名/タグ/レジストリを検証）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="930" y="768" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry x="860" y="804" as="geometry"><mxPoint x="860" y="804" as="sourcePoint" /><mxPoint x="920" y="804" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_data_flow_t" value="状態・証跡の保存（manifest commit / 画像バイナリ / メトリクス / 署名鍵）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="930" y="794" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="注: 本図は Phase 2 代替フロー（GHA 不可環境向け）の Gitea + Tekton 構成を示す。主経路の GitHub Actions 構成は同一トポロジで Gitea→GitHub、Tekton→GHA Runner に置換される。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="60" y="828" width="1580" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,359 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="runbook_catalog" id="rb-catalog">
+    <mxGraphModel dx="1600" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1200" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 Runbook 目録 15 本の階層構造と関連 SLI/SLO（Phase 1b 完了時点）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="root_node" value="Runbook 目録 15 本（NFR-A-REC-002）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="70" width="360" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_api" value="API カテゴリ&#10;(tier1 公開 11 API)&#10;1 本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_data" value="データカテゴリ&#10;(DB / MSG / BKP)&#10;4 本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="170" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_sec" value="セキュリティカテゴリ&#10;(SEC / AUTH / NET)&#10;7 本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="170" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_ops" value="運用移行カテゴリ&#10;(OPS / CI/CD / GitOps)&#10;2 本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="170" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cat_dr" value="災害復旧カテゴリ&#10;(DR)&#10;1 本" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="170" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r_to_api" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="root_node" target="cat_api">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="145" />
+              <mxPoint x="150" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r_to_data" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="root_node" target="cat_data">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="150" />
+              <mxPoint x="410" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r_to_sec" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="root_node" target="cat_sec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_to_ops" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="root_node" target="cat_ops">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="150" />
+              <mxPoint x="930" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r_to_dr" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="root_node" target="cat_dr">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="145" />
+              <mxPoint x="1190" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rb_api_001" value="RB-API-001&#10;tier1 API レイテンシ劣化&#10;SEV2-3 / 30 分 / 24 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_db_001" value="RB-DB-001&#10;Valkey ノード障害&#10;SEV3 / 10 分 / 2 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="290" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_db_002" value="RB-DB-002&#10;Postgres Primary failover&#10;SEV1 / 10 分 / 4 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="380" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_msg_001" value="RB-MSG-001&#10;Kafka ブローカー障害&#10;SEV2 / 15 分 / 4 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="470" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_bkp_001" value="RB-BKP-001&#10;Backup ジョブ失敗&#10;SEV2 / 1 h / 24 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="560" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_sec_001" value="RB-SEC-001&#10;OpenBao Raft 過半数喪失&#10;SEV1 / 30 分 / 2 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="290" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_sec_002" value="RB-SEC-002&#10;証明書期限切れ&#10;SEV1 / 30 分 / 2 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="380" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_sec_003" value="RB-SEC-003&#10;監査ログ改ざん検知&#10;SEV1 / 1 h / 48 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="470" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_sec_004" value="RB-SEC-004&#10;Secret 漏洩対応&#10;SEV1 / 30 分 / 24 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="560" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_auth_001" value="RB-AUTH-001&#10;Keycloak DB 障害&#10;SEV2 / 30 分 / 4 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="560" y="650" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_net_001" value="RB-NET-001&#10;Istio ztunnel 障害&#10;SEV2 / 10 分 / 2 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="560" y="740" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_net_002" value="RB-NET-002&#10;Envoy Gateway DoS&#10;SEV1 / 15 分 / 1 h&#10;所有: 起案者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="830" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_ops_001" value="RB-OPS-001&#10;CI/CD パイプライン停止&#10;SEV3 / 1 h / 4 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="820" y="290" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_ops_002" value="RB-OPS-002&#10;Argo CD Out-of-Sync 長期化&#10;SEV3 / 30 分 / 2 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="820" y="380" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_dr_001" value="RB-DR-001&#10;Disaster Recovery 発動&#10;SEV1 / RTO 4 h&#10;所有: 起案者（Phase 2 で DR 専任）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="290" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="api_r" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_api" target="rb_api_001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="data_1" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_data" target="rb_db_001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="data_2" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_data" target="rb_db_002">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="265" />
+              <mxPoint x="280" y="265" />
+              <mxPoint x="280" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="data_3" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_data" target="rb_msg_001">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="260" />
+              <mxPoint x="275" y="260" />
+              <mxPoint x="275" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="data_4" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_data" target="rb_bkp_001">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="255" />
+              <mxPoint x="270" y="255" />
+              <mxPoint x="270" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec_1" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_sec_001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sec_2" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_sec_002">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="248" />
+              <mxPoint x="550" y="248" />
+              <mxPoint x="550" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec_3" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_sec_003">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="254" />
+              <mxPoint x="545" y="254" />
+              <mxPoint x="545" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec_4" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_sec_004">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="260" />
+              <mxPoint x="540" y="260" />
+              <mxPoint x="540" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec_5" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_auth_001">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="266" />
+              <mxPoint x="535" y="266" />
+              <mxPoint x="535" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec_6" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_net_001">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="272" />
+              <mxPoint x="530" y="272" />
+              <mxPoint x="530" y="780" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec_7" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_sec" target="rb_net_002">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="278" />
+              <mxPoint x="525" y="278" />
+              <mxPoint x="525" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ops_1" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_ops" target="rb_ops_001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ops_2" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_ops" target="rb_ops_002">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="930" y="265" />
+              <mxPoint x="800" y="265" />
+              <mxPoint x="800" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dr_1" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_dr" target="rb_dr_001">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_title" value="関連 SLI / SLO（各 Runbook が侵食を防ぐ指標）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="290" width="260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_sla" value="SLA 99%&#10;(NFR-A-CONT-001)&#10;ダウンタイム 3.65 日/年 上限" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="325" width="220" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_slo" value="SLO 99.9%&#10;(NFR-A-CONT-002)&#10;エラーバジェット 43 分/月" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="410" width="220" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_rto" value="RTO 4 h&#10;(NFR-A-REC-001)&#10;災害発生から復旧まで" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="495" width="220" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_rpo" value="RPO 秒オーダー&#10;(NFR-A-REC-003)&#10;同期 Replication が前提" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="580" width="220" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_audit" value="監査完整性&#10;(NFR-H-AUD-001)&#10;ハッシュチェーン改ざん不可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="665" width="220" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="sli_sec" value="セキュリティ応答&#10;(NFR-E-SEC-ALL)&#10;30 分以内の初動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="750" width="220" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="api_sli" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="rb_api_001" target="sli_slo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="282" />
+              <mxPoint x="1330" y="282" />
+              <mxPoint x="1330" y="447" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="db2_sli" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="rb_db_002" target="sli_sla">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="420" />
+              <mxPoint x="555" y="270" />
+              <mxPoint x="1320" y="270" />
+              <mxPoint x="1320" y="362" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bkp_sli" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="rb_bkp_001" target="sli_rpo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="600" />
+              <mxPoint x="555" y="645" />
+              <mxPoint x="1320" y="645" />
+              <mxPoint x="1320" y="617" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec3_sli" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="rb_sec_003" target="sli_audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1310" y="510" />
+              <mxPoint x="1310" y="702" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sec4_sli" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="rb_sec_004" target="sli_sec">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1300" y="600" />
+              <mxPoint x="1300" y="787" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dr_sli" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;dashed=1;" edge="1" parent="1" source="rb_dr_001" target="sli_rto">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1190" y="490" />
+              <mxPoint x="1450" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="phase_title" value="Phase 別整備計画（NFR-A-REC-002 コミット 15 本 @ Phase 1b）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="960" width="600" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="phase_1a" value="Phase 1a&#10;5 本（FMEA 上位事象）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="995" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="phase_1b" value="Phase 1b&#10;15 本（本章目録）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="995" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="phase_1c" value="Phase 1c&#10;20 本（運用経験反映）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="560" y="995" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="phase_2" value="Phase 2&#10;30 本（DR/Temporal 拡張）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="820" y="995" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p_1a_1b" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="phase_1a" target="phase_1b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p_1b_1c" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="phase_1b" target="phase_1c">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p_1c_2" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="phase_1c" target="phase_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="960" width="480" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="965" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="992" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（Runbook 本体 / カテゴリ）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="990" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="1014" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（関連 SLI / SLO メトリクス）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="1012" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_tree_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry x="1100" y="1044" as="geometry">
+            <mxPoint x="1100" y="1044" as="sourcePoint" />
+            <mxPoint x="1150" y="1044" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_tree_t" value="階層接続（カテゴリ → Runbook）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="1034" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sli_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#9673a6;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="1100" y="1066" as="geometry">
+            <mxPoint x="1100" y="1066" as="sourcePoint" />
+            <mxPoint x="1150" y="1066" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_sli_t" value="関連 SLI/SLO への貢献（Runbook 実行で指標を保護）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="1056" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sev1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="1086" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sev1_t" value="太字＝SEV1 Runbook（起案者所有、7 本）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="1084" width="400" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

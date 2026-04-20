@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="load_test_types" id="load-types">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="負荷試験 4 種別の目的・所要時間・検出項目マトリクス" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="各種別は検出したい性能問題が異なる。単独ではなく組合せで実施し、Baseline は週次 / Spike はリリース前 / Soak は Minor 前 / Stress は四半期に割り付ける。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1520" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="baseline_hdr" value="Baseline（定常試験）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="740" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="baseline_body" value="&lt;b&gt;目的&lt;/b&gt;: 通常業務時間帯の性能が SLO を満たすかを確認する。劣化のないベースラインを週次で更新する。&lt;br&gt;&lt;br&gt;&lt;b&gt;負荷プロファイル&lt;/b&gt;: 中規模 150 RPS / テナント 50 社 / ユーザー 5,000 人を 1 時間連続実行。&lt;br&gt;&lt;br&gt;&lt;b&gt;所要時間&lt;/b&gt;: 1 時間 / 頻度: 週次（月曜夜間 GitHub Actions 自動起動）。&lt;br&gt;&lt;br&gt;&lt;b&gt;検出項目&lt;/b&gt;: p99 レイテンシ / 平均 / エラー率 / CPU / メモリ使用率。&lt;br&gt;&lt;br&gt;&lt;b&gt;合格基準&lt;/b&gt;: p99 500ms 以内 / エラー率 0.1% 未満 / CPU 70% 未満 / メモリ 80% 未満。&lt;br&gt;&lt;br&gt;&lt;b&gt;リグレッション判定&lt;/b&gt;: 前週比 20% 劣化で Slack #k1s0-perf へ自動通知、Jira 自動起票。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="740" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="spike_hdr" value="Spike（瞬間試験）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="110" width="740" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="spike_body" value="&lt;b&gt;目的&lt;/b&gt;: 朝 9 時ログイン集中 / バッチ一斉起動 / 販促キャンペーン等の突発負荷への耐性を確認。&lt;br&gt;&lt;br&gt;&lt;b&gt;負荷プロファイル&lt;/b&gt;: 通常負荷の 3 倍（中規模で 450 RPS）を 5 分継続後、通常に戻し回復を確認。&lt;br&gt;&lt;br&gt;&lt;b&gt;所要時間&lt;/b&gt;: 15 分（助走 5 分 + Spike 5 分 + 回復 5 分）/ 頻度: 主要リリース前・手動。&lt;br&gt;&lt;br&gt;&lt;b&gt;検出項目&lt;/b&gt;: Spike 中 p99 / OOMKilled / HPA 応答性 / 回復時間。&lt;br&gt;&lt;br&gt;&lt;b&gt;合格基準&lt;/b&gt;: Spike 中 p99 2 秒以内 / エラー率 1% 未満 / 終了後 3 分以内に通常性能復帰 / Pod OOMKilled なし。&lt;br&gt;&lt;br&gt;&lt;b&gt;代表検出事例&lt;/b&gt;: Connection Pool 枯渇、HPA スケール遅延、Circuit Breaker 誤発火。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="820" y="170" width="740" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="soak_hdr" value="Soak（長時間試験）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="740" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="soak_body" value="&lt;b&gt;目的&lt;/b&gt;: 長時間稼働下のメモリリーク・リソース枯渇・緩慢な劣化を検出する。&lt;br&gt;&lt;br&gt;&lt;b&gt;負荷プロファイル&lt;/b&gt;: 通常負荷（中規模 150 RPS）を 24 時間連続実行。&lt;br&gt;&lt;br&gt;&lt;b&gt;所要時間&lt;/b&gt;: 24 時間 / 頻度: Minor Version アップ前・手動。&lt;br&gt;&lt;br&gt;&lt;b&gt;検出項目&lt;/b&gt;: メモリ使用率の時間推移 / エラー率推移 / Pod 再起動回数 / GC 頻度 / ファイルディスクリプタリーク。&lt;br&gt;&lt;br&gt;&lt;b&gt;合格基準&lt;/b&gt;: メモリ線形上昇なし（傾き 0.1%/h 未満）/ エラー率上昇なし / Pod 再起動ゼロ。&lt;br&gt;&lt;br&gt;&lt;b&gt;代表検出事例&lt;/b&gt;: goroutine リーク、Connection Pool 漏れ、キャッシュの LRU 動作不全。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="740" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="stress_hdr" value="Stress（限界探索）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="560" width="740" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="stress_body" value="&lt;b&gt;目的&lt;/b&gt;: 何 RPS で破綻するかを把握しキャパシティプランニングの根拠とする。合格判定用ではない。&lt;br&gt;&lt;br&gt;&lt;b&gt;負荷プロファイル&lt;/b&gt;: 1 分ごとに 50 RPS 増加し、破綻点（p99 &gt; 5 秒 or エラー率 &gt; 5%）まで計測。&lt;br&gt;&lt;br&gt;&lt;b&gt;所要時間&lt;/b&gt;: 2〜4 時間 / 頻度: 四半期・手動（Chaos Mesh 併用で DS-OPS-LOAD-012）。&lt;br&gt;&lt;br&gt;&lt;b&gt;検出項目&lt;/b&gt;: 限界 RPS / 律速コンポーネント特定 / キャパシティ係数（現状比）。&lt;br&gt;&lt;br&gt;&lt;b&gt;合格基準&lt;/b&gt;: 合格判定なし。ただし破綻点が想定キャパシティ（中規模 150 RPS の 5 倍 = 750 RPS）を下回る場合はキャパ計画見直し。&lt;br&gt;&lt;br&gt;&lt;b&gt;統合試験&lt;/b&gt;: Chaos Mesh で FMEA 上位 1 件注入、故障注入後 3 分以内エラー率 1% 以下回復が合格。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="820" y="620" width="740" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="990" width="1500" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1020" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（試験種別ヘッダ: k6 / Locust で実行する試験プロファイル）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="1015" width="640" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_detail_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1045" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_detail_t" value="詳細パネル（目的 / 負荷プロファイル / 所要時間 / 検出項目 / 合格基準）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="1040" width="640" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_note" value="本図は情報マトリクスのため矢印は使用しない。4 種別は並列実行ではなく、頻度軸（週次 / リリース前 / Minor 前 / 四半期）で割り付ける。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1020" width="760" height="44" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

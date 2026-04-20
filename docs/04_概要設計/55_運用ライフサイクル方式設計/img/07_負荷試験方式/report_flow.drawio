@@ -1,0 +1,185 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="report_flow" id="rep-flow">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="負荷試験レポート生成フロー（k6 実行 → 集計 → Grafana → Jira 起票 → Product Council レビュー）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="試験を実施するだけでは意味がなく、結果を「人が見る場」に自動供給する必要がある。毎週のベースラインは Grafana、四半期は Backstage TechDocs に永続化する。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1520" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="trigger" value="GitHub Actions（月曜夜間 cron）&#10;月次 Baseline / 四半期 Stress + Chaos" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k6" value="k6 実行（staging 独立 namespace）&#10;11 API シナリオ A〜D" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="380" y="130" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1sut" value="被試験系: tier1 公開 11 API（staging）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="380" y="260" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mimir" value="Mimir（Prometheus remote_write）&#10;保持 13 か月 / 前年同月比対応" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="700" y="130" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Loki（試験ログ）&#10;ラベル app=k6, scenario=X" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="700" y="260" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana" value="Grafana ダッシュボード&#10;k1s0-loadtest-history（12 週トレンド）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="130" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="alert" value="リグレッション検出ルール&#10;前週比 20% 劣化 OR 4 週移動平均 2σ 乖離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="260" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="slack" value="Slack #k1s0-perf 週次サマリ&#10;前週比変化 / 劣化調査依頼" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="450" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="jira" value="Jira 自動起票（k1s0-perf プロジェクト）&#10;劣化チケット / 担当: 起案者 or 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="440" y="450" width="340" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="backstage" value="Backstage TechDocs&#10;四半期レポート / キャパ計画 / ボトルネック分析" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="860" y="450" width="360" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="council" value="Product Council 月次レビュー&#10;SLA / SLO 達成状況確認 / 是正指示 / 次四半期試験計画の承認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="620" width="800" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="feedback" value="改善実装（コード / OSS 設定 / Pod スケール / インデックス追加）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="780" width="800" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e_trig_k6" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="trigger" target="k6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_k6_sut" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="k6" target="tier1sut">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sut_k6" value="レスポンス" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;endArrow=classic;startArrow=classic;exitX=0.25;exitY=0;entryX=0.25;entryY=1;" edge="1" parent="1" source="tier1sut" target="k6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_k6_mimir" value="メトリクス" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="k6" target="mimir">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sut_loki" value="試験ログ" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="tier1sut" target="loki">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mimir_graf" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="mimir" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_loki_alert" style="html=1;strokeWidth=1.5;strokeColor=#9673a6;endArrow=classic;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="loki" target="alert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_graf_alert" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="grafana" target="alert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_alert_slack" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="alert" target="slack">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1020" y="400" />
+              <mxPoint x="210" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_alert_jira" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="alert" target="jira">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1085" y="370" />
+              <mxPoint x="610" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_graf_back" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=1;exitY=0.5;entryX=1;entryY=0;" edge="1" parent="1" source="grafana" target="backstage">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1320" y="165" />
+              <mxPoint x="1320" y="420" />
+              <mxPoint x="1220" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_slack_council" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.15;entryY=0;" edge="1" parent="1" source="slack" target="council">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="570" />
+              <mxPoint x="520" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_jira_council" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.4;entryY=0;" edge="1" parent="1" source="jira" target="council">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_back_council" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="backstage" target="council">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_council_fb" style="html=1;strokeWidth=2;strokeColor=#d6b656;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="council" target="feedback">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_fb_sut" value="次週 Baseline で検証" style="html=1;strokeWidth=1.5;strokeColor=#2e7d32;dashed=1;endArrow=classic;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="feedback" target="tier1sut">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="815" />
+              <mxPoint x="30" y="815" />
+              <mxPoint x="30" y="290" />
+              <mxPoint x="380" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="900" width="1500" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="940" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（GitHub Actions / k6 / tier1 / Grafana / Slack / Jira / Backstage）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="935" width="640" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="965" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（Mimir 長期保持 / Loki 試験ログ保持）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="960" width="640" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_detect_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="990" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_detect_t" value="検出ルール（Alertmanager / リグレッション判定）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="985" width="640" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_council_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1015" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_council_t" value="ガバナンス（Product Council レビュー）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="1010" width="640" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_line_sync" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="942" as="sourcePoint" />
+            <mxPoint x="860" y="942" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_line_sync_t" value="同期処理・データ受渡し" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="930" width="400" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_line_alert" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ef6c00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="972" as="sourcePoint" />
+            <mxPoint x="860" y="972" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_line_alert_t" value="アラート・Jira 自動起票（異常系通知）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="960" width="400" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_line_loop" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#2e7d32;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="1002" as="sourcePoint" />
+            <mxPoint x="860" y="1002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_line_loop_t" value="改善実装フィードバック（次週 Baseline 検証）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="990" width="500" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

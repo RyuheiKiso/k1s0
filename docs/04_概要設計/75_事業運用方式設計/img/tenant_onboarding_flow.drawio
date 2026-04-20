@@ -1,0 +1,269 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="テナントオンボーディング" id="tenant-onboarding">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 テナントオンボーディングフロー（新規契約 → 5 ステップ → 本番切替 → 90 日廃止）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="actor_bg" value="申込アクタ / 審査アクタ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="280" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="biz_owner" value="事業部門責任者&#10;(申込者)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="120" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="it_review" value="情シス部門レビュア&#10;(審査 SLA 2 営業日)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="190" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="pc" value="Product Council&#10;(大規模 / 特殊要求の承認)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="245" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="steps_bg" value="5 ステップオンボーディング（目標 5 営業日）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="70" width="1200" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="1. 申込&#10;Backstage Scaffolder&#10;tenant-request-form" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="2. 審査&#10;情シスレビュー&#10;(命名 / 妥当性 / 規模)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="3. テナント作成&#10;Argo CD ApplicationSet&#10;(30 分以内)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="4. 初期設定&#10;サービス雛形 / 配信登録&#10;(TechDocs チュートリアル)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" value="5. キックオフ&#10;45 分ミーティング&#10;(SLA 合意 / 連絡体制)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step_note1" value="RFC 差戻し時は&#10;step1 に戻す" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="595" y="230" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="step_note2" value="7 / 30 / 90 日&#10;定期フォローアップ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="230" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="net_bg" value="ネットワーク境界（認証 / ルーティング）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8eefc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="460" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="kc_realm" value="Keycloak Realm / OrganizationGroup&#10;(Client 発行 / JWT 発行)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="400" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="envoy_route" value="Envoy Gateway&#10;(テナント別 L7 ルーティング設定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="480" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="istio_auth" value="Istio AuthorizationPolicy&#10;(テナント間分離 / NetworkPolicy 併用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="560" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_bg" value="Kubernetes テナント Namespace（tenant-&lt;id&gt;）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="340" width="600" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="ns" value="Namespace + ResourceQuota&#10;(小規模: CPU 4 / Mem 8GB / Storage 100GB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="570" y="400" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rbac" value="RBAC RoleBinding&#10;(テナント代表に edit 権限)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="400" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="limit" value="LimitRange + NetworkPolicy&#10;(Pod 単位上限 / デフォルト deny)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="570" y="480" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="appproj" value="Argo CD AppProject&#10;(テナント配下 App の親権限)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="480" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dapr_comp" value="Dapr Component 設定&#10;(State / PubSub / Secrets / Binding)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="570" y="560" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="metering" value="課金メータリング初期化&#10;(4 メトリック計測開始)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="560" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="data_bg" value="データ層（テナント別分離）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#efe5f0;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="340" width="380" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="bao_ns" value="OpenBao Namespace&#10;(テナント別シークレット領域)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="400" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pg_tenant" value="PostgreSQL テナント schema&#10;(Workflow / Audit WORM 用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="480" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seed" value="初期データ投入&#10;(Runbook / ゴールデンパス seed)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="560" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="decom_bg" value="テナント廃止（90 日段階的）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="1080" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="dec1" value="Day 0&#10;廃止申請" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="740" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dec2" value="Day 0 - 7&#10;確認 / 告知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="740" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dec3" value="Day 7 - 60&#10;読み取り専用期間&#10;(エクスポート)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="470" y="740" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dec4" value="Day 60 - 90&#10;アーカイブ&#10;(pg_dump / JSONL / tar.gz)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="740" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="dec5" value="Day 90&#10;完全削除&#10;(監査要件 5 / 7 年保持)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="890" y="740" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_owner_step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="biz_owner" target="step1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_review_step2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="it_review" target="step2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="217" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_pc_step2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="pc" target="step2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="272" />
+              <mxPoint x="340" y="280" />
+              <mxPoint x="620" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s1_s2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s2_s3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s3_s4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s4_s5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s3_kc" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;exitX=0.1;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.2;entryDx=0;entryDy=0;" edge="1" parent="1" source="step3" target="kc_realm">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="250" />
+              <mxPoint x="860" y="380" />
+              <mxPoint x="500" y="380" />
+              <mxPoint x="500" y="412" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s3_ns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="step3" target="ns">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="325" />
+              <mxPoint x="700" y="325" />
+              <mxPoint x="700" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s3_bao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.9;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="step3" target="bao_ns">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1020" y="250" />
+              <mxPoint x="1020" y="325" />
+              <mxPoint x="1274" y="325" />
+              <mxPoint x="1274" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ns_rbac" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#666666;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ns" target="rbac">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_limit_app" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#666666;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="limit" target="appproj">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_dapr_meter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dapr_comp" target="metering">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bao_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="bao_ns" target="pg_tenant">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pg_seed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#9673a6;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pg_tenant" target="seed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s4_seed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="step4" target="seed">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1170" y="280" />
+              <mxPoint x="1580" y="280" />
+              <mxPoint x="1580" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s5_dec1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="step5" target="dec1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1570" y="170" />
+              <mxPoint x="1570" y="670" />
+              <mxPoint x="155" y="670" />
+              <mxPoint x="155" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_d1_d2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec1" target="dec2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d2_d3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec2" target="dec3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d3_d4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec3" target="dec4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_d4_d5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dec4" target="dec5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="690" width="380" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="695" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="722" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層（Backstage / Argo CD / Dapr / アクタ）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="720" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="744" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層（Keycloak / Envoy / Istio）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="742" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="766" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_t" value="インフラ層（Namespace / Quota / RBAC / NetworkPolicy）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="764" width="330" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="788" width="24" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層（OpenBao / PostgreSQL / seed）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="786" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_sync_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
+          <mxGeometry x="1200" y="820" as="geometry"><mxPoint x="1200" y="820" as="sourcePoint" /><mxPoint x="1240" y="820" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_sync_t" value="5 ステップ進行（必須経路 / 同期）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="810" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashed_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;" edge="1" parent="1">
+          <mxGeometry x="1200" y="842" as="geometry"><mxPoint x="1200" y="842" as="sourcePoint" /><mxPoint x="1240" y="842" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_dashed_t" value="条件分岐（Product Council 承認 / 廃止遷移）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="832" width="310" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1">
+          <mxGeometry x="1200" y="864" as="geometry"><mxPoint x="1200" y="864" as="sourcePoint" /><mxPoint x="1240" y="864" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="lg_data_line_t" value="データ層への書き込み / 廃止アーカイブ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="854" width="300" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

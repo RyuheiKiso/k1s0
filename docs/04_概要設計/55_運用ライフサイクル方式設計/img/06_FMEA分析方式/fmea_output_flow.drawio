@@ -1,0 +1,189 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="fmea_output_flow" id="fmea-out">
+    <mxGraphModel dx="1600" dy="1100" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="FMEA アウトプット活用フロー（RPN ランキング → 4 アクションへの反映）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="分析結果を設計・運用に反映しないと「レポート作って終わり」になる。RPN ランキングから 4 アクションへの具体反映経路を固定化する。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="52" width="1520" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="input" value="主要 10 故障モード（FMEA-001〜010）&#10;S（重要度） × O（発生頻度） × D（検知容易性）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="110" width="480" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ranking" value="RPN ランキング&#10;RPN &gt;= 100: 対策計画必達 / 60-99: 推奨 / 30-59: 優先 / &lt;30: 通常" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="500" y="220" width="600" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="out1" value="1. Runbook 優先順位決定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out1_detail" value="RPN 30 以上の全故障モードに対し Runbook 整備。Phase 1b 完了までに 15 本を NFR-A-REC-002 として固定化。各 FMEA エントリ「対応策」欄に Runbook ID を必須記載し、CI（scripts/traceability/fmea_runbook_check.py）で整合検証。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="320" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="out2" value="2. 監視アラート追加（D 低減）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="420" y="360" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out2_detail" value="検知容易性 D=4 以上（検知困難）の故障モードに対し、Prometheus Alertmanager へ新規ルールを追加。Grafana Tempo / Loki / Pyroscope の 4 スタックで補完し、D スコアを 2 以下に改善。RPN を構造的に低減する。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="420" y="420" width="320" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="out3" value="3. 冗長化 / HA 投資判断（O 低減）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="780" y="360" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out3_detail" value="発生頻度 O=4 以上の故障モードに対し、Raft 3 ノード構成 / StatefulSet レプリカ増 / マルチ AZ 配置で冗長化。投資対効果は （RPN 低減量 × SLA 違反コスト）で算出し、Product Council で承認する。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="780" y="420" width="320" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="out4" value="4. Chaos Drill シナリオ導出" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="360" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out4_detail" value="RPN 上位故障モードを Chaos Mesh で意図的に注入し、Runbook が機能するかを四半期 Drill で検証。Stress + Chaos 統合試験（DS-OPS-LOAD-012）と連動し、3 分以内の復旧を合格基準とする。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="420" width="320" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="canary" value="Argo Rollouts Canary 反映&#10;Runbook 改訂時は Canary デプロイで段階展開し、本番影響を最小化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="680" width="640" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="monitoring" value="モニタリング実装 &amp; リグレッション検出&#10;新規アラートと Grafana ダッシュボードを Phase 1b 完了までに本番適用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="820" y="680" width="640" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="feedback" value="四半期レビュー（Product Council）&#10;SEV1 / SEV2 インシデント後のポストモーテム PR で O / D スコアを実測値更新、RPN 100 超の新規検出を承認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="830" width="920" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e_input_rank" style="html=1;strokeWidth=2;strokeColor=#d6b656;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="input" target="ranking">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rank_o1" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.1;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ranking" target="out1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="320" />
+              <mxPoint x="220" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rank_o2" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.35;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ranking" target="out2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="710" y="320" />
+              <mxPoint x="580" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rank_o3" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.65;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ranking" target="out3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="890" y="320" />
+              <mxPoint x="940" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rank_o4" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.9;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ranking" target="out4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="320" />
+              <mxPoint x="1300" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_o1_canary" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="out1_detail" target="canary">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_o2_canary" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="out2_detail" target="canary">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_o3_mon" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="out3_detail" target="monitoring">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_o4_mon" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="out4_detail" target="monitoring">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1300" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_canary_fb" style="html=1;strokeWidth=2;strokeColor=#d6b656;endArrow=classic;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="canary" target="feedback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="800" />
+              <mxPoint x="530" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_mon_fb" style="html=1;strokeWidth=2;strokeColor=#d6b656;endArrow=classic;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="monitoring" target="feedback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="800" />
+              <mxPoint x="990" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fb_input" style="html=1;strokeWidth=1.5;strokeColor=#2e7d32;dashed=1;endArrow=classic;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="feedback" target="input">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="990" />
+              <mxPoint x="1540" y="990" />
+              <mxPoint x="1540" y="90" />
+              <mxPoint x="800" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fb_label" value="O / D 実測値で更新" style="text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;fontSize=10;fontColor=#2e7d32;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="520" width="180" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="950" width="480" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="980" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層アウトプット（Runbook / 監視 / 冗長化 / Chaos）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="975" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_fmea_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1005" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_fmea_t" value="FMEA 分析プロセス（RPN ランキング）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="1000" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_cycle_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1030" width="24" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_cycle_t" value="サイクル制御（インプット / 四半期レビュー）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="112" y="1025" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_solid" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#ef6c00;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="987" as="sourcePoint" />
+            <mxPoint x="660" y="987" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_solid_t" value="実線: FMEA アウトプット反映（同期）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="670" y="975" width="400" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashed" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#2e7d32;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="1012" as="sourcePoint" />
+            <mxPoint x="660" y="1012" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg_dashed_t" value="破線: フィードバックループ（四半期レビューで FMEA 更新）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="670" y="1000" width="500" height="24" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

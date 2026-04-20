@@ -1,0 +1,178 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="Feature Flag 評価フロー" id="feature-flag-flow">
+    <mxGraphModel dx="1800" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1800" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Feature Flag 評価フロー — GitOps 配信 + flagd + OpenFeature SDK in-process 評価" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1720" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gitops_band" value="左レーン: GitOps 配信経路 (Flag 定義の管理 → ConfigMap 反映)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="560" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="eval_band" value="右レーン: 評価経路 (tier2/3 → Feature API → OpenFeature SDK in-process)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="640" y="70" width="1120" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev" value="開発者&#10;(team-workflow 他)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gitrepo" value="Git Repo&#10;infra/feature-flags&#10;(JSON Flag 定義)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="120" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ci" value="GitHub Actions CI&#10;k1s0-feature-flag-lint&#10;(期限 / 孤立 / 所有者 / ハードコード)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="branchprot" value="Branch Protection&#10;Production Ops: 2 名承認&#10;(SRE + Security Officer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="220" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="argocd" value="Argo CD&#10;(GitOps Sync)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cm" value="Kubernetes ConfigMap&#10;feature-flags&#10;(JSON 本体 + kill_switch)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="340" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="audit_hook" value="tier1 Audit API&#10;feature.flag_changed&#10;(7 年保全 / PostgreSQL + MinIO)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="440" width="520" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier23" value="tier2 / tier3 アプリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="120" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ofapi" value="OpenFeature SDK Client&#10;(tier2/3 側)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="220" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t1feat" value="tier1 Feature API&#10;(gRPC ラッパ / Go ファサード)&#10;FR-T1-FEATURE-001〜004" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="220" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ofprov" value="OpenFeature in-process provider&#10;(tier1 内メモリ評価)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="980" y="340" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd" value="flagd (CNCF Sandbox)&#10;Phase 1a 単一 Pod&#10;Phase 1b+ HA 2 Pod&#10;ConfigMap file provider watch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="340" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="jsonlogic" value="JSONLogic 評価エンジン&#10;Evaluation Context:&#10;tenant_id / user_id / env /&#10;percentage_rollout / date_range /&#10;source_ip_class" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="460" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="kill_note" value="Kill Switch: ConfigMap.data.kill_switch=true で全 Flag を defaultVariant に強制 (Platform Admin 2 名承認)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="540" width="580" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="otel_metrics" value="OTel Metrics&#10;feature.evaluate Span&#10;→ Mimir 保管 → Grafana ダッシュボード k1s0-feature-flag-perf" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="610" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="metrics_label" value="評価性能計測" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="590" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dev_git" value="PR push" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="dev" target="gitrepo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_git_ci" value="trigger" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.2;exitY=1;entryX=0.8;entryY=0;fontSize=10;" edge="1" parent="1" source="gitrepo" target="ci">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ci_branchprot" value="lint 合格" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="ci" target="branchprot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_branch_argo" value="merge" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=0;exitY=1;entryX=1;entryY=0;fontSize=10;" edge="1" parent="1" source="branchprot" target="argocd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_argo_cm" value="sync" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="argocd" target="cm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_argo_audit" value="webhook" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;fontSize=10;" edge="1" parent="1" source="argocd" target="audit_hook">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cm_flagd" value="ConfigMap watch (push 反映 5 秒以内)" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="cm" target="flagd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="370" />
+              <mxPoint x="620" y="320" />
+              <mxPoint x="1270" y="320" />
+              <mxPoint x="1270" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_app_sdk" value="評価要求" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;" edge="1" parent="1" source="tier23" target="ofapi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sdk_t1feat" value="gRPC: Feature.Evaluate" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="ofapi" target="t1feat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t1_prov" value="内部評価" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;" edge="1" parent="1" source="t1feat" target="ofprov">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_prov_flagd" value="初回 fetch / 差分同期" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#d79b00;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;" edge="1" parent="1" source="ofprov" target="flagd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_flagd_jl" value="評価" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=10;" edge="1" parent="1" source="flagd" target="jsonlogic">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_prov_metrics" value="Span 記録" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#9673a6;dashed=1;exitX=1;exitY=1;entryX=0;entryY=0.3;fontSize=10;" edge="1" parent="1" source="ofprov" target="otel_metrics">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1270" y="420" />
+              <mxPoint x="1270" y="634" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="perf" value="評価パフォーマンス目標 (DS-CF-FM-006 / 012)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="560" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="pf1" value="・Feature API p99 10ms 以内 (in-process provider 経由)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="770" width="540" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf2" value="・Flag 評価 p99 1ms 以内 (in-process メモリ評価、ネットワーク不要)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="793" width="540" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf3" value="・SDK 内キャッシュヒット率 90% 以上" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="816" width="540" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf4" value="・ConfigMap 変更から全 Pod 反映 p99 5 秒以内 (push 伝播)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="839" width="540" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf5" value="・ネットワーク障害時 SDK ローカルキャッシュで継続評価 (フェイルセーフ)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="862" width="540" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf6" value="・想定 150 RPS × 5 Flag 評価 = 750 ops/sec (flagd 公式 10,000 ops/sec 以上)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="885" width="540" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf7" value="・Flag 寿命: Release Toggle 90 日 / Ops Toggle 長期 / Experiment 2-8 週間" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="908" width="540" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="740" width="1120" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="■ アプリ層 (暖色 #fff2cc / #d79b00): 開発者 / tier2-3 アプリ / OpenFeature SDK / tier1 Feature API / flagd / JSONLogic / Audit API" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="660" y="770" width="1100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="■ データ層 (薄紫 #e1d5e7 / #9673a6): Git Repo (Flag 定義 JSON 保管) / OTel Metrics → Mimir (性能計測)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="660" y="793" width="1100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra" value="■ インフラ層 (中性灰 #f5f5f5 / #666666): GitHub Actions / Branch Protection / Argo CD / Kubernetes ConfigMap" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="660" y="816" width="1100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_kill" value="■ 警告色 (#fff3e0 / #ef6c00): Kill Switch (緊急時の全 Flag 無効化機構)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#ef6c00;" vertex="1" parent="1">
+          <mxGeometry x="660" y="839" width="1100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_solid" value="→ 実線太: 同期の明示呼び出し (gRPC / HTTP / Kubernetes API)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="862" width="1100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_thin" value="→ 実線細: プロセス内部評価 (Feature API → in-process provider → JSONLogic)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="885" width="1100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_dashed" value="→ 破線: 非同期 / 差分同期 / Span 記録 / Audit webhook" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="908" width="1100" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
