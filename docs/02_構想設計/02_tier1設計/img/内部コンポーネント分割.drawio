@@ -1,0 +1,331 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="Claude Code" version="24.8.8">
+  <diagram name="internal-components" id="internal-components">
+    <mxGraphModel dx="1440" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1440" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1440" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="tier1 内部コンポーネント分割 — 11 公開 API / 6 Pod / データストアの対応" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="15" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="各 Pod の存在は、集約する公開 API の FR 群・駆動 NFR・参照 ADR から要件起点で一意に導出される。Pod 下辺の垂直矢印は主要バックエンド依存を示す（実線太 = 明示呼び出し）。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="30" y="43" width="1380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="app_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="70" width="1400" height="460" as="geometry" />
+        </mxCell>
+        <mxCell id="app_lane_label" value="アプリ層（tier1 内部 Pod）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#8b6508;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="75" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="data_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8efff;strokeColor=#b886c4;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="580" width="1400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="data_lane_label" value="データ層（主要バックエンド）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#6a4883;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="585" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="35" y="105" width="220" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_name" value="COMP-T1-STATE" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="35" y="112" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_badge" value="[Go] / Deployment+HPA 3–10 / Stateless" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="35" y="138" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="166" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_fr" value="FR-T1-INVOKE-*&#xa;FR-T1-STATE-*&#xa;FR-T1-PUBSUB-*&#xa;FR-T1-BINDING-*&#xa;FR-T1-FEATURE-*" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="35" y="186" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_nfrh" value="■ 駆動する非機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="290" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_nfr" value="NFR-B-PERF-001 (p99 500ms)&#xa;NFR-B-PERF-002 (150 RPS)&#xa;NFR-A-CONT-003 (影響限定)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="35" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="382" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_adr" value="ADR-TIER1-001 (Go)&#xa;ADR-TIER1-002 (gRPC)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="35" y="402" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_princh" value="■ 主導原則" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="456" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_state_princ" value="1-4 (データ・言語・失敗・スケール)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="35" y="476" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="265" y="105" width="220" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_name" value="COMP-T1-SECRET" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="265" y="112" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_badge" value="[Go] / Leader-Elected (active 1 / standby 2)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="265" y="138" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="265" y="166" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_fr" value="FR-T1-SECRETS-001&#xa;FR-T1-SECRETS-002&#xa;FR-T1-SECRETS-003&#xa;FR-T1-SECRETS-004" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="265" y="186" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_nfrh" value="■ 駆動する非機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="265" y="290" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_nfr" value="NFR-A-CONT-002 (degrade 稼働)&#xa;NFR-E-ENC-001 (鍵管理)&#xa;NFR-H-KEY-001 (鍵ライフサイクル)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="265" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="265" y="382" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_adr" value="ADR-SEC-002 (OpenBao)&#xa;ADR-TIER1-001 (Go)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="265" y="402" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_princh" value="■ 主導原則" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="265" y="456" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_secret_princ" value="3 (失敗ドメイン — リース排他)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="265" y="476" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="495" y="105" width="220" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_name" value="COMP-T1-WORKFLOW" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="495" y="112" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_badge" value="[Go] / Deployment 固定 3 replica / sticky" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="495" y="138" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="166" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_fr" value="FR-T1-WORKFLOW-001&#xa;FR-T1-WORKFLOW-002&#xa;FR-T1-WORKFLOW-003&#xa;FR-T1-WORKFLOW-004&#xa;FR-T1-WORKFLOW-005" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="495" y="186" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_nfrh" value="■ 駆動する非機能要件 / 未決" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="290" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_nfr" value="NFR-A-CONT-* (永続化)&#xa;NFR-A-REC (再開)&#xa;U-WORKFLOW-001 (Phase 1b 決着)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="495" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="382" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_adr" value="ADR-RULE-002 (Workflow 基盤)&#xa;ADR-TIER1-001 (Go)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="495" y="402" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_princh" value="■ 主導原則" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="456" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_workflow_princ" value="1, 3 (永続化ストア独立・sticky)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="495" y="476" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="725" y="105" width="220" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_name" value="COMP-T1-AUDIT" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="725" y="112" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_badge" value="[Rust] / StatefulSet / PVC per replica" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="725" y="138" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="725" y="166" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_fr" value="FR-T1-AUDIT-001 (ハッシュ連鎖)&#xa;FR-T1-AUDIT-002 (改ざん検知)&#xa;FR-T1-AUDIT-003 (7 年保管)&#xa;FR-INFO-AUDITMODEL-001" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="725" y="186" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_nfrh" value="■ 駆動する非機能要件 / BR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="725" y="290" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_nfr" value="NFR-C-NOP-003 (7 年保管)&#xa;NFR-A-FT-001 (Pod 復旧)&#xa;NFR-H-INT-* (完整性)&#xa;BR-PLATGOV-004 (保管義務)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="725" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="725" y="382" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_adr" value="ADR-TIER1-001 (Rust 自作)&#xa;ADR-DATA-001 / 003" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="725" y="402" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_princh" value="■ 主導原則" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="725" y="456" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_audit_princ" value="2, 5 (言語境界・順序保証)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="725" y="476" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="955" y="105" width="220" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_name" value="COMP-T1-DECISION" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="955" y="112" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_badge" value="[Rust] / Deployment+HPA 2–8 / in-mem" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="955" y="138" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="955" y="166" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_fr" value="FR-T1-DECISION-001 (JDM)&#xa;FR-T1-DECISION-002 (version)&#xa;FR-T1-DECISION-003 (Audit 連携)&#xa;FR-T1-DECISION-004 (hot reload)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="955" y="186" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_nfrh" value="■ 駆動する非機能要件 / BR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="955" y="290" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_nfr" value="NFR-B-PERF-004 (p99 &lt; 1ms)&#xa;NFR-A-CONT-003 (影響限定)&#xa;BR-PLATUSE-007 (ルール迅速化)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="955" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="955" y="382" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_adr" value="ADR-RULE-001 (ZEN + JDM)&#xa;ADR-TIER1-001 (Rust)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="955" y="402" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_princh" value="■ 主導原則" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="955" y="456" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_decision_princ" value="2, 4 (Rust in-process・p99 1ms)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="955" y="476" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="105" width="220" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_name" value="COMP-T1-PII" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="112" width="220" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_badge" value="[Rust] / Deployment+HPA 2–6 / sidecar-free" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#8b6508;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="138" width="220" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="166" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_fr" value="FR-T1-PII-001 (マスキング)&#xa;FR-T1-PII-002 (仮名化 k 匿名性)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="186" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_nfrh" value="■ 駆動する非機能要件 / BR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="290" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_nfr" value="NFR-B-PERF-006 (計装 &lt; 10ms)&#xa;NFR-G-ENC-* (機微データ暗号化)&#xa;BR-PLATGOV-003 (レピュテーション)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="310" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="382" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_adr" value="ADR-TIER1-001 (Rust)&#xa;ADR-RULE-001 (判定の補助)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="402" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_princh" value="■ 主導原則" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="456" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pod_pii_princ" value="2, 3 (Rust・Audit と失敗分離)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="476" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="store_state" value="Valkey Cluster (state.valkey)&#xa;Apache Kafka (pubsub.kafka)&#xa;外部 HTTP (binding.http)&#xa;flagd (feature)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=10;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="35" y="608" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="store_secret" value="OpenBao&#xa;(動的 Secret / PKI /&#xa;Transit 暗号化)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=10;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="265" y="608" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="store_workflow" value="Temporal PostgreSQL&#xa;（Temporal 採用時）&#xa;or Valkey&#xa;（Dapr Workflow 採用時）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=10;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="495" y="608" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="store_audit" value="PostgreSQL WORM append-only&#xa;(CloudNativePG / hash chain)&#xa;+ MinIO Object Lock&#xa;(長期保存 7 年)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=10;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="725" y="608" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="store_decision" value="ZEN Engine（Rust in-process）&#xa;— 外部ストア無し&#xa;JDM ファイルは&#xa;Git 管理 + ConfigMap 配信" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=10;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="955" y="608" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="store_pii" value="外部ストア無し&#xa;（純関数、副作用なし）&#xa;テナント別ルールは&#xa;Decision 経由で受領" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=10;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="1185" y="608" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_state" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="pod_state" target="store_state">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_secret" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="pod_secret" target="store_secret">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="375" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_workflow" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="pod_workflow" target="store_workflow">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="605" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_audit" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="pod_audit" target="store_audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="835" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_decision" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1" source="pod_decision" target="store_decision">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1065" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_pii" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1" source="pod_pii" target="store_pii">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1295" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="■ 6 Pod に収まらない責務：Log API (FR-T1-LOG-*) と Telemetry API (FR-T1-TELEMETRY-*) は tier1 SDK 内での構造化ログ生成と OTel span 生成に帰責し、配送は OpenTelemetry Collector (インフラ層 DaemonSet) が担う。tier1 アプリ層に専用 Pod を置かないのは、計装オーバヘッド NFR-B-PERF-006 &lt; 10ms と データアフィニティ原則 (Loki/Tempo/Mimir は tier1 専有ではない) の帰結である。&#xa;&#xa;■ Feature API (FR-T1-FEATURE-*) は現行 COMP-T1-STATE 同居。flagd 以外の OSS に切替わる場合 (ADR 再引き) は COMP-T1-FEATURE 独立 Pod への分離判定が走る。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="720" width="880" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_frame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="720" width="500" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="920" y="724" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_app" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="934" y="752" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_app_lbl" value="アプリ層（tier1 内部 Pod、暖色）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="970" y="752" width="250" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_data" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="934" y="778" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_data_lbl" value="データ層（主要バックエンド、薄紫）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="970" y="778" width="250" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_solid_start" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="814" as="sourcePoint" />
+            <mxPoint x="984" y="814" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_solid_lbl" value="実線太：Pod から外部バックエンドへの明示呼び出し" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="990" y="804" width="420" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_dash_start" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="842" as="sourcePoint" />
+            <mxPoint x="984" y="842" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_dash_lbl" value="点線：in-process もしくは副作用なし（外部ストア無し）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;spacingLeft=6;" vertex="1" parent="1">
+          <mxGeometry x="990" y="832" width="420" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_note" value="※ 矢印は Pod 下辺中央 → ストア上辺中央の垂直落下のみ。列内に閉じるため交差は構造的に発生しない。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontColor=#666666;spacingLeft=12;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="920" y="856" width="500" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
