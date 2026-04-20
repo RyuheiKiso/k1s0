@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1600" height="900" fill="#FFFFFF" stroke="none"/>
+  <text x="800" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#000000">要件 ID タクソノミー (プレフィックス × サブカテゴリ 2 段構成)</text>
+  <text x="800" y="52" text-anchor="middle" font-size="11" fill="#666666">所与条件 (P/C/U/RISK) — 要件 (BR/FR/NFR/OR/DX/BC/MIG) — ADR は別体系。詳細所在は 80_トレーサビリティ/01_要件ID索引.md 参照</text>
+
+  <defs>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#666666"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d79b00"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9673a6"/>
+    </marker>
+  </defs>
+
+  <!-- Root -->
+  <rect x="550" y="70" width="500" height="50" rx="8" ry="8" fill="#424242" stroke="#000000"/>
+  <text x="800" y="92" text-anchor="middle" font-size="12" font-weight="bold" fill="#FFFFFF">k1s0 要件定義書 ID 体系</text>
+  <text x="800" y="110" text-anchor="middle" font-size="10" fill="#FFFFFF">現在合計: 所与 46 / BR ∞ / FR 59 / NFR 100+ / OR 30+ / DX 25+ / BC 80+ / MIG 35+ / ADR 50+</text>
+
+  <!-- 所与条件バンド -->
+  <rect x="20" y="140" width="380" height="740" fill="#f5f5f5" stroke="#666666" stroke-width="1.5"/>
+  <text x="32" y="160" font-size="12" font-weight="bold" fill="#000000">所与条件 (要件ではない・計 46 項目)</text>
+
+  <rect x="40" y="180" width="340" height="120" rx="6" ry="6" fill="#ffffff" stroke="#666666" stroke-width="1.5"/>
+  <text x="50" y="198" font-size="11" font-weight="bold" fill="#000000">P- 前提 Prerequisites (11 件)</text>
+  <text x="50" y="214" font-size="10" fill="#000000">03_前提と制約.md</text>
+  <line x1="50" y1="222" x2="370" y2="222" stroke="#cccccc"/>
+  <text x="50" y="240" font-size="10" fill="#000000">BIZ 事業 (001〜003)</text>
+  <text x="50" y="258" font-size="10" fill="#000000">TEC 技術 (001〜005)</text>
+  <text x="50" y="276" font-size="10" fill="#000000">ORG 組織 (001〜003)</text>
+
+  <rect x="40" y="320" width="340" height="130" rx="6" ry="6" fill="#ffffff" stroke="#666666" stroke-width="1.5"/>
+  <text x="50" y="338" font-size="11" font-weight="bold" fill="#000000">C- 制約 Constraints (12 件)</text>
+  <text x="50" y="354" font-size="10" fill="#000000">03_前提と制約.md</text>
+  <line x1="50" y1="362" x2="370" y2="362" stroke="#cccccc"/>
+  <text x="50" y="380" font-size="10" fill="#000000">LEGAL 法令 (001〜003) / REG 規程 (001〜002)</text>
+  <text x="50" y="398" font-size="10" fill="#000000">INF インフラ (001〜002) / EXIST 既存資産 (001〜003)</text>
+  <text x="50" y="416" font-size="10" fill="#000000">VEND ベンダ (001) / TIME 期限 (001)</text>
+
+  <rect x="40" y="470" width="340" height="110" rx="6" ry="6" fill="#ffffff" stroke="#666666" stroke-width="1.5"/>
+  <text x="50" y="488" font-size="11" font-weight="bold" fill="#000000">U- 未決事項 Unresolved (4 件)</text>
+  <text x="50" y="504" font-size="10" fill="#000000">03_前提と制約.md</text>
+  <line x1="50" y1="512" x2="370" y2="512" stroke="#cccccc"/>
+  <text x="50" y="530" font-size="10" fill="#000000">通番のみ / 責任者と決着期限必須</text>
+  <text x="50" y="548" font-size="10" fill="#000000">(時限前提として凍結)</text>
+
+  <rect x="40" y="600" width="340" height="160" rx="6" ry="6" fill="#ffffff" stroke="#666666" stroke-width="1.5"/>
+  <text x="50" y="618" font-size="11" font-weight="bold" fill="#000000">RISK- リスクレジスタ (19 件)</text>
+  <text x="50" y="634" font-size="10" fill="#000000">07_リスクレジスタ.md</text>
+  <line x1="50" y1="642" x2="370" y2="642" stroke="#cccccc"/>
+  <text x="50" y="660" font-size="10" fill="#000000">TEC 技術 (001〜004) / OPS 運用 (001〜003)</text>
+  <text x="50" y="678" font-size="10" fill="#000000">SEC セキュリティ (001〜003) / LGL 法務 (001〜002)</text>
+  <text x="50" y="696" font-size="10" fill="#000000">BUS 事業 (001〜003) / FIN 財務 (001〜002)</text>
+  <text x="50" y="714" font-size="10" fill="#000000">HUM 人材 (001〜002)</text>
+
+  <rect x="40" y="780" width="340" height="80" fill="#fafafa" stroke="#999999" stroke-width="1" stroke-dasharray="5,4"/>
+  <text x="50" y="798" font-size="10" fill="#000000">所与条件は稟議前に凍結され、</text>
+  <text x="50" y="816" font-size="10" fill="#000000">要件定義の前提となる。改訂は</text>
+  <text x="50" y="834" font-size="10" fill="#000000">重大扱いで Product Council 回付。</text>
+
+  <!-- 要件バンド -->
+  <rect x="420" y="140" width="760" height="740" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="432" y="160" font-size="12" font-weight="bold" fill="#000000">要件 (合計 330 件超・Phase スコープ管理対象)</text>
+
+  <rect x="440" y="180" width="720" height="100" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="198" font-size="11" font-weight="bold" fill="#000000">BR- 業務要件 (10_業務要件/, 散文中括弧書き運用)</text>
+  <line x1="450" y1="206" x2="1150" y2="206" stroke="#cccccc"/>
+  <text x="450" y="224" font-size="10" fill="#000000">PLATUSE プラットフォーム利用 (tier2 開発者視点)</text>
+  <text x="450" y="242" font-size="10" fill="#000000">PLATOPS プラットフォーム運用 (SRE 視点)</text>
+  <text x="450" y="260" font-size="10" fill="#000000">PLATGOV プラットフォーム統制 (監査・経営視点)</text>
+
+  <rect x="440" y="290" width="720" height="160" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="308" font-size="11" font-weight="bold" fill="#000000">FR- 機能要件 (59 件)</text>
+  <line x1="450" y1="316" x2="1150" y2="316" stroke="#cccccc"/>
+  <text x="450" y="334" font-size="10" fill="#000000">tier1 公開 API (49 件, 20_機能要件/10_tier1_API要件/):</text>
+  <text x="450" y="352" font-size="10" fill="#000000">T1-INVOKE(5) / T1-STATE(5) / T1-PUBSUB(5) / T1-SECRETS(4) / T1-BINDING(4)</text>
+  <text x="450" y="370" font-size="10" fill="#000000">T1-WORKFLOW(5) / T1-LOG(4) / T1-TELEMETRY(4) / T1-DECISION(4)</text>
+  <text x="450" y="388" font-size="10" fill="#000000">T1-AUDIT(3) + T1-PII(2) / T1-FEATURE(4)</text>
+  <text x="450" y="410" font-size="10" fill="#000000">外部連携 (6 件, 20_外部連携要件.md): EXT-DOTNET(2) / EXT-IDP(2) / EXT-MON(1) / EXT-BACKUP(1)</text>
+  <text x="450" y="432" font-size="10" fill="#000000">情報要件 (4 件, 30_情報要件.md): INFO-LOGMODEL / INFO-AUDITMODEL / INFO-TENANTMODEL / INFO-CONFIGMODEL</text>
+
+  <rect x="440" y="460" width="720" height="120" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="478" font-size="11" font-weight="bold" fill="#000000">NFR- 非機能要件 (30_非機能要件/, 大項目 A〜I × サブカテゴリ 2 段)</text>
+  <line x1="450" y1="486" x2="1150" y2="486" stroke="#cccccc"/>
+  <text x="450" y="504" font-size="10" fill="#000000">A 可用性 / B 性能・拡張性 / C 運用・保守性 / D 移行性 / E セキュリティ</text>
+  <text x="450" y="522" font-size="10" fill="#000000">F システム環境・エコロジー / G データ保護・プライバシー</text>
+  <text x="450" y="540" font-size="10" fill="#000000">H 完整性・コンプライアンス / I SLI/SLO・エラーバジェット</text>
+  <text x="450" y="562" font-size="10" fill="#666666">※ 非機能要求グレード 2018 Level 判定は 90_付録/02_非機能要求グレード判定.md 参照</text>
+
+  <rect x="440" y="590" width="720" height="60" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="608" font-size="11" font-weight="bold" fill="#000000">OR- 運用ライフサイクル (40_運用ライフサイクル/)</text>
+  <text x="450" y="628" font-size="10" fill="#000000">INC インシデント / SUP サポート / ENV 環境構成 / EOL 非推奨・終了 / EXIT 撤退</text>
+
+  <rect x="440" y="660" width="720" height="60" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="678" font-size="11" font-weight="bold" fill="#000000">DX- 開発者体験 (50_開発者体験/)</text>
+  <text x="450" y="698" font-size="10" fill="#000000">TEST テスト戦略 / GP ゴールデンパス / MET DevEx 指標 / FM Feature Management / LD ローカル開発</text>
+
+  <rect x="440" y="730" width="720" height="80" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="748" font-size="11" font-weight="bold" fill="#000000">BC- 事業契約 (60_事業契約/)</text>
+  <text x="450" y="768" font-size="10" fill="#000000">UX / I18N / ONB オンボーディング / TRN 教育 / COST / BIL 課金 / LIC OSS ライセンス</text>
+  <text x="450" y="786" font-size="10" fill="#000000">LGL 法務 / SC サプライチェーン / GOV ガバナンス / AI AI ガバナンス / ANA 分析 / SUS サステナビリティ</text>
+
+  <rect x="440" y="820" width="720" height="50" rx="6" ry="6" fill="#ffffff" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="450" y="838" font-size="11" font-weight="bold" fill="#000000">MIG- 移行計画 (70_プロジェクト管理/04_移行計画.md)</text>
+  <text x="450" y="858" font-size="10" fill="#000000">STG / INV / WAVE / PATTERN / PILOT / WAVE2 / DATA / ROLLBACK / PAR 並行運用 / LGL 法的配慮</text>
+
+  <!-- ADRバンド -->
+  <rect x="1200" y="140" width="380" height="740" fill="#e1d5e7" stroke="#9673a6" stroke-width="1.5"/>
+  <text x="1212" y="160" font-size="12" font-weight="bold" fill="#000000">ADR (要件ではないが参照可能・50 件超)</text>
+
+  <rect x="1220" y="180" width="340" height="120" rx="6" ry="6" fill="#ffffff" stroke="#9673a6" stroke-width="1.5"/>
+  <text x="1230" y="198" font-size="11" font-weight="bold" fill="#000000">ADR-NNNN</text>
+  <text x="1230" y="214" font-size="10" fill="#000000">横断 ADR (4 桁フラット通番)</text>
+  <line x1="1230" y1="222" x2="1550" y2="222" stroke="#cccccc"/>
+  <text x="1230" y="240" font-size="10" fill="#000000">複数領域に跨る基盤判断</text>
+  <text x="1230" y="258" font-size="10" fill="#000000">(例: ADR-0001 技術スタック)</text>
+
+  <rect x="1220" y="320" width="340" height="180" rx="6" ry="6" fill="#ffffff" stroke="#9673a6" stroke-width="1.5"/>
+  <text x="1230" y="338" font-size="11" font-weight="bold" fill="#000000">ADR-&lt;DOMAIN&gt;-NNN</text>
+  <text x="1230" y="354" font-size="10" fill="#000000">領域別 ADR (3 桁通番)</text>
+  <line x1="1230" y1="362" x2="1550" y2="362" stroke="#cccccc"/>
+  <text x="1230" y="380" font-size="10" fill="#000000">TIER1 / DATA / SEC / MIG</text>
+  <text x="1230" y="398" font-size="10" fill="#000000">RULE / CICD / OBS / FM</text>
+  <text x="1230" y="416" font-size="10" fill="#000000">BS (ビジネスサポート)</text>
+  <text x="1230" y="434" font-size="10" fill="#000000">STOR (ストレージ)</text>
+
+  <rect x="1220" y="520" width="340" height="110" fill="#faf5ff" stroke="#9673a6" stroke-width="1" stroke-dasharray="5,4"/>
+  <text x="1230" y="538" font-size="10" font-weight="bold" fill="#000000">索引:</text>
+  <text x="1265" y="538" font-size="10" fill="#000000">00_要件定義方針/08_ADR索引.md</text>
+  <text x="1230" y="556" font-size="10" font-weight="bold" fill="#000000">対応:</text>
+  <text x="1265" y="556" font-size="10" fill="#000000">各要件本文から関連 ADR-ID</text>
+  <text x="1230" y="574" font-size="10" fill="#000000">を括弧書きで参照し、80_トレーサ</text>
+  <text x="1230" y="592" font-size="10" fill="#000000">ビリティ/03_構想設計マトリクス.md</text>
+  <text x="1230" y="610" font-size="10" fill="#000000">で双方向追跡する。</text>
+
+  <rect x="1220" y="650" width="340" height="130" fill="#faf5ff" stroke="#9673a6" stroke-width="1"/>
+  <text x="1230" y="668" font-size="10" font-weight="bold" fill="#000000">採番規則:</text>
+  <text x="1230" y="686" font-size="10" fill="#000000">・プレフィックスは不変 (合意形成後に変更しない)</text>
+  <text x="1230" y="704" font-size="10" fill="#000000">・サブカテゴリ追加は 01_要件ID索引.md 側で先に宣言</text>
+  <text x="1230" y="722" font-size="10" fill="#000000">・通番欠番は許容しない (削除時はタイトル空白で残す)</text>
+  <text x="1230" y="740" font-size="10" fill="#000000">・重複検出は PR 単位で grep ベース CI を計画中</text>
+
+  <!-- Root to bands arrows -->
+  <path d="M 600 120 L 600 130 L 210 130 L 210 140" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrow-gray)"/>
+  <line x1="800" y1="120" x2="800" y2="140" stroke="#d79b00" stroke-width="2" marker-end="url(#arrow-amber)"/>
+  <path d="M 1000 120 L 1000 130 L 1390 130 L 1390 140" stroke="#9673a6" stroke-width="2" fill="none" marker-end="url(#arrow-purple)"/>
+</svg>

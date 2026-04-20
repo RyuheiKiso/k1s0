@@ -70,6 +70,35 @@
 
 **優先度**: MUST
 
+### SBOM / SLSA / Provenance / 再現可能ビルドの Phase 別実装マトリクス
+
+NFR-H-INT-001〜004 の 4 要件は全て「サプライチェーン完全性」の構成要素だが、実装難度と投資対効果が大きく異なる。Phase ゲートで「この Phase では何を必達にし、何を後回しにするか」の判定を一意化するため、Phase × 要素のマトリクスで MUST/SHOULD/後回しを明示する。CI 側の必達ゲートと監査レビュー時の許容範囲を本表が単一の真実源として保持する。
+
+| 実装要素 | Phase 1a | Phase 1b | Phase 1c | Phase 2 | Phase 3+ | 根拠・備考 |
+|---|---|---|---|---|---|---|
+| **SBOM 自動生成**（Syft 等、CycloneDX）| **MUST**（本番デプロイ対象イメージ全て）| **MUST**（CI stage image、base image も含む）| **MUST**（tier2 アプリイメージも対象拡大）| **MUST**| **MUST**| NFR-H-INT-002、Log4Shell 型脆弱性の影響特定を数時間以内に短縮するため最優先 |
+| **SBOM 署名**（Sigstore で SBOM 本体に署名）| SHOULD | **MUST** | **MUST** | **MUST** | **MUST** | Phase 1a は生成優先、Phase 1b で署名ゲート化 |
+| **SBOM 検索 UI**（Backstage プラグイン）| 後回し | **MUST**（必須検索画面）| **MUST**（依存パッケージ逆引き）| **MUST**（脆弱性との連携）| **MUST** | Phase 1a はコマンドライン検索で代替 |
+| **コンテナイメージ署名**（Cosign keyless）| **MUST** | **MUST** | **MUST** | **MUST** | **MUST** | NFR-H-INT-001、ADR-CICD-003 に基づく Kyverno 強制 |
+| **Kyverno による未署名拒否**| SHOULD | **MUST** | **MUST** | **MUST** | **MUST** | Phase 1a は警告モード、Phase 1b で enforcement mode |
+| **SLSA Level 1（build metadata 記録）**| **MUST** | **MUST** | **MUST** | **MUST** | **MUST** | GitHub Actions / Argo Workflows のログで即時達成可能 |
+| **SLSA Level 2（versioned、authenticated）**| SHOULD | **MUST** | **MUST** | **MUST** | **MUST** | source/build の認証付き、Phase 1b で必達化 |
+| **SLSA Level 3（isolated build、provenance 署名）**| 後回し | SHOULD | **MUST** | **MUST** | **MUST** | 独立ビルド環境（ephemeral runner）を Phase 1c で整備 |
+| **SLSA Level 4（two-person review、hermetic build）**| 後回し | 後回し | SHOULD | SHOULD | **MUST** | 高コストのため Phase 3+ で評価 |
+| **in-toto Provenance 生成**| 後回し | SHOULD | **MUST** | **MUST** | **MUST** | SLSA L3 達成と同時期 |
+| **Provenance 検証**（デプロイ時に拒否）| 後回し | SHOULD | **MUST**（warning mode）| **MUST**（enforcement mode）| **MUST** | Phase 1c は warning、Phase 2 で deploy block |
+| **再現可能ビルド**（Rust / Go）| 後回し | 後回し | SHOULD（tier1 自作領域）| **MUST**（tier1 自作領域）| **MUST**（全イメージ）| NFR-H-INT-004、Rust 自作領域は決定論的ビルドを Phase 2 で必達 |
+| **再現可能ビルド**（依存 OSS ベースイメージ）| 後回し | 後回し | 後回し | SHOULD | **MUST** | 上流依存のため k1s0 単独では困難 |
+| **Vulnerability Scan**（Trivy / Grype）| **MUST** | **MUST** | **MUST** | **MUST** | **MUST** | CRITICAL/HIGH は即時対応、MEDIUM は 30 日以内 |
+| **Rekor transparency log 参加**| 後回し | SHOULD | **MUST** | **MUST** | **MUST** | 公的 Rekor または社内プライベート Rekor のいずれか |
+
+### Phase ゲート判定の運用ルール
+
+- 各 Phase ゲート判定時、本マトリクスの該当 Phase 列を全て確認し、MUST 項目が全て実装済み（CI で自動検証可能）であることをゲート条件とする
+- SHOULD 項目は 80% 以上の実装を目安とし、未達の場合は次 Phase 着手時に MUST 昇格
+- 「後回し」の項目は、次 Phase での SHOULD 以上への昇格が見込まれるため、要件定義・設計段階で技術的下地を潰さないよう配慮（例: SBOM 検索 UI は Backstage 側のプラグイン API が破壊的変更されないよう追従）
+- Phase 1a のサプライチェーン最低ライン = 「SBOM 生成 + イメージ署名 + Vulnerability Scan」の 3 点セット。これを割ると稟議段階での「最低限のサプライチェーン防御」主張が崩れる
+
 ### NFR-H-INT-004: 再現可能ビルド
 
 **現状**: ビルドが毎回異なるハッシュを生成すると、同じソースから同じアーティファクトを再生成して検証できない。

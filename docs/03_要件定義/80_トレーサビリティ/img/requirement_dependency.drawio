@@ -1,0 +1,117 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="claude" version="28.0.6">
+  <diagram id="requirement-dependency" name="要件 ID 依存グラフ">
+    <mxGraphModel dx="1700" dy="1400" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1400" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="要件 ID 依存グラフ（Phase 1b パイロット合格チェーン ＋ コンプライアンス連鎖）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="20" width="1140" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="要件は独立ではなく相互に前提・支援関係を持つ。本図は稟議審査と Phase 1b ゲート評価で問われる主要依存を可視化し、ある要件を外したときに連鎖的に何が崩れるかを判定する用途に使う。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="180" y="58" width="1340" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="60" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-root" value="ハブ要件（章別ゲート）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="170" y="98" width="170" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-nfr" value="非機能要件 NFR-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="350" y="98" width="150" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-fr" value="機能要件 FR-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="98" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-or" value="運用要件 OR-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="98" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-adr" value="ADR / 技術判断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="790" y="98" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-req" value="実線 = requires（必須依存）／ 点線 = supports（支援）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="940" y="98" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="sec1-heading" value="Section 1: Phase 1b パイロット合格チェーン（NFR-D-PLN-001 を頂点とする 6 系統）" style="text;html=1;strokeColor=none;fillColor=#f5f5f5;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="138" width="1540" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="root-pln" value="&lt;b&gt;NFR-D-PLN-001&lt;/b&gt;&lt;br&gt;Phase 1b パイロット合格基準&lt;br&gt;&lt;span style='font-size:9px;color:#666'&gt;6 系統が同時達成して初めてゲート通過&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="650" y="178" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-tier1" value="&lt;b&gt;tier1 公開 11 API 稼働&lt;/b&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#666'&gt;FR-T1-INVOKE / STATE / PUBSUB&lt;br&gt;/ SECRETS / BINDING / WORKFLOW&lt;br&gt;/ LOG / TELEMETRY / DECISION&lt;br&gt;/ AUDIT-PII / FEATURE 全 49 件&lt;br&gt;が Phase 1b MUST 範囲で稼働&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-perf" value="&lt;b&gt;NFR-B-PERF-001&lt;/b&gt;&lt;br&gt;tier2 p99 &amp;lt; 500ms&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・ADR-0001（Istio Ambient）&lt;br&gt;・NFR-B-RES-001（HPA スケール）&lt;br&gt;・DX-FM-006（Flag 評価レイテンシ）&lt;br&gt;・FR-T1-STATE（高速キャッシュ）&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="380" y="320" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-rec" value="&lt;b&gt;NFR-A-REC-001&lt;/b&gt;&lt;br&gt;RTO 4 時間&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・OR-INC-002（一次対応フロー）&lt;br&gt;・OR-INC-006（インシデント訓練）&lt;br&gt;・NFR-C-NOP-003（Runbook 整備）&lt;br&gt;・OR-INC-007（FMEA） ※間接&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="680" y="320" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-mth" value="&lt;b&gt;NFR-D-MTH-001&lt;/b&gt;&lt;br&gt;.NET Framework 4.x 共存&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・FR-EXT-DOTNET-001&lt;br&gt;　（サイドカー連携）&lt;br&gt;・FR-EXT-DOTNET-002&lt;br&gt;　（API Gateway 連携）&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="980" y="320" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-ac" value="&lt;b&gt;NFR-E-AC&lt;/b&gt; 全般（SSO 99%）&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・ADR-SEC-001（Keycloak）&lt;br&gt;・ADR-SEC-003（SPIFFE / SPIRE）&lt;br&gt;・FR-EXT-IDP-001（AD/LDAP）&lt;br&gt;supports:&lt;br&gt;・BR-PLATGOV-001（テナント分離）&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="320" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-nop" value="&lt;b&gt;NFR-C-NOP-003&lt;/b&gt;（Runbook 整備）&lt;br&gt;&lt;span style='font-size:9px;color:#666'&gt;NFR-A-REC-001 と NFR-D-PLN-001 の両方から requires。10 本以上の Runbook を Phase 1b 開始前に整備。&lt;br&gt;欠落すると RTO 4h と パイロット合格基準が同時に崩壊。&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="380" y="560" width="880" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pln-tier1" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root-pln" target="l1-tier1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pln-perf" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root-pln" target="l1-perf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pln-rec" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root-pln" target="l1-rec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pln-mth" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root-pln" target="l1-mth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pln-ac" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root-pln" target="l1-ac">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-rec-nop" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="l1-rec" target="l1-nop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2-heading" value="Section 2: セキュリティ・コンプライアンス連鎖（H 章 ＋ G 章 ＋ E 章の交差）" style="text;html=1;strokeColor=none;fillColor=#f5f5f5;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="660" width="1540" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2-comp" value="&lt;b&gt;NFR-H-COMP-001&lt;/b&gt;（個人情報保護法対応）&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・NFR-G 全般（データ保護とプライバシー）&lt;br&gt;・OR-INC-005（漏えいインシデント対応）&lt;br&gt;・BC-LGL-004（個人情報取扱契約）&lt;/span&gt;&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#666'&gt;影響: 法令違反は最大課徴金 ＋ 業務停止リスク&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="710" width="480" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2-int" value="&lt;b&gt;NFR-H-INT-001&lt;/b&gt;（アーティファクト完整性）&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・BC-SC-003（Sigstore 署名検証）&lt;br&gt;・ADR-CICD-003（Kyverno Policy）&lt;br&gt;・NFR-H-INT-003（ビルド Provenance）&lt;/span&gt;&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#666'&gt;影響: 署名なし成果物の本番投入＝サプライチェーン攻撃の入口&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="710" width="480" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2-enc" value="&lt;b&gt;NFR-G-ENC-001&lt;/b&gt;（保管時暗号化）&lt;br&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#444'&gt;requires:&lt;br&gt;・ADR-SEC-002（OpenBao）&lt;br&gt;　- KMS 連携・鍵保管の基盤&lt;br&gt;requires (連動):&lt;br&gt;・NFR-H-KEY-001（鍵ライフサイクル）&lt;br&gt;　- NFR-G-ENC-003 から要件継承&lt;/span&gt;&lt;br&gt;&lt;span style='font-size:9px;color:#666'&gt;影響: 鍵管理欠落で暗号化が事実上無効化&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="710" width="480" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2-aud" value="&lt;b&gt;NFR-H-AUD-001&lt;/b&gt;（監査ログ完整性）requires &lt;b&gt;FR-T1-AUDIT&lt;/b&gt; 全般（ハッシュチェーン・改ざん検知）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="950" width="740" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sec2-pii" value="&lt;b&gt;NFR-G-PRV-001/002/003&lt;/b&gt;（PII 処理）requires &lt;b&gt;FR-T1-PII-001/002&lt;/b&gt;（マスキング・仮名化）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="880" y="950" width="740" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e-comp-aud" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.4;exitY=1;entryX=0.3;entryY=0;dashed=1;" edge="1" parent="1" source="sec2-comp" target="sec2-aud">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-comp-pii" style="endArrow=classic;html=1;strokeColor=#666;strokeWidth=2;exitX=0.6;exitY=1;entryX=0.2;entryY=0;dashed=1;" edge="1" parent="1" source="sec2-comp" target="sec2-pii">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="424" y="930" />
+              <mxPoint x="1028" y="930" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cross-section" value="&lt;b&gt;セクション間の交差依存（要注意）&lt;/b&gt;: NFR-D-PLN-001（パイロット合格）は Section 2 のセキュリティ・コンプライアンス章の Phase 1b MUST 全件達成も間接的前提とする。例として NFR-E-AC（SSO 99%）が Section 1 の主軸であると同時に NFR-G-AC（テナント分離）の前提となる。Section 1 と Section 2 は独立では無く、本図で省略した間接依存は [04_要件間依存マトリクス.md](../04_要件間依存マトリクス.md) の散文を参照。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=8;dashed=0;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1020" width="1540" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="usage-note" value="&lt;b&gt;本図の使い方&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;1. 要件削除判定&lt;/b&gt;: ある要件を Phase スコープから外す提案があった場合、本図でその要件にぶら下がる依存先を辿り、Phase 1b ゲート（NFR-D-PLN-001）または法令ゲート（NFR-H-COMP-001 等）が崩れないかを判定する。&lt;br&gt;&lt;b&gt;2. ADR 撤回判定&lt;/b&gt;: ADR（例 ADR-0001 Istio Ambient）の撤回提案では、本図でその ADR を requires している NFR を確認し、撤回の波及範囲を可視化する。&lt;br&gt;&lt;b&gt;3. 監査・RFP 回答&lt;/b&gt;: 「この NFR はどう実装されますか」と問われた際、本図で関連 ADR と FR を辿り、04_要件間依存マトリクス.md の逆引き索引と組み合わせて根拠を示す。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1120" width="1540" height="240" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

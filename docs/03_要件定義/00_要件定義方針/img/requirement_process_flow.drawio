@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="k1s0" version="24.0.0">
+  <diagram name="要件定義プロセス">
+    <mxGraphModel dx="1200" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="要件定義プロセス(IPA 共通フレーム 2013 準拠・6 ステップ)" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="&lt;b&gt;① プロセス準備&lt;/b&gt;&#xa;方針・ステークホルダー&#xa;前提制約・用語集&#xa;完了: 00_方針 5 文書承認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;② 業務要件抽出&lt;/b&gt;&#xa;企画書KPI→業務要件&#xa;業務フロー(drawio)&#xa;完了: 利用者3種と対応" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="230" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;③ 機能要件抽出&lt;/b&gt;&#xa;tier1 11 API+外部連携&#xa;情報要件・受入基準&#xa;完了: 構想設計と1対1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;④ 非機能要件抽出&lt;/b&gt;&#xa;グレード判定→A-I 採番&#xa;SLA/SLO 2 層分離&#xa;完了: 相互整合レビュー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="610" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="&lt;b&gt;⑤ トレーサビリティ&lt;/b&gt;&#xa;企画↔要件↔構想設計&#xa;孤立要件検出と補修&#xa;完了: マトリクス整合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="800" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" value="&lt;b&gt;⑥ 合意と凍結&lt;/b&gt;&#xa;5 ロール承認&#xa;Phase 0-1b 凍結&#xa;完了: tag 付与・署名" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="990" y="140" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="loop" value="改訂プロセス(3 類型: 軽微/中規模/重大)は ⑥ 凍結後も ② ~ ⑤ をPR単位で巡回" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=11;fontColor=#000000;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="230" y="290" width="740" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="loopArrow" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="loop" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;凡例&lt;/b&gt;&#10;暖色(黄): 要件定義活動  緑: ゲート完了判定  破線紫: 改訂ループ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="1120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ref" value="出典: docs/03_要件定義/00_要件定義方針/01_要件定義プロセス.md" style="text;html=1;align=left;fontSize=10;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="600" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

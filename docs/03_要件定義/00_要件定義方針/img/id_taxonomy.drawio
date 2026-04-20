@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="k1s0" version="24.0.0">
+  <diagram name="要件IDタクソノミー">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="要件 ID タクソノミー (プレフィックス × サブカテゴリ 2 段構成)" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="300" y="15" width="1000" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="所与条件 (P/C/U/RISK) — 要件 (BR/FR/NFR/OR/DX/BC/MIG) — ADR は別体系。詳細所在は 80_トレーサビリティ/01_要件ID索引.md 参照" style="text;html=1;align=center;fontSize=11;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="300" y="40" width="1000" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="root" value="k1s0 要件定義書 ID 体系&#xa;現在合計: 所与 46 / BR ∞ / FR 59 / NFR 100+ / OR 30+ / DX 25+ / BC 80+ / MIG 35+ / ADR 50+" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#424242;strokeColor=#000000;fontColor=#FFFFFF;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="550" y="70" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="givenband" value="所与条件 (要件ではない・計 46 項目)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="20" y="140" width="380" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="P" value="&lt;b&gt;P- 前提 Prerequisites&lt;/b&gt; (11 件)&#xa;03_前提と制約.md&#xa;━━━━━━━━━━━━━━━&#xa;BIZ 事業 (001〜003)&#xa;TEC 技術 (001〜005)&#xa;ORG 組織 (001〜003)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="C" value="&lt;b&gt;C- 制約 Constraints&lt;/b&gt; (12 件)&#xa;03_前提と制約.md&#xa;━━━━━━━━━━━━━━━&#xa;LEGAL 法令 (001〜003) / REG 規程 (001〜002)&#xa;INF インフラ (001〜002) / EXIST 既存資産 (001〜003)&#xa;VEND ベンダ (001) / TIME 期限 (001)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="U" value="&lt;b&gt;U- 未決事項 Unresolved&lt;/b&gt; (4 件)&#xa;03_前提と制約.md&#xa;━━━━━━━━━━━━━━━&#xa;通番のみ / 責任者と決着期限必須&#xa;(時限前提として凍結)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="40" y="470" width="340" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="RISK" value="&lt;b&gt;RISK- リスクレジスタ&lt;/b&gt; (19 件)&#xa;07_リスクレジスタ.md&#xa;━━━━━━━━━━━━━━━&#xa;TEC 技術 (001〜004) / OPS 運用 (001〜003)&#xa;SEC セキュリティ (001〜003) / LGL 法務 (001〜002)&#xa;BUS 事業 (001〜003) / FIN 財務 (001〜002)&#xa;HUM 人材 (001〜002)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="340" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="givennote" value="所与条件は稟議前に凍結され、&#xa;要件定義の前提となる。改訂は&#xa;重大扱いで Product Council 回付。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="780" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="reqband" value="要件 (合計 330 件超・Phase スコープ管理対象)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="760" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="BR" value="&lt;b&gt;BR- 業務要件&lt;/b&gt; (10_業務要件/, 散文中括弧書き運用)&#xa;━━━━━━━━━━━━━━━━━━━━━━━━━&#xa;PLATUSE プラットフォーム利用 (tier2 開発者視点)&#xa;PLATOPS プラットフォーム運用 (SRE 視点)&#xa;PLATGOV プラットフォーム統制 (監査・経営視点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="180" width="720" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="FR" value="&lt;b&gt;FR- 機能要件&lt;/b&gt; (59 件)&#xa;━━━━━━━━━━━━━━━━━━━━━━━━━&#xa;tier1 公開 API (49 件, 20_機能要件/10_tier1_API要件/):&#xa;T1-INVOKE(5) / T1-STATE(5) / T1-PUBSUB(5) / T1-SECRETS(4) / T1-BINDING(4)&#xa;T1-WORKFLOW(5) / T1-LOG(4) / T1-TELEMETRY(4) / T1-DECISION(4)&#xa;T1-AUDIT(3) + T1-PII(2) / T1-FEATURE(4)&#xa;外部連携 (6 件, 20_外部連携要件.md): EXT-DOTNET(2) / EXT-IDP(2) / EXT-MON(1) / EXT-BACKUP(1)&#xa;情報要件 (4 件, 30_情報要件.md): INFO-LOGMODEL / INFO-AUDITMODEL / INFO-TENANTMODEL / INFO-CONFIGMODEL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="290" width="720" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="NFR" value="&lt;b&gt;NFR- 非機能要件&lt;/b&gt; (30_非機能要件/, 大項目 A〜I × サブカテゴリ 2 段)&#xa;━━━━━━━━━━━━━━━━━━━━━━━━━&#xa;A 可用性 / B 性能・拡張性 / C 運用・保守性 / D 移行性 / E セキュリティ&#xa;F システム環境・エコロジー / G データ保護・プライバシー&#xa;H 完整性・コンプライアンス / I SLI/SLO・エラーバジェット" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="460" width="720" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="OR" value="&lt;b&gt;OR- 運用ライフサイクル&lt;/b&gt; (40_運用ライフサイクル/)&#xa;INC インシデント / SUP サポート / ENV 環境構成 / EOL 非推奨・終了 / EXIT 撤退" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="590" width="720" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="DX" value="&lt;b&gt;DX- 開発者体験&lt;/b&gt; (50_開発者体験/)&#xa;TEST テスト戦略 / GP ゴールデンパス / MET DevEx 指標 / FM Feature Management / LD ローカル開発" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="660" width="720" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BC" value="&lt;b&gt;BC- 事業契約&lt;/b&gt; (60_事業契約/)&#xa;UX / I18N / ONB オンボーディング / TRN 教育 / COST / BIL 課金 / LIC OSS ライセンス&#xa;LGL 法務 / SC サプライチェーン / GOV ガバナンス / AI AI ガバナンス / ANA 分析 / SUS サステナビリティ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="730" width="720" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="MIG" value="&lt;b&gt;MIG- 移行計画&lt;/b&gt; (70_プロジェクト管理/04_移行計画.md)&#xa;STG 戦略 / INV 棚卸し / WAVE 波次 / PATTERN パターン / PILOT / WAVE2 / DATA / ROLLBACK / PAR 並行運用 / LGL 法的配慮" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="440" y="820" width="720" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="adrband" value="ADR (要件ではないが参照可能・50 件超)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="1200" y="140" width="380" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="ADR_FLAT" value="&lt;b&gt;ADR-NNNN&lt;/b&gt;&#xa;横断 ADR (4 桁フラット通番)&#xa;━━━━━━━━━━━━&#xa;複数領域に跨る基盤判断&#xa;(例: ADR-0001 技術スタック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1220" y="180" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ADR_DOM" value="&lt;b&gt;ADR-&lt;DOMAIN&gt;-NNN&lt;/b&gt;&#xa;領域別 ADR (3 桁通番)&#xa;━━━━━━━━━━━━&#xa;TIER1 / DATA / SEC / MIG&#xa;RULE / CICD / OBS / FM&#xa;BS (ビジネスサポート)&#xa;STOR (ストレージ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1220" y="320" width="340" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ADR_IDX" value="&lt;b&gt;索引:&lt;/b&gt; 00_要件定義方針/08_ADR索引.md&#xa;&lt;b&gt;対応:&lt;/b&gt; 各要件本文から関連 ADR-ID&#xa;を括弧書きで参照し、80_トレーサ&#xa;ビリティ/03_構想設計マトリクス.md&#xa;で双方向追跡する。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#9673a6;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="1220" y="520" width="340" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ADR_RULE" value="&lt;b&gt;採番規則:&lt;/b&gt;&#xa;・プレフィックスは不変 (合意形成後に変更しない)&#xa;・サブカテゴリ追加は 01_要件ID索引.md 側で先に宣言&#xa;・通番欠番は許容しない (削除時はタイトル空白で残す)&#xa;・重複検出は PR 単位で grep ベース CI を計画中" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#9673a6;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1220" y="650" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="root2given" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=0;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root" target="givenband">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="root2req" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root" target="reqband">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="root2adr" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;exitX=1;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root" target="adrband">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

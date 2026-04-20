@@ -1,3 +1,4 @@
 {
-  "spinnerTipsEnabled": true
+  "spinnerTipsEnabled": true,
+  "autoCompactWindow": 500000
 }

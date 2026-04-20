@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1200" height="500" fill="#FFFFFF" stroke="none"/>
+  <text x="600" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="#000000">要件定義プロセス(IPA 共通フレーム 2013 準拠・6 ステップ)</text>
+
+  <!-- Step 1 -->
+  <rect x="40" y="140" width="170" height="100" rx="8" ry="8" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="125" y="162" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">① プロセス準備</text>
+  <text x="125" y="182" text-anchor="middle" font-size="11" fill="#000000">方針・ステークホルダー</text>
+  <text x="125" y="199" text-anchor="middle" font-size="11" fill="#000000">前提制約・用語集</text>
+  <text x="125" y="221" text-anchor="middle" font-size="11" fill="#000000">完了: 00_方針 5 文書承認</text>
+
+  <!-- Step 2 -->
+  <rect x="230" y="140" width="170" height="100" rx="8" ry="8" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="315" y="162" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">② 業務要件抽出</text>
+  <text x="315" y="182" text-anchor="middle" font-size="11" fill="#000000">企画書KPI→業務要件</text>
+  <text x="315" y="199" text-anchor="middle" font-size="11" fill="#000000">業務フロー(drawio)</text>
+  <text x="315" y="221" text-anchor="middle" font-size="11" fill="#000000">完了: 利用者3種と対応</text>
+
+  <!-- Step 3 -->
+  <rect x="420" y="140" width="170" height="100" rx="8" ry="8" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="505" y="162" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">③ 機能要件抽出</text>
+  <text x="505" y="182" text-anchor="middle" font-size="11" fill="#000000">tier1 11 API+外部連携</text>
+  <text x="505" y="199" text-anchor="middle" font-size="11" fill="#000000">情報要件・受入基準</text>
+  <text x="505" y="221" text-anchor="middle" font-size="11" fill="#000000">完了: 構想設計と1対1</text>
+
+  <!-- Step 4 -->
+  <rect x="610" y="140" width="170" height="100" rx="8" ry="8" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="695" y="162" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">④ 非機能要件抽出</text>
+  <text x="695" y="182" text-anchor="middle" font-size="11" fill="#000000">グレード判定→A-I 採番</text>
+  <text x="695" y="199" text-anchor="middle" font-size="11" fill="#000000">SLA/SLO 2 層分離</text>
+  <text x="695" y="221" text-anchor="middle" font-size="11" fill="#000000">完了: 相互整合レビュー</text>
+
+  <!-- Step 5 -->
+  <rect x="800" y="140" width="170" height="100" rx="8" ry="8" fill="#fff2cc" stroke="#d79b00" stroke-width="1.5"/>
+  <text x="885" y="162" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">⑤ トレーサビリティ</text>
+  <text x="885" y="182" text-anchor="middle" font-size="11" fill="#000000">企画↔要件↔構想設計</text>
+  <text x="885" y="199" text-anchor="middle" font-size="11" fill="#000000">孤立要件検出と補修</text>
+  <text x="885" y="221" text-anchor="middle" font-size="11" fill="#000000">完了: マトリクス整合</text>
+
+  <!-- Step 6 (Gate) -->
+  <rect x="990" y="140" width="170" height="100" rx="8" ry="8" fill="#d5e8d4" stroke="#82b366" stroke-width="1.5"/>
+  <text x="1075" y="162" text-anchor="middle" font-size="12" font-weight="bold" fill="#000000">⑥ 合意と凍結</text>
+  <text x="1075" y="182" text-anchor="middle" font-size="11" fill="#000000">5 ロール承認</text>
+  <text x="1075" y="199" text-anchor="middle" font-size="11" fill="#000000">Phase 0-1b 凍結</text>
+  <text x="1075" y="221" text-anchor="middle" font-size="11" fill="#000000">完了: tag 付与・署名</text>
+
+  <!-- Arrows between steps -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#666666"/>
+    </marker>
+    <marker id="arrowP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9673a6"/>
+    </marker>
+  </defs>
+  <line x1="210" y1="190" x2="230" y2="190" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="190" x2="420" y2="190" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="590" y1="190" x2="610" y2="190" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="780" y1="190" x2="800" y2="190" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="970" y1="190" x2="990" y2="190" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Revision loop -->
+  <rect x="230" y="290" width="740" height="40" rx="0" fill="#fff8e6" stroke="#d6b656" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="600" y="315" text-anchor="middle" font-size="11" fill="#000000">改訂プロセス(3 類型: 軽微/中規模/重大)は ⑥ 凍結後も ② ~ ⑤ をPR単位で巡回</text>
+  <path d="M 600 290 L 600 265 L 505 265 L 505 240" stroke="#9673a6" stroke-width="1.5" fill="none" stroke-dasharray="5,4" marker-end="url(#arrowP)"/>
+
+  <!-- Reference -->
+  <text x="40" y="374" font-size="10" fill="#666666">出典: docs/03_要件定義/00_要件定義方針/01_要件定義プロセス.md</text>
+
+  <!-- Legend -->
+  <rect x="40" y="400" width="1120" height="50" rx="0" fill="#f5f5f5" stroke="#666666" stroke-width="1"/>
+  <text x="50" y="420" font-size="11" font-weight="bold" fill="#000000">凡例</text>
+  <rect x="90" y="412" width="16" height="12" fill="#fff2cc" stroke="#d79b00"/>
+  <text x="112" y="422" font-size="11" fill="#000000">要件定義活動(ステップ1-5)</text>
+  <rect x="280" y="412" width="16" height="12" fill="#d5e8d4" stroke="#82b366"/>
+  <text x="302" y="422" font-size="11" fill="#000000">ゲート完了判定(ステップ6)</text>
+  <line x1="470" y1="418" x2="500" y2="418" stroke="#9673a6" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="508" y="422" font-size="11" fill="#000000">改訂ループ(破線紫)</text>
+  <line x1="640" y1="418" x2="670" y2="418" stroke="#666666" stroke-width="2"/>
+  <text x="678" y="422" font-size="11" fill="#000000">順次フロー(実線)</text>
+  <text x="50" y="440" font-size="10" fill="#666666">背景は白矩形で統一。色はアプリ層(暖色)=要件定義活動、緑=ゲート判定。CLAUDE.md 規約に準拠。</text>
+</svg>

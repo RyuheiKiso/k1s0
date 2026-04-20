@@ -1,0 +1,109 @@
+<mxfile host="app.diagrams.net" modified="2026-04-20T00:00:00.000Z" agent="k1s0" version="24.0.0">
+  <diagram name="ステークホルダーRACI">
+    <mxGraphModel dx="1400" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ステークホルダー 12 ロール × 4 階層 × Phase ゲート承認フロー" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="200" y="15" width="1000" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="RACI 詳細表は 02_ステークホルダー.md §対応マトリクスを正とし、本図は階層と承認フローのみ可視化" style="text;html=1;align=center;fontSize=11;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="1000" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l1band" value="① 意思決定層 (A/R: Accountable/Responsible — 最終承認権限)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="20" y="70" width="1360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l1r1" value="&lt;b&gt;経営層&lt;/b&gt;&#xa;Product Council 議長 (L0)&#xa;Phase ゲート A / 予算超過 R/A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="105" width="260" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l1r2" value="&lt;b&gt;情シス部長&lt;/b&gt;&#xa;L0 Council 兼 L1 PO&#xa;Phase ゲート R / Sev1 A / 予算 R" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="320" y="105" width="260" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l1r3" value="&lt;b&gt;監査部門&lt;/b&gt;&#xa;L0 Council 委員 + L4 監査&#xa;個人情報 R/A / Sev1 R / OSS 照会" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="600" y="105" width="260" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l1note" value="&lt;b&gt;意思決定層ルール:&lt;/b&gt;&#xa;Phase ゲート承認は Product&#xa;Council (L0) 合議必須。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafff0;strokeColor=#d6b656;dashed=1;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="880" y="105" width="480" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l2band" value="② 直接利用層 (R: 実行責任 — 起案・開発・運用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="20" y="200" width="1360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="l2r1" value="&lt;b&gt;tier1 PF チーム&lt;/b&gt;&#xa;L2 Platform&#xa;ADR R / API R / Sev1 R" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="235" width="250" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l2r2" value="&lt;b&gt;運用・SRE チーム&lt;/b&gt;&#xa;L2 Platform&#xa;リリース R/A / Sev1 R" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="310" y="235" width="250" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l2r3" value="&lt;b&gt;tier2 開発チーム&lt;/b&gt;&#xa;L3 Stream-aligned&#xa;API 仕様 C / リリース C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="580" y="235" width="250" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l2r4" value="&lt;b&gt;tier3 アプリチーム&lt;/b&gt;&#xa;L3 Stream-aligned&#xa;Feature Flag / SSO C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="850" y="235" width="250" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l2r5" value="&lt;b&gt;エンドユーザー&lt;/b&gt;&#xa;現場マネージャ代表&#xa;SLA/移行計画 I" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="1120" y="235" width="240" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="l3band" value="③ 支援・監督層 (C: 相談 — 契約・法令・インフラ実装)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="20" y="340" width="1360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="l3r1" value="&lt;b&gt;法務部門&lt;/b&gt;&#xa;L4 法務&#xa;OSS ライセンス R/A / 個人情報 R" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="375" width="400" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l3r2" value="&lt;b&gt;調達部門&lt;/b&gt;&#xa;L4 財務・調達&#xa;予算超過 C / VM/SES 契約" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="460" y="375" width="440" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l3r3" value="&lt;b&gt;インフラ運用&lt;/b&gt;&#xa;L2 Platform (K8s/NW/Storage)&#xa;リリース R / Sev1 R" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="920" y="375" width="440" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="l4band" value="④ 外部層 (I: 共有 or 体制外 — 情報連携のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="20" y="470" width="1360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="l4r1" value="&lt;b&gt;OSS コミュニティ&lt;/b&gt;&#xa;Dapr/K8s/Istio 他 上流&#xa;ADR I / OSS 照会 C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="495" width="400" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l4r2" value="&lt;b&gt;SES ベンダー&lt;/b&gt;&#xa;L2 並走支援 (Phase 1 限定)&#xa;tier1 API 追加 C (スキル相談)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="460" y="495" width="440" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l4r3" value="&lt;b&gt;競合商用 PaaS ベンダー&lt;/b&gt;&#xa;OpenShift / Tanzu / Anthos&#xa;撤退シナリオ退路先評価 C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="920" y="495" width="440" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="flowhdr" value="Phase ゲート承認フロー (順序違反時は ゲート未成立 扱い)" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="600" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="f1" value="1. tier1 PF 起案&#xa;(L2 → L1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="2. 情シス部長(R)確認&#xa;ゲート判定資料レビュー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="300" y="610" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="3. Product Council 合議&#xa;経営層 A / 監査 C / 法務 C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="560" y="610" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" value="4. 議事録に判定記録&#xa;承認 / 条件付 / 差戻し" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="820" y="610" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f5" value="5. 企画要件マトリクスを&#xa;&quot;承認済&quot;へ更新" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontColor=#000000" vertex="1" parent="1">
+          <mxGeometry x="1080" y="610" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="fe1" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="f1" target="f2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fe2" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="f2" target="f3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fe3" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="f3" target="f4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="fe4" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="f4" target="f5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="&lt;b&gt;凡例&lt;/b&gt; — 緑: 意思決定層 (A/R) / 青: 直接利用層 (R) / 黄: 支援・監督層 (C) / 灰: 外部層 (I or 体制外)。&#xa;詳細 RACI 10 カラム表は 02_ステークホルダー.md §対応マトリクス。体制階層 L0〜L4 は 70_プロジェクト管理/01_体制と役割.md。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=10;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="1320" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

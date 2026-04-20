@@ -12,6 +12,47 @@
 - 全エラーは `google.rpc.Status` を使い、`details` に `ErrorDetail`（共通エラー体系）を載せる
 - メッセージのフィールドタグは 1〜15 の空きを予約領域として将来拡張用に空ける
 
+## 責任分界表: 要件定義 / 基本設計の IDL 変更ルール
+
+本書の IDL は骨格であり、詳細設計で細案化される。tier2/tier3 開発者は IDL を「契約」として生成コードに取り込むため、どの要素が誰の責任で、どの段階で固定され、どう変わりうるかを明示しない限り、並行開発で破壊的変更による手戻りが発生する。本節は IDL 各要素の所有権とライフサイクルを定義する。
+
+| IDL 要素 | 所有者 | 要件定義での扱い | 基本設計での変更ルール | 後方互換性 | 変更手続き |
+|---|---|---|---|---|---|
+| `service` / RPC メソッド名・シグネチャ | tier1 テックリード | **固定**（本書で確定） | 破壊的変更禁止（semver major 相当） | クライアント再生成で継続動作 | ADR 記録必須、Product Council 承認 |
+| `rpc` の引数型 / 戻り型 | tier1 テックリード | **固定** | 破壊的変更禁止（型置換は別 RPC を新設） | 同上 | 同上 |
+| `message` のフィールド追加 | tier1 API 担当 | スケルトン、詳細設計で追加 | 後方互換を保ち追加のみ可、`reserved` で削除範囲宣言 | proto3 のデフォルト値で後方互換 | PR レビューのみ |
+| `message` のフィールド削除 | tier1 API 担当 | 非推奨化は IDL コメントで宣言 | 1 年間の非推奨期間を経て削除、`reserved` 化 | 1 年猶予で互換担保 | ADR 記録、OR-EOL-* 連動 |
+| フィールドのタグ番号（1〜15） | tier1 テックリード | **予約領域**として確保 | 後方互換リリースまで未使用フィールドを占有 | タグ番号変更は破壊的 | ADR 記録必須 |
+| `ErrorDetail.code` の値体系 | tier1 テックリード + セキュリティ | **固定**（`E-<CATEGORY>-<MODULE>-<NUMBER>`） | 新コード追加のみ、既存コード意味変更禁止 | 未知コードは `UNKNOWN` 扱い | PR レビューのみ |
+| `TenantContext` スキーマ | tier1 横断 | **固定**（全 API 共通） | 追加のみ、既存フィールド削除禁止 | 同上 | ADR 記録必須 |
+| gRPC ステータスコードマッピング | tier1 テックリード | 本書で確定（UNAVAILABLE → 503 等） | 新規マッピング追加のみ | 既存マッピング変更は破壊的 | ADR 記録必須 |
+| ストリーミング RPC の追加 | tier1 API 担当 | スケルトン（InvokeStream 等） | 追加のみ、既存 unary を stream に置換禁止 | unary → stream は破壊的 | ADR 記録必須 |
+| `option` / `extension` | tier1 テックリード | 未使用 | 詳細設計で Dapr 互換 option を追加可 | gRPC の拡張性で互換担保 | PR レビューのみ |
+
+### TenantContext の伝搬方式
+
+`TenantContext` は全 API の `message` に埋め込む形式（各 Request の `context` フィールド）と、gRPC メタデータヘッダ（`x-tenant-id` / `x-correlation-id` / `x-subject`）の二重伝搬とする。メタデータヘッダは Istio Ambient L7 ポリシーと OpenTelemetry トレース伝播が参照できる形式として必須、message 埋め込みは RPC 内での参照容易性とテストでの明示性を担保する。tier1 ファサードの interceptor は両者の整合性を検証し、不一致時は `E-AUTH-CTX-MISMATCH` を返す。詳細設計で interceptor 実装方針を ADR に記録する。
+
+### API 要件ファイルとの対応
+
+本 IDL の各 API ブロックは、`10_tier1_API要件/` 配下の要件ファイルと 1 対 1 で対応する。要件の散文記述（現状→達成後→崩れた時）と IDL（機械可読な契約骨格）は相補的であり、要件ファイルの「入出力仕様」セクションは本書の該当ブロックへのアンカーリンクで参照する運用とする。
+
+| API 番号 | 要件ファイル | IDL セクション |
+|---|---|---|
+| 01 | [01_Service_Invoke_API.md](10_tier1_API要件/01_Service_Invoke_API.md) | [01. Service Invoke API](#01-service-invoke-api) |
+| 02 | [02_State_API.md](10_tier1_API要件/02_State_API.md) | [02. State API](#02-state-api) |
+| 03 | [03_PubSub_API.md](10_tier1_API要件/03_PubSub_API.md) | [03. PubSub API](#03-pubsub-api) |
+| 04 | [04_Secrets_API.md](10_tier1_API要件/04_Secrets_API.md) | [04. Secrets API](#04-secrets-api) |
+| 05 | [05_Binding_API.md](10_tier1_API要件/05_Binding_API.md) | [05. Binding API](#05-binding-api) |
+| 06 | [06_Workflow_API.md](10_tier1_API要件/06_Workflow_API.md) | [06. Workflow API](#06-workflow-api) |
+| 07 | [07_Log_API.md](10_tier1_API要件/07_Log_API.md) | [07. Log API](#07-log-api) |
+| 08 | [08_Telemetry_API.md](10_tier1_API要件/08_Telemetry_API.md) | [08. Telemetry API](#08-telemetry-api) |
+| 09 | [09_Decision_API.md](10_tier1_API要件/09_Decision_API.md) | [09. Decision API](#09-decision-api) |
+| 10 | [10_Audit_Pii_API.md](10_tier1_API要件/10_Audit_Pii_API.md) | [10. Audit / Pii API](#10-audit--pii-api) |
+| 11 | [11_Feature_API.md](10_tier1_API要件/11_Feature_API.md) | [11. Feature API](#11-feature-api) |
+
+要件ファイル側の「入出力仕様」セクションに疑似インタフェースを残す場合、本書 IDL との対応（例: 疑似 `options.timeout_seconds` は本書 `InvokeRequest.timeout_ms`）を明記する。対応記述のない疑似インタフェースは、要件ファイル更新時に IDL 側を破壊的に変更してしまうリスクがあるため、レビューで指摘される。
+
 ## 共通型定義
 
 全 API で参照する共通メッセージを先に定義する。
@@ -34,8 +75,10 @@ message TenantContext {
 
 // エラー詳細: google.rpc.Status.details に埋め込む
 message ErrorDetail {
-  // エラーコード (E-<CATEGORY>-<MODULE>-<NUMBER> 形式)
+  // エラーコード (E-<CATEGORY>-<MODULE>-<NUMBER> 形式、詳細検索用)
   string code = 1;
+  // 機械可読カテゴリ (switch 分岐用、enum 追加時は後方互換を維持)
+  K1s0ErrorCategory category = 5;
   // 人間可読なメッセージ (テナント表示可)
   string message = 2;
   // 再試行可否 (true の場合クライアントは指数バックオフで再試行)
@@ -43,6 +86,49 @@ message ErrorDetail {
   // 再試行までの推奨待機時間 (ミリ秒)
   int32 retry_after_ms = 4;
 }
+
+// 機械可読なエラーカテゴリ。00_tier1_API共通規約.md の 8 カテゴリに対応。
+// 新規追加は MINOR バージョンで許可、既存値の削除・意味変更は禁止。
+// 未知カテゴリを受け取った tier2/tier3 SDK は UNSPECIFIED として扱う。
+enum K1s0ErrorCategory {
+  // 未指定 (既定値、クライアントは UNKNOWN として扱う)
+  K1S0_ERROR_UNSPECIFIED = 0;
+  // 呼出側入力誤り (リトライ不可)
+  K1S0_ERROR_INVALID_ARGUMENT = 1;
+  // JWT 不在・署名不正・期限切れ
+  K1S0_ERROR_UNAUTHENTICATED = 2;
+  // RBAC 拒否・テナント越境・allowlist 外
+  K1S0_ERROR_PERMISSION_DENIED = 3;
+  // キー / バージョン / リソース未存在
+  K1S0_ERROR_NOT_FOUND = 4;
+  // ETag 不一致・冪等性キー衝突
+  K1S0_ERROR_CONFLICT = 5;
+  // レート制限・クォータ超過 (retry_after_ms 必須)
+  K1S0_ERROR_RESOURCE_EXHAUSTED = 6;
+  // 一時的バックエンド不能 (retry_after_ms 必須、指数バックオフ)
+  K1S0_ERROR_UNAVAILABLE = 7;
+  // tier1 バグ・未分類 (Audit に Severity 2 で記録)
+  K1S0_ERROR_INTERNAL = 8;
+  // gRPC Deadline 超過 (副作用未発生扱い、再試行可)
+  K1S0_ERROR_DEADLINE_EXCEEDED = 9;
+}
+
+// 具体コードの命名規約 (string code の値):
+//   E-<CATEGORY>-<MODULE>-<NUMBER>
+// 例:
+//   E-INVALID_ARGUMENT-INVOKE-001 (Service Invoke の引数不正)
+//   E-UNAUTHENTICATED-AUTH-001    (JWT 署名検証失敗)
+//   E-PERMISSION_DENIED-AUTH-002  (tenant_id 越境)
+//   E-NOT_FOUND-STATE-001         (Key 未存在)
+//   E-CONFLICT-STATE-002          (ETag 不一致)
+//   E-RESOURCE_EXHAUSTED-RATELIMIT-001 (Per-tenant RPS 上限超過)
+//   E-UNAVAILABLE-KAFKA-001       (Kafka ブローカー接続不可)
+//   E-INTERNAL-DECISION-001       (ZEN Engine 内部例外)
+// MODULE 値の全列挙:
+//   AUTH / INVOKE / STATE / PUBSUB / SECRETS / BINDING / WORKFLOW /
+//   LOG / TELEMETRY / DECISION / AUDIT / PII / FEATURE /
+//   RATELIMIT / KAFKA / POSTGRES / VALKEY / OPENBAO / CTX
+// NUMBER は 001 から連番、欠番許容、001〜099 は tier1 共通予約。
 ```
 
 ## 01. Service Invoke API
@@ -262,7 +348,7 @@ message Event {
 
 ## 04. Secrets API
 
-OpenBao をバックエンドとする秘密情報取得 API。Read-only、テナント境界で分離、監査ログ必須。
+OpenBao をバックエンドとする秘密情報取得・ローテーション API。Read / Rotate の両面を持ち、テナント境界で分離、監査ログ必須（Rotate は NFR-E-MON-001 で WORM 記録）。
 
 ```protobuf
 // Secrets API (FR-T1-SECRETS-001〜004)
@@ -275,12 +361,18 @@ service SecretsService {
   rpc Get(GetSecretRequest) returns (GetSecretResponse);
   // 一括取得 (テナントに割当された全シークレット)
   rpc BulkGet(BulkGetSecretRequest) returns (BulkGetSecretResponse);
+  // ローテーション実行 (FR-T1-SECRETS-004)
+  // 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能
+  // 失敗時は K1s0Error を返し OpenBao 側は不変 (トランザクショナル)
+  rpc Rotate(RotateSecretRequest) returns (RotateSecretResponse);
 }
 
 message GetSecretRequest {
   // シークレット名 (テナント境界を超えた参照は即 PermissionDenied)
   string name = 1;
   k1s0.tier1.common.v1.TenantContext context = 2;
+  // 省略時は最新、明示で旧バージョン取得可 (grace_period 中のみ)
+  optional int32 version = 3;
 }
 
 message GetSecretResponse {
@@ -296,6 +388,30 @@ message BulkGetSecretRequest {
 
 message BulkGetSecretResponse {
   map<string, GetSecretResponse> results = 1;
+}
+
+message RotateSecretRequest {
+  // ローテーション対象シークレット名
+  string name = 1;
+  k1s0.tier1.common.v1.TenantContext context = 2;
+  // 旧バージョンの猶予時間 (0 は即無効、既定 3600 秒)
+  // tier2 側の接続プール drain 時間を想定
+  int32 grace_period_sec = 3;
+  // 動的シークレット (DB 資格情報等) の場合の発行ポリシー名
+  optional string policy = 4;
+  // 冪等性キー (同一キーでの再試行は同じ new_version を返す)
+  string idempotency_key = 5;
+}
+
+message RotateSecretResponse {
+  // ローテーション後の新バージョン
+  int32 new_version = 1;
+  // 旧バージョン (grace_period_sec まで Get 可能)
+  int32 previous_version = 2;
+  // 新バージョン発効時刻
+  int64 rotated_at_ms = 3;
+  // 動的シークレット時の TTL (静的シークレットでは 0)
+  int32 ttl_sec = 4;
 }
 ```
 
@@ -548,6 +664,89 @@ message EmitSpanResponse {}
 
 ZEN Engine による JDM (JSON Decision Model) 評価 API。ルール評価、結果の根拠（trace）を返す。
 
+### JDM (JSON Decision Model) スキーマ
+
+tier2 が登録する JDM 文書は以下の JSON Schema（抜粋、機械可読な完全版は `proto/k1s0/tier1/decision/v1/jdm_schema.json` で管理）に従う。ZEN Engine v0.36 の JDM v1 仕様に準拠し、k1s0 独自の非決定要素禁止ルールを schema validator で強制する。
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://k1s0.jtc.local/schema/jdm/v1",
+  "type": "object",
+  "required": ["contentType", "nodes", "edges"],
+  "properties": {
+    "contentType": { "const": "application/vnd.gorules.decision" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/inputNode" },
+          { "$ref": "#/$defs/outputNode" },
+          { "$ref": "#/$defs/decisionTableNode" },
+          { "$ref": "#/$defs/expressionNode" },
+          { "$ref": "#/$defs/functionNode" },
+          { "$ref": "#/$defs/switchNode" }
+        ]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sourceId", "targetId"],
+        "properties": {
+          "sourceId": { "type": "string" },
+          "targetId": { "type": "string" },
+          "sourceHandle": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "decisionTableNode": {
+      "type": "object",
+      "required": ["id", "type", "content"],
+      "properties": {
+        "type": { "const": "decisionTableNode" },
+        "content": {
+          "type": "object",
+          "required": ["inputs", "outputs", "rules", "hitPolicy"],
+          "properties": {
+            "hitPolicy": { "enum": ["first", "collect"] },
+            "inputs":  { "type": "array", "items": { "$ref": "#/$defs/columnDef" } },
+            "outputs": { "type": "array", "items": { "$ref": "#/$defs/columnDef" } },
+            "rules":   { "type": "array", "items": { "type": "object" } }
+          }
+        }
+      }
+    },
+    "columnDef": {
+      "type": "object",
+      "required": ["id", "name", "field"],
+      "properties": {
+        "id":   { "type": "string" },
+        "name": { "type": "string" },
+        "field":{ "type": "string" }
+      }
+    }
+  }
+}
+```
+
+### JDM 非決定要素禁止ルール（k1s0 独自）
+
+以下を含む JDM 文書は schema validator で reject する（NFR-I-SLO-009 Correctness 100% 担保のため）。
+
+- `time.Now()` / `now()` / 現在時刻関数呼出し（代わりに評価時に `evaluation_context.now` で注入）
+- `random()` / 乱数関数
+- 外部 HTTP / DB アクセス（expression 内）
+- 再帰深度 10 階層超（Decision graph の depth）
+- 1 decision table の rule 数 10,000 超
+
+これらは CI の JDM lint で検出し、違反は PR マージ不可とする。
+
+### Decision API Protobuf
+
 ```protobuf
 // Decision API (FR-T1-DECISION-001〜004)
 syntax = "proto3";
@@ -592,7 +791,72 @@ message BatchEvaluateRequest {
 message BatchEvaluateResponse {
   repeated bytes outputs_json = 1;
 }
+
+// JDM ルール文書の登録・バージョン管理 (Phase 1b で proto 追加予定)
+service DecisionAdminService {
+  // JDM 文書の登録 (schema validator と非決定要素 linter を通過必須)
+  rpc RegisterRule(RegisterRuleRequest) returns (RegisterRuleResponse);
+  // バージョン一覧
+  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse);
+  // 特定バージョンの取得 (レビュー用)
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+}
+
+message RegisterRuleRequest {
+  // ルール ID (tenant 内で一意)
+  string rule_id = 1;
+  // JDM 文書 (前節 JSON Schema に準拠、UTF-8 JSON)
+  bytes jdm_document = 2;
+  // Sigstore 署名 (ADR-RULE-001、registry に登録する署名)
+  bytes sigstore_signature = 3;
+  // コミット ID (Git commit hash、JDM バージョン追跡用)
+  string commit_hash = 4;
+  k1s0.tier1.common.v1.TenantContext context = 5;
+}
+
+message RegisterRuleResponse {
+  // 採番されたバージョン (tenant + rule_id 内で一意、単調増加)
+  string rule_version = 1;
+  // 発効可能となる時刻 (即時なら registered_at と同じ)
+  int64 effective_at_ms = 2;
+}
+
+message ListVersionsRequest {
+  string rule_id = 1;
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+message ListVersionsResponse {
+  repeated RuleVersionMeta versions = 1;
+}
+
+message RuleVersionMeta {
+  string rule_version = 1;
+  string commit_hash = 2;
+  int64 registered_at_ms = 3;
+  string registered_by = 4;
+  // DEPRECATED 状態 (非推奨のみ true、廃止後は ListVersions から消える)
+  bool deprecated = 5;
+}
+
+message GetRuleRequest {
+  string rule_id = 1;
+  string rule_version = 2;
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+message GetRuleResponse {
+  bytes jdm_document = 1;
+  RuleVersionMeta meta = 2;
+}
 ```
+
+### Decision API 実装方式（要件段階の合意事項）
+
+- **IPC 方式**: Go ファサード（Dapr 経由）→ ZEN Engine (Rust) は **gRPC over Unix domain socket**（`unix:///var/run/k1s0/zen.sock`）で呼出し。FFI は Rust side の panic が Go プロセス全体を落とすリスクがあり採用しない
+- **JDM バージョニング**: Git commit hash（rule_version として返却）。古いバージョンは 90 日間並走可能、その後は ListVersions から消える
+- **決定論的性**: 同一 `(rule_version, evaluation_context)` は 100% 同一出力（NFR-I-SLO-009）。外部参照禁止 linter で担保
+- **キャッシュ**: 評価結果は evaluation_context の SHA-256 を key とした in-memory LRU（1,000 エントリ、TTL 1 分）を Go 側で保持。Decision 評価自体は sub-ms だが、tier1 側での network/marshal コストを抑制
 
 ## 10. Audit / Pii API
 
@@ -752,7 +1016,114 @@ message ObjectResponse {
   bytes value_json = 1;
   FlagMetadata metadata = 2;
 }
+
+// Flag 定義の登録・更新 (Phase 1b 提供)
+service FeatureAdminService {
+  rpc RegisterFlag(RegisterFlagRequest) returns (RegisterFlagResponse);
+  rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
+  rpc ListFlags(ListFlagsRequest) returns (ListFlagsResponse);
+}
+
+// flagd 互換の Flag 定義 (k1s0 は OpenFeature / flagd 仕様に準拠)
+message FlagDefinition {
+  // Flag キー (命名規則: <tenant>.<component>.<feature>)
+  string flag_key = 1;
+  // Flag 種別 (RELEASE / EXPERIMENT / OPS / PERMISSION)
+  FlagKind kind = 2;
+  // 戻り値型 (boolean / string / number / object)
+  FlagValueType value_type = 3;
+  // デフォルト variant の名前 (下記 variants にキーが存在すること)
+  string default_variant = 4;
+  // variants 定義: variant 名 → 値 (value_type に応じた JSON literal)
+  map<string, google.protobuf.Value> variants = 5;
+  // targeting ルール (先頭から評価、最初に match したもの採用)
+  repeated TargetingRule targeting = 6;
+  // 状態 (ENABLED / DISABLED / ARCHIVED)
+  FlagState state = 7;
+  // 説明 (監査・運用者向け)
+  string description = 8;
+}
+
+enum FlagValueType {
+  FLAG_VALUE_UNSPECIFIED = 0;
+  FLAG_VALUE_BOOLEAN = 1;
+  FLAG_VALUE_STRING = 2;
+  FLAG_VALUE_NUMBER = 3;
+  FLAG_VALUE_OBJECT = 4;
+}
+
+enum FlagState {
+  FLAG_STATE_UNSPECIFIED = 0;
+  FLAG_STATE_ENABLED = 1;
+  FLAG_STATE_DISABLED = 2;
+  FLAG_STATE_ARCHIVED = 3;
+}
+
+// targeting ルール (JsonLogic 互換、flagd 仕様準拠)
+// 例: { "if": [ { "==": [{ "var": "userRole" }, "admin"] }, "blue-variant", "red-variant" ] }
+message TargetingRule {
+  // ルール ID (監査用、tenant+flag 内で一意)
+  string rule_id = 1;
+  // JsonLogic 式 (bytes で保持、登録時に schema validator 通過必須)
+  bytes json_logic_expr = 2;
+  // 評価成立時に返す variant 名
+  string variant_if_match = 3;
+  // Fractional split (A/B テスト用、weights 合計 100 必須)
+  repeated FractionalSplit fractional = 4;
+}
+
+// Experiment 種別の Flag で A/B 比率を指定
+message FractionalSplit {
+  string variant = 1;
+  // 重み (0〜100、全エントリ合計 100 必須)
+  int32 weight = 2;
+}
+
+message RegisterFlagRequest {
+  FlagDefinition flag = 1;
+  // 変更理由 (permission 種別 Flag の場合 Product Council 承認番号必須)
+  string change_reason = 2;
+  // permission 種別時の承認番号 (空値は permission 種別で reject)
+  string approval_id = 3;
+  k1s0.tier1.common.v1.TenantContext context = 4;
+}
+
+message RegisterFlagResponse {
+  // バージョン (flag_key 内で単調増加)
+  int64 version = 1;
+}
+
+message GetFlagRequest {
+  string flag_key = 1;
+  // バージョン (省略時は最新)
+  optional int64 version = 2;
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+message GetFlagResponse {
+  FlagDefinition flag = 1;
+  int64 version = 2;
+}
+
+message ListFlagsRequest {
+  // 種別フィルタ (省略で全種別)
+  optional FlagKind kind = 1;
+  // 状態フィルタ (省略で ENABLED のみ)
+  optional FlagState state = 2;
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+message ListFlagsResponse {
+  repeated FlagDefinition flags = 1;
+}
 ```
+
+### Feature API 4 種別の運用ルール
+
+- **RELEASE**: 新機能の段階解放。variants は `{on, off}` が基本、targeting で canary → GA の段階拡大。廃止期限（sunset date）を必須項目とし、90 日超の放置は自動 ARCHIVED
+- **EXPERIMENT**: A/B テスト。FractionalSplit を使用、最低 2 variants + 1 control。実験終了後は勝ち variant を default に昇格して ARCHIVED
+- **OPS**: 運用 kill switch（例: 外部 API 連携を緊急遮断）。variants は `{enabled, disabled}` のみ、targeting は最小限
+- **PERMISSION**: 権限変更（feature 可視性）。登録時に Product Council の approval_id 必須、未指定は reject。変更履歴は 7 年保管（NFR-E-MON-001 に準拠）
 
 ## IDL バージョニングと配布
 

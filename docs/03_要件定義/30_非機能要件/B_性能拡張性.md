@@ -49,14 +49,38 @@
 
 **現状**: 既存業務システムのレスポンスタイムは、社員体感で「遅いと感じる 500ms 以上」が散発的に発生している。新基盤でこの水準を下回ることは最低限の期待値。
 
-**要件達成後**: tier1 公開 API の全エンドポイントで、定常負荷（中規模 150 RPS）において p99 < 500ms を達成する。内訳は業務ロジック 200ms + Dapr 80ms + OTel 20ms + Audit 50ms + ネットワーク / DB 150ms（企画書.md:306 で根拠記載）。
+**要件達成後**: tier1 公開 API の全エンドポイントで、定常負荷（中規模 150 RPS）において p99 < 500ms を達成する。下記の成分分解（層別内訳）に従い、各層での割当時間を目標とする。
 
 **崩れた時**: tier2/tier3 アプリの UX が悪化、エンドユーザーから「新基盤は遅い」と評価される。稟議提示 SLO の違反で経営層への説明責任が発生する。
 
+#### 成分分解と根拠
+
+p99 < 500ms は tier2 呼び出し元から tier1 ファサード → バックエンド → 応答までのエンドツーエンド値である。稟議レビュアーや基本設計担当者が「どの層をどこまで削れば目標に達するか」を判断するため、層別の目標値・算出根拠・計測方法を以下に明示する。目標値合計は 530ms（30ms のマージン込み）であり、Phase 1a MVP での eBPF 実測後に再配分する。
+
+| 層 | コンポーネント | 目標 p99 | 算出根拠 | 計測方法 | 担当 |
+|---|---|---|---|---|---|
+| tier2 アプリ層 | ビジネスロジック処理 | 200ms | 複雑業務ルール評価最大値（社内既存システム実測の 95 パーセンタイル） | OTel span `tier2.handler` | tier2 チーム |
+| tier1 ファサード入口 | Dapr SDK + k1s0 SDK オーバーヘッド | 30ms | stable Dapr Go SDK の gRPC 呼出オーバヘッド（Dapr ベンチ実測）+ interceptor 処理 | eBPF probe + Tempo span `k1s0.facade.ingress` | tier1 チーム |
+| tier1 バックエンド呼出 | 実サービス/バックエンド呼出 | 80ms | 既存 .NET Framework 応答中央値 50ms + 長尾 30ms（社内既存ベンチ） | Tempo span `k1s0.facade.upstream` | tier1 チーム |
+| tier1 観測層 | OTel Collector 処理 | 20ms | span 作成 + attributes 追加 + バッチ送信のノンブロッキング許容時間 | OTel SDK internal trace | Observability チーム |
+| tier1 監査層 | Audit API イベント発行 | 50ms | HashChain 計算（5ms 実測）+ MinIO WORM 非同期 write キュー投入 10ms + 冗長 35ms | Tempo span `k1s0.audit.emit` | Security チーム |
+| インフラ層 | ネットワーク + データベース往復 | 150ms | 社内クラウド NW レイテンシ 20ms × 最大 5 往復 + DB 処理 50ms（PostgreSQL 実測 p99） | Prometheus `network_latency_bucket` + `db_query_duration` | Platform チーム |
+| **合計** | - | **530ms** | 目標 500ms + マージン 30ms（Phase 1a 実測で再配分） | - | - |
+
+マージン 30ms（目標 500ms と合計 530ms の差）は、各層の実測値が個別の目標から外れても全体として達成可能とする緩衝である。ただし特定層が 20% 以上目標を超過する場合は、他層のマージンを食い潰す前に ADR で是正計画を記録する。
+
+#### Phase 1a での実測手順
+
+1. eBPF トレーシング（Parca / Pixie）で各層のレイテンシを 1 時間連続記録
+2. 実測値と目標値の乖離を層別に算出、10% 以上の乖離があればチューニング対象
+3. チューニング後も 10% 乖離が残る場合は、NFR-B-PERF-001 の層別目標値を改訂し ADR-TIER1-NNN に記録
+4. Grafana ダッシュボード `tier1-perf-breakdown` で層別 p99 を常時可視化
+
 **受け入れ基準**:
 - Phase 1b 性能試験で p99 < 500ms を 1 週間連続維持
-- 未達時は MVP-1a の eBPF 実測を踏まえた内訳再算定で数値調整
-- Grafana で p50 / p90 / p99 / p99.9 を可視化、SLO アラート設定
+- 層別目標（上表）の各層 p99 も 1.2 倍以内で維持（個別層の暴発を検出）
+- 未達時は MVP-1a の eBPF 実測を踏まえた層別再配分で数値調整、ADR 化
+- Grafana で p50 / p90 / p99 / p99.9 および層別 p99 を可視化、SLO アラート設定
 
 **優先度**: MUST
 
