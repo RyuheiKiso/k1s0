@@ -97,7 +97,7 @@ Pii API は、個人情報（氏名、社員番号、メール、電話、マイ
 
 ## 入出力仕様
 
-本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL.md の 10. Audit / Pii API セクション](../40_tier1_API契約IDL.md#10-audit--pii-api) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `AuditService` / `PiiService` RPC と意味論的に対応する。
+本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/10_Audit_Pii_API.md](../40_tier1_API契約IDL/10_Audit_Pii_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `AuditService` / `PiiService` RPC と意味論的に対応する。
 
 ```
 // Audit

@@ -85,7 +85,7 @@
 
 ## 入出力仕様
 
-本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL.md の 06. Workflow API セクション](../40_tier1_API契約IDL.md#06-workflow-api) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `WorkflowService` RPC と意味論的に対応する。
+本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/06_Workflow_API.md](../40_tier1_API契約IDL/06_Workflow_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `WorkflowService` RPC と意味論的に対応する。
 
 ```
 k1s0.Workflow.RunShort(

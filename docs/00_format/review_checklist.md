@@ -41,7 +41,7 @@
 
 ## tier1 API 変更
 
-- [ ] Protobuf IDL（40_tier1_API契約IDL.md）が更新されている
+- [ ] Protobuf IDL（40_tier1_API契約IDL/ 配下の該当 API ファイル）が更新されている
 - [ ] 破壊変更なら Version 増加、後方互換維持策が明示
 - [ ] tier2/tier3 クライアント SDK への影響評価
 - [ ] Audit イベント追加/変更の検討

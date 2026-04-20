@@ -81,5 +81,5 @@ OpenBao（ADR-SEC-002）に保管される Secret のメタ情報。本テーブ
 ## 関連ドキュメント
 
 - [30_情報要件.md](30_情報要件.md): 情報管理全体方針
-- [40_tier1_API契約IDL.md](40_tier1_API契約IDL.md): API IDL 定義
+- [40_tier1_API契約IDL/](40_tier1_API契約IDL/): API IDL 定義
 - ADR-DATA-001（PG）、ADR-SEC-002（OpenBao）、ADR-FM-001（flagd）、ADR-RULE-001（ZEN）、ADR-RULE-002（Temporal）
