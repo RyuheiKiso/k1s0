@@ -177,7 +177,26 @@ SDK の publish は tier1 本体（6 Pod の container image）の publish と**
 
 これにより「tier1 release 時点で SDK が未公開」の状態を構造的に不可能にする。ただし、wrapper 層のバグ修正のみの PATCH リリース（`1.0.1-phase1a` 等）は SDK のみを release できる例外経路として用意する（release ワークフローに `sdk-only-release.yml` を追加、Phase 1b）。
 
-**確定フェーズ**: Phase 1a（Go）、Phase 1b（C# 追加）、Phase 2（他言語）。**対応要件**: DX-CICD-\*、ADR-TIER1-003。**上流**: DS-IMPL-DIR-192。
+**atomic publish orchestrator の実装**: DS-IMPL-DIR-231 で宣言した「6 言語 SDK の同一 SemVer + Phase、partial release 禁止」を実体化するには、1 言語の publish 失敗時に他言語を rollback する atomic runner が必要になる。これを `.github/workflows/reusable/sdk-atomic-publish.yml`（07 章 DS-IMPL-DIR-194 の reusable workflow として）で実装し、`release.yml` と `sdk-only-release.yml` の両方から同一ロジックで呼び出す。構成は 3 phase で固定する。
+
+1. **Phase A（dry-run / staging）**: 6 言語の SDK を全て staging registry（Phase 1a: `ghcr.io/k1s0/staging/`、Phase 1b 以降: `nexus.k1s0.internal/staging/`）にまず publish する。staging publish は**全言語並列**で走らせ、いずれか 1 言語でも失敗したら Phase A 全体を fail させる（他言語の staging publish も強制 abort）。staging publish 成功後、smoke test として各 SDK から tier1 staging 環境の `HealthCheck` gRPC を 1 回呼び、200 OK が返ることを確認する。
+2. **Phase B（production promote）**: Phase A が全言語成功した場合のみ、staging registry の成果物を production registry（Phase 1a: `ghcr.io/k1s0/`、Phase 1b 以降: `nexus.k1s0.internal/`）に promote する。promote は registry 側の API（ghcr.io は `oras cp`、Nexus は staging profile の release API）で行い、再ビルドは**しない**（staging と production でバイナリ ID を一致させる）。promote も全言語並列だが、1 言語失敗時は Phase C に移行する。
+3. **Phase C（rollback）**: Phase B で 1 言語でも promote が失敗した場合、既に promote 済みの他言語を production registry から削除（`oras manifest delete` / Nexus の `DELETE /repository/.../...`）し、tier1 release 自体を失敗扱いとする（GitHub Release を draft に戻し、container image tag は push 済みのため `harbor.k1s0.internal/tier1/<pod>:<version>` を `deprecated-<version>` に rename する）。rollback 完了後、`@k1s0/tier1-architects` と `@k1s0/api-leads` に GitHub Issue 1 本で即時通知する。
+
+**orchestrator の実装場所と責務分界**:
+
+- reusable workflow 本体: `.github/workflows/reusable/sdk-atomic-publish.yml`（約 200 行）
+- 言語別 publish ロジック: `.github/actions/publish-sdk-<lang>/action.yml`（composite action、6 言語分）
+- staging / production promote 実装: `tools/sdk-promote/`（Rust 製、`oras` / Nexus REST API を呼び分ける、Phase 1b 追加、約 400 行想定）
+- rollback ロジック: `tools/sdk-rollback/`（Rust 製、`sdk-promote` と対称の API 呼び出し、Phase 1b）
+
+Phase 1a 時点では Go SDK 単独 publish なので atomic 性は自明に満たされるが、上記構造を先に固めておくことで Phase 1b で C# を追加する時に「後付けで 2 言語 atomic 化」する改訂コストを避ける。`publish-sdk-<lang>` ジョブは atomic runner から呼ばれる形に**最初から**する（Phase 1a から）。
+
+**失敗時の運用 SLO**: Phase A 失敗時の対応は 24 時間以内（staging の異常調査後、原因除去して再 release tag 打ち直し）。Phase B 失敗時の rollback は 15 分以内（orchestrator が自動実行、手動介入不要）を SLO とする。Phase C の通知 Issue には必ず「どの言語のどの phase で失敗したか」「rollback 済み言語の registry 状態」「次の再 release の予定時刻」を含める（テンプレートは `.github/ISSUE_TEMPLATE/sdk-release-failure.md` に配置、Phase 1a で作成）。
+
+**監視と検証**: orchestrator の run log は `.github/workflows/` の artifact として 90 日保持し、各 phase の所要時間・失敗種別（staging smoke 失敗 / promote API 失敗 / rollback 失敗）を nightly.yml（DS-IMPL-DIR-193）で集計する。四半期末に `@k1s0/devex-team` が統計を `@k1s0/tier1-architects` に報告し、Phase B 失敗率 5% 超または rollback 失敗履歴が 1 件でもあれば、atomic runner の設計を見直す ADR を起票する。
+
+**確定フェーズ**: Phase 1a（Go + orchestrator 骨格）、Phase 1b（C# 追加 + `sdk-promote` / `sdk-rollback` 実装 + `sdk-only-release.yml`）、Phase 2（他 4 言語追加）。**対応要件**: DX-CICD-\*、ADR-TIER1-003、NFR-SUP-\*、NFR-A-CONT-\*（release の可用性）、NFR-H-INT-\*（version drift の完整性）。**上流**: DS-IMPL-DIR-192、DS-IMPL-DIR-194、DS-IMPL-DIR-231、DS-IMPL-DIR-232。
 
 ## DS-IMPL-DIR-234 SDK 互換性保証期間と Security Update Protocol
 

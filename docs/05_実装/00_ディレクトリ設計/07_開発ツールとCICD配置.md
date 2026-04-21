@@ -99,24 +99,28 @@ tools/
 
 `tools/check-deps/` は概要設計 [DS-SW-COMP-113](../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/05_モジュール依存関係.md) で宣言された `tools/check-deps.sh` を Go に移植したものである。シェルスクリプトでは Go / Rust の静的解析を両立しにくいため、Go 実装として統一する。
 
-責務は 3 つ。
+責務は 4 つ。
 
 1. Go の import を解析し、layer 逸脱（handler → repository 直接呼び出し等）および `cmd → pods → shared` の 3 層を跨ぐ逆流、Pod 間 import（`pods/state/` から `pods/secret/` を参照する等）を検出
 2. Rust の `Cargo.toml` `[dependencies]` を解析し、domain crate が adapter crate に依存していないか、`crates/pods/` 同士の path 依存が発生していないかを検証（Rust 側の詳細検査は `tools/check-rust-deps/` に委譲し、本ツールは cross-language の層分離のみを担当）
 3. tier2 / tier3 領域が tier1 内部 API（`src/tier1/go/internal/pods/` / `src/tier1/go/internal/shared/` / `src/tier1/rust/crates/pods/*` / `src/tier1/rust/crates/shared/*` の private 型）を import していないか検証
+4. **docs ↔ 実体の双方向整合検証（Phase 1b 追加）**: `docs/05_実装/00_ディレクトリ設計/**/*.md` 内の全 `DS-IMPL-DIR-NNN` 宣言と、実ディレクトリ（`src/tier1/` / `tests/` / `tools/` / `.github/` / `.devcontainer/`）の整合を双方向に検査する。具体的には (a) 本章内で宣言された各 DS-IMPL-DIR-NNN が言及する実ファイル／ディレクトリ（`src/tier1/go/cmd/<pod>/main.go`、`src/tier1/rust/crates/pods/<pod>/`、`tools/<name>/` 等）の存在確認、(b) `src/tier1/` 配下の第 2 階層（`go/internal/pods/<pod>/`、`rust/crates/pods/<crate>/`、`infra/{delivery,runtime,governance,platform}/<subdir>/`）が対応する DS-IMPL-DIR-NNN に紐付けられているかの確認、(c) ID 飛び番の検出（本章 README.md は飛び番禁止を宣言）。違反は PR ブロックではなく**週次 digest** として `@k1s0/tier1-architects` に通知する（PR ブロック扱いは false positive 率が高いため）。長期運用（5 年超）で docs と実体が乖離する drift を継続的に可視化する狙い。
 
 構造は以下。
 
 - `tools/check-deps/main.go`: CLI エントリ
 - `tools/check-deps/internal/analyzer/go.go`: Go AST 解析（`golang.org/x/tools/go/packages`）
 - `tools/check-deps/internal/analyzer/rust.go`: Rust 解析（`cargo metadata` の JSON 出力を parse）
+- `tools/check-deps/internal/analyzer/docs.go`: Markdown 解析（`goldmark` AST から `DS-IMPL-DIR-NNN` 見出しと参照パス文字列を抽出、Phase 1b 追加）
 - `tools/check-deps/internal/rules/layer.go`: 層間依存ルール（go-cleanarch 設定と整合、03 章 DS-IMPL-DIR-074）
 - `tools/check-deps/internal/rules/pod_isolation.go`: Pod 間 import 禁止ルール（Go `pods/<pod>/` 横断と Rust `crates/pods/<crate>/` 横断、03 章 DS-IMPL-DIR-074 / 04 章 DS-IMPL-DIR-114）
 - `tools/check-deps/internal/rules/root.go`: root 禁止物（`go.mod` / `Cargo.toml` 等、01 章 DS-IMPL-DIR-019）の検出
+- `tools/check-deps/internal/rules/shared_residency.go`: shared/ 追加・撤収判定基準（Go / Rust の利用 Pod 数と類似度）の週次検査（03 章 DS-IMPL-DIR-050 / 04 章 DS-IMPL-DIR-088、Phase 1b 追加）
+- `tools/check-deps/internal/rules/ds_mapping.go`: 責務 4 の docs ↔ 実体整合検証（Phase 1b 追加）
 
-CI（`.github/workflows/pr.yml`）で PR ごとに実行し、違反を検出したら merge block する。
+CI（`.github/workflows/pr.yml`）で PR ごとに実行し、違反を検出したら merge block する（ただし責務 4 は週次デジタルのみで PR ブロックしない）。
 
-**確定フェーズ**: Phase 1a。**対応要件**: DX-CICD-\*、NFR-C-NOP-001。**上流**: DS-SW-COMP-113、DS-IMPL-DIR-007、DS-IMPL-DIR-019。
+**確定フェーズ**: Phase 1a（責務 1〜3）、Phase 1b（責務 4 の docs 整合検証 + shared residency 週次ジョブ追加）。**対応要件**: DX-CICD-\*、NFR-C-NOP-001、NFR-C-NOP-002。**上流**: DS-SW-COMP-113、DS-IMPL-DIR-007、DS-IMPL-DIR-019、DS-IMPL-DIR-050、DS-IMPL-DIR-088。
 
 ## DS-IMPL-DIR-183 tools/k1s0-cli/ のコマンド配置
 
@@ -124,13 +128,25 @@ CI（`.github/workflows/pr.yml`）で PR ごとに実行し、違反を検出し
 
 コマンド配置（`src/commands/<cmd>.rs`）は以下。
 
-- `new.rs`: 雛形生成（`k1s0 new tier2-service --name foo`）。テンプレートは `src/templates/` に同梱
+- `new.rs`: 雛形生成の入口（後述のサブコマンド分割）。テンプレートは `src/templates/<kind>/` に同梱
 - `dev.rs`: ローカルクラスタ起動・停止（`k1s0 dev up --tier1=real`、`k1s0 dev up --tier1=mock`）
 - `doctor.rs`: ローカル環境の診断（kind / docker / mise が正しくインストールされているか）
 
 Phase 1a 時点で `new` と `doctor` を実装。`dev` は Phase 1b で追加する（tier2 領域が存在するまで不要）。
 
-**確定フェーズ**: Phase 1a（new/doctor）、Phase 1b（dev）。**対応要件**: DX-LD-\*、DX-DEVEX-\*。**上流**: DS-DEVX-LOCAL-\*、DS-IMPL-DIR-007。
+**`k1s0 new` のサブコマンド体系と横断ファイル自動改訂**: 新 Pod / 新 crate / 新 API の追加は、単にソースファイルを生成するだけでは足りない。03 章 DS-IMPL-DIR-080（Go Pod 追加手続）と 04 章 DS-IMPL-DIR-120（Rust crate 追加手続）は、**1 回の追加あたり 7 箇所の改訂**（ソース生成 + `Cargo.toml` / `go.work` 更新 + `.github/workflows/pr.yml` の path filter 追加 + CODEOWNERS エントリ追加 + 対応 ADR スタブ + 雛形テストファイル + `README.md` 参照更新）を要求する。これを人手で行うと、10 Pod を超えた時点で path filter と CODEOWNERS が必ず drift する（過去事例: 類似規模の monorepo で 8 Pod 時点で workflows の paths-ignore が lint と乖離）。`k1s0 new` は**横断ファイル改訂までを atomic に実行する**責務を持ち、手作業を禁ずる。サブコマンドは以下 5 種。
+
+- **`k1s0 new pod-go --name <pod>`**: `src/tier1/go/cmd/<pod>/` + `src/tier1/go/internal/pods/<pod>/{handler,service,domain,repository}/` の 4 層スケルトン + `integrationtest/<pod>/` + `wire.go` stub を生成。さらに以下 4 箇所を自動改訂する。(1) `/CODEOWNERS` に `/src/tier1/go/cmd/<pod>/ @k1s0/tier1-go-team` と `/src/tier1/go/internal/pods/<pod>/ @k1s0/tier1-go-team` を追加、(2) `/.github/workflows/pr.yml` の `paths:` filter に `src/tier1/go/cmd/<pod>/**` と `src/tier1/go/internal/pods/<pod>/**` を追加、(3) `/docs/02_構想設計/adr/` に `ADR-PODS-<NNN>-add-<pod>-pod.md` の ADR スタブを生成、(4) `src/tier1/go/README.md` の Pod 一覧に行を追加。
+- **`k1s0 new pod-rust --name <pod>`**: `src/tier1/rust/crates/pods/<pod>/{src/{grpc,service,domain,adapter},tests}/` を生成。横断改訂は (1) `src/tier1/rust/Cargo.toml` の `[workspace]` `members` に `crates/pods/<pod>` を追加（alphabetical order を維持）、(2) CODEOWNERS に `/src/tier1/rust/crates/pods/<pod>/ @k1s0/tier1-rust-team`、(3) `pr.yml` の paths filter に `src/tier1/rust/crates/pods/<pod>/**` を追加、(4) ADR スタブ起票。Go 版と対称に扱う。
+- **`k1s0 new shared-crate --name <crate>`**: `src/tier1/rust/crates/shared/<crate>/` を生成するが、本サブコマンドは **ADR pre-check を必須**とする（03 章 DS-IMPL-DIR-050 / 04 章 DS-IMPL-DIR-088 の数値判定基準に準拠）。`--adr <ADR-ID>` フラグで既存 ADR を指定しない限り exit code 1。ADR 指定時のみ Cargo.toml members 追加と CODEOWNERS（`@k1s0/tier1-architects` 必須承認）を自動改訂する。Go 側の `internal/shared/<topic>/` も対称のコマンド `k1s0 new shared-go --name <topic> --adr <ID>` で扱う。
+- **`k1s0 new api --name <api>`**: `src/tier1/contracts/v1/<api>/v1.proto` + `contracts/buf.gen.yaml` の `<api>` 登録 + Go / Rust 生成先ディレクトリの README stub を生成。02 章 DS-IMPL-DIR-031 の `tools/check-proto-symmetry/` にも `<api>` を自動登録し、片側未生成を検出できる状態にする。ADR 起票を必須とする（新 API 追加は tier1 bounded context の境界変更）。
+- **`k1s0 new tier2-service --name <service> --lang <go|csharp>`**: Backstage Software Template の Dry-Run 代替として、ローカルで `tools/backstage-templates/tier2/<lang>/skeleton/` を展開する（実運用では Backstage UI 経由、ローカル検証用）。GitHub repo 作成と catalog 登録は行わない（副作用を持たない）。
+
+横断改訂の atomicity は、**生成 → 改訂 → git diff 表示 → ユーザ確認 → git add** の順で 1 PR 単位にまとめる。途中 fail 時は全改訂を rollback する（`tools/k1s0-cli/src/txn.rs` に transaction wrapper を実装）。これにより「ソースだけ生成されて CODEOWNERS と workflows が未改訂の半端状態」が commit される事態を防ぐ。
+
+**CLI 自身のテスト**: `k1s0 new` の生成結果は 06 章 DS-IMPL-DIR-173 の `tests/golden/` 配下（`tests/golden/k1s0-cli/pod-go/` など）にゴールデンを配置し、CLI の PR で diff をレビューする。sub-command 追加時はゴールデンテストの追加を必須とする。
+
+**確定フェーズ**: Phase 1a（new-pod-go / new-pod-rust / new-api / doctor + 横断改訂の atomic 実装）、Phase 1b（new-tier2-service、new-shared-\*、dev）。**対応要件**: DX-LD-\*、DX-DEVEX-\*、DX-GP-\*、NFR-C-NOP-001、NFR-C-NOP-002。**上流**: DS-DEVX-LOCAL-\*、DS-IMPL-DIR-007、DS-IMPL-DIR-018、DS-IMPL-DIR-080、DS-IMPL-DIR-120、DS-IMPL-DIR-173、DS-IMPL-DIR-199。
 
 ## DS-IMPL-DIR-184 tools/mock-server/ の配置
 
@@ -280,7 +296,25 @@ CI ワークフローは以下 4 系統に分ける。
 
 全ジョブが並列実行され、最長ジョブで完了時間が決まる。10 分以内の目標は test-rust-unit（現状 2 〜 3 分）と build-rust（5 〜 7 分）がボトルネックになるため、`sccache` と GitHub Actions cache を活用する。ジョブ数が 11 → 13 に増えたことで runner の同時実行枠が逼迫した場合は、`lint-k8s` を `reusable/` に切り出して並列 matrix の外に出すことで総時間への影響を抑える。
 
-**確定フェーズ**: Phase 1a。**対応要件**: DX-CICD-\*、DX-TEST-001。**上流**: DS-DEVX-CICD-\*、DS-IMPL-DIR-177。
+**critical / optional レーン分類と四半期生存判定**: CI ジョブは単に数を増やすほど merge-block の発生率が線形に増え、2 名運用（NFR-C-NOP-001）下では「CI が通らないから別経路で merge する」副経路の生成源になる。これを防ぐため、13 ジョブを**必須（critical）レーン**と**警告（optional）レーン**の 2 レーンに明示分類し、optional 違反は merge-block せず weekly digest で可視化するだけにとどめる。分類と根拠は次のとおり。
+
+- **critical レーン（8 ジョブ、merge-block）**: `lint-go` / `lint-rust` / `lint-proto` / `check-deps` / `check-rust-deps` / `build-go` / `build-rust` / `test-go-unit`。根拠は「これらが fail した状態の main ブランチは tier2 / tier3 へ伝搬すると即時に業務影響を起こす」点。特に `lint-proto`（buf breaking）・`check-deps`（layer 逸脱）・`check-rust-deps`（Pod 間横断）は tier1 契約境界を破壊する経路で、ratchet 運用を許容しない。
+- **optional レーン（5 ジョブ、merge 許容 + 警告）**: `lint-helm` / `lint-shell` / `lint-k8s` / `docs-lint` / `test-rust-unit`。根拠は「これらの fail は Phase 1a 時点で業務影響が限定的で、後続 `main.yml` / `nightly.yml` で再検出可能」点。optional ジョブ fail 時は PR に `⚠️ optional-lint-fail: <job>` ラベルを自動付与し、週次で `@k1s0/devex-team` に digest 通知（後述の生存判定の一次入力）。
+
+**Phase 1b 以降で追加される lint の初期扱い**（`check-proto-symmetry` / `check-dapr-components` / `check-values-sot` / `bff-boundary-lint` / `check-file-size` / `template-drift-detector` / `check-ds-mapping` の 7 種）は、**導入から 1 四半期は optional レーンに置く**。運用データ（週次 fail 率 / false positive 率 / 対処時間）を収集したうえで、四半期末に critical へ昇格するかを判断する。false positive 率 5% 超または平均対処時間 30 分超の lint は critical 昇格を見送る。
+
+**四半期生存判定（quarterly lint review）**: 全 lint ジョブは四半期に 1 回、`@k1s0/devex-team` と `@k1s0/tier1-architects` が以下 4 指標で生存判定する。
+
+1. **起動率**: 過去 90 日の PR のうち当該ジョブが実際に走った PR の比率（10% 未満 = 動いていない疑い）
+2. **fail 率**: 過去 90 日の fail 数 / 実行数（60% 超 = signal として破綻、0% 近傍 = 意味のない lint の疑い）
+3. **false positive 率**: fail 中「lint のバグ」として PR コメントで扱われた件数比率（5% 超 = 保守責任の再割当）
+4. **平均対処時間**: fail 発生から該当 PR が再び pass するまでの中央値（30 分超 = 開発体験を壊す候補）
+
+判定結果は `docs/05_実装/00_ディレクトリ設計/` 配下に追加しない（運用データは `docs/` に commit しない）。代わりに Backstage TechDocs の生成時パイプラインから四半期レポートを生成し、`@k1s0/tier1-architects` に回付する。判定で「廃止」となった lint は ADR を 1 本起票して `tools/<name>/` ディレクトリごと git から削除する。死骸化した lint を CI に残すことを禁止する（副経路生成源になる）。
+
+**保守オーナーの明示**: 各 lint ツール（`tools/<name>/`）には `OWNERS` ファイルを 1 行で配置し、primary owner（GitHub team）と secondary owner を宣言する。オーナー未宣言の lint は CI に組み込めない（PR レビューで reject）。オーナーが異動・退職した時点で四半期判定を待たずに生存判定を繰り上げる。
+
+**確定フェーズ**: Phase 1a（レーン分類 + 8 ジョブ critical 指定）、Phase 1b（追加 lint 群の optional 投入と初回四半期判定）、毎四半期（生存判定の継続実施）。**対応要件**: DX-CICD-\*、DX-TEST-001、NFR-C-NOP-001、NFR-C-NOP-002。**上流**: DS-DEVX-CICD-\*、DS-IMPL-DIR-177、DS-IMPL-DIR-200（変更手続）。
 
 ## DS-IMPL-DIR-191 main.yml のジョブ構成
 
