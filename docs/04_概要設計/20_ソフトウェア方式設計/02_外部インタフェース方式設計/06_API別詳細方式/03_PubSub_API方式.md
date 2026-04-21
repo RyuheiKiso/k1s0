@@ -246,7 +246,7 @@ Phase 1a → 1b の移行時、既存 partition の replication factor を 1 →
 
 - FR-T1-PUBSUB-001〜FR-T1-PUBSUB-005（PubSub 機能要件一式）
 - FR-T1-PUBSUB-001（Publish と CloudEvents）/ FR-T1-PUBSUB-002（Subscribe と Consumer Group 分離）/ FR-T1-PUBSUB-003（at-least-once と DLQ）/ FR-T1-PUBSUB-004（Ordering とトピック命名強制）/ FR-T1-PUBSUB-005（Schema Registry 連携）
-- NFR-E-SEC-007（テナント分離、topic 命名強制）
+- NFR-E-AC-007（テナント分離、topic 命名強制）
 - NFR-B-PERF-003（Publish p99 50ms、Subscribe e2e p99 200ms）
 - NFR-C-OPS-020（DLQ 監視、SRE alert）
 - ADR 参照: ADR-TIER1-001（Go+Rust）/ ADR-DATA-002（Kafka/Strimzi 採用、KRaft）/ ADR-PUBSUB-NNN（CloudEvents v1.0 準拠、未起票、Phase 1a 前起票予定）

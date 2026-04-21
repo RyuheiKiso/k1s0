@@ -146,7 +146,7 @@ tier1 PubSub API は `edge-events` トピックの受信側で Valkey に `edge_
 - FR-T1-019（Binding Input MQTT）
 - FR-T1-020（Binding Input HTTP/Cron/Kafka）
 - FR-EXT-MON-001（外部センサメトリクス取り込み）
-- NFR-E-SEC-012（エッジ境界防御）
+- NFR-E-SIR-012（エッジ境界防御）
 - NFR-B-PERF-008（バースト時のオフライン耐性）
 - ADR 参照: ADR-TIER1-001（言語分担）/ ADR-SEC-002（SPIFFE）
 - 本ファイルで採番: DS-SW-EIF-110 〜 DS-SW-EIF-123

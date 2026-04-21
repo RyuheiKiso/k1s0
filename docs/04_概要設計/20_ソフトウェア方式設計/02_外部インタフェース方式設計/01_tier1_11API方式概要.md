@@ -139,7 +139,7 @@ Phase 1a（MVP-0）は Service Invoke / State / PubSub / Feature / Log の 5 API
 - FR-EXT-DOTNET-001（.NET Framework クライアント互換）
 - FR-EXT-IDP-001（Keycloak JWT 認証統合）
 - FR-EXT-MON-001（監視基盤連携）
-- NFR-E-SEC-001〜003（全 API 認証必須）
+- NFR-E-AC-001〜003（全 API 認証必須）
 - NFR-B-PERF-001〜005（p99 レイテンシ目標）
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担）/ ADR-TIER1-002（Protobuf gRPC 必須）
 - 本ファイルで採番: DS-SW-EIF-001 〜 DS-SW-EIF-016
