@@ -73,8 +73,8 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="m5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="daprcp" target="store"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1" source="tier1api" target="otel">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="590" y="260" /><mxPoint x="590" y="340" /></Array></mxGeometry>
+        <mxCell id="o1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="tier1api" target="otel">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="480" y="220" /><mxPoint x="480" y="340" /></Array></mxGeometry>
         </mxCell>
         <mxCell id="o2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="otel" target="loki"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="o3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="otel" target="tempo"><mxGeometry relative="1" as="geometry" /></mxCell>
@@ -82,8 +82,8 @@
         <mxCell id="o5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="loki" target="grafana"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="o6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="tempo" target="grafana"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="o7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="mimir" target="grafana"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="rust" target="audit_rust">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="810" y="480" /><mxPoint x="595" y="480" /></Array></mxGeometry>
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rust" target="audit_rust">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="940" y="165" /><mxPoint x="940" y="480" /><mxPoint x="490" y="480" /></Array></mxGeometry>
         </mxCell>
         <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="audit_rust" target="audit_pg"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="audit_pg" target="minio_aud"><mxGeometry relative="1" as="geometry" /></mxCell>

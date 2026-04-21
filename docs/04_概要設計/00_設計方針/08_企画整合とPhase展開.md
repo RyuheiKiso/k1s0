@@ -40,7 +40,7 @@ Phase 1a〜1c の期間は企画書で以下のように固定されている。
 
 | Phase | 期間 | スコープ設計 ID 群 | 完了条件（Phase Gate） |
 |---|---|---|---|
-| Phase 0 | 稟議承認前（2〜3 か月） | 設計 ID は全て方針層として「策定済み」状態。[00_設計方針/](.)、[90_付録/02_ADR索引.md](../90_付録/02_ADR索引.md) の 26 ADR 採択 | Product Council 承認 + 外部監査役レビュー通過 |
+| Phase 0 | 稟議承認前（2〜3 か月） | 設計 ID は全て方針層として「策定済み」状態。[00_設計方針/](.)、[90_付録/02_ADR索引.md](../90_付録/02_ADR索引.md) の 27 ADR 採択 | Product Council 承認 + 外部監査役レビュー通過 |
 | Phase 1a（MVP-0） | 3〜4 週間 | [10_システム方式設計/](../10_システム方式設計/) 物理層 DS-SYS-HW-001〜、tier1 Go facade 最小サブセット（Service Invoke / State / Log の 3 API）、Keycloak 単一インスタンス DS-CF-AUTH-001、Backstage スキャフォールド DS-DEVX-BS-001、[75_事業運用方式設計/03_テナントオンボーディング方式.md](../75_事業運用方式設計/03_テナントオンボーディング方式.md) の単一テナント作成 | デモ成功（新規テナント → アプリ生成 → デプロイを 1 時間以内、kubeadm 1 ノードで稼働） |
 | Phase 1b（MVP-1a） | 3〜4 か月 | tier1 Go 完全 11 API（DS-SW-EIF-001〜095）、kubeadm HA（DS-SYS-HW-007〜）、Prometheus/Grafana LGTM 完全（DS-NFR-OBS-001〜）、Argo CD（DS-DEVX-CICD-001〜）、OpenTelemetry Collector（DS-CF-TRACE-001〜）、Decision API p99 1ms（DS-SW-EIF-388〜）、Feature Flag flagd（DS-CF-FM-001〜010）、3 AZ 冗長（DS-NFR-AVL-001〜021） | SLO ダッシュボード 10 種稼働、Error Budget 運用開始、p99 500ms 連続検証 30 日、SLA 99.9% 達成 |
 | Phase 1c（MVP-1b） | 3〜4 か月 | SPIFFE/SPIRE（DS-CF-AUTH-002〜）、OpenBao 完全（DS-NFR-SEC-001〜053）、Temporal 長期ワークフロー（DS-SW-EIF-320〜334）、WORM 監査（DS-CF-AUD-001〜）、DR リハーサル（DS-NFR-AVL-014〜021）、Kyverno 完全（DS-NFR-SEC-030〜）、負荷試験自動化（DS-OPS-LOAD-001〜013） | DR リハーサル成功（ゼロスタート 8 時間以内）、監査保全 7 年 WORM 運用、Production Ops Flag 2 名承認運用 |

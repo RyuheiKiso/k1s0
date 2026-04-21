@@ -10,7 +10,7 @@ tier1 公開 API は Dapr SDK の引数をそのまま通すのではなく、5 
 
 ## 設計 ID 一覧と採番方針
 
-本ファイルで採番する設計 ID は `DS-SW-COMP-020` 〜 `DS-SW-COMP-049` の 30 件である。通番は [01_tier1全体コンポーネント俯瞰.md](01_tier1全体コンポーネント俯瞰.md) の DS-SW-COMP-019 から連続し、[03_自作Rust領域コンポーネント.md](03_自作Rust領域コンポーネント.md) で DS-SW-COMP-050 に継続する。
+本ファイルで採番する設計 ID は `DS-SW-COMP-020` 〜 `DS-SW-COMP-049` の 30 件に加え、6 段階多層防御統括として `DS-SW-COMP-140` を補欠採番する。通番は [01_tier1全体コンポーネント俯瞰.md](01_tier1全体コンポーネント俯瞰.md) の DS-SW-COMP-019 から連続し、[03_自作Rust領域コンポーネント.md](03_自作Rust領域コンポーネント.md) で DS-SW-COMP-050 に継続する。DS-SW-COMP-140 は企画書 L197-212 の 6 段階多層防御を設計側で統括するための補欠 ID で、[06_パッケージ構成_Rust_Go.md](06_パッケージ構成_Rust_Go.md) の DS-SW-COMP-139 の次として発番している（当初採番計画では 02 ファイル末尾の 050 は 03 側が先行使用していたため、統括節分を補欠領域に割り当てた）。
 
 ## ファサード層の共通構造
 
@@ -224,6 +224,34 @@ Policy Enforcer 内の RBAC 評価で、tier1 内部の判定ロジック（例:
 
 **確定フェーズ**: Phase 1a。**対応要件**: NFR-A-FT-001、NFR-D-MON-\*。
 
+## Dapr 隠蔽の 6 段階多層防御統括
+
+ここまで本ファイルはファサード 3 Pod の内部モジュール・パイプライン・Building Block 使い分けを仕様化してきた。しかし Dapr SDK の直接 import を tier2/tier3 に漏らさないための**強制機構**は、本ファイル単独では完結せず、複数の設計ドキュメントに散在している。企画書 L197-212 は「バラつきを防ぐ多層防御」として 6 段階を宣言しているが、概要設計側ではこのうち ①雛形 CLI / ②Opinionated API / ③CI Guard までしか統括されておらず、④リファレンス実装 / ⑤PR チェックリスト / ⑥内製 analyzer の在処が設計書間で散らばっていた。本節は 6 段階を単一ファイルで束ねて、どの段階がどの設計 ID でどのフェーズで具体化されるかを一望可能にする。
+
+散在を許すと、例えば「tier2 の TypeScript コードがリフレクション経由で `@dapr/dapr` を動的 require する」という典型的逸脱を、CI Guard が静的検出できず、PR チェックリストにも項目がなく、内製 analyzer も未着手のまま Phase 1c をロールアウトしてしまう、という状態が発生する。この状態は稟議で約束した「Dapr 隠蔽による差し替え可能性」を実質的に崩すため、6 段階の設計 ID を 1 か所で突き合わせて「各段階のカバレッジ」を検証可能な形にする必要がある。
+
+### DS-SW-COMP-140 6 段階多層防御の統括と相互補完
+
+6 段階は機械検出と人的レビューを組み合わせた段階的捕捉構造である。静的言語（Go / Rust / C#）の禁止 import は ①〜④ で機械的に検出でき、動的言語（TypeScript / Python）の動的ロード・リフレクション経由の Dapr SDK 呼び出しや、Opinionated API の型は合うが設計思想を外した使い方は CI 単独では検出しきれず、⑤ の PR レビューで補足し、頻出パターンを ⑥ の内製 analyzer に吸い上げる。完全自動化ではなく段階的捕捉率向上が狙いであり、どの段階も「他段階で検出漏れしたものを捕まえる」補完関係にある。
+
+散文で 6 段階を列挙する。
+
+1. **雛形 CLI**（ゼロから書かせない段階）— tier2/tier3 の新規サービス作成時に雛形 CLI が Opinionated な初期ファイル一式を生成し、開発者が Dapr SDK を直接 import するコードを書き始められないようにする。具体化は本ファイルの [DS-SW-COMP-020〜022](02_Daprファサード層コンポーネント.md) の 5 モジュール構成を生成テンプレート化したもので、詳細は [../../../02_構想設計/02_tier1設計/02_API契約/03_API設計原則.md](../../../02_構想設計/02_tier1設計/02_API契約/03_API設計原則.md)・[06_パッケージ構成_Rust_Go.md](06_パッケージ構成_Rust_Go.md) の DS-SW-COMP-124〜131（internal/ 配下 package 分割）、および [../../70_開発者体験方式設計/04_Backstageポータル詳細方式.md](../../70_開発者体験方式設計/04_Backstageポータル詳細方式.md) の Software Template に分解される。Phase 1a で初版提供、Phase 1b で全 6 Pod 雛形をカバーする。
+
+2. **Opinionated API**（やり方を 1 通りに絞る段階）— tier1 公開 11 API は Dapr Building Block を 1 対 1 でラップせず、横断的関心事（認証・テナント・監査・観測・エラー変換）を Policy Enforcer で強制するパイプラインを経由する独自 gRPC サービスとして公開する。具体化は本ファイルの [DS-SW-COMP-023〜029](02_Daprファサード層コンポーネント.md)（COMP-T1-STATE 内部）と [../02_外部インタフェース方式設計/](../02_外部インタフェース方式設計/) DS-SW-EIF-001 以降の 11 API 契約である。Phase 1a で State/PubSub、Phase 1b で Service Invoke/Binding/Workflow、Phase 1c で Decision/Feature を完成させる。
+
+3. **CI Guard**（静的言語の禁止 import を機械検出する段階）— Go / Rust / C# の静的言語は GitHub Actions ワークフローで `dapr.io/go-sdk` / `dapr-client` / `Dapr.Client` などの禁止 import パターンを `golangci-lint` / `clippy` / `Roslyn analyzer` で検出し、検出時 PR をブロックする。具体化は [../../70_開発者体験方式設計/01_CI_CD方式.md](../../70_開発者体験方式設計/01_CI_CD方式.md) DS-DEVX-CICD-* の禁止パターン lint 設計である。Phase 1b で Go の Dapr SDK 検出から始め、Phase 1c で Rust/C# を追加する。
+
+4. **リファレンス実装**（模範サービスを 1 本提供する段階）— tier1 公開 API の正しい使い方を示すサンプル `golden-path-service` を 1 本メンテナンスし、tier2 開発者が模倣対象として参照する。具体化は [../../20_ソフトウェア方式設計/05_利用者文書_暫定版/](../../20_ソフトウェア方式設計/05_利用者文書_暫定版/) 配下の GoldenPath サンプルと [../../70_開発者体験方式設計/](../../70_開発者体験方式設計/) DX-GP-* のゴールデンパス仕様である。Phase 1a で Service Invoke + State を使う最小サンプル、Phase 1b で PubSub + Workflow を追加したフル構成まで段階的に整備する。
+
+5. **PR チェックリスト**（動的言語・設計思想逸脱を人のレビューで補完する段階）— TypeScript / Python など動的言語の `require('@dapr/dapr')` 動的ロードや `importlib` 経由ロード、および型は合うが設計思想を外した Opinionated API の誤用（例: Policy Enforcer バイパス、Idempotency Key なし State Set 多用）は静的検出困難なため、PR チェックリストを Backstage の Software Template に内蔵し、レビュワーが必ず確認する項目とする。具体化は [../../70_開発者体験方式設計/04_Backstageポータル詳細方式.md](../../70_開発者体験方式設計/04_Backstageポータル詳細方式.md) DS-DEVX-BS-* の Software Template 内蔵 PR チェックリストである。Phase 1b で運用開始、Phase 1c で動的言語検出項目を拡張する。
+
+6. **内製 analyzer**（Phase 2 で初版、以降頻出逸脱を吸い上げて成長する段階）— ⑤ の PR レビューで頻出する逸脱パターン（tier2/tier3 コードに Dapr SDK 直接 import を検出、動的言語のリフレクション経由ロード検出など）を内製の AST 解析ツールに吸い上げ、機械検出の捕捉率を段階的に向上させる。具体化は [../../70_開発者体験方式設計/01_CI_CD方式.md](../../70_開発者体験方式設計/01_CI_CD方式.md) DS-DEVX-CICD-* または [../../70_開発者体験方式設計/05_テスト戦略方式.md](../../70_開発者体験方式設計/05_テスト戦略方式.md) DX-TEST-* 系に位置づけ、Phase 2 で初版（0.5 人月想定）、Phase 3 以降で頻出パターン追加の運用を回す。
+
+6 段階を単一ファイルで統括する理由は、散在すると強制力が検証不能になるためである。段階ごとに所管ファイルが分かれていると「Phase 1b で ①②③ は整ったが ④⑤ が Backstage 未実装のため実質無防備」という状態を見落とし、稟議で約束した Dapr 隠蔽の保証が実質崩れる。本統括節は四半期ごとの Product Council レビューで 6 段階のカバレッジ表（各段階が該当 Phase で機能しているか）を読み合わせる対象とし、いずれかの段階でカバレッジ欠落がある場合は該当 Phase のロールアウトをブロックする運用を導入する。
+
+**確定フェーズ**: Phase 1a（①②④）、Phase 1b（③⑤）、Phase 2（⑥）。**対応要件**: FR-T1-*（tier1 公開 API 全般）、DX-GP-\*、DX-TEST-\*、NFR-C-NOP-\*。**参照**: 企画書 L197-212、構想設計 [../../../02_構想設計/02_tier1設計/02_API契約/03_API設計原則.md](../../../02_構想設計/02_tier1設計/02_API契約/03_API設計原則.md)。
+
 ## 章末サマリ
 
 ### 設計 ID 一覧
@@ -260,6 +288,7 @@ Policy Enforcer 内の RBAC 評価で、tier1 内部の判定ロジック（例:
 | DS-SW-COMP-047 | Connection Pool と graceful shutdown | Phase 1b |
 | DS-SW-COMP-048 | タイムアウト階層 | Phase 1b |
 | DS-SW-COMP-049 | ヘルスチェックエンドポイント | Phase 1a |
+| DS-SW-COMP-140 | Dapr 隠蔽 6 段階多層防御統括 | Phase 1a/1b/2 |
 
 ## 対応要件一覧
 

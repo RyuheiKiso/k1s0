@@ -83,7 +83,7 @@
         </Array>
       </mxGeometry>
     </mxCell>
-    <mxCell id="e_tenant_feature" value="1..N (nullable)" style="endArrow=ERmany;startArrow=ERone;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1">
+    <mxCell id="e_tenant_feature" value="1..N" style="endArrow=ERmany;startArrow=ERone;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1">
       <mxGeometry relative="1" as="geometry">
         <mxPoint x="170" y="230" as="sourcePoint"/>
         <mxPoint x="170" y="290" as="targetPoint"/>

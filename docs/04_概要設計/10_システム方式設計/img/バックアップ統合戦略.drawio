@@ -100,7 +100,7 @@
           <mxGeometry x="1040" y="280" width="380" height="280" as="geometry" />
         </mxCell>
 
-        <mxCell id="tape" value="既存 JTC バックアップテープ装置 (2 次退避)&#xa;月次 第 1 土曜 02:00 JST&#xa;LTO-8 / イミュータブル保管&#xa;ランサムウェア対策 (オフライン)&#xa;保管: JTC 本社 + 遠隔倉庫 2 拠点" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+        <mxCell id="tape" value="既存 JTC バックアップテープ装置 (2 次退避)&#xa;月次 第 1 土曜 02:00 JST&#xa;MinIO Object Lock + rclone で複製&#xa;LTO-8 / イミュータブル保管&#xa;ランサムウェア対策 (オフライン)&#xa;保管: JTC 本社 + 遠隔倉庫 2 拠点" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
           <mxGeometry x="1490" y="310" width="200" height="220" as="geometry" />
         </mxCell>
 
@@ -189,7 +189,7 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="e_minio_tape" value="月次複製&#xa;(MinIO Object Lock + rclone)" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=3;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="minio_hub" target="tape">
+        <mxCell id="e_minio_tape" value="月次複製" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=3;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="minio_hub" target="tape">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 

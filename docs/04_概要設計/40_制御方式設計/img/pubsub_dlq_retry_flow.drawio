@@ -170,12 +170,11 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="e_operator_topic" value="再投入&#xa;(kafkacat)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;dashed=1;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="operator" target="topic">
+        <mxCell id="e_operator_topic" value="再投入&#xa;(kafkacat)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;dashed=1;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="operator" target="topic">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="1020" y="775" />
-              <mxPoint x="1580" y="775" />
-              <mxPoint x="1580" y="220" />
+              <mxPoint x="1620" y="775" />
+              <mxPoint x="1620" y="220" />
               <mxPoint x="650" y="220" />
             </Array>
           </mxGeometry>
