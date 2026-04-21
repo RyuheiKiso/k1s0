@@ -107,14 +107,23 @@ Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `Evaluate` / `DeployPo
 
 ## 対応要件一覧
 
-本ファイルは Decision API 公開インタフェースの詳細方式設計であり、以下の要件 ID に対応する。
+本ファイルは Decision API 公開インタフェースの詳細方式設計であり、要件 ID → 設計 ID の 1:1 対応を以下の表で固定する。表形式併記は DR-COV-001 への緩和策として、CI スクリプトでの機械検証の一次入力となる。
 
-- FR-T1-DECISION-001〜FR-T1-DECISION-004（Decision API 機能要件、JDM 評価 / バージョン管理 / Audit 連携 / ホットリロード）
-- FR-T1-DECISION-001（JDM 決定表評価）/ FR-T1-DECISION-002（決定表バージョン管理）/ FR-T1-DECISION-003（評価履歴 Audit 連携）/ FR-T1-DECISION-004（決定表ホットリロード）
-- NFR-B-PERF-005（Decision p99 1ms 低レイテンシ）
-- NFR-H-INT-004（ポリシー改ざん防止、cosign 署名）
-- NFR-H-COMP-002（判定結果の監査証跡、Audit-Pii 連携）
-- NFR-D-MIG-003（ポリシー変更の段階展開）
+| 要件 ID | 要件タイトル | 対応設計 ID | カバー状況 |
+|---|---|---|---|
+| FR-T1-DECISION-001 | JDM 決定表評価 | DS-SW-EIF-390, DS-CTRL-WF-002 | 完全 |
+| FR-T1-DECISION-002 | 決定表バージョン管理 | DS-SW-EIF-391 | 完全 |
+| FR-T1-DECISION-003 | 評価履歴 Audit 連携 | DS-SW-EIF-392, DS-CF-AUD-006 | 完全 |
+| FR-T1-DECISION-004 | 決定表ホットリロード | DS-SW-EIF-393 | 完全 |
+| NFR-B-PERF-005 | Decision p99 1ms 低レイテンシ | DS-SW-EIF-390, DS-NFR-PERF-005 | 完全 |
+| NFR-D-MIG-003 | ポリシー変更の段階展開 | DS-SW-EIF-391, DS-CF-FM-001 | 完全 |
+| NFR-H-COMP-002 | 判定結果の監査証跡（Audit-Pii 連携） | DS-SW-EIF-392, DS-NFR-COMP-002 | 完全 |
+| NFR-H-INT-004 | ポリシー改ざん防止（cosign 署名） | DS-SW-EIF-394, DS-NFR-SEC-020 | 完全 |
+
+表に載せた要件数は FR-T1-DECISION-* 4 件 + NFR 4 件 = 計 8 件。Decision p99 は B_性能拡張性.md 改訂後の正規番号 NFR-B-PERF-005（旧 -004 からオフバイワン修正）に整合させた。
+
+補助参照は以下のとおり。
+
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、Decision は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）/ ADR-RULE-001（ZEN Engine 採用）
 - 共通契約: DS-SW-EIF-001〜016（[../01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md)）
 - 本ファイルで採番: DS-SW-EIF-380 〜 DS-SW-EIF-393
