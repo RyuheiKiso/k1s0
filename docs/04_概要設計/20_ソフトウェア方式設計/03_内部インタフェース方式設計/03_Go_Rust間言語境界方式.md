@@ -18,7 +18,7 @@ tier1 の 6 Pod のうち facade 3 Pod（Go）と自作 3 Pod（Rust）の間に
 
 Go ⇔ Rust の通信は Protobuf gRPC のみを許可する。以下は禁止: (a) CGo / FFI（Go から Rust を direct link で呼ぶ）、(b) 共有メモリ（Pod 間 / プロセス間）、(c) UNIX domain socket（Pod 内 multi-container でも禁止）、(d) HTTP/JSON、(e) 独自バイナリプロトコル。根拠は [../01_コンポーネント方式設計/05_モジュール依存関係.md](../01_コンポーネント方式設計/05_モジュール依存関係.md) DS-SW-COMP-100/101 と重複するが、言語境界特有の理由として (i) CGo は Go の goroutine スケジューラを阻害する、(ii) 共有メモリは Kubernetes Pod 跨ぎでは不可、(iii) UNIX socket は Pod 跨ぎで使えず Pod 設計を崩す、(iv) Protobuf は両言語で stable な SDK があり型整合を保証しやすい、という 4 点がある。
 
-**確定フェーズ**: Phase 0。**対応要件**: ADR-TIER1-001、ADR-TIER1-002、NFR-E-CONN-\*。
+**確定フェーズ**: Phase 0。**対応要件**: ADR-TIER1-001、ADR-TIER1-002、NFR-E-NW-001〜004。
 
 ### DS-SW-IIF-051 gRPC-Web / gRPC-Gateway は未使用
 
@@ -146,13 +146,13 @@ Go Pod は daprd サイドカーと起動順序を調整する。Pod 内で dapr
 
 Go ⇔ Rust 間の gRPC 通信は Istio Ambient の ztunnel が mTLS を透過的に付与する。アプリ側（Go / Rust）は TLS 設定を持たず plain HTTP/2 で listen / dial する。mTLS 証明書のローテーション（SPIFFE 30 日）は Istio が自動実施する。Dapr の内蔵 mTLS 機能は有効化しない（Istio と二重 mTLS になるため）。
 
-**確定フェーズ**: Phase 1b。**対応要件**: NFR-E-AUTH-\*、NFR-E-ENC-001、ADR-TIER1-001。**参照**: 構想設計 ADR-0001（Istio Ambient Mesh）。
+**確定フェーズ**: Phase 1b。**対応要件**: NFR-E-AC-001〜005、NFR-E-ENC-001、ADR-TIER1-001。**参照**: 構想設計 ADR-0001（Istio Ambient Mesh）。
 
 ### DS-SW-IIF-068 L7 authz は waypoint に委譲
 
 gRPC メソッドレベルの認可（例: "STATE から DECISION の EvaluateDecision のみ許可"）は Istio Ambient の waypoint で `AuthorizationPolicy` によって実施する。アプリ側（Go / Rust）は waypoint を通過してきたリクエストの caller を信頼し、JWT 検証（Policy Enforcer）のみを行う。waypoint の policy は tier1 namespace で ConfigMap として GitOps 管理する（[../01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md](../01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md) 参照）。
 
-**確定フェーズ**: Phase 1c。**対応要件**: NFR-E-AUTH-\*、NFR-E-AUTHZ-\*。
+**確定フェーズ**: Phase 1c。**対応要件**: NFR-E-AC-001〜005。
 
 ### DS-SW-IIF-069 Circuit Breaker と Retry の Istio 側任せ
 
@@ -192,7 +192,7 @@ gRPC レベルの Circuit Breaker / Retry は Istio Ambient の waypoint で `De
 - NFR-A-CONT-003（障害影響限定）、NFR-A-FT-001（Pod 復旧）、NFR-A-REC-001（再開）
 - NFR-B-PERF-001 / NFR-B-PERF-004 / NFR-B-PERF-006（性能）
 - NFR-D-TRACE-\* / NFR-D-MON-\*（観測）
-- NFR-E-AUTH-\* / NFR-E-AUTHZ-\* / NFR-E-ENC-001 / NFR-E-CONN-\* / NFR-E-ERR-\*（セキュリティ・通信）
+- NFR-E-AC-001〜005 / NFR-E-ENC-001 / NFR-E-NW-001〜004（セキュリティ・通信）
 - NFR-H-INT-001（完整性）
 - FR-T1-TELEMETRY-\*（OTel 伝搬）
 - DX-GP-\* / DX-RB-\* / DX-MET-\*（開発者体験）
