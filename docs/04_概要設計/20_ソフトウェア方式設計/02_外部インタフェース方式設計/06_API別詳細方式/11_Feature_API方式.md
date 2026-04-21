@@ -119,7 +119,7 @@ Phase 1a（MVP-0）: `Evaluate` のみ、Boolean 型のみ、targeting は tenan
 - NFR-C-OPS-002（設定変更のトレーサビリティ、Audit-Pii 自動連携）
 - NFR-C-OPS-003（緊急時 kill switch 10 秒以内反映）
 - NFR-D-MIG-003（段階展開による移行リスク最小化）
-- NFR-H-LEG-002（設定変更の監査証跡、7 年保管）
+- NFR-H-COMP-002（設定変更の監査証跡、7 年保管）
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、Feature は Go）/ ADR-TIER1-002（Protobuf gRPC 必須）/ ADR-FEAT-001（flagd / OpenFeature 採用、未起票だが Phase 1a 前に起票予定）
 - 共通契約: DS-SW-EIF-001〜016（[../01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md)）
 - 本ファイルで採番: DS-SW-EIF-420 〜 DS-SW-EIF-434

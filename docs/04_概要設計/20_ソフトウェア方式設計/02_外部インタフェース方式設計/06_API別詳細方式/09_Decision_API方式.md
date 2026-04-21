@@ -112,8 +112,8 @@ Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `Evaluate` / `DeployPo
 - FR-T1-DECISION-001〜FR-T1-DECISION-004（Decision API 機能要件、JDM 評価 / バージョン管理 / Audit 連携 / ホットリロード）
 - FR-T1-DECISION-001（JDM 決定表評価）/ FR-T1-DECISION-002（決定表バージョン管理）/ FR-T1-DECISION-003（評価履歴 Audit 連携）/ FR-T1-DECISION-004（決定表ホットリロード）
 - NFR-B-PERF-005（Decision p99 1ms 低レイテンシ）
-- NFR-E-SEC-004（ポリシー改ざん防止、cosign 署名）
-- NFR-H-LEG-002（判定結果の監査証跡、Audit-Pii 連携）
+- NFR-H-INT-004（ポリシー改ざん防止、cosign 署名）
+- NFR-H-COMP-002（判定結果の監査証跡、Audit-Pii 連携）
 - NFR-D-MIG-003（ポリシー変更の段階展開）
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、Decision は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）/ ADR-RULE-001（ZEN Engine 採用）
 - 共通契約: DS-SW-EIF-001〜016（[../01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md)）

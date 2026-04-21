@@ -119,11 +119,11 @@ Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `RecordEvent` / `Query
 - FR-T1-AUDIT-001（RecordEvent とハッシュチェーン整合性）/ FR-T1-AUDIT-002（WORM 保持と冷データ退避）/ FR-T1-AUDIT-003（Seal と TSA 署名 / VerifyChain）
 - FR-T1-PII-001（PII 自動マスキングとマスキング辞書管理）
 - FR-T1-PII-002（PII 漏洩検出と個別エンクリプト退避）
-- NFR-E-SEC-005（監査証跡の書き込み / 読み取り / 改ざん検証の責任分離）
-- NFR-E-SEC-006（改ざん防止、ハッシュチェーン + 外部 TSA）
-- NFR-G-PRI-001〜004（PII 自動マスキング、個人情報保護法 / GDPR 対応）
-- NFR-H-LEG-001（J-SOX 7 年保管）
-- NFR-H-LEG-003（GDPR Right to Erasure）
+- NFR-E-MON-005（監査証跡の書き込み / 読み取り / 改ざん検証の責任分離）
+- NFR-E-MON-006（改ざん防止、ハッシュチェーン + 外部 TSA）
+- NFR-G-PRV-001〜004（PII 自動マスキング、個人情報保護法 / GDPR 対応）
+- NFR-H-COMP-001（J-SOX 7 年保管）
+- NFR-H-COMP-003（GDPR Right to Erasure）
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、Audit-Pii は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）/ ADR-AUDIT-001（WORM 監査採用）
 - 共通契約: DS-SW-EIF-001〜016（[../01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md)）
 - 本ファイルで採番: DS-SW-EIF-400 〜 DS-SW-EIF-414

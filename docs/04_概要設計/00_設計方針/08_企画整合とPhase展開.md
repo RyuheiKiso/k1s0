@@ -28,7 +28,7 @@
 | SLA 99% / SLO 99.9% | 要件定義 NFR-A-CONT-001 / NFR-I-SLO-001〜011 | [50_非機能方式設計/01_可用性_DR方式.md](../50_非機能方式設計/01_可用性_DR方式.md) DS-NFR-AVL-001〜021、[50_非機能方式設計/11_SLI_SLO_エラーバジェット方式.md](../50_非機能方式設計/11_SLI_SLO_エラーバジェット方式.md) DS-NFR-SLO-001〜022 | Phase 1b で SLO ダッシュボード 10 種が稼働、Error Budget 消費率 50/80% で自動アラート |
 | RPO 秒〜24 時間 / RTO 4 時間 | 要件定義 NFR-A-DR-001〜004 | [50_非機能方式設計/01_可用性_DR方式.md](../50_非機能方式設計/01_可用性_DR方式.md) の 3 AZ CNPG + Strimzi + Valkey 冗長構成、[img/ha_dr_topology.svg](../50_非機能方式設計/img/ha_dr_topology.svg) | Phase 1c で DR リハーサル年 2 回、半期 1 回のゼロスタート再構築（8 時間目標） |
 | Decision API p99 1ms | 要件定義 NFR-B-PERF-005 | [20_ソフトウェア方式設計/02_外部インタフェース方式設計/06_API別詳細方式/09_Decision_API方式.md](../20_ソフトウェア方式設計/02_外部インタフェース方式設計/06_API別詳細方式/09_Decision_API方式.md) DS-SW-EIF-388〜389 の Rust プロセス内 JIT + NUMA ローカル、ZEN Engine MPL-2.0 組込 | Phase 1a で ZEN Engine 公式ベンチ（100µs）再現、Phase 1b で本番シャドー流量で p99 1ms 連続 |
-| 監査保全 7 年 / WORM | 要件定義 NFR-H-LEG-001〜004 | [30_共通機能方式設計/04_監査証跡方式.md](../30_共通機能方式設計/04_監査証跡方式.md) DS-CF-AUD-001〜、MinIO Object Lock（Compliance mode）7 年 | Phase 1b で WORM 解除試行を Falco で検出、ハッシュチェーン検証を月次バッチで実行 |
+| 監査保全 7 年 / WORM | 要件定義 NFR-H-COMP-001〜004 | [30_共通機能方式設計/04_監査証跡方式.md](../30_共通機能方式設計/04_監査証跡方式.md) DS-CF-AUD-001〜、MinIO Object Lock（Compliance mode）7 年 | Phase 1b で WORM 解除試行を Falco で検出、ハッシュチェーン検証を月次バッチで実行 |
 
 この 11 項目は稟議資料で「設計側はどう担保するか」と問われる頻度の高い順に並べた。本ファイル以外で各数値を追跡したい場合、概要設計側は [80_トレーサビリティ/02_要件から設計へのマトリクス.md](../80_トレーサビリティ/02_要件から設計へのマトリクス.md) で要件 ID 経由、企画書側は [04_定量試算/README.md](../../01_企画/04_定量試算/README.md) の試算目次で追跡する。
 
