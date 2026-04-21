@@ -406,12 +406,14 @@ Go 側の `internal/shared/common/` と API セマンティクスを揃える（
 
 - `Cargo.toml` — prost / tonic 依存
 - `build.rs` — tonic-build 実行（drift 検証用）
-- `src/lib.rs` — 手動 include
-- `src/generated/k1s0.*.v1.rs` — buf 生成コード
+- `src/lib.rs` — `pub mod v1 { pub mod <api> ... }` の階層 include（DS-IMPL-DIR-030）
+- `src/generated/k1s0.*.v1.rs` — buf 生成コード（flat ファイル、prost 仕様）
 
 02 章で規定した `buf.gen.yaml` の `out:` 指定を `src/tier1/rust/crates/shared/proto-gen/src/generated` に更新する必要がある（02 章 DS-IMPL-DIR-031 と整合を取る）。
 
-**確定フェーズ**: Phase 1a。**対応要件**: DX-CICD-\*、ADR-TIER1-002。**上流**: DS-SW-COMP-132、DS-IMPL-DIR-031。
+**Go 側との対称性**: Go 側の生成コードは `paths=source_relative` により `shared/proto/v1/<api>/*.pb.go` のディレクトリ構造で配置される一方、Rust 側は prost 仕様上 flat ファイル命名が強制されるため物理配置が非対称になる。この非対称は `lib.rs` の `pub mod v1::<api>` 階層で吸収し、**Pod コードから見た module 階層は両言語で同一**（`v1::<api>::<Type>`）にする設計である。API の片側追加・削除は `tools/check-proto-symmetry/`（DS-IMPL-DIR-031）で CI ブロックする。
+
+**確定フェーズ**: Phase 1a。**対応要件**: DX-CICD-\*、ADR-TIER1-002。**上流**: DS-SW-COMP-132、DS-IMPL-DIR-030、DS-IMPL-DIR-031。
 
 ### DS-IMPL-DIR-090 shared/otel-util crate の配置
 

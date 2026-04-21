@@ -205,9 +205,28 @@ k1s0-tier3-<app>-bff/
 
 BFF は tier2 と同じく Kubernetes で配信されるため、10 章 DS-IMPL-DIR-257 と同じ GitOps 経路（k1s0-gitops への PR 自動作成 → Argo CD 同期）を使う。Dockerfile も distroless + non-root の制約が tier2 と同じく適用される。BFF が「tier3 の一部」なのは配信経路ではなく**役割**で分類されているためで、実装運用面は tier2 と共通点が多い。
 
-BFF の責務境界: Web / Mobile からの HTTP リクエストを受け、認証セッション（OIDC refresh）を管理し、tier1 公開 11 API への gRPC 呼び出しに集約する。BFF 内でビジネスロジックを持つことは原則禁止する（持つ場合は tier2 との境界判断を要する）。これは BFF が肥大化して「隠れ tier2」になるのを防ぐためで、迷う場合は ADR で判断する。
+**BFF 責務境界の allowlist / denylist**: 「ビジネスロジックを持たない」という抽象的なルールだけでは境界が運用で融解し、BFF が数年で隠れ tier2 になる。境界を保つため、許容される責務と禁止される責務を具体的に列挙し、迷いを技術判断に閉じる。
 
-**確定フェーズ**: Phase 1b（Template 完全版）、Phase 2（本格展開）。**対応要件**: DX-GP-005、NFR-E-AC-\*、NFR-B-PERF-\*（BFF のキャッシュで tier1 負荷軽減）。**上流**: DS-SW-DOC-002、DS-IMPL-DIR-245。
+- **BFF に置くことが許容される責務（allowlist）**:
+  1. **認証セッション管理**: OIDC Authorization Code Flow のコード交換、refresh token 保管（HttpOnly Cookie）、session 検証。
+  2. **tier1 gRPC 呼び出しの HTTP 化**: フロントからの REST / GraphQL 呼び出しを tier1 の gRPC に変換。エラーマッピング（gRPC Status → HTTP Status）を含む。
+  3. **複数 tier1 API の aggregation**: 1 画面が複数 tier1 API を必要とする際の並列呼び出しとレスポンス結合（N+1 相当の削減）。
+  4. **レスポンスキャッシュ**: tenant / user を key にした短時間（~60s）キャッシュ。冪等な GET 系のみ。
+  5. **表示用の整形**: 金額の 3 桁カンマ、日時のタイムゾーン変換、i18n 用の locale 注入など「UI 表示のための無害な変換」。状態遷移を伴わないこと。
+  6. **Web / Mobile 固有の request shaping**: CSRF token 注入、Mobile 向けの gzip 強制、ブラウザ向けの CSP ヘッダ付与。
+- **BFF に置くことを禁止する責務（denylist）**:
+  1. **業務ルール・ドメイン判定**: 「この tenant は上限 N を超えたら reject」などの業務判定は tier2 / tier1 に置く。BFF でやると同じ判定が複数 BFF にコピーされ、結果が divergence する。
+  2. **永続化を伴う計算**: 集計・ランキング計算等、結果を persist する処理は tier2 に置く。BFF で計算したら結果を DB に書くという経路は全面禁止。
+  3. **Secret の保持**: tier1 Secret API の値を BFF メモリに keep することは禁止。必要な都度 tier1 から取得する。
+  4. **tenant 越境の aggregation**: BFF が複数 tenant のデータを 1 レスポンスで返すことは禁止（Policy Enforcer が tier1 で効くが、BFF 層でも tenant 1 境界を物理的に強制する）。
+  5. **ビジネスイベントの発行**: Kafka / PubSub へのイベント発行は tier2 経由のみ。BFF から直接 tier1 PubSub API を叩くことも禁止。
+  6. **ML モデル推論・重い計算**: p95 レイテンシを損なう処理全般は tier2 に隔離する。
+
+この境界は `tools/bff-boundary-lint/`（Phase 1b）で機械的に強制する。lint は `src/services/` 配下で (a) tier1 SDK の `PubSub` / `Binding` / `Workflow` / `Secrets.Set` 系 API 呼び出し、(b) 永続ストレージクライアント（`pg` / `redis` / `mongodb` 等）の import、(c) 業務ルール判定を想起させる識別子（`calculate*`、`validateBusiness*`、`applyPolicy*`）の定義を検出したら PR を fail させる。allowlist 側の HTTP → gRPC 変換や aggregation は `src/handlers/` / `src/adapters/` 配下に閉じる前提で、`src/services/` は薄く保つ。
+
+迷うケースは ADR で判断するが、BFF 側に寄せる argument は「tier1 / tier2 で提供するより明らかに UI 要件主導で変化する」という一点のみを認める。それ以外は tier2 に寄せる。
+
+**確定フェーズ**: Phase 1b（Template 完全版、bff-boundary-lint 導入）、Phase 2（本格展開）。**対応要件**: DX-GP-005、NFR-E-AC-\*、NFR-B-PERF-\*（BFF のキャッシュで tier1 負荷軽減）、NFR-C-NOP-002。**上流**: DS-SW-DOC-002、DS-IMPL-DIR-245、DS-IMPL-DIR-272。
 
 ## DS-IMPL-DIR-268 tier3 CI 設定
 
@@ -293,9 +312,24 @@ Template が生成する実装要素:
 - **Mobile**: `Services/AuthService.cs` に IdentityModel.OidcClient（or MAUI 標準の WebAuthenticator）による Authorization Code Flow を実装済み。refresh token はプラットフォーム標準の secure storage（iOS Keychain / Android Keystore）に保存する。
 - **BFF**: `middleware/auth.ts` でフロントから受け取った session Cookie を検証し、tier1 呼び出し時の Service Account Token を使う（OIDC On-Behalf-Of フローまたは service account で代替、Phase 2 初頭に ADR で決定）。
 
-Keycloak 側の client 設定は tier3 repo ごとに 1 client を発行し、`redirect_uri` や許容 `scope` は Backstage Template 生成時に Keycloak Admin API 経由で自動登録する仕組みを Phase 2 で検討する（Phase 1b 時点では Keycloak 管理者が手動設定）。
+**Auth Flow Matrix — 構成と責務の対応表**: tier3 は Web/Mobile の 2 クライアント × BFF 経由/直接の 2 ネットワーク経路の計 4 組合せを想定する。各組合せで「ユーザ認証の主体」「token 保管場所」「tier1 呼び出し時の identity」「refresh 経路」が異なり、これを散文だけで伝えると実装で取り違える。本マトリクスは章末付録ではなく**本 ID の本文**として、構成選択時の判断材料を一箇所に集約する。
 
-**確定フェーズ**: Phase 2。**対応要件**: NFR-E-AC-\*（認証）、NFR-E-SEC-\*（XSS / CSRF 対策）、BR-PLATUSE-002。**上流**: ADR-SEC-001（Keycloak）、DS-SW-DOC-008。
+本マトリクスは「1 行読めば当該構成の全責務が分かる」密度を目標にし、セル内はラベルではなく具体的な技術要素で記述する。
+
+| 構成 | ユーザ認証 | access token 保管 | refresh token 保管 | tier1 呼び出し identity | refresh 経路 | 主な脅威対策 |
+|---|---|---|---|---|---|---|
+| **Web + BFF**（Phase 1b 推奨） | Keycloak OIDC Auth Code + PKCE。ブラウザが BFF にログイン要求→BFF が Keycloak と code 交換 | BFF プロセスメモリ（tenant/user 単位、TTL 5 min）、ブラウザは session Cookie（HttpOnly + Secure + SameSite=Strict）のみ保持 | BFF プロセスメモリ。Cookie には入れない | Keycloak Token Exchange（RFC 8693）で user token → tier1 向け audience の service account token に交換 | BFF が access 期限 60 sec 前に Keycloak に refresh。ブラウザは気付かない | XSS 耐性（token は JS 不可視）、CSRF token 必須 |
+| **Web 直接**（`uses_bff: false`、小規模想定） | Keycloak OIDC Auth Code + PKCE。ブラウザが直接 Keycloak と code 交換 | NextAuth.js の JWT Cookie（HttpOnly + Secure + SameSite=Strict）に id/access をまとめて格納 | NextAuth.js の JWT Cookie（同上） | gRPC-Web で tier1 facade Pod を直接呼ぶ。user JWT を Authorization ヘッダに付与 | ブラウザが NextAuth.js の session API 経由で refresh。Cookie 再発行 | XSS 耐性は JWT Cookie の HttpOnly 属性に依存。CSP ヘッダ厳格化で XSS 発生確率を低減 |
+| **Mobile + BFF**（Phase 2 後半検討） | MAUI WebAuthenticator で Keycloak OIDC Auth Code + PKCE | BFF プロセスメモリ（Web + BFF と同じ） | アプリ側: iOS Keychain / Android Keystore。BFF 側: プロセスメモリ | Web + BFF と同じ Token Exchange | アプリが期限前に BFF の `/auth/refresh` を叩く | XSS 非該当（native）、OS 標準の secure storage で token 保護 |
+| **Mobile 直接**（Phase 2 標準） | MAUI WebAuthenticator で Keycloak OIDC Auth Code + PKCE | アプリメモリ | iOS Keychain / Android Keystore | gRPC で tier1 facade Pod を直接呼ぶ。user JWT を metadata に付与 | アプリが期限前に Keycloak Token Endpoint を直接叩く | OS 標準 secure storage。プラットフォーム標準の pinning でトランスポート保護 |
+
+このマトリクスの読み方は 2 点。(1) **BFF 経由では token の「実体」を常にサーバ側に置く**ことで、ブラウザ側の脆弱性（XSS で token 奪取）の影響範囲を session Cookie に限定する。(2) **Mobile 直接は native の secure storage がブラウザよりセキュアな保管経路を提供する**ため、BFF 経由の優位性がブラウザ構成ほどは大きくない。この 2 点が各構成の推奨理由の本質。
+
+**tier1 呼び出しの identity 原則**: どの構成でも、tier1 facade Pod に届く gRPC 呼び出しには「ユーザ身元を示す token」が含まれる必要がある。BFF 経由の場合、BFF が自分の service account token を勝手に付けて tier1 を呼ぶと、tier1 側で「誰の操作か」が失われる。したがって BFF は Keycloak Token Exchange で user token を tier1 用 audience に変換した token を常に添付する。Policy Enforcer（tier1、DS-IMPL-DIR-051）が user 主体の RBAC / tenant 境界を評価できるのはこの token のおかげで、この原則を崩すと tier1 の audit / authorization が全滅する。
+
+Keycloak 側の client 設定は tier3 repo ごとに 1 client を発行し、`redirect_uri` や許容 `scope` は Backstage Template 生成時に Keycloak Admin API 経由で自動登録する仕組みを Phase 2 で検討する（Phase 1b 時点では Keycloak 管理者が手動設定）。各 client は構成（Web + BFF / Web 直接 / Mobile 直接）に応じて `confidential` / `public` の種別を分け、`public` client には PKCE を必須化する。
+
+**確定フェーズ**: Phase 1b（Auth Flow Matrix 確立、Web + BFF 実装）、Phase 2（Mobile 構成の実装、Token Exchange ADR 確定）。**対応要件**: NFR-E-AC-\*（認証）、NFR-E-SEC-\*（XSS / CSRF 対策）、BR-PLATUSE-002。**上流**: ADR-SEC-001（Keycloak）、DS-SW-DOC-008、DS-IMPL-DIR-051、DS-IMPL-DIR-267。
 
 ## DS-IMPL-DIR-273 tier3 テスト配置
 
