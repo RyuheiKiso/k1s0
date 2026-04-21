@@ -135,8 +135,8 @@
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="865" y="210" />
-              <mxPoint x="865" y="95" />
-              <mxPoint x="1220" y="95" />
+              <mxPoint x="865" y="108" />
+              <mxPoint x="1220" y="108" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -165,8 +165,8 @@
         <mxCell id="e_sec_bao" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="secrets" target="bao">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="955" y="95" />
-              <mxPoint x="1440" y="95" />
+              <mxPoint x="955" y="108" />
+              <mxPoint x="1440" y="108" />
             </Array>
           </mxGeometry>
         </mxCell>

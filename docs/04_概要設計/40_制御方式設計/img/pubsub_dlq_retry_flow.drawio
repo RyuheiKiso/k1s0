@@ -1,0 +1,218 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="24.7.17">
+  <diagram id="pubsub-dlq-retry" name="PubSubDLQRetryFlow">
+    <mxGraphModel dx="1600" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="PubSub Consumer リトライ 3 回 → DLQ 転送フロー (at-least-once + 受信側冪等)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1300" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="producer" value="tier2 Producer&#xa;k1s0.PubSub.Publish()&#xa;acks=all, min.insync.replicas=2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="topic" value="Kafka トピック&#xa;acme.order.placed.v1&#xa;(6 パーティション)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="110" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="consumer" value="tier2 Consumer&#xa;(Consumer Group: acme.order-service.*.cg)&#xa;業務処理ハンドラ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="920" y="110" width="320" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="try1" value="1 回目&#xa;業務処理実行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dec1" value="成功?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="330" y="320" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wait1" value="3 秒待機&#xa;(exponential backoff)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="try2" value="2 回目&#xa;再試行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="790" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dec2" value="成功?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="320" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wait2" value="9 秒待機" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="320" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="try3" value="3 回目&#xa;再試行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="490" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dec3" value="成功?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="330" y="490" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="commit" value="オフセット Commit&#xa;業務処理完了" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66b266;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="490" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq_transform" value="DLQ メタデータ付与&#xa;x-original-topic&#xa;x-failure-count&#xa;x-last-error (500 文字)&#xa;x-failed-at (RFC3339)&#xa;x-saga-id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="490" width="220" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dlq" value="DLQ トピック&#xa;acme.order.placed.v1.dlq&#xa;保持 30 日" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="490" width="320" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="operator" value="運用者 (Phase 1b 手動 / Phase 2 Backstage UI)&#xa;・kafka-console-consumer で DLQ 内容を確認&#xa;・原因特定後、kafkacat で元トピックへ再投入&#xa;・1 件 15 分以内の応答 SLO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="720" width="480" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="alert" value="監査アラート (30 日経過時)&#xa;Slack + PagerDuty 通知&#xa;起案者判断で削除可能" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="720" width="480" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_prod_topic" value="Publish&#xa;(p99 50ms)" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="producer" target="topic">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_topic_consumer" value="Subscribe&#xa;(at-least-once)" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="topic" target="consumer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_consumer_try1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="consumer" target="try1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1080" y="240" />
+              <mxPoint x="180" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_try1_dec1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="try1" target="dec1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dec1_wait1" value="失敗" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="dec1" target="wait1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dec1_commit" value="成功&#xa;(Commit)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#66b266;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="dec1" target="commit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="440" />
+              <mxPoint x="640" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_wait1_try2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="wait1" target="try2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_try2_dec2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="try2" target="dec2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dec2_wait2" value="失敗" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="dec2" target="wait2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dec2_commit" value="成功&#xa;(Commit)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#66b266;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="dec2" target="commit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="440" />
+              <mxPoint x="640" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_wait2_try3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="wait2" target="try3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="450" />
+              <mxPoint x="180" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_try3_dec3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="try3" target="dec3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dec3_commit" value="成功" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#66b266;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="dec3" target="commit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dec3_dlq_transform" value="失敗&#xa;(3 回目)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=2;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="dec3" target="dlq_transform">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="410" y="630" />
+              <mxPoint x="760" y="630" />
+              <mxPoint x="760" y="555" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_transform_dlq" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1" source="dlq_transform" target="dlq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dlq_operator" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="dlq" target="operator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_dlq_alert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;dashed=1;" edge="1" parent="1" source="dlq" target="alert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_operator_topic" value="再投入&#xa;(kafkacat)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;dashed=1;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="operator" target="topic">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1620" y="775" />
+              <mxPoint x="1620" y="220" />
+              <mxPoint x="650" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="timeline" value="累計時間: 失敗1回目 (t0) → 3s → 失敗2回目 (t+3s) → 9s → 失敗3回目 (t+12s) → DLQ 書込み (t+15s 以内) / 合計 約 30 秒" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=center;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="870" width="1460" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;fontColor=#000000;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="940" width="1460" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_app" value="■ アプリ層 (暖色 #fff2cc/#d79b00): Producer / Consumer / 試行 / 判定 / 運用者操作" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="964" width="900" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_data" value="■ データ層 (薄紫 #e1d5e7/#9673a6): Kafka トピック (6 パーティション)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#9673a6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="984" width="900" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_infra" value="■ インフラ層 (中性灰 #f5f5f5/#666666): タイムライン・アラート" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="1004" width="900" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_red" value="― 赤線太: 失敗パス / DLQ 転送" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="1024" width="700" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_green" value="― 緑線太: 成功パス (オフセット Commit)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#66b266;align=left;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1024" width="700" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_dash" value="--- 破線: 運用オペレーション (DLQ 再投入 / 30 日経過アラート)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="1044" width="900" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

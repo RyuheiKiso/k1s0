@@ -1,0 +1,218 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="24.7.17">
+  <diagram id="backup-consolidation" name="BackupConsolidation">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1000" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="k1s0 バックアップ統合戦略 (MinIO 1 次集約 → テープ 2 次退避 / RPO/RTO コミット)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1300" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="subtitle" value="各データ層のバックアップ戦略は異なるが、1 次退避先は MinIO に集約し、月次で既存 JTC テープ装置へ複製 (ランサムウェア対策 + 日常復旧の両立)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="1300" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="layer_header" value="データ層 (9 種類)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="340" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="valkey" value="Valkey Cluster (Hot State)&#xa;RPO 60s / RTO 30m&#xa;AOF everysec + RDB daily" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg_state" value="PostgreSQL State/Workflow&#xa;RPO 5m / RTO 30m&#xa;WAL 連続 + 日次ベース" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg_audit" value="PostgreSQL 監査 WORM&#xa;RPO 5m / RTO 4h&#xa;WAL 連続 + 月次 MinIO Object Lock" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="kafka" value="Kafka (Strimzi KRaft)&#xa;RPO 60s / RTO 30m&#xa;日次ログセグメント退避" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="openbao" value="OpenBao (Raft)&#xa;RPO 5m / RTO 30m&#xa;日次 Raft スナップショット" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="longhorn" value="Longhorn PVC&#xa;RPO 24h / RTO 4h&#xa;日次ボリュームスナップショット" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="500" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lgtm" value="Mimir / Loki / Tempo&#xa;RPO 15m / RTO 4h&#xa;MinIO 依存 (自身バックアップ不要)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="570" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="minio" value="MinIO 自身 (Cold State / 画像)&#xa;RPO 24h / RTO 4h&#xa;週次 別拠点 NAS rsync" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flagd" value="flagd (Feature Flag)&#xa;RPO 15m / RTO 30m&#xa;ConfigMap Git 管理 (DB なし)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="710" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_header" value="バックアップツール (Argo Workflows で夜間スケジュール)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;align=center;" vertex="1" parent="1">
+          <mxGeometry x="540" y="110" width="360" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_valkey" value="valkey-cli BGSAVE&#xa;+ Longhorn スナップショット" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="150" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_barman" value="barman cloud&#xa;(WAL 連続 + 日次ベース)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="220" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_barman2" value="barman cloud&#xa;(State 系と別 Cluster)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="290" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_kafka" value="Kafka Connect MinIO Sink&#xa;02:00 JST 日次" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="360" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_bao" value="bao operator raft snapshot&#xa;02:00 JST 日次" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="430" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_longhorn" value="Longhorn RecurringJob&#xa;02:00 JST 日次" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="500" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_lgtm" value="(バックエンドが MinIO のため&#xa;MinIO 自身の保護で代替)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="570" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_minio" value="rsync to 別拠点 NAS&#xa;週次 Sunday 03:00 JST" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="640" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tool_flagd" value="Argo CD (Git が権威)&#xa;別バックアップ不要" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="710" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="minio_hub" value="MinIO (1 次集約 / 既存 JTC NAS 1.5TB)&#xa;EC 3+2 で耐障害 / SSE-S3 暗号化 (OpenBao Transit)&#xa;バケット設計:&#xa;  mimir-blocks / loki-chunks / tempo-traces&#xa;  barman-pg-backup / kafka-archive&#xa;  longhorn-backup / openbao-snapshot&#xa;  harbor-registry / audit-worm&#xa;  apps-clickonce / apps-msix&#xa;audit-worm バケット: Object Lock Compliance / 7 年保持固定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="280" width="380" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tape" value="既存 JTC バックアップテープ装置 (2 次退避)&#xa;月次 第 1 土曜 02:00 JST&#xa;MinIO Object Lock + rclone で複製&#xa;LTO-8 / イミュータブル保管&#xa;ランサムウェア対策 (オフライン)&#xa;保管: JTC 本社 + 遠隔倉庫 2 拠点" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1490" y="310" width="200" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_valkey" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="valkey" target="tool_valkey">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pg" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="pg_state" target="tool_barman">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pg_audit" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="pg_audit" target="tool_barman2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_kafka" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="kafka" target="tool_kafka">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bao" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="openbao" target="tool_bao">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_longhorn" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="longhorn" target="tool_longhorn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_lgtm" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="lgtm" target="tool_lgtm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_minio" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="minio" target="tool_minio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_flagd" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="flagd" target="tool_flagd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_tools_minio1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_valkey" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="180" />
+              <mxPoint x="970" y="336" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tools_minio2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_barman" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="250" />
+              <mxPoint x="970" y="364" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tools_minio3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_barman2" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="320" />
+              <mxPoint x="970" y="392" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tools_minio4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_kafka" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="390" />
+              <mxPoint x="970" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tools_minio5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_bao" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="460" />
+              <mxPoint x="970" y="448" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tools_minio6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_longhorn" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="530" />
+              <mxPoint x="970" y="476" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tools_minio7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.9;entryDx=0;entryDy=0;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="tool_minio" target="minio_hub">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="670" />
+              <mxPoint x="970" y="532" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_minio_tape" value="月次複製" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=3;fontSize=11;fontColor=#000000;" edge="1" parent="1" source="minio_hub" target="tape">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rto_box" value="復旧手順 (RTO コミット)&#xa;・MinIO からの復元が 1 次 (日常障害、高速)&#xa;・テープからの復元は 2 次 (ランサム攻撃、広域災害)&#xa;・全 RTO 目標 4 時間以内 (監査 / LGTM / MinIO 自身)&#xa;・State 系 / OpenBao / Kafka は 30 分目標 (障害発生頻度が高い)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="780" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ransom_box" value="ランサムウェア対策の原則&#xa;・MinIO 1 次だけではネットワーク接続済みで暗号化リスク&#xa;・テープ 2 次はオフライン保管でイミュータブル&#xa;・監査 WORM は MinIO Object Lock Compliance で別系統保証&#xa;・鍵管理は OpenBao Transit (Secret と Backup 暗号鍵の分離)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="870" y="800" width="820" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;fontColor=#000000;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="920" width="1630" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_data" value="■ データ層 (薄紫 #e1d5e7/#9673a6): 各データ層 / MinIO 集約ハブ   ■ アプリ層 (暖色 #fff2cc/#d79b00): バックアップツール   ■ インフラ層 (中性灰 #f5f5f5/#666666): テープ装置・代替経路・補足" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="72" y="944" width="1610" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_lines" value="― 太線: 日次/週次バックアップ経路   --- 破線: 代替経路 (データ自体は別系統で保護)   太灰線: 月次テープ複製 (オフライン保管)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#000000;align=left;" vertex="1" parent="1">
+          <mxGeometry x="72" y="964" width="1610" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

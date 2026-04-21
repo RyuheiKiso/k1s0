@@ -128,17 +128,17 @@ Telemetry 書込の失敗処理は、Collector への送信が失敗しても本
 - **Phase 1c（MVP-1b）**: 監査 hash_chain 整合性異常検知時の図 1 枚、災害復旧時のフェイルオーバー図 1 枚を追加。
 - **Phase 2 以降**: Istio Ambient 採用時の mTLS 加入、Temporal 採用時の Workflow 表現差分を追加。
 
-各 Phase でシナリオ拡張時は、[../../80_トレーサビリティ/02_要件から設計へのマトリクス.md](../../80_トレーサビリティ/02_要件から設計へのマトリクス.md) を同時に更新し、要件 ID と設計 ID の対応を維持する。
+各 Phase でシナリオ拡張時は、[../80_トレーサビリティ/02_要件から設計へのマトリクス.md](../80_トレーサビリティ/02_要件から設計へのマトリクス.md) を同時に更新し、要件 ID と設計 ID の対応を維持する。
 
 ## 設計項目 DS-SW-SEQ-010 個別 API 単体仕様との整合確認
 
 本章の各シナリオと、個別 API 単体仕様（[02_外部インタフェース方式設計/06_API別詳細方式/](02_外部インタフェース方式設計/06_API別詳細方式/)）の整合を、Phase 1a 着手前にチェックリストで確認する。
 
 - [ ] シナリオ 1 の State.Get の応答仕様が `04_State_API方式.md` と一致
-- [ ] シナリオ 2 / 3 の Workflow.Start / Activity 応答仕様が `07_Workflow_API方式.md` と一致
-- [ ] シナリオ 4 の Decision.Evaluate エラー仕様が `10_Decision_API方式.md` と一致
+- [ ] シナリオ 2 / 3 の Workflow.Start / Activity 応答仕様が `06_Workflow_API方式.md` と一致
+- [ ] シナリオ 4 の Decision.Evaluate エラー仕様が `09_Decision_API方式.md` と一致
 - [ ] シナリオ 5 の認証フローが `03_認証認可インタフェース方式.md` および `00_API共通規約方式.md` と一致
-- [ ] Audit / Telemetry の共通方式が `11_Audit_Pii_API方式.md` / `09_Telemetry_API方式.md` と一致
+- [ ] Audit / Telemetry の共通方式が `10_Audit_Pii_API方式.md` / `08_Telemetry_API方式.md` と一致
 - [ ] タイムアウト・リトライ・冪等キーの数値が `00_API共通規約方式.md` と一致
 
 整合不一致が発見された場合、原則として個別 API 単体仕様を優先し、本章を是正する。ただし、シナリオ視点から個別仕様の不整合が発覚した場合は、個別仕様側にも是正を依頼する。
@@ -147,13 +147,13 @@ Telemetry 書込の失敗処理は、Collector への送信が失敗しても本
 
 本ファイルで採番した設計 ID（`DS-SW-SEQ-001` 〜 `DS-SW-SEQ-010`）と、充足する要件 ID を以下に列挙する。
 
-- `DS-SW-SEQ-001`（State.Get 正常系）: `FR-T1-STATE-001` / `FR-T1-STATE-002` / `FR-T1-LOG-001` / `FR-T1-TEL-001` / `NFR-PERF-002`
-- `DS-SW-SEQ-002`（Saga 正常系）: `FR-T1-WF-001` / `FR-T1-WF-002` / `FR-T1-AUD-001`
-- `DS-SW-SEQ-003`（Saga 補償系）: `FR-T1-WF-003` / `FR-T1-WF-004` / `FR-T1-AUD-002` / `NFR-AVL-002`
-- `DS-SW-SEQ-004`（Decision 失敗 Fallback）: `FR-T1-DEC-001` / `FR-T1-DEC-003` / `FR-T1-LOG-002`
-- `DS-SW-SEQ-005`（認証フロー横断）: `FR-T1-AUTH-001` / `FR-T1-AUTHZ-001` / `NFR-SEC-001` / `NFR-SEC-002`
-- `DS-SW-SEQ-006`（タイムアウト・リトライ・冪等キー共通方針）: `NFR-PERF-001` / `NFR-AVL-001` / 制約 6（非機能数値コミット）
-- `DS-SW-SEQ-007`（Audit 連動共通方式）: `FR-T1-AUD-001` ～ `FR-T1-AUD-006` / `NFR-COMP-001`
-- `DS-SW-SEQ-008`（Telemetry 連動共通方式）: `FR-T1-TEL-001` / `FR-T1-TEL-002` / `NFR-OBS-001` / `NFR-OBS-002`
+- `DS-SW-SEQ-001`（State.Get 正常系）: `FR-T1-STATE-001` / `FR-T1-STATE-002` / `FR-T1-LOG-001` / `FR-T1-TELEMETRY-001` / `NFR-B-PERF-002`
+- `DS-SW-SEQ-002`（Saga 正常系）: `FR-T1-WORKFLOW-001` / `FR-T1-WORKFLOW-002` / `FR-T1-AUDIT-001`
+- `DS-SW-SEQ-003`（Saga 補償系）: `FR-T1-WORKFLOW-003` / `FR-T1-WORKFLOW-004` / `FR-T1-AUDIT-002` / `NFR-A-CONT-002`
+- `DS-SW-SEQ-004`（Decision 失敗 Fallback）: `FR-T1-DECISION-001` / `FR-T1-DECISION-003` / `FR-T1-LOG-002`
+- `DS-SW-SEQ-005`（認証フロー横断）: `NFR-E-AC-001` / `NFR-E-AC-002` / `NFR-E-RSK-001` / `NFR-E-RSK-002`
+- `DS-SW-SEQ-006`（タイムアウト・リトライ・冪等キー共通方針）: `NFR-B-PERF-001` / `NFR-A-CONT-001` / 制約 6（非機能数値コミット）
+- `DS-SW-SEQ-007`（Audit 連動共通方式）: `FR-T1-AUDIT-001` ～ `FR-T1-AUDIT-003` / `FR-T1-PII-001` ～ `FR-T1-PII-002` / `NFR-H-COMP-001`
+- `DS-SW-SEQ-008`（Telemetry 連動共通方式）: `FR-T1-TELEMETRY-001` / `FR-T1-TELEMETRY-002` / `NFR-I-SLI-001` / `NFR-I-SLO-001`
 - `DS-SW-SEQ-009`（Phase 別シナリオ拡張）: 間接対応（Phase 進行管理）
 - `DS-SW-SEQ-010`（個別 API 単体仕様整合）: 間接対応（整合性担保）

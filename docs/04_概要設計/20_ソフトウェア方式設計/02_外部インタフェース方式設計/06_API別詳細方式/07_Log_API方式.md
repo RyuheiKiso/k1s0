@@ -108,9 +108,9 @@ Phase 1a（MVP-0）は `Submit` unary のみ提供し、排出先は Dev Loki（
 - FR-T1-LOG-003（非同期エンキューと本線非ブロック）
 - FR-T1-LOG-004（バッファ drop 時のアラート）
 - NFR-B-PERF-006（Log API p99 5ms エンキュー）
-- NFR-E-SEC-006（PII 漏洩防止の技術的強制）
-- NFR-G-PRIV-001（個人情報保護法順守）
-- NFR-G-PRIV-002（GDPR 順守）
+- NFR-E-MON-006（PII 漏洩防止の技術的強制）
+- NFR-G-PRV-001（個人情報保護法順守）
+- NFR-G-PRV-002（GDPR 順守）
 - NFR-H-COMP-004（監査ログ WORM 保持）
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、custom-log は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）
 - 連携設計: [08_Telemetry_API方式.md](08_Telemetry_API方式.md)（観測性パイプライン共有）/ [10_Audit_Pii_API方式.md](10_Audit_Pii_API方式.md)（PII マスキング辞書共有）

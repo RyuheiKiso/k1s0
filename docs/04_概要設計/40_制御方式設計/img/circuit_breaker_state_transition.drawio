@@ -1,0 +1,121 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="24.7.17">
+  <diagram id="circuit-breaker-state" name="CircuitBreakerStateTransition">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1000" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="サーキットブレーカー状態遷移 (Closed / Open / HalfOpen)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="subtitle" value="tier1 外部依存呼び出し (Valkey / Kafka / OpenBao / Keycloak / 下流 tier2 / 外部 Binding) に共通適用" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="300" y="60" width="1000" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="closed" value="Closed (通常)&#xa;全リクエスト通過&#xa;失敗をカウンタに記録" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;fontColor=#000000;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="140" y="400" width="280" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="open" value="Open (遮断)&#xa;全リクエスト即時失敗&#xa;(503 / Unavailable)&#xa;下流への負荷停止" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;fontColor=#000000;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="400" width="280" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="halfopen" value="HalfOpen (試行)&#xa;少数リクエストのみ通過&#xa;下流の回復を探る" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=14;fontStyle=1;fontColor=#000000;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="660" y="400" width="280" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="metrics" value="Prometheus メトリクス&#xa;circuit_breaker_state{dependency, state}&#xa;  Closed=0 / Open=1 / HalfOpen=2&#xa;circuit_breaker_transitions_total{dependency, from, to}" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="540" y="720" width="520" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trigger_close_open" value="直近 1 分で失敗 10 回以上&#xa;かつ失敗率 50% 以上" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="180" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trigger_open_half" value="Open 遷移から 30 秒経過&#xa;(Kubernetes Pod 再起動&#xa;+ Readiness 典型値)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f2ff;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trigger_half_close" value="HalfOpen 中の試行 3 回&#xa;すべて成功" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#66b266;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="230" y="180" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trigger_half_open" value="HalfOpen 中の試行で&#xa;1 回でも失敗" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="830" y="600" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_closed_open" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=3;" edge="1" parent="1" source="closed" target="open">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_open_half" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#6c8ebf;strokeWidth=3;" edge="1" parent="1" source="open" target="halfopen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="300" />
+              <mxPoint x="980" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_half_closed" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#66b266;strokeWidth=3;" edge="1" parent="1" source="halfopen" target="closed">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="300" />
+              <mxPoint x="460" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_half_open" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=3;" edge="1" parent="1" source="halfopen" target="open">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="680" />
+              <mxPoint x="1320" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="threshold_box" value="閾値の根拠&#xa;・失敗 10 回 / 1 分: 単発失敗では Open にせず、継続失敗で判断&#xa;・失敗率 50%: 半分以上失敗 = 下流が明確に不健全 (Hystrix / Resilience4j と同値)&#xa;・Open 30 秒: Kubernetes Pod 再起動 + Readiness Probe 登録の典型値&#xa;・HalfOpen 3 回: 回復確認に必要な最小サンプル数" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="440" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="impl_box" value="実装ライブラリ&#xa;・Go (Dapr ファサード): sony/gobreaker&#xa;・Rust (自作領域): failsafe 互換パターン自前実装&#xa;両者とも同一状態機械を共有し、メトリクス名を一致" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="720" width="440" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;fontColor=#000000;align=left;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="860" width="1440" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_app" value="■ アプリ層 (暖色 #fff2cc/#d79b00): サーキットブレーカーの状態" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#d79b00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="884" width="700" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_infra" value="■ インフラ層 (中性灰 #f5f5f5/#666666): 閾値根拠・実装ライブラリ・メトリクス" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="904" width="700" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_red" value="― 赤線太: 障害検知による悪化遷移 (Closed→Open / HalfOpen→Open)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#b85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="924" width="700" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_green" value="― 緑線太: 回復遷移 (HalfOpen→Closed)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#66b266;align=left;" vertex="1" parent="1">
+          <mxGeometry x="92" y="944" width="700" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_blue" value="― 青線太: 試行遷移 (Open→HalfOpen、時間経過によるトリガ)" style="text;html=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#6c8ebf;align=left;" vertex="1" parent="1">
+          <mxGeometry x="780" y="884" width="700" height="18" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
