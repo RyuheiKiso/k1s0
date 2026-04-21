@@ -165,4 +165,4 @@ NFR-C-MNT-003（tier1 公開 API は Phase 1〜2 では minor を越えた後方
 
 ## 対応要件一覧
 
-本章は要件定義書の以下エントリに対応する。OR-EOL-001（非推奨対象）、OR-EOL-002（非推奨プロセス）、OR-EOL-003（Warning 通知）、OR-EOL-004（移行支援）、OR-EOL-005（EOL 後扱い）、OR-EOL-006（OSS 廃止リスク）。加えて NFR-C-MNT-001（計画停止ウィンドウ）、NFR-C-MNT-002（OSS バージョン追従）、NFR-C-MNT-003（API 互換方針）にも直接対応する。NFR-H-LIC-001（OSS ライセンス管理）、NFR-H-AUD-001（監査証跡 10 年保管）と連動する。
+本章は要件定義書の以下エントリに対応する。OR-EOL-001（非推奨対象）、OR-EOL-002（非推奨プロセス）、OR-EOL-003（Warning 通知）、OR-EOL-004（移行支援）、OR-EOL-005（EOL 後扱い）、OR-EOL-006（OSS 廃止リスク）。加えて NFR-C-MNT-001（計画停止ウィンドウ）、NFR-C-MNT-002（OSS バージョン追従）、NFR-C-MNT-003（API 互換方針）にも直接対応する。BC-LIC-001（OSS ライセンス管理）、NFR-H-AUD-001（監査証跡 10 年保管）と連動する。
