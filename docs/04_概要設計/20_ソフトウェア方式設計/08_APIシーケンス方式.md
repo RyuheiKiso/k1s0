@@ -135,10 +135,10 @@ Telemetry 書込の失敗処理は、Collector への送信が失敗しても本
 本章の各シナリオと、個別 API 単体仕様（[02_外部インタフェース方式設計/06_API別詳細方式/](02_外部インタフェース方式設計/06_API別詳細方式/)）の整合を、Phase 1a 着手前にチェックリストで確認する。
 
 - [ ] シナリオ 1 の State.Get の応答仕様が `04_State_API方式.md` と一致
-- [ ] シナリオ 2 / 3 の Workflow.Start / Activity 応答仕様が `07_Workflow_API方式.md` と一致
-- [ ] シナリオ 4 の Decision.Evaluate エラー仕様が `10_Decision_API方式.md` と一致
+- [ ] シナリオ 2 / 3 の Workflow.Start / Activity 応答仕様が `06_Workflow_API方式.md` と一致
+- [ ] シナリオ 4 の Decision.Evaluate エラー仕様が `09_Decision_API方式.md` と一致
 - [ ] シナリオ 5 の認証フローが `03_認証認可インタフェース方式.md` および `00_API共通規約方式.md` と一致
-- [ ] Audit / Telemetry の共通方式が `11_Audit_Pii_API方式.md` / `09_Telemetry_API方式.md` と一致
+- [ ] Audit / Telemetry の共通方式が `10_Audit_Pii_API方式.md` / `08_Telemetry_API方式.md` と一致
 - [ ] タイムアウト・リトライ・冪等キーの数値が `00_API共通規約方式.md` と一致
 
 整合不一致が発見された場合、原則として個別 API 単体仕様を優先し、本章を是正する。ただし、シナリオ視点から個別仕様の不整合が発覚した場合は、個別仕様側にも是正を依頼する。
