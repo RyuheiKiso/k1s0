@@ -251,7 +251,7 @@ Phase 1a → 1b の移行時、既存 partition の replication factor を 1 →
 | FR-T1-PUBSUB-003 | at-least-once と DLQ | DS-SW-EIF-263, DS-CTRL-MSG-003 | 完全 |
 | FR-T1-PUBSUB-004 | Ordering とトピック命名強制 | DS-SW-EIF-264 | 完全 |
 | FR-T1-PUBSUB-005 | Schema Registry 連携 | DS-SW-EIF-265 | 完全 |
-| NFR-B-PERF-003 | PubSub Publish p99 50ms / Subscribe e2e p99 200ms | DS-SW-EIF-266, DS-NFR-PERF-003 | 完全 |
+| NFR-B-PERF-005 | PubSub Publish p99 50ms / Subscribe e2e p99 200ms | DS-SW-EIF-266, DS-NFR-PERF-004 | 完全 |
 | NFR-C-OPS-020 | DLQ 監視と SRE アラート | DS-SW-EIF-267, DS-NFR-OPS-020 | 完全 |
 | NFR-E-AC-007 | テナント分離（topic 命名強制） | DS-SW-EIF-264, DS-CF-AUTHZ-004 | 完全 |
 

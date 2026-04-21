@@ -115,12 +115,12 @@ Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `Evaluate` / `DeployPo
 | FR-T1-DECISION-002 | 決定表バージョン管理 | DS-SW-EIF-391 | 完全 |
 | FR-T1-DECISION-003 | 評価履歴 Audit 連携 | DS-SW-EIF-392, DS-CF-AUD-006 | 完全 |
 | FR-T1-DECISION-004 | 決定表ホットリロード | DS-SW-EIF-393 | 完全 |
-| NFR-B-PERF-005 | Decision p99 1ms 低レイテンシ | DS-SW-EIF-390, DS-NFR-PERF-005 | 完全 |
+| NFR-B-PERF-004 | Decision 評価 p99 1ms 低レイテンシ | DS-SW-EIF-390, DS-NFR-PERF-002 | 完全 |
 | NFR-D-MIG-003 | ポリシー変更の段階展開 | DS-SW-EIF-391, DS-CF-FM-001 | 完全 |
 | NFR-H-COMP-002 | 判定結果の監査証跡（Audit-Pii 連携） | DS-SW-EIF-392, DS-NFR-COMP-002 | 完全 |
 | NFR-H-INT-004 | ポリシー改ざん防止（cosign 署名） | DS-SW-EIF-394, DS-NFR-SEC-020 | 完全 |
 
-表に載せた要件数は FR-T1-DECISION-* 4 件 + NFR 4 件 = 計 8 件。Decision p99 は B_性能拡張性.md 改訂後の正規番号 NFR-B-PERF-005（旧 -004 からオフバイワン修正）に整合させた。
+表に載せた要件数は FR-T1-DECISION-* 4 件 + NFR 4 件 = 計 8 件。Decision p99 は要件定義書 [`../../../../03_要件定義/30_非機能要件/B_性能拡張性.md`](../../../../03_要件定義/30_非機能要件/B_性能拡張性.md) の **NFR-B-PERF-004**（Decision 評価 p99 < 1ms、Phase 1a MUST）に対応する。PubSub Publish p99 50ms は NFR-B-PERF-005 で別要件。過去改訂で「オフバイワン修正」として 004→005 へ書換えた記述は要件書側の連番を誤認した誤修正であり、本版で要件書の正規番号に戻した。
 
 補助参照は以下のとおり。
 

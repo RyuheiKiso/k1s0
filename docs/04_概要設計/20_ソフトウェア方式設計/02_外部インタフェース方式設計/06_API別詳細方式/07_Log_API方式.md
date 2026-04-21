@@ -109,7 +109,7 @@ Phase 1a（MVP-0）は `Submit` unary のみ提供し、排出先は Dev Loki（
 | FR-T1-LOG-002 | PII 自動マスキング | DS-SW-EIF-351, DS-CF-AUD-002 | 完全 |
 | FR-T1-LOG-003 | 非同期エンキューと本線非ブロック | DS-SW-EIF-352 | 完全 |
 | FR-T1-LOG-004 | バッファ drop 時のアラート | DS-SW-EIF-353 | 完全 |
-| NFR-B-PERF-006 | Log API p99 5ms エンキュー | DS-SW-EIF-352, DS-NFR-PERF-006 | 完全 |
+| NFR-B-PERF-006 | Log / Telemetry 計装オーバヘッド 10ms（Log API 内部目標 p99 5ms 非同期エンキュー） | DS-SW-EIF-352, DS-NFR-PERF-010 | 完全 |
 | NFR-E-MON-006 | PII 漏洩防止の技術的強制 | DS-SW-EIF-351, DS-NFR-SEC-014 | 完全 |
 | NFR-G-PRV-001 | 個人情報保護法順守 | DS-SW-EIF-351, DS-NFR-PRV-001 | 完全 |
 | NFR-G-PRV-002 | GDPR 順守 | DS-SW-EIF-351, DS-NFR-PRV-002 | 完全 |

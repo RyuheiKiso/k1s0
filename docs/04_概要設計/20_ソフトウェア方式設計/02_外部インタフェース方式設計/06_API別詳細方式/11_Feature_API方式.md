@@ -119,13 +119,13 @@ Phase 1a（MVP-0）: `Evaluate` のみ、Boolean 型のみ、targeting は tenan
 | FR-T1-FEATURE-002 | 段階ロールアウト（%） | DS-SW-EIF-431, DS-CF-FM-002 | 完全 |
 | FR-T1-FEATURE-003 | circuit breaker ルール | DS-SW-EIF-432 | 完全 |
 | FR-T1-FEATURE-004 | A/B テスト（fractional rollout） | DS-SW-EIF-433, DS-CF-FM-011 | 完全 |
-| NFR-B-PERF-001 | Feature p99 5ms インメモリ評価 | DS-SW-EIF-430, DS-NFR-PERF-001 | 完全 |
+| NFR-B-PERF-007 | Feature Flag 評価 p99 10ms（内部目標 p99 5ms インメモリ評価） | DS-SW-EIF-430, DS-NFR-PERF-011 | 完全 |
 | NFR-C-OPS-002 | 設定変更のトレーサビリティ（Audit-Pii 自動連携） | DS-SW-EIF-431, DS-CF-FM-013 | 完全 |
 | NFR-C-OPS-003 | 緊急時 kill switch 10 秒以内反映 | DS-SW-EIF-432 | 完全 |
 | NFR-D-MIG-003 | 段階展開による移行リスク最小化 | DS-SW-EIF-431, DS-MIG-CUT-002 | 完全 |
 | NFR-H-COMP-002 | 設定変更の監査証跡（7 年保管） | DS-SW-EIF-431, DS-CF-FM-014 | 完全 |
 
-表に載せた要件数は FR-T1-FEATURE-* 4 件 + NFR 5 件 = 計 9 件。Feature p99 は tier1 共通の NFR-B-PERF-001 を継承（Feature 固有番号は採番なし、インメモリ評価前提で一律 p99 5ms を満たす設計）。
+表に載せた要件数は FR-T1-FEATURE-* 4 件 + NFR 5 件 = 計 9 件。Feature p99 は [`03_要件定義/30_非機能要件/B_性能拡張性.md`](../../../../03_要件定義/30_非機能要件/B_性能拡張性.md) で **NFR-B-PERF-007（Feature Flag 評価 p99 10ms）** として独立採番されている（Log/Telemetry の NFR-B-PERF-006 とは別番号）。設計層ではインメモリ評価前提で内部目標 p99 5ms を掲げ、要件層の 10ms に対して 50% の余裕を持たせる。
 
 補助参照は以下のとおり。
 

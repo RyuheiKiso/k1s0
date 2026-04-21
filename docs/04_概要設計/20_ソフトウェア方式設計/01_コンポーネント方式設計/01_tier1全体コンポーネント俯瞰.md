@@ -174,7 +174,7 @@ Pod 起動順序は「自作 Rust 領域 → Dapr ファサード層」の順を
 
 - FR-T1-\* 全 49 件（Service Invoke / State / PubSub / Secrets / Binding / Workflow / Log / Telemetry / Decision / Audit / PII / Feature の公開 API）
 - NFR-A-CONT-001（SLA 稼働率 99%）、NFR-A-CONT-002（degrade 稼働）、NFR-A-CONT-003（バックエンド障害影響限定）、NFR-A-FT-001（単一 Pod 復旧）、NFR-A-REC-001（再開）
-- NFR-B-PERF-001（p99 500ms）、NFR-B-PERF-002（State Get p99 10ms）、NFR-B-PERF-004（Decision p99 1ms）、NFR-B-PERF-006（計装オーバヘッド 10ms）、NFR-B-WL-001（規模別 RPS）、NFR-B-CAP-\*
+- NFR-B-PERF-001（tier1 API p99 500ms）、NFR-B-PERF-002（スループット 150 RPS）、NFR-B-PERF-003（State Get p99 10ms）、NFR-B-PERF-004（Decision p99 1ms）、NFR-B-PERF-006（計装オーバヘッド 10ms）、NFR-B-WL-001（規模別 RPS）、NFR-B-CAP-\*
 - NFR-C-NOP-001（運用 2 名）、NFR-C-NOP-002（可視性）、NFR-C-NOP-003（7 年保管）
 - NFR-D-MON-\*、NFR-D-TRACE-\*、NFR-E-AC-001〜005、NFR-E-ENC-001、NFR-F-ENV-\*、NFR-G-ENC-\*、NFR-H-INT-001、NFR-H-KEY-001
 - DX-GP-\*、DX-MET-\*
