@@ -1,0 +1,239 @@
+<mxfile host="app.diagrams.net" modified="2026-04-21T00:00:00.000Z" agent="k1s0" version="22.1.16">
+  <diagram name="common_functions_dependency" id="common-functions-dependency">
+    <mxGraphModel dx="1700" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1320" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="30_共通機能方式設計 9 項目相互依存図 — 4 レイヤ記法規約に基づく責務別配置（アプリ層 / ネットワーク層 / データ層）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1620" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sec_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffaeb;strokeColor=#d6b656;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1620" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="sec_title" value="セキュリティ系（アプリ層 = 暖色）— tier1 API から明示的に呼び出す統制機構" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="55" y="78" width="1590" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auth" value="① 01_認証方式設計&#10;OIDC + mTLS + SPIFFE&#10;DS-CF-AUTH-001 〜 010&#10;Keycloak HA 統合 / JWT 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="115" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="authz" value="② 02_認可と権限モデル方式&#10;RBAC + ABAC + テナント分離&#10;DS-CF-AUTHZ-001 〜 008&#10;Istio AuthorizationPolicy + tier1 内チェック" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="450" y="115" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="crypto" value="⑧ 08_暗号化と鍵管理方式&#10;鍵階層（マスター / データ / セッション）&#10;DS-CF-CRYPT-001 〜 010&#10;OpenBao + 自作 Rust crypto 領域" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="115" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="errmsg" value="⑦ 07_エラーハンドリングとメッセージ方式&#10;統一エラーコード（K1s0Error）&#10;DS-CF-ERR-001 〜 008&#10;tier1 API 全体の例外契約" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="115" width="320" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="net_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eef4fb;strokeColor=#6c8ebf;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="370" width="1620" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="net_title" value="観測性系（ネットワーク層 = 寒色）— アプリから透過的に効く 3 シグナル + Feature Management" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="55" y="378" width="1590" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="log" value="③ 03_ログ出力方式&#10;構造化ログ + 相関 ID 伝播&#10;DS-CF-LOG-001 〜 008&#10;Loki 集約 / 90 日保持" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="415" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="trace" value="⑤ 05_分散トレーシング方式&#10;OpenTelemetry + W3C Trace Context&#10;DS-CF-TRACE-001 〜 008&#10;Tempo 集約 / sampling 1%（本番）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="450" y="415" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="metric" value="⑥ 06_メトリクス収集方式&#10;Prometheus 命名 + ラベル設計&#10;DS-CF-METRIC-001 〜 008&#10;Mimir 13 か月保持 / カーディナリティ制限" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="415" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="fm" value="⑨ 09_FeatureManagement 方式&#10;OpenFeature + flagd ローカル評価&#10;DS-CF-FM-001 〜 015&#10;A/B / カナリー / テナント別ロールアウト" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="415" width="320" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="data_lane" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3eef7;strokeColor=#9673a6;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="1620" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="data_title" value="データ層（薄紫）— 状態保持と改ざん防止が責務、上位 8 機構の実行記録を集約" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="55" y="678" width="1590" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" value="④ 04_監査証跡方式 — PostgreSQL ハッシュチェーン + MinIO WORM 7 年保管&#10;DS-CF-AUD-001 〜 010 / J-SOX + 個人情報保護法 + GDPR 整合" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;fontSize=12;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="725" width="1000" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_auth_authz" style="html=1;strokeWidth=3;strokeColor=#d79b00;endArrow=classic;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="auth" target="authz">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_auth_authz_lbl" value="主体伝搬&#10;（JWT claims）" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="405" y="195" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_crypto_auth" style="html=1;strokeWidth=3;strokeColor=#d79b00;endArrow=classic;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="crypto" target="auth">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="65" />
+              <mxPoint x="410" y="65" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_crypto_auth_lbl" value="JWT 署名鍵 + mTLS 証明書発行" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="500" y="50" width="220" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_authz_audit" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="authz" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_authz_audit_lbl" value="認可判定を記録" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="540" y="640" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_auth_audit" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.05;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="auth" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="650" />
+              <mxPoint x="400" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_auth_audit_lbl" value="認証イベント記録" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="630" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_log_audit" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="log" target="audit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_log_audit_lbl" value="重要ログを派生" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="280" y="688" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_trace_log" style="html=1;strokeWidth=2;strokeColor=#6c8ebf;endArrow=classic;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="trace" target="log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_trace_log_lbl" value="trace_id 埋込" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="405" y="495" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_metric_trace" style="html=1;strokeWidth=2;strokeColor=#6c8ebf;endArrow=classic;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="metric" target="trace">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_metric_trace_lbl" value="exemplar 結合" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="775" y="495" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_err_log" style="html=1;strokeWidth=3;strokeColor=#d79b00;endArrow=classic;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.95;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="errmsg" target="log">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="380" />
+              <mxPoint x="384" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_err_log_lbl" value="K1s0Error をログ転送" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="370" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_err_audit" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="errmsg" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_err_audit_lbl" value="重要エラーを監査記録" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="640" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_crypto_audit" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="crypto" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="660" />
+              <mxPoint x="850" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_crypto_audit_lbl" value="ハッシュチェーン署名" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="640" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_crypto_log" style="html=1;strokeWidth=3;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="crypto" target="log">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="345" />
+              <mxPoint x="240" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_crypto_log_lbl" value="PII マスキング鍵提供" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="450" y="350" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_fm_audit" style="html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.95;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="fm" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fm_audit_lbl" value="フラグ変更を監査記録" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="624" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_fm_log" style="html=1;strokeWidth=2;strokeColor=#6c8ebf;endArrow=classic;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;dashed=1;" edge="1" parent="1" source="fm" target="log">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="515" />
+              <mxPoint x="60" y="415" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_fm_log_lbl" value="フラグ判定をログ（透過）" style="text;html=1;strokeColor=none;fillColor=#ffffff;fillOpacity=95;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="365" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="920" width="1620" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例（drawio 4 レイヤ記法規約準拠）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="55" y="925" width="600" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lg_app" value="アプリ層（#fff2cc / #d79b00）：tier1 API から明示的に呼び出すセキュリティ系・エラー系 — 認証 / 認可 / 暗号化 / エラーハンドリング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="955" width="1580" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net" value="ネットワーク層（#dae8fc / #6c8ebf）：アプリから透過的に効く観測性系・宣言系 — ログ / トレース / メトリクス / Feature Management" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="995" width="1580" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data" value="データ層（#e1d5e7 / #9673a6）：状態保持と改ざん防止 — 監査証跡 / WORM 保管 / ハッシュチェーン整合性検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1035" width="1580" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lg_arrow_title" value="矢印の意味（線の太さ・色・実線点線の組合せ）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1080" width="600" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow1" value="暖色実線太：アプリ層内の明示的な依存呼出（例：認証 → 認可 への JWT claims 伝搬）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1105" width="780" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow2" value="寒色実線細：観測性系の透過的なシグナル結合（例：分散トレーシング → ログ への trace_id 自動注入）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1125" width="780" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow3" value="紫実線細：データ層への永続化（例：認可判定 → 監査証跡 への記録、暗号化 → 監査証跡 へのハッシュチェーン署名）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1145" width="780" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_arrow4" value="寒色点線細：間接的・条件付の透過捕捉（例：Feature Management → ログ への評価結果非同期送信）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1165" width="780" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lg_read1" value="読み方：監査証跡（④）が単独でデータ層に置かれているのは、上位 8 機構すべての実行記録が最終的に監査証跡へ集約される構造を可視化するためである。J-SOX / 個人情報保護法 / GDPR の即時提出要件は監査証跡の改ざん防止性能で担保され、その鍵管理を暗号化（⑧）が、その記録経路をログ出力（③）が支える依存関係になる。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1195" width="1580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_read2" value="執筆順の根拠：認証系 → 観測性系 → エラー系 → 暗号系 → Feature Management の順は、上位機構（認証 / 認可）が下位機構（監査 / ログ）へ依存を流す向きと整合する。図中の矢印が「上から下」「左から右」へ流れるよう配置することで、執筆順序のままレビューしても依存関係の前提が崩れない。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1245" width="1580" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

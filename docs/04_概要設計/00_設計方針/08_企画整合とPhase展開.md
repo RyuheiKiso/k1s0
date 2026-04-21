@@ -52,6 +52,41 @@ Phase 1a で tier1 Go 実装を **`k1s0.Log` 単独**に絞る根拠は、企画
 
 Backstage の投入時期は Phase 2 である。[01_MVPスコープ.md 第 4 節](../../01_企画/03_ロードマップと体制/01_MVPスコープ.md) で MVP-1a（Phase 1b）の「含めないもの」および MVP 全体の「含めないもの」の双方で Phase 2 と明示されている。Phase 1a〜1c ではセルフサービスの価値は「自製アプリ配信ポータル（0.5 人月）」で最小実証し、Backstage Service Catalog + Software Templates + TechDocs の本格導入は開発者 3 名以上の段階となる Phase 2 まで遅延させる。
 
+## tier1 公開 11 API × Phase 貫通マトリクス
+
+企画書は「tier1 公開 11 API すべてを Phase 2 までに本格実装する」と約束しており、稟議では「いま Phase 1a でどの API が動き、Phase 1b / 1c で何を追加し、残り何を Phase 2 に持ち越すか」を API 単位で説明できることが前提となる。前節「Phase 別スコープ確定表」は Phase を主軸に設計 ID 群を並べているため、API 単位での貫通把握には以下のマトリクスが必要となる。各 API の Phase ごとの実装到達度を **未着手 / スタブ / 部分実装 / 本格実装** の 4 段階で明示し、対応する代表設計 ID を併記する。
+
+| 公開 API | Phase 1a（2.5 人月） | Phase 1b（6.8 人月） | Phase 1c（4.4 人月） | Phase 2（継続） | 代表設計 ID |
+|---|---|---|---|---|---|
+| Service Invoke | スタブ（gRPC エンドポイント定義のみ） | スタブ継続 | スタブ継続 | 本格実装 | DS-SW-EIF-001, DS-CTRL-RETRY-001 |
+| State | スタブ | スタブ継続 | スタブ継続 | 本格実装（Valkey + PG） | DS-SW-EIF-012, DS-SYS-DB-001 |
+| PubSub | スタブ | スタブ継続 | スタブ継続 | 本格実装（Kafka / Strimzi） | DS-SW-EIF-020, DS-SYS-DB-003 |
+| Secrets | スタブ | スタブ継続 | スタブ継続 | 本格実装（OpenBao HA） | DS-SW-EIF-028, DS-CF-CRYPT-003 |
+| Binding | スタブ | スタブ継続 | スタブ継続 | 本格実装 | DS-SW-EIF-032, DS-CTRL-MSG-001 |
+| Workflow | スタブ | スタブ継続 | スタブ継続 | 本格実装（Temporal） | DS-SW-EIF-040, DS-CTRL-WF-001 |
+| Log | **本格実装**（`k1s0.Log` MVP-0）| 拡充（構造化ログ完成）| Loki 集約完成 | 継続改善 | DS-SW-EIF-050, DS-CF-LOG-001 |
+| Telemetry | スタブ | **本格実装**（OTel Collector + Tempo Agent）| Tempo 本格稼働 | Pyroscope 追加 | DS-SW-EIF-055, DS-CF-TRACE-001 |
+| Decision | 未着手 | スタブ（ZEN Engine 公式ベンチ再現）| スタブ継続 | 本格実装（Rust プロセス内 JIT）| DS-SW-EIF-060, DS-CTRL-WF-002 |
+| Audit-Pii | 未着手 | スタブ | スタブ（監査ログ骨格 + MinIO WORM）| 本格実装（改ざん防止ハッシュチェーン完成）| DS-SW-EIF-065, DS-CF-AUD-001 |
+| Feature | 未着手 | 未着手 | 未着手 | 本格実装（OpenFeature + flagd）| DS-SW-EIF-070, DS-CF-FM-001 |
+
+上表の読み方は 2 点ある。第一に、Phase 1a で本格実装される API は Log 1 つのみであり、これは企画書 [02_開発工数試算.md 第 3.1 節](../../01_企画/04_定量試算/02_開発工数試算.md) の 2.5 人月積算に直結する。Log 以外の 10 API は gRPC エンドポイント定義と最小スタブ（501 Not Implemented 相当）のみで、SLO 適用対象外として扱う。第二に、Phase 1b で Telemetry が本格実装に昇格するのは、パイロット業務 1 本の SLO 監視が Phase 1b Gate の前提であるためである。Decision / Audit-Pii / Feature の 3 API は MVP-1b までは骨格のみで、本格実装は Phase 2 まで繰り越す方針で稟議に提示する。
+
+この貫通マトリクスは Phase Gate レビューでの Go/NoGo 判定の一次資料として使う。Phase 1a 完了時には「Log が本格実装され、残 10 API がスタブとして gRPC 応答可能」の 2 条件を Gate 通過条件とする。
+
+## Phase Gate 判定プロトコル
+
+Phase Gate は「スケジュール通りに Phase が完了したか」を判定する会議体であり、判定者・成果物・Go/NoGo 条件を事前に固定しないと、判定会議が主観的な印象論に終始する。企画書 [03_ロードマップと体制/03_KPIと承認基準.md](../../01_企画/03_ロードマップと体制/03_KPIと承認基準.md) で約束した Phase 承認基準を、概要設計レベルのプロトコルとして以下に固定する。
+
+| Phase Gate | 判定会議開催タイミング | 判定者 | 必須提出物 | Go 判定条件（全て充足） | NoGo 時のアクション |
+|---|---|---|---|---|---|
+| Phase 1a 完了 Gate | MVP-0 デモ完了から 2 週間以内 | 情シス部長 + 起案者（`55_運用ライフサイクル方式設計/05_撤退戦略方式.md` DS-OPS-EXIT-007 と同一判定者）| MVP-0 デモ動画 / 工数実績報告 / Phase 1b 協力者アサイン同意書 / VM 3 台調達稟議 | (1) デモで SSO → 配信ポータル → サンプルアプリ起動が VM 1 台で完結、(2) Phase 1a 工数実績が 2.5 人月 ± 20% 以内、(3) Phase 1b 向け協力者 1 名のアサイン同意が書面で取得済み | 工数超過 ±50% 未満なら Phase 1b 着手前に協力者 1 名増員稟議、±50% 超なら Phase 1a スコープ再策定を Product Council が起票 |
+| Phase 1b 完了 Gate | MVP-1a パイロット業務稼働開始から 4 週間後 | 情シス部長 + アーキテクト + 起案者 | kubeadm HA 3 ノード稼働証跡 / バス係数 2 実証ログ（協力者単独での `tofu apply` + kubespray 再構築成功）/ Prometheus + Grafana ダッシュボード集計 / 工数実績 | (1) パイロット業務が HA 環境で 4 週間連続稼働、(2) Phase 1b 工数実績が 6.8 人月 ± 20% 以内、(3) バス係数 2 実証、(4) tier1 API（Log + Telemetry）の SLO 99% 以上達成 | Phase 1c 着手前に Phase 1b の残作業を切り分け、SHOULD / COULD の後倒しで対応。SLO 未達は Product Council で Phase 1c スコープ再定義を決議 |
+| Phase 1c 完了 Gate | MVP-1b 運用品質 OSS（Harbor / OpenBao / MinIO）投入から 6 週間後 | 情シス部長 + 運用責任者 + アーキテクト + Sec チームリード | フルリストア訓練成功ログ / Harbor Critical 拒否運用記録 / OpenBao HA Raft 稼働証跡 / 監査証跡 MinIO WORM 動作検証 / 工数実績 | (1) 協力者単独でフルリストア完遂、(2) 全 Secret が Sealed Secrets / OpenBao で管理、(3) Critical CVE 48h 対応 SLA 100% 達成、(4) Phase 1c 工数実績が 4.4 人月 ± 20% 以内 | Phase 2 着手前に法務・Sec の再レビューを受ける。Critical CVE SLA 未達なら Phase 2 移行凍結、Sec チーム増員稟議 |
+| Phase 2 移行 Gate | Phase 1c 完了 Gate 通過直後（四半期 Product Council 同日開催）| CTO + 情シス部長 + CFO + Product Council 全員 | Phase 1c 実績総括 / 5 年 TCO 再試算 / Phase 2 拡張スコープ優先順位表 / 撤退判定 3 層ゲート（DS-OPS-EXIT-007/008/009）の警告履歴 | (1) 5 年 TCO 再試算が稟議時 3.68 億円 ± 20% 以内、(2) バス係数 2 継続、(3) 撤退トリガー A〜D のいずれも未発動、(4) Phase 2 スコープ優先順位が Product Council 全会一致で承認 | Phase 2 の最初の四半期スコープを縮小、または撤退提案書起案（DS-OPS-EXIT-007）へ分岐 |
+
+各 Phase Gate は企画書の「Phase Gate 承認基準」と直結しており、Gate 未通過時は次 Phase への着手を凍結する。Gate 会議は Confluence スペース `k1s0-phase-gate` に議事録を保存し、5 年間の保管対象とする（[`55_運用ライフサイクル方式設計/05_撤退戦略方式.md`](../55_運用ライフサイクル方式設計/05_撤退戦略方式.md) の「Confluence `k1s0-exit-decisions`」と同一運用）。Phase Gate と撤退判定会議は別個の会議体だが、Phase Gate で Go 判定が出せない場合は同日または 2 週間以内に撤退判定会議を連動招集する。
+
 ## 工数乖離の検出と是正
 
 企画工数と実装工数の乖離が ±20% を超えた場合、Phase 0 稟議の前提が崩れる。乖離検出は以下 3 ゲートで行う。
