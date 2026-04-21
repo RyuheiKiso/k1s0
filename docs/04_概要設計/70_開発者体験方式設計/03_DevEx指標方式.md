@@ -6,7 +6,7 @@
 
 プラットフォーム製品は「使われて初めて価値が生じる」。DevEx を計測せず改善サイクルを回さないと、tier2 / tier3 開発者が「k1s0 を使うより自前で作った方が早い」と判断して離脱し、基盤投資が無駄になる。一方で計測のための計測に陥ると、運用 2 名体制を圧迫する。本設計は「自動収集 + 週次レポート + 月次改善」という最小構成で改善サイクルを維持する。
 
-本設計は構想設計 ADR-OBS-001（Grafana LGTM 採用）と ADR-CICD-002（Argo CD GitOps）を前提として、DORA 4 指標の目標値（Deployment Frequency 1 日 10 回以上 / Lead Time 1h 以内 / MTTR 4h 以内 / CFR 15% 以下）を企画コミットとして Phase 1c で達成可能な水準に維持する設計に落とす。対応要件は DX-MET-001〜006、DX-GP-003（10 分ルール）、NFR-SLO-001（SLO 運用）である。
+本設計は構想設計 ADR-OBS-001（Grafana LGTM 採用）と ADR-CICD-002（Argo CD GitOps）を前提として、DORA 4 指標の目標値（Deployment Frequency 1 日 10 回以上 / Lead Time 1h 以内 / MTTR 4h 以内 / CFR 15% 以下）を企画コミットとして Phase 1c で達成可能な水準に維持する設計に落とす。対応要件は DX-MET-001〜006、DX-GP-003（10 分ルール）、NFR-I-SLI-001 / NFR-I-SLO-001〜011（SLI/SLO 運用）である。
 
 ## DORA Four Keys の採用
 
@@ -98,4 +98,4 @@ CFR 未達（15% 超過が月次で発生）の場合、直近のリリース内
 
 ## 対応要件一覧
 
-本ファイルは要件定義書 50_開発者体験 DX-MET-001〜006（DevEx 指標）に直接対応する。DX-GP-003（10 分ルール）、NFR-A-001（MTTR）、NFR-C-001（開発者体験）、NFR-SLO-001（SLO 運用）とも連動する。構想設計 ADR-OBS-001（Grafana LGTM）、ADR-CICD-002（Argo CD GitOps）を前提とする。企画書で合意した DORA 4 指標の数値コミット（Deployment Frequency 1 日 10 回・Lead Time 1h・MTTR 4h・CFR 15%）を本設計が機械的に達成可能な仕組みとして具体化する。
+本ファイルは要件定義書 50_開発者体験 DX-MET-001〜006（DevEx 指標）に直接対応する。DX-GP-003（10 分ルール）、NFR-A-REC-002（Runbook 充足率を通じた MTTR 担保）、NFR-C-NOP-001（通常運用における開発者体験）、NFR-I-SLI-001 / NFR-I-SLO-001〜011（SLO 運用）とも連動する。構想設計 ADR-OBS-001（Grafana LGTM）、ADR-CICD-002（Argo CD GitOps）を前提とする。企画書で合意した DORA 4 指標の数値コミット（Deployment Frequency 1 日 10 回・Lead Time 1h・MTTR 4h・CFR 15%）を本設計が機械的に達成可能な仕組みとして具体化する。

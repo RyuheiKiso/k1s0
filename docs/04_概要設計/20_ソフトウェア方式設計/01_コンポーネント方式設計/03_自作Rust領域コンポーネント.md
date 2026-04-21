@@ -26,7 +26,7 @@
 
 tonic サーバは `Server::builder()` で構築し、`http2_keepalive_interval = 30s` / `http2_keepalive_timeout = 10s` / `tcp_keepalive = 60s` を既定とする。TLS は Istio Ambient の waypoint で終端するため Pod 側では平文 HTTP/2 で listen する。Interceptor は `tonic::service::interceptor_fn` で tracing span / metric / auth の 3 段を登録する。サーバシャットダウンは `serve_with_shutdown()` で `tokio::signal::unix::SIGTERM` を受けて graceful shutdown し、インフライトリクエストの完了待ちは最大 30 秒とする。シャットダウン順序は「受付停止 → 処理完了待機 → DB/接続クローズ」の順で、詳細は [../03_内部インタフェース方式設計/03_Go_Rust間言語境界方式.md](../03_内部インタフェース方式設計/03_Go_Rust間言語境界方式.md) で補足する。
 
-**確定フェーズ**: Phase 1a。**対応要件**: NFR-A-FT-001、NFR-A-REC-001、NFR-E-CONN-\*。
+**確定フェーズ**: Phase 1a。**対応要件**: NFR-A-FT-001、NFR-A-REC-001、NFR-E-NW-001〜004。
 
 ### DS-SW-COMP-052 tokio runtime チューニング
 
@@ -257,7 +257,7 @@ SIGTERM を `tokio::signal::unix::SIGTERM` で受け、以下順序で shutdown 
 - NFR-A-CONT-003 / NFR-A-FT-001 / NFR-A-REC-001
 - NFR-B-PERF-004（Decision p99 1ms）/ NFR-B-PERF-006（計装 10ms）/ NFR-B-WL-\* / NFR-B-CAP-\*
 - NFR-C-NOP-001 / NFR-C-NOP-003（7 年保管）
-- NFR-D-MON-\* / NFR-D-TRACE-\* / NFR-E-AUTH-\* / NFR-E-CONN-\* / NFR-E-DOS-\* / NFR-E-ENC-001 / NFR-E-ERR-\*
+- NFR-D-MON-\* / NFR-D-TRACE-\* / NFR-E-AC-001〜005 / NFR-E-NW-001〜004 / NFR-E-ENC-001
 - NFR-F-ENV-\* / NFR-G-ENC-\* / NFR-H-INT-001 / NFR-H-KEY-001
 - DX-CICD-\* / DX-TEST-\* / DX-FM-\* / DX-RB-\*
 

@@ -96,7 +96,7 @@ COMP-T1-WORKFLOW は Deployment 固定 3 replica（sticky task queue）で稼働
 
 コンポーネント間の内部呼び出しは「facade → rust」と「rust → rust」の 2 方向のみ許可する。具体的には COMP-T1-STATE → COMP-T1-DECISION / COMP-T1-PII / COMP-T1-AUDIT、COMP-T1-WORKFLOW → COMP-T1-DECISION / COMP-T1-AUDIT、COMP-T1-DECISION → COMP-T1-PII、COMP-T1-PII → COMP-T1-AUDIT を許可する。逆方向（rust → facade）と facade 間呼び出し（STATE → SECRET など）は禁止する。理由は、facade 層は公開 API ごとに独立したエンドポイントを持ち、facade 間通信を許すと API ごとの失敗ドメインが融解するためである。facade 間で共通処理が必要な場合は rust 層に共通コンポーネントを置くか、tier2 側のコンポジション（BFF）で実現する。
 
-**確定フェーズ**: Phase 0。**対応要件**: NFR-A-CONT-003、NFR-E-AUTH-\*。**参照**: [05_モジュール依存関係.md](05_モジュール依存関係.md)。
+**確定フェーズ**: Phase 0。**対応要件**: NFR-A-CONT-003、NFR-E-AC-001〜005。**参照**: [05_モジュール依存関係.md](05_モジュール依存関係.md)。
 
 ## DS-SW-COMP-014 スケール戦略の選定理由
 
@@ -158,7 +158,7 @@ Pod 起動順序は「自作 Rust 領域 → Dapr ファサード層」の順を
 | DS-SW-COMP-010 | COMP-T1-WORKFLOW の運用形態（固定 3） | Phase 1b | FR-T1-WORKFLOW-\*、NFR-A-CONT-\* |
 | DS-SW-COMP-011 | 失敗ドメインの 3 分類 | Phase 0/1b | NFR-A-CONT-\*、NFR-A-FT-001 |
 | DS-SW-COMP-012 | データアフィニティ境界 | Phase 0 | NFR-A-CONT-003 |
-| DS-SW-COMP-013 | コンポーネント間相互関係の規約 | Phase 0 | NFR-E-AUTH-\* |
+| DS-SW-COMP-013 | コンポーネント間相互関係の規約 | Phase 0 | NFR-E-AC-001〜005 |
 | DS-SW-COMP-014 | スケール戦略の選定理由 | Phase 0/1b/2 | NFR-B-WL-\*、NFR-B-PERF-\* |
 | DS-SW-COMP-015 | 起動順序と依存関係 | Phase 1b | NFR-A-FT-001 |
 | DS-SW-COMP-016 | Pod 起動時リソース要求 | Phase 1a/1c | NFR-B-CAP-\* |
@@ -176,7 +176,7 @@ Pod 起動順序は「自作 Rust 領域 → Dapr ファサード層」の順を
 - NFR-A-CONT-001（SLA 稼働率 99%）、NFR-A-CONT-002（degrade 稼働）、NFR-A-CONT-003（バックエンド障害影響限定）、NFR-A-FT-001（単一 Pod 復旧）、NFR-A-REC-001（再開）
 - NFR-B-PERF-001（p99 500ms）、NFR-B-PERF-002（State Get p99 10ms）、NFR-B-PERF-004（Decision p99 1ms）、NFR-B-PERF-006（計装オーバヘッド 10ms）、NFR-B-WL-001（規模別 RPS）、NFR-B-CAP-\*
 - NFR-C-NOP-001（運用 2 名）、NFR-C-NOP-002（可視性）、NFR-C-NOP-003（7 年保管）
-- NFR-D-MON-\*、NFR-D-TRACE-\*、NFR-E-AUTH-\*、NFR-E-ENC-001、NFR-F-ENV-\*、NFR-G-ENC-\*、NFR-H-INT-001、NFR-H-KEY-001
+- NFR-D-MON-\*、NFR-D-TRACE-\*、NFR-E-AC-001〜005、NFR-E-ENC-001、NFR-F-ENV-\*、NFR-G-ENC-\*、NFR-H-INT-001、NFR-H-KEY-001
 - DX-GP-\*、DX-MET-\*
 
 構想設計 ADR-TIER1-001（Go+Rust ハイブリッド）、ADR-TIER1-002（Protobuf gRPC）、ADR-DATA-001（CloudNativePG）、ADR-DATA-003（MinIO Object Lock）、ADR-RULE-001（ZEN Engine）、ADR-RULE-002（Workflow）、ADR-SEC-002（OpenBao）と双方向トレース関係を維持する。
