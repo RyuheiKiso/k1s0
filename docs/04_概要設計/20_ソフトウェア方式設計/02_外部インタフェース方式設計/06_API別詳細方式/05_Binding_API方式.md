@@ -86,16 +86,23 @@ Phase 1a（MVP-0）は Output の MQTT / HTTP の 2 種のみ提供する。Inpu
 
 ## 対応要件一覧
 
-本ファイルは tier1 Binding API の外部インタフェース設計であり、以下の要件 ID に対応する。
+本ファイルは tier1 Binding API の外部インタフェース設計であり、要件 ID → 設計 ID の 1:1 対応を以下の表で固定する。表形式併記は DR-COV-001 への緩和策として、CI スクリプトでの機械検証の一次入力となる。
 
-- FR-T1-BINDING-001（Output Binding 抽象化、MinIO/Kafka/MQTT/HTTP 等）
-- FR-T1-BINDING-002（SMTP Output Binding）
-- FR-T1-BINDING-003（HTTP Output Binding）
-- FR-T1-BINDING-004（Input Binding 定期実行 Cron）
-- FR-EXT-IOT-001（MQTT エッジ連携）
-- FR-EXT-WEBHOOK-001（外部 SaaS Webhook 受信）
-- NFR-B-PERF-004（Binding Output p99 200ms、best-effort）
-- NFR-C-OPS-003（DLQ 運用と可視化）
+| 要件 ID | 要件タイトル | 対応設計 ID | カバー状況 |
+|---|---|---|---|
+| FR-T1-BINDING-001 | Output Binding 抽象化（MinIO / Kafka / MQTT / HTTP） | DS-SW-EIF-300, DS-CTRL-MSG-001 | 完全 |
+| FR-T1-BINDING-002 | SMTP Output Binding | DS-SW-EIF-301 | 完全 |
+| FR-T1-BINDING-003 | HTTP Output Binding | DS-SW-EIF-302 | 完全 |
+| FR-T1-BINDING-004 | Input Binding 定期実行（Cron） | DS-SW-EIF-303 | 完全 |
+| FR-EXT-IOT-001 | MQTT エッジ連携（外部 IoT） | DS-SW-EIF-304 | 完全 |
+| FR-EXT-WEBHOOK-001 | 外部 SaaS Webhook 受信 | DS-SW-EIF-305 | 完全 |
+| NFR-B-PERF-001 | tier1 API p99 500ms 内で Binding Output を実装（固有目標は Phase 1b 実測後に追加検討） | DS-SW-EIF-306, DS-NFR-PERF-001 | 部分 |
+| NFR-C-OPS-003 | DLQ 運用と可視化 | DS-SW-EIF-307, DS-NFR-OPS-003 | 完全 |
+
+表に載せた要件数は FR-T1-BINDING-* 4 件 + FR-EXT-* 2 件 + NFR 2 件 = 計 8 件。NFR-B-PERF-001 は `部分` 状態であり、Phase 1b 実測値をもとに Binding 固有の性能要件を追加する計画である（Product Council 提示時に差分 PR 予定）。
+
+補助参照は以下のとおり。
+
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、facade-binding は Go）/ ADR-TIER1-002（Protobuf gRPC 必須）
 - 連携設計: [04_エッジIoTインタフェース方式.md](../04_エッジIoTインタフェース方式.md) DS-SW-EIF-115〜117（MQTT エッジ契約）
 - 本ファイルで採番: DS-SW-EIF-300 〜 DS-SW-EIF-310

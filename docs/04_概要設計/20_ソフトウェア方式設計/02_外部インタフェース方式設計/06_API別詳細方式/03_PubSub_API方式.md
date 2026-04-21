@@ -242,13 +242,23 @@ Phase 1a → 1b の移行時、既存 partition の replication factor を 1 →
 
 ## 対応要件一覧
 
-本ファイルは PubSub API の詳細方式設計であり、以下の要件 ID に対応する。
+本ファイルは PubSub API の詳細方式設計であり、要件 ID → 設計 ID の 1:1 対応を以下の表で固定する。表形式併記は DR-COV-001 への緩和策として、CI スクリプトでの機械検証の一次入力となる。
 
-- FR-T1-PUBSUB-001〜FR-T1-PUBSUB-005（PubSub 機能要件一式）
-- FR-T1-PUBSUB-001（Publish と CloudEvents）/ FR-T1-PUBSUB-002（Subscribe と Consumer Group 分離）/ FR-T1-PUBSUB-003（at-least-once と DLQ）/ FR-T1-PUBSUB-004（Ordering とトピック命名強制）/ FR-T1-PUBSUB-005（Schema Registry 連携）
-- NFR-E-AC-007（テナント分離、topic 命名強制）
-- NFR-B-PERF-003（Publish p99 50ms、Subscribe e2e p99 200ms）
-- NFR-C-OPS-020（DLQ 監視、SRE alert）
+| 要件 ID | 要件タイトル | 対応設計 ID | カバー状況 |
+|---|---|---|---|
+| FR-T1-PUBSUB-001 | Publish と CloudEvents v1.0 準拠 | DS-SW-EIF-260, DS-SW-EIF-261 | 完全 |
+| FR-T1-PUBSUB-002 | Subscribe と Consumer Group 分離 | DS-SW-EIF-262 | 完全 |
+| FR-T1-PUBSUB-003 | at-least-once と DLQ | DS-SW-EIF-263, DS-CTRL-MSG-003 | 完全 |
+| FR-T1-PUBSUB-004 | Ordering とトピック命名強制 | DS-SW-EIF-264 | 完全 |
+| FR-T1-PUBSUB-005 | Schema Registry 連携 | DS-SW-EIF-265 | 完全 |
+| NFR-B-PERF-005 | PubSub Publish p99 50ms / Subscribe e2e p99 200ms | DS-SW-EIF-266, DS-NFR-PERF-004 | 完全 |
+| NFR-C-OPS-020 | DLQ 監視と SRE アラート | DS-SW-EIF-267, DS-NFR-OPS-020 | 完全 |
+| NFR-E-AC-007 | テナント分離（topic 命名強制） | DS-SW-EIF-264, DS-CF-AUTHZ-004 | 完全 |
+
+表に載せた要件数は FR-T1-PUBSUB-* 5 件 + NFR 3 件 = 計 8 件。
+
+補助参照は以下のとおり。
+
 - ADR 参照: ADR-TIER1-001（Go+Rust）/ ADR-DATA-002（Kafka/Strimzi 採用、KRaft）/ ADR-PUBSUB-NNN（CloudEvents v1.0 準拠、未起票、Phase 1a 前起票予定）
 - 共通規約参照: [00_API共通規約方式.md](00_API共通規約方式.md) DS-SW-EIF-200〜211
 - 親参照: [01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md) DS-SW-EIF-001 / 013 / 016

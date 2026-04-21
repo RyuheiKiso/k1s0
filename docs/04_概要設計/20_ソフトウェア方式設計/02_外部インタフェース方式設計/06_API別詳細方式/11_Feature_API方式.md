@@ -111,15 +111,24 @@ Phase 1a（MVP-0）: `Evaluate` のみ、Boolean 型のみ、targeting は tenan
 
 ## 対応要件一覧
 
-本ファイルは Feature API 公開インタフェースの詳細方式設計であり、以下の要件 ID に対応する。
+本ファイルは Feature API 公開インタフェースの詳細方式設計であり、要件 ID → 設計 ID の 1:1 対応を以下の表で固定する。表形式併記は DR-COV-001 への緩和策として、CI スクリプトでの機械検証の一次入力となる。
 
-- FR-T1-FEATURE-001〜FR-T1-FEATURE-004（Feature API 機能要件、評価 / 段階ロールアウト / circuit breaker / A/B テスト）
-- FR-T1-FEATURE-001（フラグ評価と 5 型対応）/ FR-T1-FEATURE-002（段階ロールアウト %）/ FR-T1-FEATURE-003（circuit breaker ルール）/ FR-T1-FEATURE-004（A/B テスト / fractional rollout）
-- NFR-B-PERF-001（Feature p99 5ms インメモリ評価）
-- NFR-C-OPS-002（設定変更のトレーサビリティ、Audit-Pii 自動連携）
-- NFR-C-OPS-003（緊急時 kill switch 10 秒以内反映）
-- NFR-D-MIG-003（段階展開による移行リスク最小化）
-- NFR-H-COMP-002（設定変更の監査証跡、7 年保管）
+| 要件 ID | 要件タイトル | 対応設計 ID | カバー状況 |
+|---|---|---|---|
+| FR-T1-FEATURE-001 | フラグ評価と 5 型対応 | DS-SW-EIF-430, DS-CF-FM-001 | 完全 |
+| FR-T1-FEATURE-002 | 段階ロールアウト（%） | DS-SW-EIF-431, DS-CF-FM-002 | 完全 |
+| FR-T1-FEATURE-003 | circuit breaker ルール | DS-SW-EIF-432 | 完全 |
+| FR-T1-FEATURE-004 | A/B テスト（fractional rollout） | DS-SW-EIF-433, DS-CF-FM-011 | 完全 |
+| NFR-B-PERF-007 | Feature Flag 評価 p99 10ms（内部目標 p99 5ms インメモリ評価） | DS-SW-EIF-430, DS-NFR-PERF-011 | 完全 |
+| NFR-C-OPS-002 | 設定変更のトレーサビリティ（Audit-Pii 自動連携） | DS-SW-EIF-431, DS-CF-FM-013 | 完全 |
+| NFR-C-OPS-003 | 緊急時 kill switch 10 秒以内反映 | DS-SW-EIF-432 | 完全 |
+| NFR-D-MIG-003 | 段階展開による移行リスク最小化 | DS-SW-EIF-431, DS-MIG-CUT-002 | 完全 |
+| NFR-H-COMP-002 | 設定変更の監査証跡（7 年保管） | DS-SW-EIF-431, DS-CF-FM-014 | 完全 |
+
+表に載せた要件数は FR-T1-FEATURE-* 4 件 + NFR 5 件 = 計 9 件。Feature p99 は [`03_要件定義/30_非機能要件/B_性能拡張性.md`](../../../../03_要件定義/30_非機能要件/B_性能拡張性.md) で **NFR-B-PERF-007（Feature Flag 評価 p99 10ms）** として独立採番されている（Log/Telemetry の NFR-B-PERF-006 とは別番号）。設計層ではインメモリ評価前提で内部目標 p99 5ms を掲げ、要件層の 10ms に対して 50% の余裕を持たせる。
+
+補助参照は以下のとおり。
+
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、Feature は Go）/ ADR-TIER1-002（Protobuf gRPC 必須）/ ADR-FEAT-001（flagd / OpenFeature 採用、未起票だが Phase 1a 前に起票予定）
 - 共通契約: DS-SW-EIF-001〜016（[../01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md)）
 - 本ファイルで採番: DS-SW-EIF-420 〜 DS-SW-EIF-434

@@ -101,17 +101,21 @@ Phase 1a（MVP-0）は `Submit` unary のみ提供し、排出先は Dev Loki（
 
 ## 対応要件一覧
 
-本ファイルは tier1 Log API の外部インタフェース設計であり、以下の要件 ID に対応する。
+本ファイルは tier1 Log API の外部インタフェース設計であり、要件 ID → 設計 ID の 1:1 対応を以下の表で固定する。表形式併記は DR-COV-001 への緩和策として、CI スクリプトでの機械検証の一次入力となる。Log API は Phase 1a（MVP-0）で唯一提供される tier1 API であり、企画書の 2.5 人月 / 10 週間 / 1 FTE スコープで完遂が必達なカバレッジの出発点となる。
 
-- FR-T1-LOG-001（構造化ログ送出 ECS 準拠）
-- FR-T1-LOG-002（PII 自動マスキング）
-- FR-T1-LOG-003（非同期エンキューと本線非ブロック）
-- FR-T1-LOG-004（バッファ drop 時のアラート）
-- NFR-B-PERF-006（Log API p99 5ms エンキュー）
-- NFR-E-MON-006（PII 漏洩防止の技術的強制）
-- NFR-G-PRV-001（個人情報保護法順守）
-- NFR-G-PRV-002（GDPR 順守）
-- NFR-H-COMP-004（監査ログ WORM 保持）
+| 要件 ID | 要件タイトル | 対応設計 ID | カバー状況 |
+|---|---|---|---|
+| FR-T1-LOG-001 | 構造化ログ送出（ECS 準拠） | DS-SW-EIF-350, DS-CF-LOG-001 | 完全 |
+| FR-T1-LOG-002 | PII 自動マスキング | DS-SW-EIF-351, DS-CF-AUD-002 | 完全 |
+| FR-T1-LOG-003 | 非同期エンキューと本線非ブロック | DS-SW-EIF-352 | 完全 |
+| FR-T1-LOG-004 | バッファ drop 時のアラート | DS-SW-EIF-353 | 完全 |
+| NFR-B-PERF-006 | Log / Telemetry 計装オーバヘッド 10ms（Log API 内部目標 p99 5ms 非同期エンキュー） | DS-SW-EIF-352, DS-NFR-PERF-010 | 完全 |
+| NFR-E-MON-006 | PII 漏洩防止の技術的強制 | DS-SW-EIF-351, DS-NFR-SEC-014 | 完全 |
+| NFR-G-PRV-001 | 個人情報保護法順守 | DS-SW-EIF-351, DS-NFR-PRV-001 | 完全 |
+| NFR-G-PRV-002 | GDPR 順守 | DS-SW-EIF-351, DS-NFR-PRV-002 | 完全 |
+| NFR-H-COMP-004 | 監査ログ WORM 保持 | DS-SW-EIF-354, DS-NFR-COMP-004 | 完全 |
+
+表に載せた要件数は FR-T1-LOG-* 4 件 + NFR 5 件 = 計 9 件。Phase 1a MVP-0 スコープでは本表 9 件のうち Log 本線（FR-T1-LOG-001 / 003 / 004 + NFR-B-PERF-006）の 4 件を満たし、PII / WORM 関連の 5 件は Phase 1b〜Phase 2 で段階解放する。
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、custom-log は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）
 - 連携設計: [08_Telemetry_API方式.md](08_Telemetry_API方式.md)（観測性パイプライン共有）/ [10_Audit_Pii_API方式.md](10_Audit_Pii_API方式.md)（PII マスキング辞書共有）
 - 本ファイルで採番: DS-SW-EIF-340 〜 DS-SW-EIF-353

@@ -113,17 +113,28 @@ Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `RecordEvent` / `Query
 
 ## 対応要件一覧
 
-本ファイルは Audit-Pii API 公開インタフェースの詳細方式設計であり、以下の要件 ID に対応する。
+本ファイルは Audit-Pii API 公開インタフェースの詳細方式設計であり、要件 ID → 設計 ID の 1:1 対応を以下の表で固定する。表形式併記は DR-COV-001 への緩和策として、CI スクリプトでの機械検証の一次入力となる。
 
-- FR-T1-AUDIT-001〜FR-T1-AUDIT-003（Audit 機能要件、ハッシュチェーン / WORM / Seal & VerifyChain）
-- FR-T1-AUDIT-001（RecordEvent とハッシュチェーン整合性）/ FR-T1-AUDIT-002（WORM 保持と冷データ退避）/ FR-T1-AUDIT-003（Seal と TSA 署名 / VerifyChain）
-- FR-T1-PII-001（PII 自動マスキングとマスキング辞書管理）
-- FR-T1-PII-002（PII 漏洩検出と個別エンクリプト退避）
-- NFR-E-MON-005（監査証跡の書き込み / 読み取り / 改ざん検証の責任分離）
-- NFR-E-MON-006（改ざん防止、ハッシュチェーン + 外部 TSA）
-- NFR-G-PRV-001〜004（PII 自動マスキング、個人情報保護法 / GDPR 対応）
-- NFR-H-COMP-001（J-SOX 7 年保管）
-- NFR-H-COMP-003（GDPR Right to Erasure）
+| 要件 ID | 要件タイトル | 対応設計 ID | カバー状況 |
+|---|---|---|---|
+| FR-T1-AUDIT-001 | RecordEvent とハッシュチェーン整合性 | DS-SW-EIF-410, DS-CF-AUD-001 | 完全 |
+| FR-T1-AUDIT-002 | WORM 保持と冷データ退避 | DS-SW-EIF-411, DS-CF-AUD-003 | 完全 |
+| FR-T1-AUDIT-003 | Seal と TSA 署名 / VerifyChain | DS-SW-EIF-412, DS-CF-AUD-004 | 完全 |
+| FR-T1-PII-001 | PII 自動マスキングとマスキング辞書管理 | DS-SW-EIF-413, DS-CF-AUD-002 | 完全 |
+| FR-T1-PII-002 | PII 漏洩検出と個別エンクリプト退避 | DS-SW-EIF-414 | 完全 |
+| NFR-E-MON-005 | 監査証跡の書込 / 読取 / 改ざん検証の責任分離 | DS-SW-EIF-410, DS-NFR-SEC-015 | 完全 |
+| NFR-E-MON-006 | 改ざん防止（ハッシュチェーン + 外部 TSA） | DS-SW-EIF-412, DS-NFR-SEC-016 | 完全 |
+| NFR-G-PRV-001 | PII 自動マスキング（個人情報保護法） | DS-SW-EIF-413, DS-NFR-PRV-001 | 完全 |
+| NFR-G-PRV-002 | GDPR 順守 | DS-SW-EIF-413, DS-NFR-PRV-002 | 完全 |
+| NFR-G-PRV-003 | PII 漏洩検出の自動化 | DS-SW-EIF-414, DS-NFR-PRV-003 | 完全 |
+| NFR-G-PRV-004 | GDPR Right to Erasure の運用 | DS-SW-EIF-415, DS-NFR-PRV-004 | 部分 |
+| NFR-H-COMP-001 | J-SOX 7 年保管 | DS-SW-EIF-411, DS-NFR-COMP-001 | 完全 |
+| NFR-H-COMP-003 | GDPR Right to Erasure 実装 | DS-SW-EIF-415, DS-NFR-COMP-003 | 部分 |
+
+表に載せた要件数は FR-T1-AUDIT-* 3 件 + FR-T1-PII-* 2 件 + NFR 8 件 = 計 13 件。NFR-G-PRV-004 / NFR-H-COMP-003（GDPR Right to Erasure）は Phase 2 実装のため `部分` 状態であり、Phase 1c 時点ではフロー設計のみカバー、実装は Phase 2 ADR 起票後に完遂する。
+
+補助参照は以下のとおり。
+
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、Audit-Pii は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）/ ADR-AUDIT-001（WORM 監査採用）
 - 共通契約: DS-SW-EIF-001〜016（[../01_tier1_11API方式概要.md](../01_tier1_11API方式概要.md)）
 - 本ファイルで採番: DS-SW-EIF-400 〜 DS-SW-EIF-414

@@ -147,7 +147,7 @@ Telemetry 書込の失敗処理は、Collector への送信が失敗しても本
 
 本ファイルで採番した設計 ID（`DS-SW-SEQ-001` 〜 `DS-SW-SEQ-010`）と、充足する要件 ID を以下に列挙する。
 
-- `DS-SW-SEQ-001`（State.Get 正常系）: `FR-T1-STATE-001` / `FR-T1-STATE-002` / `FR-T1-LOG-001` / `FR-T1-TELEMETRY-001` / `NFR-B-PERF-002`
+- `DS-SW-SEQ-001`（State.Get 正常系）: `FR-T1-STATE-001` / `FR-T1-STATE-002` / `FR-T1-LOG-001` / `FR-T1-TELEMETRY-001` / `NFR-B-PERF-003`
 - `DS-SW-SEQ-002`（Saga 正常系）: `FR-T1-WORKFLOW-001` / `FR-T1-WORKFLOW-002` / `FR-T1-AUDIT-001`
 - `DS-SW-SEQ-003`（Saga 補償系）: `FR-T1-WORKFLOW-003` / `FR-T1-WORKFLOW-004` / `FR-T1-AUDIT-002` / `NFR-A-CONT-002`
 - `DS-SW-SEQ-004`（Decision 失敗 Fallback）: `FR-T1-DECISION-001` / `FR-T1-DECISION-003` / `FR-T1-LOG-002`
