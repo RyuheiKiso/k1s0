@@ -147,13 +147,13 @@ Telemetry 書込の失敗処理は、Collector への送信が失敗しても本
 
 本ファイルで採番した設計 ID（`DS-SW-SEQ-001` 〜 `DS-SW-SEQ-010`）と、充足する要件 ID を以下に列挙する。
 
-- `DS-SW-SEQ-001`（State.Get 正常系）: `FR-T1-STATE-001` / `FR-T1-STATE-002` / `FR-T1-LOG-001` / `FR-T1-TEL-001` / `NFR-PERF-002`
-- `DS-SW-SEQ-002`（Saga 正常系）: `FR-T1-WF-001` / `FR-T1-WF-002` / `FR-T1-AUD-001`
-- `DS-SW-SEQ-003`（Saga 補償系）: `FR-T1-WF-003` / `FR-T1-WF-004` / `FR-T1-AUD-002` / `NFR-AVL-002`
-- `DS-SW-SEQ-004`（Decision 失敗 Fallback）: `FR-T1-DEC-001` / `FR-T1-DEC-003` / `FR-T1-LOG-002`
-- `DS-SW-SEQ-005`（認証フロー横断）: `FR-T1-AUTH-001` / `FR-T1-AUTHZ-001` / `NFR-SEC-001` / `NFR-SEC-002`
-- `DS-SW-SEQ-006`（タイムアウト・リトライ・冪等キー共通方針）: `NFR-PERF-001` / `NFR-AVL-001` / 制約 6（非機能数値コミット）
-- `DS-SW-SEQ-007`（Audit 連動共通方式）: `FR-T1-AUD-001` ～ `FR-T1-AUD-006` / `NFR-COMP-001`
-- `DS-SW-SEQ-008`（Telemetry 連動共通方式）: `FR-T1-TEL-001` / `FR-T1-TEL-002` / `NFR-OBS-001` / `NFR-OBS-002`
+- `DS-SW-SEQ-001`（State.Get 正常系）: `FR-T1-STATE-001` / `FR-T1-STATE-002` / `FR-T1-LOG-001` / `FR-T1-TELEMETRY-001` / `NFR-B-PERF-002`
+- `DS-SW-SEQ-002`（Saga 正常系）: `FR-T1-WORKFLOW-001` / `FR-T1-WORKFLOW-002` / `FR-T1-AUDIT-001`
+- `DS-SW-SEQ-003`（Saga 補償系）: `FR-T1-WORKFLOW-003` / `FR-T1-WORKFLOW-004` / `FR-T1-AUDIT-002` / `NFR-A-CONT-002`
+- `DS-SW-SEQ-004`（Decision 失敗 Fallback）: `FR-T1-DECISION-001` / `FR-T1-DECISION-003` / `FR-T1-LOG-002`
+- `DS-SW-SEQ-005`（認証フロー横断）: `NFR-E-AC-001` / `NFR-E-AC-002` / `NFR-E-RSK-001` / `NFR-E-RSK-002`
+- `DS-SW-SEQ-006`（タイムアウト・リトライ・冪等キー共通方針）: `NFR-B-PERF-001` / `NFR-A-CONT-001` / 制約 6（非機能数値コミット）
+- `DS-SW-SEQ-007`（Audit 連動共通方式）: `FR-T1-AUDIT-001` ～ `FR-T1-AUDIT-003` / `FR-T1-PII-001` ～ `FR-T1-PII-002` / `NFR-H-COMP-001`
+- `DS-SW-SEQ-008`（Telemetry 連動共通方式）: `FR-T1-TELEMETRY-001` / `FR-T1-TELEMETRY-002` / `NFR-I-SLI-001` / `NFR-I-SLO-001`
 - `DS-SW-SEQ-009`（Phase 別シナリオ拡張）: 間接対応（Phase 進行管理）
 - `DS-SW-SEQ-010`（個別 API 単体仕様整合）: 間接対応（整合性担保）
