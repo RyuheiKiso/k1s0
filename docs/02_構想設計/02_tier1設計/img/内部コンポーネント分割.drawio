@@ -37,7 +37,7 @@
         <mxCell id="pod_state_frh" value="■ 集約する機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="35" y="166" width="220" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="pod_state_fr" value="FR-T1-INVOKE-*&#xa;FR-T1-STATE-*&#xa;FR-T1-PUBSUB-*&#xa;FR-T1-BINDING-*&#xa;FR-T1-FEATURE-*" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="pod_state_fr" value="FR-T1-INVOKE-001〜005&#xa;FR-T1-STATE-001〜005&#xa;FR-T1-PUBSUB-001〜005&#xa;FR-T1-BINDING-001〜004&#xa;FR-T1-FEATURE-001〜004" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="35" y="186" width="220" height="100" as="geometry" />
         </mxCell>
         <mxCell id="pod_state_nfrh" value="■ 駆動する非機能要件" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
@@ -109,7 +109,7 @@
         <mxCell id="pod_workflow_nfrh" value="■ 駆動する非機能要件 / 未決" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="495" y="290" width="220" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="pod_workflow_nfr" value="NFR-A-CONT-* (永続化)&#xa;NFR-A-REC (再開)&#xa;U-WORKFLOW-001 (Phase 1b 決着)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="pod_workflow_nfr" value="NFR-A-FT-003 / NFR-A-DR-001〜002&#xa;NFR-A-REC-001〜002&#xa;U-005 (Phase 1b 決着)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="495" y="310" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="pod_workflow_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
@@ -142,7 +142,7 @@
         <mxCell id="pod_audit_nfrh" value="■ 駆動する非機能要件 / BR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="725" y="290" width="220" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="pod_audit_nfr" value="NFR-C-NOP-003 (7 年保管)&#xa;NFR-A-FT-001 (Pod 復旧)&#xa;NFR-H-INT-* (完整性)&#xa;BR-PLATGOV-004 (保管義務)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="pod_audit_nfr" value="NFR-C-NOP-003 (7 年保管)&#xa;NFR-A-FT-001 (Pod 復旧)&#xa;NFR-H-INT-001〜004 (完整性)&#xa;BR-PLATGOV-004 (保管義務)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="725" y="310" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="pod_audit_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
@@ -208,7 +208,7 @@
         <mxCell id="pod_pii_nfrh" value="■ 駆動する非機能要件 / BR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="1185" y="290" width="220" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="pod_pii_nfr" value="NFR-B-PERF-006 (計装 &lt; 10ms)&#xa;NFR-G-ENC-* (機微データ暗号化)&#xa;BR-PLATGOV-003 (レピュテーション)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="pod_pii_nfr" value="NFR-B-PERF-006 (計装 &lt; 10ms)&#xa;NFR-G-ENC-001〜003 (機微データ暗号化)&#xa;BR-PLATGOV-003 (レピュテーション)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="1185" y="310" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="pod_pii_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
@@ -283,7 +283,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="note" value="■ 6 Pod に収まらない責務：Log API (FR-T1-LOG-*) と Telemetry API (FR-T1-TELEMETRY-*) は tier1 SDK 内での構造化ログ生成と OTel span 生成に帰責し、配送は OpenTelemetry Collector (インフラ層 DaemonSet) が担う。tier1 アプリ層に専用 Pod を置かないのは、計装オーバヘッド NFR-B-PERF-006 &lt; 10ms と データアフィニティ原則 (Loki/Tempo/Mimir は tier1 専有ではない) の帰結である。&#xa;&#xa;■ Feature API (FR-T1-FEATURE-*) は現行 COMP-T1-STATE 同居。flagd 以外の OSS に切替わる場合 (ADR 再引き) は COMP-T1-FEATURE 独立 Pod への分離判定が走る。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;" vertex="1" parent="1">
+        <mxCell id="note" value="■ 6 Pod に収まらない責務：Log API (FR-T1-LOG-001〜004) と Telemetry API (FR-T1-TELEMETRY-001〜004) は tier1 SDK 内での構造化ログ生成と OTel span 生成に帰責し、配送は OpenTelemetry Collector (インフラ層 DaemonSet) が担う。tier1 アプリ層に専用 Pod を置かないのは、計装オーバヘッド NFR-B-PERF-006 &lt; 10ms と データアフィニティ原則 (Loki/Tempo/Mimir は tier1 専有ではない) の帰結である。&#xa;&#xa;■ Feature API (FR-T1-FEATURE-001〜004) は現行 COMP-T1-STATE 同居。flagd 以外の OSS に切替わる場合 (ADR 再引き) は COMP-T1-FEATURE 独立 Pod への分離判定が走る。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;" vertex="1" parent="1">
           <mxGeometry x="20" y="720" width="880" height="160" as="geometry" />
         </mxCell>
         <mxCell id="legend_frame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1;" vertex="1" parent="1">

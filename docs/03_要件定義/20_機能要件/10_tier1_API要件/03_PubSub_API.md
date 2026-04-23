@@ -124,4 +124,4 @@ k1s0.PubSub.Subscribe(
 - **NFR-B-PERF-005**: Publish レイテンシ p99 < 50ms
 - **NFR-A-FT-002**: Kafka ブローカー 1 台障害時の継続性（3 ブローカー構成、Phase 3 以降）
 - **NFR-E-AC-003**: tenant_id 越境配信の禁止
-- **NFR-C-MON-002**: Consumer Lag の監視
+- **NFR-C-NOP-001**: Consumer Lag の監視と可視化

@@ -183,7 +183,7 @@
 | 軸 | 想定脅威 | 緩和策（要件 ID）|
 |---|---|---|
 | S | 偽 Audit Producer による改竄済みログ流入 | SPIFFE ID + mTLS、tier1 ファサード経由のみ受付 |
-| T | hash_chain 断絶（中間挿入・削除）| SHA-256 hash_chain、Kafka パーティション単位で前 hash 必須検証（U-AUDIT-001 で Kafka パーティション構成確定）|
+| T | hash_chain 断絶（中間挿入・削除）| SHA-256 hash_chain、Kafka パーティション単位で前 hash 必須検証（FR-T1-AUDIT-001: パーティションキーは tenant_id）|
 | R | 監査ログ自体の改竄（WORM 破り）| MinIO Object Lock（Compliance mode）、retention 7 年（NFR-E-MON-001）|
 | I | Audit ログ経由の PII 漏洩 | Pii API で書込前に強制マスキング（一方向ハッシュ、HMAC 禁止で再識別不能）|
 | D | Audit event バースト時の Kafka 枯渇 | Per-tenant ingest rate 上限、Audit は優先度最高で Kafka 容量確保 |
