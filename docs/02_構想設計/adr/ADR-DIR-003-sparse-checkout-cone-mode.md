@@ -40,7 +40,7 @@ Git 2.27 以降で導入された `cone mode` と Git 2.32 以降で成熟した
 
 ### 役割別 cone 定義
 
-`.sparse-checkout/roles/` ディレクトリに 9 種類の役割別 cone 定義ファイルを配置する。各ファイルは cone mode のディレクトリ列挙形式で記述する。
+`.sparse-checkout/roles/` ディレクトリに 10 種類の役割別 cone 定義ファイルを配置する。各ファイルは cone mode のディレクトリ列挙形式で記述する。
 
 - `tier1-rust-dev.txt` : `src/contracts/` + `src/tier1/rust/` + `docs/` + ルート設定ファイル
 - `tier1-go-dev.txt` : `src/contracts/` + `src/tier1/go/` + `docs/` + ルート設定ファイル
@@ -48,9 +48,12 @@ Git 2.27 以降で導入された `cone mode` と Git 2.32 以降で成熟した
 - `tier3-web-dev.txt` : `src/sdk/typescript/` + `src/tier3/web/` + `src/tier3/bff/` + `docs/`
 - `tier3-native-dev.txt` : `src/sdk/dotnet/` + `src/tier3/native/` + `docs/`
 - `platform-cli-dev.txt` : `src/platform/` + `src/contracts/` + `docs/`
+- `sdk-dev.txt` : `src/contracts/` + `src/sdk/` + `tools/codegen/` + `tests/contract/` + `docs/`
 - `infra-ops.txt` : `infra/` + `deploy/` + `ops/` + `tools/` + `docs/`
 - `docs-writer.txt` : `docs/` + ルート README 系
 - `full.txt` : 全部（スパースなし相当）
+
+`sdk-dev` は Phase 1a-1b 時点では他役割との兼任を想定するが、SDK の「公開 Protobuf → 4 言語 stub 翻訳」という独立責務を明示するため独立ロールとして定義する。Phase 2 で SDK の利用者数が増えた時点で専任化を再評価する。
 
 ### 初期クローン手順
 
@@ -172,7 +175,7 @@ Phase 1c（運用品質確保）で開発者数が増えた時点で、sparse ch
 
 ### 移行・対応事項
 
-- `.sparse-checkout/roles/` 配下に 9 種類の役割別 cone 定義を配置（Phase A の別タスク）
+- `.sparse-checkout/roles/` 配下に 10 種類の役割別 cone 定義を配置（Phase A の別タスク）
 - `tools/sparse/checkout-role.sh` シェルスクリプトを実装（Phase A の別タスク）
 - Dev Container 起動時にロール選択プロンプトを出す仕組みを `tools/devcontainer/` に実装
 - `docs/05_実装/00_ディレクトリ設計/80_スパースチェックアウト運用/` 配下に cone 定義 9 本の全文・切替手順・既知問題を記載
