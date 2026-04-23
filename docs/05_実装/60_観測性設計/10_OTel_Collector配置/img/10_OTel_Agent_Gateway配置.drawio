@@ -1,0 +1,256 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="OTel_Agent_Gateway配置" id="otel">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="OTel Agent (DaemonSet) + Gateway Pipeline + AGPL 分離境界" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nodeA" value="Node A (worker)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="340" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="podApp1" value="tier1 Pod&#10;(otel-util crate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="podApp2" value="tier2 / tier3 Pod&#10;(OTLP SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="120" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="agentA" value="otel-collector-agent&#10;DaemonSet (Node A)&#10;receiver: OTLP 4317/4318&#10;prometheusreceiver (cAdvisor/node_exporter)&#10;最小加工のみ、本体 Pipeline は Gateway" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="nodeB" value="Node B (worker)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="340" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="podApp3" value="tier1 Pod&#10;(otel-util)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="440" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="podApp4" value="tier2 Pod&#10;(OTLP SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="440" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="agentB" value="otel-collector-agent&#10;DaemonSet (Node B)&#10;256Mi / 200m" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="540" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="gwBox" value="namespace observability / otel-collector-gateway Deployment (3-10 replicas)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="460" y="80" width="820" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="receiver&#10;OTLP 4317" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="485" y="130" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="transform&#10;PII masking&#10;(IP/email/tel/&#10;Bearer token)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="130" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="tail_sampling&#10;tier1=100%&#10;tier2/3=10%&#10;error=100%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="755" y="130" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="resource&#10;service.name&#10;k8s.namespace&#10;k8s.pod.name" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="130" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p5" value="batch&#10;1000 spans&#10;/ 10s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1025" y="130" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p6" value="routing&#10;(分岐)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="130" width="100" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pipeLbl" value="Gateway Pipeline (5 プロセッサ固定、IMP-OBS-OTEL-012)" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="485" y="100" width="780" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="agplTitle" value="AGPL 分離境界 (ADR-0003 / IMP-OBS-OTEL-016)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="485" y="290" width="780" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="agplBox" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#B71C1C;strokeWidth=3;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="485" y="320" width="780" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="loki" value="Loki (AGPL)&#10;logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="370" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mimir" value="Mimir (AGPL)&#10;metrics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="370" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="tempo" value="Tempo (AGPL)&#10;traces" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="890" y="370" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pyro" value="Pyroscope (AGPL)&#10;profiles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="370" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana" value="Grafana (AGPL) / dashboards / alerts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="500" width="360" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sepNote" value="sa-* / NetworkPolicy 片方向 / storageClass=longhorn-observability-agpl&#10;Collector プロセスは別 Deployment、tier1 バイナリとプロセス境界を共有しない" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="495" y="600" width="760" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="t1pii" value="tier1 t1-pii Pod&#10;(業務 PII 構造化マスキング)&#10;DS-SW-COMP-085/129" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="auxProm" value="補助 Prometheus (Phase 0/1a)&#10;infra/observability/prometheus-backup/&#10;15 分間隔で Gateway/Agent `up` scrape → 全滅時 Alertmanager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="720" width="520" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="canaryNote" value="Pipeline カナリア: otel-gateway-canary 1 replica を重み 25% で追加 (IMP-OBS-OTEL-018)&#10;error rate 1%+ / export drop 10%+ で Argo Rollouts 自動 rollback" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="720" width="510" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="legendBox" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="830" width="1440" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="lgT" value="凡例" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="830" width="1440" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="lgApp" value="アプリ層 (tier1 Pod / otel-util / t1-pii)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="860" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lgNet" value="ネットワーク/観測層 (OTel Agent / Gateway / Prom)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="860" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lgInfra" value="インフラ層 (Node / namespace / 補助 Prom)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="860" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lgData" value="データ/AGPL 層 (Loki/Mimir/Tempo/Pyro/Grafana)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="860" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lgSolid" value="実線太 = 明示呼出 (OTLP gRPC export)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="920" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lgSolidL" value="" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="930" as="sourcePoint" />
+            <mxPoint x="160" y="930" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgDot" value="点線細 = 透過捕捉 (prometheus scrape / self metrics)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="950" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lgDotL" value="" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;dashPattern=1 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="960" as="sourcePoint" />
+            <mxPoint x="160" y="960" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgDash" value="破線 = 非同期 / バッチ (transform 相互補完)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="980" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lgDashL" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="110" y="990" as="sourcePoint" />
+            <mxPoint x="160" y="990" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgAgpl" value="赤破線太 = AGPL 分離境界 (プロセス / SA / PV / NetworkPolicy)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#B71C1C;" vertex="1" parent="1">
+          <mxGeometry x="700" y="920" width="600" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lgAgplL" value="" style="endArrow=none;html=1;strokeColor=#B71C1C;strokeWidth=3;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="930" as="sourcePoint" />
+            <mxPoint x="700" y="930" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgNote" value="Agent は最小加工のみ / Gateway が全 PII/サンプリング/分岐を担う / AGPL 側とは OTLP-HTTP でのみ接続" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="950" width="800" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e_app1_agentA" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="podApp1" target="agentA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_app2_agentA" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="podApp2" target="agentA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_app3_agentB" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="podApp3" target="agentB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_app4_agentB" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="podApp4" target="agentB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_agentA_p1" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="agentA" target="p1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="270" />
+              <mxPoint x="420" y="165" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_agentB_p1" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="agentB" target="p1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="590" />
+              <mxPoint x="420" y="165" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_p1_p2" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="p1" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_p2_p3" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="p2" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_p3_p4" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="p3" target="p4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_p4_p5" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="p4" target="p5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_p5_p6" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="p5" target="p6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_p6_loki" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.2;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p6" target="loki">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="230" />
+              <mxPoint x="590" y="230" />
+              <mxPoint x="590" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_p6_mimir" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.4;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p6" target="mimir">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="240" />
+              <mxPoint x="780" y="240" />
+              <mxPoint x="780" y="355" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_p6_tempo" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.6;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p6" target="tempo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1220" y="250" />
+              <mxPoint x="970" y="250" />
+              <mxPoint x="970" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_p6_pyro" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=3;endArrow=classic;endFill=1;exitX=0.8;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p6" target="pyro">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1240" y="260" />
+              <mxPoint x="1160" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_mimir_grafana" style="edgeStyle=none;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;dashPattern=1 3;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="mimir" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_loki_grafana" style="edgeStyle=none;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;dashPattern=1 3;exitX=0.5;exitY=1;entryX=0.1;entryY=0;" edge="1" parent="1" source="loki" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_tempo_grafana" style="edgeStyle=none;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;dashPattern=1 3;exitX=0.5;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="tempo" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pyro_grafana" style="edgeStyle=none;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;dashPattern=1 3;exitX=0.5;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="pyro" target="grafana">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_t1pii_p2" style="edgeStyle=none;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;endFill=1;dashed=1;dashPattern=8 4;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="t1pii" target="p2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="700" />
+              <mxPoint x="675" y="700" />
+              <mxPoint x="675" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lbl_pii_text" value="業務 PII = t1-pii / 技術 PII = Gateway transform" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="390" y="685" width="280" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

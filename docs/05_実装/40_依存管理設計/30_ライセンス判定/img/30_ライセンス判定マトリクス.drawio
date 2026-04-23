@@ -1,0 +1,229 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="license-matrix" id="lic1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1700" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ライセンス判定マトリクス × 使用形態 → 許容判定 → AGPL 分離 (ADR-0003) 接続" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1660" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mtxTitle" value="ライセンス × 使用形態 マトリクス" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1080" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mh0" value="ライセンス分類" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="95" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mh1" value="静的リンク&#xa;(Rust / Go static)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="95" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mh2" value="動的リンク&#xa;(TS/.NET dynamic)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="95" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mh3" value="ネットワーク利用&#xa;(別 Pod / SaaS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="95" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mh4" value="ビルド時のみ利用&#xa;(CLI / generator)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="95" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r1h" value="Permissive&#xa;MIT / Apache-2.0 / BSD-2/3 / ISC&#xa;Unlicense / CC0-1.0 / MPL-2.0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="135" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c1" value="OK (自動通過)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="135" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c2" value="OK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="135" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c3" value="OK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="135" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c4" value="OK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="135" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r2h" value="Weak Copyleft&#xa;LGPL-2.1 / LGPL-3.0" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="205" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c1" value="NG (deny)&#xa;cargo-deny copyleft=deny&#xa;Go 静的 binding 標準" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="205" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c2" value="条件付 (ADR + Legal)&#xa;Node.js / AssemblyLoadContext&#xa;bundle 内包は NG" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="205" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c3" value="OK&#xa;別 Pod / 別ネットワーク境界" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="205" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c4" value="条件付&#xa;成果物に混入しない前提で" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="205" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r3h" value="Strong Copyleft&#xa;GPL-3.0 (静的)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="275" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c1" value="NG (CI 自動 fail)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="275" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c2" value="NG" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="275" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c3" value="OK&#xa;別プロセス限定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="275" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c4" value="条件付&#xa;成果物非混入の確認必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="275" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r4h" value="AGPL-3.0&#xa;(ADR-0003 6 件限定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="345" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c1" value="NG + import path 拒否&#xa;tools/ci/agpl-check/scan.sh" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="345" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c2" value="NG + import path 拒否" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="345" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c3" value="OK (分離境界内のみ)&#xa;別 namespace / 別 image&#xa;別ネットワーク必須&#xa;ADR-0003 6 件" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="345" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c4" value="OK (GitHub App 等)&#xa;Renovate 本体は OK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="345" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r5h" value="BUSL / SSPL / Elastic-2.0&#xa;Commons Clause / Confluent&#xa;(BSL / 再配布制約)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="425" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c1" value="NG (CI 自動 fail)&#xa;代替 OSS 強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="425" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c2" value="NG" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="425" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c3" value="NG&#xa;Radar Hold 登録" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="425" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c4" value="NG" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="425" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r6h" value="SPDX 不明 / 独自 EULA&#xa;dual-licensed" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="495" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r6" value="初期は CI fail / Path A (上流 PR) / Path B (overrides.toml + Security/Legal 承認) / Path C (代替置換 + ADR)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="495" width="720" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agpl_title" value="AGPL 分離境界 (ADR-0003) 接続" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="60" width="520" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="agpl6" value="AGPL 6 件 (denylist)&#xa;grafana / loki / tempo / pyroscope&#xa;minio / renovate 本体" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="95" width="520" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate2" value="2 段ゲート&#xa;第1段: license checker (cargo-deny 他) で AGPL-3.0 検出→fail&#xa;第2段: import path scanner で推移依存込みの混入検出→fail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="170" width="520" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary" value="分離境界 (NFR-E-NW-003)&#xa;別 namespace / 別 image / 別ネットワーク" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="275" width="520" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="exc" value="例外 third_party/ vendoring&#xa;LICENSE-AGPL-isolated.md 存在で検証スキップ&#xa;exceptions.toml に Security + Legal 共同承認で追加" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="350" width="520" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tools_title" value="4 ecosystem のツールチェーン (CI _reusable-quality-gate.yml lint stage)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="1620" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="Rust&#xa;cargo-deny&#xa;deny.toml&#xa;(10 章既設定)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="635" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Go&#xa;go-licenses (Google)&#xa;--allowed_licenses=&#xa;allowlist.txt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="635" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="TypeScript&#xa;license-checker-rseidelsohn&#xa;--onlyAllow=...&#xa;pnpm-lock.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="480" y="635" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" value=".NET&#xa;nuget-license&#xa;--allowed-license-types&#xa;packages.lock.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="635" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" value="共通 allowlist.txt&#xa;tools/ci/license/allowlist.txt&#xa;10 ライセンス (Permissive + MPL-2.0)&#xa;Security (D) 承認必須" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="635" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" value="import path scanner&#xa;tools/ci/agpl-check/scan.sh&#xa;cargo tree / go list / pnpm list / dotnet list&#xa;推移依存込み検査" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="635" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t7" value="月次監査レポート&#xa;ops/audit/license-monthly-YYYYMM.md&#xa;MinIO WORM 7 年保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="635" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="alt_title" value="BSL / SSPL 代替マッピング (radar Hold 登録 IMP-DEP-LIC-035)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="740" width="1620" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" value="Redis (BSL) → Valkey (BSD-3)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="775" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="MongoDB (SSPL) → PostgreSQL jsonb / CloudNativePG" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="775" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="Elasticsearch (SSPL/Elastic-2.0) → OpenSearch (Apache-2.0)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="775" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="Terraform (BSL) → OpenTofu (MPL-2.0)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="775" width="310" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="Vault (BSL) → OpenBao (MPL-2.0, 85 章採用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="775" width="300" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="840" width="1620" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_ok" value="OK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="870" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_cond" value="条件付" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="870" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_ng" value="NG (deny)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="870" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="アプリ層 (CI ゲート / 判定ロジック / マッピング): 暖色 #fff2cc / #d79b00" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="870" width="1260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="ネットワーク層 (分離境界 NFR-E-NW-003): 寒色 #dae8fc / #6c8ebf" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="900" width="1260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="インフラ層 (表ヘッダ): 中性灰 #f5f5f5 / #666666 / データ層 (監査レポート保管): 薄紫 #e1d5e7 / #9673a6" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="930" width="1580" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="IMP-DEP-LIC-030〜037 / ADR-0003 (AGPL 分離) / NFR-E-NW-003 / NFR-H-COMP-004 / NFR-H-AUD-001 / NFR-H-AUD-002 / NFR-C-MNT-002" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="960" width="1580" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" value="重要な構造: AGPL は &quot;検出 + import path 検出&quot; の 2 段ゲートで推移依存経由の混入まで防ぐ。ネットワーク境界越しでのみ ADR-0003 6 件利用を許可する。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="990" width="1580" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6" value="override の月次 tracking + 6 か月再検証で Path B (overrides.toml) を技術負債として可視化し、上流 SPDX 付与後に削除するサイクルを保つ" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1020" width="1580" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="agpl6" target="gate2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="通過後のみ" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="gate2" target="boundary">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="gate2" target="exc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1110" y="215" />
+              <mxPoint x="1110" y="385" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

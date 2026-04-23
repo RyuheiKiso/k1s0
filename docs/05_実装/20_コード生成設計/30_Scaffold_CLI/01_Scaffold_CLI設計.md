@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 における tier2 / tier3 の新規サービス雛形展開を担う Scaffold CLI の設計を確定する。ADR-BS-001（Backstage 採用）により、新規サービス発見性は Backstage カタログが単一窓口となる。Scaffold CLI はその入口として、Backstage Software Template 互換の出力を生成し、`catalog-info.yaml` を自動同梱してカタログ登録を機械化する役割を持つ。本ファイルでは CLI 実装言語・テンプレート配置・承認ゲート・golden snapshot・Backstage 統合を物理配置レベルで規定する。
 
-![Scaffold CLI の生成経路と承認フロー](img/scaffold_cli_flow.svg)
+![Scaffold CLI の生成経路と承認フロー](img/30_Scaffold_CLI生成フロー.svg)
 
 `00_方針/01_コード生成原則.md` の IMP-CODEGEN-POL-005（golden snapshot）/ IMP-CODEGEN-POL-006（catalog-info.yaml 必須）/ IMP-CODEGEN-POL-007（SRE + Security 二重承認）は本ファイルの上位原則。本ファイルはその原則を CLI 実装と運用フローに落とす。
 

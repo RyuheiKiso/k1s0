@@ -1,0 +1,151 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="keycloak-realm" id="kc01">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Keycloak 4 realm 階層と client/group/claim の OIDC flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="10" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="kcbox" value="Keycloak HA 3 replica (k1s0-identity ns)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;verticalAlign=top;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="820" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="master" value="master realm&#10;Keycloak 管理者&#10;(他 realm admin 発行)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="internal" value="k1s0-internal realm&#10;従業員 (MFA 強制)&#10;groups: k1s0-dev/ops/sec/rd&#10;password NIST SP 800-63B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="100" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="partners" value="k1s0-partners realm&#10;委託先 (契約期間失効)&#10;groups: k1s0-partner-dev&#10;MFA 強制" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="100" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="tenants" value="k1s0-tenants realm (親)&#10;user ゼロ / IdP Brokering のみ&#10;(AD FS / Okta / Azure AD)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="customer1" value="customer-001 IdP&#10;(顧客 AD FS)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="400" y="220" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="customer2" value="customer-002 IdP&#10;(顧客 Okta)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="400" y="270" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="clientWeb" value="client: k1s0-web-&lt;env&gt;&#10;public + PKCE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="80" y="340" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="clientNative" value="client: k1s0-native-&lt;env&gt;&#10;native + PKCE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="280" y="340" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="clientBff" value="client: BFF&#10;confidential + secret&#10;(OpenBao)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="480" y="340" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="clientTier1" value="client: k1s0-tier1-&lt;pod&gt;&#10;bearer-only&#10;resource server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="680" y="340" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="CloudNativePG&#10;keycloak-db cluster&#10;3 node + read replica" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="430" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="infinispan" value="Infinispan 分散キャッシュ&#10;session / token / realm cache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="430" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="operator" value="Keycloak Operator&#10;(realm JSON apply)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="430" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="jwt" value="JWT payload (内部 realm)&#10;iss: .../realms/k1s0-internal&#10;aud: [k1s0-tier1-decision, ...]&#10;groups: [k1s0-dev, k1s0-sec]&#10;tenant_id: jtc-customer-001&#10;exp: 1728432000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="60" width="320" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1Pod" value="tier1 bearer-only Pod&#10;crates/common/ JWT 検証&#10;iss/aud/exp/nbf/signature 5 項目必須&#10;JWKS 5 分 TTL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="230" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="zen" value="ZEN Engine&#10;crates/policy/&#10;groups → RBAC 判定&#10;tenant_id → 一次検証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="360" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Kafka topic&#10;keycloak-admin-events&#10;keycloak-login-events" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO Parquet&#10;7 年 Object Lock&#10;realm/year/month 分割" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="540" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="offboard" value="offboard.sh (50 節)&#10;user disable + LogoutAll&#10;chain revoke 起動" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="540" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="localdev" value="ローカル開発 Keycloak (docker-compose)&#10;tools/local-stack/keycloak/realm-export.json / k1s0-local realm / MFA 無効" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="950" y="540" width="390" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例: アプリ層(暖色)=realm/JWT/tier1検証/ZEN / ネットワーク層(寒色)=client/IdP連携 / インフラ層(灰)=Operator/localdev / データ層(紫)=DB/Kafka/MinIO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="tenants" target="customer1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="tenants" target="customer2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;exitX=0.25;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="internal" target="clientWeb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="310" />
+              <mxPoint x="170" y="310" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.4;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="internal" target="clientNative">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="406" y="320" />
+              <mxPoint x="370" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.6;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="internal" target="clientBff">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="320" />
+              <mxPoint x="570" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;exitX=0.8;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;strokeWidth=1;endArrow=classic;" edge="1" parent="1" source="internal" target="clientTier1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="502" y="320" />
+              <mxPoint x="770" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.3;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="clientTier1" target="jwt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="jwt" target="tier1Pod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="tier1Pod" target="zen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.3;strokeColor=#9673a6;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="db" target="internal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="455" />
+              <mxPoint x="60" y="127" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="kafka" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="kafka" target="minio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="offboard" target="internal">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="510" />
+              <mxPoint x="430" y="510" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -4,6 +4,8 @@
 
 ![OTel Agent + Gateway 2 段構成](img/OTel_Agent_Gateway2段構成.svg)
 
+![OTel Agent (DaemonSet) + Gateway Pipeline + AGPL 分離境界](img/10_OTel_Agent_Gateway配置.svg)
+
 アプリから LGTM へ直送する単層構成は、バックエンド変更がアプリ改修を誘発する、ネットワーク分離境界が崩れる、PII マスキング責務の位置が曖昧になる、という 3 点で破綻する。本節は Agent（Node ローカル）+ Gateway（集約層）の 2 段に分離し、Agent は収集と最小加工、Gateway は PII マスキング・サンプリング・バックエンド分岐を担う構成で固定する。Agent の設置単位は Node、Gateway は namespace とし、責務境界を Pod ではなく層で切る。
 
 AGPL 分離（ADR-0003）は本節の前提として常に効く。Grafana / Loki / Tempo / Mimir / Pyroscope は OTel Collector から OTLP / HTTP で接続し、tier1 バイナリとプロセス境界を共有しない。Collector 自身は Apache 2.0 であり、tier1 / tier2 と同居する配置を許容する。
