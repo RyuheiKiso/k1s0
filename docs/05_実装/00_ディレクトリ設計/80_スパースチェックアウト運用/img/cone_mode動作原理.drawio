@@ -1,0 +1,109 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="cone-mode" id="cone-mode-001">
+    <mxGraphModel dx="1400" dy="750" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="750" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Git sparse-checkout cone mode の動作原理（例: tier1-rust-dev）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sub" value="cone mode は「祖先パス + 指定ディレクトリ配下 + ルート直下ファイル」の 3 種を展開する。兄弟ディレクトリは展開しない。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="1200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd" value="$ git sparse-checkout set --cone src/tier1/rust  src/contracts  src/sdk/rust  tools  tests" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e1e;strokeColor=#1e1e1e;fontColor=#d4d4d4;fontSize=12;fontStyle=1;fontFamily=Courier New;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="1320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tree-label" value="リポジトリ全体ツリー（動作後、ワーキングツリーに存在するファイル色分け）" style="text;html=1;align=left;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="145" width="700" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="t-root" value="k1s0/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-rootf" value="├── CLAUDE.md  /  README.md  /  .gitattributes  （ルート直下ファイルは常に展開）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="206" width="800" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-src" value="├── src/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="232" width="160" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-src-ann" value="祖先: 指定パスの親なので表示" style="text;html=1;align=left;fontSize=10;fontColor=#d79b00;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="210" y="232" width="240" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-contr" value="│    ├── contracts/  ← 指定 → 配下の .proto 全て取得" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="258" width="500" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-tier1" value="│    ├── tier1/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="284" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-tier1-ann" value="祖先: src/tier1/rust/ の親" style="text;html=1;align=left;fontSize=10;fontColor=#d79b00;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="250" y="284" width="240" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-tier1-go" value="│    │    ├── go/  （skip: 兄弟パス）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="400" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-tier1-rust" value="│    │    └── rust/  ← 指定 → crates/ 全て取得（ZEN / crypto / jtc-features / rust-facade）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="336" width="800" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-sdk" value="│    ├── sdk/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="362" width="200" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-sdk-ann" value="祖先: sdk/rust/ の親" style="text;html=1;align=left;fontSize=10;fontColor=#d79b00;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="250" y="362" width="240" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-sdk-net" value="│    │    ├── dotnet/  （skip）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="388" width="400" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-sdk-go" value="│    │    ├── go/  （skip）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="414" width="400" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-sdk-rust" value="│    │    ├── rust/  ← 指定 → src/gen/ 等取得" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="500" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-sdk-ts" value="│    │    └── typescript/  （skip）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="466" width="400" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-t2t3pf" value="│    ├── tier2/  tier3/  platform/  （skip: 指定パスの祖先・配下ではない）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="492" width="700" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-infra" value="├── infra/  deploy/  ops/  （skip）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="518" width="400" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-tools" value="├── tools/  ← 指定 → 配下全て取得（devcontainer / codegen / sparse / ci 等）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="544" width="800" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-tests" value="├── tests/  ← 指定 → 配下全て取得" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="500" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-docs" value="├── docs/  （skip: 明示指定していないため）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="596" width="500" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="t-ex" value="├── examples/  third_party/  （skip）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="622" width="500" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-t" value="凡例" style="text;html=1;align=left;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="145" width="60" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-taken" value="取得（指定 / 配下 / 常時）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="180" width="440" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-anc" value="祖先のみ（空ディレクトリ化）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="210" width="440" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-skip" value="skip（ワーキングツリーに存在しない）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="900" y="240" width="440" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="size-box" value="★ 効果（tier1-rust-dev 役割の場合）&#10;&#10;  full clone: 約 3.2 GB → sparse after: 約 540 MB（≒ 83% 削減）&#10;  ファイル数: 約 180,000 → 約 24,000（≒ 87% 削減）&#10;  初期 checkout: 8 分 → 1.2 分（SSD 基準）&#10;&#10;  git 2.37+ sparse index（core.sparseCheckoutCone=true）で&#10;  さらに status/add/commit が 2〜10 倍高速化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="900" y="280" width="440" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="cmd2" value="★ 役割切替&#10;  ./tools/sparse/checkout-role.sh tier1-rust-dev" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=12;spacingTop=8;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="900" y="490" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note-bottom" value="cone mode は Git 2.27+（2020/06）で安定、sparse index は 2.37+（2022/06）で安定。partial clone（--filter=blob:none）と併用して初回 clone 時間を最小化（IMP-DIR-SPARSE-132）。" style="text;html=1;align=center;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="680" width="1320" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,106 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="7-axis-decision" id="7axis-001">
+    <mxGraphModel dx="1200" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="新規ディレクトリ追加の 7 軸意思決定ツリー（IMP-DIR-ROOT-001〜007）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="start" value="新しいディレクトリを追加したい" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="70" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax1" value="① 責務境界は単一か？&#10;（IMP-DIR-ROOT-001）&#10;&#10;一つのディレクトリに複数の責務が&#10;混在していないか確認する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="320" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ax1-no" value="✗ src/tier1/infra/&#10;  （tier1 と infra が混在 → ADR-DIR-002 で分離）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="180" width="340" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ax1-ok" value="✓ infra/dapr/components/&#10;  （Dapr Component YAML のみ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="760" y="180" width="340" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ax1-ng" value="✗ src/common/  （なんでも入る袋小路）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="230" width="340" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ax2" value="② 依存方向は一方向か？&#10;（IMP-DIR-ROOT-002 / 012）&#10;&#10;tier3 → tier2 → (sdk ← contracts) → tier1 → infra" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="295" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax2-ok" value="✓ tier1 → infra （下位への依存は OK）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="295" width="340" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax2-ng" value="✗ infra → tier1 （インフラがアプリを知る = NG）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="335" width="340" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax2-tool" value="CI 検知: importchecker / go vet / buf breaking / cargo-deny" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="760" y="295" width="340" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="ax3" value="③ 深さは 5 階層以内か？&#10;（IMP-DIR-ROOT-003）&#10;&#10;リポジトリルートから数えて最大 5 階層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="390" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax3-ok" value="✓ src/tier1/go/internal/proto/v1/ （5 階層）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="390" width="690" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax3-ng" value="✗ src/tier1/go/internal/proto/v1/handlers/impl/ （8 階層 = NG。再設計）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="430" width="690" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax4" value="④ README.md を置くか？&#10;（IMP-DIR-ROOT-004）&#10;&#10;主要ディレクトリの README は必須" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="485" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax4-req" value="✓ 必須: src/ / src/tier1/ / infra/ / deploy/ / ops/ / tools/ / tests/ / examples/&#10;　docs/05_実装/ への双方向リンクを張る" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="485" width="690" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax5" value="⑤ 生成物と手書きを分離できるか？&#10;（IMP-DIR-ROOT-005）&#10;&#10;生成コード ≠ 手書き・混在させない" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="580" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax5-ok" value="✓ src/sdk/go/gen/ （buf 生成物のみ） ＋ src/sdk/go/ （手書き API）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="580" width="690" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax5-ng" value="✗ gen ファイルを手書きファイルと同じフォルダに置く" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="620" width="690" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax6" value="⑥ 命名衝突がないか？&#10;（IMP-DIR-ROOT-006）&#10;&#10;Windows 大小文字区別 / パス長 260 文字制限" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="675" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax6-ok" value="✓ 全パス小文字統一 / ファイル名 50 文字以内 / 日本語パスは docs 配下のみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="675" width="690" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax7" value="⑦ cone mode に統合可能か？&#10;（IMP-DIR-ROOT-007 / SPARSE-127）&#10;&#10;いずれかの役割 cone に論理的に所属" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="80" y="770" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ax7-ok" value="✓ infra/dapr/ → infra-ops cone / full cone" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="770" width="690" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ax7-ng" value="✗ どの役割にも属さない孤立ディレクトリ → 役割設計の見直しか full 専用化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="410" y="810" width="690" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="e-start" style="endArrow=classic;html=1;strokeColor=#000000;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="150" as="sourcePoint" />
+            <mxPoint x="240" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-12" style="endArrow=classic;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ax1" target="ax2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-23" style="endArrow=classic;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ax2" target="ax3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-34" style="endArrow=classic;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ax3" target="ax4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-45" style="endArrow=classic;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ax4" target="ax5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-56" style="endArrow=classic;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ax5" target="ax6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-67" style="endArrow=classic;html=1;strokeColor=#d6b656;" edge="1" parent="1" source="ax6" target="ax7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

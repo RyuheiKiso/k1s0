@@ -1,0 +1,109 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="root-tree" id="root-tree-001">
+    <mxGraphModel dx="1400" dy="750" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="750" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="k1s0 モノレポ全体ツリー（ADR-DIR-001/002 適用後）" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="root" value="k1s0/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="60" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h-src" value="src/ （ソースコード一次）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6b656;strokeColor=#d6b656;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="420" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h-infra" value="横断基盤（ADR-DIR-002）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="115" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h-dev" value="開発支援 / ドキュメント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#82b366;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="115" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="b-contracts" value="contracts/  &#8212; Protobuf 契約（ADR-DIR-001 ルート昇格）&#10;  tier1/v1/ ＋ internal/v1/ ＋ buf.yaml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="155" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-tier1" value="tier1/  &#8212; システム基盤（11 公開 API）&#10;  go/ (Dapr ファサード) ＋ rust/ (ZEN Engine / crypto 他)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-sdk" value="sdk/  &#8212; 多言語クライアント SDK（4 言語同格）&#10;  dotnet/ ＋ go/ ＋ rust/ ＋ typescript/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="285" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-tier2" value="tier2/  &#8212; ドメイン共通業務ロジック&#10;  dotnet/services/ ＋ go/services/ ＋ templates/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-tier3" value="tier3/  &#8212; エンドアプリ&#10;  web/ ＋ native/ (.NET MAUI) ＋ bff/ ＋ legacy-wrap/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="415" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-platform" value="platform/  &#8212; プラットフォーム横断&#10;  cli/ ＋ analyzer/ ＋ backstage-plugins/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-infra" value="infra/  &#8212; クラスタ素構成（ADR-DIR-002）&#10;  k8s/  mesh/  dapr/  data/  security/&#10;  observability/  feature-management/  scaling/  environments/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="155" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b-deploy" value="deploy/  &#8212; GitOps 配信定義&#10;  apps/ (ArgoCD) ＋ charts/ ＋ kustomize/&#10;  rollouts/ ＋ opentofu/ ＋ image-updater/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="245" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b-ops" value="ops/  &#8212; 運用領域&#10;  runbooks/  chaos/ (Litmus)  dr/&#10;  oncall/  load/ (k6)  scripts/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#cfe3fc;strokeColor=#6c8ebf;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="335" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b-envs" value="infra/environments/  &#8212; 環境差分&#10;  dev / staging / prod を Kustomize overlay" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="425" width="400" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="b-policy" value="★ tier1 所有物 → 横断基盤へ昇格&#10;  旧 src/tier1/infra/ を廃止し 3 階層に分離" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="490" y="480" width="400" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="b-tools" value="tools/  &#8212; 横断ツール&#10;  devcontainer/profiles/ (8 役別)&#10;  local-stack/ (kind/k3d) ＋ codegen/ (buf)&#10;  sparse/ ＋ ci/ ＋ git-hooks/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="155" width="440" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="b-tests" value="tests/  &#8212; tier 横断テスト&#10;  e2e/ (Go) ＋ contract/ (Pact) ＋ integration/ (testcontainers)&#10;  fuzz/ ＋ golden/ ＋ fixtures/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="250" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="b-ex" value="examples/  &#8212; Golden Path 実稼働例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="330" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="b-tp" value="third_party/  &#8212; OSS フォーク vendoring（UPSTREAM.md / PATCHES.md）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="370" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="b-docs" value="docs/  &#8212; 全フェーズドキュメント（データ層）&#10;  01_企画 ＋ 02_構想 ＋ 03_要件 ＋ 04_概要 ＋ 05_実装&#10;  00_format（テンプレ） ＋ 90_knowledge（学習）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="410" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="b-rootf" value="ルート直下ファイル&#10;  CLAUDE.md / README.md / SECURITY.md / LICENSE&#10;  Makefile / .gitattributes / .git-blame-ignore-revs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="920" y="490" width="440" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="adr-note" value="ADR-DIR-001: contracts を src/ 直下に昇格（tier1 所有物ではなく横断契約）&#10;ADR-DIR-002: infra/ deploy/ ops/ を 3 階層分離（GitOps 標準準拠）&#10;ADR-DIR-003: sparse-checkout cone mode を標準運用（9 役別 cone）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="850" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="凡例（色分け）" style="text;html=1;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="570" width="440" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-1" value="アプリ実装" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="595" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-2" value="インフラ素構成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="595" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-3" value="配信 (GitOps)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="595" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-4" value="運用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#cfe3fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="595" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-5" value="開発支援" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="625" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-6" value="ドキュメント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="625" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-7" value="ルートファイル" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="625" width="100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-8" value="注意（ポリシー）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="625" width="100" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

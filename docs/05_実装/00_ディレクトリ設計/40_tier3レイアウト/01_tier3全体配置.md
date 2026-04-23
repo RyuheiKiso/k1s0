@@ -1,0 +1,124 @@
+# 01. tier3 全体配置
+
+本ファイルは `src/tier3/` の全体構成を確定する。4 カテゴリ（web / native / bff / legacy-wrap）の配置と、それぞれの技術スタック、Phase 導入タイミングを規定する。
+
+## レイアウト
+
+```
+src/tier3/
+├── README.md
+├── web/                    # React + TypeScript + pnpm workspace
+│   ├── pnpm-workspace.yaml
+│   ├── package.json
+│   ├── tsconfig.base.json
+│   ├── apps/
+│   │   ├── portal/         # 配信ポータル
+│   │   ├── admin/          # 管理画面
+│   │   └── docs-site/      # Phase 1b 以降
+│   ├── packages/           # 共有ライブラリ
+│   │   ├── ui/             # shadcn/ui 派生の共通コンポーネント
+│   │   ├── api-client/     # k1s0 SDK wrapper
+│   │   ├── i18n/           # 国際化基盤
+│   │   └── config/         # 共通設定
+│   └── tools/
+│       └── eslint-config/
+├── native/                 # .NET MAUI
+│   ├── Native.sln
+│   ├── Directory.Build.props
+│   ├── apps/
+│   │   ├── K1s0.Native.Hub/
+│   │   └── K1s0.Native.Admin/
+│   └── shared/
+│       └── K1s0.Native.Shared/
+├── bff/                    # Backend For Frontend
+│   ├── go.mod              # module github.com/k1s0/k1s0/src/tier3/bff
+│   ├── cmd/
+│   │   ├── portal-bff/
+│   │   └── admin-bff/
+│   ├── internal/
+│   │   ├── graphql/
+│   │   ├── rest/
+│   │   └── k1s0client/
+│   └── Dockerfile
+└── legacy-wrap/            # .NET Framework sidecar wrapper
+    ├── LegacyWrap.sln
+    └── sidecars/
+        └── K1s0.Legacy.Sidecar/
+```
+
+## 4 カテゴリの技術スタック
+
+### web（Web フロントエンド）
+
+- Language: TypeScript 5.x
+- Framework: Next.js（App Router）または Vite + React 18+
+- Package manager: pnpm 9.x
+- UI library: shadcn/ui + Tailwind CSS
+- State management: Zustand / TanStack Query
+- gRPC-Web: `@connectrpc/connect-web`
+- 認証: `@k1s0/sdk-auth`（Keycloak OIDC 連携）
+
+### native（.NET MAUI モバイル / デスクトップ）
+
+- Language: C# 12 / .NET 8
+- Framework: .NET MAUI
+- Platforms: iOS / Android / Windows / macOS（Phase 1c）
+- UI: XAML + MAUI Controls
+- 認証: `K1s0.Sdk.Auth`（Keycloak OIDC 連携）
+
+### bff（Backend For Frontend）
+
+- Language: Go 1.22+
+- Framework: `chi` + `graphql-go` または `connectrpc/connect-go`
+- 役割: Web / Native からの複合クエリを tier1 / tier2 への複数呼び出しに変換し、client 固有のレスポンス形式に加工
+- 配置は SDK の使い勝手を高めるため Go を選定（tier3 Web が直接 tier1 を叩くのでも動くが、tier1 呼び出しのオーケストレーションと認可フィルタを 1 箇所に集約する目的）
+
+### legacy-wrap（.NET Framework ラッパー）
+
+- Language: C# 7+（.NET Framework 4.8）
+- Framework: ASP.NET Web API + Dapr sidecar
+- 役割: JTC 既存 .NET Framework 資産を Dapr sidecar パターンで現行 k1s0 基盤に接続する薄いラッパー
+- ADR-MIG-001 に従い、段階的に .NET 8 / .NET MAUI への移行を進める
+
+## Phase 導入タイミング
+
+| Phase | web | native | bff | legacy-wrap |
+|---|---|---|---|---|
+| Phase 0 | 構造のみ | 構造のみ | 構造のみ | 構造のみ |
+| Phase 1a | portal（最小配信ポータル） | - | - | - |
+| Phase 1b | portal 本格化 / admin 最小 | K1s0.Native.Hub 最小 | portal-bff 最小 | sidecar 雛形 |
+| Phase 1c | 本番品質 / i18n / a11y | 全プラットフォーム対応 | admin-bff | 移行ガイド整備 |
+| Phase 2 | マルチテナント UI | - | 高度な aggregator | - |
+
+## 依存方向
+
+- tier3 は SDK（`src/sdk/typescript/` / `src/sdk/dotnet/` / `src/sdk/go/`）を介して tier2 / tier1 にアクセス
+- tier3 から tier1 / contracts / infra を直接参照することは禁止
+- tier3 内部の相互参照（web → bff など）は SDK パッケージ経由または BFF の HTTP/gRPC エンドポイント経由で行う
+
+## CODEOWNERS
+
+```
+/src/tier3/                                     @k1s0/tier3-web @k1s0/tier3-native
+/src/tier3/web/                                 @k1s0/tier3-web
+/src/tier3/native/                              @k1s0/tier3-native
+/src/tier3/bff/                                 @k1s0/tier3-web @k1s0/tier2-dev
+/src/tier3/legacy-wrap/                         @k1s0/tier3-native @k1s0/platform-team
+```
+
+## スパースチェックアウト cone
+
+- `tier3-web-dev` cone : `src/sdk/typescript/` + `src/tier3/web/` + `src/tier3/bff/` + `docs/`
+- `tier3-native-dev` cone : `src/sdk/dotnet/` + `src/tier3/native/` + `src/tier3/legacy-wrap/` + `docs/`
+
+BFF は Web / Native 両方の開発者が編集する可能性があるが、BFF 本体の実装は主に Web 側（Go に慣れた tier3-web チームが担当）。Native は BFF が提供する HTTP / gRPC を呼ぶだけ。
+
+## 対応 IMP-DIR ID
+
+- IMP-DIR-T3-056（tier3 全体配置）
+
+## 対応 ADR / DS-SW-COMP / 要件
+
+- ADR-TIER1-003（内部言語不可視）
+- ADR-MIG-001（.NET Framework sidecar）
+- FR-\* / DX-GP-\* / DX-CICD-\*

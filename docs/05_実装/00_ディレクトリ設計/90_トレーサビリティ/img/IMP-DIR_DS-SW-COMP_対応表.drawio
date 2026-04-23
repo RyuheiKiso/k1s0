@@ -1,0 +1,184 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="imp-dir-ds-matrix" id="imp-dir-ds-001">
+    <mxGraphModel dx="1300" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1300" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="IMP-DIR × DS-SW-COMP 対応マトリクス（改訂影響）" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" value="DS-SW-COMP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="改訂区分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="80" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="影響" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="80" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="対応 IMP-DIR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="80" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h5" value="根拠 ADR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="80" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c1" value="120" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c2" value="改訂（廃止・再配置）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="120" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c3" value="大" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="120" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c4" value="INFRA-071, INFRA-074, OPS-091, OPS-095" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="120" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c5" value="ADR-DIR-002" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="120" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c1" value="121" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c2" value="改訂（ルート昇格）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="160" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c3" value="大" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="160" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c4" value="T1-022, T1-026" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="160" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c5" value="ADR-DIR-001" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="160" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c1" value="122" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c2" value="改訂（集約化 → SDK）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="200" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c3" value="中" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="200" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c4" value="T1-025, T1-026" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="200" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c5" value="ADR-DIR-001（波及）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="200" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c1" value="123" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="240" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c2" value="継承" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="240" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c3" value="無" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="240" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c4" value="T1-023" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="240" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c5" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="240" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c1" value="124" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="280" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c2" value="一部調整（6 Pod 明示）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="280" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c3" value="小" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="280" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c4" value="T1-023" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="280" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c5" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="280" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c1" value="125-128" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c2" value="継承（internal/ Dockerfile テスト）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="320" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c3" value="無" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="320" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c4" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="320" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c5" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="320" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c1" value="129" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c2" value="一部調整（crates 明確化）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="360" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c3" value="小" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="360" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c4" value="T1-024" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="360" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c5" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="360" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c1" value="130-131" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c2" value="継承（edition 2024 / build.rs）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="400" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c3" value="無" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="400" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c4" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="400" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c5" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="400" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c1" value="132" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="440" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c2" value="改訂（移設: gen → sdk）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="440" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c3" value="小" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="440" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c4" value="T1-025, T1-026" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="440" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c5" value="ADR-DIR-001（波及）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="440" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r10c1" value="133-135" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r10c2" value="継承（tests / docs / feature flag）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="480" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r10c3" value="無" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="460" y="480" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r10c4" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="560" y="480" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r10c5" value="-" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="480" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="summary" value="改訂対象: DS-SW-COMP-120 / 121 / 122 / 132 の 4 件（残り 11 件は継承）" style="text;html=1;align=center;fontSize=12;fontStyle=1;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="60" y="530" width="1180" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
