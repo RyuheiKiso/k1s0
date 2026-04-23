@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける sigstore / cosign keyless 署名の物理配置と運用規約を確定する。80 章方針 IMP-SUP-POL-002（cosign keyless 必須）および IMP-SUP-POL-005（Kyverno enforce）で掲げた原則を、GitHub Actions reusable workflow・Fulcio 短寿命証明書・Rekor 透明性ログ・Kyverno verifyImages admission の 4 点でつなぐ具体実装として示す。ADR-CICD-003 で選定した Kyverno が検証の実行主体であり、ADR-SUP-001（起票予定、SLSA L2→L3 段階到達）と同期して Phase 0 の L2 到達基準線を満たす。
 
-![cosign keyless 署名経路](img/cosign_keyless署名経路.svg)
+![cosign keyless 署名フロー OIDC→Fulcio→Rekor→Kyverno](img/10_cosign_keyless署名フロー.svg)
 
 長期鍵を CI 環境変数として持ち回す従来運用は、流出時の全 image 再署名が事実上不可能で、鍵ローテーション運用が破綻する。一方で署名を完全に放棄すると、供給元の真正性が担保されず、admission で未署名 image を拒否できない。keyless 方式は「GitHub Actions の OIDC トークン → Fulcio が短寿命 X.509 を発行 → Rekor に署名エントリを記録」という 3 段構成で、長期秘密を一切保管せずに真正性と改ざん検知を両立する。
 

@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける「image hash から tier1 公開 11 API の影響範囲を逆引きする」Forensics Runbook の物理配置と実行手順を確定する。80 章方針 IMP-SUP-POL-006（Forensics 逆引きの 15 分 SLI）を実装レベルに落とし込み、10 節で確定した cosign 署名、20 節で確定する CycloneDX SBOM、30 節で確定する SLSA Provenance、Rekor 透明性ログを横断して利用する統合 Runbook を示す。ADR-SUP-001（起票予定、SLSA L2→L3）および ADR-OBS-003（起票予定、Forensics SLI 分離）で規定する運用統制と接続する。
 
-![Forensics 5 ステップ経路](img/forensics_5ステップ経路.svg)
+![image hash 逆引き Forensics 5 ステップ](img/40_image_hash逆引き_Forensics.svg)
 
 Forensics は「事後の調査」と捉えられがちだが、JTC における実務要求は「インシデント検知から 15 分以内に影響 API 一覧を経営層と顧客向け説明窓口に渡せること」である。影響範囲の確定が遅延すれば、顧客への暫定通知が手探りとなり、事実関係の誤報で信頼毀損が連鎖する。本 Runbook は、署名・SBOM・Provenance・k8s / Istio メタデータを既製ツールで接続することで、人手の調査を 15 分以内の機械実行に置き換える。
 

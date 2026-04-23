@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 の GitOps 配信経路を担う Argo CD の Application / ApplicationSet 構造を物理配置レベルで確定する。ADR-CICD-001 で選定した Argo CD 2.12+ を前提に、`deploy/apps/` 配下の app-of-apps パターン、tier / 環境別 ApplicationSet 6 本、Helm / Kustomize の二層構成、Argo CD 自体の HA、image-updater の opt-in 運用までを規定する。
 
-![Argo CD App 構造全体像](img/ArgoCD_App構造全体像.svg)
+![Argo CD App-of-Apps 構造と sync wave](img/10_ArgoCD_App-of-Apps構造.svg)
 
 ## なぜ app-of-apps + ApplicationSet を併用するのか
 
