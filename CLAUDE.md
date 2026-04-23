@@ -59,7 +59,7 @@ ADR-DIR-001/002/003 により以下のレイアウトが Phase 0 時点で確定
 ```
 k1s0/
 ├── .github/                        # GitHub Actions / CODEOWNERS / PR テンプレート
-├── .sparse-checkout/roles/         # 9 役別 cone 定義（tier1-rust-dev.txt 等）
+├── .sparse-checkout/roles/         # 10 役別 cone 定義（tier1-rust-dev.txt 等）
 ├── .devcontainer/                  # 役割別 Dev Container プロファイル（軽量 docs-writer をルート既定）
 ├── .claude/                        # Claude Code ハーネス
 ├── CLAUDE.md                       # 本ファイル
@@ -159,7 +159,7 @@ docs/
 ### スパースチェックアウト運用（ADR-DIR-003）
 
 - 全開発者は役割を選び `./tools/sparse/checkout-role.sh <role>` で cone を適用する
-- 標準 9 役: `tier1-rust-dev` / `tier1-go-dev` / `tier2-dev` / `tier3-web-dev` / `tier3-native-dev` / `platform-cli-dev` / `infra-ops` / `docs-writer` / `full`
+- 標準 10 役: `tier1-rust-dev` / `tier1-go-dev` / `tier2-dev` / `tier3-web-dev` / `tier3-native-dev` / `platform-cli-dev` / `sdk-dev` / `infra-ops` / `docs-writer` / `full`
 - 初回 clone は `git clone --filter=blob:none --sparse` を推奨（partial clone）
 - Git 2.40+ の sparse index を有効化（`core.sparseCheckoutCone=true`）
 
