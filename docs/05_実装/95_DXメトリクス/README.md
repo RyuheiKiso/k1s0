@@ -8,6 +8,8 @@ DX メトリクスは観測性設計から独立させる。可用性 SLO とリ
 
 DORA 4 keys（Lead Time / Deploy Frequency / MTTR / Change Failure Rate）は業界標準の比較軸であり、2 名運用でも計測可能。SPACE はチーム拡大時に追加する。Scaffold 利用率は「Golden Path を外れた自作率」の反対指標として扱い、高すぎれば Paved Road の再整備を示唆する。計測基盤は ADR-BS-001 の Backstage スコアカードを第一手段とし、不足分を `04_概要設計/70_開発者体験方式設計/` の DORA 実装と接続する。
 
+![DORA 4 keys / SPACE / Scaffold 利用率 / time-to-first-commit と稼働 SLI の分離](img/95_DORA_SPACE_Scaffold利用率.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: DORA 4 keys の計測基盤、time-to-first-commit SLI、Scaffold 利用率
