@@ -183,15 +183,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     // tonic-build で Rust コードを生成
+    // out_dir は crate root (Cargo.toml 位置) からの相対。src/ を指定すると
+    // proto package (k1s0.tier1.v1 / k1s0.tier1.internal.v1) が階層を決めるため、
+    // 実出力は src/tier1/v1/*.rs および src/tier1/internal/v1/*.rs になる。
+    // （`out_dir("src/v1")` のように末端まで指定すると階層がフラット化するため不可）
     tonic_build::configure()
         .build_server(true)
         .build_client(true)
-        .out_dir("src/v1")
+        .out_dir("src")
         .compile(&all_protos, &[contracts_root])?;
 
     Ok(())
 }
 ```
+
+なお `build.rs` 方式と pre-generated 方式を同時に有効化すると生成先が衝突するため、どちらか一方のみ有効とする。Phase 1a は pre-generated を正、`build.rs` は drift 検出用に `--dry-run` 相当（生成後 diff 確認のみ）で運用する。
 
 ## 生成物の commit
 

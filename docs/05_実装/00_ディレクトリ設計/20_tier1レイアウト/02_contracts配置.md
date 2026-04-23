@@ -101,7 +101,16 @@ deps:
   - buf.build/googleapis/googleapis
 ```
 
-## buf.gen.yaml の推奨サンプル
+## buf.gen.*.yaml の推奨サンプル
+
+`src/contracts/buf.gen.*.yaml` の単一原典を **2 ファイルに分離** する。SDK に internal package を絶対に混入させないため、plugin セットと `include_types` を yaml 単位で切り分ける。
+
+- `buf.gen.tier1.yaml`: tier1 内部実装用（公開 + internal の両方を生成）
+- `buf.gen.sdk.yaml`: SDK 公開用（公開 package のみを生成）
+
+1 yaml で `include_types` を切り替える方式は buf v2 の `inputs:` がファイル単位の filter である関係で plugin 毎の分岐ができず、SDK と tier1 実装が同じ入力を共有してしまうため採用しない。
+
+### `src/contracts/buf.gen.tier1.yaml`（tier1 内部実装用）
 
 ```yaml
 version: v2
@@ -120,6 +129,19 @@ plugins:
   - remote: buf.build/community/neoeinstein-tonic
     out: ../tier1/rust/crates/proto-gen/src
 
+inputs:
+  - directory: .
+    # tier1 実装は公開 + internal の両方を必要とする
+    include_types:
+      - k1s0.tier1.v1.*
+      - k1s0.tier1.internal.v1.*
+```
+
+### `src/contracts/buf.gen.sdk.yaml`（SDK 公開用）
+
+```yaml
+version: v2
+plugins:
   # C# SDK 生成 → src/sdk/dotnet/generated/
   - remote: buf.build/protocolbuffers/csharp
     out: ../sdk/dotnet/generated
@@ -138,12 +160,30 @@ plugins:
     out: ../sdk/go/proto
     opt: paths=source_relative
 
+  # Rust SDK 生成（Phase 2） → src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/
+  - remote: buf.build/community/neoeinstein-prost
+    out: ../sdk/rust/crates/k1s0-sdk-proto/src/gen
+  - remote: buf.build/community/neoeinstein-tonic
+    out: ../sdk/rust/crates/k1s0-sdk-proto/src/gen
+
 inputs:
   - directory: .
+    # SDK は公開 package のみ。internal を混入させない（設計上の一線）
     include_types:
       - k1s0.tier1.v1.*
-      - k1s0.tier1.internal.v1.*
 ```
+
+### 実行フロー
+
+`tools/codegen/buf/gen.sh` は両 yaml を順に呼び出す。
+
+```bash
+cd src/contracts
+buf generate --template buf.gen.tier1.yaml
+buf generate --template buf.gen.sdk.yaml
+```
+
+`buf generate` を 2 回呼ぶコストは軽微。分離により SDK レビューで internal の漏れを構造的に排除できる利点が上回る。
 
 上記は雛形。Phase 1a の実装時にパスと plugin バージョンを確定する。
 
