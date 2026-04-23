@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 の Incident Taxonomy を可用性系とセキュリティ系を同一の分類体系で扱う統合方式として確定する。60 章方針の IMP-OBS-POL-004（Incident Taxonomy は可用性＋セキュリティを統合）を物理化し、CVSS 連動の緩和 SLO、Severity 定義、Runbook 対応マトリクス、外部通告判定の接続点を 1 本の運用体系に束ねる。ADR-OBS-003（本章初版策定時に起票予定）の本体定義もここで具体化する。
 
-![Incident Taxonomy 統合分類マップ](img/Incident_Taxonomy統合分類マップ.svg)
+![Incident Taxonomy 統合分類マップ](img/60_Incident_Taxonomy_4軸Sev.svg)
 
 ![Incident Taxonomy 4 軸 × Sev1-4 マトリクスと CVSS 連動 / Runbook 対応](img/60_Incident_Taxonomy_4軸Sev.svg)
 

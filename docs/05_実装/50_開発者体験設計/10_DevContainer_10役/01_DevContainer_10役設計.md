@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 の開発者体験を支える Dev Container を、ADR-DIR-003 で確定した 10 役と 1:1 対応で設計する。`.devcontainer/` と `tools/devcontainer/profiles/` の二層配置、各役割のベースイメージと feature セット、VS Code 設定共有、ローカル Kubernetes（kind / k3d）と Dapr Local の統合までを物理配置レベルに落とし込む。
 
-![10 役別 Dev Container 全体像](img/DevContainer_10役全体像.svg)
+![10 役別 Dev Container 全体像](img/10_DevContainer10役継承.svg)
 
 ![DevContainer 10 役継承関係と sparse-checkout 役割対応](img/10_DevContainer10役継承.svg)
 

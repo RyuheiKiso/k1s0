@@ -165,5 +165,5 @@ IMP-REL-POL-001 の「Git に存在しない差分は self-heal または PagerD
 
 - [`00_方針/01_リリース原則.md`](../00_方針/01_リリース原則.md) の IMP-REL-POL-001（GitOps 唯一経路）の物理配置を本ファイルで固定する
 - [`../20_ArgoRollouts_PD/01_ArgoRollouts_PD設計.md`](../20_ArgoRollouts_PD/01_ArgoRollouts_PD設計.md) が本ファイルの Helm chart 内 `rollout.yaml` を参照する
-- [`../30_flagd_フィーチャーフラグ/`](../30_flagd_フィーチャーフラグ/) の flagd も本ファイルの infra ApplicationSet 経由で配信される
+- `../30_flagd_フィーチャーフラグ/`（Phase B で節新設予定）の flagd も本ファイルの infra ApplicationSet 経由で配信される
 - [`../../00_ディレクトリ設計/`](../../00_ディレクトリ設計/) の IMP-DIR-* と `deploy/` 配下配置が整合する

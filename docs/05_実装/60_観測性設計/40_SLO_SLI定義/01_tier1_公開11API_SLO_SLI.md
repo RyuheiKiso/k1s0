@@ -2,7 +2,7 @@
 
 本ファイルは tier1 が tier2 / tier3 に公開する 11 種類の API に対する SLO / SLI の初期定義を確定する。60 章方針の IMP-OBS-POL-003（Google SRE Book 準拠）と IMP-OBS-POL-005（Error Budget 月次 100% 消費で feature 凍結）を tier1 公開 11 API 単位に具体化し、SLI 分類・SLO 目標値・Error Budget 計算・Multi-window Multi-burn-rate Alert・Runbook 対応の 5 軸を同一表で管理する基盤を敷く。
 
-![tier1 公開 11 API SLO/SLI 体系](img/tier1_11API_SLO_SLI体系.svg)
+![tier1 公開 11 API SLO/SLI 体系](img/40_tier1_11API_SLO_ErrorBudget.svg)
 
 ![tier1 公開 11 API の SLO / Error Budget / Rollouts AnalysisTemplate 連動](img/40_tier1_11API_SLO_ErrorBudget.svg)
 
