@@ -8,6 +8,8 @@
 
 サードパーティ OSS フォーク（`third_party/` vendoring）は、上流がパッチ受領しないが修正必須となった場合に限り採用する。vendoring 時は `UPSTREAM.md`（上流 URL・コミット SHA）と `PATCHES.md`（当プロジェクト独自パッチの一覧と根拠）を必須とし、Phase 1c 時点で上流復帰可否を再評価する。
 
+![Renovate 中央運用 / SBOM 差分監視 / ライセンス判定の関係](img/40_Renovate中央運用概観.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: Renovate 設定、lockfile 運用、`third_party/UPSTREAM.md` + `PATCHES.md` 必須化、ライセンス監査（SPDX）、AGPL 分離検証
