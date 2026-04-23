@@ -46,7 +46,7 @@
         <mxCell id="s-ts" value="typescript/gen/  （@k1s0/sdk）&#10;  *.ts / *_pb.ts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="800" y="325" width="440" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="s-rust-fac" value="＋ tier1-rust の rust-facade crate は&#10;　k1s0-sdk crate を dependency 参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="s-rust-fac" value="★ tier1 と SDK は独立 2 系統で並行生成。&#10;　tier1 は sdk に依存しない（CLAUDE.md 依存方向）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="800" y="395" width="440" height="50" as="geometry" />
         </mxCell>
         <mxCell id="arrow-gen" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;" edge="1" parent="1">

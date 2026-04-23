@@ -15,6 +15,55 @@
 - 単なる OSS 参考コード → 引用 URL を README に記述
 - 自作コード → `src/` 配下に置く
 
+## vendoring 要否の 3 軸判定基準
+
+上記の 4 ケースは動機の例示だが、実運用で「どのレベルで vendoring するか」を判断する際に迷いが生じる。以下の 3 軸のいずれか 1 つでも満たしたら vendoring（`third_party/` 配下配置）とし、全て満たさなければ通常依存（パッケージマネージャ）で扱う。
+
+### 軸 1: パッチ本数（修正の重み）
+
+upstream に merge されていない独自修正が **3 件以上**、または **1 件でも 200 行超** のパッチがある場合は vendoring する。
+
+- 3 件未満かつ各 50 行未満 → 個別に fork せず upstream PR + monkey-patch 運用
+- 3 件以上 / 大規模 → `third_party/<name>-patch/` に配置し PATCHES.md で管理
+
+根拠: パッチ本数が多いと upstream rebase のコストが runtime パッチ方式を上回る。quilt 形式で連続管理する方が保守容易になる。
+
+### 軸 2: ライセンス互換性（法務リスク）
+
+以下のいずれかに該当する OSS は、たとえパッチ 0 本でも vendoring し、LICENSES/ に原文保存 + NOTICE 自動生成に載せる。
+
+- GPL / AGPL / LGPL 系（linking 方式で本体ライセンスに影響が波及する可能性）
+- dual-license で BSL / SSPL / Commons Clause / ELv2 等の不透明ライセンスが含まれる
+- ライセンス不明 / 不記載
+
+根拠: 法務監査時に「何をいつ取り込んだか」の証跡（コミット + UPSTREAM.md）がないと ADR-GOV-001 に違反する。パッケージマネージャ経由だとロックファイルに version のみ残り、原文が残らない。
+
+### 軸 3: セキュリティ重要度（影響範囲）
+
+tier1 が直接依存する以下の領域の OSS は、patchless でも vendoring を推奨する。
+
+- crypto primitives（ring / rustls / openssl-sys 等）
+- 認証 / 認可（keycloak admin-client 等）
+- PII 処理 / 監査ログ（ADR-AUDIT-\* 関連）
+- Dapr Runtime / Protobuf stub 生成器
+
+根拠: これらは JTC 監査で「どの version の何をどう検証したか」の再現性が求められる。upstream に依存していると、上流が削除された時点で監査証跡が失われる。vendoring により commit hash 単位で再現性を保つ。
+
+### 判定フロー
+
+```
+新規 OSS 採用時
+  │
+  ├─ 軸 1（パッチ本数）判定 ─┐
+  ├─ 軸 2（ライセンス）判定 ─┤
+  └─ 軸 3（重要度）判定 ────┤
+                            ↓
+            1 つでも Yes → third_party/ に vendoring
+            全て No     → パッケージマネージャ経由
+```
+
+判定は Pull Request 内で UPSTREAM.md に「どの軸で vendoring 判定したか」を記録する。軸 2 / 3 で取り込んだものは、期限なしで保持（upstream release で状況が変わっても原本保持継続）。軸 1 のみで取り込んだものは upstream merge 後に `third_party/` から削除する。
+
 ## レイアウト
 
 ```

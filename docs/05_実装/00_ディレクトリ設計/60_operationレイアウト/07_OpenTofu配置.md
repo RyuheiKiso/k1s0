@@ -14,40 +14,41 @@
 
 ## レイアウト
 
+OpenTofu は **2 階層** に分割する。bootstrap 階層がアプリ階層を前提としない（state 保存先が自己の出力に依存しない）ことで循環依存を断つ。
+
 ```
 deploy/opentofu/
 ├── README.md
-├── modules/                        # 再利用可能モジュール
-│   ├── baremetal-k8s/
-│   │   ├── README.md
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   ├── versions.tf
-│   │   └── templates/
-│   │       ├── kubeadm-init.sh.tmpl
-│   │       └── cloud-init.yaml.tmpl
-│   ├── vpn-gateway/
-│   │   ├── main.tf                 # WireGuard Gateway
-│   │   └── ...
-│   ├── dns/
-│   │   ├── main.tf                 # CoreDNS forward / Route53 代替
-│   │   └── ...
-│   ├── harbor/
-│   │   └── main.tf                 # Harbor レジストリ外部デプロイ
-│   └── backup-storage/
-│       └── main.tf                 # S3/MinIO バックアップ bucket
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf                 # modules/ を組合せて dev 環境定義
-│   │   ├── terraform.tfvars.sops   # SOPS 暗号化 vars
-│   │   └── backend.tf
-│   ├── staging/
-│   │   └── ...
-│   └── prod/
-│       └── ...
-└── state/
-    └── backend-config.tfvars       # backend state 保存先（MinIO S3）
+├── bootstrap/                      # 第 1 階層：local state で動作する最小構成
+│   ├── README.md
+│   ├── modules/
+│   │   ├── baremetal-k8s/          # PXE / kubeadm / k3s の初期化
+│   │   ├── vpn-gateway/            # WireGuard Gateway
+│   │   ├── dns/                    # 内部 DNS
+│   │   └── external-minio/         # state 保存用 MinIO（クラスタ外、ベアメタル 1 台）
+│   ├── environments/
+│   │   ├── dev/
+│   │   │   ├── main.tf
+│   │   │   ├── terraform.tfvars.sops
+│   │   │   └── backend.tf          # backend "local"（state は GitHub 別リポジトリへ commit）
+│   │   ├── staging/
+│   │   └── prod/
+│   └── state-repo/                 # bootstrap state を commit する専用 Git リポジトリの参照設定
+│       └── README.md               # state リポ URL / SOPS 暗号化方針
+└── applications/                   # 第 2 階層：bootstrap 後に動く運用構成
+    ├── README.md
+    ├── modules/
+    │   ├── harbor/                 # Harbor レジストリ（k8s 上）
+    │   ├── backup-storage/         # クラスタ内 Longhorn バックアップ
+    │   └── cloudflare/             # Phase 2：クラウド DNS / CDN
+    ├── environments/
+    │   ├── dev/
+    │   │   ├── main.tf
+    │   │   └── backend.tf          # backend "s3" — bootstrap で作った external-minio を参照
+    │   ├── staging/
+    │   └── prod/
+    └── state/
+        └── backend-config.tfvars   # bootstrap の external-minio エンドポイント
 ```
 
 ## modules/ の構造
@@ -108,16 +109,19 @@ resource "null_resource" "kubeadm_init" {
 
 社内ネットワーク境界の WireGuard Gateway と、内部 DNS（CoreDNS）の管理。
 
-### harbor/ / backup-storage/
+### external-minio/（bootstrap 階層）
 
-外部 Harbor（コンテナレジストリ）とバックアップ用 MinIO（クラスタ外に置き cluster 全損時の避難先）。
+OpenTofu state の保存先 S3 互換ストレージとしてクラスタ外に単独で立てる MinIO。ベアメタル 1 台の最小構成（docker-compose or systemd unit）。applications 階層の state backend になる。bootstrap 階層自身の state は後述のとおり Git 管理とし、MinIO に依存しない。
+
+### harbor/ / backup-storage/（applications 階層）
+
+k8s クラスタ内で運用する Harbor（コンテナレジストリ）とバックアップ Longhorn。これらは bootstrap 階層完了後にのみ provision される。
 
 ## environments/ の構造
 
-環境ごとに modules/ を組合せて具体化する。
+### bootstrap/environments/prod/main.tf
 
 ```hcl
-# environments/prod/main.tf
 terraform {
   required_version = ">= 1.6"
   required_providers {
@@ -126,11 +130,9 @@ terraform {
       version = "~> 3.2"
     }
   }
-  backend "s3" {
-    bucket   = "k1s0-opentofu-state"
-    key      = "prod/terraform.tfstate"
-    endpoint = "https://minio-backup.k1s0.external:9000"
-    region   = "us-east-1"  # MinIO dummy region
+  # bootstrap は local backend。tfstate は SOPS 暗号化して state-repo に commit
+  backend "local" {
+    path = "./terraform.tfstate"
   }
 }
 
@@ -149,6 +151,32 @@ module "dns" {
   source = "../../modules/dns"
 }
 
+module "external_minio" {
+  source = "../../modules/external-minio"
+}
+```
+
+### applications/environments/prod/main.tf
+
+```hcl
+terraform {
+  required_version = ">= 1.6"
+  backend "s3" {
+    bucket                      = "k1s0-opentofu-state"
+    key                         = "applications/prod/terraform.tfstate"
+    endpoint                    = "https://minio-ext.k1s0.external:9000"
+    region                      = "us-east-1"
+    force_path_style            = true
+    skip_credentials_validation = true
+    skip_region_validation      = true
+    skip_metadata_api_check     = true
+  }
+}
+
+module "harbor" {
+  source = "../../modules/harbor"
+}
+
 module "backup_storage" {
   source = "../../modules/backup-storage"
 }
@@ -156,7 +184,22 @@ module "backup_storage" {
 
 ## state 管理
 
-OpenTofu state は `backend "s3"` で MinIO に保存する。MinIO は `modules/backup-storage/` で cluster 外に独立配置（bootstrap 時は手動構築）。state locking は DynamoDB 代替として PostgreSQL backend を Phase 2 で導入検討。
+### bootstrap 階層の state
+
+`backend "local"` で local 生成 → SOPS + AGE で暗号化 → **別 GitHub リポジトリ** `k1s0/k1s0-opentofu-state`（プライベート）に `git push`。プル時は `git pull` → SOPS decrypt → `tofu plan/apply`。state locking は state リポの branch protection + `git pull --ff-only` で代替する（2 名運用前提で実質的な競合は稀）。
+
+### applications 階層の state
+
+`backend "s3"` で bootstrap が立てた外部 MinIO（`minio-ext.k1s0.external`）に保存。これにより applications 階層は通常の S3 backend の操作感を得る。state locking は Phase 2 で PostgreSQL backend 導入を検討。
+
+### 循環依存が断たれている根拠
+
+1. bootstrap 階層の state → 外部 Git（OpenTofu とは独立した永続層）
+2. bootstrap 階層 apply → external-minio が立つ
+3. applications 階層の state → external-minio に保存
+4. applications 階層 apply → Harbor 等が立つ
+
+bootstrap 階層が applications 階層の成果物（例えば k8s 上の MinIO）に依存しないため、初回 provision でも chicken-and-egg が起きない。
 
 ## SOPS 統合
 
@@ -167,10 +210,10 @@ OpenTofu state は `backend "s3"` で MinIO に保存する。MinIO は `modules
 | Phase | 内容 |
 |---|---|
 | Phase 0 | 構造のみ |
-| Phase 1a | baremetal-k8s / dns（最小） |
-| Phase 1b | vpn-gateway / harbor / backup-storage |
-| Phase 1c | environments/ 全環境 |
-| Phase 2 | マルチリージョン / クラウド IaaS |
+| Phase 1a | bootstrap 階層（baremetal-k8s / dns / external-minio）。state リポ新設 |
+| Phase 1b | bootstrap 追加（vpn-gateway）、applications 階層（harbor / backup-storage） |
+| Phase 1c | environments/ 全環境（dev / staging / prod）の applications 階層 |
+| Phase 2 | マルチリージョン / クラウド IaaS、PostgreSQL state lock |
 
 ## 対応 IMP-DIR ID
 

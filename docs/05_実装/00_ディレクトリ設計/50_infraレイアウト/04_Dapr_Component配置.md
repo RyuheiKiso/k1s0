@@ -158,7 +158,32 @@ scopes:
 
 ## Component の環境差分
 
-環境差分（dev / staging / prod で backing store 接続先が異なる）は `deploy/kustomize/overlays/<env>/dapr-components/` に patch として記述する。`infra/dapr/components/` 自体は prod ベースの値を置く。
+ADR-DIR-002 の infra / deploy 分離原則に従い、環境差分（dev / staging / prod で backing store 接続先が異なる）は **infra レイヤ内で完結** させる。具体的には以下の階層を取る。
+
+```
+infra/
+├── dapr/
+│   └── components/                     # 型定義 + prod ベース値（base）
+│       ├── state-store.yaml
+│       ├── secret-store.yaml
+│       └── ...
+└── environments/
+    ├── dev/
+    │   └── dapr-components-overlay/    # dev 差分 patch
+    │       └── state-store.patch.yaml
+    ├── staging/
+    │   └── dapr-components-overlay/
+    └── prod/
+        └── dapr-components-overlay/    # 空（base と一致）
+```
+
+`infra/environments/<env>/dapr-components-overlay/` は Kustomize patch として記述し、`infra/dapr/components/` を base に `kustomize build` で最終 YAML を生成する。生成結果を ArgoCD が引く `deploy/apps/application-sets/infra.yaml` で参照する。
+
+この配置により以下が成立する。
+
+- **infra-ops 役割の所有範囲が明確**: Dapr Component の型・環境差分の両方が `infra/` 配下。PR レビュー担当が一元化
+- **deploy/ は配信定義のみ**: `deploy/apps/` の ApplicationSet が `infra/environments/<env>/` を参照する片方向関係
+- **スパースチェックアウトの一貫性**: `infra-ops` cone に `infra/` を入れるだけで Dapr Component 関連が全て揃う
 
 ## 対応 IMP-DIR ID
 

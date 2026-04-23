@@ -179,16 +179,22 @@ SRE は全環境 admin、開発者は dev 環境の担当サービスのみ Sync
 
 ## Sync Wave
 
-ApplicationSet で `annotations: argocd.argoproj.io/sync-wave` を設定、依存順に展開:
+ApplicationSet で `annotations: argocd.argoproj.io/sync-wave` を設定、依存順に展開する。全 Application が Wave 指定を持つことを必須とし、未指定 Application を CI で検出する（`tools/ci/validate-sync-wave.sh`）。
 
-- Wave -10: infra/k8s/bootstrap
-- Wave -5: infra/mesh / infra/dapr / infra/security / infra/observability
-- Wave 0: infra/data
-- Wave 10: tier1
-- Wave 20: tier2
-- Wave 30: tier3
+| Wave | 対象 | 根拠 |
+|---|---|---|
+| -10 | `infra/k8s/bootstrap`（CNI / CoreDNS / cert-manager CRD） | 他の Pod が起動するための最下層 |
+| -7 | `infra/security/cert-manager` / `infra/security/spire` | 他 security / mesh の TLS 証明書前提 |
+| -5 | `infra/mesh`（Istio Ambient） / `infra/dapr`（control plane） / `infra/security/keycloak` / `infra/security/openbao` / `infra/security/kyverno` | mTLS / Policy の基盤 |
+| -3 | `infra/observability`（LGTM + Pyroscope + OTel Collector） | tier1 起動時に観測パイプが揃っている状態 |
+| 0 | `infra/data`（CloudNativePG / Kafka / Valkey / MinIO） / `infra/feature-management`（flagd） / `infra/scaling`（KEDA） | 状態保持層が先 |
+| 5 | `deploy/rollouts`（Argo Rollouts AnalysisTemplate） / `deploy/image-updater` | アプリ配信基盤 |
+| 10 | tier1（facade Pod 6 個 + Rust Pod 3 個） | ドメイン層の土台 |
+| 20 | tier2（dotnet services + go services） | tier1 公開 API が揃っている前提 |
+| 30 | tier3（web / bff / native / legacy-wrap） | tier2 ドメインサービス前提 |
+| 40 | `ops/chaos`（LitmusChaos） / `ops/runbooks`（Runbook サーバ） / `deploy/apps/application-sets/ops.yaml` が参照する Backstage | アプリ起動後の運用ツール |
 
-起動順序を明示的に制御する。
+起動順序を明示的に制御し、初回 bootstrap で「tier1 より前に Chaos agent が展開されて擬似障害」等の事故を防ぐ。既存 Application の Wave 変更は ADR-CICD-002（ArgoCD）改訂を伴う。
 
 ## 対応 IMP-DIR ID
 

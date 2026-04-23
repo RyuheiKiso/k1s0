@@ -83,9 +83,10 @@
 
 ```
 # tier3 Web 開発者向け cone
-# 対象: src/tier3/web/ + src/tier3/bff/ + TypeScript SDK + docs
+# 対象: src/tier3/web/ + src/tier3/bff/ + TypeScript SDK + Go SDK（BFF 用） + docs
 /docs/
 /src/sdk/typescript/
+/src/sdk/go/
 /src/tier3/web/
 /src/tier3/bff/
 /tools/codegen/openapi/
@@ -99,7 +100,11 @@
 /.devcontainer/
 ```
 
-注: `src/contracts/` は tier3-web は直接触らない（SDK 経由で BFF を使う）。ただし BFF 開発時に Protobuf を見たくなる場面があるため、Phase 1c でサブ役割 `tier3-web-bff-dev` を分離するかを再評価。
+注 1: `src/sdk/typescript/` は Web frontend から、`src/sdk/go/` は BFF から tier1/tier2 にアクセスするため両方を cone に含める。依存方向 `tier3 → (sdk ← contracts)` に従い BFF は sdk/go を import する前提で設計されている（`40_tier3レイアウト/04_bff配置.md`）。
+
+注 2: `src/contracts/` は tier3-web は直接触らない（SDK 経由で BFF を使う）。ただし BFF 開発時に Protobuf を見たくなる場面があるため、Phase 1c でサブ役割 `tier3-web-bff-dev` を分離するかを再評価。
+
+注 3: BFF 側で SDK 公開 API の改修が必要になった場合は、tier3-web-dev から sdk-dev 兼任に切り替える運用とする。切替手順は `04_役割切替運用.md` に記載。
 
 ## tier3-native-dev.txt
 
