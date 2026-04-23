@@ -1,0 +1,229 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="world-companies" id="world-comp-001">
+    <mxGraphModel dx="1700" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="世界トップ企業モノレポ事例比較マトリクス（k1s0 ディレクトリ設計の参考）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="20" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="h0" value="企業（システム）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" value="規模" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="主要言語" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="80" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="ビルド / 依存管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="80" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="VCS / sparse 手法" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="80" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h5" value="依存境界の強制手法" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="80" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h6" value="k1s0 採用項目" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4472C4;strokeColor=#2E5599;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="80" width="420" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c0" value="Google / Piper" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="120" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c1" value="数十億 LOC&#10;86 万 commit/日" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="120" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c2" value="C++ / Java / Go / Python" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="120" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c3" value="Bazel + Blaze&#10;BUILD ファイルで依存宣言" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="120" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c4" value="Piper (集中型) + CitC&#10;FUSE で必要部分のみ露出" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="120" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c5" value="visibility 属性 + 依存グラフ解析" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="120" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c6" value="★ 依存方向の厳密管理 / buf ルールで visibility 相当" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="120" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c0" value="Meta / fbsource" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="175" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c1" value="100+ TB&#10;数百万ファイル" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="175" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c2" value="Hack / C++ / Rust / Python" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="175" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c3" value="Buck2（Rust 製）&#10;並列ビルド最適化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="175" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c4" value="Sapling + EdenFS&#10;仮想 FS で遅延取得" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="175" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c5" value="strict deps + targets グラフ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="175" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c6" value="★ 巨大 repo でも役割別取得の実在性を参考。EdenFS は 2 名運用向けでないため不採用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="175" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c0" value="Microsoft / Scalar" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="230" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c1" value="dotnet/runtime (4 GB)&#10;Office (300 GB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="230" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c2" value="C# / C++ / TypeScript" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="230" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c3" value="MSBuild + NuGet&#10;.csproj 依存" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="230" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c4" value="Scalar（Git 拡張）&#10;sparse-checkout cone mode" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=center;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="810" y="230" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c5" value="partial clone + sparse index" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="230" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c6" value="★★ cone mode + partial clone + sparse index を標準採用（ADR-DIR-003）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="230" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c0" value="Uber / Go monorepo" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="285" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c1" value="4,000+ service&#10;500+ 開発者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="285" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c2" value="Go 主体" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="285" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c3" value="go build + Bazel 混在&#10;go workspaces" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="285" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c4" value="full clone + path-filter CI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="285" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c5" value="内部 package visibility + go vet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="285" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c6" value="★ path-filter CI（dorny/paths-filter）で tier 別パイプライン分岐" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="285" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c0" value="Airbnb / frontend" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="340" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c1" value="100+ 開発者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="340" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c2" value="TypeScript 主体" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="340" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c3" value="pnpm workspace&#10;Nx で影響範囲計算" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="340" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c4" value="full clone" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="340" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c5" value="Nx project graph" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="340" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r5c6" value="★ pnpm workspace を tier3/web/ で採用（IMP-DIR-T3-057）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="340" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c0" value="Shopify / monorepo" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="395" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c1" value="Rails コア+ TS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="395" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c2" value="Ruby + TypeScript" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="395" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c3" value="Bundler + pnpm&#10;Sorbet で型" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="395" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c4" value="full clone + path-filter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="395" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c5" value="component owners + CODEOWNERS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="395" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r6c6" value="★ CODEOWNERS マトリクス + path-filter（IMP-DIR-SPARSE-130）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="395" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c0" value="AWS / SDK Rust" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="450" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c1" value="300+ crate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="450" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c2" value="Rust" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="450" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c3" value="cargo workspace&#10;smithy-rs 生成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="450" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c4" value="full clone" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="450" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c5" value="cargo feature + cargo-deny" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="450" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r7c6" value="★ cargo workspace + crates/ サブフォルダ構造（IMP-DIR-T1-024）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="450" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c0" value="Netflix / Paved Roads" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="505" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c1" value="polyrepo" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="505" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c2" value="Java / Kotlin / JS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="505" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c3" value="Spinnaker + Nebula&#10;Gradle" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="505" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c4" value="polyrepo（参考外）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="505" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c5" value="Paved Roads（ベストプラクティス集）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="505" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r8c6" value="★ Golden Path 概念（examples/ + Backstage Template）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="505" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c0" value="Twitter / Source" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="30" y="560" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c1" value="数千万 LOC" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="560" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c2" value="Scala / Java" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="430" y="560" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c3" value="Bazel（旧 Pants）&#10;BUILD 宣言" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="610" y="560" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c4" value="full clone + watchman" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="810" y="560" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c5" value="targets visibility" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="560" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="r9c6" value="★ BUILD 相当は buf.yaml / CODEOWNERS / importchecker で代替" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="560" width="420" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="conclusion" value="★ k1s0 の設計方針: Bazel/Buck2 等の統合ビルドツールは導入せず、各言語ネイティブ（cargo workspace / go workspaces / pnpm workspace）＋ CODEOWNERS ＋ path-filter CI で依存境界を強制。&#10;　sparse-checkout は Microsoft Scalar 方式（cone mode + partial clone + sparse index）を標準採用（ADR-DIR-003）。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="630" width="1640" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

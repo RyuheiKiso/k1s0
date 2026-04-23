@@ -1,0 +1,115 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="argocd-appset" id="argocd-appset-001">
+    <mxGraphModel dx="1400" dy="850" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="850" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ArgoCD ApplicationSet 展開フロー（App-of-Apps パターン / IMP-DIR-OPS-092）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="① Git リポジトリ（deploy/）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#82b366;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="75" width="380" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="g-root" value="deploy/apps/root-app.yaml&#10;（App-of-Apps の親 Application）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g-as1" value="deploy/apps/applicationset-infra.yaml&#10;（list-generator: dapr, istio, data, security, observability）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g-as2" value="deploy/apps/applicationset-tier1.yaml&#10;（matrix: 6 pod × 3 env = 18 Application）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="235" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g-as3" value="deploy/apps/applicationset-tier2.yaml&#10;（git-generator: src/tier2/*/services/*）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="g-as4" value="deploy/apps/applicationset-tier3.yaml&#10;（list: web / native / bff / legacy-wrap × env）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="365" width="380" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="② ArgoCD コントローラ（argocd-namespace）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#6c8ebf;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="75" width="360" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="a-appctrl" value="ApplicationSet Controller&#10;（Generator から Application 群を自動生成）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="490" y="110" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a-sync" value="Application Controller&#10;（同期ループ: desired ↔ live）&#10;&#10;Sync Wave: -100(infra) → -50(mesh) → 0(tier1) → 50(tier2) → 100(tier3)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="490" y="200" width="360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="a-rollout" value="Argo Rollouts Controller&#10;（Blue-Green / Canary 制御 + AnalysisTemplate）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="490" y="320" width="360" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a-updater" value="ArgoCD Image Updater&#10;（Harbor の新イメージを検知 → values.yaml 更新 → auto-commit）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="490" y="410" width="360" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="③ レンダリング（Helm / Kustomize）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d79b00;strokeColor=#d79b00;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="75" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="r-helm" value="Helm 3&#10;（deploy/charts/）&#10;&#10;  tier1-facade&#10;  tier1-rust-service&#10;  tier2-dotnet-service&#10;  tier2-go-service&#10;  tier3-web-app / bff&#10;&#10;values.{env}.yaml でオーバーライド" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="920" y="110" width="200" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="r-kust" value="Kustomize&#10;（deploy/kustomize/）&#10;&#10;  base/&#10;  overlays/dev&#10;  overlays/staging&#10;  overlays/prod&#10;&#10;Helm 出力を strategic merge で上書き" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="920" y="320" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="④ Kubernetes リソース" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="75" width="210" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-dep" value="Deployment / StatefulSet&#10;（Dapr sidecar annotation 自動）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="110" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-svc" value="Service / Istio VS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="170" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-cm" value="ConfigMap / Secret&#10;（OpenBao → k8s Secret 同期）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="220" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-np" value="NetworkPolicy&#10;(default-deny + 明示 allow)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="280" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-kyv" value="Kyverno Policies&#10;（require-image-signature）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="340" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-scl" value="KEDA ScaledObject&#10;（Kafka lag / CPU / custom）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="400" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s-rol" value="Argo Rollout&#10;（Canary / Blue-Green Strategy）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="460" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-1-2" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="200" as="sourcePoint" />
+            <mxPoint x="485" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-1-2-l" value="git pull" style="text;html=1;align=center;fontSize=10;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="430" y="180" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-2-3" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="855" y="300" as="sourcePoint" />
+            <mxPoint x="915" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-2-3-l" value="render" style="text;html=1;align=center;fontSize=10;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="860" y="280" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-3-4" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1125" y="280" as="sourcePoint" />
+            <mxPoint x="1145" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-3-4-l" value="apply" style="text;html=1;align=center;fontSize=10;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="258" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="note-flow" value="★ フロー全体（git → Application → K8s まで）&#10;&#10;  1. 開発者が feature ブランチで deploy/apps/ / deploy/charts/ / deploy/kustomize/ を編集 → PR&#10;  2. main にマージされると ArgoCD が差分検知 → ApplicationSet が Application を再生成&#10;  3. Sync Wave に従って infra → mesh → tier1 → tier2 → tier3 の順に Apply&#10;  4. tier2/tier3 は Argo Rollouts で Canary 展開 → AnalysisTemplate（Prometheus rate）で判定&#10;  5. Harbor に新イメージ push されると Image Updater が values.yaml に PR 作成 → auto-merge → 再 Sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="525" width="1320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="note-ref" value="参照: IMP-DIR-OPS-091 deploy 配置 / OPS-092 ApplicationSet / OPS-093 Helm charts / OPS-094 Kustomize overlays / OPS-097 OpenTofu" style="text;html=1;align=center;fontSize=10;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="705" width="1320" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

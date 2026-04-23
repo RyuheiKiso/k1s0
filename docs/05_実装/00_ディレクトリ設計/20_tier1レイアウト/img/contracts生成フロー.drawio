@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" modified="2026-04-23T00:00:00.000Z" agent="Claude">
+  <diagram name="contracts-flow" id="contracts-flow-001">
+    <mxGraphModel dx="1400" dy="750" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="750" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="750" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Protobuf 契約から 4 言語 SDK への生成フロー（ADR-DIR-001 / IMP-DIR-T1-026）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="① src/contracts/  （Protobuf 契約 ＝ 単一の真実）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6b656;strokeColor=#d6b656;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="320" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c-tier1" value="tier1/v1/&#10;&#10;  service-invoke.proto&#10;  state-pubsub.proto&#10;  secrets-binding-workflow.proto&#10;  log-telemetry.proto&#10;  decision-feature.proto&#10;  audit-pii.proto&#10;&#10;（11 公開 API）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="320" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="c-internal" value="internal/v1/&#10;&#10;  facade-to-rust.proto&#10;  （tier1-Go → tier1-Rust gRPC 内部）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="c-buf" value="buf.yaml / buf.gen.yaml&#10;buf.lock（依存ロック）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="410" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="② 生成器（tools/codegen/buf/）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#6c8ebf;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="80" width="280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="c-bufgen" value="$ buf generate&#10;&#10;  plugin: buf.build/grpc/cpp&#10;  plugin: buf.build/grpc/csharp&#10;  plugin: buf.build/grpc/go&#10;  plugin: protoc-gen-prost (Rust)&#10;  plugin: @bufbuild/protoc-gen-es (TS)&#10;&#10;breaking / lint / format を CI で強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="440" y="115" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c-drift" value="check-drift.sh&#10;&#10;CI で buf generate を再実行し、&#10;diff が発生すれば fail" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="440" y="325" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="③ src/sdk/&lt;lang&gt;/gen/  （生成コード ＝ commit する）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#82b366;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s-net" value="dotnet/gen/  （K1s0.Sdk）&#10;  *.g.cs（11 API Client Stub）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="115" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s-go" value="go/gen/  （github.com/k1s0/k1s0/src/sdk/go）&#10;  *.pb.go / *_grpc.pb.go" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="185" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s-rust" value="rust/src/gen/  （k1s0-sdk crate）&#10;  *.rs （prost 生成）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="255" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s-ts" value="typescript/gen/  （@k1s0/sdk）&#10;  *.ts / *_pb.ts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="800" y="325" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s-rust-fac" value="＋ tier1-rust の rust-facade crate は&#10;　k1s0-sdk crate を dependency 参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="800" y="395" width="440" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-gen" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="365" y="210" as="sourcePoint" />
+            <mxPoint x="435" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow-gen-out" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="725" y="210" as="sourcePoint" />
+            <mxPoint x="795" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l4" value="④ 利用側" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#9673a6;strokeColor=#9673a6;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="u1" value="tier3 web&#10;@k1s0/sdk を npm install" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="525" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="u2" value="tier3 native (MAUI)&#10;K1s0.Sdk を NuGet 参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="275" y="525" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="u3" value="tier3 bff (Go)&#10;go get sdk/go" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="510" y="525" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="u4" value="tier2 dotnet services&#10;K1s0.Sdk を NuGet 参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="745" y="525" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="u5" value="tier2 go services / tier1-go&#10;sdk/go を import" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="980" y="525" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="note-ci" value="★ CI フロー: PR で .proto 変更 → buf lint / buf breaking / buf generate の diff check を必須化。&#10;　scaffold 雛形 CLI からも buf.yaml を参照（tools/codegen/scaffold/templates/）。&#10;★ 既存 src/tier1/go/internal/proto/v1/ や src/tier1/rust/crates/rust-facade/src/gen/ は廃止（Phase 1a で移行）。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="605" width="1200" height="95" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,135 +1,179 @@
-<mxfile host="app.diagrams.net" modified="2026-04-20T22:00:00.000Z" agent="k1s0" version="22.1.16">
-  <diagram name="観測監査並行フロー" id="obs-audit">
-    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
-        </mxCell>
-        <mxCell id="title" value="k1s0 観測・監査・認証の並行フロー（tier1 API 呼び出し 1 回あたり）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="20" width="1320" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="main_bg" value="主経路（tier2 → tier1 → データ層）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="40" y="70" width="1320" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="caller" value="tier2 呼び出し元" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="70" y="130" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="gw" value="Envoy Gateway&#10;(JWT 検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="290" y="130" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="tier1api" value="tier1 公開 API&#10;(Go ファサード)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="510" y="130" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="rust" value="tier1 自作 Rust&#10;(crypto / 監査 / ZEN)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="730" y="130" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="daprcp" value="Dapr sidecar&#10;(SDK アダプタ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="950" y="130" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="store" value="データ層&#10;(Valkey / Kafka / PG)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1170" y="130" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="obs_bg" value="観測経路（並行送信、主経路をブロックしない）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8eefc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="40" y="280" width="1320" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="otel" value="OTel Collector&#10;(DaemonSet)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="510" y="340" width="160" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="loki" value="Loki&#10;(ログ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="780" y="300" width="150" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="tempo" value="Tempo&#10;(トレース)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="780" y="360" width="150" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="mimir" value="Mimir&#10;(メトリクス)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="780" y="420" width="150" height="55" as="geometry" />
-        </mxCell>
-        <mxCell id="grafana" value="Grafana&#10;(可視化 UI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1010" y="340" width="150" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="audit_bg" value="監査経路（ハッシュチェーン WORM、改ざん不可）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#efe5f0;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="40" y="490" width="1320" height="180" as="geometry" />
-        </mxCell>
-        <mxCell id="audit_rust" value="監査 Rust プロセス&#10;(前ハッシュ + SHA-256)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="510" y="550" width="170" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="audit_pg" value="PostgreSQL 監査 WORM&#10;(INSERT のみ許可 / UPDATE DELETE 禁止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="750" y="550" width="230" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="minio_aud" value="MinIO&#10;(月次アーカイブ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1050" y="550" width="180" height="70" as="geometry" />
-        </mxCell>
-        <mxCell id="m1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="caller" target="gw"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="m2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1" source="gw" target="tier1api"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="m3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1" source="tier1api" target="rust"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="m4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="tier1api" target="daprcp">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="590" y="100" />
-              <mxPoint x="1030" y="100" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="m5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="daprcp" target="store"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="tier1api" target="otel">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="480" y="220" /><mxPoint x="480" y="340" /></Array></mxGeometry>
-        </mxCell>
-        <mxCell id="o2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="otel" target="loki"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="otel" target="tempo"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="otel" target="mimir"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="loki" target="grafana"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="tempo" target="grafana"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="o7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" edge="1" parent="1" source="mimir" target="grafana"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rust" target="audit_rust">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="940" y="165" /><mxPoint x="940" y="480" /><mxPoint x="490" y="480" /></Array></mxGeometry>
-        </mxCell>
-        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;" edge="1" parent="1" source="audit_rust" target="audit_pg"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="audit_pg" target="minio_aud"><mxGeometry relative="1" as="geometry" /></mxCell>
-        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="880" y="700" width="480" height="170" as="geometry" />
-        </mxCell>
-        <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="900" y="705" width="100" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
-          <mxGeometry x="900" y="732" width="24" height="16" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_app_t" value="アプリ層（tier1 / tier2 / Dapr / Grafana）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="930" y="730" width="300" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="900" y="754" width="24" height="16" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_net_t" value="ネットワーク層（Envoy / OTel Collector）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="930" y="752" width="300" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
-          <mxGeometry x="900" y="776" width="24" height="16" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_data_t" value="データ層（Valkey / Kafka / PG / Loki / Tempo / Mimir / MinIO）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="930" y="774" width="400" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_sync_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
-          <mxGeometry x="900" y="808" as="geometry"><mxPoint x="900" y="808" as="sourcePoint" /><mxPoint x="950" y="808" as="targetPoint" /></mxGeometry>
-        </mxCell>
-        <mxCell id="lg_sync_t" value="同期呼び出し（主経路）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="955" y="798" width="170" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_async_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1">
-          <mxGeometry x="900" y="828" as="geometry"><mxPoint x="900" y="828" as="sourcePoint" /><mxPoint x="950" y="828" as="targetPoint" /></mxGeometry>
-        </mxCell>
-        <mxCell id="lg_async_t" value="非同期書き込み（観測 / 監査）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="955" y="818" width="170" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="lg_capture_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" edge="1" parent="1">
-          <mxGeometry x="900" y="848" as="geometry"><mxPoint x="900" y="848" as="sourcePoint" /><mxPoint x="950" y="848" as="targetPoint" /></mxGeometry>
-        </mxCell>
-        <mxCell id="lg_capture_t" value="透過捕捉（OTel 自動計装）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="955" y="838" width="170" height="20" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram name="観測監査並行フロー" id="obs-audit">
+        <mxGraphModel dx="1493" dy="651" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" parent="1" vertex="1">
+                    <mxGeometry width="1400" height="900" as="geometry"/>
+                </mxCell>
+                <mxCell id="title" value="k1s0 観測・監査・認証の並行フロー（tier1 API 呼び出し 1 回あたり）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="1320" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="main_bg" value="主経路（tier2 → tier1 → データ層）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="70" width="1320" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="caller" value="tier2 呼び出し元" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="130" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="gw" value="Envoy Gateway&#xa;(JWT 検証)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="290" y="130" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="tier1api" value="tier1 公開 API&#xa;(Go ファサード)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="510" y="130" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="rust" value="tier1 自作 Rust&#xa;(crypto / 監査 / ZEN)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="730" y="130" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="daprcp" value="Dapr sidecar&#xa;(SDK アダプタ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="950" y="130" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="store" value="データ層&#xa;(Valkey / Kafka / PG)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1170" y="130" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="obs_bg" value="観測経路（並行送信、主経路をブロックしない）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8eefc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="280" width="1320" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="otel" value="OTel Collector&#xa;(DaemonSet)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="510" y="340" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="loki" value="Loki&#xa;(ログ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="780" y="300" width="150" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="tempo" value="Tempo&#xa;(トレース)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="780" y="360" width="150" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="mimir" value="Mimir&#xa;(メトリクス)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="780" y="420" width="150" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="grafana" value="Grafana&#xa;(可視化 UI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1010" y="340" width="150" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="audit_bg" value="監査経路（ハッシュチェーン WORM、改ざん不可）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#efe5f0;strokeColor=#9673a6;verticalAlign=top;fontStyle=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="490" width="1320" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="audit_rust" value="監査 Rust プロセス&#xa;(前ハッシュ + SHA-256)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="510" y="550" width="170" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="audit_pg" value="PostgreSQL 監査 WORM&#xa;(INSERT のみ許可 / UPDATE DELETE 禁止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="750" y="550" width="230" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="minio_aud" value="MinIO&#xa;(月次アーカイブ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1050" y="550" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="m1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" parent="1" source="caller" target="gw" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="m2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#6c8ebf;" parent="1" source="gw" target="tier1api" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="m3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;" parent="1" source="tier1api" target="rust" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="m4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" parent="1" source="tier1api" target="daprcp" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="590" y="100"/>
+                            <mxPoint x="1030" y="100"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="m5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;" parent="1" source="daprcp" target="store" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="o1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="tier1api" target="otel" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="480" y="220"/>
+                            <mxPoint x="480" y="340"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="o2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" parent="1" source="otel" target="loki" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="o3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" parent="1" source="otel" target="tempo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="o4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="otel" target="mimir" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="o5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" parent="1" source="loki" target="grafana" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="o6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" parent="1" source="tempo" target="grafana" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="o7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;" parent="1" source="mimir" target="grafana" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="rust" target="audit_rust" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="940" y="165"/>
+                            <mxPoint x="940" y="480"/>
+                            <mxPoint x="490" y="480"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;" parent="1" source="audit_rust" target="audit_pg" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" parent="1" source="audit_pg" target="minio_aud" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="700" width="480" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend_title" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="705" width="100" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="732" width="24" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_app_t" value="アプリ層（tier1 / tier2 / Dapr / Grafana）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="730" width="300" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="754" width="24" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_net_t" value="ネットワーク層（Envoy / OTel Collector）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="752" width="300" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="776" width="24" height="16" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_data_t" value="データ層（Valkey / Kafka / PG / Loki / Tempo / Mimir / MinIO）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="774" width="400" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_sync_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#666666;" parent="1" edge="1">
+                    <mxGeometry x="900" y="808" as="geometry">
+                        <mxPoint x="900" y="808" as="sourcePoint"/>
+                        <mxPoint x="950" y="808" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg_sync_t" value="同期呼び出し（主経路）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="955" y="798" width="170" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_async_line" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" parent="1" edge="1">
+                    <mxGeometry x="900" y="828" as="geometry">
+                        <mxPoint x="900" y="828" as="sourcePoint"/>
+                        <mxPoint x="950" y="828" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg_async_t" value="非同期書き込み（観測 / 監査）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="955" y="818" width="170" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="lg_capture_line" value="" style="endArrow=classic;html=1;strokeWidth=1.5;strokeColor=#6c8ebf;dashed=1;dashPattern=1 2;" parent="1" edge="1">
+                    <mxGeometry x="900" y="848" as="geometry">
+                        <mxPoint x="900" y="848" as="sourcePoint"/>
+                        <mxPoint x="950" y="848" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg_capture_t" value="透過捕捉（OTel 自動計装）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="955" y="838" width="170" height="20" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
