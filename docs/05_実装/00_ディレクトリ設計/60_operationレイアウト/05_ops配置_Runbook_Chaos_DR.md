@@ -115,7 +115,7 @@ Sev1〜Sev4 のインシデント対応手順。タイプ D（技術説明書）
 
 ## chaos/ の構造
 
-LitmusChaos（OSS Chaos Engineering）を採用。
+LitmusChaos（OSS Chaos Engineering）を採用。**バージョンは v3.x を pin する**（v1.13 系の `apiVersion: litmuschaos.io/v1alpha1` は Maintenance-only で新 API が凍結されているため）。以下のサンプルは v3.11 time のシェイプに対応する。`apiVersion` と `probe` の記法は v1alpha1 / v3 で互換性があるが、`ChaosResult` / `ChaosCenter` など新 CRD は v3 以降でのみ有効。v4 以降のリリースで非互換変更が入る場合は ADR-OPS-002 を改訂する。
 
 ### experiments/
 
@@ -123,6 +123,7 @@ LitmusChaos（OSS Chaos Engineering）を採用。
 
 ```yaml
 # chaos/experiments/pod-delete/tier1-facade.yaml
+# LitmusChaos v3.x 向け。ChaosHub の experiment を hub reference で取り込む方式も併用可能
 apiVersion: litmuschaos.io/v1alpha1
 kind: ChaosEngine
 metadata:
@@ -145,17 +146,19 @@ spec:
               value: "10"
             - name: FORCE
               value: "false"
-  probe:
-    - name: tier1-facade-http-probe
-      type: httpProbe
-      httpProbe/inputs:
-        url: http://tier1-facade-service-invoke.k1s0-tier1.svc:8080/healthz
-        method:
-          get:
-            criteria: ==
-            responseCode: "200"
-      mode: Continuous
+        probe:
+          - name: tier1-facade-http-probe
+            type: httpProbe
+            httpProbe/inputs:
+              url: http://tier1-facade-service-invoke.k1s0-tier1.svc:8080/healthz
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+            mode: Continuous
 ```
+
+v3 系では probe は `spec.experiments[].spec.probe` の位置（experiment 配下）に置くのが最新の推奨。v1alpha1 の `spec.probe`（ChaosEngine 直下）でも互換動作するが、新規記述は experiment 配下に揃える。
 
 ### workflows/
 

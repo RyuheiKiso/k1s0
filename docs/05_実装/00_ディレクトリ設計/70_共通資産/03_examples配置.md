@@ -87,14 +87,22 @@ examples/
 | Phase 1c | tier2-go-service、tier3-native-maui |
 | Phase 2 | マルチテナント対応版 example |
 
-## example と scaffold の差分
+## 3 系統の使い分け: scaffold / templates / examples
 
-| 観点 | scaffold（tools/codegen/scaffold/） | example（examples/） |
-|---|---|---|
-| 目的 | 新サービス作成の起点 | 学習教材・動作保証 |
-| 内容 | 空のテンプレート（プレースホルダ） | 実装済みの完動例 |
-| 更新頻度 | コーディング規約変更時 | tier1 API 変更時 |
-| CI 検証 | 生成テスト（golden test） | E2E 動作検証（週次） |
+k1s0 にはコード雛形・参照コードに相当するディレクトリが 3 つ存在し、役割が重ならない。混乱を避けるため責務を明示する。
+
+| 観点 | scaffold<br>（`tools/codegen/scaffold/`） | templates<br>（`src/tier2/templates/`） | examples<br>（`examples/`） |
+|---|---|---|---|
+| 形式 | Handlebars テンプレート（`.hbs`） | コンパイル可能な Rust / Go / .NET プロジェクト | 実稼働する完成プロジェクト |
+| 目的 | 新サービス生成時の物理テンプレ源 | scaffold から参照される「プレースホルダ値の元ネタ」（ADR で確定した構造を型付きで保持） | 学習教材・動作保証 |
+| 呼び出し元 | `k1s0-scaffold` CLI が `.hbs` をレンダリング | `k1s0-scaffold` CLI が引数 `--reference-template` で構造検証時に参照 | 開発者が手動で閲覧・起動、CI が週次 E2E |
+| 内容 | プレースホルダ（`{{service-name}}` 等）を含む原石 | 最小限のエンティティ 1 件程度のみ持つ型付きプロジェクト | 実際の業務を満たす完動コード |
+| プレースホルダ | あり | なし | なし |
+| 更新頻度 | コーディング規約変更時（四半期） | tier2 Architecture 変更時（半期） | tier1 API 変更時（月次） |
+| CI 検証 | 生成 golden test（`tests/golden/`） | `cargo check` / `go build` / `dotnet build` のみ | E2E 動作検証（週次） |
+| 参照元 | `scaffold --type tier2-go-service --name foo` | scaffold 実装が構造比較のため読む | 開発者が import / study の対象 |
+
+流れを一文でまとめると、開発者が `k1s0-scaffold` を呼ぶと、scaffold CLI は `tools/codegen/scaffold/handlebars/*.hbs` を展開して新プロジェクトの骨格を作り、その内部構造の妥当性検証のために `src/tier2/templates/` の参照プロジェクトと diff を取る。完動例が欲しくなったら `examples/` を読む、という 3 段構えになる。
 
 ## 対応 IMP-DIR ID
 
