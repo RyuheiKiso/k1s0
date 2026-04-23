@@ -92,9 +92,33 @@ src/tier3/
 
 ## 依存方向
 
-- tier3 は SDK（`src/sdk/typescript/` / `src/sdk/dotnet/` / `src/sdk/go/`）を介して tier2 / tier1 にアクセス
-- tier3 から tier1 / contracts / infra を直接参照することは禁止
-- tier3 内部の相互参照（web → bff など）は SDK パッケージ経由または BFF の HTTP/gRPC エンドポイント経由で行う
+tier3 の 4 サブカテゴリは、SDK への依存先が言語ごとに、BFF との関係が用途ごとに異なるため、粗い「tier3 → SDK」ではなく subtier 粒度で規定する。
+
+### web（TypeScript / Next.js・Vite）
+
+- 許可: `src/sdk/typescript/` 経由で BFF の REST / GraphQL / gRPC-Web エンドポイントを呼ぶ
+- 禁止: `src/sdk/go/` / `src/sdk/dotnet/` の直接参照、`src/tier1/` / `src/tier2/` / `src/contracts/` の import、`src/tier3/bff/` の Go コードへの直接参照
+- Phase 1a は BFF 経由のみ、Phase 1b 以降で直 gRPC-Web も許容（[02_web_pnpm_workspace配置.md](02_web_pnpm_workspace配置.md) 参照）
+
+### native（.NET MAUI）
+
+- 許可: `src/sdk/dotnet/`（`K1s0.Sdk` / `K1s0.Sdk.Auth`）経由で BFF または tier1 公開 API を呼ぶ
+- 禁止: BFF の Go コード直接参照、`src/sdk/go/` / `src/sdk/typescript/` の参照、`src/tier1/` / `src/tier2/` / `src/contracts/` の直接参照
+
+### bff（Go）
+
+- 許可: `src/sdk/go/` 経由で tier1 / tier2 にアクセス
+- 禁止: tier1 / tier2 の internal package 直接参照、`src/contracts/` の直接 import（SDK が契約を隠蔽するため）
+- Phase 1a では `replace` directive で `src/sdk/go/` を local 参照可（Phase 1b 以降で module publish に切替、[../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) と同方針）
+
+### legacy-wrap（.NET Framework sidecar）
+
+- 許可: `src/sdk/dotnet/` 経由で tier1 公開 API を呼ぶ
+- 禁止: 他 tier3 subtier との相互参照、`third_party/` 以外への .NET Framework ライブラリ直接配置（[05_レガシーラップ配置.md](05_レガシーラップ配置.md) 参照）
+
+### subtier 間の関係
+
+`web → bff` の関係は HTTP / GraphQL / gRPC-Web の network 呼び出しに限定する（BFF の Go パッケージ直接 import は依存方向違反）。`native → bff` も同様。`native ↔ legacy-wrap` の直接関係は持たず、両者は独立に tier1 公開 API を呼ぶ。
 
 ## CODEOWNERS
 

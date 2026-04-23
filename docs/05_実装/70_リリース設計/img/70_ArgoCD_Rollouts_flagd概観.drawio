@@ -1,0 +1,293 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="release" id="release-1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1700" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1050" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="リリース設計概観: ArgoCD App-of-Apps + Argo Rollouts Canary + flagd 段階配信" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1580" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="ADR-CICD-001/002 + ADR-FM-001 / ADR-REL-001 (Progressive Delivery 必須化) を物理配置に展開" style="text;html=1;fontSize=12;fontStyle=2;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="50" width="1580" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- CI 引渡し -->
+        <mxCell id="ci" value="CI (30 章)&#10;image tag 更新 PR&#10;cosign 署名 + SBOM 添付済" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Git repo (真実源) -->
+        <mxCell id="gitrepo" value="Git = 真実源&#10;deploy/apps/ (manifest)&#10;deploy/kustomize/ (base + overlays)&#10;deploy/charts/ (Helm)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="110" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- flag-definitions -->
+        <mxCell id="flagdef" value="deploy/flags/&#10;flag 定義 (JSON schema)&#10;cosign 署名検証必須&#10;(80 章と結合)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="110" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ArgoCD App-of-Apps -->
+        <mxCell id="argocd-group" value="① ArgoCD App-of-Apps + 6 ApplicationSet (Git generator)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="230" width="1580" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="root-app" value="root-app.yaml&#10;(app-of-apps エントリポイント)&#10;recurse sync で ApplicationSet 自動検出" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="275" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aps-infra" value="infra ApplicationSet&#10;sync wave 0 (最先行)&#10;istio / dapr / postgres 等" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="430" y="275" width="190" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aps-sec" value="security ApplicationSet&#10;sync wave 5&#10;keycloak / openbao / spire" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="275" width="190" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aps-obs" value="observability AS&#10;sync wave 5&#10;LGTM / pyro / otel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="275" width="190" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aps-t1" value="tier1 ApplicationSet&#10;sync wave 10&#10;t1-state/secret/workflow&#10;t1-decision/audit/pii" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="275" width="190" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aps-t2" value="tier2 ApplicationSet&#10;sync wave 20" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="275" width="160" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aps-t3" value="tier3 ApplicationSet&#10;sync wave 30&#10;web / bff / native" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1450" y="275" width="160" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="syncpol" value="sync policy: dev = Automated+selfHeal / staging = Automated+SRE 確認 / prod = Manual+SRE 承認 (ADR-CICD-001)" style="text;html=1;fontSize=11;align=center;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="100" y="385" width="1510" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imageupd" value="image-updater (opt-in)&#10;Harbor registry を監視して&#10;deploy/apps/&lt;env&gt;/image.yaml を自動更新 → PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="420" width="600" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="kyverno" value="Kyverno ClusterPolicy&#10;未署名 image / SBOM なしを admission 拒否 (ADR-CICD-003)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="420" width="890" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Argo Rollouts (PD 層) -->
+        <mxCell id="rollouts-group" value="② Argo Rollouts Canary (Progressive Delivery 必須 / ADR-REL-001 予定)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="1060" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rollout-crd" value="Rollout CRD&#10;strategy: canary&#10;steps: 10% → 30% → 50% → 100%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="560" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="canary-svc" value="canary Service&#10;stable Service&#10;(trafficRouting: Istio)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="560" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="analysis" value="AnalysisTemplate&#10;60 章 SLI に問い合わせ&#10;(Mimir PromQL)&#10;p99 / error rate しきい値判定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="680" y="560" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="auto-rollback" value="自動 rollback&#10;SLI 劣化時は stable へ全戻し&#10;→ PagerDuty + Runbook 参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="680" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pd-exempt" value="PD 対象外 (明文化)&#10;内部ツール / バッチ / cron&#10;Security (D) 承認で例外指定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="680" width="260" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="bluegreen" value="Phase 1a:&#10;Blue-Green 選択肢&#10;(DB migration 伴う PR 向け)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="720" y="680" width="240" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- flagd (Feature Flag 層) -->
+        <mxCell id="flagd-group" value="③ flagd フィーチャーフラグ (OpenFeature / ADR-FM-001)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="510" width="490" height="290" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flagd" value="flagd Deployment&#10;(infra/feature-management/)&#10;flag 定義を watch &amp; 配信" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="560" width="430" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flagd-sdk" value="OpenFeature SDK&#10;tier2/3 アプリが評価&#10;(4 言語提供)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="670" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="flagd-sig" value="flag 定義ファイル&#10;cosign 署名検証&#10;未署名は読込拒否&#10;(NFR-E-MON-004 監査)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="670" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- クラスタ Pod 群 (配信先) -->
+        <mxCell id="cluster-group" value="④ Kubernetes クラスタ (配信先 / 3 環境: dev/staging/prod)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="820" width="1580" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="pod-stable" value="stable ReplicaSet&#10;(通常トラフィック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="860" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pod-canary" value="canary ReplicaSet&#10;(段階的トラフィック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="860" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="istio-waypoint" value="Istio Ambient Waypoint&#10;(L7 traffic splitting)&#10;weight %: Rollout が動的制御" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="860" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="otel-ref" value="OTel Agent / Gateway&#10;(60 章)&#10;Rollouts は Mimir 経由で SLI 参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="970" y="860" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="runbook-rollback" value="ops/runbooks/rollback-*.md&#10;Phase 0 必須&#10;(AnalysisTemplate 失敗時の手順)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="860" width="310" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend-group" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="985" width="1580" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-text" value="アプリ層 (暖色): ArgoCD / Rollouts / flagd / アプリ Pod&#10;  ·  ネットワーク層 (寒色): Istio Ambient Waypoint / Kyverno / cosign 検証&#10;  ·  インフラ層 (中性灰): CI / Runbook / PD 対象外&#10;  ·  データ層 (薄紫): Git (manifest + flag 定義)&#10;線種: 実線太=明示呼出 / 点線細=透過捕捉 / 破線=非同期 (SLI 連動 rollback)" style="text;html=1;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1005" width="1540" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印 -->
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ci" target="gitrepo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1-label" value="PR merge" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="305" y="140" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="gitrepo" target="root-app">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="220" />
+              <mxPoint x="240" y="220" />
+              <mxPoint x="240" y="275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2-label" value="ArgoCD が pull" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="170" y="210" width="130" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="root-app" target="aps-infra">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="375" />
+              <mxPoint x="525" y="375" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="root-app" target="aps-t1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="398" />
+              <mxPoint x="1155" y="398" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- aps-t1 → Rollout -->
+        <mxCell id="e5" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.1;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="aps-t1" target="rollout-crd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1079" y="490" />
+              <mxPoint x="240" y="490" />
+              <mxPoint x="240" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5-label" value="Rollout CRD 適用" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="165" y="495" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Rollout → canary Service -->
+        <mxCell id="e6" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="rollout-crd" target="canary-svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- canary-svc → istio waypoint -->
+        <mxCell id="e7" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="canary-svc" target="istio-waypoint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="530" y="820" />
+              <mxPoint x="730" y="820" />
+              <mxPoint x="730" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Rollout → AnalysisTemplate -->
+        <mxCell id="e8" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="canary-svc" target="analysis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- analysis → OTel -->
+        <mxCell id="e9" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="analysis" target="otel-ref">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="810" />
+              <mxPoint x="1060" y="810" />
+              <mxPoint x="1060" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9-label" value="PromQL 問合せ" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="840" y="795" width="130" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- analysis → auto rollback -->
+        <mxCell id="e10" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;dashed=1;exitX=0;exitY=0.5;entryX=1;entryY=0.3;" edge="1" parent="1" source="analysis" target="auto-rollback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="605" />
+              <mxPoint x="660" y="710" />
+              <mxPoint x="380" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10-label" value="SLI 違反" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="620" y="660" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- flag 定義 → flagd -->
+        <mxCell id="e11" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="flagdef" target="flagd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="530" />
+              <mxPoint x="1395" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11-label" value="ArgoCD が配信 + cosign verify" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="510" width="230" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- flagd → SDK -->
+        <mxCell id="e12" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="flagd" target="flagd-sdk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="flagd" target="flagd-sig">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SDK → canary pods -->
+        <mxCell id="e14" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;dashed=1;exitX=0;exitY=1;entryX=1;entryY=0.5;" edge="1" parent="1" source="flagd-sdk" target="pod-canary">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="810" />
+              <mxPoint x="650" y="810" />
+              <mxPoint x="650" y="905" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14-label" value="flag 評価" style="text;html=1;fontSize=10;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="900" y="795" width="90" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Kyverno → cluster -->
+        <mxCell id="e15" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="kyverno" target="pod-stable">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1165" y="500" />
+              <mxPoint x="220" y="500" />
+              <mxPoint x="220" y="860" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

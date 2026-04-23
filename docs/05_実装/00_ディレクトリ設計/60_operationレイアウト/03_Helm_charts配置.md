@@ -17,7 +17,10 @@ deploy/charts/
 ├── README.md
 ├── tier1-facade/               # Go Dapr facade 用 chart
 │   ├── Chart.yaml
-│   ├── values.yaml             # デフォルト values
+│   ├── values.yaml             # デフォルト values（prod ベース）
+│   ├── values-dev.yaml         # dev 環境 override
+│   ├── values-staging.yaml     # staging 環境 override
+│   ├── values-prod.yaml        # prod 明示 override（通常は values.yaml と同等、空でも可）
 │   ├── templates/
 │   │   ├── deployment.yaml
 │   │   ├── service.yaml
@@ -30,20 +33,37 @@ deploy/charts/
 ├── tier1-rust-service/         # Rust 自作領域用 chart
 │   ├── Chart.yaml
 │   ├── values.yaml
+│   ├── values-dev.yaml
+│   ├── values-staging.yaml
+│   ├── values-prod.yaml
 │   └── templates/              # tier1-facade と同様
 ├── tier2-dotnet-service/
 │   ├── Chart.yaml
 │   ├── values.yaml
+│   ├── values-dev.yaml
+│   ├── values-staging.yaml
+│   ├── values-prod.yaml
 │   └── templates/
 ├── tier2-go-service/
 │   └── ...
 ├── tier3-web-app/              # Next.js / Vite 汎用 chart
 │   ├── Chart.yaml
 │   ├── values.yaml
+│   ├── values-dev.yaml
+│   ├── values-staging.yaml
+│   ├── values-prod.yaml
 │   └── templates/
 └── tier3-bff/
     └── ...
 ```
+
+## 環境別 values の運用
+
+各 chart 配下に `values.yaml`（共通基準）と `values-<env>.yaml`（環境固有 override）を同梱する。`infra/environments/<env>/` の overlay は infra 専用で、deploy 側の chart は chart 配下に環境ファイルを寄せることで以下を得る。
+
+- ArgoCD ApplicationSet の `valueFiles:` が相対パス `values-{{env}}.yaml` のみで完結し、他ディレクトリへの `../` traversal が発生しない
+- CODEOWNERS が chart 単位で `tier1-rust` / `tier2-dev` / `tier3-web` に紐付き、環境別の override 変更も正しくレビュー担当に届く
+- `helm lint` / `helm template --values=values.yaml --values=values-<env>.yaml` を CI に組み込むときの参照パスが一意
 
 ## chart の共通構造
 

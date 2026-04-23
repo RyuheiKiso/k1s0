@@ -7,7 +7,7 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1400" height="750" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="Protobuf 契約から 4 言語 SDK への生成フロー（ADR-DIR-001 / IMP-DIR-T1-026）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="Protobuf 契約から tier1 + 4 言語 SDK への生成フロー（ADR-DIR-001 / IMP-DIR-T1-026）" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="100" y="20" width="1200" height="30" as="geometry" />
         </mxCell>
         <mxCell id="l1" value="① src/contracts/  （Protobuf 契約 ＝ 単一の真実）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d6b656;strokeColor=#d6b656;fontColor=#FFFFFF;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
@@ -40,7 +40,7 @@
         <mxCell id="s-go" value="go/gen/  （github.com/k1s0/k1s0/src/sdk/go）&#10;  *.pb.go / *_grpc.pb.go" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="800" y="185" width="440" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="s-rust" value="rust/src/gen/  （k1s0-sdk crate）&#10;  *.rs （prost 生成）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="s-rust" value="rust/crates/k1s0-sdk-proto/src/gen/v1/  （k1s0-sdk-proto crate）&#10;  *.rs （prost / tonic 生成）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="800" y="255" width="440" height="60" as="geometry" />
         </mxCell>
         <mxCell id="s-ts" value="typescript/gen/  （@k1s0/sdk）&#10;  *.ts / *_pb.ts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;spacingTop=6;verticalAlign=top;" vertex="1" parent="1">

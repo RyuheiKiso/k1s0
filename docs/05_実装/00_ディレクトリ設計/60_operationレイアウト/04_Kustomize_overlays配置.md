@@ -155,6 +155,8 @@ spec:
 
 この場合、ArgoCD は「helm template → kustomize build」の 2 段階で YAML を生成。
 
+> 注: `helm` と `kustomize` を同一 `source` 内で併用する設定は ArgoCD 2.4+ で `kustomize.buildOptions` に `--enable-helm` を指定することで有効化される（それ以前のバージョンでは `helm` と `kustomize` は相互排他）。k1s0 は ArgoCD 2.11+ を前提とし、`argocd-cm` ConfigMap で `kustomize.buildOptions: --enable-helm` を設定する。hybrid 運用は debug が困難になる（どの層で値が上書きされたかが追跡しにくい）ため、まずは Helm values で完結するケースを優先し、kustomize layer は image 差し替えと environment-specific patch に限定する。hybrid を避けたい場合は、Helm chart 側に `image.tag` を values として露出し、`values-<env>.yaml` で完結させる。
+
 ## 対応 IMP-DIR ID
 
 - IMP-DIR-OPS-094（Kustomize overlays 配置）
