@@ -2,7 +2,7 @@
 
 本ファイルは構想設計 `02_構想設計/04_CICDと配信/00_CICDパイプライン.md` で確定した 7 段ステージの後段 3 段（scan → push → GitOps 更新）のうち、scan と push を担う Harbor + Trivy + cosign 連携の物理配置を確定する。30 章原則 4（IMP-CI-POL-004: Harbor 門番の Trivy Critical 拒否）と原則 5（IMP-CI-POL-005: cosign keyless 署名）の具体化であり、Harbor プロジェクト構成・Trivy スキャナ運用・CVE 閾値・allowlist 管理・cosign 署名経路を 1 本のパイプラインとして束ねる。
 
-![Harbor / Trivy / cosign パイプライン](img/Harbor_Trivy_cosignパイプライン.svg)
+![Harbor Trivy scan gate (push 段 CVSS 閾値 quarantine Renovate 連動)](img/40_Harbor_Trivy_scan_gate.svg)
 
 Harbor を「サプライチェーン境界の唯一の門番」として機能させるには、push 側（CI）とスキャン側（Harbor 内蔵 Trivy）と署名側（cosign + Fulcio + Rekor）の 3 層が同じ単一真実源を向く構成が必要である。本節は 3 層の物理配置、robot アカウント権限、quarantine プロジェクトへの隔離動線、allowlist 例外の時限付き承認までを確定する。
 
