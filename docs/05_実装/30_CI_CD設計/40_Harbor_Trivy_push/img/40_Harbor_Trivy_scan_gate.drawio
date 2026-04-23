@@ -7,7 +7,7 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1500" height="950" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="Harbor Trivy scan gate (push 直前 Trivy → CVSS 閾値 → quarantine → Renovate 連動)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="Harbor Trivy scan gate (push 直前 scan - CVSS 閾値 - quarantine - Renovate 連動)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="200" y="20" width="1100" height="30" as="geometry" />
         </mxCell>
         <mxCell id="ci_layer" value="CI (reusable workflow _reusable-push.yml)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
@@ -16,13 +16,13 @@
         <mxCell id="build" value="_reusable-build.yml&#10;Kaniko で image 生成&#10;build artifact 中間保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="60" y="105" width="260" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="robot" value="robot$&lt;project&gt;-ci&#10;短寿命 JWT / 60 日ローテ&#10;project 専用 push 権限" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="robot" value="robot [project]-ci&#10;短寿命 JWT / 60 日ローテ&#10;project 専用 push 権限" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="360" y="105" width="260" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="push" value="crane push → Harbor&#10;harbor.k1s0.internal/&lt;project&gt;/&lt;repo&gt;:&lt;tag&gt;&#10;人間 docker push 禁止 (IMP-CI-HAR-050)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="push" value="crane push to Harbor&#10;harbor.k1s0.internal/[project]/[repo]:[tag]&#10;人間 docker push 禁止 (IMP-CI-HAR-050)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="660" y="105" width="360" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="cosign" value="cosign keyless 署名&#10;OIDC → Fulcio → Rekor&#10;SBOM (syft) attest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="cosign" value="cosign keyless 署名&#10;OIDC to Fulcio to Rekor&#10;SBOM (syft) attest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1060" y="105" width="380" height="100" as="geometry" />
         </mxCell>
         <mxCell id="harbor_layer" value="Harbor (harbor.k1s0.internal) + CloudNativePG + Longhorn 3rep" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9673a6;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
@@ -46,13 +46,13 @@
         <mxCell id="webhook" value="Harbor webhook&#10;push 完了イベント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="920" y="285" width="220" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="gc" value="Retention / GC&#10;feature branch 14 日 /&#10;main 30 tag 永久 /&#10;release/* 3 年" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="gc" value="Retention and GC&#10;feature branch 14 日&#10;main 30 tag 永久&#10;release 3 年" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1170" y="285" width="270" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="trivy" value="Harbor 内蔵 Trivy scanner&#10;webhook トリガ → CVSS 判定&#10;p99 5 分以内&#10;Trivy DB 日次更新 (2:00 JST)&#10;エアギャップ: オフラインミラー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="trivy" value="Harbor 内蔵 Trivy scanner&#10;webhook トリガ to CVSS 判定&#10;p99 5 分以内&#10;Trivy DB 日次更新 (2:00 JST)&#10;エアギャップ: オフラインミラー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="60" y="370" width="380" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="gate" value="CVSS 閾値ゲート&#10;9.0+ (Critical): 自動 quarantine&#10;7.0-8.9 (High): WARN / 72h 解消&#10;4.0-6.9 (Med): 週次レポート&#10;3.9- : backlog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="gate" value="CVSS 閾値ゲート&#10;9.0 以上 (Critical): 自動 quarantine&#10;7.0-8.9 (High): WARN / 72h 解消&#10;4.0-6.9 (Med): 週次レポート&#10;3.9 以下 : backlog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="480" y="370" width="360" height="100" as="geometry" />
         </mxCell>
         <mxCell id="quarantine" value="quarantine project&#10;Critical イメージを隔離&#10;Kyverno 側 pull 不可&#10;1 年保持 (監査証跡)&#10;replication 対象外" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
@@ -64,16 +64,16 @@
         <mxCell id="downstream_layer" value="下流連携 (Renovate / Kyverno / GitOps)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="40" y="520" width="1420" height="200" as="geometry" />
         </mxCell>
-        <mxCell id="renovate" value="Renovate 中央運用&#10;(40 章 依存管理)&#10;Harbor webhook → base image 更新 PR&#10;Dependency Dashboard に脆弱性影響を可視化&#10;CVE が PR body にコメント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="renovate" value="Renovate 中央運用&#10;(40 章 依存管理)&#10;Harbor webhook to base image 更新 PR&#10;Dependency Dashboard に脆弱性影響を可視化&#10;CVE が PR body にコメント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="60" y="555" width="400" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="kyverno" value="Kyverno ClusterImagePolicy&#10;(70 章 リリース所管)&#10;admission で cosign verify&#10;image-source: harbor.k1s0.internal/* のみ許可&#10;quarantine/* は pull 拒否" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="kyverno" value="Kyverno ClusterImagePolicy&#10;(70 章 リリース所管)&#10;admission で cosign verify&#10;image-source: harbor.k1s0.internal のみ許可&#10;quarantine は pull 拒否" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="500" y="555" width="400" height="140" as="geometry" />
         </mxCell>
         <mxCell id="gitops" value="ArgoCD GitOps 更新&#10;image-updater が digest 追従&#10;署名検証通過 pod のみ起動&#10;Phase 1a: DR replication RPO 1h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="940" y="555" width="400" height="140" as="geometry" />
         </mxCell>
-        <mxCell id="otel" value="観測性: OTel Collector → Mimir / Loki&#10;sli_harbor_api_success_ratio (SLO 99.9%) / scan p99 5m / quarantine 99.99% / cosign 99.95%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="otel" value="観測性: OTel Collector to Mimir / Loki&#10;sli_harbor_api_success_ratio (SLO 99.9%) / scan p99 5m / quarantine 99.99% / cosign 99.95%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="40" y="740" width="1420" height="60" as="geometry" />
         </mxCell>
         <mxCell id="e_build_robot" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="build" target="robot">
@@ -141,7 +141,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e_renovate_lbl" value="CVE 検出 → PR 起票" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fillColor=#FFFFFF;strokeColor=none;fontSize=10;" vertex="1" connectable="0" parent="1">
+        <mxCell id="e_renovate_lbl" value="CVE 検出 to PR 起票" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fillColor=#FFFFFF;strokeColor=none;fontSize=10;" vertex="1" connectable="0" parent="1">
           <mxGeometry x="150" y="500" width="180" height="20" as="geometry" />
         </mxCell>
         <mxCell id="e_quarantine_kyverno" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="quarantine" target="kyverno">
@@ -199,10 +199,10 @@
         <mxCell id="lg5" value="CVE ゲート / 隔離 (必須)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1020" y="850" width="200" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="lg_line" value="実線太: push / scan / admission の主系経路    実線太赤: Critical 隔離経路 (自動)    破線: 参照 / SLI 計測" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_line" value="実線太: push / scan / admission の主系経路   実線太赤: Critical 隔離経路 (自動)   破線: 参照 / SLI 計測" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="70" y="885" width="1300" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="lg_line2" value="IMP-CI-HAR-040〜051 / NFR-H-INT-001 (cosign) / NFR-H-INT-002 (SBOM) / ADR-CICD-003 (Kyverno)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_line2" value="IMP-CI-HAR-040 to 051 / NFR-H-INT-001 (cosign) / NFR-H-INT-002 (SBOM) / ADR-CICD-003 (Kyverno)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="70" y="910" width="1100" height="25" as="geometry" />
         </mxCell>
       </root>

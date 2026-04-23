@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 における Technology Radar の物理配置・4 区分判定基準・半期更新プロセス・Hold 例外承認の運用を実装フェーズ確定版として確定する。90 章方針の IMP-POL-POL-003（Technology Radar 半期更新）を、`docs/02_構想設計/radar/` のディレクトリ構造、Thoughtworks 方式の 4 象限 × 4 区分、ADR との双方向リンク、Backstage プラグインでの可視化で具体化する。
 
-![Technology Radar 4 象限 4 区分](img/radar_4象限4区分.svg)
+![Technology Radar: Thoughtworks 方式 4 象限 × 4 区分と半期更新サイクル](img/30_Technology_Radar_4象限4区分.svg)
 
 Radar 未運用状態の JTC では、個別プロジェクトの採用判断が組織記憶から切り離される。Aチームが 3 年前に捨てた OSS を B チームが再採用し、同じ失敗を繰り返す。Radar は「このプロジェクトで現在推奨 / 試用 / 評価 / 禁止している技術」を 1 枚のスナップショットに凝縮し、新規参画者が 30 分で組織の技術観を把握できる状態を維持する装置である。
 

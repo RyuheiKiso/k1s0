@@ -1,0 +1,186 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="tech-radar" id="tr1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1700" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Technology Radar: 4 象限 × 4 区分 × 半期更新サイクル (IMP-POL-TR-030〜037)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1660" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="grid_title" value="Thoughtworks 方式 4 象限 × 4 区分" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1060" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gh0" value="象限 \ 区分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="95" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh1" value="Adopt&#xa;(第一選択)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="95" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh2" value="Trial&#xa;(限定本番)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="95" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh3" value="Assess&#xa;(評価中)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="95" width="210" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gh4" value="Hold&#xa;(新規禁止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="95" width="210" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rh1" value="Techniques&#xa;設計手法 / プロセス / パターン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="135" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r1a" value="OpenTelemetry&#xa;SLO-driven&#xa;WORM 監査" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="135" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r1t" value="Ambient Mesh&#xa;cosign keyless&#xa;SBOM 差分監視" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="135" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r1as" value="SLSA L3 移行&#xa;SPIRE federation&#xa;fuzz 継続運用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="135" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r1h" value="JWT w/o aud&#xa;gRPC w/o deadline&#xa;monolith stateful" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="135" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rh2" value="Tools&#xa;単体機能ツール" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="245" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r2a" value="Renovate&#xa;cosign&#xa;Kyverno&#xa;Syft" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="245" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r2t" value="OpenBao&#xa;flagd&#xa;Dependency-Track" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="245" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r2as" value="Argo Rollouts&#xa;LitmusChaos&#xa;Backstage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="245" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r2h" value="HashiCorp Vault&#xa;Terraform&#xa;Dependabot 単体" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="245" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rh3" value="Platforms&#xa;基盤プロダクト / ランタイム" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="355" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r3a" value="Kubernetes&#xa;Istio Ambient&#xa;Keycloak&#xa;CloudNativePG" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="355" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r3t" value="Dapr&#xa;Valkey&#xa;OpenSearch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="355" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r3as" value="OpenTofu (IaC 統一)&#xa;KEDA (scaling)&#xa;MinIO WORM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="355" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r3h" value="Redis (BSL)&#xa;MongoDB (SSPL)&#xa;Elasticsearch (SSPL)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="355" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rh4" value="Languages &amp; Frameworks&#xa;言語 / FW" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="465" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r4a" value="Rust 2024&#xa;Go 1.22+&#xa;TypeScript 5&#xa;.NET 8 LTS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="465" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r4t" value="ZEN Engine&#xa;tonic (gRPC Rust)&#xa;.NET MAUI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="465" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r4as" value="Leptos / Dioxus&#xa;WASM Component Model" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="465" width="210" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="r4h" value="JavaScript 無型&#xa;非 LTS .NET major&#xa;Go 1.20 以下" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="465" width="210" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hold_exc" value="Hold 降格時の既存採用例外 (IMP-POL-TR-035)&#xa;即撤退ではなく ADR 例外承認で継続可能&#xa;最長 2 Phase (12 か月) 以内に移行完了&#xa;新規プロジェクトでの再採用は CODEOWNERS で拒否&#xa;期限超過件数は DX メトリクス (95 章)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="95" width="520" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dir" value="物理配置 (IMP-POL-TR-032)&#xa;docs/02_構想設計/radar/&#xa; README.md&#xa; entries/&lt;quadrant&gt;/&lt;ring&gt;/&lt;entry&gt;.md&#xa; data/radar-YYYY-HH.json (BYOR 互換)&#xa; alternatives.md (BSL/SSPL 代替)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="295" width="520" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="entry" value="エントリ必須 7 項目 (IMP-POL-TR-033)&#xa;Name / Quadrant / Ring / Status&#xa;ADR Links (1 件以上必須) / Rationale / History&#xa;Rationale は事例・数値で裏付け (&quot;安定している&quot; 禁止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="455" width="520" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cycle_title" value="半期更新サイクル (4 月 / 10 月)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="1620" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t4w" value="T-4 週&#xa;architecture-team が前期 ADR 逆引き&#xa;Adopt 昇格 / Hold 降格候補ロングリスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="645" width="310" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3w" value="T-3 週&#xa;Security / SRE / DX / Tier Lead 4 名&#xa;レビュー依頼・コメント収集" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="645" width="310" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2w" value="T-2 週&#xa;7 名合議 (90 分 × 1 回)&#xa;確定 + moved-in / new / Hold-down マーキング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="645" width="310" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t1w" value="T-1 週&#xa;PR 起票 / JSON + Markdown 更新&#xa;SVG 再生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="645" width="310" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t0" value="T-0 (4/1 or 10/1)&#xa;merge / Backstage 表示切替&#xa;全社アナウンス&#xa;議事録 WORM 保管" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="645" width="300" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bs_title" value="Backstage 連動 (IMP-POL-TR-037)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="745" width="1620" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="bs1" value="Service Catalog&#xa;radar-adopt / radar-trial / radar-hold&#xa;ラベル自動付与" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="780" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bs2" value="Scaffold CLI 起動時&#xa;選択技術スタックを Radar 照合&#xa;Hold ゼロを事前検証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="780" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bs3" value="ADR 起票時&#xa;関連 Radar エントリ自動リンク&#xa;片方のみ更新を防ぐ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="780" width="540" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="880" width="1620" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_a" value="Adopt (緑)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="910" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_t" value="Trial (青)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="180" y="910" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_as" value="Assess (橙)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="910" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_hh" value="Hold (赤)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="910" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app" value="アプリ層 (例外プロセス・更新サイクル): 暖色 #fff2cc / #d79b00" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="910" width="1080" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_inf" value="インフラ層 (物理配置・ヘッダ): 中性灰 #f5f5f5 / #666666" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="945" width="1580" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_note1" value="区分の判定基準: Adopt=複数 Phase 本番稼働 + ADR Accepted / Trial=1 Phase 以上 staging / Assess=PoC 段階、新規採用は architecture-team レビュー必須 / Hold=新規禁止、既存は例外 ADR 継続" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="975" width="1580" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_note2" value="IMP-POL-TR-030〜037 / ADR との双方向リンク (IMP-POL-ADR-027) / 半期更新は 7 名合議で評価者の偏りを減らす" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1005" width="1580" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ef1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="t4w" target="t3w">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="t3w" target="t2w">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="t2w" target="t1w">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="t1w" target="t0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

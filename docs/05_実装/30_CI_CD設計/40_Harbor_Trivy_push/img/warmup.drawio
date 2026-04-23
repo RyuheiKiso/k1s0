@@ -1,0 +1,16 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="test" id="t">
+    <mxGraphModel dx="500" dy="500" grid="1" gridSize="10" pageWidth="500" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="500" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="a" value="A" style="rounded=1;fillColor=#fff2cc;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="100" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

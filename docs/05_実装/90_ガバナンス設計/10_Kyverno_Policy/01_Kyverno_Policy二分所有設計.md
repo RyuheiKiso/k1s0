@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 における Kyverno ポリシーの物理配置と所有権分離を実装フェーズ確定版として示す。90 章方針の IMP-POL-POL-001（Kyverno 二分所有モデル）を、validate / mutate / generate の 3 ポリシー類型と CODEOWNERS 分離、audit → enforce 段階運用で具体化する。ADR-CICD-003（Kyverno 採用）で選定した admission controller を、ADR-POL-001（Kyverno 二分所有モデル、本章初版策定時に起票予定）の運用形態で確定する。
 
-![Kyverno 二分所有と 3 ポリシー類型](img/kyverno_二分所有_3類型.svg)
+![Kyverno 二分所有モデル (validate=Security / mutate+generate=Platform/SRE)](img/10_Kyverno二分所有モデル.svg)
 
 Kubernetes の admission policy は「クラスタ全体の挙動を定義する」層であり、1 つの validate policy 追加が全 namespace の deploy を止める影響力を持つ。この権限を Platform/SRE と Security が混然一体で保有すると、どちらか一方の判断で全社デプロイがブロックされる事故、または統制抜けが両者のレビュー盲点に落ちる事故が発生する。本節は「validate は Security 所有 / mutate・generate は Platform/SRE 所有」の分離により、統制権限と運用スピードを構造レベルで両立する設計を確定する。
 
