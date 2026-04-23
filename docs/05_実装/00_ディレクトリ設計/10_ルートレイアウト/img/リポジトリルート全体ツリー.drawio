@@ -73,7 +73,7 @@
         <mxCell id="b-rootf" value="ルート直下ファイル&#10;  CLAUDE.md / README.md / SECURITY.md / LICENSE&#10;  Makefile / .gitattributes / .git-blame-ignore-revs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="920" y="490" width="440" height="65" as="geometry" />
         </mxCell>
-        <mxCell id="adr-note" value="ADR-DIR-001: contracts を src/ 直下に昇格（tier1 所有物ではなく横断契約）&#10;ADR-DIR-002: infra/ deploy/ ops/ を 3 階層分離（GitOps 標準準拠）&#10;ADR-DIR-003: sparse-checkout cone mode を標準運用（9 役別 cone）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="adr-note" value="ADR-DIR-001: contracts を src/ 直下に昇格（tier1 所有物ではなく横断契約）&#10;ADR-DIR-002: infra/ deploy/ ops/ を 3 階層分離（GitOps 標準準拠）&#10;ADR-DIR-003: sparse-checkout cone mode を標準運用（10 役別 cone）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="40" y="570" width="850" height="80" as="geometry" />
         </mxCell>
         <mxCell id="legend-title" value="凡例（色分け）" style="text;html=1;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">

@@ -37,7 +37,9 @@ IMP-DIR-<サブ>-<通番>
 - `IMP-DIR-ROOT-008` : ルート直下ファイル一覧（.gitattributes / CODEOWNERS / LICENSE 等）
 - `IMP-DIR-ROOT-009` : src 配下の層別分割（contracts / tier1 / sdk / tier2 / tier3 / platform）
 - `IMP-DIR-ROOT-010` : 横断ディレクトリ（infra / deploy / ops / tools / tests / examples / third_party）
-- `IMP-DIR-ROOT-011` 〜 `IMP-DIR-ROOT-020` : Phase 1b 以降の予約
+- `IMP-DIR-ROOT-011` : 設定ファイル配置規約（.gitattributes / CODEOWNERS / LICENSE 等の運用規約）
+- `IMP-DIR-ROOT-012` : 依存方向ルール（tier3 → tier2 → (sdk ← contracts) → tier1 → infra の単方向化）
+- `IMP-DIR-ROOT-013` 〜 `IMP-DIR-ROOT-020` : Phase 1b 以降の予約
 
 ### T1（tier1 レイアウト、021-040）
 
@@ -118,7 +120,7 @@ tier3 層（`src/tier3/`）の配置。
 スパースチェックアウト関連。
 
 - `IMP-DIR-SPARSE-126` : cone mode 設計原則
-- `IMP-DIR-SPARSE-127` : 役割別 cone 定義（9 ロール）
+- `IMP-DIR-SPARSE-127` : 役割別 cone 定義（10 ロール）
 - `IMP-DIR-SPARSE-128` : 初期クローンとオンボーディング
 - `IMP-DIR-SPARSE-129` : 役割切替運用
 - `IMP-DIR-SPARSE-130` : CI 戦略と path_filter 統合
@@ -148,7 +150,7 @@ tier3 層（`src/tier3/`）の配置。
 
 Phase 0 稟議承認時点で以下が確定する。
 
-- `IMP-DIR-ROOT-001` 〜 `IMP-DIR-ROOT-010` の 10 件
+- `IMP-DIR-ROOT-001` 〜 `IMP-DIR-ROOT-012` の 12 件
 - `IMP-DIR-T1-021` 〜 `IMP-DIR-T1-026` の 6 件
 - `IMP-DIR-T2-041` 〜 `IMP-DIR-T2-046` の 6 件
 - `IMP-DIR-T3-056` 〜 `IMP-DIR-T3-060` の 5 件
@@ -157,7 +159,7 @@ Phase 0 稟議承認時点で以下が確定する。
 - `IMP-DIR-COMM-111` 〜 `IMP-DIR-COMM-116` の 6 件
 - `IMP-DIR-SPARSE-126` 〜 `IMP-DIR-SPARSE-132` の 7 件
 
-合計 55 件。残りの帯（各サブ分類の予約番号）は Phase 1b / Phase 1c / Phase 2 で追加採番する。
+合計 57 件。残りの帯（各サブ分類の予約番号）は Phase 1b / Phase 1c / Phase 2 で追加採番する。
 
 ## 参照表記
 

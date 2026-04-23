@@ -29,7 +29,7 @@
 
 ### ADR-DIR-003: sparse-checkout cone mode 採用
 
-Git sparse-checkout cone mode + partial clone + sparse index を標準運用として推奨。9 役別 cone 定義を規定。
+Git sparse-checkout cone mode + partial clone + sparse index を標準運用として推奨。10 役別 cone 定義を規定。
 
 | IMP-DIR ID | 関連度 |
 |---|---|

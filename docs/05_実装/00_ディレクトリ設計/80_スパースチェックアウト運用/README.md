@@ -1,6 +1,6 @@
 # 80. スパースチェックアウト運用
 
-本章は Git sparse-checkout を用いた役割別ワークスペース運用を確定する。ADR-DIR-003 で採用決定した「cone mode + partial clone + sparse index」を標準運用として位置付け、9 役割の cone 定義を全文掲載する。
+本章は Git sparse-checkout を用いた役割別ワークスペース運用を確定する。ADR-DIR-003 で採用決定した「cone mode + partial clone + sparse index」を標準運用として位置付け、10 役割の cone 定義を全文掲載する。
 
 ## 本章の目的
 
@@ -16,7 +16,7 @@ k1s0 のモノレポは tier1/2/3 + infra + deploy + ops + tools + tests + examp
 | ファイル | 内容 |
 |---|---|
 | 01_cone_mode設計原則.md | cone mode 採用理由と設計原則 |
-| 02_役割別cone定義.md | 9 役割の cone 定義全文 |
+| 02_役割別cone定義.md | 10 役割の cone 定義全文 |
 | 03_初期クローンとオンボーディング.md | 新規開発者のセットアップ手順 |
 | 04_役割切替運用.md | 役割間の切替と複数役割兼任 |
 | 05_CI戦略とpath_filter統合.md | GitHub Actions path-filter との統合 |

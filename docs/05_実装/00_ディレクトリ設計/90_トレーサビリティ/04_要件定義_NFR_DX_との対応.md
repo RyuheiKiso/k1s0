@@ -72,7 +72,7 @@
 | DX-GP-\*（example Golden Path） | IMP-DIR-COMM-113 | examples/ |
 | DX-GP-\*（Dev Container） | IMP-DIR-COMM-115 | tools/devcontainer/profiles/ |
 | DX-GP-\*（Backstage） | IMP-DIR-OPS-096 | Backstage Software Catalog |
-| DX-GP-\*（sparse 役割別） | IMP-DIR-SPARSE-127 | 9 役割 cone 定義 |
+| DX-GP-\*（sparse 役割別） | IMP-DIR-SPARSE-127 | 10 役割 cone 定義 |
 
 ### DX-CICD-\*
 
