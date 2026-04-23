@@ -96,15 +96,35 @@ Lint / Formatter 設定を package 化したもの。
 
 - `eslint-config/`: 共通 ESLint 設定（airbnb base + typescript + react hooks）
 
+#### なぜ `tools/` であり `packages/` でも `<repo>/tools/` でもないか
+
+`src/tier3/web/tools/eslint-config/` に置く理由は、以下の 3 つの選択肢を比較した結果の折衷である。
+
+1. **`src/tier3/web/packages/eslint-config/`** — 公開 npm package と並列。pnpm workspace の依存解決としては最も自然だが、「package = 実行時 artifact」という暗黙のメンタルモデルを壊す（eslint-config は devDependency 専用）。将来 `packages/*` を一括 publish する場合に除外条件が必要になるリスクあり
+2. **リポジトリルート `tools/eslint-config/`**（横断ツール） — リポジトリ全体の ESLint 設定を集約できるが、tier3-web cone から参照するのにリポジトリルートを cone に追加することになり、sparse-checkout の境界を跨ぐ。Go / .NET / Rust の開発者には不要な TypeScript 設定が混入する
+3. **`src/tier3/web/tools/eslint-config/`** — workspace 内部で参照され、tier3-web cone に自然に含まれ、かつ `packages/*` の「公開候補」から切り離される（採用）
+
+`.eslintrc.cjs` は `extends: ['@k1s0/eslint-config']` で `tools/eslint-config/` を参照し、pnpm workspace の `workspace:*` 依存で解決する。外部公開しないため `"private": true` を明示する。
+
 ## 依存方向
 
+Phase 1a は BFF 経由のみ、Phase 1b 以降で直 gRPC-Web も許容するため、`packages/api-client` の下流が Phase により分岐する。
+
 ```
-apps/  →  packages/  →  @k1s0/sdk（src/sdk/typescript/）
-         ↓
-       tools/（devDependency）
+                             （Phase 1a）
+apps/*  →  packages/api-client  ─────►  BFF（HTTP/REST・GraphQL）
+            │                             → tier2 / tier1（SDK 経由）
+            │     （Phase 1b 以降、選択的に）
+            └─────►  @k1s0/sdk（src/sdk/typescript/）── gRPC-Web ──► tier1
+
+apps/*  →  packages/ui / i18n / config
+apps/*  →  tools/eslint-config（devDependency）
 ```
 
-apps 間の相互依存は禁止。共通ロジックは packages/ に移動する。packages 間の依存は許容するが、循環は禁止。
+- Phase 1a: `apps/*` は `packages/api-client` を通じて BFF の REST / GraphQL のみを叩く。`@k1s0/sdk` は SDK 側の構造確立のみで、Web からは使わない
+- Phase 1b 以降: 一部 API（軽量 read-only など）で `packages/api-client` が `@k1s0/sdk` の gRPC-Web クライアントを直接使う構成も許容
+- apps 間の相互依存は禁止。共通ロジックは packages/ に移動する。packages 間の依存は許容するが、循環は禁止
+- `apps/*` から `@k1s0/sdk` を直接依存することは禁止（api-client 経由で抽象化し、Phase 1a/1b の切替をまとめて行えるようにする）
 
 ## ビルドとキャッシュ
 

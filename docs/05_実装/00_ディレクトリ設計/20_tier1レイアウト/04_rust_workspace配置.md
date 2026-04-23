@@ -195,7 +195,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 生成物の commit
 
-DS-SW-COMP-132 で論じた通り、Phase 1a では `build.rs` 方式（OUT_DIR）と pre-generated 方式の両方を準備する。pre-generated は `crates/proto-gen/src/v1/` 配下に commit し、`build.rs` で生成した結果との diff を CI で検出する。
+DS-SW-COMP-132 で論じた通り、Phase 1a では `build.rs` 方式（OUT_DIR）と pre-generated 方式の両方を準備する。pre-generated は `crates/proto-gen/src/tier1/v1/` 配下に commit し、`build.rs` で生成した結果との diff を CI で検出する。
 
 Phase 1b で運用が安定したら、pre-generated 一本化（`build.rs` 廃止）を検討する。
 

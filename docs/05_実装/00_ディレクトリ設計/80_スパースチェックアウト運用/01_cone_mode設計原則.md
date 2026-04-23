@@ -82,16 +82,29 @@ cone 定義は「このワーキングセットに含まれる（ローカルに
 
 cone 内に閲覧目的で含めた資産に対して新規 import を書いた場合は、CI の依存方向 lint（Rust: cargo-deny + 自作 / Go: 自作 / TypeScript: eslint-plugin-boundaries / .NET: NetArchTest）で違反として検出される。cone 包含と依存許可は常に別軸として扱うこと。
 
+## Git バージョン要件
+
+k1s0 は **Git 2.40 以上** を前提とする。採用機能と最低要件バージョンは以下。
+
+| 機能 | 導入 Git バージョン | 用途 |
+|---|---|---|
+| cone mode（`sparse-checkout --cone`） | 2.27 | 本規約で必須 |
+| partial clone（`--filter=blob:none`） | 2.22 | 初回 clone で必須 |
+| sparse index | 2.37 | `.git/index` 縮小 |
+| sparse index の stabilization | 2.40 | 本番運用の前提 |
+
+`tools/sparse/bootstrap-developer.sh` は `git --version` をパースして 2.40 未満なら abort する。開発者マシンでは Git for Windows / Homebrew / apt の最新を推奨する。
+
 ## sparse index（Git 2.37+）との併用
 
 sparse index は cone mode と組み合わせることで、`.git/index` のサイズを数分の 1〜10 分の 1 に縮小する。k1s0 は Git 2.40+ を前提とする。
 
 ```bash
 git sparse-checkout init --cone
-git config core.sparseCheckoutCone true
-git update-index --split-index  # 旧式、不要
 git sparse-checkout reapply --sparse-index
 ```
+
+`core.sparseCheckoutCone` は `git sparse-checkout init --cone` で自動的に true に設定されるため、明示設定は冗長。`git update-index --split-index` は sparse index と無関係な別機能（split-index）のスイッチで、ここでは使わない。
 
 sparse index により `git status` 時間が 1.5 秒 → 0.2 秒に短縮（Microsoft 報告ベンチマーク）。
 

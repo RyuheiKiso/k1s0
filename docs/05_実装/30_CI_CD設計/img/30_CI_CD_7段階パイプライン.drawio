@@ -1,0 +1,190 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="cicd-7stages" id="cicd-7stages-1">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" pageWidth="1700" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="900" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="CI/CD 7 段階パイプライン (GitHub Actions reusable workflow + self-hosted runner)" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="20" width="1540" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- PR trigger -->
+        <mxCell id="pr" value="PR open / push&#10;to main / release/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="150" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Stage 1: fetch -->
+        <mxCell id="s1" value="① fetch&#10;checkout&#10;sparse-checkout&#10;submodule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+        <!-- Stage 2: lint -->
+        <mxCell id="s2" value="② lint&#10;fmt / clippy&#10;golangci-lint&#10;eslint / dotnet format&#10;buf lint + breaking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+        <!-- Stage 3: unit-test -->
+        <mxCell id="s3" value="③ unit-test&#10;cargo nextest&#10;go test ./...&#10;vitest / xunit&#10;coverage ≥ 70%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+        <!-- Stage 4: build -->
+        <mxCell id="s4" value="④ build&#10;cargo build --release&#10;go build -trimpath&#10;Docker buildx&#10;multi-arch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+        <!-- Stage 5: scan -->
+        <mxCell id="s5" value="⑤ scan&#10;Trivy (CVE)&#10;Grype / Syft&#10;cosign verify&#10;SBOM 生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+        <!-- Stage 6: push -->
+        <mxCell id="s6" value="⑥ push&#10;Harbor registry&#10;cosign sign&#10;SBOM attach&#10;(Sigstore)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+        <!-- Stage 7: GitOps update -->
+        <mxCell id="s7" value="⑦ GitOps 更新&#10;image tag PR&#10;→ deploy/apps/&#10;ArgoCD image-updater&#10;(opt-in)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="100" width="150" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印連鎖 -->
+        <mxCell id="ep" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="pr" target="s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e45" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e56" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e67" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s6" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CI / CD 境界線 -->
+        <mxCell id="boundary" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="985" y="85" width="2" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary-label-ci" value="CI 責務 (GitHub Actions)" style="text;html=1;fontSize=11;fontStyle=2;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="400" y="240" width="560" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary-label-cd" value="CD 責務 (70 章 ArgoCD へ引渡し)" style="text;html=1;fontSize=11;fontStyle=2;align=center;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="240" width="540" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- path-filter レイヤ -->
+        <mxCell id="pf-group" value="path-filter による selective 実行 (IMP-BUILD-POL-004 / IMP-CI-POL-002)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="1580" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="pf-trigger" value="dorny/paths-filter@v3&#10;変更 path パターンを YAML で宣言" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="340" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pf-matrix" value="matrix 入力 = filter 出力&#10;影響下のみ stage ②③④⑤⑥ を実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="340" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pf-reuse" value=".github/workflows/_reusable-*.yml&#10;quality gate は全 tier 共通で固定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="810" y="340" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pf-cache" value="actions/cache + sccache + go mod cache + pnpm store&#10;Phase 1a でリモート化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="340" width="400" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Quality gate / セキュリティゲート -->
+        <mxCell id="gate-group" value="Quality Gate (MUST扱い / 例外は ADR 必須)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="460" width="1580" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-cov" value="coverage ≥ 70%&#10;(NFR-C-MNT-001)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="510" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-trivy" value="Trivy Critical = reject&#10;High = warn + SRE 承認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="330" y="510" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-sbom" value="SBOM (SPDX) 添付必須&#10;NFR-H-INT-002" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="510" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-cosign" value="cosign 署名必須&#10;NFR-H-INT-001" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="830" y="510" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-license" value="cargo-deny / go-license&#10;AGPL 禁止ライセンス拒否" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="510" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-branch" value="branch protection&#10;必須 reviewer + CODEOWNERS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="510" width="270" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gate-note" value="これらは reusable workflow 側で定義され、個別リポジトリ (tier1/tier2/tier3 のワークフロー) が caller として呼び出す。quality gate は 80 章 (サプライチェーン) と結合。" style="text;html=1;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="590" width="1500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- CD 受け手層: Harbor / ArgoCD -->
+        <mxCell id="cd-group" value="配信側 (70 章 リリース設計 / ADR-CICD-001)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="670" width="1580" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="harbor" value="Harbor Registry&#10;(インターナル)&#10;署名済みイメージを保管" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="715" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="argocd" value="ArgoCD&#10;Git = 真実源&#10;manifest 差分検出 + sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="715" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rollouts" value="Argo Rollouts Canary&#10;AnalysisTemplate (SLI 連動)&#10;→ 60 章 観測性" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="715" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="kyverno" value="Kyverno (クラスタポリシー)&#10;未署名 / SBOM なし image は admission 拒否&#10;(ADR-CICD-003)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="715" width="360" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 矢印: push → harbor -->
+        <mxCell id="e-ph" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s6" target="harbor">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1275" y="250" />
+              <mxPoint x="330" y="250" />
+              <mxPoint x="330" y="715" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- 矢印: s7 → argocd -->
+        <mxCell id="e-ga" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s7" target="argocd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1465" y="260" />
+              <mxPoint x="670" y="260" />
+              <mxPoint x="670" y="715" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-ar" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="argocd" target="rollouts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-rk" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="rollouts" target="kyverno">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-hk" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" edge="1" parent="1" source="harbor" target="kyverno">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="330" y="830" />
+              <mxPoint x="1420" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend-group" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="830" width="1580" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-inline" value="アプリ層 (暖色): ビルド・生成 / ネットワーク層 (寒色): セキュリティゲート・CI 判定 / インフラ層 (中性灰): runner・キャッシュ・branch protection / データ層 (薄紫): Harbor registry" style="text;html=1;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="855" width="1540" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

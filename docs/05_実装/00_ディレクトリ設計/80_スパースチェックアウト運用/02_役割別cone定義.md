@@ -23,11 +23,11 @@
 
 ```
 # tier1 Rust 自作領域開発者向け cone
-# 対象: src/tier1/rust/ + 関連 SDK + contracts + docs + tools
+# 対象: src/tier1/rust/ + contracts + docs + tools
+# 注: src/sdk/rust/ は Phase 2 骨組みのため含めない（必要時は sdk-dev を兼任）
 /docs/
 /src/contracts/
 /src/tier1/rust/
-/src/sdk/rust/
 /src/platform/cli/
 /tools/codegen/buf/
 /tools/sparse/
@@ -102,7 +102,7 @@
 
 注 1: `src/sdk/typescript/` は Web frontend から、`src/sdk/go/` は BFF から tier1/tier2 にアクセスするため両方を cone に含める。依存方向 `tier3 → (sdk ← contracts)` に従い BFF は sdk/go を import する前提で設計されている（`40_tier3レイアウト/04_bff配置.md`）。
 
-注 2: `src/contracts/` は tier3-web は直接触らない（SDK 経由で BFF を使う）。ただし BFF 開発時に Protobuf を見たくなる場面があるため、Phase 1c でサブ役割 `tier3-web-bff-dev` を分離するかを再評価。
+注 2: `src/contracts/` は tier3-web cone には含めない。tier3-web は SDK 経由で BFF を使う設計のため、`01_cone_mode設計原則.md` の原則 3（contracts は依存側 tier とセットで include するが、SDK 経由で利用する側は SDK のみ include）を適用する。BFF 側で SDK 公開 API の改修が必要になった場合は、注 3 の通り sdk-dev 兼任に切り替える。
 
 注 3: BFF 側で SDK 公開 API の改修が必要になった場合は、tier3-web-dev から sdk-dev 兼任に切り替える運用とする。切替手順は `04_役割切替運用.md` に記載。
 

@@ -144,6 +144,9 @@ Visual Studio / Rider の IDE 起動時は `Tier2.sln` を推奨。CI は path-f
 
 ```dockerfile
 # services/ApprovalFlow/Dockerfile
+# build-context 要件: docker build は src/tier2/dotnet/ をルートとして実行する前提で書いている。
+# CI は `docker build -f src/tier2/dotnet/services/ApprovalFlow/Dockerfile src/tier2/dotnet/` を使う。
+# リポジトリルートから build すると Directory.Build.props / Directory.Packages.props が見つからず restore が失敗する。
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
 WORKDIR /workspace
 COPY Directory.Build.props Directory.Packages.props nuget.config ./

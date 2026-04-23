@@ -172,6 +172,19 @@ ENTRYPOINT ["/usr/local/bin/portal-bff"]
 - tier1 / tier2 の internal を直接参照することは禁止
 - Web / Native は BFF の HTTP / gRPC エンドポイントを呼ぶ。BFF の Go コードを参照することは禁止
 
+## スケーリングと HPA
+
+portal と admin はトラフィック特性が異なるため、独立した HPA 設定を持つ。`deploy/charts/tier3-bff/values-<env>.yaml` で以下を指定する。
+
+| 対象 | minReplicas | maxReplicas | targetCPUUtilizationPercentage | 備考 |
+|---|---|---|---|---|
+| portal-bff（prod） | 2 | 10 | 70 | 一般ユーザ向けの高トラフィック。PDB `minAvailable: 2` で常時冗長化 |
+| portal-bff（dev / staging） | 1 | 3 | 70 | リソース節約、PDB 無効 |
+| admin-bff（prod） | 1 | 3 | 70 | 管理者のみのため低トラフィック。夜間バッチは KEDA の event-driven scaling で補う |
+| admin-bff（dev / staging） | 1 | 2 | 70 | 最小構成 |
+
+Kafka lag / Redis キュー長など event-driven な自動スケールが必要な場合は、`deploy/charts/tier3-bff/values-<env>.yaml` の `keda:` セクションで `ScaledObject` を宣言する（`infra/scaling/keda/` が Phase 1b 以降に KEDA Operator を展開）。
+
 ## テスト戦略
 
 - unit test: standard `go test`

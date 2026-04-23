@@ -51,38 +51,16 @@ tools/codegen/
 
 `src/contracts/` を入力に複数言語コードを生成する。buf v2 形式を採用。
 
-```yaml
-# tools/codegen/buf/buf.gen.yaml
-version: v2
-inputs:
-  - directory: src/contracts
-plugins:
-  - remote: buf.build/protocolbuffers/go
-    out: src/sdk/go/gen
-    opt:
-      - paths=source_relative
-  - remote: buf.build/grpc/go
-    out: src/sdk/go/gen
-    opt:
-      - paths=source_relative
-  - remote: buf.build/community/neoeinstein-prost
-    out: src/sdk/rust/src/gen
-    opt:
-      - bytes=.
-      - compile_well_known_types
-  - remote: buf.build/community/neoeinstein-tonic
-    out: src/sdk/rust/src/gen
-  - remote: buf.build/protocolbuffers/csharp
-    out: src/sdk/dotnet/K1s0.Sdk/Generated
-  - remote: buf.build/grpc/csharp
-    out: src/sdk/dotnet/K1s0.Sdk/Generated
-  - remote: buf.build/community/stephenh-ts-proto
-    out: src/sdk/typescript/src/gen
-    opt:
-      - outputServices=grpc-js
-      - useOptionals=messages
-      - esModuleInterop=true
-```
+本書は `buf.gen.yaml` の運用的補足（plugin 選定の根拠・tool version 連携）を扱う。`buf.gen.yaml` の正規定義は [../20_tier1レイアウト/02_contracts配置.md](../20_tier1レイアウト/02_contracts配置.md) に単一原典として集約する（二重管理による設定ドリフトを防ぐため）。以下は原典から抜粋した出力先の俯瞰表。
+
+| 言語 | 用途 | 出力先 | 参考 plugin |
+|---|---|---|---|
+| Go | tier1 実装 | `src/tier1/go/internal/proto/` | `buf.build/protocolbuffers/go` + `buf.build/grpc/go` |
+| Go | SDK | `src/sdk/go/proto/` | 同上（`paths=source_relative`） |
+| Rust | tier1 実装 | `src/tier1/rust/crates/proto-gen/src/` | `buf.build/community/neoeinstein-prost` + `buf.build/community/neoeinstein-tonic` |
+| Rust | SDK（Phase 2） | `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/` | 同上 |
+| C# | SDK | `src/sdk/dotnet/generated/` | `buf.build/protocolbuffers/csharp` + `buf.build/grpc/csharp` |
+| TypeScript | SDK | `src/sdk/typescript/packages/proto/src/` | `buf.build/connectrpc/es`（connectrpc 採用） |
 
 ### gen.sh
 

@@ -94,6 +94,8 @@ public static class MauiProgram
             });
 
         // k1s0 SDK クライアントを DI に登録
+        // AddK1s0Sdk() は src/sdk/dotnet/src/K1s0.Sdk/ が提供する
+        // IServiceCollection 拡張メソッド（K1s0.Sdk.Extensions.DependencyInjection 名前空間）
         builder.Services.AddK1s0Sdk(options =>
         {
             options.Endpoint = "https://api.k1s0.internal";

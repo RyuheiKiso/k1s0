@@ -65,7 +65,7 @@ tier2 の各サービスは独立にビルド・デプロイ可能。
 
 - tier2 は `src/sdk/dotnet/` / `src/sdk/go/` を経由して tier1 にアクセス
 - tier1 / contracts / tier3 / infra を直接参照することは禁止
-- 他の tier2 サービスの内部 package を参照することは禁止（必要に応じて共通 lib を `src/tier2/go/internal/shared/` または `src/tier2/dotnet/shared/` に置く）
+- 他の tier2 サービスの内部 package を参照することは禁止（必要に応じて共通 lib を `src/tier2/go/shared/` または `src/tier2/dotnet/shared/` に置く。`shared/` の可視性強制方針は [03_go_services配置.md](03_go_services配置.md) の 3 層防御を参照）
 
 ## CODEOWNERS
 
