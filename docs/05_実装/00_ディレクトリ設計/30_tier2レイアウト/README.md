@@ -35,4 +35,4 @@ tier1（基盤）と tier3（エンドアプリ）の中間層として、以下
 
 ## 関連図
 
-- [img/tier2サービス内部構造.drawio](img/tier2サービス内部構造.drawio)
+- `img/tier2サービス内部構造.drawio`（Phase B で作成予定）

@@ -139,7 +139,7 @@ IMP-REL-POL-007 の Release Notes 自動紐付けを PD パイプラインと結
 
 - [`00_方針/01_リリース原則.md`](../00_方針/01_リリース原則.md) の IMP-REL-POL-002 / 003 / 006（PD 必須 / AnalysisTemplate / canary 3 段階）の物理配置を本ファイルで固定する
 - [`../10_ArgoCD_App構造/01_ArgoCD_App構造.md`](../10_ArgoCD_App構造/01_ArgoCD_App構造.md) の Helm chart 内 `rollout.yaml` が本ファイルの既定を継承する
-- [`../30_flagd_フィーチャーフラグ/`](../30_flagd_フィーチャーフラグ/) が flagd の詳細運用を扱い、本ファイルは PD との結合のみを規定する
-- [`../40_AnalysisTemplate/`](../40_AnalysisTemplate/) が AnalysisTemplate の詳細閾値を扱い、本ファイルは共通セット配置のみを規定する
-- [`../50_rollback_runbook/`](../50_rollback_runbook/) が rollback 手順を詳細化し、本ファイルは 15 分目標との結合点を規定する
+- `../30_flagd_フィーチャーフラグ/`（Phase B で節新設予定）が flagd の詳細運用を扱い、本ファイルは PD との結合のみを規定する
+- `../40_AnalysisTemplate/`（Phase B で節新設予定）が AnalysisTemplate の詳細閾値を扱い、本ファイルは共通セット配置のみを規定する
+- `../50_rollback_runbook/`（Phase B で節新設予定）が rollback 手順を詳細化し、本ファイルは 15 分目標との結合点を規定する
 - [`../../60_観測性設計/`](../../60_観測性設計/) の SLI が AnalysisTemplate の provider 参照先となる

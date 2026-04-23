@@ -2,7 +2,7 @@
 
 本ファイルは ADR-OBS-002 で採択した OpenTelemetry Collector の物理配置を Agent + Gateway の 2 段構成として確定する。60 章方針の IMP-OBS-POL-001（全テレメトリは OTel Collector 経由）と IMP-OBS-POL-002（LGTM Stack の AGPL 分離）を配置レベルに落とし、tier1 アプリから LGTM Stack（Loki / Mimir / Tempo / Pyroscope）までのテレメトリ経路と PII マスキング点、サンプリング戦略を 1 本の Pipeline 図に統合する。
 
-![OTel Agent + Gateway 2 段構成](img/OTel_Agent_Gateway2段構成.svg)
+![OTel Agent + Gateway 2 段構成](img/10_OTel_Agent_Gateway配置.svg)
 
 ![OTel Agent (DaemonSet) + Gateway Pipeline + AGPL 分離境界](img/10_OTel_Agent_Gateway配置.svg)
 

@@ -2,7 +2,7 @@
 
 本ファイルは `examples/` 配下の Golden Path を実稼働版として配置し、Scaffold CLI のコピー元および Backstage カタログ上の「動く参照実装」として機能させるための物理配置を固定する。ADR-DEV-001 で決定した「Golden Path の一次ソースは `examples/`、docs は解説のみ」を実装レベルで確定させ、CI で常時 build / test / deploy を通す運用までを規定する。
 
-![Golden Path examples 全体像](img/GoldenPath_examples全体像.svg)
+![Golden Path examples 全体像](img/20_Golden_Path_examples構造.svg)
 
 ![Golden Path examples 5 パターンと Scaffold 出力の差分](img/20_Golden_Path_examples構造.svg)
 
