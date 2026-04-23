@@ -1,0 +1,253 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="imp-id-index" id="imp-id-index">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="99 章: IMP-ID 体系 (12 接頭辞) と対応章の相関図" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1280" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Central 99 index -->
+        <mxCell id="center" value="99 索引 (IMP-TRACE-*)&#10;ADR / NFR / DS-SW-COMP / Backstage catalog&#10;双方向トレーサビリティ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="370" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- 12 prefix chapters, arranged around the center -->
+        <!-- Row top -->
+        <mxCell id="ch10" value="10 ビルド設計&#10;IMP-BUILD-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="90" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch20" value="20 コード生成設計&#10;IMP-CODEGEN-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="90" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch30" value="30 CI/CD 設計&#10;IMP-CI-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="90" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch40" value="40 依存管理設計&#10;IMP-DEP-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="90" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch50" value="50 開発者体験設計&#10;IMP-DEV-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="90" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch60" value="60 観測性設計&#10;IMP-OBS-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="90" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Row bottom -->
+        <mxCell id="ch70" value="70 リリース設計&#10;IMP-REL-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch80" value="80 サプライチェーン設計&#10;IMP-SUP-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="720" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch85" value="85 Identity 設計&#10;IMP-SEC-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="720" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch90" value="90 ガバナンス設計&#10;IMP-POL-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="720" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch95" value="95 DX メトリクス&#10;IMP-DX-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="720" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ch99" value="99 索引 (本章)&#10;IMP-TRACE-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="720" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Side legends (left: build/code/ci, right: obs/rel) cross-ref groups -->
+        <mxCell id="side_build" value="構築系 (BUILD/CODEGEN/CI)&#10;成果物生成経路" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="side_dep" value="運用系 (DEP/DEV/OBS)&#10;継続運用支援" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="710" y="160" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="side_rel" value="配信系 (REL/SUP)&#10;配信と真正性" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="695" width="390" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="side_sec" value="ガバナンス系 (SEC/POL/DX)&#10;統制 + 開発組織健全性" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="500" y="695" width="600" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- External references -->
+        <mxCell id="ref_adr" value="ADR 横断&#10;docs/02_構想設計/adr/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ref_ds" value="DS-SW-COMP 横断&#10;docs/04_概要設計/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="480" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ref_nfr" value="NFR 横断&#10;docs/03_要件定義/30_非機能要件/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="400" width="190" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ref_bs" value="Backstage catalog-info.yaml&#10;(DX 調整窓口 C)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="480" width="190" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Sibling index (00 directory design) -->
+        <mxCell id="sib_dir" value="並列索引: 00 ディレクトリ設計 / 90 トレーサビリティ&#10;IMP-DIR-* (守備範囲非重複)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="260" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="up_ref" value="上流整合: 04_概要設計/80_トレーサビリティ/05_構想設計ADR相関マトリクス.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="540" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows from 12 chapters to center -->
+        <mxCell id="c1" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.05;entryY=0;" edge="1" parent="1" source="ch10" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="240" />
+              <mxPoint x="560" y="240" />
+              <mxPoint x="574" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c2" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="ch20" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="250" />
+              <mxPoint x="616" y="250" />
+              <mxPoint x="616" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.4;entryY=0;" edge="1" parent="1" source="ch30" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="200" />
+              <mxPoint x="672" y="200" />
+              <mxPoint x="672" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c4" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.6;entryY=0;" edge="1" parent="1" source="ch40" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="200" />
+              <mxPoint x="728" y="200" />
+              <mxPoint x="728" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c5" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="ch50" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="250" />
+              <mxPoint x="784" y="250" />
+              <mxPoint x="784" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c6" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.95;entryY=0;" edge="1" parent="1" source="ch60" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1220" y="240" />
+              <mxPoint x="840" y="240" />
+              <mxPoint x="826" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="c7" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.05;entryY=1;" edge="1" parent="1" source="ch70" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="680" />
+              <mxPoint x="574" y="680" />
+              <mxPoint x="574" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c8" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.2;entryY=1;" edge="1" parent="1" source="ch80" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="670" />
+              <mxPoint x="616" y="670" />
+              <mxPoint x="616" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c9" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.4;entryY=1;" edge="1" parent="1" source="ch85" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="660" />
+              <mxPoint x="672" y="660" />
+              <mxPoint x="672" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c10" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.6;entryY=1;" edge="1" parent="1" source="ch90" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="660" />
+              <mxPoint x="728" y="660" />
+              <mxPoint x="728" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c11" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.8;entryY=1;" edge="1" parent="1" source="ch95" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="670" />
+              <mxPoint x="784" y="670" />
+              <mxPoint x="784" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c12" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;exitX=0.5;exitY=0;entryX=0.95;entryY=1;" edge="1" parent="1" source="ch99" target="center">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1220" y="680" />
+              <mxPoint x="840" y="680" />
+              <mxPoint x="826" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- External refs arrows -->
+        <mxCell id="e_adr" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="ref_adr" target="center">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ds" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="ref_ds" target="center">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nfr" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="ref_nfr" target="center">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bs" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="ref_bs" target="center">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_sib" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="sib_dir" target="center">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sibl" value="守備範囲非重複" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="630" y="330" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="e_up" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1.5;dashed=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="up_ref" target="center">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_upl" value="双方向整合" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="635" y="510" width="140" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="leg" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="1280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_app" value="実装章 (IMP-* 採番) = 暖色" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="825" width="290" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_data" value="索引 / 上流参照 (ADR / NFR / DS-SW-COMP / Backstage) = 薄紫" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="390" y="825" width="440" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_infra" value="並列索引 / 上流整合 = 中性灰 + 破線" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="825" width="350" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_narrative" value="12 接頭辞: BUILD / CODEGEN / CI / DEP / DEV / OBS / REL / SUP / SEC / POL / DX / TRACE。各章が自前採番し、99 章は横断索引として ADR / NFR / DS-SW-COMP / Backstage catalog との対応を一括参照する。00 章の IMP-DIR-* は守備範囲を分けて並列運用する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="80" y="852" width="1240" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

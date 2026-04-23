@@ -8,6 +8,8 @@
 
 catalog-info.yaml は Backstage 連携の first-class 属性として扱い、Scaffold CLI が自動生成する。これにより、作成されたサービスが自動的に Backstage カタログに登場し、所有者・ドキュメント・オンコール連絡先が一元参照可能となる。`docs/03_要件定義/50_開発者体験/` の DevEx 指標（DORA Four Keys 等）との分担は、本章が実装手段の配置を担い、計測面は `95_DXメトリクス/` に委譲する。
 
+![Golden Path / Paved Road 概観: 10 役 DevContainer + Scaffold CLI + examples/ の 3 層](img/50_Golden_Path_Paved_Road概観.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: 10 役別 Dev Container、`examples/` の tier2 / tier3 実稼働版、Scaffold CLI 最小実装、time-to-first-commit SLI の計測基盤
