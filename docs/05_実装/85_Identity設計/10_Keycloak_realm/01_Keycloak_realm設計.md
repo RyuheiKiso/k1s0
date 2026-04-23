@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける Keycloak の realm 階層、client 定義、group claim と tenant_id 連動、MFA ポリシーを実装フェーズ確定版として示す。85 章方針 IMP-SEC-POL-001（Keycloak 単一 IdP 集約）および IMP-SEC-POL-003（group claim と tenant 連動）を物理配置レベルに落とし込み、ADR-SEC-001 で選定した Keycloak の運用形態を `infra/security/keycloak/` 配下に確定させる。人間 ID は Keycloak に一元化し、ワークロード ID（SPIRE / SPIFFE）は 20 節に、シークレット（OpenBao）は 30 節に、証明書（cert-manager）は 40 節に分離する。
 
-![Keycloak 4 realm 構造](img/keycloak_4realm構造.svg)
+![Keycloak 4 realm 階層と client/group/claim OIDC flow](img/10_Keycloak_realm階層.svg)
 
 Keycloak を採用する動機は「退職・委託終了時の 1 アカウント無効化で全経路を revoke できる構造」を JTC 運用の前提とする点にある。各システムが独自の認証を持てば、退職時の revoke 漏れが事故の種になる。本節は realm 分割の粒度、client の種別、group claim に載せる情報、MFA の強制範囲を固定し、後続 50 節の退職時 revoke 手順と連動する単一の真実の出所（Single Source of Truth）を構築する。
 
