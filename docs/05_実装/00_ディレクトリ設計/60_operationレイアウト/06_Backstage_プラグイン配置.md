@@ -41,7 +41,24 @@ src/platform/
 
 ## Backstage のデプロイ先
 
-Backstage は `infra/observability/` 近辺にはせず、独立した `k1s0-platform` namespace（新設）にデプロイする。配信定義は `deploy/apps/application-sets/ops.yaml` で管理。
+Backstage は `infra/observability/` 近辺にはせず、独立した `k1s0-platform-tools` namespace にデプロイする。namespace 名が ArgoCD AppProject 名（`k1s0-platform`）と混同しないよう `-tools` を suffix に付与する（ADR-DIR-002 の infra 分離方針に沿い、namespace 定義は `infra/k8s/namespaces/k1s0-platform-tools.yaml` で管理）。配信定義は `deploy/apps/application-sets/ops.yaml` で管理。
+
+### namespace 定義の配置
+
+Backstage のデプロイに必要な namespace は以下の順で bootstrap される。
+
+1. `infra/k8s/namespaces/k1s0-platform-tools.yaml` — Backstage 本体・関連 Pod
+2. `infra/security/*` で Keycloak / SPIRE の SSO 連携リソースを `k1s0-platform-tools` namespace に配置
+3. `deploy/apps/application-sets/ops.yaml` で Helm chart を sync（Sync Wave 40、tier1〜tier3 起動後）
+
+namespace 名と AppProject 名の使い分けは以下:
+
+| 種別 | 名前 | 用途 |
+|---|---|---|
+| Kubernetes Namespace | `k1s0-platform-tools` | Backstage Pod / ConfigMap / Service の物理配置先 |
+| ArgoCD AppProject | `k1s0-platform` | 本プロジェクト全 Application の RBAC 境界 |
+
+`50_infraレイアウト/02_k8sブートストラップ.md` の namespace 一覧に `k1s0-platform-tools` を追加登録する。
 
 ## catalog-info.yaml の配置規則
 

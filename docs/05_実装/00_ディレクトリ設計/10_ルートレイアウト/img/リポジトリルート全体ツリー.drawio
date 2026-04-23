@@ -55,7 +55,7 @@
         <mxCell id="b-policy" value="★ tier1 所有物 → 横断基盤へ昇格&#10;  旧 src/tier1/infra/ を廃止し 3 階層に分離" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="490" y="480" width="400" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="b-tools" value="tools/  &#8212; 横断ツール&#10;  devcontainer/profiles/ (8 役別)&#10;  local-stack/ (kind/k3d) ＋ codegen/ (buf)&#10;  sparse/ ＋ ci/ ＋ git-hooks/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="b-tools" value="tools/  &#8212; 横断ツール&#10;  devcontainer/profiles/ (10 役別)&#10;  local-stack/ (kind/k3d) ＋ codegen/ (buf)&#10;  sparse/ ＋ ci/ ＋ git-hooks/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="920" y="155" width="440" height="85" as="geometry" />
         </mxCell>
         <mxCell id="b-tests" value="tests/  &#8212; tier 横断テスト&#10;  e2e/ (Go) ＋ contract/ (Pact) ＋ integration/ (testcontainers)&#10;  fuzz/ ＋ golden/ ＋ fixtures/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">

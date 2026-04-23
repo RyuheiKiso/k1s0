@@ -139,7 +139,7 @@ EXPOSE 8080 9090
 ENTRYPOINT ["/usr/local/bin/stock-reconciler"]
 ```
 
-## shared/ の位置付け
+## shared/ の位置付けと可視性強制
 
 `src/tier2/go/shared/` は tier2 Go サービス間で共有するユーティリティ。
 
@@ -147,7 +147,18 @@ ENTRYPOINT ["/usr/local/bin/stock-reconciler"]
 - `otel/`: OpenTelemetry 初期化ボイラープレート
 - `errors/`: 共通エラー型（tier2 専用の E-T2-\* 体系）
 
-shared は tier2 内部の利用のみ許容。tier1 / tier3 から直接参照することはできない（Go internal 機構で強制するため `shared/` を `internal/shared/` にリネームすべきか検討したが、tier2 全サービスから共通参照する必要があるため `shared/` の名前で公開する）。
+shared は tier2 内部の利用のみ許容するが、`shared/` ディレクトリは Go の `internal/` 配下ではないため、Go コンパイラの internal 機構では外部 import を自動禁止できない。この差を認識した上で、以下の **3 層防御** で可視性を強制する。
+
+1. **CODEOWNERS 上のレビュー境界**: `/src/tier2/go/shared/` を `@k1s0/tier2-dev` の所有とし、tier1 / tier3 / sdk の PR から参照が追加されたらブロック
+2. **`go vet` カスタム lint**: `tools/ci/lint-import-boundaries.go` で `go/ast` を使い、`src/tier1/` や `src/tier3/` や `src/sdk/` 配下の `.go` が `github.com/k1s0/k1s0/src/tier2/go/shared/...` を import していれば fail。CI 必須 check
+3. **依存方向テスト**: `tests/contract/import-graph_test.go` で全モジュールの import グラフを静的解析し、`CLAUDE.md` の依存方向と照合。違反があれば赤
+
+なぜ `internal/shared/` 配下に移して Go 標準の internal 機構で強制しないか:
+
+- tier2 の複数サービス（stock-reconciler / notification-hub 等）が `go.mod` を 1 本に統合しているため、`src/tier2/go/services/*/internal/shared/` のようなサービス配下の internal では共有できない
+- `src/tier2/go/internal/shared/` に置くと、`src/tier2/go/services/*/` から見える（Go internal は親ディレクトリ木内を許容）ため一見成立するが、`src/tier2/` 配下に .NET services も同居し、.NET からの参照禁止は Go internal では制御できない（.NET ビルドは Go 無視）
+
+以上から、仕組みで強制するのは import boundary lint とし、`shared/` のまま配置する方針を採る。lint は `go vet` と同格で CI 必須化する。
 
 ただし `shared/` 配下は tier2 Go の内部 API と位置付け、外部への公開 API ではない。安定した API が必要な場合は SDK（`src/sdk/go/`）に昇格する。
 

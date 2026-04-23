@@ -49,19 +49,23 @@ jobs:
           filters: |
             contracts:
               - 'src/contracts/**'
+            sdk-go:
+              - 'src/sdk/go/**'
+            sdk-rust:
+              - 'src/sdk/rust/**'
+            sdk-dotnet:
+              - 'src/sdk/dotnet/**'
+            sdk-typescript:
+              - 'src/sdk/typescript/**'
             tier1-rust:
               - 'src/tier1/rust/**'
-              - 'src/sdk/rust/**'
             tier1-go:
               - 'src/tier1/go/**'
-              - 'src/sdk/go/**'
             tier2:
               - 'src/tier2/**'
-              - 'src/sdk/dotnet/**'
             tier3-web:
               - 'src/tier3/web/**'
               - 'src/tier3/bff/**'
-              - 'src/sdk/typescript/**'
             tier3-native:
               - 'src/tier3/native/**'
               - 'src/tier3/legacy-wrap/**'
@@ -75,8 +79,29 @@ jobs:
     if: needs.changes.outputs.contracts == 'true'
     uses: ./.github/workflows/ci-contracts.yml
 
+  ci-sdk-go:
+    needs: [changes, ci-contracts]
+    if: needs.changes.outputs.sdk-go == 'true' || needs.changes.outputs.contracts == 'true'
+    uses: ./.github/workflows/ci-sdk-go.yml
+
+  ci-sdk-rust:
+    needs: [changes, ci-contracts]
+    if: needs.changes.outputs.sdk-rust == 'true' || needs.changes.outputs.contracts == 'true'
+    uses: ./.github/workflows/ci-sdk-rust.yml
+
+  ci-sdk-dotnet:
+    needs: [changes, ci-contracts]
+    if: needs.changes.outputs.sdk-dotnet == 'true' || needs.changes.outputs.contracts == 'true'
+    uses: ./.github/workflows/ci-sdk-dotnet.yml
+
+  ci-sdk-typescript:
+    needs: [changes, ci-contracts]
+    if: needs.changes.outputs.sdk-typescript == 'true' || needs.changes.outputs.contracts == 'true'
+    uses: ./.github/workflows/ci-sdk-typescript.yml
+
   ci-tier1-rust:
     needs: [changes, ci-contracts]
+    # tier1 は SDK に依存しない（contracts から独立生成）。sdk-* は needs に含めない
     if: needs.changes.outputs.tier1-rust == 'true' || needs.changes.outputs.contracts == 'true'
     uses: ./.github/workflows/ci-tier1-rust.yml
 
@@ -86,18 +111,32 @@ jobs:
     uses: ./.github/workflows/ci-tier1-go.yml
 
   ci-tier2:
-    needs: [changes, ci-contracts]
-    if: needs.changes.outputs.tier2 == 'true' || needs.changes.outputs.contracts == 'true'
+    # tier2 は sdk-dotnet / sdk-go の両方に依存
+    needs: [changes, ci-contracts, ci-sdk-dotnet, ci-sdk-go]
+    if: >-
+      needs.changes.outputs.tier2 == 'true'
+      || needs.changes.outputs.contracts == 'true'
+      || needs.changes.outputs.sdk-dotnet == 'true'
+      || needs.changes.outputs.sdk-go == 'true'
     uses: ./.github/workflows/ci-tier2.yml
 
   ci-tier3-web:
-    needs: [changes, ci-contracts]
-    if: needs.changes.outputs.tier3-web == 'true' || needs.changes.outputs.contracts == 'true'
+    # tier3-web は sdk-typescript + sdk-go（BFF）に依存
+    needs: [changes, ci-contracts, ci-sdk-typescript, ci-sdk-go]
+    if: >-
+      needs.changes.outputs.tier3-web == 'true'
+      || needs.changes.outputs.contracts == 'true'
+      || needs.changes.outputs.sdk-typescript == 'true'
+      || needs.changes.outputs.sdk-go == 'true'
     uses: ./.github/workflows/ci-tier3-web.yml
 
   ci-tier3-native:
-    needs: [changes]
-    if: needs.changes.outputs.tier3-native == 'true'
+    # MAUI は sdk-dotnet に依存
+    needs: [changes, ci-contracts, ci-sdk-dotnet]
+    if: >-
+      needs.changes.outputs.tier3-native == 'true'
+      || needs.changes.outputs.contracts == 'true'
+      || needs.changes.outputs.sdk-dotnet == 'true'
     uses: ./.github/workflows/ci-tier3-native.yml
 
   ci-infra:
@@ -113,7 +152,14 @@ jobs:
 
 ## 依存の伝播
 
-`src/contracts/` の変更は tier1 / tier2 / tier3 全 job を起動する。path-filter の if 条件で `contracts == 'true'` を OR で入れる。
+`CLAUDE.md` の依存方向 `tier3 → tier2 → (sdk ← contracts) → tier1 → infra` に path-filter を一致させる。
+
+- `src/contracts/` 変更: sdk-* 全 4 種 + tier1-rust + tier1-go + tier2 + tier3-web + tier3-native を起動
+- `src/sdk/go/` 変更: tier2（tier2-go/services） + tier3-web（BFF 経由）を起動。tier1 は起動しない（非依存）
+- `src/sdk/rust/` 変更: Phase 2 の Rust クライアント起動対象を起動。tier1-rust は起動しない
+- `src/sdk/dotnet/` 変更: tier2（tier2-dotnet/services） + tier3-native（MAUI）を起動
+- `src/sdk/typescript/` 変更: tier3-web のみ起動
+- `src/tier1/*` 変更: 該当 tier1 job のみ起動。tier2 / tier3 は起動しない（契約変更を伴わない内部実装変更は下流不要）
 
 ## sparse-checkout を使う特殊 CI
 

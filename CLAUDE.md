@@ -111,7 +111,7 @@ k1s0/
 │   ├── load/                       # 負荷試験（k6）
 │   └── scripts/                    # 運用スクリプト
 ├── tools/                          # 横断ツール
-│   ├── devcontainer/profiles/      # 8 役別 Dev Container
+│   ├── devcontainer/profiles/      # 10 役別 Dev Container
 │   ├── local-stack/                # kind / k3d ローカルクラスタ
 │   ├── codegen/                    # buf / openapi / scaffold
 │   ├── sparse/                     # スパースチェックアウト CLI
