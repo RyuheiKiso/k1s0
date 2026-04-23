@@ -8,6 +8,8 @@
 
 SLSA レベルは Phase 0 で L2（ビルド履歴の真正性と改ざん困難性）を満たし、Phase 1b で L3（ハーメティックビルド）を目指す。Phase 0 からの L3 を主張する案もあったが、運用負荷と現実性から L2 先行が採択された（ADR-SUP-001 として新規起票）。
 
+![SLSA L2→L3 段階到達 / cosign keyless / CycloneDX SBOM / Forensics Runbook の関係](img/80_SLSA段階到達_cosign_SBOM.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: cosign keyless 署名、CycloneDX SBOM、SLSA L2 プロビナンス、Forensics Runbook スケルトン
