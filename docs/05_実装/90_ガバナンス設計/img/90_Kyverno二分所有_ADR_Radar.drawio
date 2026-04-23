@@ -1,0 +1,236 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="governance-overview" id="governance-overview">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="90 章: Kyverno 二分所有モデル / ADR プロセス / Technology Radar / STRIDE 脅威モデル の関係" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1280" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Kyverno two-party ownership -->
+        <mxCell id="g_kv" value="Kyverno 二分所有モデル (ADR-POL-001 起票予定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="640" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_tech" value="技術側 (Platform/Build A + SRE B)&#10;提案: validate ポリシー draft" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe599;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="270" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_sec" value="統制側 (Security D)&#10;承認: policy レビュー + merge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe599;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="110" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_pr" value="PR (infra/security/kyverno/policies/*.yaml)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="190" width="600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_validate" value="validate&#10;(Pod spec 検証)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_mutate" value="mutate&#10;(label / annotation 付与)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="250" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_generate" value="generate&#10;(NetworkPolicy 自動生成)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="250" width="180" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="kv_policies" value="主要ポリシー: cosign verifyImages (80 章) / mTLS 強制 (85 章) / resource limit / tenant_id label / AGPL 分離 (ADR-0003)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="600" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ADR process -->
+        <mxCell id="g_adr" value="ADR プロセス (docs/02_構想設計/adr/)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="730" y="70" width="610" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_draft" value="Draft&#10;(技術側起票)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="110" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_review" value="Review&#10;(Security + SRE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="110" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_accept" value="Accepted&#10;(merge)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="110" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_super" value="Superseded&#10;(改訂 / 廃止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="110" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_log" value="ADR-POL-001 (Kyverno 二分所有) / ADR-0002 (drawio) / ADR-0003 (AGPL 分離) / ADR-SEC-001-003 / ADR-CICD-003 など横断" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="190" width="580" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_meta" value="ID 付き決定記録 / Git 管理 / 10 年保守の監査証跡&#10;(NFR-C-MGMT-001: 設定 Git 管理)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="260" width="580" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="adr_drawio" value="ADR-0002 (drawio レイヤ規約) がガバナンス基準として本章に組込" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="750" y="320" width="580" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Technology Radar -->
+        <mxCell id="g_rad" value="Technology Radar (Thoughtworks 方式 / 半期更新)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="420" width="640" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="rad_adopt" value="Adopt&#10;(実戦投入可)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="460" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rad_trial" value="Trial&#10;(限定投入)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="240" y="460" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rad_assess" value="Assess&#10;(PoC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="460" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rad_hold" value="Hold&#10;(採用保留)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="460" width="120" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rad_flow" value="Assess → Trial → Adopt → (必要時) Hold。採用判定根拠は ADR に結合し、「なぜ Adopt したか / なぜ Hold にしたか」を 10 年後に逆引き可能にする。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="80" y="545" width="600" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- STRIDE Threat Model -->
+        <mxCell id="g_stride" value="STRIDE 脅威モデル (tier1 公開 11 API + 外部連携面)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="730" y="420" width="610" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="st_s" value="S: なりすまし" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="460" width="170" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="st_t" value="T: 改ざん" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="460" width="170" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="st_r" value="R: 否認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="460" width="180" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="st_i" value="I: 情報漏洩" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="505" width="170" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="st_d" value="D: サービス妨害" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="940" y="505" width="170" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="st_e" value="E: 権限昇格" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="505" width="180" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="st_note" value="改訂は 80 章 (サプライチェーン) と 85 章 (Identity) の見直しトリガ。tier1 公開 11 API + 外部連携面ごとに作成。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="750" y="550" width="580" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Audit log + related chapters -->
+        <mxCell id="g_audit" value="監査ログ + 他章連携" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="660" width="1280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="aud_log" value="監査ログ基盤 (Phase 1b)&#10;Kyverno audit events → OTel → Mimir" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="695" width="260" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="aud_40" value="40 章: ライセンス判定&#10;(SPDX 判断根拠 ADR 連携)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="695" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="aud_80" value="80 章: 署名検証ポリシー&#10;(verifyImages)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="695" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="aud_85" value="85 章: mTLS 強制&#10;(Istio Ambient + SPIRE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="840" y="695" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="aud_cmp" value="ISO 27001 / SOC2 相当 (Phase 1c)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="695" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <!-- tech proposal -> policies (dotted review) -->
+        <mxCell id="av1" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="kv_tech" target="kv_sec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="av1lbl" value="提案 → 承認" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="355" y="125" width="85" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="av2" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="kv_sec" target="kv_pr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="av3" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="kv_pr" target="kv_mutate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="av4" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="kv_validate" target="kv_policies">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ADR flow -->
+        <mxCell id="av5" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="adr_draft" target="adr_review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="av6" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="adr_review" target="adr_accept">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="av7" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;" edge="1" parent="1" source="adr_accept" target="adr_super">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Kyverno -> ADR linking -->
+        <mxCell id="av8" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;exitX=1;exitY=0;entryX=0;entryY=0.5;" edge="1" parent="1" source="kv_sec" target="adr_draft">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="115" />
+              <mxPoint x="715" y="137" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="av8lbl" value="ADR-POL-001 起票" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="688" y="80" width="130" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- Radar -> ADR -->
+        <mxCell id="av9" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;exitX=1;exitY=0;entryX=0;entryY=1;" edge="1" parent="1" source="rad_hold" target="adr_draft">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="450" />
+              <mxPoint x="720" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="av9lbl" value="採用判定根拠 → ADR" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="690" y="400" width="130" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- STRIDE -> 80/85 (feedback) -->
+        <mxCell id="av10" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="st_note" target="aud_80">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="av11" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="g_stride" target="aud_85">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="950" y="645" />
+              <mxPoint x="950" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Kyverno -> Audit log -->
+        <mxCell id="av12" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="kv_policies" target="aud_log">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="400" />
+              <mxPoint x="60" y="680" />
+              <mxPoint x="210" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="av12lbl" value="admission event" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="10" y="630" width="100" height="18" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="leg" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="780" width="1280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_app" value="アプリ層 (Kyverno policy = 暖色)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="810" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_net" value="ネットワーク層 (STRIDE = 寒色)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="810" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_infra" value="インフラ層 (監査 + 他章 = 中性灰)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="810" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_data" value="データ層 (ADR 記録 = 薄紫)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="810" width="240" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_lines" value="実線太=明示呼出 / 点線=透過捕捉 / 破線=非同期" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="845" width="1260" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
