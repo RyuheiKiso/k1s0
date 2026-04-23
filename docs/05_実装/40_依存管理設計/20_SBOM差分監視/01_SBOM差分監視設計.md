@@ -83,6 +83,37 @@ Dependency-Track が Critical CVE を検出した時の対応手順を `ops/runb
 
 48 時間以内の修正 deploy を目標とし、業界平均の 72 時間（Verizon DBIR 2024 参考値）を短縮する。
 
+## 生成タイミングと CI stage 統合
+
+SBOM 生成は 30 章 `_reusable-push.yml` の image build 直後、cosign 署名の直前に差し込む（IMP-DEP-SBM-027 の補強）。順序を固定する理由は、cosign attest の attestation 対象として SBOM を渡すため、署名より前に SBOM が存在する必要があるためである。
+
+```yaml
+# _reusable-push.yml 抜粋
+- name: Build and push image
+  id: push
+  run: |
+    docker buildx build --push --tag ${{ inputs.image }}:${{ github.sha }} .
+- name: Generate SBOM (Syft)
+  run: |
+    syft ${{ inputs.image }}:${{ github.sha }} -o cyclonedx-json=sbom.cdx.json
+- name: Generate language-level SBOM and merge
+  run: |
+    tools/ci/sbom/generate-language.sh
+    cyclonedx-cli merge --input-files sbom.cdx.json lang.cdx.json --output-file merged.cdx.json
+- name: Sign and attest
+  env:
+    COSIGN_EXPERIMENTAL: "1"
+  run: |
+    cosign sign --yes ${{ inputs.image }}@${{ steps.push.outputs.digest }}
+    cosign attest --yes --predicate merged.cdx.json --type cyclonedx \
+      ${{ inputs.image }}@${{ steps.push.outputs.digest }}
+- name: Upload SBOM to MinIO WORM
+  run: |
+    aws s3 cp merged.cdx.json s3://k1s0-sbom/$(date +%Y/%m/%d)/${{ steps.push.outputs.digest }}.cdx.json
+```
+
+この stage 統合により「ビルド済だが SBOM 未生成の image」が Harbor に残る状態を構造的に排除する。
+
 ## 受け入れ基準
 
 - 全 image / SDK パッケージに対して CycloneDX 1.5 SBOM が生成され、Harbor attestation + MinIO WORM に 2 系統保管

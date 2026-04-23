@@ -49,7 +49,9 @@ src/tier3/native/
 
 ## 技術スタック
 
-- **Framework**: .NET MAUI（net8.0-ios / net8.0-android / net8.0-maccatalyst / net8.0-windows10.0.19041.0）
+- **Framework**: .NET MAUI（`net8.0-ios` / `net8.0-android` / `net8.0-maccatalyst` / `net8.0-windows10.0.19041.0`）
+  - `.csproj` の `<TargetFrameworks>` には最低 build (19041 = Windows 10 2004) を記述する。Windows 11（22000+）側の Runtime も同一 TFM で実行可能（バックワード互換）だが、Windows 11 限定 API を利用する場合は `<TargetFrameworks>...;net8.0-windows10.0.22621.0</TargetFrameworks>` を併記し、`#if WINDOWS10_0_22621_0_OR_GREATER` で条件分岐する
+  - `<SupportedOSPlatformVersion>` は `10.0.19041.0`、`<TargetPlatformMinVersion>` で配信時の最低 OS を強制する
 - **UI**: XAML + MVVM
 - **MVVM**: CommunityToolkit.Mvvm
 - **DI**: Microsoft.Extensions.DependencyInjection
