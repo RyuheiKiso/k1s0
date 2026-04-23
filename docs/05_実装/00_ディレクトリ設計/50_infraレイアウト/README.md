@@ -30,9 +30,18 @@ Kubernetes クラスタそのものの素構成、すなわち以下を対象と
 | 07_観測性配置.md | `infra/observability/` の LGTM + Pyroscope |
 | 08_環境別パッチ配置.md | `infra/environments/` の dev / staging / prod |
 
-## 対応 IMP-DIR ID 範囲
+## 本章で採番する IMP-DIR ID
 
-本章は `IMP-DIR-INFRA-071` から `IMP-DIR-INFRA-090` の範囲を使用する。各節で採番した ID を節末尾に明記する。
+- IMP-DIR-INFRA-071（infra 全体配置）— `01_infra全体配置.md`
+- IMP-DIR-INFRA-072（k8s ブートストラップ）— `02_k8sブートストラップ.md`
+- IMP-DIR-INFRA-073（サービスメッシュ配置）— `03_サービスメッシュ配置.md`
+- IMP-DIR-INFRA-074（Dapr Component 配置）— `04_Dapr_Component配置.md`
+- IMP-DIR-INFRA-075（データ層配置）— `05_データ層配置.md`
+- IMP-DIR-INFRA-076（セキュリティ層配置）— `06_セキュリティ層配置.md`
+- IMP-DIR-INFRA-077（観測性配置）— `07_観測性配置.md`
+- IMP-DIR-INFRA-078（環境別パッチ配置）— `08_環境別パッチ配置.md`
+
+予約 IMP-DIR ID は `IMP-DIR-INFRA-079` 〜 `IMP-DIR-INFRA-090`（feature-management / scaling / multi-region / backup-restore / hardware-profile / cost-optimization / green-ops / air-gap など、Phase 1b 以降で採番）。本章採番範囲は `IMP-DIR-INFRA-071` 〜 `IMP-DIR-INFRA-090`。
 
 ## 対応 ADR
 

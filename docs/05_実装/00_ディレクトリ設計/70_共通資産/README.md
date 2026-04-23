@@ -22,6 +22,13 @@
 | 05_devcontainer配置.md | `.devcontainer/` 役割別プロファイル |
 | 06_codegen配置.md | `tools/codegen/` のコード生成ツール |
 
-## 対応 IMP-DIR ID 範囲
+## 本章で採番する IMP-DIR ID
 
-本章は `IMP-DIR-COMM-111` から `IMP-DIR-COMM-125` の範囲を使用する。
+- IMP-DIR-COMM-111（tools 配置）— `01_tools配置.md`
+- IMP-DIR-COMM-112（tests 配置）— `02_tests配置.md`
+- IMP-DIR-COMM-113（examples 配置）— `03_examples配置.md`
+- IMP-DIR-COMM-114（third_party 配置）— `04_third_party配置.md`
+- IMP-DIR-COMM-115（devcontainer 配置）— `05_devcontainer配置.md`
+- IMP-DIR-COMM-116（codegen 配置）— `06_codegen配置.md`
+
+予約 IMP-DIR ID は `IMP-DIR-COMM-117` 〜 `IMP-DIR-COMM-125`（Phase 1b 以降で採番）。本章採番範囲は `IMP-DIR-COMM-111` 〜 `IMP-DIR-COMM-125`。

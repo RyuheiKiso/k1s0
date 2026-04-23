@@ -1,0 +1,143 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="argocd-app-of-apps" id="argocd01">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Argo CD App-of-Apps 構造と sync wave 0/5/10/20/30" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="15" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="git" value="Git Monorepo&#10;deploy/apps/" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="rootapp" value="root-app.yaml&#10;(app-of-apps)&#10;recurse=true" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="410" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="infra" value="infra ApplicationSet&#10;sync wave 0&#10;istio-ambient / dapr&#10;cloudnativepg / kafka&#10;valkey / minio / longhorn" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="sec" value="security ApplicationSet&#10;sync wave 5&#10;keycloak / openbao&#10;spire / cert-manager&#10;kyverno" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="200" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="obs" value="observability AppSet&#10;sync wave 5&#10;grafana-lgtm&#10;pyroscope&#10;otel-collector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="330" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="tier1 ApplicationSet&#10;sync wave 10&#10;t1-state / t1-secret&#10;t1-workflow / t1-decision&#10;t1-audit / t1-pii" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="460" width="200" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="tier2 ApplicationSet&#10;sync wave 20&#10;ドメインサービス群&#10;(Scaffold 生成)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="600" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="tier3 ApplicationSet&#10;sync wave 30&#10;web-portal / bff&#10;native-distribution" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="560" y="720" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="wave0" value="wave 0&#10;(最先行)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="90" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="wave5" value="wave 5" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="250" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="wave10" value="wave 10" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="485" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="wave20" value="wave 20" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="615" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="wave30" value="wave 30&#10;(末尾)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="745" width="90" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s" value="Kubernetes Cluster&#10;(k1s0-*)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="400" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="helm" value="Helm + Kustomize 二層&#10;deploy/charts/ (本体)&#10;deploy/kustomize/ (env 差分)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="550" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例: アプリ層(暖色)=Argo/Helm / ネットワーク層(寒色)=sync wave / インフラ層(灰)=k8s/infra/sec/obs / データ層(紫)=Git  実線=明示呼出 / 点線=構成参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="60" y="830" width="1280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="git" target="rootapp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.2;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rootapp" target="infra">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="115" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.35;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rootapp" target="sec">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rootapp" target="obs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.65;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rootapp" target="t1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="515" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.8;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rootapp" target="t2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="645" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.95;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rootapp" target="t3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="770" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="infra" target="wave0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="sec" target="wave5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="t1" target="wave10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="t2" target="wave20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="t3" target="wave30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="wave0" target="k8s">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="115" />
+              <mxPoint x="970" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="wave30" target="k8s">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="970" y="770" />
+              <mxPoint x="970" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=none;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=none;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="helm" target="k8s">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

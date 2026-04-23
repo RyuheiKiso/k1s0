@@ -174,14 +174,16 @@ ENTRYPOINT ["/usr/local/bin/portal-bff"]
 
 ## スケーリングと HPA
 
-portal と admin はトラフィック特性が異なるため、独立した HPA 設定を持つ。`deploy/charts/tier3-bff/values-<env>.yaml` で以下を指定する。
+portal と admin はトラフィック特性が異なるため、独立した HPA 設定を持つ。`deploy/charts/tier3-bff/values-<env>.yaml` で以下を指定する。CPU だけでなくメモリも target に含める理由は、GraphQL レスポンスの一時バッファ・Redis キャッシュの client-side LRU・Apollo Federation のクエリプランキャッシュなど BFF 特有のメモリ偏在ワークロードがあり、CPU 単独では先にメモリ枯渇で OOMKilled する事故が起きやすいため（NFR-B-PERF-* の応答性能要件と NFR-A-AVL-* の可用性要件の両立を狙う）。
 
-| 対象 | minReplicas | maxReplicas | targetCPUUtilizationPercentage | 備考 |
-|---|---|---|---|---|
-| portal-bff（prod） | 2 | 10 | 70 | 一般ユーザ向けの高トラフィック。PDB `minAvailable: 2` で常時冗長化 |
-| portal-bff（dev / staging） | 1 | 3 | 70 | リソース節約、PDB 無効 |
-| admin-bff（prod） | 1 | 3 | 70 | 管理者のみのため低トラフィック。夜間バッチは KEDA の event-driven scaling で補う |
-| admin-bff（dev / staging） | 1 | 2 | 70 | 最小構成 |
+| 対象 | minReplicas | maxReplicas | CPU target | Memory target | 備考 |
+|---|---|---|---|---|---|
+| portal-bff（prod） | 2 | 10 | 70 | 80 | 一般ユーザ向けの高トラフィック。PDB `minAvailable: 2` で常時冗長化 |
+| portal-bff（dev / staging） | 1 | 3 | 70 | 80 | リソース節約、PDB 無効 |
+| admin-bff（prod） | 1 | 3 | 70 | 80 | 管理者のみのため低トラフィック。夜間バッチは KEDA の event-driven scaling で補う |
+| admin-bff（dev / staging） | 1 | 2 | 70 | 80 | 最小構成 |
+
+`HorizontalPodAutoscaler` の `metrics:` には `Resource` 型を 2 件並列で並べる（`type: Resource, resource.name: cpu, target.averageUtilization: 70` と `type: Resource, resource.name: memory, target.averageUtilization: 80`）。HPA は OR 評価で動作するため、CPU と Memory のどちらか一方が閾値を超えれば即時スケールアウトする。
 
 Kafka lag / Redis キュー長など event-driven な自動スケールが必要な場合は、`deploy/charts/tier3-bff/values-<env>.yaml` の `keda:` セクションで `ScaledObject` を宣言する（`infra/scaling/keda/` が Phase 1b 以降に KEDA Operator を展開）。
 

@@ -1,0 +1,193 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="buf_pipeline" id="bufpipe">
+    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="950" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="buf Protobuf 4 言語生成パイプライン (単一 buf.yaml + 4 buf.gen.*.yaml + breaking ゲート)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="contracts" value="src/contracts/ (単一真実源)&#10;tier1/v1/*.proto (11 API 公開)  /  internal/v1/*.proto (tier1 内部)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="560" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bufyaml" value="buf.yaml (単一 module)&#10;lint = DEFAULT&#10;breaking = FILE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="660" y="70" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="buflock" value="buf.lock&#10;外部依存 hash pin&#10;(googleapis 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="920" y="70" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="bufversion" value="tools/codegen/buf.version&#10;1.45.0 (端末・CI 統一)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="70" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_go" value="buf.gen.go.yaml&#10;remote: protocolbuffers/go:v1.34.2&#10;remote: grpc/go:v1.5.1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_rust" value="buf.gen.rust.yaml&#10;remote: community/neoeinstein-prost:v0.4.0&#10;remote: community/neoeinstein-tonic:v0.4.1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="220" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_ts" value="buf.gen.ts.yaml&#10;remote: connectrpc/es (TS)&#10;SDK TS のみ (tier1 内部 TS なし)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="780" y="220" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_cs" value="buf.gen.csharp.yaml&#10;remote: protocolbuffers/csharp&#10;SDK C# のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="220" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="go_t1" value="src/tier1/go/internal/proto/v1/&#10;(tier1 サーバー stub + internal)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="go_sdk" value="src/sdk/go/proto/v1/&#10;(client のみ / tier1.v1.* include_types)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="480" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rust_t1" value="src/tier1/rust/crates/proto-gen/src/&#10;(tier1 サーバー: prost + tonic 両面)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="400" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rust_sdk" value="src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/&#10;(client / no_server=true)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="480" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ts_sdk" value="src/sdk/typescript/src/proto/&#10;(@k1s0/sdk npm)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="780" y="440" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cs_sdk" value="src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/&#10;(K1s0.Sdk NuGet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="440" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="drift" value="verify-buf-drift.sh&#10;buf generate → git diff --exit-code&#10;drift 検出 → PR fail (DO NOT EDIT)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="600" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="breaking" value="buf breaking (必須ゲート)&#10;--against main#subdir=src/contracts&#10;FILE レベル検出→ PR merge block&#10;例外は v1→v2 ディレクトリ分岐" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="480" y="600" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="linguist" value=".gitattributes&#10;linguist-generated=true&#10;PR diff 折りたたみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="900" y="600" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ci" value="CI reusable workflow&#10;(30_CI_CD設計/ _reusable-lint.yml)&#10;lint → drift → breaking 順に実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="600" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e_c_go" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="contracts" target="gen_go">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="180" />
+              <mxPoint x="220" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_c_rust" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="contracts" target="gen_rust">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="580" y="180" />
+              <mxPoint x="580" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_c_ts" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="contracts" target="gen_ts">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="180" />
+              <mxPoint x="940" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_c_cs" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="contracts" target="gen_cs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="180" />
+              <mxPoint x="1290" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_c_lbl" value="buf generate --template &lt;template&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fillColor=#FFFFFF;strokeColor=none;fontSize=10;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="410" y="165" width="250" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e_go_t1" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="gen_go" target="go_t1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="350" />
+              <mxPoint x="170" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_go_sdk" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="gen_go" target="go_sdk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="350" />
+              <mxPoint x="280" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rust_t1" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="gen_rust" target="rust_t1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="350" />
+              <mxPoint x="520" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rust_sdk" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="gen_rust" target="rust_sdk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="350" />
+              <mxPoint x="640" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ts_sdk" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="gen_ts" target="ts_sdk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="940" y="360" />
+              <mxPoint x="940" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_cs_sdk" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="gen_cs" target="cs_sdk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="360" />
+              <mxPoint x="1290" y="420" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_drift_ci" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="drift" target="ci">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="720" />
+              <mxPoint x="1320" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_breaking_ci" style="edgeStyle=none;rounded=0;html=1;strokeColor=#b85450;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="breaking" target="ci">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="670" y="740" />
+              <mxPoint x="1320" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_breaking_lbl" value="PR merge block" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fillColor=#FFFFFF;strokeColor=none;fontSize=10;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="900" y="725" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_box" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+          <mxGeometry x="60" y="790" width="1380" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="生成物 (アプリ層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="820" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="buf template (ネットワーク層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="270" y="820" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="tooling / 設定 (インフラ層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="820" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="真実源 (データ層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="710" y="820" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" value="ゲート (必須)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="890" y="820" width="140" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_line" value="実線太: 生成・出力  実線太赤: PR merge ブロック  破線: CI 検証経路" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="90" y="865" width="800" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

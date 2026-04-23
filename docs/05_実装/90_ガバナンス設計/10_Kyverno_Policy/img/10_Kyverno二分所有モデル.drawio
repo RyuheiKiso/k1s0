@@ -1,0 +1,169 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="kyverno-split" id="kyv1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1700" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1080" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Kyverno 二分所有: validate=Security 承認 / mutate + generate=Platform/SRE 実装 (IMP-POL-KYV-010〜022)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1660" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="own_sec" value="Security (D) 所有&#xa;CODEOWNERS: @k1s0/security-team&#xa;拒否する権限 = 統制側" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="own_plat" value="Platform/SRE (A/B) 所有&#xa;CODEOWNERS: @k1s0/platform-team&#xa;補助する権限 = 運用側" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="60" width="960" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="val_dir" value="deploy/kyverno/validate/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="440" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mut_dir" value="deploy/kyverno/mutate/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="150" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_dir" value="deploy/kyverno/generate/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="150" width="480" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="val_title" value="validate 10 本 (拒否系, Phase 1a 初期セット)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="440" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="v01" value="verify-image-signatures (IMP-SUP-COS-013)&#xa;cosign keyless 署名必須 release.yml ref 固定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="440" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="v02" value="require-runasnonroot / root UID 拒否" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="275" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v03" value="disallow-privileged-containers (privileged:true 禁止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v04" value="require-networkpolicy (NFR-E-NW-002, 全 ns default deny)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="345" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v05" value="disallow-hostpath-hostnetwork (外部連携 ns のみ例外)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v06" value="require-resource-limits (requests/limits 両方必須)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="415" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v07" value="disallow-latest-tag (digest/version tag のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v08" value="require-labels (NFR-H-AUD-001, name/team/tier 3 label)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="485" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v09" value="verify-attestations (IMP-SUP-COS-010, SBOM+SLSA 必須)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="v10" value="disallow-default-serviceaccount (NFR-G-AC-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="555" width="440" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mut_title" value="mutate 6 本 (補助系)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="200" width="460" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="inject-default-labels (part-of/team 推定注入)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="230" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="inject-opentelemetry-env (OTEL_SERVICE_NAME 等)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="275" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="inject-seccomp-default (RuntimeDefault 付与)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="320" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m4" value="inject-runasuser-default (UID 10000+ 自動)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="365" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m5" value="inject-topology-spread (zone/hostname 2 軸)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="410" width="460" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m6" value="inject-probe-defaults (/healthz 付与)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="700" y="455" width="460" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gen_title" value="generate 4 本 (自動生成 + validate と連動)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="200" width="480" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="generate-default-networkpolicy (新規 ns: default-deny)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="230" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="generate-default-resourcequota (tier label ベース: L/M/S)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="285" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="generate-default-limitrange (default request/limit)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="340" width="480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="generate-poddisruptionbudget (replicas&gt;=2 → minAvailable=1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="395" width="480" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pair" value="validate + generate セット: &quot;最低限が勝手に付き、外すと拒否される&quot; 二重構造&#xa;require-networkpolicy (validate) ↔ generate-default-networkpolicy (generate)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="510" width="960" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flow_title" value="audit → enforce 段階運用 (IMP-POL-KYV-015)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="1620" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="audit 配置&#xa;validationFailureAction: Audit&#xa;PolicyReport で違反件数観測" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="655" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="観測 2 週間以上&#xa;誤検知・既存合法 manifest との衝突確認&#xa;違反件数 0 で昇格候補" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="655" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="enforce 昇格 PR&#xa;Security(D) + Platform/SRE(B) 共同承認&#xa;Action=Enforce 変更のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="655" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="enforce 稼働&#xa;違反は admission で拒否&#xa;実害時 1 時間以内に audit 復帰 Runbook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="655" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="PolicyException&#xa;ADR 必須 (IMP-POL-KYV-016)&#xa;月次レポート可視化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="655" width="250" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="kyv_title" value="Kyverno 本体運用 (kyverno namespace)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="1620" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="k1" value="admission controller&#xa;3 replica HA&#xa;mutating + validating webhook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="795" width="330" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k2" value="background controller 1&#xa;generate policy 既存 resource 適用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="795" width="330" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k3" value="cleanup controller 1&#xa;生成 resource TTL / orphan cleanup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="795" width="330" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="k4" value="PolicyReport / ClusterPolicyReport&#xa;OpenTelemetry Collector → Mimir&#xa;violation 件数を SLO 指標化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="795" width="540" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="890" width="1620" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="アプリ層 (ポリシー類型・段階運用): 暖色 #fff2cc / #d79b00" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="920" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="ネットワーク層 (admission 透過補足・validate+generate ペア): 寒色 #dae8fc / #6c8ebf" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="955" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="インフラ層 (所有権境界): 中性灰 #f5f5f5 / #666666" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="990" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="データ層 (PolicyReport/メトリクス): 薄紫 #e1d5e7 / #9673a6" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1025" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" value="ADR-CICD-003 (Kyverno 採用) / ADR-POL-001 (Kyverno 二分所有、本章初版策定時起票予定) / ADR-0003 / DS-SW-COMP-141 / NFR-E-NW-002 / NFR-H-AUD-001 / NFR-H-INT-001 / NFR-C-MGMT-001/002" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="920" width="1100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6" value="所有権境界の意味: validate を Platform/SRE が追加可能にすると統制独立性が崩れる。mutate/generate を Security 承認必須にすると labeling や sidecar 投入すら数日待ちで運用停滞。責務原則の物理実装。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="960" width="1100" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lg7" value="mutate 非介入原則: 開発者が明示 override した場合、mutate は値を書き換えない。unexpected 改変事故を防ぐ明文化規範。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="1015" width="1100" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

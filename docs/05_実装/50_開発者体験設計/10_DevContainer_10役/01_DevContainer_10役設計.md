@@ -4,6 +4,8 @@
 
 ![10 役別 Dev Container 全体像](img/DevContainer_10役全体像.svg)
 
+![DevContainer 10 役継承関係と sparse-checkout 役割対応](img/10_DevContainer10役継承.svg)
+
 ## なぜ 10 役別プロファイルが必要なのか
 
 tier1 Rust 開発者に .NET SDK、pnpm、MAUI ワークロード、Longhorn CLI、OpenBao コマンドを全部入れた 12GB image を配ると、ビルドも rust-analyzer も遅くなり、VS Code の IntelliSense 応答が 10 秒を超える。逆に共通最小 image に寄せると、今度は「この tier の設定が入っていない」という Platform への問い合わせが毎回発生する。どちらも 2 名フェーズでは耐えられるが、10 名フェーズに入った瞬間に生産性が崩壊する。

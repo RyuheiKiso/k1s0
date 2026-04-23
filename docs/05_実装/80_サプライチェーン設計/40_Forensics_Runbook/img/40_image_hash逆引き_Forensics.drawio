@@ -1,0 +1,156 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="forensics" id="forensics01">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="image hash 逆引き Forensics 5 ステップ (15 分 SLI)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="trigger1" value="CVE 通知&#10;(Trivy/Grype/GHSA)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="trigger2" value="異常挙動報告&#10;(SRE/顧客サポート)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="70" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="trigger3" value="外部攻撃検知&#10;(WAF/Istio AuthZ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="70" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="digest" value="起点: image digest&#10;sha256:...&#10;(tag 不可)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="70" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="script" value="ops/scripts/forensics-impact.sh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="970" y="75" width="360" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="Step 1: SBOM 展開&#10;cosign download sbom&#10;CycloneDX → packages.json&#10;CVE 照合 (osv-scanner)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="Step 2: Deployment 特定&#10;kubectl get -A -o json&#10;| jq (digest contains)&#10;multi-cluster ループ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="200" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="Step 3: tier1 API 逆引き&#10;Service → VirtualService&#10;→ proto service/RPC&#10;api-map.yaml 参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="200" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="Step 4: Rekor 改ざん検証&#10;cosign verify&#10;rekor-cli search/verify&#10;inclusion proof" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="200" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" value="Step 5: Report 自動生成&#10;impact-report.md&#10;PagerDuty ページ&#10;incident-room.sh" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="200" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sbom" value="OCI artifact&#10;SBOM (CycloneDX)&#10;purl/name/version" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s" value="Kubernetes cluster&#10;Deployment/StatefulSet&#10;/DaemonSet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="360" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="proto" value="src/contracts/&#10;tier1/v1/*.proto&#10;(公開 11 API)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="360" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rekor" value="Rekor&#10;(public + Phase1b local)&#10;Merkle Tree" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="360" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pagerduty" value="PagerDuty&#10;#incident-&lt;id&gt; Slack&#10;経営 / 顧客窓口" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="360" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="sli" value="15 分 SLI&#10;forensics.runbook.duration&#10;OTel → Mimir&#10;SLO 違反で Issue 自動起票" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="520" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="sli48" value="48 時間 SLI&#10;CVSS 9.0+ 修正 image&#10;re-build/re-sign&#10;Argo Rollouts canary 完了" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="520" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="gameday" value="四半期 GameDay&#10;LitmusChaos シナリオ&#10;(Q1:CVE / Q2:異常 / Q3:攻撃 / Q4:Rekor 停止)&#10;前期比時間短縮率追跡" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="520" width="380" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="perm" value="権限分離 (IMP-SUP-FOR-048)&#10;改訂: Security + Platform/Build + SRE 3 チーム承認 (CODEOWNERS)&#10;実行: SRE on-call + Security on-call 2 名 / Service Account&#10;監査: ops/audit/forensics-YYYYMMDD-&lt;id&gt;.log (WORM 7 年)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="280" y="650" width="840" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例: アプリ層(暖色)=script/Report/SLI / ネットワーク層(寒色)=Service→VS→API mapping / インフラ層(灰)=k8s/PagerDuty / データ層(紫)=SBOM/proto/Rekor" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="1320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.1;entryY=0;strokeColor=#b85450;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="trigger1" target="digest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="160" />
+              <mxPoint x="730" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.4;entryY=0;strokeColor=#b85450;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="trigger2" target="digest">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="340" y="170" />
+              <mxPoint x="790" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#b85450;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="trigger3" target="digest">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="digest" target="script">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.15;exitY=1;entryX=0.5;entryY=0;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="script" target="step1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1030" y="160" />
+              <mxPoint x="160" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step1" target="sbom">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#666666;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step2" target="k8s">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step3" target="proto">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step4" target="rekor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#666666;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="step5" target="pagerduty">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="k8s" target="sli">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="proto" target="sli48">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="480" />
+              <mxPoint x="760" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="rekor" target="gameday">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="480" />
+              <mxPoint x="1150" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

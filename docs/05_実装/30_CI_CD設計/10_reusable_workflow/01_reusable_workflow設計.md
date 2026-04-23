@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポの GitHub Actions における `reusable workflow` の物理配置と呼び出し規約を確定する。30 章方針で IMP-CI-POL-002 として掲げた「quality gate は reusable workflow で統制する」原則の具体化であり、構想設計 `02_構想設計/04_CICDと配信/00_CICDパイプライン.md` で確定した 7 段ステージ（fetch → lint → unit-test → build → scan → push → GitOps 更新）のうち lint / unit-test / build / push の 4 段を reusable workflow に落とす設計を示す。
 
-![reusable workflow 呼び出し関係](img/reusable_workflow_呼出関係.svg)
+![reusable workflow 呼び出し関係](img/10_reusable_workflow継承ツリー.svg)
 
 tier1（Rust + Go）、tier2（.NET + Go）、tier3（TypeScript + .NET MAUI）、sdk（4 言語同格）、platform（Rust + TS）と、5 系統の言語・ビルド単位が共存するモノレポで、各リポジトリ・各 tier が個別に workflow を書き直すことは、quality gate の分散と CI 時間の二乗的な保守コストを招く。本設計は共通 workflow 4 本に集約し、すべての PR がそこを必ず通過する構造にする。
 

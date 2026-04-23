@@ -1,0 +1,200 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="renovate-central" id="renovate1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Renovate 中央運用フロー (IMP-DEP-REN-010〜019)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1560" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ghapp" value="GitHub App&#xa;renovate[bot]&#xa;(AGPL 外部サービス)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sch" value="週次 schedule&#xa;before 6am Mon JST&#xa;+ CVSS7+ 即時" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="central" value="中央設定 tools/ci/renovate/&#xa;base.json5 / packageRules.json5&#xa;automerge.json5 / agpl-detector.json5&#xa;groups.json5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="130" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="preset" value="リポジトリ直下 renovate.json&#xa;{ extends: [&quot;local&gt;k1s0/k1s0//tools/ci/renovate/base.json5&quot;] }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="40" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="group" value="PR グループ化 4 軸" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="70" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="major (rust/go/npm/.net) 4 グループ&#xa;週1 必ず人手レビュー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="120" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="minor 同上 4 グループ&#xa;Phase 1a 人手レビュー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="175" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="patch 全 ecosystem 統合 1 PR&#xa;quality gate + 6 条件 AND で auto-merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="230" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="Docker base / GitHub Actions 個別&#xa;OS base 変更は auto-merge 対象外" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="285" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dash" value="Dependency Dashboard Issue&#xa;(週次レビュー会 唯一の入口)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="50" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="qg" value="quality gate (30 章)&#xa;unit / integration / lint / fmt&#xa;Trivy / cosign / license / AGPL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="150" width="240" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="automerge" value="auto-merge 6 条件 AND&#xa;(patch のみ Phase 1a〜)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="270" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="review" value="needs-review label&#xa;人手レビュー回送" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="150" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="agpl" value="AGPL 6 件 detector&#xa;grafana/loki/tempo/pyroscope&#xa;minio/renovate 本体&#xa;4 ecosystem で import path 走査" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="380" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ecotitle" value="ecosystem 別 packageRules (specific → general)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="380" width="640" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="eco1" value="Rust&#xa;tokio/tonic/sqlx major&#xa;→ rust-major-review" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="650" y="415" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="eco2" value="Go&#xa;k8s.io/* staging soak&#xa;2 週間強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="810" y="415" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="eco3" value="TypeScript&#xa;react/ts major は&#xa;tier3 レビュア必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="970" y="415" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="eco4" value=".NET&#xa;AspNetCore は LTS pin&#xa;non-LTS major 自動却下" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="415" width="150" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="argo" value="Argo Rollouts (70 章)&#xa;AnalysisTemplate canary→prod&#xa;問題発生時 自動 rollback + 差戻" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="560" width="280" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="codeowner" value="CODEOWNERS 承認&#xa;Platform/Build (A) + Security (D)&#xa;設定変更 PR 共同承認必須&#xa;renovate.json 直接編集は CI lint で拒否" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="240" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="repo" value="k1s0 モノレポ&#xa;(4 ecosystem 依存定義)&#xa;Cargo.toml / go.mod&#xa;pnpm-lock.yaml / packages.lock.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="240" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prod" value="prod 昇格&#xa;(1 週 soak 後)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="570" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="760" width="1520" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="アプリ層 (設定・ワークフロー・ポリシー): 暖色 #fff2cc / #d79b00" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="790" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="ネットワーク層 (外部サービス・透過的捕捉): 寒色 #dae8fc / #6c8ebf" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="830" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3" value="インフラ層 (モノレポ・承認): 中性灰 #f5f5f5 / #666666" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="870" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4" value="データ層 (成果物・レジストリ): 薄紫 #e1d5e7 / #9673a6" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="910" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend5" value="実線太 = 明示呼び出し / 点線 = 透過捕捉 / 破線 = 非同期・通知" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="800" width="980" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend6" value="Phase 0: GitHub App 稼働・週次 PR・AGPL detector / Phase 1a: patch auto-merge / Phase 1b: canary 連動・self-host 検討" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="835" width="980" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend7" value="auto-merge 6 条件: (1) semver patch (2) quality gate 全 pass (3) Trivy Critical=0 (4) cosign 成功 (5) SPDX 許可 (6) AGPL denylist 衝突なし" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="870" width="980" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend8" value="IMP-DEP-REN-010〜019 / ADR-DEP-001 (予定) / ADR-0003 (AGPL 分離) / NFR-E-NW-003 / NFR-C-MNT-002/003" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="905" width="980" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="preset" target="central">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="ghapp" target="central">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="130" />
+              <mxPoint x="280" y="130" />
+              <mxPoint x="280" y="165" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sch" target="central">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="240" />
+              <mxPoint x="280" y="240" />
+              <mxPoint x="280" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="central" target="group">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="185" />
+              <mxPoint x="600" y="90" />
+              <mxPoint x="640" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="group" target="dash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;dashed=1;dashPattern=6 6;" edge="1" parent="1" source="dash" target="qg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="qg" target="automerge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="fail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;dashed=1;dashPattern=3 3;" edge="1" parent="1" source="qg" target="review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="pass" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="automerge" target="argo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1170" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="argo" target="prod">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=1;endArrow=classic;dashed=1;" edge="1" parent="1" source="central" target="agpl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=1;endArrow=classic;dashed=1;" edge="1" parent="1" source="repo" target="agpl">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="615" />
+              <mxPoint x="300" y="485" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#666666;strokeWidth=1;endArrow=classic;dashed=1;" edge="1" parent="1" source="codeowner" target="central">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="435" />
+              <mxPoint x="290" y="330" />
+              <mxPoint x="310" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
