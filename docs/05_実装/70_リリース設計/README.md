@@ -8,6 +8,8 @@
 
 Progressive Delivery（PD）は Phase 0 で必須化する（ADR-REL-001 として新規起票）。ただし例外範囲を明文化し、内部ツール・バッチは PD 対象外とする。フィーチャーフラグ（flagd）は flag 定義ファイルへの cosign 署名検証を必須とし、`80_サプライチェーン設計/` と結合する（構想設計 CICD 章と flagd ADR で既に枠は定まっている）。
 
+![リリース設計概観: ArgoCD App-of-Apps + Argo Rollouts Canary + flagd 段階配信](img/70_ArgoCD_Rollouts_flagd概観.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: Argo CD App / ApplicationSet、Argo Rollouts（canary + AnalysisTemplate）、flagd、rollback runbook

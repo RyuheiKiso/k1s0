@@ -8,6 +8,8 @@
 
 DORA 4 keys（Lead Time / Deploy Freq / MTTR / Change Failure Rate）は本章ではなく `95_DXメトリクス/` に置く。本章は稼働側の SLI に責務を絞り、開発者生産性側の SLI と混在させない。Runbook は本章で計測した SLI に紐付く運用手順を `ops/runbooks/` に配置し、本章はその対応関係を管理する（`04_概要設計/55_運用ライフサイクル方式設計/` の Runbook 目録 15 本と接続）。
 
+![観測性スタック配置: LGTM + Pyroscope + OTel Agent/Gateway 2 段構成 + AGPL 分離](img/60_LGTM_Pyroscope_OTel配置.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: OTel Collector 配置、tier1 API の SLO / SLI 初期定義、Incident Taxonomy、Runbook スケルトン、エラーバジェット運用ルール
