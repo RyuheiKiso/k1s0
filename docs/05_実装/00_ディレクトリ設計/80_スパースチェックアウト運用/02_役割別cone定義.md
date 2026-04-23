@@ -1,6 +1,6 @@
 # 02. 役割別 cone 定義
 
-本ファイルは k1s0 で採用する 9 役割の cone 定義全文を掲載する。これらは `.sparse-checkout/roles/` 配下に対応する `.txt` ファイルとして配置される。
+本ファイルは k1s0 で採用する 10 役割の cone 定義全文を掲載する。これらは `.sparse-checkout/roles/` 配下に対応する `.txt` ファイルとして配置される。
 
 ![役割別 cone 定義マッピング](img/役割別cone定義マッピング.svg)
 
@@ -14,6 +14,7 @@
 | tier3-web-dev | `tier3-web-dev.txt` | tier3 Web 開発者 |
 | tier3-native-dev | `tier3-native-dev.txt` | tier3 MAUI Native 開発者 |
 | platform-cli-dev | `platform-cli-dev.txt` | k1s0 CLI / Backstage プラグイン開発者 |
+| sdk-dev | `sdk-dev.txt` | SDK 4 言語同格の横断開発者 |
 | infra-ops | `infra-ops.txt` | インフラ運用・SRE |
 | docs-writer | `docs-writer.txt` | ドキュメント作成者 |
 | full | `full.txt` | アーキテクト・全体俯瞰 |
@@ -135,6 +136,27 @@
 /.github/
 /.devcontainer/
 ```
+
+## sdk-dev.txt
+
+```
+# SDK 4 言語同格開発者向け cone
+# 対象: src/sdk/ 全言語 + contracts + codegen 関連 + 契約テスト
+/docs/
+/src/contracts/
+/src/sdk/
+/tools/codegen/
+/tools/sparse/
+/tools/devcontainer/profiles/sdk-dev/
+/tests/contract/
+/examples/
+/.github/
+/.devcontainer/
+```
+
+注: sdk-dev は tier1/tier2/tier3 のいずれにも属さず、SDK を「公開 API の Protobuf → 4 言語の gRPC stub 翻訳」として独立管理する横断役割。tier3-web や tier2-dev が SDK 変更の影響を受ける場合でも、SDK 自体の配布版数上げと契約テスト通過は sdk-dev が担う。Phase 1a-1b で 1 人が sdk-dev と他役割を兼任する運用を想定し、Phase 2 で独立化を再評価する。
+
+cone に `src/contracts/` を含めているのは Protobuf を読み取って codegen を再実行するため。ただし contracts の .proto 変更は [ADR-DIR-001](../../../02_構想設計/adr/ADR-DIR-001-contracts-elevation.md) に従いアーキテクチャ評議会（`@k1s0/arch-council`）の承認が必要で、sdk-dev は codegen と SDK 側 API 露出の整合を担当する境界にある。
 
 ## infra-ops.txt
 

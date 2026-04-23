@@ -74,6 +74,14 @@ tier1 / tier2 / tier3 / infra / ops / docs の各境界は cone の include / ex
 
 `.sparse-checkout/roles/*.txt` として全 role 定義をリポジトリに commit。変更は PR レビュー必須。ローカルで無断の pattern 追加は禁止。
 
+### 原則 7: cone 包含は「依存許可」ではなく「可視性」のみを意味する
+
+cone 定義は「このワーキングセットに含まれる（ローカルに取得する）」範囲を規定するだけであり、該当役割が cone 内資産を**依存・import してよい**ことは意味しない。依存の許容範囲は常に [../10_ルートレイアウト/05_依存方向ルール.md](../10_ルートレイアウト/05_依存方向ルール.md) が優先する。
+
+たとえば `tier2-dev.txt` には `src/contracts/` が含まれるが、これは契約（.proto）を読み取って SDK 生成結果の背景を理解するための可視性を与えるだけであり、tier2 の Go / .NET コードから `src/contracts/` 配下に直接アクセスしたり、生成前の .proto を import する行為は依存方向ルール違反である（tier2 は `src/sdk/` 経由のみが許容される）。同様に `platform-cli-dev.txt` に `src/sdk/rust/` が含まれるのは雛形 CLI が scaffolding 時に SDK 公開 API スキーマを読むためであり、platform が sdk のシンボルを runtime 依存するわけではない。
+
+cone 内に閲覧目的で含めた資産に対して新規 import を書いた場合は、CI の依存方向 lint（Rust: cargo-deny + 自作 / Go: 自作 / TypeScript: eslint-plugin-boundaries / .NET: NetArchTest）で違反として検出される。cone 包含と依存許可は常に別軸として扱うこと。
+
 ## sparse index（Git 2.37+）との併用
 
 sparse index は cone mode と組み合わせることで、`.git/index` のサイズを数分の 1〜10 分の 1 に縮小する。k1s0 は Git 2.40+ を前提とする。
