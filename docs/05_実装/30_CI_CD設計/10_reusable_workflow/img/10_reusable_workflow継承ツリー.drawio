@@ -1,0 +1,258 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="reusable_wf" id="rwf">
+    <mxGraphModel dx="1500" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1500" height="950" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="reusable workflow 継承ツリー (caller → _reusable-* 4 本 → composite action)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="caller_layer" value="Caller workflow (公開エントリ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1420" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="pathfilter" value="dorny/paths-filter@v3 (先頭 job)&#10;outputs: tier1_rust / tier1_go / tier2_dotnet / tier2_go /&#10;tier3_web / tier3_native / sdk / platform / contracts / infra / docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="105" width="360" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pr_yml" value=".github/workflows/pr.yml&#10;on: pull_request&#10;uses: _reusable-* @v1.4.0 (tag pin)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="460" y="105" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="release_yml" value=".github/workflows/release.yml&#10;on: push tags v*&#10;uses: _reusable-* + release 特有 job" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="820" y="105" width="320" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="codeowners" value=".github/CODEOWNERS&#10;_reusable-*.yml = Platform/Build + Security 必須&#10;tag 更新は Renovate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="105" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="reusable_layer" value="Reusable workflow 4 本 (.github/workflows/_reusable-*.yml)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="1420" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="rwf_lint" value="_reusable-lint.yml&#10;workflow_call のみ&#10;inputs: tier / language / path&#10;- fmt (rustfmt / gofmt / prettier / dotnet-format)&#10;- buf lint&#10;- go-layer-check&#10;- secret echo 禁止 lint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="275" width="340" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="rwf_test" value="_reusable-test.yml&#10;- cargo nextest (Rust)&#10;- go test -coverprofile (Go)&#10;- vitest (TS) / coverlet (C#)&#10;- coverage 集約 → Mimir&#10;- 閾値 Phase 0 warn / 1a 80% / 1b 90%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="420" y="275" width="340" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="rwf_build" value="_reusable-build.yml&#10;- Kaniko image build&#10;- SBOM 中間 artifact&#10;- lint / test 成功後に発火&#10;- image は local registry に保持&#10;- build artifact を push に引渡" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="780" y="275" width="340" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="rwf_push" value="_reusable-push.yml&#10;- Harbor push (robot$&lt;project&gt;-ci)&#10;- Trivy scan gate (Critical 拒否)&#10;- cosign keyless 署名 (OIDC → Fulcio)&#10;- Rekor 記録&#10;- SBOM attest" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="275" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="composite_layer" value="Composite action (tools/ci/actions/, 内部実装扱い)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="470" width="1420" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_buflint" value="buf-lint/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_sbom" value="sbom-generate/&#10;(syft)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="510" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_cosign" value="cosign-sign/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="510" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_trivy" value="trivy-scan/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="510" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_cov" value="coverage-upload/&#10;(Mimir)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="510" width="170" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_cache" value="cache-restore/&#10;(sccache/GOCACHE/pnpm)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="510" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ca_failure" value="failure-report/&#10;(Loki/Mimir 連携)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="510" width="210" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="infra_layer" value="実行基盤 (ARC + Karpenter self-hosted runner)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;dashed=1;fontSize=11;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="1420" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="rs_t1r" value="tier1-rust&#10;16GB/8vCPU&#10;min2/max20&#10;sccache 常駐" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="645" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rs_t1g" value="tier1-go&#10;8GB/4vCPU&#10;min2/max15&#10;GOCACHE 常駐" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="645" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rs_t3" value="tier3-web&#10;8GB/4vCPU&#10;min1/max10&#10;pnpm/vite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="645" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rs_t2d" value="tier2-dotnet&#10;8GB/4vCPU&#10;min1/max10&#10;NuGet cache" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="645" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rs_shared" value="shared&#10;4GB/2vCPU&#10;min2/max30&#10;lint / docs / 軽量" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="645" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="karpenter" value="Karpenter NodePool&#10;Spot 優先 / idle 5min で解放&#10;ephemeralRunner=true (1 job 1 Pod)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="645" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="harbor" value="Harbor (harbor.k1s0.internal)&#10;_reusable-push.yml の出力先" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="830" y="770" width="320" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="gitops" value="GitOps 更新 (70 章所管)&#10;Argo CD App-of-Apps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="770" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_pf_lint" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="pathfilter" target="rwf_lint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="215" />
+              <mxPoint x="230" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_pr_lint" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="pr_yml" target="rwf_lint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="215" />
+              <mxPoint x="300" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_pr_test" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="pr_yml" target="rwf_test">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="215" />
+              <mxPoint x="600" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_pr_build" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="pr_yml" target="rwf_build">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="215" />
+              <mxPoint x="860" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_rel_push" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="release_yml" target="rwf_push">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="215" />
+              <mxPoint x="1240" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_pr_push" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="pr_yml" target="rwf_push">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="215" />
+              <mxPoint x="1200" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_lint_test" style="endArrow=none;html=1;strokeColor=#82b366;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="400" y="350" as="sourcePoint" />
+            <mxPoint x="420" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dag_lbl" value="DAG: lint / test 並列 → build (両方成功後) → push (build + scan 成功後)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="435" width="720" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e_lint_ca1" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_lint" target="ca_buflint">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="440" />
+              <mxPoint x="145" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_test_cov" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_test" target="ca_cov">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="905" y="440" />
+              <mxPoint x="905" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_build_sbom" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_build" target="ca_sbom">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="335" y="440" />
+              <mxPoint x="335" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_push_cosign" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_push" target="ca_cosign">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="525" y="440" />
+              <mxPoint x="525" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_push_trivy" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_push" target="ca_trivy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="440" />
+              <mxPoint x="715" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_all_cache" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_build" target="ca_cache">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1110" y="440" />
+              <mxPoint x="1110" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_all_failure" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="rwf_push" target="ca_failure">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1335" y="440" />
+              <mxPoint x="1335" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ca_infra" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="ca_buflint" target="rs_t1r">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="575" />
+              <mxPoint x="145" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_ca_karp" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=1;endArrow=classic;endFill=1;" edge="1" parent="1" source="ca_failure" target="karpenter">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1335" y="575" />
+              <mxPoint x="1335" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_push_harbor" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="rwf_push" target="harbor">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1290" y="785" />
+              <mxPoint x="1000" y="785" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_harbor_lbl" value="image push + sign" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fillColor=#FFFFFF;strokeColor=none;fontSize=10;" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="1060" y="745" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="e_harbor_gitops" style="edgeStyle=none;rounded=0;html=1;strokeColor=#000000;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="harbor" target="gitops">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_box" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="850" width="1420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="caller (アプリ層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="880" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="reusable / path-filter (ネットワーク層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="250" y="880" width="260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="composite / runner (インフラ層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="880" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="Harbor / GitOps (データ層)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="770" y="880" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_line" value="実線太: uses/呼出     破線: composite action 呼出 (reusable 内部実装)     緑破線: 並列 DAG" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="912" width="1000" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

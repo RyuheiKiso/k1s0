@@ -4,6 +4,8 @@
 
 ![tier1 公開 11 API SLO/SLI 体系](img/tier1_11API_SLO_SLI体系.svg)
 
+![tier1 公開 11 API の SLO / Error Budget / Rollouts AnalysisTemplate 連動](img/40_tier1_11API_SLO_ErrorBudget.svg)
+
 SLO の初期設定は「現実的に達成可能で、かつ事業側に意味がある」水準で置く必要がある。楽観的すぎる目標は Error Budget 運用を形骸化させ、悲観的すぎる目標は feature 凍結の発動閾値を日常化させる。本節は NFR-A-CONT-001（SLA 99%）と NFR-I-SLO-001（内部 SLO 99.9%）を基底に、API 種別ごとの SLI を 4 分類（Availability / Latency / Correctness / Freshness）に整理したうえで、tier1 の 11 API それぞれに SLO 値を確定する。
 
 SLO 定義ファイルは `infra/observability/slo/` 配下に OpenSLO 互換 YAML で配置し、Mimir の recording rules が SLI を継続計算、Grafana のダッシュボードで可視化、Alertmanager が Burn Rate 超過で PagerDuty を叩く構成とする（IMP-OBS-SLO-040）。

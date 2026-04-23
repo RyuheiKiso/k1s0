@@ -1,0 +1,147 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="offboard" id="off01">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="退職時 revoke 5 ステップ連鎖 (15 分 SLI / offboard.sh 原子性)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="10" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hr" value="HR システム&#10;退職通知" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="Security admin&#10;2 名体制ダブルチェック&#10;(A: 実行 / B: ログ監視)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="75" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="script" value="ops/scripts/offboard.sh &lt;username&gt;&#10;set -euo pipefail / idempotent / --dry-run" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="slo" value="SLI: offboard.runbook.duration&#10;SLO: 15 分以内 99%&#10;Severity 3 → 遅延時 2 格上げ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="75" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="Step 1: Keycloak&#10;user disable + LogoutAll&#10;refresh token 一括失効" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="210" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="Step 2: OpenBao&#10;identity entity token revoke&#10;vault token revoke --accessor" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="210" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="Step 3: cert-manager&#10;client 証明書 CRL 追加&#10;OCSP responder 即時配信" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="580" y="210" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="Step 4: Istio JWTRule&#10;revoke list → jwks 更新&#10;既発行 JWT 検証強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="850" y="210" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" value="Step 5: SPIRE Server&#10;human operator entry 削除&#10;次回 rotation で失敗" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="210" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="keycloak" value="Keycloak HA&#10;k1s0-internal realm&#10;(10 節)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="bao" value="OpenBao&#10;identity/token&#10;(30 節)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="330" y="340" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="certm" value="cert-manager&#10;CRL / OCSP&#10;(40 節)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="340" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="istio" value="Istio AuthorizationPolicy&#10;JWTRule jwks 更新" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="340" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="spire" value="SPIRE Server&#10;entry registry&#10;(20 節)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="340" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="verify" value="verify step: 各基盤 re-check&#10;Keycloak user.enabled=false / OpenBao entity 無 / cert CRL 掲載&#10;/ JWTRule jwks 反映 / SPIRE entry 無  (idempotent / 2 回連続 OK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="460" width="840" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" value="WORM 監査ログ&#10;ops/audit/offboard-YYYYMMDD-&lt;uid&gt;.log&#10;MinIO Object Lock Compliance 7 年&#10;双方の GitHub user ID 記録" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="monthly" value="月次 orphan entry 検出&#10;orphan-entries.sh cron&#10;連続 2 月で構造バグ扱い" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="585" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="gameday" value="四半期 GameDay&#10;架空 user で 15 分計測&#10;idempotent / verify 検出能力" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="720" y="585" width="280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Kafka keycloak-login-events&#10;disabled_users への login 試行検知&#10;→ 即時 PagerDuty" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="585" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="partners" value="委託終了時 (k1s0-partners realm)&#10;client scope 削除 → 全 token 無効化 / OpenBao policy 削除 / namespace-scoped Issuer 削除&#10;partner-scoped namespace の SPIRE entry 全削除  (IMP-SEC-REV-057: 一括処理で高速)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="1300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例: アプリ層(暖色)=script/Step/SLI/verify / ネットワーク層(寒色)=Istio JWTRule/AuthZ / インフラ層(灰)=HR/Security admin / データ層(紫)=Keycloak/OpenBao/cert-manager/SPIRE/audit" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="830" width="1300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#666666;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="hr" target="admin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="admin" target="script">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="script" target="slo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.15;exitY=1;entryX=0.5;entryY=0;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="script" target="s1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="563" y="180" />
+              <mxPoint x="160" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s1" target="keycloak">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s2" target="bao">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s3" target="certm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s4" target="istio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s5" target="spire">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="keycloak" target="verify">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="430" />
+              <mxPoint x="320" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#d79b00;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="spire" target="verify">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1240" y="430" />
+              <mxPoint x="1080" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" style="edgeStyle=none;rounded=0;html=1;exitX=0.2;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="verify" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="448" y="560" />
+              <mxPoint x="200" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
