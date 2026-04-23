@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける CycloneDX SBOM の生成・保管・差分監視の物理配置と運用規約を確定する。40 章方針の IMP-DEP-POL-007（SBOM 全アーティファクト添付）を、Syft による生成、Dependency-Track での照合、MinIO WORM bucket への 5 年保管、Renovate PR 生成時の SBOM diff 自動コメントの 4 経路でつなぐ実装として示す。ADR-SUP-001（SLSA L2→L3、80 章初版策定時に起票予定）および 80 章 `10_cosign署名/01_cosign_keyless署名.md`（IMP-SUP-COS-010 で SBOM も署名対象）と同期する。
 
-![SBOM 生成と差分監視の流路](img/sbom_差分監視流路.svg)
+![SBOM 生成と差分監視の流路](img/20_SBOM差分監視パイプライン.svg)
 
 SBOM を生成するだけでは「依存の写真」を撮っているに過ぎない。価値が立ち上がるのは「新しい CVE が公表された瞬間に、過去の SBOM 全件を機械的に突合して影響アーティファクトを 60 秒以内に列挙する」という照合経路が動いた時である。Log4Shell 型の広域脆弱性では、影響確定までの時間が事業の毀損速度を決める。2 名運用で数十サービスを抱える JTC では、Dependency-Track による日次照合と PR 時点での diff 可視化が、人手調査を構造的に不要にする唯一の現実解となる。
 

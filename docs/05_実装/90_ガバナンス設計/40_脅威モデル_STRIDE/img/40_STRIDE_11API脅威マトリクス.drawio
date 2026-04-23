@@ -1,0 +1,309 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="stride-11api" id="str1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1900" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1900" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="STRIDE 脅威 × tier1 公開 11 API × 緩和策 IMP-* 対応マトリクス (IMP-POL-STR-040〜047)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1860" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note1" value="各セルは主な脅威 → 緩和策 (NFR / IMP-* ID) を示す。該当なしは空白でなく &quot;該当なし / 理由&quot; を明記するのが実ファイルの規約。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="45" width="1820" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="h0" value="tier1 公開 11 API \ STRIDE 6 区分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="75" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" value="S Spoofing&#xa;なりすまし" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="75" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="T Tampering&#xa;改竄" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="75" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="R Repudiation&#xa;否認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="75" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="I Information Disclosure&#xa;情報漏洩" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="75" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h5" value="D Denial of Service&#xa;DoS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="75" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="h6" value="E Elevation of Privilege&#xa;権限昇格" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="75" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api01" value="01 Service Invoke" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="125" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c011" value="JWT 偽造&#xa;→ IMP-SEC-KC-020 JWT 5 項目検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="125" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c012" value="request 改竄&#xa;→ mTLS (Istio Ambient)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="125" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c013" value="呼出記録欠損&#xa;→ access log WORM (NFR-H-AUD-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="125" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c014" value="response 盗聴&#xa;→ TLS1.3 (NFR-E-ENC-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="125" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c015" value="無制限 RPS&#xa;→ NFR-E-NW-004 レート制限" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="125" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c016" value="RBAC 回避&#xa;→ Keycloak role + Kyverno validate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="125" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api02" value="02 State" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="195" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c021" value="書込主体偽装&#xa;→ SA + mTLS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="195" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c022" value="state 値改竄&#xa;→ Valkey TLS + AUTH" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="195" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c023" value="変更否認&#xa;→ audit trail (NFR-E-MON-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="195" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c024" value="tenant 越し参照&#xa;→ NFR-E-AC-003 tenant_id 強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="195" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c025" value="書込爆弾&#xa;→ quota + cardinality 制限" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="195" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c026" value="ACL 迂回&#xa;→ Keycloak + Dapr state scope" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="195" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api03" value="03 PubSub" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="265" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c031" value="偽 publish&#xa;→ publish ACL + SA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c032" value="message 改竄&#xa;→ schema registry + signature" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c033" value="publisher 不明&#xa;→ 特権操作 Audit (NFR-E-MON-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c034" value="topic 越し盗聴&#xa;→ Kafka ACL + TLS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c035" value="topic flood&#xa;→ rate + quota" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c036" value="consumer 昇格&#xa;→ subscribe scope 分離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="265" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api04" value="04 Secrets" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="335" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c041" value="caller 偽装&#xa;→ SPIFFE + mTLS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="335" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c042" value="secret 書換&#xa;→ OpenBao immutable policy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="335" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c043" value="取得履歴欠損&#xa;→ OpenBao audit backend WORM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="335" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c044" value="secret 取得越境&#xa;→ NFR-E-AC-004 最小権限 + lease TTL" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="335" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c045" value="API 洪水&#xa;→ Envoy rate limit" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="335" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c046" value="policy 書換&#xa;→ ADR-SEC-002 OpenBao 分離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="335" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api05" value="05 Binding" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="405" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c051" value="偽 endpoint&#xa;→ allowlist (NFR-E-NW-001) + TLS pin" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="405" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c052" value="response 改竄&#xa;→ mTLS + 完整性検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="405" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c053" value="外部送信否認&#xa;→ outbound WORM log" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="405" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c054" value="PII 外部漏洩&#xa;→ 送信データ最小化 (NFR-G-DES-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="405" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c055" value="外部 DoS 転嫁&#xa;→ Circuit Breaker (NFR-C-IR-002)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="405" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c056" value="外部 resource 昇格&#xa;→ binding scope 限定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="405" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api06" value="06 Workflow" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="475" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c061" value="initiator 偽装&#xa;→ JWT + tenant_id" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="475" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c062" value="状態改竄&#xa;→ Saga イベントソーシング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="475" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c063" value="補償否認&#xa;→ compensation event WORM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="475" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c064" value="中間状態漏洩&#xa;→ encrypted state store" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="475" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c065" value="無限ループ/多重起動&#xa;→ timeout + dedupe key" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="475" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c066" value="補償動作権限&#xa;→ policy 分離 + Kyverno validate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="475" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api07" value="07 Log" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="545" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c071" value="偽 logger&#xa;→ SA + OTel 認証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="545" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c072" value="log 改竄&#xa;→ WORM 保存 (IMP-POL-POL-005)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="545" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c073" value="log 削除否認&#xa;→ 監査証跡 + WORM 期間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="545" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c074" value="PII 漏洩&#xa;→ マスキング (NFR-E-ENC-003)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="545" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c075" value="log 洪水&#xa;→ sampling + rate limit" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="545" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c076" value="閲覧権限昇格&#xa;→ Loki multi-tenancy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="545" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api08" value="08 Telemetry" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="615" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c081" value="偽 emitter&#xa;→ OTel attestation" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="615" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c082" value="metric 改竄&#xa;→ TLS + emitter 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="615" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c083" value="発信源不明&#xa;→ resource attributes 強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="615" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c084" value="PII 誤送信&#xa;→ NFR-E-ENC-003 マスキング" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="615" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c085" value="metric 洪水&#xa;→ cardinality 制限" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="615" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c086" value="参照権限昇格&#xa;→ Mimir tenant 分離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="615" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api09" value="09 Decision" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="685" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c091" value="実行主体偽装&#xa;→ JWT + ZEN scope" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="685" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c092" value="ルール改竄&#xa;→ NFR-C-MGMT-002 Git 管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="685" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c093" value="判定履歴欠損&#xa;→ decision log WORM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="685" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c094" value="ルール漏洩&#xa;→ OpenBao + 暗号化保管" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="685" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c095" value="評価爆発&#xa;→ complexity 制限" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="685" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c096" value="管理者昇格&#xa;→ ADR + RBAC 分離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="685" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api10" value="10 Audit / PII" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="755" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c101" value="偽イベント注入&#xa;→ source SA 検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="755" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c102" value="監査改竄&#xa;→ NFR-H-AUD-001 WORM 完整性" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="755" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c103" value="特権削除否認&#xa;→ admin 操作 audit + 4eyes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="755" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c104" value="PII 漏洩&#xa;→ NFR-G-ENC-003 アプリ層暗号" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="755" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c105" value="audit 保管爆発&#xa;→ retention 階層化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="755" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c106" value="監査閲覧越権&#xa;→ 監査者 role 分離" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="755" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api11" value="11 Feature" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="825" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c111" value="flag 問合せ偽装&#xa;→ flagd mTLS + SA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="260" y="825" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c112" value="flag 書換&#xa;→ NFR-C-MGMT-002 Git 管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="825" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c113" value="toggle 履歴欠損&#xa;→ change log + WORM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="780" y="825" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c114" value="内部 flag 漏洩&#xa;→ tenant-scoped 配信" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="825" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c115" value="評価洪水&#xa;→ client cache + limit" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="825" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="c116" value="feature 有効化権限昇格&#xa;→ RBAC + 4eyes 運用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1560" y="825" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="910" width="1820" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="アプリ層 (脅威 × 緩和策セル): 暖色 #fff2cc / #d79b00" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="940" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="インフラ層 (API ヘッダ / STRIDE ヘッダ): 中性灰 #f5f5f5 / #666666" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="975" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="各脅威 ID は THR-&lt;API&gt;-&lt;区分&gt;-&lt;連番&gt; (例: THR-SECRETS-I-001 = Secrets Information Disclosure 1 番) で 11 ファイルに格納" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="940" width="1280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="各ファイル: 40_脅威モデル_STRIDE/11_tier1_&lt;api&gt;.md / 外部連携 20_external_*.md / tier 境界 30_tier_boundary_*.md / データ層 40_data_*.md" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="975" width="1280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" value="PR チェックリスト (IMP-POL-STR-044): 6 区分ぶんのチェックボックス全て必須、該当なしは &quot;理由記載&quot;。STRIDE ファイル未更新 PR は CI で block。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1010" width="1780" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6" value="各脅威には 残余リスク状態 (Accepted / Monitored / Under mitigation) を明示。Under mitigation の 1 年放置を年次レビューで検知し受容判断に遷移させる。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1035" width="1780" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg7" value="対応 ADR: ADR-POL-001 / ADR-SEC-001 (Keycloak) / ADR-CICD-003 (Kyverno) / NFR-E-RSK-001 (STRIDE) / DS-SW-COMP-141 (多層防御統括)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1060" width="1780" height="25" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

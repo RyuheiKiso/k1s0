@@ -4,6 +4,8 @@
 
 ![Incident Taxonomy 統合分類マップ](img/Incident_Taxonomy統合分類マップ.svg)
 
+![Incident Taxonomy 4 軸 × Sev1-4 マトリクスと CVSS 連動 / Runbook 対応](img/60_Incident_Taxonomy_4軸Sev.svg)
+
 可用性担当とセキュリティ担当が別々の台帳でインシデントを扱うと、「SLA 99% / 99.9% の SLO は両方 green だが、CVSS 9.0 の脆弱性が 2 週間放置され、実害が発生する」という典型的盲点が生じる。本節は可用性・セキュリティ・データ品質・外部起因を 4 最上位分類として統合し、Severity（Sev1-Sev4）を共通軸で運用する。CVSS 連動の緩和 SLO をこの Taxonomy と接続することで、「エラーバジェット消費」と「未パッチ脆弱性の放置」を同じ運用板に載せる。
 
 Taxonomy の運用は `ops/runbooks/incidents/` の Runbook 構造、`ops/postmortems/` のポストモーテム運用、PagerDuty のエスカレーション、個人情報保護委員会への 72 時間通告（NFR-E-SIR-002）を貫通する。したがって Taxonomy 改訂は SRE（B）+ Security（D）+ Compliance の共同承認で、`tools/ci/` のインシデントトリアージ自動化とも整合させる。

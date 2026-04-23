@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける Renovate の物理配置・設定の一元化・PR グループ化・自動マージ条件を実装フェーズ確定版として示す。40 章方針の IMP-DEP-POL-001（依存更新は Renovate 経由のみ）と IMP-DEP-POL-006（自動マージは patch レベルのみ）を、`tools/ci/renovate/` 配下の一元設定と GitHub App 運用、および 30 章 quality gate との連動で具体化する。ADR-DEP-001（Renovate 中心運用、本章初版策定時に起票予定）で正式化する運用形態を本節で固定する。
 
-![Renovate 中央運用フロー](img/renovate_中央運用フロー.svg)
+![Renovate 中央運用フロー](img/10_Renovate中央運用フロー.svg)
 
 依存更新を開発者の手元に委ねる運用は、2 名体制の JTC では即日破綻する。各開発者が `cargo update` や `go get -u` を好きな時期に実行すれば、同じ Cargo.toml でも build 結果が散らばり、「私の端末では通る」が常態化する。逆に Renovate を導入しても設定が各サブディレクトリに散らばれば、どの PR が何を更新しているかの俯瞰が失われ、週次レビューで判断できなくなる。本節は「Renovate 設定は `tools/ci/renovate/` に一元化し、モノレポ全体を 1 インスタンスが見る」構造を確定する。
 

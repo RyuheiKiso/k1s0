@@ -1,0 +1,167 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="adr-lifecycle" id="adr1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1700" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1000" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ADR ライフサイクル: 起票 → レビュー → 承認 → Accepted → 改訂 / Superseded (IMP-POL-ADR-020〜027)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1660" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step_title" value="起票 → レビュー → 承認フロー" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1620" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="draft" value="起票 (Draft)&#xa;起票者が MADR v3.0 + k1s0 拡張テンプレで下書き&#xa;必須 9 項目: Title/Status/Date/Context/Decision/&#xa;Consequences/Alternatives/Links/対応 IMP-* ID" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rfc" value="レビュー (RFC 形式 / Proposed)&#xa;architecture-team = Security + SRE + DX&#xa;領域別主担当 + 起票者同席&#xa;自由形式リンク禁止 (Supersedes/Related-to/Superseded-by のみ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="370" y="100" width="340" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="approve" value="承認 (2 名以上 approve)&#xa;Security (D): ADR-SEC / ADR-POL / ADR-SUP&#xa;Platform/SRE (B): ADR-CICD / ADR-OBS / ADR-DATA&#xa;1 名独断で technical decision 通る経路を構造封鎖" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="100" width="360" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="verify" value="CI ゲート verify-adr-reference.yml&#xa;新規 OSS / アーキ変更 / policy 追加を検知&#xa;対応 ADR PR 未記入なら fail&#xa;CODEOWNERS と PR template で二重検出" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="100" width="350" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="states_title" value="状態遷移 (IMP-POL-ADR-025)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="1620" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s_prop" value="Proposed&#xa;提案段階&#xa;architecture-team レビュー中&#xa;merge 時点では本状態" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s_acc" value="Accepted&#xa;2 名以上 approve 後に更新&#xa;IMP-* 実装が追従&#xa;Radar 側も Adopt 昇格記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="300" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s_sup" value="Superseded&#xa;後継 ADR で置換&#xa;Superseded-by: ADR-YYY で系譜保持&#xa;Radar と同時更新" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="300" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s_dep" value="Deprecated&#xa;決定事項自体が不要化&#xa;(廃止機能 ADR 等)&#xa;理由を追記して残す" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="300" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="noDelete" value="ADR は 削除しない (IMP-POL-ADR-026)&#xa;試行錯誤の可視化を守る。検索性維持で後任者が &quot;なぜ却下されたか&quot; を追跡可能に。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="300" width="200" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dadr_title" value="Deferred ADR (D-ADR) 72 時間ルール (IMP-POL-ADR-024)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="1620" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="emergency" value="緊急インシデント対応&#xa;事前 ADR 迂回&#xa;接頭辞 D-ADR-XXX&#xa;通常 ADR と別連番" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="260" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d72" value="72 時間以内の事後起票&#xa;Emergency Context + Root Cause Analysis 必須&#xa;architecture-team 1 名以上 approve で追認&#xa;Status: Accepted (deferred)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="490" width="380" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d_ok" value="追認成立&#xa;Accepted (deferred) で取り込み&#xa;IMP-* 実装に反映" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="490" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d_ng" value="72 時間超過&#xa;インシデント扱い&#xa;NFR-E-SIR-001 Runbook に則り事後対応&#xa;追認されなければ 1 週間以内に revert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="490" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d_dx" value="DX メトリクス計上&#xa;(95 章連動)&#xa;revert 件数 / 追認率&#xa;半期 Radar 更新で分析" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="490" width="260" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rel_title" value="Technology Radar との双方向リンク (IMP-POL-ADR-027)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="1620" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rel1" value="Adopt 昇格&#xa;ADR Consequences に&#xa;&quot;Radar: Trial → Adopt (YYYY-MM-DD)&quot; 追記" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rel2" value="Hold 降格&#xa;該当 ADR に Superseded-by / Deprecated を明示&#xa;Radar と同時更新 PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="450" y="670" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rel3" value="新規採用判断&#xa;ADR 起票時に Radar 現在位置 (Assess / Trial)&#xa;を Context に記載" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="860" y="670" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rel4" value="半期更新 (4 月 / 10 月)&#xa;全 ADR を逆引き→Adopt 昇格 / Hold 降格候補&#xa;7 名合議で判定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="670" width="390" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="790" width="1620" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="アプリ層 (フロー・D-ADR): 暖色 #fff2cc / #d79b00" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="820" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="ネットワーク層 (Proposed 状態 / Radar 双方向): 寒色 #dae8fc / #6c8ebf" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="855" width="460" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="Accepted 緑 / Superseded 橙 / Deprecated 赤 / データ層 (DX メトリクス): 薄紫 #e1d5e7 / #9673a6" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="890" width="1580" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg4" value="接頭辞体系 12 種: ADR-0XXX / ADR-TIER1-XXX / ADR-CICD-XXX / ADR-OBS-XXX / ADR-SEC-XXX / ADR-DATA-XXX / ADR-DEP-XXX / ADR-POL-XXX / ADR-SUP-XXX / ADR-MIG-XXX / ADR-DIR-XXX / D-ADR-XXX (ID 不変原則)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="820" width="1100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lg5" value="実線太 = 状態遷移・標準フロー / 破線 = 非同期・半期サイクル / 二重リンク = Supersedes ↔ Superseded-by" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="860" width="1100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lg6" value="10 年保守前提: ADR 削除禁止・ID 不変・系譜保持で後任者が過去の試行錯誤を追跡可能にする" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="925" width="1580" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="lg7" value="対応 NFR: NFR-C-MGMT-001 (設定 Git 管理) / NFR-C-MGMT-002 (Flag/Decision 管理) / NFR-H-AUD-001 (監査ログ完整性) / NFR-C-ENV-002 (運用ドキュメント鮮度)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="955" width="1580" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="draft" target="rfc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rfc" target="approve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="approve" target="verify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s_prop" target="s_acc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s_acc" target="s_sup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="s_acc" target="s_dep">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="430" />
+              <mxPoint x="1290" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f7" value="Supersedes / Superseded-by" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;startArrow=classic;dashed=1;dashPattern=3 3;" edge="1" parent="1" source="s_sup" target="s_dep">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="emergency" target="d72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f9" value="≤ 72h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#82b366;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="d72" target="d_ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10" value="&gt; 72h" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#b85450;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="d72" target="d_ng">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="605" />
+              <mxPoint x="1220" y="605" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="d_ng" target="d_dx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける SPIRE Server / Agent の物理配置、SPIFFE ID 命名規約、SVID 発行ポリシー、Istio Ambient mTLS との統合経路を実装フェーズ確定版として示す。85 章方針 IMP-SEC-POL-002（ワークロード ID 分離）を物理レベルに落とし込み、ADR-SEC-003（SPIFFE/SPIRE 採択）および ADR-0001（Istio Ambient）の帰結を `infra/security/spire-server/` と `infra/security/spire-agent/` に確定させる。人間 ID（10 節 Keycloak）とは完全に分離され、ワークロード間の mTLS 証明書と L7 認可 JWT を自動発行する。
 
-![SPIRE 発行経路と Istio Ambient 統合](img/spire_istio_ambient統合.svg)
+![SPIRE SVID 発行フローと Istio Ambient mTLS 統合](img/20_SPIRE_SVID発行フロー.svg)
 
 SPIRE を採用する動機は「コンテナエスケープされても横移動を封じ込められる構造」を k8s クラスタ内に常設することにある。長寿命の Service Account token や共有証明書を Pod に配布する運用は、1 Pod の侵害で他 Pod の権限まで拡散する。SVID は 1 時間の短寿命であり、発行元の attestation（k8s PSAT）を毎回再検証するため、侵害されても攻撃窓が時間単位で閉じる。本節はこの構造を Phase 0 から本番運用に乗せる配置を固定する。
 

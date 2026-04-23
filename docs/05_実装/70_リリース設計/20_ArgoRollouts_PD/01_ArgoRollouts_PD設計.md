@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 の Progressive Delivery（PD）を実装フェーズ確定版として固定する。ADR-CICD-002 で選定した Argo Rollouts 1.7+ と ADR-REL-001 で全リリース必須化した PD を、Canary の段階数・AnalysisTemplate の共通セット・SLI 連動の自動 rollback・例外経路・rollback runbook との結合までを物理配置レベルで規定する。
 
-![Argo Rollouts PD 全体フロー](img/ArgoRollouts_PD全体フロー.svg)
+![Argo Rollouts Canary と AnalysisTemplate SLI 連動](img/20_ArgoRollouts_Canary_Analysis.svg)
 
 ## なぜ PD を Phase 0 から全リリース必須化するのか
 

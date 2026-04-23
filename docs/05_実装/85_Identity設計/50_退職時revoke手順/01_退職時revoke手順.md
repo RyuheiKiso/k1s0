@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける従業員退職・委託終了時の全経路 revoke 手順を実装フェーズ確定版として示す。85 章方針 IMP-SEC-POL-004（単一無効化で全経路 revoke）を物理レベルに落とし込み、10 節 Keycloak / 20 節 SPIRE / 30 節 OpenBao / 40 節 cert-manager の 4 基盤を連鎖させる Runbook を `ops/runbooks/offboarding/` と `ops/scripts/offboard.sh` に確定させる。退職時の revoke 漏れは平時の監査で検知できず、事故発生まで「漏れていることすら分からない」構造リスクであり、本節はこれを「1 アカウント disable で全経路 revoke 完了」の単一操作に集約する。
 
-![退職時 revoke 5 ステップ経路](img/offboard_5ステップ経路.svg)
+![退職時 revoke 5 ステップ連鎖と一括 revoke 連動](img/50_退職時一括revoke連動.svg)
 
 JTC の 10 年保守サイクルでは、従業員・委託先の入退場が年単位で発生する。各システムを手作業で個別 revoke する運用は、漏れが 1 件でも残れば即インシデントとなる。k1s0 は Keycloak の user disable を起点とし、下流の 4 基盤に chain revoke を伝播させる。起点を Keycloak に固定することで、HR システムとの連携点を 1 箇所に絞り、運用規律を守りやすくする。
 

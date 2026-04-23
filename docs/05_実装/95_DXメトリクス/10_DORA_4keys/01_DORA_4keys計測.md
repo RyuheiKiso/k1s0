@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける DORA 4 keys（Lead Time for Changes / Deploy Frequency / MTTR / Change Failure Rate）の計測基盤と Backstage Scorecards への接続、EM 向けレポート運用を実装フェーズ確定版として示す。95 章方針 IMP-DX-POL-001（稼働 SLI との分離）および ADR-DX-001（起票予定、DX メトリクス分離原則）を物理レベルに落とし込み、GitHub API / Argo CD API / Prometheus（Mimir）から独自 exporter を経由して Backstage Scorecards に到達する経路を確定させる。`03_要件定義/50_開発者体験/03_DevEx指標.md` の DORA Four Keys 要件をこの節で満たす。
 
-![DORA 4 keys 計測経路](img/dora_4keys計測経路.svg)
+![DORA 4 keys 計測点と Backstage Scorecards 連動](img/10_DORA_4keys計測点.svg)
 
 DORA 4 keys は 10 年以上の業界研究で「開発組織の健全性と事業成果の相関」が検証されている 4 指標である。しかし計測方法が揺らぐと、組織間比較もチーム内推移も無意味な数字となる。k1s0 は 4 指標それぞれのデータソースと集計式を本節で厳密に固定し、解釈の揺らぎを排除する。稼働 SLI（60 章）とはダッシュボードもディレクトリも分離し、可用性 SLO と Lead Time を混ぜない運用規律を守る。
 
