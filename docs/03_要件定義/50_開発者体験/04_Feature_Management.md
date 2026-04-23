@@ -1,6 +1,6 @@
 # 04. Feature Management
 
-本書は k1s0 における Feature Flag（機能フラグ）の運用方針を定義する。FR-T1-FEATURE 系で定義した tier1 Feature API の上位にある運用プラクティスであり、flagd（OpenFeature 準拠）を中心に、フラグの命名、ライフサイクル、A/B テスト、段階ロールアウト、負債管理を確定する。
+本書は k1s0 における Feature Flag（機能フラグ）の運用方針を定義する。FR-T1-FEATURE-001〜004 で定義した tier1 Feature API の上位にある運用プラクティスであり、flagd（OpenFeature 準拠）を中心に、フラグの命名、ライフサイクル、A/B テスト、段階ロールアウト、負債管理を確定する。
 
 ## 本書の位置付け
 

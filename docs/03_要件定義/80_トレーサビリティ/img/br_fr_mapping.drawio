@@ -46,16 +46,16 @@
         <mxCell id="fr-invoke" value="&lt;b&gt;FR-T1-INVOKE&lt;/b&gt; Service Invoke API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="170" width="380" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="fr-state" value="&lt;b&gt;FR-T1-STATE&lt;/b&gt; State API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="fr-state" value="&lt;b&gt;FR-T1-STATE-001〜005&lt;/b&gt; State API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="220" width="380" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="fr-pubsub" value="&lt;b&gt;FR-T1-PUBSUB&lt;/b&gt; PubSub API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="fr-pubsub" value="&lt;b&gt;FR-T1-PUBSUB-001〜005&lt;/b&gt; PubSub API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="270" width="380" height="40" as="geometry" />
         </mxCell>
         <mxCell id="fr-secrets" value="&lt;b&gt;FR-T1-SECRETS&lt;/b&gt; Secrets API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="320" width="380" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="fr-binding" value="&lt;b&gt;FR-T1-BINDING&lt;/b&gt; Binding API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="fr-binding" value="&lt;b&gt;FR-T1-BINDING-001〜004&lt;/b&gt; Binding API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="370" width="380" height="40" as="geometry" />
         </mxCell>
         <mxCell id="fr-workflow" value="&lt;b&gt;FR-T1-WORKFLOW&lt;/b&gt; Workflow API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
@@ -70,7 +70,7 @@
         <mxCell id="fr-decision" value="&lt;b&gt;FR-T1-DECISION&lt;/b&gt; Decision API（ZEN Engine）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="580" width="380" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="fr-audit" value="&lt;b&gt;FR-T1-AUDIT / PII&lt;/b&gt; Audit-Pii API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="fr-audit" value="&lt;b&gt;FR-T1-AUDIT-001〜003 / FR-T1-PII-001〜002&lt;/b&gt; Audit-Pii API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1200" y="780" width="380" height="40" as="geometry" />
         </mxCell>
         <mxCell id="fr-feature" value="&lt;b&gt;FR-T1-FEATURE&lt;/b&gt; Feature API（flagd）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
