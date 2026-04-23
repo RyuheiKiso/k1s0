@@ -1,0 +1,232 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="dx-metrics" id="dx-metrics">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="95 章: DORA 4 keys / SPACE / Scaffold 利用率 / time-to-first-commit と稼働 SLI の分離" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1280" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Data sources (infra layer) -->
+        <mxCell id="g_src" value="データソース (30/50/60 章)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="290" height="470" as="geometry" />
+        </mxCell>
+        <mxCell id="src_gh" value="GitHub API&#10;(PR open / merge / commit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src_argo" value="ArgoCD events API&#10;(Sync / rollback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src_rollouts" value="Argo Rollouts AnalysisRun&#10;(failed / rolled back)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="250" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src_pd" value="PagerDuty Incident API&#10;(trigger / resolve)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src_bs" value="Backstage scaffolder&#10;(template 利用ログ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="390" width="250" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src_pm" value="ops/postmortems/&#10;(incident metadata)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="460" width="250" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- dora-exporter (app layer) -->
+        <mxCell id="g_exp" value="tools/dora-exporter/ (Go, k1s0-dx namespace)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="390" y="70" width="310" height="470" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_core" value="dora-exporter&#10;(5 分 scrape 間隔, Valkey 10 分キャッシュ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe599;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="110" width="270" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_lt" value="DORA: Lead Time for Changes&#10;PR open → Synced+Healthy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="180" width="270" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_df" value="DORA: Deploy Frequency&#10;ArgoCD Sync / 週 (tier 別)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="240" width="270" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_mttr" value="DORA: MTTR&#10;Incident trigger → resolve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="300" width="270" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_cfr" value="DORA: Change Failure Rate&#10;(rollback + hotfix) / all deploy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="360" width="270" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_scaf" value="Scaffold 利用率&#10;(Golden Path 外れ率の逆指標)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="420" width="270" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="exp_ttfc" value="time-to-first-commit&#10;(新規 onboarding SLI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="480" width="270" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Mimir (data layer) -->
+        <mxCell id="g_mimir" value="Mimir (time-series store)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="740" y="70" width="230" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="mimir_dx" value="dora_* metrics&#10;(label: tier / team / severity)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="110" width="190" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="mimir_space" value="SPACE metrics (Phase 1a)&#10;Satisfaction / Performance / Activity / Collaboration / Efficiency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="180" width="190" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mimir_scaf" value="scaffold_usage_ratio&#10;first_commit_seconds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="260" width="190" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 稼働 SLI (separated / data layer) -->
+        <mxCell id="g_slo" value="稼働 SLI (60 章 / 分離)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="740" y="340" width="230" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="slo_avail" value="可用性 SLI (99.9%)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="380" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="slo_lat" value="レイテンシ SLI (p99)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="430" width="190" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="slo_err" value="Error Budget" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="480" width="190" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 分離バリア -->
+        <mxCell id="barrier" value="── 分離バリア (ADR-DX-001: 同一ダッシュボード禁止) ──" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;strokeColor=#b85450;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="390" y="580" width="580" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="barline" value="" style="endArrow=none;html=1;strokeColor=#b85450;strokeWidth=2;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="560" as="sourcePoint" />
+            <mxPoint x="1340" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Dashboards -->
+        <mxCell id="g_dash" value="Grafana dashboards (分離配置)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="70" width="340" height="470" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_dx" value="dashboards/dx/dora.json&#10;- 4 指標 × 4 tier = 16 パネル&#10;- 過去 13 週表示&#10;- Elite / High / Medium 閾値線&#10;- 自チーム vs 組織平均" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe599;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="110" width="300" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_scaf" value="dashboards/dx/scaffold.json&#10;dashboards/dx/onboarding.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="265" width="300" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_scorecard" value="Backstage Scorecards (ADR-BS-001)&#10;チーム別 DORA 可視化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="345" width="300" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_slo" value="dashboards/reliability/&#10;(稼働 SLI 専用, DX と混載禁止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="415" width="300" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="dash_report" value="EM 向け定期レポート (Phase 1b)&#10;意思決定は EM 層に返す" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="485" width="300" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Connection arrows -->
+        <!-- src -> exporter -->
+        <mxCell id="x1" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;" edge="1" parent="1" source="src_gh" target="exp_core">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="src_argo" target="exp_core">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="207" />
+              <mxPoint x="370" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x3" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="src_rollouts" target="exp_core">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="277" />
+              <mxPoint x="370" y="148" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x4" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="src_pd" target="exp_core">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="347" />
+              <mxPoint x="370" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="x5" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="src_bs" target="exp_core">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="417" />
+              <mxPoint x="370" y="155" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- exporter internals -->
+        <mxCell id="x6" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="exp_core" target="exp_lt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- exporter -> Mimir -->
+        <mxCell id="x7" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;exitX=1;exitY=0.2;entryX=0;entryY=0.5;" edge="1" parent="1" source="g_exp" target="mimir_dx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="x7lbl" value="Prometheus expose" style="text;html=1;align=center;fontSize=10;fillColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="705" y="135" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="x8" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;exitX=1;exitY=0.9;entryX=0;entryY=0.5;" edge="1" parent="1" source="g_exp" target="mimir_scaf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Mimir -> dashboards -->
+        <mxCell id="x9" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" edge="1" parent="1" source="g_mimir" target="dash_dx">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="x10" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=1;exitY=0.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="g_mimir" target="dash_scaf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="x11" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="mimir_dx" target="dash_scorecard">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="985" y="137" />
+              <mxPoint x="985" y="372" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- SLO -> reliability dash -->
+        <mxCell id="x12" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="g_slo" target="dash_slo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- dashboards -> EM report -->
+        <mxCell id="x13" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="dash_scorecard" target="dash_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Requirements source -->
+        <mxCell id="req" value="要件参照: 03_要件定義/50_開発者体験/03_DevEx指標.md (DORA Four Keys)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="630" width="640" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="req_related" value="関連章: 50 章 (Scaffold 利用率の上流) / 60 章 (MTTR Incident 連動) / 30 章 (Deploy Frequency 計測点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="630" width="630" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="leg" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="690" width="1280" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_app" value="アプリ層 (dora-exporter / dashboards / Scorecards = 暖色)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_infra" value="インフラ層 (データソース GitHub/Argo/PD/Backstage = 中性灰)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="720" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_data" value="データ層 (Mimir + 稼働 SLI = 薄紫)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="720" width="310" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_sep" value="赤破線 = 分離バリア (ADR-DX-001)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="720" width="270" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_narrative" value="本章の設計意図は「稼働 SLI と DX メトリクスを同一ダッシュボードに混載しない」こと。混載すると可用性改善と Lead Time 改善のどちらを優先すべきか混濁し、EM 判断が歪む。そのため tools/dora-exporter/ を独立 Go module として構築し、dashboards/dx/ と dashboards/reliability/ を物理的に別ディレクトリに配置する規律を ADR-DX-001 で固定する。DORA 4 keys は Phase 0 必須、SPACE はチーム拡大時 Phase 1a 追加、Scaffold 利用率と time-to-first-commit は Phase 0 から計測開始する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="80" y="760" width="1260" height="110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
