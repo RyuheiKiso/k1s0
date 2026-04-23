@@ -8,6 +8,8 @@ JTC の 10 年保守サイクルでは、従業員・委託先の入退場が年
 
 ワークロード間通信は SPIRE-SPIFFE による SVID（短寿命証明書）を ADR-0001 の Istio Ambient mTLS に載せる。これにより、仮に Pod がコンテナエスケープされても SVID の失効で横移動を封じ込められる。退職時 revoke 演習は `ops/runbooks/` に GameDay として定期化する。
 
+![Identity 4 軸統合 (Keycloak / SPIRE-SPIFFE / OpenBao / cert-manager) と退職時 revoke フロー](img/85_Identity4軸統合.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: Keycloak realm / client 設計、SPIRE 展開、OpenBao 導入、cert-manager 設定、退職時 revoke ランブック
