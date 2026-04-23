@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 の Protobuf → 4 言語 SDK + tier1 サーバースタブの生成パイプラインを確定する。ADR-TIER1-002（Protobuf gRPC 統一）と ADR-DIR-001（contracts 昇格）の帰結として、tier1 公開 11 API と tier1 内部 gRPC は `src/contracts/` を単一真実源とし、buf（`buf.build`）をコード生成・lint・breaking check の 3 機能を束ねる唯一の CLI として採用する。本ファイルでは `buf.yaml` / `buf.gen.yaml` の配置・生成先の物理パス・`buf breaking` 運用・buf CLI バージョン固定を具体的に規定する。
 
-![buf 生成パイプライン全景](img/buf_generate_pipeline.svg)
+![buf 生成パイプライン全景](img/10_buf_4言語生成パイプライン.svg)
 
 `00_ディレクトリ設計/20_tier1レイアウト/02_contracts配置.md` は `src/contracts/` 内部構造と package 命名規約を確定済で、`00_方針/01_コード生成原則.md` は 7 軸の原則を固定済である。本ファイルはその中間層、つまり「buf をどう呼び、どこに出力し、どの CI ゲートに組み込むか」を実装フェーズ確定版として固定する。
 

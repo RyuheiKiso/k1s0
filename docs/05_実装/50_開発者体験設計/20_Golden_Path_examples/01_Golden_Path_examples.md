@@ -4,6 +4,8 @@
 
 ![Golden Path examples 全体像](img/GoldenPath_examples全体像.svg)
 
+![Golden Path examples 5 パターンと Scaffold 出力の差分](img/20_Golden_Path_examples構造.svg)
+
 ## なぜ `examples/` を一次ソースにするのか
 
 docs 側にコードスニペットを書き下すと、コード変更とドキュメント変更の間に必ず時間差が生まれ、数ヶ月後に必ず乖離する。ADR-DEV-001 の核心は「動くコードこそが最新の真実」であり、それを担保するために `examples/` を CI で build / test / deploy まで常時検証する「動く資産」として維持する。Scaffold CLI が `examples/` をコピーする実装になっている以上、CI が壊れていない限り Scaffold 出力も壊れない。この構造を Phase 0 から固定しておかないと、2 名フェーズで「とりあえず docs に書く」選択が積み重なって破綻する。

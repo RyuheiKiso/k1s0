@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 モノレポにおける Go の `go.mod` 境界を確定する。Go には Cargo のような workspace 内 members 機構の明確な代替が無く（`go.work` は開発時のみの union 機構であり build 単位を変えない）、module 分割をどこで切るかがビルド時間・依存方向の成否を直接決める。ADR-TIER1-001（Go + Rust ハイブリッド）と ADR-DIR-001（contracts 昇格）の帰結を受け、本ファイルでは Uber の monorepo 運用知見（`02_世界トップ企業事例比較.md`）を引きつつ、tier 境界と所有権境界を二軸とした **5 module 分離** を固定する。
 
-![Go module 5 分割と replace 経路](img/go_module_5分割.svg)
+![Go module 5 分割と replace 経路](img/20_Go_module5分離.svg)
 
 `00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md` は tier1 Go 単独の `go.mod` 内部構造を確定済である。本ファイルはその上位層、つまり「モノレポ全体でいくつ `go.mod` を置くか」と「どう依存方向を強制するか」を固定する役割を持つ。
 

@@ -23,9 +23,17 @@ k1s0 のモノレポは tier1/2/3 + infra + deploy + ops + tools + tests + examp
 | 06_注意点と既知問題.md | submodule / LFS / 生成コード / Windows 問題 |
 | 07_partial_clone_sparse_index.md | partial clone と sparse index の導入 |
 
-## 対応 IMP-DIR ID 範囲
+## 本章で採番する IMP-DIR ID
 
-本章は `IMP-DIR-SPARSE-126` から `IMP-DIR-SPARSE-145` の範囲を使用する。
+- IMP-DIR-SPARSE-126（cone mode 設計原則）— `01_cone_mode設計原則.md`
+- IMP-DIR-SPARSE-127（役割別 cone 定義）— `02_役割別cone定義.md`
+- IMP-DIR-SPARSE-128（初期クローンとオンボーディング）— `03_初期クローンとオンボーディング.md`
+- IMP-DIR-SPARSE-129（役割切替運用）— `04_役割切替運用.md`
+- IMP-DIR-SPARSE-130（CI 戦略と path-filter 統合）— `05_CI戦略とpath_filter統合.md`
+- IMP-DIR-SPARSE-131（注意点と既知問題）— `06_注意点と既知問題.md`
+- IMP-DIR-SPARSE-132（partial clone / sparse index）— `07_partial_clone_sparse_index.md`
+
+予約 IMP-DIR ID は `IMP-DIR-SPARSE-133` 〜 `IMP-DIR-SPARSE-145`（Phase 1b 以降で採番）。本章採番範囲は `IMP-DIR-SPARSE-126` 〜 `IMP-DIR-SPARSE-145`。
 
 ## 対応 ADR
 

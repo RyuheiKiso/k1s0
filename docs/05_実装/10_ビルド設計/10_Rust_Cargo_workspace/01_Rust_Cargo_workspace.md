@@ -2,7 +2,7 @@
 
 本ファイルは k1s0 における Rust ビルドの単位を確定する。ADR-TIER1-001（Go + Rust ハイブリッド）により tier1 内部は自作領域が Rust、ADR-TIER1-003（内部言語不可視）により SDK Rust は tier2 / tier3 から見える唯一の Rust 面となる。両者は所有権もリリースサイクルも異なるため、Cargo workspace を **2 つに分離** して運用する。本ファイルはその境界・`[workspace.dependencies]` 集約・toolchain 固定・sccache 連携・cargo-deny 設定・lint / test 運用を物理配置レベルで規定する。
 
-![Cargo workspace 2 分割と依存線](img/cargo_workspace_2分割.svg)
+![Cargo workspace 2 分割と依存線](img/10_Rust_Cargo_workspace構造.svg)
 
 `00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md` は tier1 Rust の crate 内部構造を確定済である。本ファイルはその上位層、つまり「どの単位で Cargo workspace を切るか」と「どうビルド時間を維持するか」を固定する役割を持つ。`02_世界トップ企業事例比較.md` で参照した AWS SDK for Rust の `[workspace.dependencies]` 集約方式と Rust Foundation の toolchain 固定方式を引き継ぎ、2 名運用で破綻しない最小構成を選ぶ。
 

@@ -1,0 +1,128 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="cosign-keyless" id="cosign01">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="cosign keyless 署名フロー: OIDC → Fulcio → Rekor → Kyverno 検証" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="10" width="840" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ciTitle" value="署名経路 (CI 側)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="gha" value="GitHub Actions&#10;release.yml@refs/heads/main&#10;permissions: id-token: write" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="oidc" value="OIDC JWT&#10;subject:&#10;repo:k1s0/k1s0:ref:...&#10;ACTIONS_ID_TOKEN_REQUEST_TOKEN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="fulcio" value="Fulcio&#10;fulcio.sigstore.dev&#10;OIDC 検証 → X.509 発行&#10;(有効期限 10 分)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="100" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="cert" value="X.509 短寿命証明書&#10;SAN: subject/issuer&#10;(10 分)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="100" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sign" value="cosign sign / attest&#10;(--yes, digest 固定)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ghcr" value="ghcr.io/k1s0/*&#10;5 種類 artifact&#10;(image/SBOM/Provenance/&#10;flagd/Helm)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="225" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rekor" value="Rekor&#10;rekor.sigstore.dev&#10;append-only Merkle Tree&#10;inclusion proof 発行" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="225" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tuf" value="TUF root&#10;~/.sigstore/root/&#10;(四半期確認)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="880" y="240" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="verTitle" value="検証経路 (admission / Forensics / monthly audit)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="1300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="podreq" value="Pod admission 要求&#10;(kubectl apply / Argo CD)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="kyverno" value="Kyverno ClusterPolicy&#10;verify-image-signatures.yaml&#10;validationFailureAction: Enforce" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="425" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="verify" value="keyless attestor&#10;issuer: token.actions.github&#10;subject: release.yml@main&#10;rekor.url 明示" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="425" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="rekorVer" value="Rekor inclusion proof&#10;integratedTime 検証&#10;(証明書期限内で署名)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="425" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="admit" value="Admission allow&#10;Pod 起動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="570" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="deny" value="Admission deny&#10;(未署名 / 不一致)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="570" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="audit" value="monthly audit&#10;ops/audit/cosign-monthly-verify.sh&#10;全 namespace Pod digest 走査" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="570" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="forensics" value="Forensics Step 4&#10;rekor-cli search / verify&#10;(40 節連動)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="680" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例: アプリ層(暖色)=GHA/cosign/Fulcio/Kyverno / ネットワーク層(寒色)=OIDC/X.509/keyless attestor / インフラ層(灰)=Pod/Forensics / データ層(紫)=ghcr/Rekor/TUF  実線=明示呼出 / 破線=構成参照" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="790" width="1300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="gha" target="oidc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="oidc" target="fulcio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="fulcio" target="cert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="gha" target="sign">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="cert" target="rekor">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="200" />
+              <mxPoint x="710" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sign" target="ghcr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="ghcr" target="rekor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#9673a6;strokeWidth=1;dashed=1;endArrow=none;" edge="1" parent="1" source="rekor" target="tuf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="podreq" target="kyverno">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="kyverno" target="verify">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#444444;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="verify" target="rekorVer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;exitX=0.3;exitY=1;entryX=0.5;entryY=0;strokeColor=#82b366;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="kyverno" target="admit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=none;rounded=0;html=1;exitX=0.7;exitY=1;entryX=0.5;entryY=0;strokeColor=#b85450;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="kyverno" target="deny">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#9673a6;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="rekorVer" target="audit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="470" />
+              <mxPoint x="1180" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#9673a6;strokeWidth=1;dashed=1;endArrow=classic;" edge="1" parent="1" source="audit" target="forensics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -4,16 +4,18 @@
 
 ## IMP-DIR ID 体系
 
-| 接頭辞 | サブ分類 | 範囲 | 用途 |
+ID 形式は `IMP-DIR-<サブ分類>-<3 桁通番>`。「ID 接頭辞（完全形）」列はサブ分類込みの実際に文書中に出現するプレフィクスを示し、grep などで全件抽出する際の検索キーとして使う。
+
+| ID 接頭辞（完全形） | サブ分類 | 通番範囲 | 用途 |
 |---|---|---|---|
-| IMP-DIR-ROOT | ROOT | 001-020 | ルートレイアウト |
-| IMP-DIR-T1 | T1 | 021-040 | tier1 レイアウト |
-| IMP-DIR-T2 | T2 | 041-055 | tier2 レイアウト |
-| IMP-DIR-T3 | T3 | 056-070 | tier3 レイアウト |
-| IMP-DIR-INFRA | INFRA | 071-090 | infra レイアウト |
-| IMP-DIR-OPS | OPS | 091-110 | deploy + ops レイアウト |
-| IMP-DIR-COMM | COMM | 111-125 | 共通資産（tools/tests/examples/third_party） |
-| IMP-DIR-SPARSE | SPARSE | 126-145 | スパースチェックアウト運用 |
+| IMP-DIR-ROOT-\* | ROOT | 001-020 | ルートレイアウト |
+| IMP-DIR-T1-\* | T1 | 021-040 | tier1 レイアウト |
+| IMP-DIR-T2-\* | T2 | 041-055 | tier2 レイアウト |
+| IMP-DIR-T3-\* | T3 | 056-070 | tier3 レイアウト |
+| IMP-DIR-INFRA-\* | INFRA | 071-090 | infra レイアウト |
+| IMP-DIR-OPS-\* | OPS | 091-110 | deploy + ops レイアウト |
+| IMP-DIR-COMM-\* | COMM | 111-125 | 共通資産（tools/tests/examples/third_party） |
+| IMP-DIR-SPARSE-\* | SPARSE | 126-145 | スパースチェックアウト運用 |
 
 合計 145 件の予約枠。Phase 0 時点での採番は約 40 件、残りは Phase 1b 以降で追加採番する。
 

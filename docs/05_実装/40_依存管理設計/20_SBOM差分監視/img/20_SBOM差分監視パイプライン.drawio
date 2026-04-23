@@ -1,0 +1,192 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="sbom-diff" id="sbom1">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" pageWidth="1700" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1700" height="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="SBOM 生成 → 差分監視 → CVE 照合 → Incident Taxonomy → Runbook 連動 (IMP-DEP-SBM-020〜027)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1660" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gen_title" value="[生成] CycloneDX 1.5 JSON" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="320" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="img_sbom" value="image SBOM&#xa;Syft (multi-stage final)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="95" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lang_sbom" value="言語 SBOM&#xa;cargo-cyclonedx&#xa;cyclonedx-gomod&#xa;cdx-npm / CycloneDX.NET" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="210" y="95" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="merge" value="cyclonedx-cli merge&#xa;tools/ci/sbom/merge.sh&#xa;統合 SBOM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="180" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cosign" value="cosign attest&#xa;--type cyclonedx&#xa;(80 章 IMP-SUP-COS-010)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="280" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="store_title" value="[保管] 2 経路 5 年保持" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="60" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="harbor" value="Harbor レジストリ&#xa;OCI attestation attach&#xa;image digest 紐付" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="95" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="minio" value="MinIO WORM bucket&#xa;s3://k1s0-sbom/YYYY/MM/DD/&lt;digest&gt;.cdx.json&#xa;Object Lock compliance mode 5 年保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="185" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="index" value="metadata index&#xa;ops/sbom/index.parquet&#xa;DuckDB ad-hoc クエリ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="285" width="300" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dt_title" value="[照合] 日次 CVE scan" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="820" y="60" width="320" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="dt" value="Dependency-Track HA 3 replica&#xa;infra/security/dependency-track/&#xa;OSV / GitHub Advisory / NVD 統合&#xa;新規 CVE 公表後 4 時間以内通知" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="95" width="320" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="diff" value="SBOM diff (cyclonedx-cli diff)&#xa;target branch ↔ HEAD&#xa;Added / Removed / Updated / License changed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="220" width="320" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pr" value="Renovate PR (40/10 章)&#xa;PR 本文へ自動コメント&#xa;Added/License changed あると&#xa;patch auto-merge を追加条件で block" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="320" width="320" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tax_title" value="[判定] Incident Taxonomy 重大度" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="60" width="320" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sev1" value="Critical / High (CVSS ≥ 7.0)&#xa;PagerDuty Sev2 即時起床" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="95" width="320" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="sev2" value="Medium&#xa;Slack #sec-cve 翌営業日レビュー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="160" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sev3" value="Low / 週次レポート&#xa;Dependency Dashboard 追記" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="220" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sev4" value="EOL / 廃止 package&#xa;Technology Radar Hold 降格検討 (90 章)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="280" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rb_title" value="[対応] Runbook 連動 NFR-E-SIR-001" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="360" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rb" value="ops/runbooks/incidents/security/cve-critical/&#xa;Step1 影響 image export (CSV + commit SHA)&#xa;Step2 Renovate emergency PR&#xa;Step3 quality gate → Argo Rollouts canary/full&#xa;Step4 顧客通知 (NFR-G-PRV-003)&#xa;Step5 Post-mortem 72h, 事後 ADR (D-ADR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="495" width="360" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="target" value="48 時間以内の修正 deploy&#xa;(業界平均 72h を短縮、Verizon DBIR 参考)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="670" width="360" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runtime" value="[Phase 1b] runtime SBOM verification&#xa;ops/audit/sbom-runtime-verify.sh (CronJob 週次)&#xa;稼働 Pod で Syft 実行 → ビルド時 SBOM と diff&#xa;drift 検出: labels: sbom-drift → OpenSearch SIEM&#xa;自動対応: Argo Rollouts で再 deploy 上書き" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+          <mxGeometry x="480" y="495" width="420" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ci" value="CI stage (30 章 _reusable-push.yml)&#xa;image build → SBOM 生成 → cosign sign/attest → MinIO 保管&#xa;順序固定で SBOM 未添付 image を構造排除" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="495" width="560" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nfr" value="対応 NFR: NFR-C-MGMT-003 (SBOM 100%) / NFR-H-INT-002 (SBOM 添付) / NFR-H-AUD-001 (完整性) / NFR-E-AV-002 (依存追跡) / NFR-G-PRV-003 (漏洩通知) / NFR-H-COMP-002 (J-SOX 5 年)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="595" width="560" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="770" width="1620" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="アプリ層 (ビルド処理・判定ロジック・Runbook): 暖色 #fff2cc / #d79b00" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="ネットワーク層 (透過的通知経路・通知 Taxonomy): 寒色 #dae8fc / #6c8ebf" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="840" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="インフラ層 (CI stage): 中性灰 #f5f5f5 / #666666" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="880" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="データ層 (SBOM 保管・index): 薄紫 #e1d5e7 / #9673a6" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="920" width="480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" value="実線太 = 生成・保管・照合など明示パイプライン / 破線 = 通知・非同期イベント" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="800" width="1080" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" value="Phase 0: 生成・2 経路保管・日次 CVE 照合 / Phase 1a: PR SBOM diff / Phase 1b: runtime drift 検知・OSV cross-check" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="835" width="1080" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l7" value="統合 SBOM が必須の理由: 言語レベル単体では OS ベースパッケージを取り逃し、image レベル単体では Rust/Go の詳細 version 解像度低下" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="870" width="1080" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l8" value="2 経路保管の理由: Harbor=運用利便 (cosign download sbom で即取得) / MinIO WORM=長期監査要件 (NFR-H-AUD-001 改竄不可)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="905" width="1080" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="l9" value="IMP-DEP-SBM-020〜027 / ADR-SUP-001 (予定) / ADR-DEP-001 (予定) / ADR-0003" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="940" width="1080" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="img_sbom" target="merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="lang_sbom" target="merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="merge" target="cosign">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="cosign" target="harbor">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="315" />
+              <mxPoint x="380" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="cosign" target="minio">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="315" />
+              <mxPoint x="390" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="cosign" target="index">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="harbor" target="dt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#9673a6;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="minio" target="diff">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="diff" target="pr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f10" style="edgeStyle=none;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;dashed=1;dashPattern=6 6;" edge="1" parent="1" source="dt" target="sev1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="dt" target="sev2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="dt" target="sev3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=classic;dashed=1;" edge="1" parent="1" source="dt" target="sev4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f14" value="Sev2 起床時" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sev1" target="rb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="460" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#d79b00;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="rb" target="target">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
