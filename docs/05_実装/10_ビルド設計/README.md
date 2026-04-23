@@ -8,6 +8,8 @@ Google や Meta は Bazel / Buck2 で選択ビルドを実現しているが、k
 
 Phase 1c 時点で Rust / Go / TypeScript のいずれかで単言語ビルド時間が 30 分を超えた場合、当該言語のみ Bazel 導入を再評価する（新 ADR 起票）。本章はその判定を可能にする計測点の設置も含む。
 
+![ビルド設計概観: Cargo 2 分割 + Go module 5 分割 + buf 連動 + path-filter](img/10_ビルド設計概観.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: Cargo workspace・go.mod 分離・pnpm workspace・dotnet sln 境界の確定、選択ビルド判定の path-filter 運用、ローカルキャッシュ戦略

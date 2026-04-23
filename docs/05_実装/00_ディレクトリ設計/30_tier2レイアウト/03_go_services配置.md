@@ -68,6 +68,31 @@ replace (
 
 Phase 1a は SDK を社内 registry に publish していないため、上記 `replace` directive で local path を参照して開発を進める。Phase 1b 以降、SDK が GitHub Packages / 社内プライベートに publish されたら `replace` 行をコメントアウトではなく削除し、正規の Go module 依存（`require github.com/k1s0/k1s0/src/sdk/go v0.1.0` のみ）に切り替える。`replace` の存在検出は `tools/ci/lint-replace-directive.sh` で Phase ゲートと連携する（Phase 1b 以降に `replace` が残っていれば fail）。
 
+## 複数 module の開発体験: go.work
+
+k1s0 は `src/tier1/go/` / `src/tier2/go/` / `src/tier3/bff/` / `src/sdk/go/` の 4 module を併存させる。VS Code Go 拡張（gopls）はモジュール跨ぎ参照を `go.work` 経由で解決するため、リポジトリルートに `go.work` を配置する。
+
+```go
+// go.work（リポジトリルート）
+go 1.22
+
+use (
+    ./src/tier1/go
+    ./src/tier2/go
+    ./src/tier3/bff
+    ./src/sdk/go
+)
+```
+
+`go.work` の運用ルール:
+
+- **ローカル開発**: `go.work` が有効になり、`replace` directive と併せて local path 解決。IDE で module 跨ぎの "Go to Definition" が機能する
+- **CI / 本番 build**: `GOWORK=off` 環境変数で `go.work` を無効化し、各 module が独立して `go build` される。`.github/workflows/*.yaml` の Go ジョブで `env: GOWORK: off` を明示。これにより CI は `go.work` の存在に依存せず、各 module の `go.mod` のみで再現性のあるビルドを行う
+- **Docker build**: Dockerfile 内で `GOWORK=off` を明示（`ENV GOWORK=off`）。build context が単一 module に閉じるため `go.work` があっても読めないが、安全側に明示する
+- **`go.work.sum`**: commit する（`go.sum` と同じ扱い）。`go.work` 使用時の依存の reproducibility を担保
+
+`go.work` は開発者体験の向上のみを目的とし、CI / 本番ビルドの依存関係には一切影響しない。`replace` と `go.work` の二系統で local 参照を張ることになるが、前者は publish 前の module 依存解決、後者は IDE の multi-module navigation という役割分担で矛盾しない。
+
 ## サービス単位の独立ビルド
 
 各サービスの `cmd/main.go` は独立のエントリポイント。`go build ./services/<service>/cmd/` で個別ビルド可能。

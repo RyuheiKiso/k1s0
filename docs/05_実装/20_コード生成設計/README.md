@@ -8,6 +8,8 @@ tier1 公開 11 API と tier1 内部 gRPC は契約（Protobuf）を単一真実
 
 Scaffold CLI は ADR-BS-001 の Backstage Software Template 互換でテンプレートメタデータを出力し、B（SRE）と D（Security）が承認権限を持つ。ゴールデン出力は `tests/golden/` に snapshot として保持し、生成器変更時の後方互換破壊を検出する。
 
+![コード生成パイプライン概観: buf + Scaffold CLI + 4 言語 SDK 展開](img/20_コード生成パイプライン概観.svg)
+
 ## Phase 確定範囲
 
 - Phase 0: buf での Protobuf 生成、4 言語 SDK 生成経路、Scaffold CLI の最小実装と golden snapshot
