@@ -81,6 +81,8 @@ desktop.ini
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+# Claude Code（個人設定は除外、共有設定・skill・command・hook は含める）
+.claude/settings.local.json
 # Vim / Neovim のスワップファイル
 *.swp
 *.swo
