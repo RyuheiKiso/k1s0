@@ -112,7 +112,7 @@ profileSession.Stop()
 
 ## 関連非機能要件
 
-- **NFR-C-MON-001**: 監視基盤（Prometheus / Tempo / Loki / Pyroscope）の構成要件
+- **NFR-C-NOP-001**: 監視基盤（Prometheus / Tempo / Loki / Pyroscope）の構成要件
 - **NFR-B-PERF-006**: 計装オーバヘッド < 10ms
 - **NFR-A-CONT-005**: Collector 障害時の tier2 稼働継続
 - **NFR-E-MON-001**: 計装データへの tenant_id 必須付与

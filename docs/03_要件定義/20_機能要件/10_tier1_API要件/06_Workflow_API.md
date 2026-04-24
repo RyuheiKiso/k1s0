@@ -129,4 +129,4 @@ k1s0.Workflow.CancelWorkflow(workflow_id: string) -> error?
 - **NFR-A-CONT-004**: Workflow 実行の永続化と再開性
 - **NFR-B-RES-003**: 並列 Workflow 数の水平拡張
 - **NFR-E-MON-003**: Workflow 実行の Audit 記録
-- **NFR-C-MON-003**: Workflow の遅延・滞留監視
+- **NFR-C-NOP-001**: Workflow の遅延・滞留を含む監視と可視化
