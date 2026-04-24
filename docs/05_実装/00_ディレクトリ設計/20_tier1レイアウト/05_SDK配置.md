@@ -19,7 +19,6 @@ src/sdk/
 ├── dotnet/                 # C# NuGet
 │   ├── Sdk.sln
 │   ├── Directory.Build.props
-│   ├── generated/          # buf generate の出力（gRPC stub）
 │   ├── src/
 │   │   ├── K1s0.Sdk/
 │   │   │   ├── K1s0.Sdk.csproj
@@ -27,9 +26,12 @@ src/sdk/
 │   │   │   ├── SecretsClient.cs
 │   │   │   ├── WorkflowClient.cs
 │   │   │   └── ...
-│   │   └── K1s0.Sdk.Auth/
-│   │       ├── K1s0.Sdk.Auth.csproj
-│   │       └── JwtValidator.cs
+│   │   ├── K1s0.Sdk.Auth/
+│   │   │   ├── K1s0.Sdk.Auth.csproj
+│   │   │   └── JwtValidator.cs
+│   │   └── K1s0.Sdk.Proto/         # buf generate の出力（gRPC stub、独立 csproj）
+│   │       ├── K1s0.Sdk.Proto.csproj
+│   │       └── Generated/          # DO NOT EDIT
 │   ├── tests/
 │   │   ├── K1s0.Sdk.Tests/
 │   │   │   └── K1s0.Sdk.Tests.csproj
@@ -51,15 +53,15 @@ src/sdk/
 │   │   └── workflow.go
 │   ├── auth/
 │   └── examples/
-├── typescript/             # npm workspace
+├── typescript/             # pnpm workspace
 │   ├── README.md
 │   ├── package.json
 │   ├── pnpm-workspace.yaml
 │   ├── tsconfig.base.json
 │   ├── packages/
-│   │   ├── proto/          # buf generate の出力
+│   │   ├── proto/          # buf generate の出力（gRPC-Web stub）
 │   │   │   ├── package.json
-│   │   │   └── src/
+│   │   │   └── src/        # DO NOT EDIT
 │   │   ├── client/
 │   │   │   ├── package.json
 │   │   │   ├── src/
@@ -113,11 +115,11 @@ Phase 2 骨組みとして最小実装のみ（`k1s0-sdk` crate の `lib.rs` に
 
 ## 生成コードの配置
 
-buf generate による gRPC stub 生成物は各言語の `generated/` または `proto/` 配下に commit。
+buf generate による gRPC stub 生成物は各言語の所定ディレクトリに commit（DO NOT EDIT）。
 
-- `dotnet/generated/` : C# generated classes
-- `go/proto/tier1/v1/` : Go generated .pb.go + _grpc.pb.go
-- `typescript/packages/proto/src/` : TypeScript generated .ts
+- `dotnet/src/K1s0.Sdk.Proto/Generated/` : C# generated classes（`K1s0.Sdk.Proto` csproj として独立管理）
+- `go/proto/tier1/v1/` : Go generated .pb.go + _grpc.pb.go（`paths=source_relative` により `tier1/v1/` 階層）
+- `typescript/packages/proto/src/` : TypeScript generated .ts（pnpm workspace の `proto` パッケージ内）
 - `rust/crates/k1s0-sdk-proto/src/gen/v1/` : Rust generated .rs（Phase 2）
 
 CI で `buf generate` 実行後、diff が 0 であることを検証。

@@ -40,24 +40,22 @@ tools/codegen/
 └── check-drift.sh                  # 生成結果と commit 済みの diff 検出
 ```
 
-`tools/codegen/buf/` 配下には yaml 実体を置かない。設定ドリフトを防ぐため、`buf.gen.tier1.yaml` と `buf.gen.sdk.yaml` の 2 原典は `src/contracts/` に限定配置し、本 wrapper からはパス指定で参照する（詳細は `gen.sh` セクション）。
+`tools/codegen/buf/` 配下には yaml 実体を置かない。設定ドリフトを防ぐため、`buf.gen.*.yaml`（4 ファイル: go / rust / ts / csharp）の原典は `src/contracts/` に限定配置し、本 wrapper からはパス指定で参照する（詳細は `gen.sh` セクション）。
 
 ## buf/ の運用
 
-### buf.gen.yaml
+### buf.gen.*.yaml
 
-`src/contracts/` を入力に複数言語コードを生成する。buf v2 形式を採用。
+`src/contracts/` を入力に複数言語コードを生成する。buf v2 形式を採用。言語軸で 4 ファイルに分割し、言語ごとの独立更新と選択ビルドを可能にする。
 
-本書は `buf.gen.*.yaml` の運用的補足（plugin 選定の根拠・tool version 連携）を扱う。`buf.gen.tier1.yaml` と `buf.gen.sdk.yaml` の正規定義は [../20_tier1レイアウト/02_contracts配置.md](../20_tier1レイアウト/02_contracts配置.md) に単一原典として集約する（二重管理による設定ドリフトを防ぐため）。tier1 内部生成と SDK 生成は yaml を物理的に分離して internal package の SDK 混入を構造的に防止する。以下は原典から抜粋した出力先の俯瞰表。
+本書は `buf.gen.*.yaml` の運用的補足（plugin 選定の根拠・tool version 連携）を扱う。`buf.gen.*.yaml` の正規定義は [../20_tier1レイアウト/02_contracts配置.md](../20_tier1レイアウト/02_contracts配置.md) に単一原典として集約する（二重管理による設定ドリフトを防ぐため）。以下は原典から抜粋した出力先の俯瞰表。
 
-| 言語 | yaml | 用途 | 出力先 | 参考 plugin |
+| 言語 | yaml | 出力先（tier1 サーバー） | 出力先（SDK） | 参考 plugin |
 |---|---|---|---|---|
-| Go | tier1 | tier1 実装 | `src/tier1/go/internal/proto/` | `buf.build/protocolbuffers/go` + `buf.build/grpc/go` |
-| Go | sdk | SDK | `src/sdk/go/proto/` | 同上（`paths=source_relative`） |
-| Rust | tier1 | tier1 実装 | `src/tier1/rust/crates/proto-gen/src/` | `buf.build/community/neoeinstein-prost` + `buf.build/community/neoeinstein-tonic` |
-| Rust | sdk | SDK（Phase 2） | `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/` | 同上 |
-| C# | sdk | SDK | `src/sdk/dotnet/generated/` | `buf.build/protocolbuffers/csharp` + `buf.build/grpc/csharp` |
-| TypeScript | sdk | SDK | `src/sdk/typescript/packages/proto/src/` | `buf.build/connectrpc/es`（connectrpc 採用） |
+| Go | `buf.gen.go.yaml` | `src/tier1/go/internal/proto/` | `src/sdk/go/proto/` | `buf.build/protocolbuffers/go` + `buf.build/grpc/go` |
+| Rust | `buf.gen.rust.yaml` | `src/tier1/rust/crates/proto-gen/src/`（flat） | `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/`（Phase 2） | `buf.build/community/neoeinstein-prost` + `buf.build/community/neoeinstein-tonic` |
+| C# | `buf.gen.csharp.yaml` | なし（tier1 に C# 無し） | `src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/` | `buf.build/protocolbuffers/csharp` + `buf.build/grpc/csharp` |
+| TypeScript | `buf.gen.ts.yaml` | なし（tier1 に TS 無し） | `src/sdk/typescript/packages/proto/src/` | `buf.build/connectrpc/es`（connectrpc 採用） |
 
 ### gen.sh
 
@@ -73,11 +71,14 @@ buf lint src/contracts
 echo "=== Protobuf breaking change check ==="
 buf breaking src/contracts --against ".git#branch=main,subdir=src/contracts"
 
-echo "=== Protobuf code generation (tier1 internal) ==="
-(cd src/contracts && buf generate --template buf.gen.tier1.yaml)
+echo "=== Protobuf code generation (4 言語) ==="
+cd src/contracts
+for tmpl in buf.gen.go.yaml buf.gen.rust.yaml buf.gen.ts.yaml buf.gen.csharp.yaml; do
+    echo "  -- $tmpl"
+    buf generate --template "$tmpl"
+done
 
-echo "=== Protobuf code generation (SDK public-only) ==="
-(cd src/contracts && buf generate --template buf.gen.sdk.yaml)
+cd "$(git rev-parse --show-toplevel)"
 
 echo "=== Go mod tidy ==="
 (cd src/sdk/go && go mod tidy)

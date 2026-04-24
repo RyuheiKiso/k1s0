@@ -101,16 +101,18 @@ echo "k1s0-dev cluster ready. Run 'tools/sparse/checkout-role.sh <role>' to scop
 
 ### buf/
 
-Protobuf → 各言語コード生成。`src/contracts/` の .proto を入力に Go / Rust / C# / TypeScript コードを生成する。`buf.gen.yaml` の実体は `src/contracts/buf.gen.yaml` にあり、本 `tools/codegen/buf/gen.sh` はその wrapper として `buf generate` の 実行順序・差分検知・ローカルツール版固定を行う。`buf.gen.yaml` の正規定義は [../20_tier1レイアウト/02_contracts配置.md](../20_tier1レイアウト/02_contracts配置.md) に単一原典として集約し、本書で重複定義しない（二重管理による設定ドリフトを防ぐため）。
+Protobuf → 各言語コード生成。`src/contracts/` の .proto を入力に Go / Rust / C# / TypeScript コードを生成する。`buf.gen.*.yaml`（4 ファイル: go / rust / ts / csharp）の実体は `src/contracts/` に置かれており、本 `tools/codegen/buf/gen.sh` はその wrapper として `buf generate` の実行順序・差分検知・ローカルツール版固定を行う。`buf.gen.*.yaml` の正規定義は [../20_tier1レイアウト/02_contracts配置.md](../20_tier1レイアウト/02_contracts配置.md) に単一原典として集約し、本書で重複定義しない（二重管理による設定ドリフトを防ぐため）。
 
 ```bash
 # tools/codegen/buf/gen.sh（抜粋）
 #!/usr/bin/env bash
 set -euo pipefail
 
-# .tool-versions の buf を起動、src/contracts/buf.gen.yaml を参照
+# .tool-versions の buf を起動、src/contracts/buf.gen.*.yaml を順次実行
 cd "$(dirname "$0")/../../../src/contracts"
-buf generate
+for tmpl in buf.gen.go.yaml buf.gen.rust.yaml buf.gen.ts.yaml buf.gen.csharp.yaml; do
+    buf generate --template "$tmpl"
+done
 ```
 
 詳細は `06_codegen配置.md` で規定。

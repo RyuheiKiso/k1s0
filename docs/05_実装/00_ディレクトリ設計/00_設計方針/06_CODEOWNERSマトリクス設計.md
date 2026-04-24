@@ -89,7 +89,7 @@ Phase 0 時点では全チームが同一の 2 名に割り当てられる状態
 # Protobuf 契約は契約レビュー担当が必須
 /src/contracts/                                 @k1s0/contract-reviewers
 /src/contracts/buf.yaml                         @k1s0/contract-reviewers @k1s0/arch-council
-/src/contracts/buf.gen.yaml                     @k1s0/contract-reviewers @k1s0/platform-team
+/src/contracts/buf.gen.*.yaml                   @k1s0/contract-reviewers @k1s0/platform-team
 /src/contracts/tier1/                           @k1s0/contract-reviewers @k1s0/tier1-rust @k1s0/tier1-go
 /src/contracts/internal/                        @k1s0/contract-reviewers @k1s0/tier1-rust @k1s0/tier1-go
 ```

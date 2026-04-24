@@ -153,8 +153,8 @@ func main() {
 
 buf generate 実行時の流れ。
 
-1. `src/contracts/` ディレクトリで `buf generate` を実行
-2. `buf.gen.yaml` の Go plugin が `src/contracts/tier1/v1/*.proto` と `src/contracts/internal/v1/*.proto` を入力として取り込む
+1. `src/contracts/` ディレクトリで `buf generate --template buf.gen.go.yaml` を実行
+2. `buf.gen.go.yaml` の Go plugin が `src/contracts/tier1/v1/*.proto` と `src/contracts/internal/v1/*.proto` を入力として取り込む
 3. 出力先 `../tier1/go/internal/proto/` に `.pb.go` / `_grpc.pb.go` を生成
 4. 生成物は git commit（DS-SW-COMP-122）
 

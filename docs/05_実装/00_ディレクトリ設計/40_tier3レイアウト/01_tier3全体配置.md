@@ -39,7 +39,8 @@ src/tier3/
 │   │   ├── graphql/
 │   │   ├── rest/
 │   │   └── k1s0client/
-│   └── Dockerfile
+│   ├── Dockerfile.portal       # portal Web 向け BFF
+│   └── Dockerfile.admin        # admin Web 向け BFF
 └── legacy-wrap/            # .NET Framework sidecar wrapper
     ├── LegacyWrap.sln
     └── sidecars/
