@@ -57,8 +57,9 @@ def main() -> int:
     if count >= BLOCK_AT:
         msg = (
             f"docs/ 配下の Read がこのセッションで {count} 回目に達したためブロックしました。"
-            "Agent(subagent_type=Explore) に docs/INDEX.md を渡して委譲し、"
-            "親コンテキストには要約のみ返させてください。"
+            "Agent(subagent_type=docs-explorer) に依頼趣旨を渡して委譲し、"
+            "親コンテキストには要約のみ返させてください（docs-explorer は Haiku ベースで "
+            "INDEX.md → サブ README → 目的ファイルの動線を自走します）。"
             "しきい値は .claude/hooks/docs-read-guard.py の BLOCK_AT。"
         )
         payload = {
@@ -73,7 +74,7 @@ def main() -> int:
     elif count >= WARN_AT:
         warn = (
             f"docs/ 配下の Read がこのセッションで {count} 件目。"
-            "以降は Agent(subagent_type=Explore) への委譲が推奨"
+            "以降は Agent(subagent_type=docs-explorer) への委譲が推奨"
             "（docs/INDEX.md の「情報を探す時の推奨順序」参照）。"
             f"{BLOCK_AT} 件目からはブロックされる。"
         )

@@ -36,9 +36,9 @@
 
 ## 探索動線の要点（詳細は [INDEX.md](INDEX.md)）
 
-docs 配下は 600 ファイル超・53,000 行超の規模で、全 md を親コンテキストに読むとトークンを急速に消費する。最小動線は [`INDEX.md`](INDEX.md) → 該当ディレクトリの `README.md` → 目的ファイル、の 3 段で辿ること。**2 ファイル以上を読む見込みになった時点で `Agent(subagent_type=Explore)` に委譲**し、親には要約のみを返させる。ID 既知のピンポイント参照は親で直読してよい（Explore 起動コストの方が高くつく）。階層ナビゲーション表・ID 体系表・ADR 系列・典型パターンは `INDEX.md` に集約してあるため、本ファイルには重複して置かない。
+docs 配下は 600 ファイル超・53,000 行超の規模で、全 md を親コンテキストに読むとトークンを急速に消費する。最小動線は [`INDEX.md`](INDEX.md) → 該当ディレクトリの `README.md` → 目的ファイル、の 3 段で辿ること。**2 ファイル以上を読む見込みになった時点で `Agent(subagent_type=docs-explorer)` に委譲**し、親には要約のみを返させる（定義: [`.claude/agents/docs-explorer.md`](../.claude/agents/docs-explorer.md)、Haiku ベースの専用 Explore）。ID 既知のピンポイント参照は親で直読してよい（サブエージェント起動コストの方が高くつく）。階層ナビゲーション表・ID 体系表・ADR 系列・典型パターンは `INDEX.md` に集約してあるため、本ファイルには重複して置かない。
 
-なお、docs/ 配下の Read が連続するとハーネス側の hook（`.claude/hooks/docs-read-guard.py`）が警告を出し、一定回数を超えるとブロックして Explore 委譲を強制する。警告が出た時点で親での直読を止め、Explore に切り替えること。
+なお、docs/ 配下の Read が連続するとハーネス側の hook（`.claude/hooks/docs-read-guard.py`）が警告を出し、一定回数を超えるとブロックして `docs-explorer` への委譲を強制する。警告が出た時点で親での直読を止め、サブエージェントに切り替えること。
 
 ## 参照
 

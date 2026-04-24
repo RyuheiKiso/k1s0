@@ -37,7 +37,7 @@
 | PR レビュー / セルフチェック | Skill `docs-review-checklist`（汎用レビューは組み込み `/review`） |
 | drawio 図の新規作成・編集 | Skill `drawio-authoring` |
 | 複数レイヤが登場する drawio | Skill `figure-layer-convention` |
-| docs の横断調査（複数ディレクトリに跨る調査） | [`docs/INDEX.md`](docs/INDEX.md) を先に読み、必要なら `Agent(subagent_type=Explore)` に委譲 |
+| docs の横断調査（複数ディレクトリ / 複数ファイル / ID 網羅探索） | `Agent(subagent_type=docs-explorer)` に委譲（定義: [.claude/agents/docs-explorer.md](.claude/agents/docs-explorer.md)、Haiku ベースで `INDEX.md → README.md → 目的ファイル` を遵守し要約のみ返す）。ID 既知の単一ファイル直読は親で Read する方が軽い。 |
 
 **docs 作業の絶対原則**: 開始時に必ず `docs-delivery-principles` Skill を読むこと。過去に「量を言い訳にした段階対応」で叱責を受けた経緯があり、納品品質は最初から果たすべき責務として扱う。
 
