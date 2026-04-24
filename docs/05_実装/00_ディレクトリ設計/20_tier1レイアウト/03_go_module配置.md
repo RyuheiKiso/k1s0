@@ -37,7 +37,7 @@ src/tier1/go/
 │   │       │   ├── workflow_grpc.pb.go
 │   │       │   └── ...（他 API 分）
 │   │       └── internal/
-│   │           └── v1/             # tier1 内部 API（SDK には漏れない、buf.gen.tier1.yaml のみで生成）
+│   │           └── v1/             # tier1 内部 API（SDK には漏れない、buf.gen.go.yaml の internal include_types で生成）
 │   │               ├── common.pb.go
 │   │               ├── errors.pb.go
 │   │               └── pii.pb.go
@@ -160,7 +160,7 @@ buf generate 実行時の流れ。
 
 CI で `buf generate` 実行後に `git diff --exit-code internal/proto/` を実行し、drift 検出を自動化する。
 
-なお multi-module 時の IDE 体験（tier1-go / tier2-go / tier3-bff / sdk-go を跨いだ go to definition など）はリポジトリルートの `go.work` で担保する。CI / 本番ビルドは `GOWORK=off` で各 module 独立させる運用。詳細は [../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) の「複数 module の開発体験: go.work」を参照。
+Go module 分離戦略（IMP-BUILD-GM-026 により go.work は不採用）の詳細は [../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) の「Go module 戦略」を参照。
 
 ## 依存方向の強制
 

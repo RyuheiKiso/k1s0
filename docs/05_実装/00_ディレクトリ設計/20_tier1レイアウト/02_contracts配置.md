@@ -14,7 +14,10 @@ ADR-DIR-001 で論じた通り、契約は tier1 所有物ではなく tier1 / t
 src/contracts/
 ├── README.md
 ├── buf.yaml              # buf モジュール設定
-├── buf.gen.yaml          # 生成設定（Go / Rust / C# / TypeScript 向け）
+├── buf.gen.go.yaml       # 生成設定（Go 向け: tier1 サーバー + SDK）
+├── buf.gen.rust.yaml     # 生成設定（Rust 向け: tier1 サーバー + SDK）
+├── buf.gen.ts.yaml       # 生成設定（TypeScript 向け: SDK のみ）
+├── buf.gen.csharp.yaml   # 生成設定（C# 向け: SDK のみ）
 ├── buf.lock              # 依存 lock
 ├── tier1/
 │   └── v1/               # tier1 公開 11 API
