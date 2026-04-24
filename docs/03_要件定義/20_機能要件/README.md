@@ -44,7 +44,7 @@ tier1 が公開する 11 API の責務を以下に箇条書きで示す。詳細
 3. **PubSub**: イベント配信（Kafka バックエンド、at-least-once 保証）
 4. **Secrets**: 秘密情報管理（OpenBao バックエンド、動的シークレット）
 5. **Binding**: 外部入出力バインディング（MinIO / SMTP / HTTP 等）
-6. **Workflow**: ワークフロー・Saga（Dapr Workflow + Temporal 長期実行補完）
+6. **Workflow**: ワークフロー・Saga（短期は Dapr Workflow、長期実行は Temporal）
 7. **Log**: 構造化ログ（W3C Trace Context 自動注入）
 8. **Telemetry**: 分散トレース・メトリクス（OpenTelemetry ラッパ）
 9. **Decision**: ビジネスルール決定表評価（ZEN Engine）

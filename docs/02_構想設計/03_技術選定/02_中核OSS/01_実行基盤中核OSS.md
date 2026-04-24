@@ -111,7 +111,7 @@ k1s0 の実行基盤を構成する中核 OSS (k8s / Istio / Envoy Gateway / Kaf
 | 2PC (Two-Phase Commit) | 却下 | 可用性を下げる。マイクロサービスに不向き |
 | TCC (Try-Confirm-Cancel) | 却下 | Saga より複雑。学習コスト高 |
 
-**採用方針**: tier1 公開 API `k1s0.Workflow.*` が Saga を隠蔽する。内部実装は Dapr Workflow を利用する。
+**採用方針**: tier1 公開 API `k1s0.Workflow.*` が Saga を隠蔽する。内部実装は短期系を Dapr Workflow、長期実行系を Temporal で補完する。
 
 ---
 
@@ -131,7 +131,7 @@ tier1 が提供する共通機能 (service invocation / state / pub-sub / secret
 
 1. tier1 が自前実装するはずだった機能の大半を CNCF Graduated レベルで提供済み
 2. 言語非依存で tier2 / tier3 の言語自由度を阻害しない
-3. Dapr Workflow により Saga オーケストレータの自前実装が不要
+3. Dapr Workflow が短期オーケストレーションを担い、長期 Saga は Temporal が補完するため、自前の durable workflow 基盤を持たずに済む
 4. Component による宣言的なバックエンド切替で infra 変更 (Kafka → NATS 等) の影響を tier2 / tier3 に波及させない
 5. 業界標準に乗れるためアプリチームの学習資産が市場価値を持つ
 

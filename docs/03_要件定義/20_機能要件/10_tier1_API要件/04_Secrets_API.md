@@ -46,6 +46,8 @@ tier2 / tier3 が必要とする秘密情報を、ハードコード・環境変
 
 ### FR-T1-SECRETS-003: Transit 暗号化（API 経由）
 
+**業務根拠**: BR-PLATGOV-003（暗号鍵をアプリへ露出させず、機密フィールド保護を共通化するため）。
+
 **現状**: 業務データの一部フィールド（個人情報、機密文書）を暗号化したい場合、tier2 が AES 実装・鍵管理を自前で行う必要がある。鍵のローテーションやバージョン管理が煩雑。
 
 **要件達成後**: `k1s0.Secrets.Encrypt(key_name, plaintext)`、`Decrypt(key_name, ciphertext)` で OpenBao Transit を呼び出す。鍵そのものは tier2 に露出せず、OpenBao 内で版管理される。鍵ローテーションは Transit の rekey 機能で実施し、既存暗号文は旧版鍵でも復号可能。

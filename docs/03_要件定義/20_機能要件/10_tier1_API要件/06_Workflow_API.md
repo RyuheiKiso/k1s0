@@ -26,6 +26,8 @@
 
 ### FR-T1-WORKFLOW-002: 長期実行 Saga（Temporal）
 
+**業務根拠**: BR-PLATUSE-006（長期実行プロセスが Pod 再起動やデプロイを跨いでも失われないこと）。
+
 **現状**: 数時間〜数日に及ぶ業務プロセス（稟議承認、月次バッチ、在庫棚卸）を Dapr Workflow で書くと、タイマー精度・スケーラビリティ・Workflow バージョニングの制約に当たる。
 
 **要件達成後**: `k1s0.Workflow.RunLong("workflow-name", input, options)` で Temporal Workflow を起動する。Temporal のタイマー（日単位）、バージョニング、大量並列実行に対応。tier2 から見たインタフェースは Dapr Workflow と共通。
@@ -36,11 +38,11 @@
 - 最大実行時間は無制限（Temporal の仕様に従う）
 - Workflow バージョニングで互換性維持
 - Temporal と Dapr Workflow の共通 API で tier2 から切替可能
-- 優先度 SHOULD（Temporal 運用負荷次第、Phase 1b 評価）
+- 優先度 SHOULD（長期実行ユースケースで適用し、短期処理は FR-T1-WORKFLOW-001 / 004 を優先）
 
 ### FR-T1-WORKFLOW-003: 補償ロジック（Compensating Transactions）
 
-**業務根拠**: BR-PLATUSE-004（分散トランザクション不整合による業務データ破損の構造的防止）。
+**業務根拠**: BR-PLATGOV-002（分散トランザクション不整合による業務データ破損の構造的防止）。
 
 **現状**: Saga パターンの補償処理（ロールバック）は tier2 が個別実装する。複数サービスに跨る補償の順序制御は手書きで、忘れや順序誤りが発生する。社内既存システムでは四半期に 1 件程度、Saga 補償抜けによる不整合データの発見があり、1 件あたり経理 / 業務部門連携で平均 60 人時の手動復旧作業が発生している。年 4 件 × 60 人時 = 240 人時/年。加えて不整合発見から復旧までの平均リードタイムは 5 営業日で、その間の業務判断が停滞するコストも含まれる。
 
@@ -119,8 +121,7 @@ k1s0.Workflow.CancelWorkflow(workflow_id: string) -> error?
 ## Phase 対応
 
 - **Phase 1a**: 未提供
-- **Phase 1b**: FR-T1-WORKFLOW-001、003、004（Dapr Workflow 中心）
-- **Phase 1b/1c**: FR-T1-WORKFLOW-002（Temporal 採用判定）
+- **Phase 1b**: FR-T1-WORKFLOW-001〜004（短期は Dapr Workflow、長期実行は Temporal）
 - **Phase 1c**: FR-T1-WORKFLOW-005
 
 ## 関連非機能要件
