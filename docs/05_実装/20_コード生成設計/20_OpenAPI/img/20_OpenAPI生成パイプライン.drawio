@@ -1,0 +1,130 @@
+<mxfile host="docs.k1s0">
+  <diagram id="openapi-pipeline" name="openapi-pipeline">
+    <mxGraphModel dx="1200" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="700" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="OpenAPI 生成パイプライン（HTTP / REST 系の契約 → 3 言語クライアント / サーバスタブ）" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="contracts" value="src/contracts/openapi/&#xa;v1/&#xa;  portal-api.yaml&#xa;  admin-api.yaml&#xa;  external-webhook.yaml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="190" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gen_ts" value="openapi-typescript&#xa;(public.io/openapi-typescript)&#xa;&#xa;TS フェッチクライアント生成&#xa;型: 純粋 .d.ts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="100" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gen_go" value="oapi-codegen&#xa;(deepmap/oapi-codegen)&#xa;&#xa;Go サーバスタブ + クライアント&#xa;chi / echo / std router 対応" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="260" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gen_csharp" value="NSwag.MSBuild&#xa;(RicoSuter/NSwag)&#xa;&#xa;C# クライアント生成&#xa;System.Net.Http 上に直接マップ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="420" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="out_ts" value="src/tier3/web/packages/gen/openapi/&#xa;@k1s0-internal/gen/openapi&#xa;// Code generated. DO NOT EDIT." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="100" width="380" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="out_go" value="src/tier3/bff/internal/gen/openapi/&#xa;src/tier1/go/internal/external/gen/openapi/&#xa;// Code generated. DO NOT EDIT." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="260" width="380" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="out_csharp" value="src/tier2/dotnet/K1s0.Tier2.Survey/Generated/OpenApi/&#xa;src/sdk/dotnet/K1s0.Sdk.Grpc/Generated/OpenApi/&#xa;// Code generated. DO NOT EDIT." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="420" width="380" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c2ts" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;" edge="1" parent="1" source="contracts" target="gen_ts">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="230" />
+              <mxPoint x="350" y="160" />
+              <mxPoint x="400" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_c2go" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;" edge="1" parent="1" source="contracts" target="gen_go">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="270" />
+              <mxPoint x="350" y="320" />
+              <mxPoint x="400" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_c2cs" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;" edge="1" parent="1" source="contracts" target="gen_csharp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="310" />
+              <mxPoint x="350" y="480" />
+              <mxPoint x="400" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_ts2out" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="gen_ts" target="out_ts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_go2out" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="gen_go" target="out_go">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cs2out" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="gen_csharp" target="out_csharp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="oapi_diff" value="oasdiff (breaking 検知)&#xa;CI ステージで yaml 変更時に必須実行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="380" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e_c2diff" style="endArrow=classic;html=1;rounded=0;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;" edge="1" parent="1" source="contracts" target="oapi_diff">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendbox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="1080" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ct" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="592" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_cttxt" value="契約 (OpenAPI yaml)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="589" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_gen" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="290" y="592" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_gentxt" value="ジェネレータ (CLI)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="315" y="589" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_out" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="500" y="592" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_outtxt" value="生成物 (// Code generated. DO NOT EDIT.)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="525" y="589" width="320" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_diff" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="850" y="592" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_difftxt" value="breaking 検知ゲート (oasdiff)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="875" y="589" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_note" value="3 ジェネレータは独立稼働するが入力は単一 yaml で共有される。これは IMP-CODEGEN-POL-001（単一真実源）の OpenAPI 側具体化。oasdiff は IMP-CODEGEN-POL-003（buf breaking）の HTTP 側相当。" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="80" y="625" width="1040" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

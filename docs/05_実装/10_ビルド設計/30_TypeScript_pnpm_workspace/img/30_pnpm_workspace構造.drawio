@@ -1,0 +1,177 @@
+<mxfile host="docs.k1s0">
+  <diagram id="ts-pnpm" name="ts-pnpm">
+    <mxGraphModel dx="1200" dy="780" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="780" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="pnpm workspace 構成と --filter 連動" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="contracts" value="src/contracts/&#xa;(.proto / .openapi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bufgen" value="buf generate&#xa;openapi-typescript&#xa;(20_コード生成設計)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c2b" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="contracts" target="bufgen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wsA" value="workspace A: src/tier3/web/  (pnpm-workspace.yaml, --filter 単位)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="330" y="80" width="850" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="portal" value="apps/portal&#xa;(public web)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="160" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="admin" value="apps/admin&#xa;(internal admin)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="550" y="160" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="common" value="packages/common-ui&#xa;(shared UI / hooks)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="740" y="160" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tier3gen" value="packages/gen/&#xa;// Code generated. DO NOT EDIT." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="940" y="160" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wsAnote" value="`pnpm --filter=apps/portal...` で portal とその依存（common-ui / gen）のみビルド" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="350" y="290" width="800" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_p2c" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;" edge="1" parent="1" source="portal" target="common">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="445" y="135" />
+              <mxPoint x="830" y="135" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_a2c" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" edge="1" parent="1" source="admin" target="common">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_b2g3" value="buf generate output" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="bufgen" target="tier3gen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="224" />
+              <mxPoint x="300" y="395" />
+              <mxPoint x="1050" y="395" />
+              <mxPoint x="1050" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="wsB" value="workspace B（独立 package）: src/sdk/typescript/  (npm publish)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="330" y="430" width="850" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sdksrc" value="@k1s0/sdk-rpc&#xa;src/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="500" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sdkgen" value="@k1s0/sdk-rpc&#xa;src/gen/&#xa;// Code generated" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="565" y="500" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dist" value="dist/&#xa;(npm publish output)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="790" y="500" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_b2gsdk" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="bufgen" target="sdkgen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="256" />
+              <mxPoint x="290" y="615" />
+              <mxPoint x="665" y="615" />
+              <mxPoint x="665" y="580" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_s2d" value="pnpm build" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="sdksrc" target="dist">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="475" />
+              <mxPoint x="775" y="475" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_p2sdk" value="@k1s0/sdk-rpc (npm semver)" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#999999;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;labelBackgroundColor=#FFFFFF;align=left;" edge="1" parent="1" source="portal" target="sdksrc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="200" />
+              <mxPoint x="315" y="475" />
+              <mxPoint x="450" y="475" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legendbox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="780" y="670" width="380" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_src" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="790" y="698" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_srctxt" value="ソース package" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="695" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_gen" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="940" y="698" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_gentxt" value="生成物 (gen/, dist/)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="695" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ct" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="720" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_cttxt" value="契約定義 (contracts)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="717" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="940" y="720" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_bgtxt" value="ビルドツール" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="717" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ws_l" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#82b366;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="790" y="747" as="sourcePoint" />
+            <mxPoint x="810" y="747" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_wstxt" value="workspace 境界 (pnpm)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="740" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ext_l" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#999999;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="940" y="747" as="sourcePoint" />
+            <mxPoint x="970" y="747" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_exttxt" value="npm semver 経由依存" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="975" y="740" width="160" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,149 @@
+<mxfile host="docs.k1s0">
+  <diagram id="path-filter" name="path-filter">
+    <mxGraphModel dx="1200" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="700" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="path-filter 4 段判定フロー（変更ファイル → ビルドジョブ）" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="input" value="変更ファイル一覧&#xa;(GitHub Actions&#xa;dorny/paths-filter)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s1" value="第 1 段&#xa;tier 判定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="200" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_opts" value="tier1 / tier2 / tier3&#xa;sdk / platform&#xa;infra / docs / contracts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;dashed=1;dashPattern=4 2;" vertex="1" parent="1">
+          <mxGeometry x="260" y="320" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s2" value="第 2 段&#xa;言語判定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="200" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_opts" value="Rust / Go / TS / C#&#xa;YAML / md / proto" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;dashed=1;dashPattern=4 2;" vertex="1" parent="1">
+          <mxGeometry x="480" y="320" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3" value="第 3 段&#xa;workspace 判定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="200" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_opts" value="Cargo workspace&#xa;go.mod / pnpm pkg&#xa;sln 単位" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;dashed=1;dashPattern=4 2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="320" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s4" value="第 4 段&#xa;契約変更横断" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="200" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_opts" value="contracts/** 変更時&#xa;→ SDK 4 言語 +&#xa;tier1 サーバー全強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;fontSize=11;dashed=1;dashPattern=4 2;" vertex="1" parent="1">
+          <mxGeometry x="920" y="320" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_in_s1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="input" target="s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s1_s2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s2_s3" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s3_s4" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="outputs" value="出力: 起動するビルドジョブ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="1120" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="o_cargo" value="cargo build / nextest&#xa;(対象 workspace のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="490" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="o_go" value="go build ./... / go test&#xa;(対象 module のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="280" y="490" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="o_pnpm" value="pnpm --filter=...&#xa;(対象 package のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="490" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="o_dotnet" value="dotnet build &lt;sln&gt;&#xa;(対象 sln のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="490" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="o_special" value="契約変更時:&#xa;SDK 4 言語 + tier1 全ビルド強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="940" y="490" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="o_lint" value="docs / md only:&#xa;markdownlint + textlint のみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="565" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="o_infra" value="infra/** 変更:&#xa;helmfile diff + kustomize build dry-run" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="565" width="280" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="o_workflow" value=".github/workflows/** 変更:&#xa;全ジョブ強制 (フェイルセーフ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="660" y="565" width="280" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_s4_out" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="s4" target="outputs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1005" y="430" />
+              <mxPoint x="600" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legendbox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1120" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_in" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="92" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_intxt" value="入力 (変更ファイル一覧)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="89" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_stage" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="92" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_stagetxt" value="判定段 (path-filter ロジック)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="285" y="89" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_normal" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="500" y="92" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_normaltxt" value="通常ビルドジョブ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="525" y="89" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_safe" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="700" y="92" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_safetxt" value="軽量ジョブ (lint / dry-run)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="725" y="89" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_full" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="930" y="92" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_fulltxt" value="全強制ジョブ (横断伝播)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="955" y="89" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_opt" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6c8ebf;dashed=1;dashPattern=4 2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="125" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_opttxt" value="判定段の選択肢一覧" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="122" width="200" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

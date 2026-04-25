@@ -1,0 +1,197 @@
+<mxfile host="docs.k1s0">
+  <diagram id="dotnet-sln" name="dotnet-sln">
+    <mxGraphModel dx="1200" dy="780" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="780" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="dotnet sln 3 分割と NuGet 経由依存" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="700" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="contracts" value="src/contracts/&#xa;(.proto / .openapi)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bufgen" value="buf generate&#xa;protoc-gen-grpc-csharp&#xa;(20_コード生成設計)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_c2b" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;" edge="1" parent="1" source="contracts" target="bufgen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slnTier2" value="src/tier2/dotnet/Tier2.sln  (業務サービス)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="330" y="80" width="850" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_csproj" value="K1s0.Tier2.Survey&#xa;(csproj)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_gen" value="K1s0.Tier2.Survey/Generated/&#xa;// Code generated. DO NOT EDIT." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="130" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_tests" value="K1s0.Tier2.Survey.Tests&#xa;(csproj)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="130" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slnNative" value="src/tier3/native/Native.sln  (MAUI / WPF)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="330" y="280" width="850" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n_csproj" value="K1s0.Native.Hub&#xa;(MAUI csproj)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="330" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n_gen" value="K1s0.Native.Hub/Generated/&#xa;// Code generated" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="330" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n_tests" value="K1s0.Native.Hub.Tests&#xa;(csproj)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="330" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="slnSdk" value="src/sdk/dotnet/Sdk.sln  (NuGet 配布)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="330" y="480" width="850" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="s_csproj" value="K1s0.Sdk.Grpc&#xa;(csproj, public API)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="530" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s_gen" value="K1s0.Sdk.Grpc/Generated/&#xa;// Code generated" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="610" y="530" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s_pkg" value="bin/Release/*.nupkg&#xa;(dotnet pack 出力)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="880" y="530" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_b2t2g" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="bufgen" target="t2_gen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="240" />
+              <mxPoint x="290" y="170" />
+              <mxPoint x="610" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_b2ng" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="bufgen" target="n_gen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="240" />
+              <mxPoint x="300" y="370" />
+              <mxPoint x="610" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_b2sg" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="bufgen" target="s_gen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="305" y="240" />
+              <mxPoint x="305" y="570" />
+              <mxPoint x="610" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_t2_test" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="t2_csproj" target="t2_tests">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="230" />
+              <mxPoint x="980" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_n_test" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="n_csproj" target="n_tests">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="430" />
+              <mxPoint x="980" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_s_pack" value="dotnet pack" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="s_csproj" target="s_pkg">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="460" y="630" />
+              <mxPoint x="980" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_t2_sdk" value="K1s0.Sdk.Grpc (NuGet semver)" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#999999;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;labelBackgroundColor=#FFFFFF;align=left;" edge="1" parent="1" source="t2_csproj" target="s_csproj">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="315" y="170" />
+              <mxPoint x="315" y="570" />
+              <mxPoint x="360" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_n_sdk" style="endArrow=classic;html=1;rounded=0;dashed=1;strokeColor=#999999;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="n_csproj" target="s_csproj">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="325" y="370" />
+              <mxPoint x="325" y="570" />
+              <mxPoint x="360" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="legendbox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="780" y="670" width="380" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_src" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="790" y="698" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_srctxt" value="csproj (ソース)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="695" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_gen" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="940" y="698" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_gentxt" value="生成物 (Generated/, *.nupkg)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="695" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ct" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="720" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_cttxt" value="契約定義 (contracts)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="717" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="940" y="720" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_bgtxt" value="ビルドツール" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="717" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ws_l" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#82b366;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="790" y="747" as="sourcePoint" />
+            <mxPoint x="810" y="747" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_wstxt" value="sln 境界" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="740" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg_ext_l" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#999999;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="940" y="747" as="sourcePoint" />
+            <mxPoint x="970" y="747" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg_exttxt" value="NuGet semver 経由依存" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="975" y="740" width="160" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
