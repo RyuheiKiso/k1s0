@@ -87,7 +87,7 @@ src/tier3/
 |---|---|---|---|---|
 | リリース時点 | 構造のみ | 構造のみ | 構造のみ | 構造のみ |
 | リリース時点 | portal（最小配信ポータル） | - | - | - |
-| リリース時点 | portal 本格化 / admin 最小 | K1s0.Native.Hub 最小 | portal-bff 最小 | sidecar 雛形 |
+| リリース時点 | portal 本格運用 / admin 最小 | K1s0.Native.Hub 最小 | portal-bff 最小 | sidecar 雛形 |
 | リリース時点 | 本番品質 / i18n / a11y | 全プラットフォーム対応 | admin-bff | 移行ガイド整備 |
 | 採用後の運用拡大時 | マルチテナント UI | - | 高度な aggregator | - |
 

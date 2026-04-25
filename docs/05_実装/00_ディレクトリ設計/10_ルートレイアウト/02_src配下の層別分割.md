@@ -168,8 +168,8 @@ src/platform/
 | tier1 | 構造のみ | go + rust 全 6 Pod 実装 | HA 化 | 品質確保 | 拡張 |
 | sdk | 構造のみ | C# + TS 最小実装 | Go 追加 | Rust 骨組み | 4 言語完成度向上 |
 | tier2 | 構造のみ | テンプレのみ | 採用側組織の業務サービス 2-3 個 | 拡張 | 拡張 |
-| tier3 | 構造のみ | 配信ポータル最小 | Web + BFF 本格化 | MAUI + Legacy-wrap | 拡張 |
-| platform | 構造のみ | CLI 最小 | analyzer | Backstage プラグイン骨組み | Backstage 本格化 |
+| tier3 | 構造のみ | 配信ポータル最小 | Web + BFF 本格運用 | MAUI + Legacy-wrap | 拡張 |
+| platform | 構造のみ | CLI 最小 | analyzer | Backstage プラグイン骨組み | Backstage 本格運用 |
 
 ## 対応 IMP-DIR ID
 
