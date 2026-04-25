@@ -1,0 +1,156 @@
+<mxfile host="65bd71144e">
+  <diagram id="trace_ci" name="trace_ci">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tci_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_title" value="整合性 CI: 5 検証スクリプト × 2 trigger 段" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="20" width="640" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_input_label" value="入力 (索引 + 各章 IMP 言及箇所)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="300" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_in_ledger" value="00_IMP-ID台帳" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_in_adr" value="10_ADR対応マトリクス" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_in_ds" value="20_DS-SW-COMP マトリクス" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_in_nfr" value="30_NFR対応マトリクス" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="250" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_in_subidx" value="各章 90_対応索引 (12 章)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_in_md" value="各節 *.md (IMP-* 言及箇所)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_check_label" value="tools/trace-check/* (5 検証)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="70" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_chk1" value="check-grand-total.sh&#10;サマリ vs 詳細行集計&#10;(CI-011)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="100" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_chk2" value="check-cross-ref.sh&#10;90_対応索引 vs 台帳の相互整合&#10;(CI-012)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="160" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_chk3" value="check-orphan.sh&#10;ADR/DS/NFR マトリクスの孤立 ID 検出&#10;(CI-013)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="220" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_chk4" value="check-duplicate.sh&#10;ID 重複検出&#10;(CI-014a)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="280" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_chk5" value="check-reserve.sh&#10;予約帯 (001-099) 外採番検出&#10;(CI-014b)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="340" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_trigger_label" value="2 段 trigger" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="850" y="70" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_pre" value="pre-commit hook (ローカル)&#10;速度優先 / 早期 fail&#10;(CI-015)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="100" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_gha" value="GHA reusable workflow&#10;trace-check → ci-overall 必須化&#10;(CI-016)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="170" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_cron" value="月次 cron (再検証)&#10;未検出ドリフト掘り起こし&#10;(CI-018)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="850" y="240" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_out_label" value="結果 / レポート" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="70" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_out_ok" value="OK (merge 可)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="100" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_out_fail" value="FAIL → reject + Markdown レポート&#10;(CI-017)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="150" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_out_loki" value="Loki + Backstage&#10;月次傾向集計" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="220" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_arr_in_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_in_ledger" target="tci_chk1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_subidx_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_in_subidx" target="tci_chk2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_adr_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_in_adr" target="tci_chk3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_md_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_in_md" target="tci_chk4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_md_chk5" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_in_md" target="tci_chk5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_arr_chk_pre1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_chk1" target="tci_pre">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_chk_gha2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_chk2" target="tci_gha">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_chk_gha3" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_chk3" target="tci_gha">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_chk_cron4" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_chk4" target="tci_cron">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_chk_cron5" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="tci_chk5" target="tci_cron">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_arr_pre_ok" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" edge="1" parent="1" source="tci_pre" target="tci_out_ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_gha_fail" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;" edge="1" parent="1" source="tci_gha" target="tci_out_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_arr_cron_loki" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;" edge="1" parent="1" source="tci_cron" target="tci_out_loki">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tci_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="780" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_grey" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="810" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_grey_lbl" value="入力 (md / 索引)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1135" y="808" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_yellow" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="830" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_yellow_lbl" value="検証スクリプト" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1135" y="828" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_blue" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="810" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_blue_lbl" value="trigger" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="808" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_purple" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="830" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="tci_legend_purple_lbl" value="保管 / 集計" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="828" width="100" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

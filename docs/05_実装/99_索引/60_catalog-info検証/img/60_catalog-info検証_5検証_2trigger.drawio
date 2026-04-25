@@ -1,0 +1,161 @@
+<mxfile host="65bd71144e">
+  <diagram id="cif" name="cif">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cif_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_title" value="catalog-info.yaml 検証: 5 検証 × pre-commit + GHA + 月次 Off-Path 走査" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1000" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_in_label" value="入力" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_in_yaml" value="各 component の&#10;catalog-info.yaml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_in_scaffold" value="Scaffold CLI dry-run 出力&#10;(bit 一致比較用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_in_group" value="Backstage Group catalog&#10;(owner 実在検証用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_in_system" value="Backstage System catalog&#10;(system 実在検証用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="280" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_in_repo" value="GitHub repo 一覧&#10;(Off-Path 検出用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="280" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_chk_label" value="tools/catalog-check/* (5 検証)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="70" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_chk1" value="check-required-fields.sh&#10;必須属性スキーマ&#10;(CAT-020)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="100" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_chk2" value="check-template-version.sh&#10;k1s0.io/template-version annotation 必須&#10;(CAT-021)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="160" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_chk3" value="check-lifecycle.sh&#10;許可リスト {experimental / production / deprecated}&#10;(CAT-022)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="220" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_chk4" value="check-owner-system.sh&#10;owner Group / system 実在検証&#10;(CAT-023 / CAT-024)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="280" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_chk5" value="check-bit-identical.sh&#10;Scaffold dry-run と bit-by-bit 一致&#10;(CAT-025)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="430" y="340" width="380" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_trig_label" value="trigger" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="70" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_pre" value="pre-commit hook&#10;(local / 軽 3 検証)&#10;(CAT-027a)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_gha" value="GHA catalog-info-check&#10;ci-overall 必須化&#10;(CAT-027b / CAT-028)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="170" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_offpath" value="月次 catalog 走査&#10;Off-Path 検出 + Sev3 通知&#10;(CAT-026 / CAT-029)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="240" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_out_label" value="結果" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="70" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_out_ok" value="OK (Backstage 同期)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="100" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_out_fail" value="FAIL → reject" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="150" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_out_offpath" value="Off-Path repo 一覧&#10;DX-SCAF-033 連動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="200" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_arr_yaml_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_in_yaml" target="cif_chk1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_yaml_chk2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_in_yaml" target="cif_chk2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_yaml_chk3" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_in_yaml" target="cif_chk3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_group_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_in_group" target="cif_chk4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_system_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_in_system" target="cif_chk4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_scaffold_chk" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_in_scaffold" target="cif_chk5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_arr_chk_pre" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_chk1" target="cif_pre">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_chk_gha2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_chk3" target="cif_gha">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_chk_gha4" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_chk4" target="cif_gha">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_chk_off5" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="cif_chk5" target="cif_offpath">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_repo_off" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;strokeColor=#9673a6;" edge="1" parent="1" source="cif_in_repo" target="cif_offpath">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="365" />
+              <mxPoint x="700" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="cif_arr_pre_ok" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" edge="1" parent="1" source="cif_pre" target="cif_out_ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_gha_fail" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;" edge="1" parent="1" source="cif_gha" target="cif_out_fail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_arr_off_offrepo" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;" edge="1" parent="1" source="cif_offpath" target="cif_out_offpath">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cif_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="780" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="785" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_grey" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="810" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_grey_lbl" value="入力 (yaml / catalog)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1135" y="808" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_yellow" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="830" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_yellow_lbl" value="検証スクリプト" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1135" y="828" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_blue" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="810" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_blue_lbl" value="trigger" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="808" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_purple" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="830" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="cif_legend_purple_lbl" value="Off-Path 通報" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1265" y="828" width="100" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
