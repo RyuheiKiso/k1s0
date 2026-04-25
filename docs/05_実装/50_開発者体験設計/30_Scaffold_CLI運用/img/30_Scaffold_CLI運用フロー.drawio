@@ -1,0 +1,176 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="scaffold_operations" id="so_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="so_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="so_title" value="Scaffold CLI / Backstage UI の 2 経路と Paved Road 強制ゲート" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="1140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="so_dev" value="開発者&#xa;（新規サービス着手）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="so_path_a_zone" value="経路 A: CLI 直接（オフライン可 / dev container 標準）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="280" y="80" width="380" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="so_cli_list" value="$ scaffold list&#xa;（テンプレ一覧 + lifecycle / owner）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="115" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_cli_new" value="$ scaffold new &lt;template&gt;&#xa;対話的入力（name / tier / owner / lifecycle）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="180" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_cli_dry" value="$ scaffold new --dry-run&#xa;（差分プレビュー / golden 検証）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="240" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_path_b_zone" value="経路 B: Backstage UI（採用初期で有効化）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="280" y="320" width="380" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="so_bs_wiz" value="Backstage / Software Template wizard&#xa;（Web フォーム入力）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="355" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_bs_action" value="Custom action `k1s0:scaffold-engine`&#xa;（CLI と同一 engine を呼出 = 結果一致保証）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="415" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_engine" value="scaffold engine（src/platform/scaffold/）&#xa;Rust 実装 / template.yaml 解釈 / golden snapshot 検証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="180" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="so_out1" value="① テンプレ展開&#xa;src/{tier}/{component}/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="280" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_out2" value="② catalog-info.yaml&#xa;owner / lifecycle / system 自動生成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="280" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_out3" value="③ CODEOWNERS 自動更新&#xa;@k1s0/&lt;owner-team&gt; を該当 path に追記" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="350" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_out4" value="④ 雛形テスト + Dapr components.yaml&#xa;make check で即時実行可能な状態" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="350" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="so_gate" value="ローカル検証ゲート: make check（fmt / lint / unit-test）&#xa;失敗時は scaffold が rollback（生成物を破棄して元状態へ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="430" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="so_pr" value="branch push → PR open&#xa;CODEOWNERS により Platform/DX + Security の dual review 自動指名" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="510" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="so_ci" value="CI: ci-overall（IMP-CI-PF-036）&#xa;quality gate + path-filter ビルド + Backstage catalog lint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="700" y="590" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="so_merge" value="merge → main → Backstage GitHub provider が&#xa;catalog-info.yaml を自動 discovery（5 分以内）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="670" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=classic;" edge="1" parent="1" source="so_dev" target="so_cli_list">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=classic;" edge="1" parent="1" source="so_dev" target="so_bs_wiz">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e3" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="so_cli_list" target="so_cli_new">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="so_cli_new" target="so_cli_dry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="so_bs_wiz" target="so_bs_action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="so_cli_dry" target="so_engine">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="265" />
+              <mxPoint x="680" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="so_e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="so_bs_action" target="so_engine">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="680" y="440" />
+              <mxPoint x="680" y="222" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="so_e8" style="edgeStyle=none;rounded=0;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="so_engine" target="so_out1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="so_engine" target="so_out2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e10" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="so_out1" target="so_out3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e11" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="so_out2" target="so_out4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e12" style="edgeStyle=none;rounded=0;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;endArrow=classic;" edge="1" parent="1" source="so_out3" target="so_gate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e13" style="edgeStyle=none;rounded=0;html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;endArrow=classic;" edge="1" parent="1" source="so_out4" target="so_gate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e14" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;" edge="1" parent="1" source="so_gate" target="so_pr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e15" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="so_pr" target="so_ci">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_e16" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="so_ci" target="so_merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="so_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="510" width="610" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="so_legend_title" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="515" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_c1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="75" y="545" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_l1" value="開発者の操作（明示的なコマンド入力 / Web 操作）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="540" width="550" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_c2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="75" y="568" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_l2" value="CLI 経路（dev container / sparse-checkout cone と整合する標準動線）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="563" width="550" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_c3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="75" y="591" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_l3" value="Backstage UI 経路 / scaffold engine 中核（CLI と engine を共有して結果一致を保証）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="586" width="550" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_c4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="75" y="614" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_l4" value="生成成果物 / リポジトリ更新（catalog-info / CODEOWNERS / components.yaml）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="609" width="550" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_c5" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="75" y="637" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_l5" value="ローカル検証ゲート（make check 失敗で rollback、PR まで到達させない）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="105" y="632" width="550" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_n1" value="① 2 経路は同一 scaffold engine を呼ぶ。CLI 結果と Backstage UI 結果が乖離しない構造で、Paved Road の唯一性を保証する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="70" y="665" width="595" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_n2" value="② Backstage UI 経路はリリース時点では未起動（Backstage 自体が採用初期段階）。リリース時点は CLI のみ、UI は採用初期で並行解禁。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="70" y="687" width="595" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_n3" value="③ catalog-info.yaml / CODEOWNERS の自動生成は Paved Road の核。手書き禁止し、scaffold engine がテンプレ起動時に必ず生成する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="70" y="709" width="595" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_n4" value="④ scaffold engine 自体は src/platform/scaffold/ の Rust crate（IMP-CODEGEN-SCF-030）を再利用。本章は「DX 観点で engine をどう使わせるか」のみ規定。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="70" y="731" width="595" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="so_lg_n5" value="⑤ ローカル検証ゲートは IMP-CI-QG-060〜067 と同じ fmt / lint / unit-test を実行。手元と CI で品質基準を一致させる。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="70" y="753" width="595" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

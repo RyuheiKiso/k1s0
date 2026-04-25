@@ -1,0 +1,123 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="onboarding_flow" id="obrd_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="obrd_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_title" value="入社者オンボーディング: time-to-first-commit を 4 時間以内に収める動線" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="1140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_d0" value="Day 0: 入社前&#xa;Keycloak アカウント発行 / GitHub team 招待 / Backstage Group 登録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_s1" value="Step 1: 役割確定（30 分）&#xa;PM / メンターと相談し 10 役のうち最初の 1 役を決める&#xa;例: tier1-rust-dev / tier3-web-dev / sdk-dev" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_s2" value="Step 2: 環境構築（60 分）&#xa;tools/sparse/checkout-role.sh &lt;role&gt; → cone 切替&#xa;Dev Container 起動 → image pull + postCreate 完了" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="260" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_s3" value="Step 3: examples/ で Hello World（45 分）&#xa;`make up` で Dapr Local 起動 → 1 リクエスト確認&#xa;goldenpath/<role>-hello.md の 5 step を完走" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_s4" value="Step 4: 微小 PR 作成（30 分）&#xa;typo 修正 / docs 1 行追加 / catalog-info の owner 自分追加 等&#xa;ci-overall 通過 → reviewer 自動指名 → merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="440" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_metric" value="time-to-first-commit SLI 計測終端&#xa;目標: 4 時間以内（リリース時点）/ 2 時間以内（採用拡大期）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="500" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_w1" value="Week 1: 学習リスト&#xa;ADR-DIR-001/003 + ADR-TIER1-001 を読破&#xa;`docs/INDEX.md` から 90_knowledge/ で k1s0 思想を理解" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="170" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_w2" value="Week 2: 実 task 着手&#xa;Backstage で「good-first-issue」label を検索&#xa;Scaffold で新規 component 作成（実 task ではないが手順習熟）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="260" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_w3" value="Week 3-4: 役割追加&#xa;必要に応じ別役割の cone を追加（例: tier1-rust-dev に sdk-dev を併用）&#xa;`tools/sparse/list-cones.sh` で複数 cone 同時保持" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="350" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_m1" value="Month 1 終端: 自走判定&#xa;PR 量 / レビュー受領 / Slack 質問 / オンコール参加（任意）の 4 軸でメンターが判定&#xa;判定結果は HR 1on1 で共有、追加サポートを設計" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="440" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e1" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="obrd_d0" target="obrd_s1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e2" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="obrd_s1" target="obrd_s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e3" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="obrd_s2" target="obrd_s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="obrd_s3" target="obrd_s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="obrd_s4" target="obrd_metric">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;dashed=1;" edge="1" parent="1" source="obrd_metric" target="obrd_w1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="570" />
+              <mxPoint x="610" y="205" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="obrd_e6_lbl" value="自走後の継続ステップ" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="540" y="382" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e7" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="obrd_w1" target="obrd_w2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e8" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="obrd_w2" target="obrd_w3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="obrd_w3" target="obrd_m1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="1100" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_legend_title" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="625" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_c1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="652" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_l1" value="入社前準備（HR / IT 部門が担当、開発者本人は受動）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="647" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_c2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="55" y="675" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_l2" value="Day 1（4 時間以内）: time-to-first-commit SLI の計測対象期間" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="670" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_c3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="55" y="698" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_l3" value="SLI 計測終端（最初の commit が main に merge された時刻 = 計測完了点）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="693" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_c4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="652" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_l4" value="Week 1〜4: 自走に向けた継続学習。自習 + メンターとの 1 on 1 の組合せ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="647" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_c5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="600" y="675" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_l5" value="Month 1 終端: 自走判定。判定結果は HR 1on1 で共有、追加サポートが必要なら設計" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="670" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_n1" value="① time-to-first-commit は採用初期 4 時間 / 採用拡大期 2 時間を目標。リリース時点では計測のみで強制せず、採用初期で SLI ゲート化（Backstage Scorecards）。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="717" width="1080" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="obrd_lg_n2" value="② Step 1〜4 のうち 1 つでも詰まったら、メンターと協議し動線を改善する PR を起こす。動線の改善は IMP-DEV-DC-* / IMP-DEV-GP-* / IMP-DEV-ONB-* への帰着点となる。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="737" width="1080" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

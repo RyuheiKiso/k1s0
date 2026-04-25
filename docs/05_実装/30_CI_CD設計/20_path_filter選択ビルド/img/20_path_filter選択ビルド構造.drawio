@@ -1,0 +1,127 @@
+<mxfile host="docs.k1s0">
+  <diagram id="ci-pathfilter" name="ci-pathfilter">
+    <mxGraphModel dx="1200" dy="780" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1240" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1240" height="780" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="path-filter による CI 選択ビルド（PR 1 本 = 必要最小ジョブ集合の決定）" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="1100" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_trigger" value="GitHub PR / push&#xa;changed-files set" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_engine" value="dorny/paths-filter@v3&#xa;tools/ci/path-filter/filters.yaml&#xa;（10 ビルド章 IMP-BUILD-POL-004 と&#xa; 同一定義ファイルを参照）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="70" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_outputs" value="filter outputs（4 軸 boolean + 強制昇格フラグ）&#xa;tier1 / tier2 / tier3 / sdk / contracts / infra / docs&#xa;＋ contracts=true → sdk-all=true 強制昇格" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#666666;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="660" y="70" width="540" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_e1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d6b656;" edge="1" parent="1" source="pf_trigger" target="pf_engine">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_e2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" edge="1" parent="1" source="pf_engine" target="pf_outputs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_hdr_axis" value="判定 4 軸（読む順序）" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="320" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_hdr_match" value="マッチ glob 例" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="380" y="190" width="380" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_hdr_then" value="呼び出される reusable workflow" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="780" y="190" width="420" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_ax1" value="第 1 軸: tier 軸&#xa;tier1 / tier2 / tier3 / sdk / infra のいずれか" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax1m" value="src/tier1/** / src/tier2/** / src/tier3/**&#xa;src/sdk/** / infra/**" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="240" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax1w" value="_reusable-lint.yml / _reusable-test.yml&#xa;_reusable-build.yml / _reusable-push.yml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="240" width="420" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_ax2" value="第 2 軸: 言語軸&#xa;rust / go / typescript / dotnet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax2m" value="**/Cargo.toml / **/go.mod / **/package.json&#xa;**/*.csproj / **/Directory.Build.props" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="320" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax2w" value="reusable workflow の inputs.language を切替&#xa;1 言語 1 job 原則（IMP-CI-RWF-010）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="320" width="420" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_ax3" value="第 3 軸: workspace 軸&#xa;package / crate / module 単位の局所性" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax3m" value="src/tier3/web/packages/[name]/**&#xa;src/tier1/rust/crates/[name]/**" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="400" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax3w" value="pnpm --filter [name]... / cargo test -p [name]&#xa;workspace 内未影響パッケージは skip" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="400" width="420" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_ax4" value="第 4 軸: contracts 横断軸&#xa;契約変更は全 SDK と tier1 サーバを強制ビルド" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax4m" value="src/contracts/**.proto&#xa;src/contracts/openapi/v1/**.yaml&#xa;tools/codegen/buf.version / openapi.versions" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="480" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_ax4w" value="sdk-all=true 強制昇格 → 4 言語 SDK 全ビルド&#xa;＋ tier1 サーバ全ビルド ＋ buf-breaking / oasdiff 必須&#xa;（IMP-CI-POL-003 契約軸）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="480" width="420" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_legendbox" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;fontStyle=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="1180" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_leg_a" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="632" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_atxt" value="入力 (PR の changed-files)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="629" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="290" y="632" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_btxt" value="判定エンジン / 軸（dorny/paths-filter）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="315" y="629" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_c" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="560" y="632" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_ctxt" value="filter outputs（後段ジョブの起動条件）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="585" y="629" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_d" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="830" y="632" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_dtxt" value="contracts 強制昇格軸（最重要ゲート）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="855" y="629" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pf_leg_note1" value="path-filter は IMP-BUILD-POL-004 と IMP-CI-POL-003 の 1 実装。filters.yaml は同一ファイルを 10 ビルド章と本章で共有し、片方の変更が他方に意図せず波及することを防ぐため tools/ci/path-filter/ に集約する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="660" width="1140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_note2" value="第 4 軸（contracts 強制昇格）はゲートとして必須化される。契約変更を含む PR で SDK 1 言語のみのビルドで通った事故を 0 件にするため、filters.yaml で contracts=true → sdk-all=true を明示的に書く。" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="680" width="1140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pf_leg_note3" value="filter 自体の変更 PR は IMP-CI-RWF-012 の golden test（過去 50 PR の changed-files 再生）で必ず再現検証する。filter は CI 全体の判定基盤のため、誤判定は全 PR に波及する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="700" width="1140" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

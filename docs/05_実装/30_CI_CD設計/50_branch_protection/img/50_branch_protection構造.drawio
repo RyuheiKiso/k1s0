@@ -1,0 +1,173 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="branch_protection" id="bp_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bp_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_title" value="branch protection rule（main）と必須 status check の集約構造" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="1060" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_ci_zone" value="GitHub Actions（CI）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="540" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_pr" value="PR open / synchronize" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="100" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_paths" value="paths job（dorny/paths-filter@v3）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_g_fmt" value="fmt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_g_lint" value="lint" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="200" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_g_test" value="unit-test" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="200" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_g_cov" value="coverage" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="200" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_b_t1" value="build-tier1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="270" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_b_t2" value="build-tier2" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="270" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_b_t3" value="build-tier3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="270" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_b_sdk" value="build-sdk" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="270" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_overall" value="ci-overall（集約 job, if: always）&#xa;needs: 全前段 / result == success || skipped" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="360" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_rule_panel" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="640" y="60" width="420" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_rule_title" value="branch protection rule（main / release/* も同一）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="65" width="420" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_r1" value="必須 status check: ci-overall（1 本のみ）&#xa;skip された個別 job を required にしない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="100" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_r2" value="必須レビュー数: PoC 採用期 = 1 / 運用拡大期 = 2&#xa;CODEOWNERS による領域別自動指名" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="160" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_r3" value="merge 方式: squash 強制 / linear history 必須&#xa;merge commit と rebase merge を不許可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="220" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_r4" value="署名コミット必須 (Verified バッジ)&#xa;SSH 署名 / GPG 署名 / Web UI commit のみ許可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="280" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_r5" value="管理者にも適用 / direct push 禁止 / merge queue 採用拡大期に有効化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="660" y="340" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_main" value="main branch（merge）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="600" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_gate" value="branch protection 評価&#xa;（rule 1〜5 を AND 条件）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="490" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=classic;" edge="1" parent="1" source="bp_pr" target="bp_paths">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e2" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#999999;dashed=1;endArrow=open;" edge="1" parent="1" source="bp_paths" target="bp_g_test">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e3" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="bp_g_fmt" target="bp_b_t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="bp_g_lint" target="bp_b_t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="bp_g_test" target="bp_b_t3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e6" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="bp_g_cov" target="bp_b_sdk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e7" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="bp_b_t1" target="bp_overall">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e8" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.4;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="bp_b_t2" target="bp_overall">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.6;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="bp_b_t3" target="bp_overall">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e10" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="bp_b_sdk" target="bp_overall">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e11" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="bp_overall" target="bp_gate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e12" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="bp_gate" target="bp_main">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_e13" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;dashed=1;endArrow=open;" edge="1" parent="1" source="bp_rule_panel" target="bp_gate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="515" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bp_e_label" value="rule を AND 評価" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="538" y="498" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="380" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_title" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="495" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_c1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="525" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_l1" value="トリガ系（PR / paths 判定）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="520" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_c2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="55" y="548" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_l2" value="個別 job（quality gate / build）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="543" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_c3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="55" y="571" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_l3" value="集約 job（必須 status check の唯一の対象）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="566" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_c4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="55" y="594" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_l4" value="branch protection ゲート（rule AND 評価）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="589" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_c5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="55" y="617" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_legend_l5" value="保護対象ブランチ（main / release/*）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="612" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_note1" value="① skip job を required にしない: 選択ビルドで skipped になった job を required 化すると merge できない事故が起きる" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="640" width="365" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_note2" value="② merge queue は採用拡大期に有効化: PoC 期は PR 量が少なく queue が rather 詐害になる" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="660" width="365" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_note3" value="③ rule 設定の Git 管理: GitHub の Web UI 設定ではなく terraform-provider-github で IaC 化（NFR-C-MGMT-001）" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="680" width="365" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bp_note4" value="④ admin bypass 禁止: 障害時の hotfix も同 rule を通す（緊急時手順は ops/runbooks に分離）" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="700" width="365" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
