@@ -70,7 +70,7 @@
         <mxCell id="r2c5" value="strict deps + targets グラフ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="1030" y="175" width="220" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="r2c6" value="★ 巨大 repo でも役割別取得の実在性を参考。EdenFS は 2 名運用向けでないため不採用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+        <mxCell id="r2c6" value="★ 巨大 repo でも役割別取得の実在性を参考。EdenFS は 採用側の小規模運用向けでないため不採用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="1250" y="175" width="420" height="55" as="geometry" />
         </mxCell>
         <mxCell id="r3c0" value="Microsoft / Scalar" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">

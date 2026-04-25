@@ -56,7 +56,7 @@
           <mxGeometry x="670" y="760" width="260" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="backstage" value="Backstage プラグイン (Phase 2)&#xa;両エンジン統合ビューで相関 ID 検索" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontColor=#000000;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+        <mxCell id="backstage" value="Backstage プラグイン (採用後の運用拡大時)&#xa;両エンジン統合ビューで相関 ID 検索" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontColor=#000000;strokeWidth=2;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="620" y="900" width="360" height="60" as="geometry" />
         </mxCell>
 

@@ -24,7 +24,7 @@
 
 | 要件 | IMP-DIR ID | 寄与 |
 |---|---|---|
-| NFR-C-NOP-001（2 名運用） | IMP-DIR-OPS-095 | Runbook 標準化 |
+| NFR-C-NOP-001（採用側の小規模運用） | IMP-DIR-OPS-095 | Runbook 標準化 |
 | NFR-C-NOP-\*（観測性） | IMP-DIR-INFRA-077 | LGTM + Pyroscope |
 | NFR-C-NOP-\*（GitOps 単一ソース） | IMP-DIR-OPS-091〜092 | ArgoCD App-of-Apps |
 | NFR-C-NOP-\*（Runbook 管理） | IMP-DIR-OPS-095 | ops/runbooks/ |
@@ -93,12 +93,12 @@
 | IMP-DIR-T3-060 | レガシーラップ配置 |
 | IMP-DIR-INFRA-074 | Dapr sidecar 注入設定 |
 
-## 対応未充足の要件（Phase 1b 以降で対応）
+## 対応未充足の要件（運用蓄積後で対応）
 
-| 要件 | Phase | 予定 |
+| 要件 | 適用段階 | 予定 |
 |---|---|---|
-| NFR-F-ENV-\*（システム環境・エコロジー） | Phase 1c | 消費電力・CO2e 試算（infra/scaling/keda で自動縮退と連動） |
-| NFR-A-AVL-\*（multi-region） | Phase 2 | infra/environments/ に region 別 overlay 追加 |
-| DX-GP-\*（Phase 2 マルチテナント UI） | Phase 2 | tier3 web マルチテナント対応 |
+| NFR-F-ENV-\*（システム環境・エコロジー） | リリース時点 | 消費電力・CO2e 試算（infra/scaling/keda で自動縮退と連動） |
+| NFR-A-AVL-\*（multi-region） | 採用後の運用拡大時 | infra/environments/ に region 別 overlay 追加 |
+| DX-GP-\*（採用後の運用拡大時 マルチテナント UI） | 採用後の運用拡大時 | tier3 web マルチテナント対応 |
 
-本プランでは Phase 0-1a の範囲で定義される要件に限定して IMP-DIR を対応付ける。
+本プランでは リリース時点-1a の範囲で定義される要件に限定して IMP-DIR を対応付ける。

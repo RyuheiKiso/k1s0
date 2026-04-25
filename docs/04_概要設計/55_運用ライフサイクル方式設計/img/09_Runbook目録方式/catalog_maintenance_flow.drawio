@@ -55,7 +55,7 @@
         <mxCell id="artifact_monitor" value="Grafana 品質ダッシュボード&#10;カバー率 / 実行成功率 / 所要時間乖離 / 更新頻度" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
           <mxGeometry x="1080" y="530" width="460" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="outcome" value="常時利用可能な Runbook 15 本（Phase 1b コミット）&#10;2 名運用 / RTO 4h / SLA 99% / SLO 99.9% を守る運用資産" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="outcome" value="常時利用可能な Runbook 15 本（リリース時点 コミット）&#10;採用側の小規模運用 / RTO 4h / SLA 99% / SLO 99.9% を守る運用資産" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="300" y="700" width="1000" height="90" as="geometry" />
         </mxCell>
         <mxCell id="e_inc_s1" style="html=1;strokeWidth=2;strokeColor=#d6b656;endArrow=classic;exitX=0.5;exitY=1;entryX=0.3;entryY=0;" edge="1" parent="1" source="in_incident" target="step1">
@@ -184,7 +184,7 @@
         <mxCell id="lg_lane_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="80" y="915" width="24" height="14" as="geometry" />
         </mxCell>
-        <mxCell id="lg_lane_t" value="レーン背景 / アウトカム（Phase 1b 15 本の状態）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_lane_t" value="レーン背景 / アウトカム（リリース時点 15 本の状態）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="112" y="910" width="600" height="24" as="geometry" />
         </mxCell>
         <mxCell id="lg_line_seq" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">

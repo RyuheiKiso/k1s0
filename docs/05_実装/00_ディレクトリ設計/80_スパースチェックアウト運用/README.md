@@ -4,7 +4,7 @@
 
 ## 本章の目的
 
-k1s0 のモノレポは tier1/2/3 + infra + deploy + ops + tools + tests + examples + third_party + docs/ を包含し、Phase 1c 段階でも 50 万行を超える想定。全開発者が全コードを checkout する必要はなく、以下の恩恵がある。
+k1s0 のモノレポは tier1/2/3 + infra + deploy + ops + tools + tests + examples + third_party + docs/ を包含し、リリース時点 段階でも 50 万行を超える想定。全開発者が全コードを checkout する必要はなく、以下の恩恵がある。
 
 - IDE 起動時間の短縮（JetBrains IntelliJ、VS Code の初期 indexing が 10 倍速）
 - ローカル git 操作の高速化（status / switch / log）
@@ -33,7 +33,7 @@ k1s0 のモノレポは tier1/2/3 + infra + deploy + ops + tools + tests + examp
 - IMP-DIR-SPARSE-131（注意点と既知問題）— `06_注意点と既知問題.md`
 - IMP-DIR-SPARSE-132（partial clone / sparse index）— `07_partial_clone_sparse_index.md`
 
-予約 IMP-DIR ID は `IMP-DIR-SPARSE-133` 〜 `IMP-DIR-SPARSE-145`（Phase 1b 以降で採番）。本章採番範囲は `IMP-DIR-SPARSE-126` 〜 `IMP-DIR-SPARSE-145`。
+予約 IMP-DIR ID は `IMP-DIR-SPARSE-133` 〜 `IMP-DIR-SPARSE-145`（運用蓄積後で採番）。本章採番範囲は `IMP-DIR-SPARSE-126` 〜 `IMP-DIR-SPARSE-145`。
 
 ## 対応 ADR
 

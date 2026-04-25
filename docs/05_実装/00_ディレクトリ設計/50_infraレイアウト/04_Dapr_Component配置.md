@@ -46,7 +46,7 @@ infra/dapr/
 │   ├── configuration/
 │   │   └── default.yaml            # Dapr Configuration（tracing / mtls）
 │   └── workflow/
-│       └── temporal.yaml           # workflow.temporal（Phase 1c 以降）
+│       └── temporal.yaml           # workflow.temporal（運用蓄積後）
 └── subscriptions/
     ├── audit-pii.yaml              # tier1 AuditPii API 受信先
     └── feature.yaml
@@ -57,10 +57,10 @@ infra/dapr/
 Dapr Control Plane は 5 components（operator / placement / sentry / injector / scheduler）で構成される。これらは `k1s0-dapr` namespace に配置。
 
 - **operator**: CRD watcher、Component の reconcile
-- **placement**: Actor placement（Phase 2 以降のステートフル ID 割当）
+- **placement**: Actor placement（採用後の運用拡大時のステートフル ID 割当）
 - **sentry**: mTLS CA、短命証明書発行
 - **injector**: Pod annotation を見て Dapr sidecar を自動注入する admission webhook
-- **scheduler**: Workflow API の scheduler（Phase 1c 以降）
+- **scheduler**: Workflow API の scheduler（運用蓄積後）
 
 Helm chart `dapr/dapr` の values.yaml を `control-plane/values.yaml` に配置。
 
@@ -134,7 +134,7 @@ Dapr の tracing / mtls / feature flag 設定。
 
 ### workflow/
 
-Phase 1c 以降で Temporal との統合を予定。Phase 1a-1b では使用しない。
+運用蓄積後で Temporal との統合を予定。採用初期 では使用しない。
 
 ## subscriptions/ の役割
 

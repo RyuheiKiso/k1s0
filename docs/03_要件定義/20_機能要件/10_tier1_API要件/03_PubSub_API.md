@@ -112,16 +112,16 @@ k1s0.PubSub.Subscribe(
 - 順序保証が必要な場合は partition_key で同一パーティション割り当て
 - Consumer Lag を Prometheus で可視化、閾値超過でアラート
 
-## Phase 対応
+## 段階対応
 
-- **Phase 1a**: 未提供
-- **Phase 1b**: FR-T1-PUBSUB-001、002、003、005（Go / C# SDK）
-- **Phase 1c**: FR-T1-PUBSUB-004（DLQ）追加
-- **Phase 2+**: Python / Rust SDK、Schema Registry 連携検討
+- **リリース時点**: 未提供
+- **リリース時点**: FR-T1-PUBSUB-001、002、003、005（Go / C# SDK）
+- **リリース時点**: FR-T1-PUBSUB-004（DLQ）追加
+- **採用後の運用拡大時**: Python / Rust SDK、Schema Registry 連携検討
 
 ## 関連非機能要件
 
 - **NFR-B-PERF-005**: Publish レイテンシ p99 < 50ms
-- **NFR-A-FT-002**: Kafka ブローカー 1 台障害時の継続性（3 ブローカー構成、Phase 3 以降）
+- **NFR-A-FT-002**: Kafka ブローカー 1 台障害時の継続性（3 ブローカー構成、採用側のマルチクラスタ移行時）
 - **NFR-E-AC-003**: tenant_id 越境配信の禁止
 - **NFR-C-NOP-001**: Consumer Lag の監視と可視化

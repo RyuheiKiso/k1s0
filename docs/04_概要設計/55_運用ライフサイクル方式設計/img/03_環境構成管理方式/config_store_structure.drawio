@@ -15,7 +15,7 @@
           <mxGeometry x="80" y="70" width="800" height="24" as="geometry" />
         </mxCell>
 
-        <mxCell id="git_repo" value="Git リポジトリ&#10;（GitHub Enterprise）&#10;env/dev, env/staging, env/prod&#10;PR レビュー必須 / CODEOWNERS 2 名承認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="git_repo" value="Git リポジトリ&#10;（GitHub Enterprise）&#10;env/dev, env/staging, env/prod&#10;PR レビュー必須 / CODEOWNERS 複数名承認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="100" width="310" height="120" as="geometry" />
         </mxCell>
         <mxCell id="openbao_write" value="OpenBao（正本）&#10;運用チーム書込専用&#10;KV v2 / Transit / PKI エンジン&#10;Shamir 5-of-3 解錠" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
@@ -24,7 +24,7 @@
         <mxCell id="flagd_src" value="flagd 設定 JSON&#10;（Git + 管理 API 二系統）&#10;Feature Flag の正本&#10;Backstage UI からも編集可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="800" y="100" width="310" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="jdm_src" value="ZEN Engine JDM ファイル&#10;（Git 管理、Phase 4 で GUI 化）&#10;Decision 決定表の正本&#10;`src/tier1/decisions/`" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="jdm_src" value="ZEN Engine JDM ファイル&#10;（Git 管理、採用側の全社展開期 で GUI 化）&#10;Decision 決定表の正本&#10;`src/tier1/decisions/`" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1160" y="100" width="310" height="120" as="geometry" />
         </mxCell>
 

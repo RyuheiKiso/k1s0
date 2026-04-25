@@ -10,7 +10,7 @@
 
 - **ベアメタルノードのブートストラップ**: PXE boot 設定、OS インストール、kubeadm / k3s 初期化
 - **VPN Gateway / Firewall / DNS**: 社内ネットワーク境界の構成
-- **クラウド IaaS**（Phase 2 以降）: マルチクラウド・マルチリージョン展開
+- **クラウド IaaS**（採用後の運用拡大時）: マルチクラウド・マルチリージョン展開
 
 ## レイアウト
 
@@ -40,7 +40,7 @@ deploy/opentofu/
     ├── modules/
     │   ├── harbor/                 # Harbor レジストリ（k8s 上）
     │   ├── backup-storage/         # クラスタ内 Longhorn バックアップ
-    │   └── cloudflare/             # Phase 2：クラウド DNS / CDN
+    │   └── cloudflare/             # 採用後の運用拡大時：クラウド DNS / CDN
     ├── environments/
     │   ├── dev/
     │   │   ├── main.tf
@@ -186,11 +186,11 @@ module "backup_storage" {
 
 ### bootstrap 階層の state
 
-`backend "local"` で local 生成 → SOPS + AGE で暗号化 → **別 GitHub リポジトリ** `k1s0/k1s0-opentofu-state`（プライベート）に `git push`。プル時は `git pull` → SOPS decrypt → `tofu plan/apply`。state locking は state リポの branch protection + `git pull --ff-only` で代替する（2 名運用前提で実質的な競合は稀）。
+`backend "local"` で local 生成 → SOPS + AGE で暗号化 → **別 GitHub リポジトリ** `k1s0/k1s0-opentofu-state`（プライベート）に `git push`。プル時は `git pull` → SOPS decrypt → `tofu plan/apply`。state locking は state リポの branch protection + `git pull --ff-only` で代替する（採用側の小規模運用前提で実質的な競合は稀）。
 
 ### applications 階層の state
 
-`backend "s3"` で bootstrap が立てた外部 MinIO（`minio-ext.k1s0.external`）に保存。これにより applications 階層は通常の S3 backend の操作感を得る。state locking は Phase 2 で PostgreSQL backend 導入を検討。
+`backend "s3"` で bootstrap が立てた外部 MinIO（`minio-ext.k1s0.external`）に保存。これにより applications 階層は通常の S3 backend の操作感を得る。state locking は 採用後の運用拡大時 で PostgreSQL backend 導入を検討。
 
 ### 循環依存が断たれている根拠
 
@@ -205,15 +205,15 @@ bootstrap 階層が applications 階層の成果物（例えば k8s 上の MinIO
 
 `environments/<env>/terraform.tfvars.sops` は SOPS + AGE で暗号化。tofu apply 前に sops decrypt で平文 tfvars を生成するラッパースクリプト（`ops/scripts/tofu-apply.sh`）を用意。
 
-## Phase 導入タイミング
+## 導入タイミング
 
-| Phase | 内容 |
+| 適用段階 | 内容 |
 |---|---|
-| Phase 0 | 構造のみ |
-| Phase 1a | bootstrap 階層（baremetal-k8s / dns / external-minio）。state リポ新設 |
-| Phase 1b | bootstrap 追加（vpn-gateway）、applications 階層（harbor / backup-storage） |
-| Phase 1c | environments/ 全環境（dev / staging / prod）の applications 階層 |
-| Phase 2 | マルチリージョン / クラウド IaaS、PostgreSQL state lock |
+| リリース時点 | 構造のみ |
+| リリース時点 | bootstrap 階層（baremetal-k8s / dns / external-minio）。state リポ新設 |
+| リリース時点 | bootstrap 追加（vpn-gateway）、applications 階層（harbor / backup-storage） |
+| リリース時点 | environments/ 全環境（dev / staging / prod）の applications 階層 |
+| 採用後の運用拡大時 | マルチリージョン / クラウド IaaS、PostgreSQL state lock |
 
 ## 対応 IMP-DIR ID
 

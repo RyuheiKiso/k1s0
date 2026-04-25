@@ -7,10 +7,10 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1200" height="800" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="競合ポジショニングマップ (OSS 度 × JTC 適合度)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#111111;" vertex="1" parent="1">
+        <mxCell id="title" value="競合ポジショニングマップ (OSS 度 × 採用側組織の適合度)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#111111;" vertex="1" parent="1">
           <mxGeometry x="200" y="20" width="800" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="縦軸: OSS 積み上げ度 (商用 → OSS)　横軸: JTC 情シス固有要件への適合度 (低 → 高)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#444444;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="縦軸: OSS 積み上げ度 (商用 → OSS)　横軸: 採用側組織の情シス固有要件への適合度 (低 → 高)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#444444;" vertex="1" parent="1">
           <mxGeometry x="150" y="56" width="900" height="24" as="geometry" />
         </mxCell>
 
@@ -31,20 +31,20 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="qNE" value="OSS 中心 / JTC 適合高" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
+        <mxCell id="qNE" value="OSS 中心 / 採用側組織の適合高" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
           <mxGeometry x="760" y="120" width="230" height="22" as="geometry" />
         </mxCell>
-        <mxCell id="qNW" value="OSS 中心 / JTC 適合低" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
+        <mxCell id="qNW" value="OSS 中心 / 採用側組織の適合低" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
           <mxGeometry x="190" y="120" width="230" height="22" as="geometry" />
         </mxCell>
-        <mxCell id="qSE" value="商用中心 / JTC 適合高" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
+        <mxCell id="qSE" value="商用中心 / 採用側組織の適合高" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
           <mxGeometry x="760" y="640" width="230" height="22" as="geometry" />
         </mxCell>
-        <mxCell id="qSW" value="商用中心 / JTC 適合低" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
+        <mxCell id="qSW" value="商用中心 / 採用側組織の適合低" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#999999;" vertex="1" parent="1">
           <mxGeometry x="190" y="640" width="230" height="22" as="geometry" />
         </mxCell>
 
-        <mxCell id="xAxisLbl" value="JTC 適合度 (低 ←→ 高)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+        <mxCell id="xAxisLbl" value="採用側組織の適合度 (低 ←→ 高)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="430" y="720" width="320" height="24" as="geometry" />
         </mxCell>
         <mxCell id="yAxisLbl" value="OSS 度&#10;(OSS ↑&#10;↓ 商用)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
@@ -54,7 +54,7 @@
         <mxCell id="k1s0" value="k1s0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE082;strokeColor=#F57F17;fontSize=13;fontStyle=1;fontColor=#222222;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="900" y="155" width="80" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="k1s0Note" value="(OSS 積み上げ + JTC 特化)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#F57F17;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="k1s0Note" value="(OSS 積み上げ + 採用側組織の特化)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontColor=#F57F17;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="860" y="192" width="170" height="18" as="geometry" />
         </mxCell>
 

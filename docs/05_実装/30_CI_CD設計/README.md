@@ -1,20 +1,20 @@
 # 30. CI_CD 設計
 
-本章は k1s0 の継続的統合と継続的配信のワークフロー配置を実装フェーズ確定版として固定する。構想設計 [`02_構想設計/04_CICDと配信/00_CICDパイプライン.md`](../../02_構想設計/04_CICDと配信/00_CICDパイプライン.md) で確定した 7 段ステージ（fetch → lint → unit-test → build → scan → push → GitOps 更新）と Harbor 門番（Trivy CVE Critical 拒否）を、GitHub Actions self-hosted runner + reusable workflow の物理配置に落とし込む。
+本章は k1s0 の継続的統合と継続的配信のワークフロー配置を実装段階確定版として固定する。構想設計 [`02_構想設計/04_CICDと配信/00_CICDパイプライン.md`](../../02_構想設計/04_CICDと配信/00_CICDパイプライン.md) で確定した 7 段ステージ（fetch → lint → unit-test → build → scan → push → GitOps 更新）と Harbor 門番（Trivy CVE Critical 拒否）を、GitHub Actions self-hosted runner + reusable workflow の物理配置に落とし込む。
 
 ## 本章の位置付け
 
 tier1 / tier2 / tier3 はそれぞれ異なるビルド単位を持つため、愚直な全ビルドは時間と費用の両面で持続不可能となる。本章では path-filter で変更影響範囲を判定し、影響下のみ CI を回す設計を確定する。並行して、すべての PR が通過すべき quality gate を一律適用するため reusable workflow で統制する。quality gate は MUST 扱いとし、例外は ADR 起票必須。
 
-配信側は ADR-CICD-001 で選定した Argo CD を受け手とするため、CI は「コンテナイメージのビルド・署名・Harbor への push まで」を責務とし、クラスタ反映は `70_リリース設計/` に譲る。この境界で CI が配信を握らない GitOps 原則を維持する。CI 不可環境向けの Tekton フォールバックは構想設計で既に選定済み（Phase 2 以降）。
+配信側は ADR-CICD-001 で選定した Argo CD を受け手とするため、CI は「コンテナイメージのビルド・署名・Harbor への push まで」を責務とし、クラスタ反映は `70_リリース設計/` に譲る。この境界で CI が配信を握らない GitOps 原則を維持する。CI 不可環境向けの Tekton フォールバックは構想設計で既に選定済み（採用後の運用拡大時）。
 
 ![CI/CD 7 段階パイプライン（fetch → lint → unit-test → build → scan → push → GitOps 更新）](img/30_CI_CD_7段階パイプライン.svg)
 
-## Phase 確定範囲
+## OSS リリース時点での確定範囲
 
-- Phase 0: GitHub Actions reusable workflow、path-filter、quality gate、Harbor push（Trivy スキャン付）、cosign 署名連携（80 章で本体定義）
-- Phase 1a: sccache / Go module cache / pnpm cache のリモート化、Renovate 自動マージ範囲拡大
-- Phase 1b: マージキュー（merge queue）導入可否、Tekton フォールバック設計
+- リリース時点: GitHub Actions reusable workflow、path-filter、quality gate、Harbor push（Trivy スキャン付）、cosign 署名連携（80 章で本体定義）
+- リリース時点: sccache / Go module cache / pnpm cache のリモート化、Renovate 自動マージ範囲拡大
+- リリース時点: マージキュー（merge queue）導入可否、Tekton フォールバック設計
 
 ## RACI
 

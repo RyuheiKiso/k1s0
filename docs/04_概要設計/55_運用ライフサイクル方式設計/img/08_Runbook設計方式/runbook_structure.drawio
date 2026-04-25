@@ -10,7 +10,7 @@
         <mxCell id="title" value="Runbook 構造: 6 ライフサイクル節（Precondition / Detect / Mitigate / Verify / Escalate / Close）と粒度基準" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="Runbook は「2 名運用で成立する」ための機械的手順書。形式・粒度・順序を固定することで新規執筆の迷いを減らし、夜間単独対応でも判断要素を最小化する。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="Runbook は「採用側の小規模運用で成立する」ための機械的手順書。形式・粒度・順序を固定することで新規執筆の迷いを減らし、夜間単独対応でも判断要素を最小化する。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="40" y="52" width="1520" height="24" as="geometry" />
         </mxCell>
         <mxCell id="lane_struct" value="Runbook 6 ライフサイクル節（実行順に並ぶ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
@@ -76,19 +76,19 @@
         <mxCell id="lane_total" value="総数計画（NFR-A-REC-002）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=13;fontStyle=1;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="1000" y="540" width="540" height="400" as="geometry" />
         </mxCell>
-        <mxCell id="p1a" value="Phase 1a（MVP-0）: 5 本&#10;FMEA 上位 5 事象をプロトタイプとして整備" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+        <mxCell id="p1a" value="採用初期 (デモ): 5 本&#10;FMEA 上位 5 事象をプロトタイプとして整備" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
           <mxGeometry x="1020" y="585" width="500" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="p1b" value="Phase 1b（MVP-1a）: 15 本（本章コミット）&#10;目録は 09_Runbook目録方式.md で確定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+        <mxCell id="p1b" value="採用初期 (パイロット): 15 本（本章コミット）&#10;目録は 09_Runbook目録方式.md で確定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
           <mxGeometry x="1020" y="660" width="500" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="p1c" value="Phase 1c（MVP-1b）: 20 本&#10;運用経験で発見した追加事象を反映" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+        <mxCell id="p1c" value="採用初期 (運用体制確立): 20 本&#10;運用経験で発見した追加事象を反映" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
           <mxGeometry x="1020" y="735" width="500" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="p2" value="Phase 2: 30 本（廃止 1 本に対し追加 1.5 本まで）&#10;DR / Temporal / Backstage 等の拡張分を追加" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
+        <mxCell id="p2" value="採用後の運用拡大時: 30 本（廃止 1 本に対し追加 1.5 本まで）&#10;DR / Temporal / Backstage 等の拡張分を追加" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;" vertex="1" parent="1">
           <mxGeometry x="1020" y="810" width="500" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="p_note" value="Phase 1a → 1b → 1c → 2 の階段的整備。無制限拡張を避けるリミットあり。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="p_note" value="採用初期 (デモ→パイロット→運用体制確立) → 採用後の運用拡大時 → 採用側のマルチクラスタ移行時 の階段的整備。無制限拡張を避けるリミットあり。" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="1020" y="890" width="500" height="40" as="geometry" />
         </mxCell>
         <mxCell id="e12" style="html=1;strokeWidth=2;strokeColor=#d79b00;endArrow=classic;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s1b" target="s2">
@@ -112,7 +112,7 @@
         <mxCell id="lg_app_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="80" y="1000" width="24" height="14" as="geometry" />
         </mxCell>
-        <mxCell id="lg_app_t" value="アプリ層（Runbook セクション見出し・粒度項目・Phase 本数）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_app_t" value="アプリ層（Runbook セクション見出し・粒度項目・段階別本数）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="112" y="995" width="540" height="24" as="geometry" />
         </mxCell>
         <mxCell id="lg_detail_b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;" vertex="1" parent="1">

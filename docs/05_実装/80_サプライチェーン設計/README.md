@@ -1,20 +1,20 @@
 # 80. サプライチェーン設計
 
-本章は k1s0 のソフトウェアサプライチェーン（署名・SBOM・プロビナンス・Forensics）を実装フェーズ確定版として固定する。SLSA v1.1 の段階的到達（Phase 0=L2、Phase 1b=L3）、sigstore/cosign による keyless 署名、CycloneDX SBOM、そしてインシデント時の Forensics Runbook を統合的に規定する。ADR-CICD-003 で選定した Kyverno が cosign 検証の実行主体となる。
+本章は k1s0 のソフトウェアサプライチェーン（署名・SBOM・プロビナンス・Forensics）を実装段階確定版として固定する。SLSA v1.1 の段階的到達（リリース時点=L2 / 採用後の運用拡大時=L3）、sigstore/cosign による keyless 署名、CycloneDX SBOM、そしてインシデント時の Forensics Runbook を統合的に規定する。ADR-CICD-003 で選定した Kyverno が cosign 検証の実行主体となる。
 
 ## 本章の位置付け
 
-サプライチェーン攻撃は JTC にとって最も破壊的なインシデント類型であり、検知までの時間が短いほど影響範囲を封じ込めやすい。k1s0 は「image hash から tier1 公開 11 API のどの呼び出し経路が影響下か」を逆引きできる Forensics Runbook を Phase 0 の必須とする。この逆引きは署名・SBOM・プロビナンスを横断するインデックスに依存するため、本章で一体運用する。
+サプライチェーン攻撃は 採用側組織にとって最も破壊的なインシデント類型であり、検知までの時間が短いほど影響範囲を封じ込めやすい。k1s0 は「image hash から tier1 公開 11 API のどの呼び出し経路が影響下か」を逆引きできる Forensics Runbook を リリース時点 の必須とする。この逆引きは署名・SBOM・プロビナンスを横断するインデックスに依存するため、本章で一体運用する。
 
-SLSA レベルは Phase 0 で L2（ビルド履歴の真正性と改ざん困難性）を満たし、Phase 1b で L3（ハーメティックビルド）を目指す。Phase 0 からの L3 を主張する案もあったが、運用負荷と現実性から L2 先行が採択された（ADR-SUP-001 として新規起票）。
+SLSA レベルは リリース時点で L2（ビルド履歴の真正性と改ざん困難性）を満たし / L3（ハーメティックビルド）を目指す。リリース時点 からの L3 を主張する案もあったが、運用負荷と現実性から L2 先行が採択された（ADR-SUP-001 として新規起票）。
 
 ![SLSA L2→L3 段階到達 / cosign keyless / CycloneDX SBOM / Forensics Runbook の関係](img/80_SLSA段階到達_cosign_SBOM.svg)
 
-## Phase 確定範囲
+## OSS リリース時点での確定範囲
 
-- Phase 0: cosign keyless 署名、CycloneDX SBOM、SLSA L2 プロビナンス、Forensics Runbook スケルトン
-- Phase 1a: SBOM 差分監視、脆弱性通知の Runbook 連動
-- Phase 1b: SLSA L3 ハーメティックビルド、Policy Controller（Kyverno / sigstore-policy-controller）
+- リリース時点: cosign keyless 署名、CycloneDX SBOM、SLSA L2 プロビナンス、Forensics Runbook スケルトン
+- リリース時点: SBOM 差分監視、脆弱性通知の Runbook 連動
+- リリース時点: SLSA L3 ハーメティックビルド、Policy Controller（Kyverno / sigstore-policy-controller）
 
 ## RACI
 

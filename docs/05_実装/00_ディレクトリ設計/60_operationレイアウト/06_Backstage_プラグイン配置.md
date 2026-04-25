@@ -4,7 +4,7 @@
 
 ## Backstage の役割
 
-2 名運用前提で 10 個以上のサービスが増える状況では、「どのサービスが誰の管轄か」「docs はどこか」「新サービス起動手順は何か」が瞬時にわからないと運用が崩壊する。Backstage は以下を集約する。
+採用側の小規模運用前提で 10 個以上のサービスが増える状況では、「どのサービスが誰の管轄か」「docs はどこか」「新サービス起動手順は何か」が瞬時にわからないと運用が崩壊する。Backstage は以下を集約する。
 
 - **Software Catalog**: 全サービスのメタデータ・ownership・依存関係
 - **TechDocs**: Markdown を MkDocs で静的サイト化
@@ -128,15 +128,15 @@ spec:
         title: 'scaffold: tier2 ${{ parameters.serviceName }}'
 ```
 
-## Phase 導入タイミング
+## 導入タイミング
 
-| Phase | 内容 |
+| 適用段階 | 内容 |
 |---|---|
-| Phase 0 | 構造のみ |
-| Phase 1a | Software Catalog + TechDocs 最小（手動 catalog-info） |
-| Phase 1b | Scaffolder（tier2 / tier3 新サービス作成） |
-| Phase 1c | Observability 統合、API ドキュメント自動連動 |
-| Phase 2 | 独自プラグイン本格展開 |
+| リリース時点 | 構造のみ |
+| リリース時点 | Software Catalog + TechDocs 最小（手動 catalog-info） |
+| リリース時点 | Scaffolder（tier2 / tier3 新サービス作成） |
+| リリース時点 | Observability 統合、API ドキュメント自動連動 |
+| 採用後の運用拡大時 | 独自プラグイン本格展開 |
 
 ## 対応 IMP-DIR ID
 

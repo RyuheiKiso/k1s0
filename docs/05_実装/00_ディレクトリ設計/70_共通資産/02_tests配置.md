@@ -198,7 +198,7 @@ diff -r /tmp/scaffold-out /tmp/expected/
 
 ## fixtures/ の構造
 
-全テストで共通の seed data / TLS 証明書 / OpenAPI サンプル。バイナリファイル（tar.gz、pem）は Git LFS で管理（ADR-DIR-004 で Phase 1c に判断）。
+全テストで共通の seed data / TLS 証明書 / OpenAPI サンプル。バイナリファイル（tar.gz、pem）は Git LFS で管理（ADR-DIR-004 で リリース時点 に判断）。
 
 ## 対応 IMP-DIR ID
 

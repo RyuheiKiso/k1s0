@@ -1,20 +1,20 @@
 # 85. Identity 設計
 
-本章は k1s0 の ID 基盤（ADR-SEC-001 で選定した Keycloak / ADR-SEC-003 で選定した SPIRE-SPIFFE / ADR-SEC-002 で選定した OpenBao / cert-manager）を実装フェーズ確定版として固定する。人間の ID（Keycloak）、ワークロード ID（SPIRE-SPIFFE）、シークレット（OpenBao）、証明書（cert-manager）を一体的に運用し、退職時の一括 revoke と mTLS の自動更新を JTC 運用の前提とする。
+本章は k1s0 の ID 基盤（ADR-SEC-001 で選定した Keycloak / ADR-SEC-003 で選定した SPIRE-SPIFFE / ADR-SEC-002 で選定した OpenBao / cert-manager）を実装段階確定版として固定する。人間の ID（Keycloak）、ワークロード ID（SPIRE-SPIFFE）、シークレット（OpenBao）、証明書（cert-manager）を一体的に運用し、退職時の一括 revoke と mTLS の自動更新を 採用側組織の運用の前提とする。
 
 ## 本章の位置付け
 
-JTC の 10 年保守サイクルでは、従業員・委託先の入退場が年単位で発生する。退職時に各システムを個別に revoke する運用は、漏れが発生した瞬間にインシデントとなる。本章は Keycloak の group claim と OpenBao / cert-manager の発行ポリシーを連動させ、Keycloak の 1 アカウント無効化で全経路を revoke できる構造を確定する。
+採用側組織の 10 年保守サイクルでは、従業員・委託先の入退場が年単位で発生する。退職時に各システムを個別に revoke する運用は、漏れが発生した瞬間にインシデントとなる。本章は Keycloak の group claim と OpenBao / cert-manager の発行ポリシーを連動させ、Keycloak の 1 アカウント無効化で全経路を revoke できる構造を確定する。
 
 ワークロード間通信は SPIRE-SPIFFE による SVID（短寿命証明書）を ADR-0001 の Istio Ambient mTLS に載せる。これにより、仮に Pod がコンテナエスケープされても SVID の失効で横移動を封じ込められる。退職時 revoke 演習は `ops/runbooks/` に GameDay として定期化する。
 
 ![Identity 4 軸統合 (Keycloak / SPIRE-SPIFFE / OpenBao / cert-manager) と退職時 revoke フロー](img/85_Identity4軸統合.svg)
 
-## Phase 確定範囲
+## OSS リリース時点での確定範囲
 
-- Phase 0: Keycloak realm / client 設計、SPIRE 展開、OpenBao 導入、cert-manager 設定、退職時 revoke ランブック
-- Phase 1a: SVID rotation 自動化、JIT アクセス（Just-In-Time）
-- Phase 1b: Zero Trust 到達判定
+- リリース時点: Keycloak realm / client 設計、SPIRE 展開、OpenBao 導入、cert-manager 設定、退職時 revoke ランブック
+- リリース時点: SVID rotation 自動化、JIT アクセス（Just-In-Time）
+- リリース時点: Zero Trust 到達判定
 
 ## RACI
 

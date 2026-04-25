@@ -4,7 +4,7 @@
 
 ## 問題設定
 
-Phase 1c 時点で k1s0 は以下を予測する。
+リリース時点 時点で k1s0 は以下を予測する。
 
 - 全 tier 合計 50 万〜 100 万行
 - 全コミット数 1 万超
@@ -38,7 +38,7 @@ git clone --filter=blob:none --sparse https://github.com/k1s0/k1s0.git
 
 ### 効果
 
-k1s0 リポジトリ想定値（Phase 1c）:
+k1s0 リポジトリ想定値（リリース時点）:
 
 | 項目 | 通常 clone | partial clone |
 |---|---|---|
@@ -139,14 +139,14 @@ CI は基本毎回新規 clone。partial + sparse のセットアップコスト
 
 k1s0 は submodule 不採用のため、partial clone + submodule の複雑性は回避される。
 
-## Phase 導入タイミング
+## 導入タイミング
 
-| Phase | 設定 |
+| 適用段階 | 設定 |
 |---|---|
-| Phase 0 | 未採用（リポジトリ容量が小さいため不要） |
-| Phase 1a | オプション（開発者判断） |
-| Phase 1b | 標準推奨（`bootstrap-developer.sh` が自動適用） |
-| Phase 1c | 標準必須（開発者セットアップ文書で強制） |
+| リリース時点 | 未採用（リポジトリ容量が小さいため不要） |
+| リリース時点 | オプション（開発者判断） |
+| リリース時点 | 標準推奨（`bootstrap-developer.sh` が自動適用） |
+| リリース時点 | 標準必須（開発者セットアップ文書で強制） |
 
 ## 対応 IMP-DIR ID
 

@@ -23,7 +23,7 @@
           <mxGeometry x="370" y="100" width="340" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="approve" value="承認 (2 名以上 approve)&#xa;Security (D): ADR-SEC / ADR-POL / ADR-SUP&#xa;Platform/SRE (B): ADR-CICD / ADR-OBS / ADR-DATA&#xa;1 名独断で technical decision 通る経路を構造封鎖" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="approve" value="承認 (複数名以上 approve)&#xa;Security (D): ADR-SEC / ADR-POL / ADR-SUP&#xa;Platform/SRE (B): ADR-CICD / ADR-OBS / ADR-DATA&#xa;1 名独断で technical decision 通る経路を構造封鎖" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="760" y="100" width="360" height="120" as="geometry" />
         </mxCell>
 
@@ -39,7 +39,7 @@
           <mxGeometry x="80" y="300" width="260" height="110" as="geometry" />
         </mxCell>
 
-        <mxCell id="s_acc" value="Accepted&#xa;2 名以上 approve 後に更新&#xa;IMP-* 実装が追従&#xa;Radar 側も Adopt 昇格記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="s_acc" value="Accepted&#xa;複数名以上 approve 後に更新&#xa;IMP-* 実装が追従&#xa;Radar 側も Adopt 昇格記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="440" y="300" width="260" height="110" as="geometry" />
         </mxCell>
 

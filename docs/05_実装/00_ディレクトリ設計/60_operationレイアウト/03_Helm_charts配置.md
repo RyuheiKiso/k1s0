@@ -192,7 +192,7 @@ networkPolicy:
 
 ## chart の test
 
-各 chart には `templates/tests/` で Helm test を定義。chart 変更時に kind cluster で helm install → helm test で検証する CI を `.github/workflows/ci-helm-charts.yml` に設置する（Phase 1b 以降）。
+各 chart には `templates/tests/` で Helm test を定義。chart 変更時に kind cluster で helm install → helm test で検証する CI を `.github/workflows/ci-helm-charts.yml` に設置する（運用蓄積後）。
 
 ## 対応 IMP-DIR ID
 

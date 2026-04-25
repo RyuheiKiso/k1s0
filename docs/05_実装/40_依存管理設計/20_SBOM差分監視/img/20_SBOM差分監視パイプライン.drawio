@@ -84,7 +84,7 @@
           <mxGeometry x="40" y="670" width="360" height="50" as="geometry" />
         </mxCell>
 
-        <mxCell id="runtime" value="[Phase 1b] runtime SBOM verification&#xa;ops/audit/sbom-runtime-verify.sh (CronJob 週次)&#xa;稼働 Pod で Syft 実行 → ビルド時 SBOM と diff&#xa;drift 検出: labels: sbom-drift → OpenSearch SIEM&#xa;自動対応: Argo Rollouts で再 deploy 上書き" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
+        <mxCell id="runtime" value="[リリース時点] runtime SBOM verification&#xa;ops/audit/sbom-runtime-verify.sh (CronJob 週次)&#xa;稼働 Pod で Syft 実行 → ビルド時 SBOM と diff&#xa;drift 検出: labels: sbom-drift → OpenSearch SIEM&#xa;自動対応: Argo Rollouts で再 deploy 上書き" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;" vertex="1" parent="1">
           <mxGeometry x="480" y="495" width="420" height="130" as="geometry" />
         </mxCell>
 
@@ -114,7 +114,7 @@
         <mxCell id="l5" value="実線太 = 生成・保管・照合など明示パイプライン / 破線 = 通知・非同期イベント" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="580" y="800" width="1080" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="l6" value="Phase 0: 生成・2 経路保管・日次 CVE 照合 / Phase 1a: PR SBOM diff / Phase 1b: runtime drift 検知・OSV cross-check" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="l6" value="リリース時点で一気通貫: 生成 / 2 経路保管 / 日次 CVE 照合 / PR SBOM diff / runtime drift 検知 / OSV cross-check" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="580" y="835" width="1080" height="30" as="geometry" />
         </mxCell>
         <mxCell id="l7" value="統合 SBOM が必須の理由: 言語レベル単体では OS ベースパッケージを取り逃し、image レベル単体では Rust/Go の詳細 version 解像度低下" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">

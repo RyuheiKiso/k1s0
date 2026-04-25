@@ -6,7 +6,7 @@
 
 ## なぜ app-of-apps + ApplicationSet を併用するのか
 
-Argo CD の配信対象は 6 領域（tier1 / tier2 / tier3 / infra / observability / security）にまたがり、各領域内でさらに 3 環境（dev / staging / prod）の差分と複数コンポーネントの組合せが生じる。Application を手で列挙すると Phase 1a 時点で 100 個を超え、新規コンポーネント追加のたびに Application 追加 PR が発生する。これは 2 名運用で即破綻する。
+Argo CD の配信対象は 6 領域（tier1 / tier2 / tier3 / infra / observability / security）にまたがり、各領域内でさらに 3 環境（dev / staging / prod）の差分と複数コンポーネントの組合せが生じる。Application を手で列挙すると リリース時点 時点で 100 個を超え、新規コンポーネント追加のたびに Application 追加 PR が発生する。これは 採用側の小規模運用で即破綻する。
 
 ルートを 1 つの「app-of-apps」で束ね、その下で領域別 ApplicationSet（Git generator）が `deploy/apps/<tier>/` のディレクトリ構造を自動スキャンする構造にすれば、新規コンポーネントは「ディレクトリを追加して PR を出す」だけで自動検出される。Argo CD の sync 経路・RBAC・監査証跡は一箇所に集約されるため、IMP-REL-POL-001（GitOps 唯一経路）との整合が構造的に担保される。
 
@@ -113,7 +113,7 @@ Application は `source.helm.chart` ではなく `source.path: deploy/kustomize/
 
 ## Argo CD 自体の HA 構成
 
-Argo CD 自体がダウンすると GitOps 経路全体が停止するため、HA は Phase 0 時点で必須である。次の構成で配置する（`infra/argocd/` 配下、App-of-apps の対象外で bootstrap 時に別途適用）。
+Argo CD 自体がダウンすると GitOps 経路全体が停止するため、HA は リリース時点で必須である。次の構成で配置する（`infra/argocd/` 配下、App-of-apps の対象外で bootstrap 時に別途適用）。
 
 - **argocd-server** : 3 replicas、`podAntiAffinity` で node 分散、Ingress 経由で MetalLB 公開
 - **argocd-repo-server** : 3 replicas、Git clone キャッシュを共有 PVC（Longhorn）上に保持、大規模リポジトリの clone 時間を短縮
@@ -126,10 +126,10 @@ Argo CD 自体のアップグレードは自己反映を避けるため、`infra
 
 ## image-updater の opt-in 運用
 
-Argo CD Image Updater は「新 image tag が push されたら Git の Application マニフェストを書き換えて sync を誘発する」ツールであり、CI → image push → 自動反映のパイプラインを完成させる。ただし本番での自動反映は「誰が何をいつ反映したか」が人の承認を伴わないため、Phase 0 では dev / staging のみ opt-in とする。
+Argo CD Image Updater は「新 image tag が push されたら Git の Application マニフェストを書き換えて sync を誘発する」ツールであり、CI → image push → 自動反映のパイプラインを完成させる。ただし本番での自動反映は「誰が何をいつ反映したか」が人の承認を伴わないため、リリース時点 では dev / staging のみ opt-in とする。
 
 - `deploy/image-updater/config.yaml` : 対象 Application のリスト（dev / staging の tier2 / tier3 のみ）
-- tier1 は Phase 1b で opt-in 検討。tier1 は広範囲に影響するため、Phase 0 では手動 tag 更新 PR + manual sync を維持
+- tier1 は リリース時点 で opt-in 検討。tier1 は広範囲に影響するため、リリース時点 では手動 tag 更新 PR + manual sync を維持
 - image tag 書換は `git-write-back` モードで Application マニフェストの `spec.source.helm.parameters` を更新する
 - Renovate（ADR-DEP-001）との棲み分け: Renovate は依存ライブラリ / Dockerfile base image の更新 PR を出す、Image Updater は自プロジェクトの image tag 更新を自動化する
 
@@ -165,5 +165,5 @@ IMP-REL-POL-001 の「Git に存在しない差分は self-heal または PagerD
 
 - [`00_方針/01_リリース原則.md`](../00_方針/01_リリース原則.md) の IMP-REL-POL-001（GitOps 唯一経路）の物理配置を本ファイルで固定する
 - [`../20_ArgoRollouts_PD/01_ArgoRollouts_PD設計.md`](../20_ArgoRollouts_PD/01_ArgoRollouts_PD設計.md) が本ファイルの Helm chart 内 `rollout.yaml` を参照する
-- `../30_flagd_フィーチャーフラグ/`（Phase B で節新設予定）の flagd も本ファイルの infra ApplicationSet 経由で配信される
+- `../30_flagd_フィーチャーフラグ/`（節新設予定）の flagd も本ファイルの infra ApplicationSet 経由で配信される
 - [`../../00_ディレクトリ設計/`](../../00_ディレクトリ設計/) の IMP-DIR-* と `deploy/` 配下配置が整合する

@@ -61,7 +61,7 @@ tier3 BFF は以下の 3 プロトコルを同時にサポートする。
 - **REST**（OpenAPI 仕様）: レガシー連携や簡易 Web ページに対応
 - **gRPC-Web**（connectrpc）: 強い型付けが必要な Native / 上級 Web 開発者向け
 
-3 プロトコルを同居させるのは複雑度を増やすが、Phase 1b で portal Web（GraphQL）、Phase 1c で Native（gRPC-Web）、Phase 2 で外部連携（REST）と段階的に有効化する。
+3 プロトコルを同居させるのは複雑度を増やすが、リリース時点で portal Web（GraphQL） / Native（gRPC-Web）、採用後の運用拡大時 で外部連携（REST）と段階的に有効化する。
 
 ## portal-bff と admin-bff の分離
 
@@ -185,7 +185,7 @@ portal と admin はトラフィック特性が異なるため、独立した HP
 
 `HorizontalPodAutoscaler` の `metrics:` には `Resource` 型を 2 件並列で並べる（`type: Resource, resource.name: cpu, target.averageUtilization: 70` と `type: Resource, resource.name: memory, target.averageUtilization: 80`）。HPA は OR 評価で動作するため、CPU と Memory のどちらか一方が閾値を超えれば即時スケールアウトする。
 
-Kafka lag / Redis キュー長など event-driven な自動スケールが必要な場合は、`deploy/charts/tier3-bff/values-<env>.yaml` の `keda:` セクションで `ScaledObject` を宣言する（`infra/scaling/keda/` が Phase 1b 以降に KEDA Operator を展開）。
+Kafka lag / Redis キュー長など event-driven な自動スケールが必要な場合は、`deploy/charts/tier3-bff/values-<env>.yaml` の `keda:` セクションで `ScaledObject` を宣言する（`infra/scaling/keda/` が 運用蓄積後に KEDA Operator を展開）。
 
 ## テスト戦略
 

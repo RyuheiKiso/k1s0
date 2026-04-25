@@ -68,7 +68,7 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 - ログレベル変更は REST API または CLI で実行可能
 - 変更は即時反映（最大 30 秒以内）
 - 変更者と変更時刻が Audit API に記録される
-- 優先度 SHOULD（Phase 1b で評価）
+- 優先度 SHOULD（リリース時点 で評価）
 
 ## 入出力仕様
 
@@ -105,12 +105,12 @@ k1s0.Log.With(fields: map<string, any>) -> Logger  // scoped Logger
 - PII を含むフィールドは `pii:true` の attribute で自動マスキング（FR-T1-PII-001 連携）
 - Log SDK 障害時も tier2 アプリはクラッシュしない（stderr フォールバック）
 
-## Phase 対応
+## 段階対応
 
-- **Phase 1a**: FR-T1-LOG-001、002、003（Go SDK）
-- **Phase 1b**: FR-T1-LOG-004、C# SDK 追加
-- **Phase 1c**: Python / Rust SDK 追加
-- **Phase 2+**: ログレベルの Feature Flag 連動
+- **リリース時点**: FR-T1-LOG-001、002、003（Go SDK）
+- **リリース時点**: FR-T1-LOG-004、C# SDK 追加
+- **リリース時点**: Python / Rust SDK 追加
+- **採用後の運用拡大時**: ログレベルの Feature Flag 連動
 
 ## 関連非機能要件
 

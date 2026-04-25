@@ -7,7 +7,7 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1600" height="1250" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="k1s0 ハードウェアサイジング俯瞰（中規模 3,000 名想定 / Phase 2 拡張構成 16 ノード）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="k1s0 ハードウェアサイジング俯瞰（中規模 3,000 名想定 / 採用後の運用拡大時 拡張構成 16 ノード）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
         </mxCell>
         <mxCell id="subtitle" value="前提：既存 VM 基盤（VMware / Hyper-V / KVM 問わず）／ゲスト Ubuntu 22.04 LTS ／Anti-Affinity 必須／オンプレ単一データセンター" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
@@ -66,7 +66,7 @@
           <mxGeometry x="1330" y="360" width="210" height="170" as="geometry" />
         </mxCell>
 
-        <mxCell id="dr_bg" value="DR ノード × 2（遠隔副拠点 / 週次バックアップレプリカ / 設計対象外 → Phase 2 で確保）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="dr_bg" value="DR ノード × 2（遠隔副拠点 / 週次バックアップレプリカ / 設計対象外 → 採用後の運用拡大時 で確保）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="40" y="580" width="1520" height="170" as="geometry" />
         </mxCell>
         <mxCell id="dr_spec" value="1 ノードあたり&#10;&#10;・8 vCPU&#10;・32 GB RAM（ECC）&#10;・2 TB SSD（バックアップ受け入れ専用）&#10;・1 Gbps NIC × 2（LACP、WAN 経由 IPsec）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
@@ -75,10 +75,10 @@
         <mxCell id="dr_role" value="配置コンポーネント（Standby）&#10;&#10;・PostgreSQL Streaming Replication（遠隔）&#10;・MirrorMaker2 で Kafka 受け&#10;・MinIO site-to-site レプリカ受け&#10;・barman cloud バックアップ先&#10;・通常は kube-apiserver 停止、DR 時のみ昇格" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="360" y="620" width="320" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="dr_sum" value="2 ノード小計&#10;&#10;・16 vCPU&#10;・64 GB RAM&#10;・4 TB SSD&#10;・RPO 60 秒（Phase 2 目標）／RTO 30 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+        <mxCell id="dr_sum" value="2 ノード小計&#10;&#10;・16 vCPU&#10;・64 GB RAM&#10;・4 TB SSD&#10;・RPO 60 秒（採用後の運用拡大時 目標）／RTO 30 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="700" y="620" width="280" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="dr_note" value="Phase 1b/1c では DR 2 ノードは未確保、週次オブジェクト複製で RPO 1 週間 / RTO 48 時間。&#10;Phase 2（3,000 名スケール）で本図の遠隔 DR 構成に移行し、MinIO・PostgreSQL・Kafka の&#10;site-to-site レプリケーションを実稼働させる。既存 JTC 別拠点 NAS を活用し、新規 DC 契約を回避する。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="dr_note" value="採用初期 では DR 2 ノードは未確保、週次オブジェクト複製で RPO 1 週間 / RTO 48 時間。&#10;採用後の運用拡大時（3,000 名スケール）で本図の遠隔 DR 構成に移行し、MinIO・PostgreSQL・Kafka の&#10;site-to-site レプリケーションを実稼働させる。既存 採用側組織の別拠点 NAS を活用し、新規 DC 契約を回避する。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;align=left;verticalAlign=middle;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="1000" y="620" width="540" height="110" as="geometry" />
         </mxCell>
 
@@ -107,13 +107,13 @@
         <mxCell id="scale_bg" value="規模別スケーリング差分（本図は中規模 = 基準）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="40" y="930" width="1520" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="scale_small" value="小規模（1,000 名想定 / Phase 1b〜1c 相当）&#10;&#10;・合計 3 ノード（CP 兼 Worker 兼 Data の混在）&#10;・12 vCPU / 48 GB RAM / 600 GB SSD&#10;・Observability / DR は非設置、Grafana LGTM も後回し&#10;・MinIO は standalone、Longhorn replica=3 のみ確保&#10;・目標 SLO 99%（月 7h ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+        <mxCell id="scale_small" value="小規模（1,000 名想定 / リリース時点〜採用初期 相当）&#10;&#10;・合計 3 ノード（CP 兼 Worker 兼 Data の混在）&#10;・12 vCPU / 48 GB RAM / 600 GB SSD&#10;・Observability / DR は非設置、Grafana LGTM も後回し&#10;・MinIO は standalone、Longhorn replica=3 のみ確保&#10;・目標 SLO 99%（月 7h ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="970" width="480" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="scale_mid" value="中規模（3,000 名想定 / Phase 2 基準 / 本図）&#10;&#10;・16 ノード構成（CP 3 / Worker 6 / Data 3 / Obs 2 / DR 2）&#10;・116 vCPU / 560 GB RAM / 約 11 TB SSD&#10;・Anti-Affinity で単一ハイパバイザ障害に耐える&#10;・MinIO EC 4+2、Longhorn NVMe 専用プール&#10;・目標 SLO 99.9%（月 43 分ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="scale_mid" value="中規模（3,000 名想定 / 採用後の運用拡大時 基準 / 本図）&#10;&#10;・16 ノード構成（CP 3 / Worker 6 / Data 3 / Obs 2 / DR 2）&#10;・116 vCPU / 560 GB RAM / 約 11 TB SSD&#10;・Anti-Affinity で単一ハイパバイザ障害に耐える&#10;・MinIO EC 4+2、Longhorn NVMe 専用プール&#10;・目標 SLO 99.9%（月 43 分ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="560" y="970" width="480" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="scale_large" value="大規模（10,000 名想定 / Phase 3 想定）&#10;&#10;・30 ノード以上（Worker を 6 → 16 へ線形拡張、Data を 3 → 6 へシャード分割）&#10;・約 240 vCPU / 1.2 TB RAM / 30 TB 超 SSD&#10;・2 DC 同時稼働（Active-Active）／SPIFFE/SPIRE で Workload Identity 連邦&#10;・MinIO site-to-site レプリカ 3 リージョン、Kafka MirrorMaker2 常時稼働&#10;・目標 SLO 99.95%（月 22 分ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
+        <mxCell id="scale_large" value="大規模（10,000 名想定 / 採用側のマルチクラスタ移行時 想定）&#10;&#10;・30 ノード以上（Worker を 6 → 16 へ線形拡張、Data を 3 → 6 へシャード分割）&#10;・約 240 vCPU / 1.2 TB RAM / 30 TB 超 SSD&#10;・2 DC 同時稼働（Active-Active）／SPIFFE/SPIRE で Workload Identity 連邦&#10;・MinIO site-to-site レプリカ 3 リージョン、Kafka MirrorMaker2 常時稼働&#10;・目標 SLO 99.95%（月 22 分ダウン許容）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="1060" y="970" width="480" height="100" as="geometry" />
         </mxCell>
 
@@ -150,13 +150,13 @@
         <mxCell id="lg_warn" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;" vertex="1" parent="1">
           <mxGeometry x="400" y="1165" width="24" height="16" as="geometry" />
         </mxCell>
-        <mxCell id="lg_warn_t" value="DR / 大規模想定（Phase 2 以降で確保 / 設計対象外領域）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_warn_t" value="DR / 大規模想定（採用後の運用拡大時で確保 / 設計対象外領域）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="430" y="1163" width="380" height="20" as="geometry" />
         </mxCell>
         <mxCell id="lg_note" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;" vertex="1" parent="1">
           <mxGeometry x="800" y="1165" width="24" height="16" as="geometry" />
         </mxCell>
-        <mxCell id="lg_note_t" value="注記・Phase 移行補足（小規模→中規模→大規模の差分）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_note_t" value="注記・段階移行補足（小規模→中規模→大規模の差分）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="830" y="1163" width="360" height="20" as="geometry" />
         </mxCell>
         <mxCell id="lg_agpl" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#c62828;strokeWidth=2;" vertex="1" parent="1">

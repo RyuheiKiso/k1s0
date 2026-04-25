@@ -47,7 +47,7 @@
           <mxGeometry x="1140" y="370" width="240" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="s_extended" value="延長判定（最大 +3 か月）&#10;Product Council 承認&#10;稟議再承認事項" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;dashed=1;dashPattern=4 4;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="s_extended" value="延長判定（最大 +3 か月）&#10;Product Council 承認&#10;採用再検討事項" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;dashed=1;dashPattern=4 4;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="880" y="370" width="220" height="100" as="geometry" />
         </mxCell>
 
@@ -127,7 +127,7 @@
         <mxCell id="trigger_title" value="各遷移トリガー条件と責任者" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="55" y="548" width="400" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="t_r1" value="Active → 段階 1：Product Council（起案者・協力者・CTO・情シス部長・法務代表）の決議。決議理由（技術負債 / ライセンス / セキュリティ / コミュニティ衰退）を稟議起票と共に Backstage へ記録。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="t_r1" value="Active → 段階 1：Product Council（起案者・協力者・CTO・情シス部長・法務代表）の決議。決議理由（技術負債 / ライセンス / セキュリティ / コミュニティ衰退）を申請起票と共に Backstage へ記録。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="55" y="580" width="1590" height="30" as="geometry" />
         </mxCell>
         <mxCell id="t_r2" value="段階 1 → 2：D-Day から 30 日経過で自動遷移。Warning 発出は CI/CD で配備物に組み込み、遷移操作は Argo CD の sync タグで記録。Warning 発出漏れがあった場合は段階 1 へ差し戻し。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">

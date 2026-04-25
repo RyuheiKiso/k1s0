@@ -14,7 +14,7 @@ Output Binding は tier2 から外部システムへの一方向送信（例: Mi
 
 **現状**: tier2 が MinIO SDK を直接使うと、S3 互換の認証情報管理、bucket 命名、権限管理を個別に実装する。バケット名にテナント ID を含める規約の徹底が手作業になる。
 
-**要件達成後**: `k1s0.Binding.Send("minio", { bucket, key, data })` で MinIO にオブジェクトを書き込む。bucket は tier1 が `tenant-<id>-<logical-bucket>` 形式で自動展開。アクセス権限は OpenBao Database Engine 相当の動的 STS でプーリング（Phase 2+）。
+**要件達成後**: `k1s0.Binding.Send("minio", { bucket, key, data })` で MinIO にオブジェクトを書き込む。bucket は tier1 が `tenant-<id>-<logical-bucket>` 形式で自動展開。アクセス権限は OpenBao Database Engine 相当の動的 STS でプーリング（採用後の運用拡大時）。
 
 **崩れた時**: テナント越境ファイルアクセスが発生するリスク、MinIO SDK バージョン差による tier2 アプリの挙動ばらつきが発生する。
 
@@ -69,7 +69,7 @@ Output Binding は tier2 から外部システムへの一方向送信（例: Mi
 - cron 式は標準 5 フィールド表記
 - 実行開始と完了の Audit 記録
 - 失敗時のリトライポリシーを指定可能
-- Phase 1c で提供、Phase 1b では k8s CronJob を手動マニフェスト管理
+- リリース時点で 提供 / は k8s CronJob を手動マニフェスト管理
 
 ## 入出力仕様
 
@@ -97,12 +97,12 @@ k1s0.Binding.Subscribe(
 - Binding Component YAML は tier1 が集中管理、tier2 は参照のみ可能
 - Binding 失敗時のエラーメッセージは機密情報を含まない
 
-## Phase 対応
+## 段階対応
 
-- **Phase 1a**: 未提供
-- **Phase 1b**: FR-T1-BINDING-001、002、003（MinIO / SMTP / HTTP Output）
-- **Phase 1c**: FR-T1-BINDING-004（Cron Input）
-- **Phase 2+**: HTTP Webhook Input、Kafka Binding、Service Bus Binding 等
+- **リリース時点**: 未提供
+- **リリース時点**: FR-T1-BINDING-001、002、003（MinIO / SMTP / HTTP Output）
+- **リリース時点**: FR-T1-BINDING-004（Cron Input）
+- **採用後の運用拡大時**: HTTP Webhook Input、Kafka Binding、Service Bus Binding 等
 
 ## 関連非機能要件
 

@@ -24,7 +24,7 @@
 ```
 # tier1 Rust 自作領域開発者向け cone
 # 対象: src/tier1/rust/ + contracts + docs + tools
-# 注: src/sdk/rust/ は Phase 2 骨組みのため含めない（必要時は sdk-dev を兼任）
+# 注: src/sdk/rust/ は 採用後の運用拡大時 骨組みのため含めない（必要時は sdk-dev を兼任）
 /docs/
 /src/contracts/
 /src/tier1/rust/
@@ -159,7 +159,7 @@
 /.devcontainer/
 ```
 
-注: sdk-dev は tier1/tier2/tier3 のいずれにも属さず、SDK を「公開 API の Protobuf → 4 言語の gRPC stub 翻訳」として独立管理する横断役割。tier3-web や tier2-dev が SDK 変更の影響を受ける場合でも、SDK 自体の配布版数上げと契約テスト通過は sdk-dev が担う。Phase 1a-1b で 1 人が sdk-dev と他役割を兼任する運用を想定し、Phase 2 で独立化を再評価する。
+注: sdk-dev は tier1/tier2/tier3 のいずれにも属さず、SDK を「公開 API の Protobuf → 4 言語の gRPC stub 翻訳」として独立管理する横断役割。tier3-web や tier2-dev が SDK 変更の影響を受ける場合でも、SDK 自体の配布版数上げと契約テスト通過は sdk-dev が担う。採用初期 で 1 人が sdk-dev と他役割を兼任する運用を想定し、採用後の運用拡大時 で独立化を再評価する。
 
 cone に `src/contracts/` を含めているのは Protobuf を読み取って codegen を再実行するため。ただし contracts の .proto 変更は [ADR-DIR-001](../../../02_構想設計/adr/ADR-DIR-001-contracts-elevation.md) に従いアーキテクチャ評議会（`@k1s0/arch-council`）の承認が必要で、sdk-dev は codegen と SDK 側 API 露出の整合を担当する境界にある。
 

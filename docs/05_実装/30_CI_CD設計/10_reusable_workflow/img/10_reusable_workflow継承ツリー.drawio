@@ -31,7 +31,7 @@
         <mxCell id="rwf_lint" value="_reusable-lint.yml&#10;workflow_call のみ&#10;inputs: tier / language / path&#10;- fmt (rustfmt / gofmt / prettier / dotnet-format)&#10;- buf lint&#10;- go-layer-check&#10;- secret echo 禁止 lint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="60" y="275" width="340" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="rwf_test" value="_reusable-test.yml&#10;- cargo nextest (Rust)&#10;- go test -coverprofile (Go)&#10;- vitest (TS) / coverlet (C#)&#10;- coverage 集約 → Mimir&#10;- 閾値 Phase 0 warn / 1a 80% / 1b 90%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="rwf_test" value="_reusable-test.yml&#10;- cargo nextest (Rust)&#10;- go test -coverprofile (Go)&#10;- vitest (TS) / coverlet (C#)&#10;- coverage 集約 → Mimir&#10;- 閾値 リリース時点 warn / 1a 80% / 1b 90%" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="420" y="275" width="340" height="150" as="geometry" />
         </mxCell>
         <mxCell id="rwf_build" value="_reusable-build.yml&#10;- Kaniko image build&#10;- SBOM 中間 artifact&#10;- lint / test 成功後に発火&#10;- image は local registry に保持&#10;- build artifact を push に引渡" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">

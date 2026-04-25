@@ -12,7 +12,7 @@
           <mxGeometry x="200" y="20" width="1300" height="40" as="geometry" />
         </mxCell>
 
-        <mxCell id="subtitle" value="各データ層のバックアップ戦略は異なるが、1 次退避先は MinIO に集約し、月次で既存 JTC テープ装置へ複製 (ランサムウェア対策 + 日常復旧の両立)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="各データ層のバックアップ戦略は異なるが、1 次退避先は MinIO に集約し、月次で既存 採用側組織のテープ装置へ複製 (ランサムウェア対策 + 日常復旧の両立)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="200" y="60" width="1300" height="24" as="geometry" />
         </mxCell>
 
@@ -96,11 +96,11 @@
           <mxGeometry x="540" y="710" width="360" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="minio_hub" value="MinIO (1 次集約 / 既存 JTC NAS 1.5TB)&#xa;EC 3+2 で耐障害 / SSE-S3 暗号化 (OpenBao Transit)&#xa;バケット設計:&#xa;  mimir-blocks / loki-chunks / tempo-traces&#xa;  barman-pg-backup / kafka-archive&#xa;  longhorn-backup / openbao-snapshot&#xa;  harbor-registry / audit-worm&#xa;  apps-clickonce / apps-msix&#xa;audit-worm バケット: Object Lock Compliance / 7 年保持固定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+        <mxCell id="minio_hub" value="MinIO (1 次集約 / 既存 採用側組織のNAS 1.5TB)&#xa;EC 3+2 で耐障害 / SSE-S3 暗号化 (OpenBao Transit)&#xa;バケット設計:&#xa;  mimir-blocks / loki-chunks / tempo-traces&#xa;  barman-pg-backup / kafka-archive&#xa;  longhorn-backup / openbao-snapshot&#xa;  harbor-registry / audit-worm&#xa;  apps-clickonce / apps-msix&#xa;audit-worm バケット: Object Lock Compliance / 7 年保持固定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
           <mxGeometry x="1040" y="280" width="380" height="280" as="geometry" />
         </mxCell>
 
-        <mxCell id="tape" value="既存 JTC バックアップテープ装置 (2 次退避)&#xa;月次 第 1 土曜 02:00 JST&#xa;MinIO Object Lock + rclone で複製&#xa;LTO-8 / イミュータブル保管&#xa;ランサムウェア対策 (オフライン)&#xa;保管: JTC 本社 + 遠隔倉庫 2 拠点" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
+        <mxCell id="tape" value="既存 採用側組織のバックアップテープ装置 (2 次退避)&#xa;月次 第 1 土曜 02:00 JST&#xa;MinIO Object Lock + rclone で複製&#xa;LTO-8 / イミュータブル保管&#xa;ランサムウェア対策 (オフライン)&#xa;保管: 採用側組織の本社 + 遠隔倉庫 2 拠点" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=3;align=left;spacingLeft=10;spacingTop=6;" vertex="1" parent="1">
           <mxGeometry x="1490" y="310" width="200" height="220" as="geometry" />
         </mxCell>
 

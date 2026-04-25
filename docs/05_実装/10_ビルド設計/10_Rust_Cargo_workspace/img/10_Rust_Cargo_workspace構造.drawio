@@ -58,7 +58,7 @@
         <mxCell id="sdk_wsdeps" value="[workspace.dependencies] 最小化&#10;tonic / prost / tokio / serde / thiserror&#10;features は crate 個別指定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f7ff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="820" y="220" width="480" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="sdk_profile" value="[profile.dev] incremental=false&#10;[profile.release] lto=thin&#10;target: crates.io 公開想定 (wasm32 は Phase 1b)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="sdk_profile" value="[profile.dev] incremental=false&#10;[profile.release] lto=thin&#10;target: crates.io 公開想定 (wasm32 は リリース時点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="820" y="300" width="480" height="60" as="geometry" />
         </mxCell>
         <mxCell id="sdk_lints" value="[workspace.lints] unsafe_code=deny / unwrap_used=warn (test helper 許容)&#10;edition=2024 / rust-toolchain.toml channel=1.88.0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">

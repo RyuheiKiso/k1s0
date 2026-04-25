@@ -41,7 +41,7 @@ Kubernetes クラスタそのものの素構成、すなわち以下を対象と
 - IMP-DIR-INFRA-077（観測性配置）— `07_観測性配置.md`
 - IMP-DIR-INFRA-078（環境別パッチ配置）— `08_環境別パッチ配置.md`
 
-予約 IMP-DIR ID は `IMP-DIR-INFRA-079` 〜 `IMP-DIR-INFRA-090`（feature-management / scaling / multi-region / backup-restore / hardware-profile / cost-optimization / green-ops / air-gap など、Phase 1b 以降で採番）。本章採番範囲は `IMP-DIR-INFRA-071` 〜 `IMP-DIR-INFRA-090`。
+予約 IMP-DIR ID は `IMP-DIR-INFRA-079` 〜 `IMP-DIR-INFRA-090`（feature-management / scaling / multi-region / backup-restore / hardware-profile / cost-optimization / green-ops / air-gap など、運用蓄積後で採番）。本章採番範囲は `IMP-DIR-INFRA-071` 〜 `IMP-DIR-INFRA-090`。
 
 ## 対応 ADR
 

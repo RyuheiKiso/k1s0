@@ -47,7 +47,7 @@ tier1 が直接依存する以下の領域の OSS は、patchless でも vendori
 - PII 処理 / 監査ログ（ADR-AUDIT-\* 関連）
 - Dapr Runtime / Protobuf stub 生成器
 
-根拠: これらは JTC 監査で「どの version の何をどう検証したか」の再現性が求められる。upstream に依存していると、上流が削除された時点で監査証跡が失われる。vendoring により commit hash 単位で再現性を保つ。
+根拠: これらは 採用側組織の監査で「どの version の何をどう検証したか」の再現性が求められる。upstream に依存していると、上流が削除された時点で監査証跡が失われる。vendoring により commit hash 単位で再現性を保つ。
 
 ### 判定フロー
 
@@ -103,7 +103,7 @@ third_party/
 
 ## fork 理由
 
-Dapr Workflow API の ○○ 機能が upstream v1.15 で追加予定だが、Phase 1b の 2026-06 までに本家 release が見込めない。
+Dapr Workflow API の ○○ 機能が upstream v1.15 で追加予定だが、リリース時点 の 2026-06 までに本家 release が見込めない。
 部分的に v1.15 相当の実装をバックポートする。
 
 ## 適用パッチ

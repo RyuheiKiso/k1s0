@@ -53,7 +53,7 @@ tools/codegen/
 | 言語 | yaml | 出力先（tier1 サーバー） | 出力先（SDK） | 参考 plugin |
 |---|---|---|---|---|
 | Go | `buf.gen.go.yaml` | `src/tier1/go/internal/proto/` | `src/sdk/go/proto/` | `buf.build/protocolbuffers/go` + `buf.build/grpc/go` |
-| Rust | `buf.gen.rust.yaml` | `src/tier1/rust/crates/proto-gen/src/`（flat） | `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/`（Phase 2） | `buf.build/community/neoeinstein-prost` + `buf.build/community/neoeinstein-tonic` |
+| Rust | `buf.gen.rust.yaml` | `src/tier1/rust/crates/proto-gen/src/`（flat） | `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/`（採用後の運用拡大時） | `buf.build/community/neoeinstein-prost` + `buf.build/community/neoeinstein-tonic` |
 | C# | `buf.gen.csharp.yaml` | なし（tier1 に C# 無し） | `src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/` | `buf.build/protocolbuffers/csharp` + `buf.build/grpc/csharp` |
 | TypeScript | `buf.gen.ts.yaml` | なし（tier1 に TS 無し） | `src/sdk/typescript/packages/proto/src/` | `buf.build/connectrpc/es`（connectrpc 採用） |
 

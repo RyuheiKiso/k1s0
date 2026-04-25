@@ -155,7 +155,7 @@ git sparse-checkout set --stdin < "$ROLE_FILE"
 echo "Switched to role: $ROLE"
 ```
 
-Phase 1b では Rust 実装の CLI が `tools/sparse/checkout-role.sh` を置き換える。
+リリース時点 では Rust 実装の CLI が `tools/sparse/checkout-role.sh` を置き換える。
 
 ## ci/ の役割
 

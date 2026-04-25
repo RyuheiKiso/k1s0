@@ -88,7 +88,7 @@
         <mxCell id="pf-docs" value="docs/** のみ変更&#10;→ CI 全スキップ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1240" y="600" width="240" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="pf-note" value="判定結果は GitHub Actions reusable workflow の matrix 入力となる。Phase 1c で単言語ビルド 30 分超過なら Bazel 導入を ADR で再評価。" style="text;html=1;fontSize=11;align=center;" vertex="1" parent="1">
+        <mxCell id="pf-note" value="判定結果は GitHub Actions reusable workflow の matrix 入力となる。リリース時点 で単言語ビルド 30 分超過なら Bazel 導入を ADR で再評価。" style="text;html=1;fontSize=11;align=center;" vertex="1" parent="1">
           <mxGeometry x="120" y="670" width="1360" height="40" as="geometry" />
         </mxCell>
 

@@ -14,7 +14,7 @@ src/tier3/web/
 ├── .npmrc                          # registry 設定
 ├── .eslintrc.cjs                   # 共通 eslint 設定
 ├── .prettierrc                     # 共通 prettier 設定
-├── turbo.json                      # Phase 1b 以降検討（Turborepo）
+├── turbo.json                      # 運用蓄積後検討（Turborepo）
 ├── apps/
 │   ├── portal/                     # 配信ポータル
 │   │   ├── package.json
@@ -30,7 +30,7 @@ src/tier3/web/
 │   │   └── e2e/                    # Playwright
 │   ├── admin/                      # 管理画面
 │   │   └── ...                     # portal と同構造
-│   └── docs-site/                  # Phase 1b 以降のドキュメントサイト
+│   └── docs-site/                  # 運用蓄積後のドキュメントサイト
 │       └── ...
 ├── packages/
 │   ├── ui/                         # shadcn/ui 派生の共通コンポーネント
@@ -77,13 +77,13 @@ apps / packages / tools の 3 カテゴリで workspace 参加。
 
 起動可能なアプリケーション。`package.json` に `"private": true` を設定し、npm publish の対象外とする。
 
-- `portal/`: エンドユーザ向け配信ポータル（Phase 1a の主要成果物）
+- `portal/`: エンドユーザ向け配信ポータル（リリース時点 の主要成果物）
 - `admin/`: 管理画面（テナント管理・監査ログ閲覧）
-- `docs-site/`: ドキュメントサイト（Phase 1b 以降、Docusaurus or VitePress）
+- `docs-site/`: ドキュメントサイト（運用蓄積後、Docusaurus or VitePress）
 
 ### packages/
 
-再利用可能な library。workspace 内部で `"workspace:*"` で参照される。Phase 1c 以降に外部 publish を検討する場合は `"private": false` に切り替える。
+再利用可能な library。workspace 内部で `"workspace:*"` で参照される。運用蓄積後に外部 publish を検討する場合は `"private": false` に切り替える。
 
 - `ui/`: Button / Dialog / Form などの共通コンポーネント
 - `api-client/`: `@k1s0/sdk`（`src/sdk/typescript/`）をラップし、React Query などと統合
@@ -108,31 +108,31 @@ Lint / Formatter 設定を package 化したもの。
 
 ## 依存方向
 
-Phase 1a は BFF 経由のみ、Phase 1b 以降で直 gRPC-Web も許容するため、`packages/api-client` の下流が Phase により分岐する。
+リリース時点 は BFF 経由のみ、運用蓄積後で直 gRPC-Web も許容するため、`packages/api-client` の下流が 段階により分岐する。
 
 ```
-                             （Phase 1a）
+                             （リリース時点）
 apps/*  →  packages/api-client  ─────►  BFF（HTTP/REST・GraphQL）
             │                             → tier2 / tier1（SDK 経由）
-            │     （Phase 1b 以降、選択的に）
+            │     （運用蓄積後、選択的に）
             └─────►  @k1s0/sdk（src/sdk/typescript/）── gRPC-Web ──► tier1
 
 apps/*  →  packages/ui / i18n / config
 apps/*  →  tools/eslint-config（devDependency）
 ```
 
-- Phase 1a: `apps/*` は `packages/api-client` を通じて BFF の REST / GraphQL のみを叩く。`@k1s0/sdk` は SDK 側の構造確立のみで、Web からは使わない
-- Phase 1b 以降: 一部 API（軽量 read-only など）で `packages/api-client` が `@k1s0/sdk` の gRPC-Web クライアントを直接使う構成も許容
+- リリース時点: `apps/*` は `packages/api-client` を通じて BFF の REST / GraphQL のみを叩く。`@k1s0/sdk` は SDK 側の構造確立のみで、Web からは使わない
+- 運用蓄積後: 一部 API（軽量 read-only など）で `packages/api-client` が `@k1s0/sdk` の gRPC-Web クライアントを直接使う構成も許容
 - apps 間の相互依存は禁止。共通ロジックは packages/ に移動する。packages 間の依存は許容するが、循環は禁止
-- `apps/*` から `@k1s0/sdk` を直接依存することは禁止（api-client 経由で抽象化し、Phase 1a/1b の切替をまとめて行えるようにする）
+- `apps/*` から `@k1s0/sdk` を直接依存することは禁止（api-client 経由で抽象化し、採用初期 の切替をまとめて行えるようにする）
 
 ## ビルドとキャッシュ
 
-### Phase 1a: 素の pnpm + tsc
+### リリース時点: 素の pnpm + tsc
 
 各 package は `pnpm build` で TypeScript を compile。apps は Next.js / Vite の CLI で build。CI は `pnpm --filter <pkg>...` で変更影響範囲のみビルド。
 
-### Phase 1b 以降: Turborepo 検討
+### 運用蓄積後: Turborepo 検討
 
 Turborepo 導入により、ビルド依存関係グラフとキャッシュ（remote cache）を活用する。`turbo.json` で `build` / `test` / `lint` タスクの依存関係を宣言する。
 
@@ -155,7 +155,7 @@ Turborepo 導入により、ビルド依存関係グラフとキャッシュ（r
 }
 ```
 
-Phase 1b の規模（apps 3 個 + packages 10 個超）で turbo 導入の CI 時間短縮効果を判定する。
+リリース時点 の規模（apps 3 個 + packages 10 個超）で turbo 導入の CI 時間短縮効果を判定する。
 
 ## Dockerfile
 
@@ -213,7 +213,7 @@ tier1 公開 API は gRPC。Web からは以下のいずれかで呼び出す。
 - **gRPC-Web（Envoy 経由）**: tier1 の前に Envoy / Istio Ingress が gRPC-Web → gRPC プロキシを行う
 - **BFF 経由**: `src/tier3/bff/` が複合クエリを gRPC で tier1 に流し、REST / GraphQL で Web に返す
 
-Phase 1a は BFF 経由のみ。Phase 1b 以降で直 gRPC-Web も提供する。
+リリース時点 は BFF 経由のみ。運用蓄積後で直 gRPC-Web も提供する。
 
 ## TypeScript 設定
 

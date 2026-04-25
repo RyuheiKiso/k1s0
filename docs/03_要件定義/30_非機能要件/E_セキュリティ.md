@@ -1,6 +1,6 @@
 # E. セキュリティ
 
-本書は IPA 非機能要求グレード 2018 の「E. セキュリティ」に準拠し、k1s0 の前提制約、リスク分析、アクセス制御、データ秘匿、不正監視、ネットワーク対策、マルウェア対策、Web 対策、インシデント対応の要件を定義する。JTC の情報セキュリティ方針と個人情報保護法（2022 年改正）を満たすことが稟議通過の前提である。
+本書は IPA 非機能要求グレード 2018 の「E. セキュリティ」に準拠し、k1s0 の前提制約、リスク分析、アクセス制御、データ秘匿、不正監視、ネットワーク対策、マルウェア対策、Web 対策、インシデント対応の要件を定義する。採用側組織の情報セキュリティ方針と個人情報保護法（2022 年改正）を満たすことが採用検討通過の前提である。
 
 ## 本章の位置付け
 
@@ -16,9 +16,9 @@
 
 - **個人情報保護法**（令和 4 年施行、令和 2 年改正）: 仮名加工情報、漏えい等報告義務
 - **J-SOX**（金融商品取引法）: IT 全般統制（アクセス・変更・運用）
-- **ISO/IEC 27001 相当**: 情報セキュリティマネジメントの参考フレームワーク（認証取得は Phase 5 以降判定）
+- **ISO/IEC 27001 相当**: 情報セキュリティマネジメントの参考フレームワーク（認証取得は 採用側の全社ロールアウト 以降判定）
 - **NIST SP 800-53 相当**: セキュリティ統制の参考フレームワーク
-- **JTC 社内情報セキュリティ方針**: 全具体条項
+- **採用側組織の社内情報セキュリティ方針**: 全具体条項
 
 **崩れた時**: 監査対応の都度、規格の解釈で紛糾する。
 
@@ -34,7 +34,7 @@
 
 **現状**: 脅威モデリングなしに設計を進めると、想定外の攻撃ベクタが残る。
 
-**要件達成後**: STRIDE（Spoofing / Tampering / Repudiation / Information Disclosure / Denial of Service / Elevation of Privilege）に基づく脅威モデリングを Phase 1a で実施し、ADR として残す。Phase 1b / 2 のスコープ変更時に再評価。
+**要件達成後**: STRIDE（Spoofing / Tampering / Repudiation / Information Disclosure / Denial of Service / Elevation of Privilege）に基づく脅威モデリングを リリース時点 で実施し、ADR として残す。リリース時点 / 2 のスコープ変更時に再評価。
 
 **崩れた時**: 設計後期または本番で脅威が発覚し、手戻りが発生する。
 
@@ -48,12 +48,12 @@
 
 **現状**: 外部目線での検証が無いと、内部バイアスで盲点が残る。
 
-**要件達成後**: Phase 1c で外部委託または内部 Red Team によるペネトレーションテストを実施する。指摘事項は優先度別に是正し、重大指摘は本番稼働前に解消。
+**要件達成後**: リリース時点 で外部委託または内部 Red Team によるペネトレーションテストを実施する。指摘事項は優先度別に是正し、重大指摘は本番稼働前に解消。
 
 **崩れた時**: 本番稼働後に脆弱性が発覚し、インシデント対応で信頼失墜。
 
 **受け入れ基準**:
-- Phase 1c で年 1 回のペネトレーションテスト
+- リリース時点 で年 1 回のペネトレーションテスト
 - 指摘事項の是正ログを残す
 
 **優先度**: MUST
@@ -94,7 +94,7 @@
 
 **現状**: マルチテナント隔離が機能要件レベルで担保されても、運用側の徹底で崩れうる。
 
-**要件達成後**: 全 tier1 API で JWT の `tenant_id` クレームを検証し、リソースの tenant_id と突き合わせる。不一致は `K1s0Error.Forbidden` で拒否。Kyverno で tenant_id ラベル必須化。Litmus Chaos で月次の越境試行検証（Phase 2+）。
+**要件達成後**: 全 tier1 API で JWT の `tenant_id` クレームを検証し、リソースの tenant_id と突き合わせる。不一致は `K1s0Error.Forbidden` で拒否。Kyverno で tenant_id ラベル必須化。Litmus Chaos で月次の越境試行検証（採用後の運用拡大時）。
 
 **崩れた時**: テナント越境でデータ漏えいが発生し、監査対応で重大インシデント扱い。
 
@@ -123,15 +123,15 @@
 
 **現状**: パスワードのみではフィッシング・リスト型攻撃に脆弱。
 
-**要件達成後**: Phase 3 以降、特権操作（Backstage 管理機能、Argo CD 本番同期、OpenBao 秘密更新）で MFA を必須化する。Keycloak の TOTP または FIDO2 / WebAuthn。
+**要件達成後**: 採用側のマルチクラスタ移行時、特権操作（Backstage 管理機能、Argo CD 本番同期、OpenBao 秘密更新）で MFA を必須化する。Keycloak の TOTP または FIDO2 / WebAuthn。
 
 **崩れた時**: 特権アカウント漏えいで重大インシデント発生。
 
 **受け入れ基準**:
-- Phase 3 で MFA 必須化の運用開始
+- 採用側のマルチクラスタ移行時 で MFA 必須化の運用開始
 - Keycloak MFA 設定の標準化
 
-**優先度**: MUST（Phase 3 以降）、SHOULD（Phase 1c）
+**優先度**: MUST（採用側のマルチクラスタ移行時）、SHOULD（リリース時点）
 
 ## E4. データ秘匿
 
@@ -161,7 +161,7 @@
 **受け入れ基準**:
 - 全ストレージで暗号化有効化
 - 鍵ローテーション（年 1 回）を自動化
-- Phase 1b で基本、Phase 1c で運用成熟化
+- リリース時点で 基本 / 運用成熟化
 
 **優先度**: MUST
 
@@ -201,7 +201,7 @@
 **崩れた時**: 不正検知が属人的となり、内部不正が長期間検知されない。
 
 **受け入れ基準**:
-- Audit ログの網羅率 100%（Phase 1c）
+- Audit ログの網羅率 100%（リリース時点）
 - ハッシュチェーンで改ざん検知
 
 **優先度**: MUST
@@ -216,7 +216,7 @@
 
 **受け入れ基準**:
 - OpenBao Audit Device 有効化
-- 異常パターン検知ルールを Phase 1c で整備
+- 異常パターン検知ルールを リリース時点 で整備
 
 **優先度**: MUST
 
@@ -240,7 +240,7 @@
 
 **要件達成後**: Feature Flag と Decision 決定表の変更は Git commit + Audit 記録の両方で残す。Backstage で変更履歴を可視化。
 
-**崩れた時**: 業務ルールの不正改ざんで稟議承認が無効化される。
+**崩れた時**: 業務ルールの不正改ざんで採用検討が無効化される。
 
 **受け入れ基準**:
 - 全変更が Git と Audit の両方に残る
@@ -275,7 +275,7 @@
 **受け入れ基準**:
 - Kyverno ポリシーで未ラベル Pod 作成を拒否
 - NetworkPolicy のデフォルト拒否
-- Phase 1b で実装、Phase 1c で Chaos Engineering 検証
+- リリース時点で 実装 / Chaos Engineering 検証
 
 **優先度**: MUST
 
@@ -295,18 +295,18 @@
 
 **受け入れ基準**:
 - テナント RPS 上限を Backstage で確認可能
-- Chaos 試験（Phase 1c）で 10 倍負荷時に 1 テナントのみ 429 を返し他テナント正常稼働を確認
+- Chaos 試験（リリース時点）で 10 倍負荷時に 1 テナントのみ 429 を返し他テナント正常稼働を確認
 - Circuit Breaker 発動を Grafana で可視化、5 分超の継続発動は Sev3 起票
 
-**優先度**: MUST（Phase 1b、STRIDE DoS 脅威の唯一の緩和策）
+**優先度**: MUST（リリース時点、STRIDE DoS 脅威の唯一の緩和策）
 
 ### NFR-E-NW-003: 外部境界遮断（AGPL OSS 対応）
 
 **現状**: AGPL-3.0 OSS（Grafana / Loki / Tempo / Pyroscope / MinIO / Renovate）はネットワーク経由の提供がソース開示義務を発生させる。
 
-**要件達成後**: AGPL OSS は社内限定で提供し、外部ネットワーク遮断とプロセス分離を維持する。Istio Gateway で外部アクセスを拒否、内部のみ allowlist で許可。これにより「無改変利用 + 内部限定」として義務発生を回避（法務サマリ [../../01_企画/05_法務サマリ/OSSライセンス適合.md](../../01_企画/05_法務サマリ/OSSライセンス適合.md) に従う）。
+**要件達成後**: AGPL OSS は社内限定で提供し、外部ネットワーク遮断とプロセス分離を維持する。Istio Gateway で外部アクセスを拒否、内部のみ allowlist で許可。これにより「無改変利用 + 内部限定」として義務発生を回避（法務サマリ [../../01_企画/05_法務サマリ/OSSライセンス適合.md](../../01_企画/05_法務サマリ/01_OSSライセンス適合.md) に従う）。
 
-**崩れた時**: AGPL 義務違反でソース開示要求が発生、稟議で約束した法務適合が崩れる。
+**崩れた時**: AGPL 義務違反でソース開示要求が発生、採用検討で約束した法務適合が崩れる。
 
 **受け入れ基準**:
 - AGPL OSS が外部ネットワークからアクセス不可
@@ -321,14 +321,14 @@
 
 **現状**: 脆弱性を含むイメージのデプロイが検知されないと、既知脆弱性の放置リスク。
 
-**要件達成後**: CI で Trivy によるイメージスキャンを必須化（Phase 1a）。Critical CVE は PR ブロック。Phase 2 以降、Cosign 署名と Kyverno 強制（署名なしイメージのデプロイ拒否）を追加。
+**要件達成後**: CI で Trivy によるイメージスキャンを必須化（リリース時点）。Critical CVE は PR ブロック。採用後の運用拡大時、Cosign 署名と Kyverno 強制（署名なしイメージのデプロイ拒否）を追加。
 
 **崩れた時**: 脆弱性を含むイメージが本番稼働し、侵害の起点となる。
 
 **受け入れ基準**:
 - 全 PR で Trivy スキャン実行
 - Critical / High は原則 PR ブロック（例外は記録）
-- Phase 2 で Cosign + Kyverno
+- 採用後の運用拡大時 で Cosign + Kyverno
 
 **優先度**: MUST
 
@@ -336,7 +336,7 @@
 
 **現状**: SBOM なしでは脆弱性発覚時の影響範囲特定が困難。
 
-**要件達成後**: Phase 1c で SBOM 生成率 100%（NFR-C-MGMT-003 と整合）。CycloneDX / SPDX 形式で CI 自動生成、Backstage で一覧表示。
+**要件達成後**: リリース時点 で SBOM 生成率 100%（NFR-C-MGMT-003 と整合）。CycloneDX / SPDX 形式で CI 自動生成、Backstage で一覧表示。
 
 **崩れた時**: CVE 発覚時の対応リードタイムが長期化、監査指摘。
 
@@ -357,7 +357,7 @@
 **崩れた時**: tier3 アプリが個別に Web 脆弱性を抱え、エンドユーザー体験と社内データが危険に晒される。
 
 **受け入れ基準**:
-- tier3 向けセキュリティガイドライン文書（Phase 1b）
+- tier3 向けセキュリティガイドライン文書（リリース時点）
 - SDK ヘルパ（CSRF トークン、CSP ヘッダ設定等）
 
 **優先度**: SHOULD
@@ -366,15 +366,15 @@
 
 **現状**: 既知攻撃パターンへの防御が無いと、bot 攻撃で負荷増大。
 
-**要件達成後**: Envoy Gateway + WAF プラグイン（ModSecurity 等）で OWASP Core Rule Set を適用する。Phase 3 以降で検討。
+**要件達成後**: Envoy Gateway + WAF プラグイン（ModSecurity 等）で OWASP Core Rule Set を適用する。採用側のマルチクラスタ移行時で検討。
 
 **崩れた時**: bot 攻撃で業務影響、DDoS 耐性不足。
 
 **受け入れ基準**:
-- Phase 3 で WAF 導入判定
+- 採用側のマルチクラスタ移行時 で WAF 導入判定
 - 優先度 SHOULD
 
-**優先度**: SHOULD（Phase 3+）
+**優先度**: SHOULD（採用側のマルチクラスタ移行時+）
 
 ## E9. セキュリティインシデント対応・復旧
 
@@ -421,37 +421,37 @@
 **受け入れ基準**:
 - 証跡保全の Runbook
 - MinIO Object Lock 設定
-- 優先度 MUST、Phase 1c で整備
+- 優先度 MUST、リリース時点 で整備
 
 **優先度**: MUST
 
 ## サマリ
 
-| ID | タイトル | Phase | 優先度 |
+| ID | タイトル | 適用段階 | 優先度 |
 |---|---|---|---|
-| NFR-E-PRE-001 | 準拠規格明示 | 1b | MUST |
-| NFR-E-RSK-001 | STRIDE 脅威モデリング | 1a | MUST |
-| NFR-E-RSK-002 | ペネトレーションテスト | 1c | MUST |
-| NFR-E-AC-001 | JWT 認証強制 | 1a | MUST |
-| NFR-E-AC-002 | RBAC | 1a | MUST |
-| NFR-E-AC-003 | tenant_id 検証 | 1a | MUST |
-| NFR-E-AC-004 | Secret 最小権限 | 1b | MUST |
+| NFR-E-PRE-001 | 準拠規格明示 | 採用初期 | MUST |
+| NFR-E-RSK-001 | STRIDE 脅威モデリング | 採用初期 | MUST |
+| NFR-E-RSK-002 | ペネトレーションテスト | 採用後の運用拡大時 | MUST |
+| NFR-E-AC-001 | JWT 認証強制 | 採用初期 | MUST |
+| NFR-E-AC-002 | RBAC | 採用初期 | MUST |
+| NFR-E-AC-003 | tenant_id 検証 | 採用初期 | MUST |
+| NFR-E-AC-004 | Secret 最小権限 | 採用初期 | MUST |
 | NFR-E-AC-005 | MFA | 3 | MUST |
-| NFR-E-ENC-001 | 通信暗号化 | 1a | MUST |
-| NFR-E-ENC-002 | データ保管暗号化 | 1b | MUST |
-| NFR-E-ENC-003 | PII マスキング | 1b | MUST |
+| NFR-E-ENC-001 | 通信暗号化 | 採用初期 | MUST |
+| NFR-E-ENC-002 | データ保管暗号化 | 採用初期 | MUST |
+| NFR-E-ENC-003 | PII マスキング | 採用初期 | MUST |
 | NFR-E-MON-001 | 特権操作 Audit | 1a/1c | MUST |
-| NFR-E-MON-002 | Secret 取得監査 | 1b | MUST |
-| NFR-E-MON-003 | Audit 可視化 | 1b | MUST |
-| NFR-E-MON-004 | Flag/Decision 変更監査 | 1b | MUST |
-| NFR-E-NW-001 | 外部 URL allowlist | 1b | MUST |
-| NFR-E-NW-002 | NetworkPolicy 隔離 | 1b | MUST |
-| NFR-E-NW-003 | AGPL 外部境界遮断 | 1b | MUST |
-| NFR-E-NW-004 | レート制限・接続数上限（DoS 対策） | 1b | MUST |
+| NFR-E-MON-002 | Secret 取得監査 | 採用初期 | MUST |
+| NFR-E-MON-003 | Audit 可視化 | 採用初期 | MUST |
+| NFR-E-MON-004 | Flag/Decision 変更監査 | 採用初期 | MUST |
+| NFR-E-NW-001 | 外部 URL allowlist | 採用初期 | MUST |
+| NFR-E-NW-002 | NetworkPolicy 隔離 | 採用初期 | MUST |
+| NFR-E-NW-003 | AGPL 外部境界遮断 | 採用初期 | MUST |
+| NFR-E-NW-004 | レート制限・接続数上限（DoS 対策） | 採用初期 | MUST |
 | NFR-E-AV-001 | イメージスキャン | 1a/2 | MUST |
-| NFR-E-AV-002 | SBOM | 1c | MUST |
-| NFR-E-WEB-001 | OWASP Top 10 | 1b | SHOULD |
+| NFR-E-AV-002 | SBOM | 採用後の運用拡大時 | MUST |
+| NFR-E-WEB-001 | OWASP Top 10 | 採用初期 | SHOULD |
 | NFR-E-WEB-002 | WAF | 3 | SHOULD |
 | NFR-E-SIR-001 | インシデント Runbook | 1b/1c | MUST |
-| NFR-E-SIR-002 | 漏えい報告義務 | 1c | MUST |
-| NFR-E-SIR-003 | フォレンジック | 1c | MUST |
+| NFR-E-SIR-002 | 漏えい報告義務 | 採用後の運用拡大時 | MUST |
+| NFR-E-SIR-003 | フォレンジック | 採用後の運用拡大時 | MUST |

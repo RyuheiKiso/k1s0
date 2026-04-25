@@ -37,13 +37,13 @@
         <mxCell id="rowL" value="Low&#xa;(運用負荷増)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;fontColor=#000000" vertex="1" parent="1">
           <mxGeometry x="100" y="456" width="80" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="cLH" value="&lt;b&gt;P1 優先&lt;/b&gt;&#xa;SEC-001 個人情報漏えい&#xa;SEC-003 内部不正&#xa;LGL-001 AGPL 違反&#xa;BUS-001 稟議否決" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b3;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+        <mxCell id="cLH" value="&lt;b&gt;P1 優先&lt;/b&gt;&#xa;SEC-001 個人情報漏えい&#xa;SEC-003 内部不正&#xa;LGL-001 AGPL 違反&#xa;BUS-001 採用検討否決" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe0b3;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
           <mxGeometry x="180" y="136" width="220" height="160" as="geometry" />
         </mxCell>
         <mxCell id="cMH" value="&lt;b&gt;P1 優先&lt;/b&gt;&#xa;TEC-002 ZEN Engine 実装バグ&#xa;OPS-002 オンコール疲弊&#xa;SEC-002 サプライチェーン攻撃&#xa;LGL-002 個人情報保護法改正&#xa;BUS-002 テナント採用停滞&#xa;BUS-003 キーマン離職" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontColor=#000000;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
           <mxGeometry x="400" y="136" width="220" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="cHH" value="&lt;b&gt;P1 最優先&lt;/b&gt;&#xa;OPS-001 bus factor&#xa;(運用 1〜2 名依存)&#xa;→ 採用 + Runbook 化で&#xa;& Medium 側へ移動目標" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8b7b3;strokeColor=#8b3a36;fontSize=10;fontColor=#FFFFFF;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;fontStyle=1" vertex="1" parent="1">
+        <mxCell id="cHH" value="&lt;b&gt;P1 最優先&lt;/b&gt;&#xa;OPS-001 bus factor&#xa;(運用 少数名依存)&#xa;→ 採用 + Runbook 化で&#xa;& Medium 側へ移動目標" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8b7b3;strokeColor=#8b3a36;fontSize=10;fontColor=#FFFFFF;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="620" y="136" width="220" height="160" as="geometry" />
         </mxCell>
         <mxCell id="cLM" value="&lt;b&gt;該当なし&lt;/b&gt;&#xa;(新規発生時に&#xa;このセルから&#xa;採番開始)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;fontSize=10;fontColor=#999999;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
@@ -67,7 +67,7 @@
         <mxCell id="sidebar" value="&lt;b&gt;対応戦略分布&lt;/b&gt;&#xa;&#xa;Avoid (回避) — 0 件&#xa;Mitigate (軽減) — 14 件&#xa;Transfer (移転) — 2 件 (SEC-002, FIN-002)&#xa;Accept (受容) — 3 件 (TEC-004, HUM-001, BUS-001)&#xa;&#xa;&lt;b&gt;優先度内訳&lt;/b&gt;&#xa;P1 (最優先) — 12 件&#xa;P2 (中優先) — 7 件&#xa;P3 (低優先) — 0 件" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=11;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10" vertex="1" parent="1">
           <mxGeometry x="870" y="136" width="310" height="480" as="geometry" />
         </mxCell>
-        <mxCell id="legend" value="&lt;b&gt;セル色の意味:&lt;/b&gt; 赤濃=P1 最優先(移動対象) / 赤=P1 優先 / 橙=P1 優先 / 黄=P2 中優先 / 白=該当リスクなし。&#xa;&lt;b&gt;期初目標:&lt;/b&gt; P1 ⇒ P2 への 3 件移動 (OPS-001 / HUM-002 / BUS-002)。未移動のまま Phase 1c ゲートを迎えた場合は Product Council に報告必須。&#xa;&lt;b&gt;参照:&lt;/b&gt; 07_リスクレジスタ.md §発生確率/§影響度/§対応戦略 定義。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=10;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
+        <mxCell id="legend" value="&lt;b&gt;セル色の意味:&lt;/b&gt; 赤濃=P1 最優先(移動対象) / 赤=P1 優先 / 橙=P1 優先 / 黄=P2 中優先 / 白=該当リスクなし。&#xa;&lt;b&gt;期初目標:&lt;/b&gt; P1 ⇒ P2 への 3 件移動 (OPS-001 / HUM-002 / BUS-002)。未移動のまま リリース時点 ゲートを迎えた場合は Product Council に報告必須。&#xa;&lt;b&gt;参照:&lt;/b&gt; 07_リスクレジスタ.md §発生確率/§影響度/§対応戦略 定義。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=10;fontColor=#000000;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6" vertex="1" parent="1">
           <mxGeometry x="100" y="660" width="1080" height="90" as="geometry" />
         </mxCell>
       </root>

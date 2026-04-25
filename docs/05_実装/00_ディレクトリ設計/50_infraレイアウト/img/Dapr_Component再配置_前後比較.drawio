@@ -37,7 +37,7 @@
         <mxCell id="new-benefits" value="★ 新配置の改善点&#10;&#10;  ✓ tier1-rust-dev cone から infra/ を完全除外&#10;    （役割別 cone の純度向上）&#10;&#10;  ✓ CODEOWNERS で infra-ops チームのみ編集可能&#10;    （@k1s0-org/infra-ops, @k1s0-org/infra-review）&#10;&#10;  ✓ GitOps 配信先は deploy/apps/ から参照&#10;    （infra 素構成と配信定義の分離）&#10;&#10;  ✓ Kyverno policy（require-image-signature）は&#10;    infra/security/kyverno/policies/ で一元管理&#10;&#10;  ✓ ArgoCD ApplicationSet（list-generator）で&#10;    infra/ 配下を自動検知（deploy/apps/infra.yaml）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=12;spacingTop=8;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="820" y="365" width="540" height="270" as="geometry" />
         </mxCell>
-        <mxCell id="bottom-note" value="移行方法: git mv src/tier1/infra/dapr/components/*.yaml infra/dapr/components/ （Phase 1a 実装開始時）" style="text;html=1;align=center;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+        <mxCell id="bottom-note" value="移行方法: git mv src/tier1/infra/dapr/components/*.yaml infra/dapr/components/ （リリース時点 実装開始時）" style="text;html=1;align=center;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="100" y="655" width="1200" height="20" as="geometry" />
         </mxCell>
       </root>

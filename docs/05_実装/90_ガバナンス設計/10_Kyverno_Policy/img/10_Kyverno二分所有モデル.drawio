@@ -28,7 +28,7 @@
           <mxGeometry x="1180" y="150" width="480" height="40" as="geometry" />
         </mxCell>
 
-        <mxCell id="val_title" value="validate 10 本 (拒否系, Phase 1a 初期セット)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="val_title" value="validate 10 本 (拒否系, リリース時点 初期セット)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="200" width="440" height="25" as="geometry" />
         </mxCell>
         <mxCell id="v01" value="verify-image-signatures (IMP-SUP-COS-013)&#xa;cosign keyless 署名必須 release.yml ref 固定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">

@@ -10,16 +10,16 @@
         <mxCell id="title" value="Golden Path: 開発者 IDE → 本番 Canary 配信（Lead Time 60 分以内 / 10 分ルールはスキャフォールド → dev 環境）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="15" width="1720" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="phase1_lbl" value="Phase A: 雛形生成（10 分ルール: t=0 → t=10 分）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#0d5c0d;" vertex="1" parent="1">
+        <mxCell id="stage1_lbl" value="段階A: 雛形生成（10 分ルール: t=0 → t=10 分）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#0d5c0d;" vertex="1" parent="1">
           <mxGeometry x="40" y="60" width="720" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="phase2_lbl" value="Phase B: 反復開発 + 本番投入（Lead Time 60 分以内）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#7a3e00;" vertex="1" parent="1">
+        <mxCell id="stage2_lbl" value="段階B: 反復開発 + 本番投入（Lead Time 60 分以内）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=#7a3e00;" vertex="1" parent="1">
           <mxGeometry x="800" y="60" width="960" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="phaseA_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eef8ee;strokeColor=#b9dfb9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="stageA_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eef8ee;strokeColor=#b9dfb9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="90" width="720" height="330" as="geometry" />
         </mxCell>
-        <mxCell id="phaseB_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdf6ec;strokeColor=#e9d6b0;dashed=1;" vertex="1" parent="1">
+        <mxCell id="stageB_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdf6ec;strokeColor=#e9d6b0;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="800" y="90" width="960" height="330" as="geometry" />
         </mxCell>
         <mxCell id="ide" value="開発者 IDE&#10;(VS Code + devcontainer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
@@ -70,19 +70,19 @@
         <mxCell id="tl_bar" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#888888;" vertex="1" parent="1">
           <mxGeometry x="60" y="485" width="1680" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="tl_phase_a" value="10 分以内（スキャフォールド → dev 環境稼働）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#c8e6c8;strokeColor=#7aa87a;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="tl_stage_a" value="10 分以内（スキャフォールド → dev 環境稼働）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#c8e6c8;strokeColor=#7aa87a;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="60" y="485" width="280" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="tl_phase_b1" value="5 分（CI 実行）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="tl_stage_b1" value="5 分（CI 実行）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="340" y="485" width="340" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="tl_phase_b2" value="15 分（人レビュー）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="tl_stage_b2" value="15 分（人レビュー）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="680" y="485" width="420" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="tl_phase_b3" value="10 分（main CI + GitOps PR）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="tl_stage_b3" value="10 分（main CI + GitOps PR）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1100" y="485" width="300" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="tl_phase_b4" value="20 分（Canary 10→100%）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="tl_stage_b4" value="20 分（Canary 10→100%）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5e0b8;strokeColor=#d4a843;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1400" y="485" width="340" height="30" as="geometry" />
         </mxCell>
         <mxCell id="tl_t0" value="t=0" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
@@ -103,7 +103,7 @@
         <mxCell id="tl_t60" value="t=60 分&#10;(本番完了)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1700" y="525" width="100" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="budget_note" value="この 60 分予算は DX-MET-001 の Lead Time 目標であり、Phase 1c で 90 分、Phase 2 で 60 分への短縮を達成する。Canary 分析 20 分は Phase 2 で Webhook 即時同期により 15 分まで短縮予定。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="budget_note" value="この 60 分予算は DX-MET-001 の Lead Time 目標であり、リリース時点で 90 分、運用蓄積後に 60 分への短縮を達成する。Canary 分析 20 分は運用蓄積後に Webhook 即時同期により 15 分まで短縮予定。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="60" y="570" width="1680" height="40" as="geometry" />
         </mxCell>
         <mxCell id="e_ide_bs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ide" target="bs_template">
@@ -192,16 +192,16 @@
         <mxCell id="lg_data_t" value="データ層 - ソースリポジトリ（Gitea / GitHub）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="92" y="724" width="700" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="lg_phaseA_sw" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eef8ee;strokeColor=#b9dfb9;dashed=1;" vertex="1" parent="1">
+        <mxCell id="lg_stageA_sw" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eef8ee;strokeColor=#b9dfb9;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="60" y="752" width="24" height="16" as="geometry" />
         </mxCell>
-        <mxCell id="lg_phaseA_t" value="Phase A（10 分ルール領域）: 雛形生成から dev 環境稼働までの時間予算" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_stageA_t" value="段階A（10 分ルール領域）: 雛形生成から dev 環境稼働までの時間予算" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="92" y="748" width="700" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="lg_phaseB_sw" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdf6ec;strokeColor=#e9d6b0;dashed=1;" vertex="1" parent="1">
+        <mxCell id="lg_stageB_sw" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fdf6ec;strokeColor=#e9d6b0;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="60" y="776" width="24" height="16" as="geometry" />
         </mxCell>
-        <mxCell id="lg_phaseB_t" value="Phase B（Lead Time 60 分領域）: 反復開発 → 本番配信まで" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_stageB_t" value="段階B（Lead Time 60 分領域）: 反復開発 → 本番配信まで" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="92" y="772" width="700" height="24" as="geometry" />
         </mxCell>
         <mxCell id="lg_sync" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#d79b00;" edge="1" parent="1">
@@ -228,7 +228,7 @@
         <mxCell id="lg_meta_t" value="メタデータ登録: Backstage Catalog への catalog-info.yaml 反映（透過的にスキャン）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="930" y="752" width="800" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="note" value="注: CI 列の GHA / Tekton は Phase で切替可能。Phase 1a-1c は GitHub Actions、Phase 2 以降は GHA 不可環境向けに Tekton Pipelines を代替として提供する（ADR-CICD-001 / 代替フロー）。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="note" value="注: CI 列の GHA / Tekton は段階で切替可能。リリース時点は GitHub Actions、採用後の運用拡大時は GHA 不可環境向けに Tekton Pipelines を代替として提供する（ADR-CICD-001 / 代替フロー）。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="60" y="804" width="1680" height="24" as="geometry" />
         </mxCell>
       </root>

@@ -1,16 +1,16 @@
 <mxfile host="65bd71144e">
     <diagram name="k1s0-overview" id="overview">
-        <mxGraphModel dx="1412" dy="774" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="5089" math="0" shadow="0">
+        <mxGraphModel dx="1412" dy="774" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="4839" math="0" shadow="0">
             <root>
                 <mxCell id="0" />
                 <mxCell id="1" parent="0" />
                 <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" parent="1" vertex="1">
-                    <mxGeometry x="0" y="0" width="2400" height="4509" as="geometry" />
+                    <mxGeometry x="0" y="0" width="2400" height="4839" as="geometry" />
                 </mxCell>
                 <mxCell id="title" value="k1s0 全体構成図 (レイヤ別 4 スイムレーン / サンプルフロー = 注文確定)" style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="60" y="10" width="2280" height="40" as="geometry" />
                 </mxCell>
-                <mxCell id="subtitle" value="JTC 情報システム部門向け マイクロサービス基盤 / レイヤ記法: docs/00_format/drawio_layer_convention.md に準拠 / Istio Ambient Mesh 採用で Pod 内 Envoy 不要 (ADR-0001)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" parent="1" vertex="1">
+                <mxCell id="subtitle" value="採用側組織の情報システム部門向け マイクロサービス基盤 / レイヤ記法: docs/00_format/drawio_layer_convention.md に準拠 / Istio Ambient Mesh 採用で Pod 内 Envoy 不要 (ADR-0001)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2" parent="1" vertex="1">
                     <mxGeometry x="60" y="50" width="2280" height="20" as="geometry" />
                 </mxCell>
                 <mxCell id="extUser" value="エンドユーザー&#10;(社内端末: PWA / MAUI / WinUI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#000000;fontSize=11" parent="1" vertex="1">
@@ -211,7 +211,7 @@
                 <mxCell id="apiFeat" value="k1s0.Feature  [Go / 自作 SDK]&#10;Valkey TTL + OpenBao 監査&#10;段階公開 / tenant 単位 / kill-switch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;fontStyle=1" vertex="1" parent="1">
                     <mxGeometry x="920" y="942" width="395" height="58" as="geometry" />
                 </mxCell>
-                <mxCell id="apiLegend" value="実装バッジ凡例&#10;[Go] = Dapr stable SDK 利用 (ファサード)&#10;[Rust] = 自作 (JTC 固有 / 高安全性要求)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=9;fontStyle=2;fontColor=#8b6508" vertex="1" parent="1">
+                <mxCell id="apiLegend" value="実装バッジ凡例&#10;[Go] = Dapr stable SDK 利用 (ファサード)&#10;[Rust] = 自作 (採用側組織のドメイン固有 / 高安全性要求)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=9;fontStyle=2;fontColor=#8b6508" vertex="1" parent="1">
                     <mxGeometry x="1325" y="942" width="395" height="58" as="geometry" />
                 </mxCell>
                 <mxCell id="t1r2Head" value="ROW 2 — ミドルウェアスタック (全公開 API 共通の横串 6 層): リクエストは上から下に通過し各層で拡張される" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbea;strokeColor=#d79b00;fontSize=10;fontStyle=1;fontColor=#8b6508" vertex="1" parent="1">
@@ -435,7 +435,7 @@
                 <mxCell id="laneInfraBg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;strokeWidth=1;dashed=1" parent="1" vertex="1">
                     <mxGeometry x="80" y="2424" width="2240" height="220" as="geometry" />
                 </mxCell>
-                <mxCell id="infraKyv" value="Kyverno 1.12 (Admission)&#10;• PSS Restricted 相当&#10;• dapr.io/app-id 必須&#10;• CPU limit 必須 / runAsNonRoot 必須&#10;• イメージ Pull 元 Harbor のみ&#10;(Phase 2: Cosign 未署名 Pod 拒否)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
+                <mxCell id="infraKyv" value="Kyverno 1.12 (Admission)&#10;• PSS Restricted 相当&#10;• dapr.io/app-id 必須&#10;• CPU limit 必須 / runAsNonRoot 必須&#10;• イメージ Pull 元 Harbor のみ&#10;• Cosign 未署名 Pod 拒否" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="95" y="2436" width="530" height="140" as="geometry" />
                 </mxCell>
                 <mxCell id="infraCni" value="CNI (Cilium or Calico)&#10;Pod ネットワーク: 10.244.0.0/16&#10;NetworkPolicy 強制&#10;※ Ambient ztunnel は CNI 上でさらに透過捕捉" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10" parent="1" vertex="1">
@@ -486,7 +486,7 @@
                 <mxCell id="dataHarbor" value="Harbor 2.12 (コンテナレジストリ / :443)&#10;バックエンド: MinIO / 脆弱性スキャン: Trivy&#10;projects: k1s0/base / tier1 / tier2 / tier3 / legacy / helm-charts" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="1855" y="2744" width="450" height="90" as="geometry" />
                 </mxCell>
-                <mxCell id="dataCosign" value="Cosign (Phase 2: イメージ署名 + Kyverno 未署名 Pod 拒否 で署名チェーン閉塞)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" parent="1" vertex="1">
+                <mxCell id="dataCosign" value="Cosign (イメージ署名 + Kyverno 未署名 Pod 拒否 で署名チェーン閉塞)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" parent="1" vertex="1">
                     <mxGeometry x="1855" y="2844" width="450" height="50" as="geometry" />
                 </mxCell>
                 <mxCell id="dataKafkaHead" value="Kafka 3-broker Cluster (Strimzi Operator) — :9092 TLS / :9093 plain (in-mesh) / RF=3 / partitions=6" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d4bee5;strokeColor=#9673a6;fontSize=11;fontStyle=1;verticalAlign=middle" parent="1" vertex="1">
@@ -976,134 +976,77 @@
                 <mxCell id="iotFlowLabelPub" value="Publish (下り cmd)" style="text;html=1;align=right;fontSize=10;fontStyle=1;fontColor=#9673a6" parent="1" vertex="1">
                     <mxGeometry x="2010" y="4347" width="125" height="14" as="geometry" />
                 </mxCell>
-                <mxCell id="phaseFrame" value="Phase 進化タイムライン — Phase 1a 承認時点の最小構成 → Phase 2/3/5 で耐障害性を段階的拡張 (獲得能力と SPOF 解消の時系列)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eceff1;strokeColor=#37474f;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#263238" parent="1" vertex="1">
-                    <mxGeometry x="60" y="4559" width="2280" height="230" as="geometry" />
-                </mxCell>
-                <mxCell id="phase1aHead" value="Phase 1a  [2026 Q2 承認 → Q4 構築 (稟議後 6 ヶ月)]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b3e5fc;strokeColor=#01579b;fontSize=11;fontStyle=1;fontColor=#01579b;verticalAlign=middle;align=center" parent="1" vertex="1">
-                    <mxGeometry x="75" y="4594" width="540" height="35" as="geometry" />
-                </mxCell>
-                <mxCell id="phase1aTopo" value="単一 VM (Rocky 9 / 16 vCPU / 32 GiB / 300 Gi)&#10;kubeadm 1.30 single-node / Longhorn replica=1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="75" y="4634" width="540" height="45" as="geometry" />
-                </mxCell>
-                <mxCell id="phase1aBody" value="▼ 獲得: tier1 ファサード稼働検証 / 運用オペ雛形 / CI/CD ライン構築&#10;▼ 解消 SPOF: なし (全面 SPOF 前提で稟議通過)&#10;▼ 規模目安: ~50 Pod / ~100 RPS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4" parent="1" vertex="1">
-                    <mxGeometry x="75" y="4684" width="540" height="90" as="geometry" />
-                </mxCell>
-                <mxCell id="phase2Head" value="Phase 2  [2027 Q2 (Phase 1a から +6 ヶ月)]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b2dfdb;strokeColor=#004d40;fontSize=11;fontStyle=1;fontColor=#004d40;verticalAlign=middle;align=center" parent="1" vertex="1">
-                    <mxGeometry x="635" y="4594" width="540" height="35" as="geometry" />
-                </mxCell>
-                <mxCell id="phase2Topo" value="2 VM / 2 ラック分散 (Rack-A + Rack-B)&#10;k8s HA (cp x3 / worker x3) / Longhorn replica=3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="635" y="4634" width="540" height="45" as="geometry" />
-                </mxCell>
-                <mxCell id="phase2Body" value="▼ 獲得: ラック障害耐性 / 自動フェイルオーバ / Cosign 署名必須化&#10;▼ 解消 SPOF: 単一ラック / 単一ノード&#10;▼ 規模目安: ~200 Pod / ~500 RPS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4" parent="1" vertex="1">
-                    <mxGeometry x="635" y="4684" width="540" height="90" as="geometry" />
-                </mxCell>
-                <mxCell id="phase3Head" value="Phase 3  [2028 Q1 (Phase 1a から +12 ヶ月)]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;fontColor=#2e7d32;verticalAlign=middle;align=center" parent="1" vertex="1">
-                    <mxGeometry x="1195" y="4594" width="540" height="35" as="geometry" />
-                </mxCell>
-                <mxCell id="phase3Topo" value="同一リージョン 2 クラスタ / Gateway API 連携&#10;Argo CD ApplicationSet で blue/green 切替" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="1195" y="4634" width="540" height="45" as="geometry" />
-                </mxCell>
-                <mxCell id="phase3Body" value="▼ 獲得: クラスタ切替 / メンテ無停止 / canary デプロイ&#10;▼ 解消 SPOF: 単一クラスタ / 大規模アップグレード停止&#10;▼ 規模目安: ~800 Pod / ~2000 RPS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4" parent="1" vertex="1">
-                    <mxGeometry x="1195" y="4684" width="540" height="90" as="geometry" />
-                </mxCell>
-                <mxCell id="phase5Head" value="Phase 5  [2029 Q4 (Phase 1a から +24 ヶ月)]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9c4;strokeColor=#f57f17;fontSize=11;fontStyle=1;fontColor=#e65100;verticalAlign=middle;align=center" parent="1" vertex="1">
-                    <mxGeometry x="1755" y="4594" width="540" height="35" as="geometry" />
-                </mxCell>
-                <mxCell id="phase5Topo" value="2 リージョン / Kafka MirrorMaker 2 / Postgres 論理レプリケーション&#10;cross-region GitOps / 広域 DNS 切替" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="1755" y="4634" width="540" height="45" as="geometry" />
-                </mxCell>
-                <mxCell id="phase5Body" value="▼ 獲得: 広域 DR / 地理分散 / 海外支社接続&#10;▼ 解消 SPOF: 単一リージョン DC / 広域停電・災害&#10;▼ 規模目安: ~2000 Pod / ~5000 RPS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4" parent="1" vertex="1">
-                    <mxGeometry x="1755" y="4684" width="540" height="90" as="geometry" />
-                </mxCell>
-                <mxCell id="phaseArr12" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=2" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="615" y="4611" as="sourcePoint" />
-                        <mxPoint x="635" y="4611" as="targetPoint" />
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="phaseArr23" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=2" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1175" y="4611" as="sourcePoint" />
-                        <mxPoint x="1195" y="4611" as="targetPoint" />
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="phaseArr35" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=2" parent="1" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1735" y="4611" as="sourcePoint" />
-                        <mxPoint x="1755" y="4611" as="targetPoint" />
-                    </mxGeometry>
-                </mxCell>
                 <mxCell id="admFrame" value="Admission フック順序 (Pod 作成シーケンス) — GitOps 起点 → 入退室 webhook チェーン → etcd 永続 → Node 配置 → 実行 (Dapr / Kyverno / kubelet の関係)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eceff1;strokeColor=#37474f;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#263238" parent="1" vertex="1">
-                    <mxGeometry x="60" y="4809" width="2280" height="250" as="geometry" />
+                    <mxGeometry x="60" y="4559" width="2280" height="250" as="geometry" />
                 </mxCell>
                 <mxCell id="adm1" value="① GitOps 起点&#10;━━━━━&#10;git push (開発者)&#10;→ Argo CD pull 型 sync&#10;→ Kyverno / Dapr の Helm Chart も含め reconcile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#2e7d32;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="80" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="80" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="adm2" value="② kube-apiserver&#10;━━━━━&#10;REST 受信 / 認証 / RBAC&#10;Admission webhook chain&#10;起動 (MutatingAdmission&#10;→ ValidatingAdmission)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="360" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="360" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="adm3" value="③ Kyverno Mutating&#10;━━━━━&#10;dapr.io/* 未設定を&#10;拒否 (app-id 必須)&#10;CPU/memory limit 強制&#10;runAsNonRoot 強制" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="640" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="640" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="adm4" value="④ Dapr sidecar-injector&#10;━━━━━&#10;MutatingWebhook&#10;app Pod に daprd container&#10;を注入 (app-id / app-port&#10;/ log-level 自動設定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;fontStyle=1" parent="1" vertex="1">
-                    <mxGeometry x="920" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="920" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
-                <mxCell id="adm5" value="⑤ Kyverno Validating&#10;━━━━━&#10;PSS Restricted 違反拒否&#10;Pull 元 Harbor 限定&#10;Cosign 署名必須&#10;(Phase 2 以降)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="1200" y="4849" width="260" height="120" as="geometry" />
+                <mxCell id="adm5" value="⑤ Kyverno Validating&#10;━━━━━&#10;PSS Restricted 違反拒否&#10;Pull 元 Harbor 限定&#10;Cosign 署名必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="adm6" value="⑥ etcd 永続 + scheduler&#10;━━━━━&#10;apiserver が etcd 書込&#10;kube-scheduler が&#10;nodeSelector / taint で&#10;Worker Node 選択" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="1480" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="1480" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="adm7" value="⑦ kubelet + containerd&#10;━━━━━&#10;Harbor から image pull&#10;(Cosign 検証)&#10;container 起動 / cgroup&#10;/ runAsNonRoot 適用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle" parent="1" vertex="1">
-                    <mxGeometry x="1760" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="1760" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="adm8" value="⑧ Pod Running&#10;━━━━━&#10;app + daprd 並行起動&#10;readinessProbe 合格&#10;ztunnel (Node 上) が&#10;iptables で透過捕捉開始" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;fontStyle=1" parent="1" vertex="1">
-                    <mxGeometry x="2040" y="4849" width="260" height="120" as="geometry" />
+                    <mxGeometry x="2040" y="4599" width="260" height="120" as="geometry" />
                 </mxCell>
                 <mxCell id="admA1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="340" y="4909" as="sourcePoint" />
-                        <mxPoint x="360" y="4909" as="targetPoint" />
+                        <mxPoint x="340" y="4659" as="sourcePoint" />
+                        <mxPoint x="360" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admA2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="620" y="4909" as="sourcePoint" />
-                        <mxPoint x="640" y="4909" as="targetPoint" />
+                        <mxPoint x="620" y="4659" as="sourcePoint" />
+                        <mxPoint x="640" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admA3" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="900" y="4909" as="sourcePoint" />
-                        <mxPoint x="920" y="4909" as="targetPoint" />
+                        <mxPoint x="900" y="4659" as="sourcePoint" />
+                        <mxPoint x="920" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admA4" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1180" y="4909" as="sourcePoint" />
-                        <mxPoint x="1200" y="4909" as="targetPoint" />
+                        <mxPoint x="1180" y="4659" as="sourcePoint" />
+                        <mxPoint x="1200" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admA5" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1460" y="4909" as="sourcePoint" />
-                        <mxPoint x="1480" y="4909" as="targetPoint" />
+                        <mxPoint x="1460" y="4659" as="sourcePoint" />
+                        <mxPoint x="1480" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admA6" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="1740" y="4909" as="sourcePoint" />
-                        <mxPoint x="1760" y="4909" as="targetPoint" />
+                        <mxPoint x="1740" y="4659" as="sourcePoint" />
+                        <mxPoint x="1760" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admA7" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#37474f;strokeWidth=1.5" parent="1" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="2020" y="4909" as="sourcePoint" />
-                        <mxPoint x="2040" y="4909" as="targetPoint" />
+                        <mxPoint x="2020" y="4659" as="sourcePoint" />
+                        <mxPoint x="2040" y="4659" as="targetPoint" />
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="admNote" value="※ Dapr sidecar-injector (④) と Kyverno (③⑤) はいずれも admission webhook として kube-apiserver に登録される。順序は webhook の reinvocationPolicy / failurePolicy と、Kyverno ClusterPolicy の ordering 設定で制御。Istio Ambient (ztunnel) は Pod 内サイドカーを注入せず iptables/eBPF で Node 上捕捉するため、この admission chain に現れない — Ambient 採用 (ADR-0001) の重要な帰結。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#555555;spacingLeft=10;spacingTop=4" parent="1" vertex="1">
-                    <mxGeometry x="75" y="4984" width="2250" height="70" as="geometry" />
+                    <mxGeometry x="75" y="4734" width="2250" height="70" as="geometry" />
                 </mxCell>
             </root>
         </mxGraphModel>

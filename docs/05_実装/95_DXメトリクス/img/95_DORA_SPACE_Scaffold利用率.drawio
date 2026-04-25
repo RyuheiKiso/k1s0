@@ -67,7 +67,7 @@
         <mxCell id="mimir_dx" value="dora_* metrics&#10;(label: tier / team / severity)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="760" y="110" width="190" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="mimir_space" value="SPACE metrics (Phase 1a)&#10;Satisfaction / Performance / Activity / Collaboration / Efficiency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="mimir_space" value="SPACE metrics (リリース時点)&#10;Satisfaction / Performance / Activity / Collaboration / Efficiency" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="760" y="180" width="190" height="70" as="geometry" />
         </mxCell>
         <mxCell id="mimir_scaf" value="scaffold_usage_ratio&#10;first_commit_seconds" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
@@ -115,7 +115,7 @@
         <mxCell id="dash_slo" value="dashboards/reliability/&#10;(稼働 SLI 専用, DX と混載禁止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1020" y="415" width="300" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="dash_report" value="EM 向け定期レポート (Phase 1b)&#10;意思決定は EM 層に返す" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="dash_report" value="EM 向け定期レポート (リリース時点)&#10;意思決定は EM 層に返す" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1020" y="485" width="300" height="50" as="geometry" />
         </mxCell>
 
@@ -223,7 +223,7 @@
         <mxCell id="leg_sep" value="赤破線 = 分離バリア (ADR-DX-001)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#b85450;" vertex="1" parent="1">
           <mxGeometry x="1070" y="720" width="270" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="leg_narrative" value="本章の設計意図は「稼働 SLI と DX メトリクスを同一ダッシュボードに混載しない」こと。混載すると可用性改善と Lead Time 改善のどちらを優先すべきか混濁し、EM 判断が歪む。そのため tools/dora-exporter/ を独立 Go module として構築し、dashboards/dx/ と dashboards/reliability/ を物理的に別ディレクトリに配置する規律を ADR-DX-001 で固定する。DORA 4 keys は Phase 0 必須、SPACE はチーム拡大時 Phase 1a 追加、Scaffold 利用率と time-to-first-commit は Phase 0 から計測開始する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="leg_narrative" value="本章の設計意図は「稼働 SLI と DX メトリクスを同一ダッシュボードに混載しない」こと。混載すると可用性改善と Lead Time 改善のどちらを優先すべきか混濁し、EM 判断が歪む。そのため tools/dora-exporter/ を独立 Go module として構築し、dashboards/dx/ と dashboards/reliability/ を物理的に別ディレクトリに配置する規律を ADR-DX-001 で固定する。DORA 4 keys / SPACE / Scaffold 利用率と time-to-first-commit はすべてリリース時点で計測開始し、SPACE のみチーム拡大時に EM 利用が本格化する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="80" y="760" width="1260" height="110" as="geometry" />
         </mxCell>
       </root>

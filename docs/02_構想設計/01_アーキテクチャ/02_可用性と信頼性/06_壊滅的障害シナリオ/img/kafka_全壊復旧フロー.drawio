@@ -37,7 +37,7 @@
         <mxCell id="s2" value="同期処理 (State / Auth / Service.Invoke) は無影響&#xa;非同期処理のみ滞留。Outbox により欠損ゼロ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
           <mxGeometry x="640" y="180" width="380" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="s3" value="MVP は単一クラスタ。Phase 3 で MirrorMaker 2 による&#xa;別クラスタ DR を導入し RTO を 15 分に短縮する計画" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+        <mxCell id="s3" value="リリース時点は単一クラスタ。採用側のマルチクラスタ移行時 で MirrorMaker 2 による&#xa;別クラスタ DR を導入し RTO を 15 分に短縮する計画" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
           <mxGeometry x="640" y="380" width="380" height="60" as="geometry" />
         </mxCell>
         <mxCell id="s4" value="冪等性は雛形 CLI が Subscribe ハンドラに自動注入&#xa;(リファレンス実装のパターンに準拠)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">

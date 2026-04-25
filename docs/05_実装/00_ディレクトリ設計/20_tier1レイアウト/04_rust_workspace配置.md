@@ -198,13 +198,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-なお `build.rs` 方式と pre-generated 方式を同時に有効化すると生成先が衝突するため、どちらか一方のみ有効とする。Phase 1a は pre-generated を正、`build.rs` は drift 検出用に `--dry-run` 相当（生成後 diff 確認のみ）で運用する。
+なお `build.rs` 方式と pre-generated 方式を同時に有効化すると生成先が衝突するため、どちらか一方のみ有効とする。リリース時点 は pre-generated を正、`build.rs` は drift 検出用に `--dry-run` 相当（生成後 diff 確認のみ）で運用する。
 
 ## 生成物の commit
 
-DS-SW-COMP-132 で論じた通り、Phase 1a では `build.rs` 方式（OUT_DIR）と pre-generated 方式の両方を準備する。pre-generated は `crates/proto-gen/src/` 直下にフラット commit し（`k1s0.tier1.v1.rs` / `k1s0.tier1.internal.v1.rs`）、`build.rs` で生成した結果との diff を CI で検出する。
+DS-SW-COMP-132 で論じた通り、リリース時点 では `build.rs` 方式（OUT_DIR）と pre-generated 方式の両方を準備する。pre-generated は `crates/proto-gen/src/` 直下にフラット commit し（`k1s0.tier1.v1.rs` / `k1s0.tier1.internal.v1.rs`）、`build.rs` で生成した結果との diff を CI で検出する。
 
-Phase 1b で運用が安定したら、pre-generated 一本化（`build.rs` 廃止）を検討する。
+リリース時点 で運用が安定したら、pre-generated 一本化（`build.rs` 廃止）を検討する。
 
 ## 各 Pod crate の内部構造
 
@@ -293,7 +293,7 @@ docker build -f src/tier1/rust/Dockerfile.decision -t ghcr.io/k1s0/t1-decision:$
 
 - **unit test**: `#[cfg(test)]` モジュール内（`cargo nextest run` で並列実行）
 - **integration test**: `crates/<crate>/tests/integration/` で testcontainers を使って外部リソースを起動
-- **coverage**: `cargo llvm-cov`、目標 80%（Phase 1c）
+- **coverage**: `cargo llvm-cov`、目標 80%（リリース時点）
 - **fuzz**: `cargo-fuzz` を pii crate で使い、正規表現 DoS 対策を検証
 
 ## スパースチェックアウト cone

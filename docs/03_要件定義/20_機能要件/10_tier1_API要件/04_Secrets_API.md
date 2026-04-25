@@ -6,7 +6,7 @@
 
 tier2 / tier3 が必要とする秘密情報を、ハードコード・環境変数直指定ではなく API 経由で取得する設計を強制する。静的 Secret（外部 SaaS の API キー等）と動的 Secret（PostgreSQL の一時パスワード TTL 1 時間）の両方を扱う。暗号化鍵は Transit 機能で一元管理する。
 
-内部実装は Dapr Secrets Building Block と OpenBao の直接連携（動的 Secret）を併用する。Phase 1b で Secrets API を提供開始、Phase 1c で Secret ローテーション自動化を確立する。
+内部実装は Dapr Secrets Building Block と OpenBao の直接連携（動的 Secret）を併用する。リリース時点で Secrets API を提供開始 / Secret ローテーション自動化を確立する。
 
 ## 機能要件
 
@@ -42,7 +42,7 @@ tier2 / tier3 が必要とする秘密情報を、ハードコード・環境変
 **品質基準**（検収時の非機能目標、NFR とテスト計画で検証）:
 - 動的 Secret 発行レイテンシは NFR-B-PERF-002（tier1 API p99 < 500ms）に従う
 - 漏えい時影響時間の 1 時間限定を監査ログで証明可能（NFR-E-MON-002 の Audit 記録で検証）
-- Phase 1b で PostgreSQL のみ、Phase 2+ で Kafka ACL / MinIO STS 等追加
+- リリース時点 で PostgreSQL のみ、採用後の運用拡大時 で Kafka ACL / MinIO STS 等追加
 
 ### FR-T1-SECRETS-003: Transit 暗号化（API 経由）
 
@@ -64,7 +64,7 @@ tier2 / tier3 が必要とする秘密情報を、ハードコード・環境変
 
 **現状**: 静的 Secret（外部 SaaS API キー等）のローテーションは人手で実施されることが多く、ローテ忘れや実施ミスが監査指摘の常連。
 
-**要件達成後**: Phase 1c で OpenBao のローテーションスケジューラを活用し、一定期間（例: 90 日）で Secret の再発行を自動化する。対象 tier2 アプリは次回 Get でキャッシュ更新により新 Secret を取得する。古い Secret は一定猶予期間後に失効する。
+**要件達成後**: リリース時点 で OpenBao のローテーションスケジューラを活用し、一定期間（例: 90 日）で Secret の再発行を自動化する。対象 tier2 アプリは次回 Get でキャッシュ更新により新 Secret を取得する。古い Secret は一定猶予期間後に失効する。
 
 **崩れた時**: Secret 長期使い回しが継続し、監査部門から指摘される。漏えい検出時の影響範囲が広がる。
 
@@ -72,7 +72,7 @@ tier2 / tier3 が必要とする秘密情報を、ハードコード・環境変
 - ローテーション周期は Component YAML で 30〜365 日の範囲で設定
 - ローテーション時刻は業務時間外で自動スケジュール
 - 猶予期間中は旧 Secret・新 Secret 両方で取得可能（無停止切替）
-- Phase 1c で提供、Phase 1b では手動ローテーション Runbook のみ
+- リリース時点で 提供 / は手動ローテーション Runbook のみ
 
 ## 入出力仕様
 
@@ -100,12 +100,12 @@ k1s0.Secrets.RenewLease(lease_id: string) -> error
 - OpenBao 障害時は Secret 取得が失敗するが、tier2 のキャッシュ有効期間内は継続稼働（degrade）
 - Secret の取得操作は Audit API に自動記録される（NFR-E-MON-002）
 
-## Phase 対応
+## 段階対応
 
-- **Phase 1a**: 未提供
-- **Phase 1b**: FR-T1-SECRETS-001、002（静的・動的）
-- **Phase 1c**: FR-T1-SECRETS-004（ローテーション自動化）
-- **Phase 2+**: FR-T1-SECRETS-003（Transit）、その他動的 Secret（Kafka / MinIO）
+- **リリース時点**: 未提供
+- **リリース時点**: FR-T1-SECRETS-001、002（静的・動的）
+- **リリース時点**: FR-T1-SECRETS-004（ローテーション自動化）
+- **採用後の運用拡大時**: FR-T1-SECRETS-003（Transit）、その他動的 Secret（Kafka / MinIO）
 
 ## 関連非機能要件
 

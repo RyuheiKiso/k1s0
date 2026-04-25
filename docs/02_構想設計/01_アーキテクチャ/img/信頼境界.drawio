@@ -16,7 +16,7 @@
         <mxCell id="attacker" value="攻撃者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=2" vertex="1" parent="1">
           <mxGeometry x="80" y="200" width="160" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="externalidp" value="外部 IdP&#xa;(Phase 4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12" vertex="1" parent="1">
+        <mxCell id="externalidp" value="外部 IdP&#xa;(採用側の全社展開期)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12" vertex="1" parent="1">
           <mxGeometry x="80" y="300" width="160" height="50" as="geometry" />
         </mxCell>
         <mxCell id="tier2dev" value="tier2 開発者&#xa;(クライアント Lib)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12" vertex="1" parent="1">

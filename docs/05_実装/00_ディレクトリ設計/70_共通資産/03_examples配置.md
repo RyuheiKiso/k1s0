@@ -77,15 +77,15 @@ examples/
 - **catalog-info.yaml**: Backstage で自動カタログ化
 - **CI workflow**: `.github/workflows/example-<name>.yml` で週次実行
 
-## example の導入フェーズ
+## example の導入段階
 
-| Phase | 対象 example |
+| 適用段階 | 対象 example |
 |---|---|
-| Phase 0 | README.md のみ（構造） |
-| Phase 1a | tier1-rust-service、tier1-go-facade、tier3-web-portal |
-| Phase 1b | tier2-dotnet-service、tier3-bff-graphql |
-| Phase 1c | tier2-go-service、tier3-native-maui |
-| Phase 2 | マルチテナント対応版 example |
+| リリース時点 | README.md のみ（構造） |
+| リリース時点 | tier1-rust-service、tier1-go-facade、tier3-web-portal |
+| リリース時点 | tier2-dotnet-service、tier3-bff-graphql |
+| リリース時点 | tier2-go-service、tier3-native-maui |
+| 採用後の運用拡大時 | マルチテナント対応版 example |
 
 ## 3 系統の使い分け: scaffold / templates / examples
 

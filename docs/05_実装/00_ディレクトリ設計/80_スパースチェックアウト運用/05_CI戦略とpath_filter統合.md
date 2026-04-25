@@ -156,7 +156,7 @@ jobs:
 
 - `src/contracts/` 変更: sdk-* 全 4 種 + tier1-rust + tier1-go + tier2 + tier3-web + tier3-native を起動
 - `src/sdk/go/` 変更: tier2（tier2-go/services） + tier3-web（BFF 経由）を起動。tier1 は起動しない（非依存）
-- `src/sdk/rust/` 変更: Phase 2 の Rust クライアント起動対象を起動。tier1-rust は起動しない
+- `src/sdk/rust/` 変更: 採用後の運用拡大時 の Rust クライアント起動対象を起動。tier1-rust は起動しない
 - `src/sdk/dotnet/` 変更: tier2（tier2-dotnet/services） + tier3-native（MAUI）を起動
 - `src/sdk/typescript/` 変更: tier3-web のみ起動
 - `src/tier1/*` 変更: 該当 tier1 job のみ起動。tier2 / tier3 は起動しない（契約変更を伴わない内部実装変更は下流不要）

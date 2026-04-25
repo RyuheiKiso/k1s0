@@ -91,7 +91,7 @@
         </mxCell>
 
         <!-- ⑤ Pyroscope -->
-        <mxCell id="pyro-group" value="⑤ Pyroscope (AGPL / 継続プロファイル Phase 1a)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="pyro-group" value="⑤ Pyroscope (AGPL / 継続プロファイル リリース時点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1390" y="440" width="250" height="280" as="geometry" />
         </mxCell>
         <mxCell id="pyro" value="Pyroscope&#10;継続プロファイル&#10;(CPU / heap / goroutines)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">

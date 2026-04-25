@@ -56,7 +56,7 @@
             <mxPoint x="930" y="270" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="title2" value="JTC の領域別選択分岐 (公開事例による観察)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title2" value="採用側組織の領域別選択分岐 (公開事例による観察)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="0" y="286" width="960" height="28" as="geometry" />
         </mxCell>
         <mxCell id="coreHdr" value="基幹近接・モダナイズ・市民開発" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
@@ -68,7 +68,7 @@
         <mxCell id="coreConc" value="→ 内製・ローコード優勢 (ロックイン忌避)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#1A5490;" vertex="1" parent="1">
           <mxGeometry x="40" y="488" width="420" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="genHdr" value="汎用稟議・申請系ワークフロー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+        <mxCell id="genHdr" value="汎用申請・申請系ワークフロー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontStyle=1;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="500" y="330" width="420" height="34" as="geometry" />
         </mxCell>
         <mxCell id="genBox" value="イントラマート (大企業ワークフロー 18 年連続 No.1)&#xa;SmartDB (稟議系シェア 54.1%)&#xa;ServiceNow (導入は広いが内製化志向も並行)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF4E6;strokeColor=#D79B00;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;fontSize=12;" vertex="1" parent="1">

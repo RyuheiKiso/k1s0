@@ -28,7 +28,7 @@
 
 **業務根拠**: BR-PLATUSE-006（長期実行プロセスが Pod 再起動やデプロイを跨いでも失われないこと）。
 
-**現状**: 数時間〜数日に及ぶ業務プロセス（稟議承認、月次バッチ、在庫棚卸）を Dapr Workflow で書くと、タイマー精度・スケーラビリティ・Workflow バージョニングの制約に当たる。
+**現状**: 数時間〜数日に及ぶ業務プロセス（採用検討、月次バッチ、在庫棚卸）を Dapr Workflow で書くと、タイマー精度・スケーラビリティ・Workflow バージョニングの制約に当たる。
 
 **要件達成後**: `k1s0.Workflow.RunLong("workflow-name", input, options)` で Temporal Workflow を起動する。Temporal のタイマー（日単位）、バージョニング、大量並列実行に対応。tier2 から見たインタフェースは Dapr Workflow と共通。
 
@@ -83,7 +83,7 @@
 **受け入れ基準**:
 - WaitForEvent はタイムアウト付き（指定ない場合は無制限）
 - Signal は冪等、同じ event_name が複数回送られても最初のものが採用される
-- 優先度 COULD（Phase 1c で判定）
+- 優先度 COULD（リリース時点 で判定）
 
 ## 入出力仕様
 
@@ -118,11 +118,11 @@ k1s0.Workflow.CancelWorkflow(workflow_id: string) -> error?
 - workflow_id は UUID v7（時系列ソート可能）
 - tier2 は Activity 内で State / PubSub / Decision / Binding の各 API を呼べる
 
-## Phase 対応
+## 段階対応
 
-- **Phase 1a**: 未提供
-- **Phase 1b**: FR-T1-WORKFLOW-001〜004（短期は Dapr Workflow、長期実行は Temporal）
-- **Phase 1c**: FR-T1-WORKFLOW-005
+- **リリース時点**: 未提供
+- **リリース時点**: FR-T1-WORKFLOW-001〜004（短期は Dapr Workflow、長期実行は Temporal）
+- **リリース時点**: FR-T1-WORKFLOW-005
 
 ## 関連非機能要件
 

@@ -28,7 +28,7 @@
         <mxCell id="goSvc" value="Go サービス (Dapr ファサード)&#xa;stable Dapr Go SDK を直接利用&#xa;state / pub-sub / secrets / workflow /&#xa;bindings / 認証プロキシ / OTel 集約" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="90" y="405" width="380" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="rustSvc" value="Rust サービス (自作領域)&#xa;ZEN Engine in-process&#xa;JTC 固有機能 / 監査改ざん防止&#xa;雛形生成 CLI / Component バリデータ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="rustSvc" value="Rust サービス (自作領域)&#xa;ZEN Engine in-process&#xa;採用側組織の固有機能 / 監査改ざん防止&#xa;雛形生成 CLI / Component バリデータ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="500" y="405" width="380" height="110" as="geometry" />
         </mxCell>
         <mxCell id="dapr" value="Dapr Control Plane + daprd サイドカー&#xa;(Pod に自動注入)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=1.5;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">

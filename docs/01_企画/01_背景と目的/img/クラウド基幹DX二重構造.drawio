@@ -8,7 +8,7 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1040" height="720" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="JTC IT 基盤の二重構造: クラウド化が進む情報系 / オンプレに残る基幹系 / 半端な DX" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="採用側組織のIT 基盤の二重構造: クラウド化が進む情報系 / オンプレに残る基幹系 / 半端な DX" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="0" y="16" width="1040" height="28" as="geometry" />
         </mxCell>
         <mxCell id="sysHdr" value="情報系 (SaaS / クラウド)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=13;" vertex="1" parent="1">

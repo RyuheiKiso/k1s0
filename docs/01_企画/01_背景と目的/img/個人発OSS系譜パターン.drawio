@@ -74,13 +74,13 @@
         <mxCell id="k1Hdr" value="k1s0 の設計条件 (成功パターン踏襲)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="30" y="500" width="980" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="k1a" value="① 順序&#xa;Phase 1a で社内パイロット実績 → Phase 2 で OSS 化&#xa;(先行公開はしない)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="k1a" value="① 順序&#xa;最初から Apache 2.0 で公開し、会社採用と同時に運用&#xa;(先行公開でも後追いでもない一気通貫)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="550" width="235" height="90" as="geometry" />
         </mxCell>
         <mxCell id="k1b" value="② dogfooding 継続&#xa;パイロット業務の本番稼働継続を&#xa;OSS 保守の前提条件として KPI 化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="290" y="550" width="235" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="k1c" value="③ ライセンス&#xa;Apache 2.0 または MIT を稟議前に確定&#xa;(SSPL/BSL は採用しない)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="k1c" value="③ ライセンス&#xa;Apache 2.0 を採用前に確定&#xa;(SSPL/BSL は採用しない)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="540" y="550" width="235" height="90" as="geometry" />
         </mxCell>
         <mxCell id="k1d" value="④ OSPO 規程&#xa;ZOZO の 3 ガイドライン (公開/貢献/利用) を&#xa;CC0 ベースから流用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">

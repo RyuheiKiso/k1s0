@@ -80,7 +80,7 @@
         <mxCell id="scaffold-approval" value="Security (D) 承認&#10;テンプレート追加時" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1240" y="680" width="260" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="scaffold-note" value="Scaffold CLI は SDK を参照することで「tier1 公開 11 API へ接続済みの最小サービス」を生成する。Phase 1a で Backstage catalog に自動登録。" style="text;html=1;fontSize=11;align=center;" vertex="1" parent="1">
+        <mxCell id="scaffold-note" value="Scaffold CLI は SDK を参照することで「tier1 公開 11 API へ接続済みの最小サービス」を生成する。リリース時点 で Backstage catalog に自動登録。" style="text;html=1;fontSize=11;align=center;" vertex="1" parent="1">
           <mxGeometry x="140" y="780" width="1360" height="40" as="geometry" />
         </mxCell>
 

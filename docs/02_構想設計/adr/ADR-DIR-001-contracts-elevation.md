@@ -10,7 +10,7 @@
 
 概要設計の DS-SW-COMP-120 / DS-SW-COMP-121（[../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md](../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md) 参照）は、Protobuf 契約ファイルを `src/tier1/contracts/` に配置する方針を確定している。これは tier1 内部の Go ↔ Rust 間 gRPC 通信と、tier1 公開 11 API の両方を同じ `.proto` 配下で管理する前提である。
 
-しかし実装フェーズのディレクトリ設計を全体俯瞰した結果、以下の構造的な矛盾が浮上した。
+しかし実装段階のディレクトリ設計を全体俯瞰した結果、以下の構造的な矛盾が浮上した。
 
 - 契約（`.proto` ファイル）は tier1 所有物ではなく、**tier1・tier2・tier3・SDK の 4 層横断で参照される共有資産**である。tier2 / tier3 が独自のドメイン Protobuf を持つケース（例: tier2 の業務 API、tier3 BFF の Schema First 開発）では、`src/tier1/contracts/tier2/` のような tier1 配下へのぶら下げはパス意味論が破綻する。
 - CODEOWNERS 設計で契約変更のレビュー担当を `契約レビュー担当` として tier1 チームから分離する方針を取る場合、`src/tier1/contracts/` のパスは CODEOWNERS の `path-pattern` と意味論が合わない（tier1 配下なのに所有権は tier1 ではない）。
@@ -18,7 +18,7 @@
 - スパースチェックアウト運用（本 ADR と同時起票の [ADR-DIR-003](ADR-DIR-003-sparse-checkout-cone-mode.md)）で、`tier2-dev` / `tier3-web-dev` / `sdk-dotnet-dev` 等の役割 cone が契約ファイルを引く際、`src/tier1/contracts/` を含めると tier1 の不要なサブツリーを巻き込む可能性があり、cone 定義が複雑化する。
 - buf module 境界を `src/contracts/` 直下で切れば、契約変更 PR を契約レビュー担当が独立レビューでき、tier1 実装の変更とレビュー経路を分離できる。
 
-本 ADR 起票時点で実装コードはまだ書かれていない（Phase 0 稟議承認待ち）ため、後方互換を気にせず最適な配置に昇格できる最後のタイミングである。実装が進んだ後に昇格する場合、Go の import path / Rust の `build.rs` パス / CI の path-filter / ArgoCD ApplicationSet の検索パスが全て影響を受けるため、改修コストが数十倍に膨らむ。
+本 ADR 起票時点で実装コードはまだ書かれていないため、後方互換を気にせず最適な配置に昇格できる最後のタイミングである。実装が進んだ後に昇格する場合、Go の import path / Rust の `build.rs` パス / CI の path-filter / ArgoCD ApplicationSet の検索パスが全て影響を受けるため、改修コストが数十倍に膨らむ。
 
 ## 決定
 
@@ -85,9 +85,9 @@ buf module 境界は `src/contracts/` 直下に置く。CODEOWNERS は `src/cont
 - 概要: 既存 DS-SW-COMP-121 を変更せず、tier1 配下に contracts を置く
 - メリット:
   - 概要設計の改訂が不要
-  - Phase 1a 時点では tier1 公開 11 API のみなので、tier1 所有物とみなしても破綻しない
+  - リリース時点では tier1 公開 11 API のみなので、tier1 所有物とみなしても破綻しない
 - デメリット:
-  - Phase 1b 以降で tier2 / tier3 が独自 Protobuf を持った際に、`src/tier1/contracts/tier2/` という矛盾した階層が生まれる
+  - 将来的に tier2 / tier3 が独自 Protobuf を持った際に、`src/tier1/contracts/tier2/` という矛盾した階層が生まれる
   - CODEOWNERS で契約レビュー担当と tier1 チームの責任分界が不明瞭になる
   - SDK が tier1 配下の契約を import する形になり、依存方向の見かけ上の逆転が発生
   - スパースチェックアウト cone で tier2 / tier3 / SDK 開発者が tier1 のサブツリーを巻き込む
@@ -101,8 +101,8 @@ buf module 境界は `src/contracts/` 直下に置く。CODEOWNERS は `src/cont
 - デメリット:
   - モノレポ方針（[../../../CLAUDE.md](../../../CLAUDE.md) 参照）から外れる
   - 契約変更と実装変更の atomic commit が不可能になり、breaking change 管理が複雑化
-  - 2 名運用（NFR-C-NOP-001）で別 repo の CI/CD を維持する負荷が過大
-  - Phase 0 稟議承認前に別 repo を用意する意思決定コストが重い
+  - 採用側の小規模運用（NFR-C-NOP-001）で別 repo の CI/CD を維持する負荷が過大
+  - リリース前に別 repo を用意する意思決定コストが重い
 
 ### 選択肢 D: `contracts/` をリポジトリルート直下（`src/` 外）に配置
 
@@ -135,7 +135,7 @@ buf module 境界は `src/contracts/` 直下に置く。CODEOWNERS は `src/cont
 
 - [../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md](../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md) の DS-SW-COMP-120 / 121 / 122 / 132 を改訂し、`src/tier1/contracts/` への言及を `src/contracts/` に置換する
 - 改訂履歴に「ADR-DIR-001 起票により昇格」と明記する
-- 実装フェーズのディレクトリ設計書（`docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/02_contracts配置.md`）で本 ADR を参照する
+- 実装段階のディレクトリ設計書（`docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/02_contracts配置.md`）で本 ADR を参照する
 - CODEOWNERS サンプル（`docs/05_実装/00_ディレクトリ設計/00_設計方針/06_CODEOWNERSマトリクス設計.md`）で `src/contracts/` を契約レビュー担当に割り当てる
 - buf.yaml / buf.gen.yaml の `input:` / `output:` パスを新構造に合わせる雛形を実装ドキュメントに収録
 - IMP-DIR-T1-\*（contracts 配置）と IMP-DIR-ROOT-\*（依存方向ルール）との双方向トレースを [../../../docs/05_実装/00_ディレクトリ設計/90_トレーサビリティ/02_DS-SW-COMP_121-135_との対応.md](../../../docs/05_実装/00_ディレクトリ設計/90_トレーサビリティ/02_DS-SW-COMP_121-135_との対応.md) で管理

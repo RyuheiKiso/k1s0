@@ -1,20 +1,20 @@
 # 10. ビルド設計
 
-本章は k1s0 モノレポの各言語ネイティブビルド（Cargo / go build / pnpm / dotnet）をどう組み合わせ、どこまで選択的に実行するかを実装フェーズ確定版として固定する。`00_ディレクトリ設計/00_設計方針/02_世界トップ企業事例比較.md` で確定した「Bazel / Buck2 を採用しない」判断（ADR-TIER1-001 のハイブリッド言語構成下では学習コストを正当化できない）を前提に、各言語のネイティブビルド機構で選択ビルド・キャッシュ・ワークスペース境界をどう切るかを規定する。
+本章は k1s0 モノレポの各言語ネイティブビルド（Cargo / go build / pnpm / dotnet）をどう組み合わせ、どこまで選択的に実行するかを実装段階確定版として固定する。`00_ディレクトリ設計/00_設計方針/02_世界トップ企業事例比較.md` で確定した「Bazel / Buck2 を採用しない」判断（ADR-TIER1-001 のハイブリッド言語構成下では学習コストを正当化できない）を前提に、各言語のネイティブビルド機構で選択ビルド・キャッシュ・ワークスペース境界をどう切るかを規定する。
 
 ## 本章の位置付け
 
-Google や Meta は Bazel / Buck2 で選択ビルドを実現しているが、k1s0 は 2 名運用から始まるため OSS スタックを増やさない方針を取る。代わりに Cargo workspace の `[workspace.dependencies]`、Go の複数 `go.mod` 分離、pnpm workspace の `--filter`、dotnet の `sln` 分割をそれぞれの言語で最適運用する。ADR-TIER1-001（Go + Rust ハイブリッド）と ADR-TIER1-003（内部言語不可視）により tier1 内部は 2 言語並行ビルドとなり、契約は ADR-DIR-001 の `src/contracts/` 集約を経由して 4 言語 SDK に展開される。本章はこれら 4 機構の境界設定・切り替え基準・将来の Bazel 移行経路を明示する。
+Google や Meta は Bazel / Buck2 で選択ビルドを実現しているが、k1s0 は 採用側の小規模運用から始まるため OSS スタックを増やさない方針を取る。代わりに Cargo workspace の `[workspace.dependencies]`、Go の複数 `go.mod` 分離、pnpm workspace の `--filter`、dotnet の `sln` 分割をそれぞれの言語で最適運用する。ADR-TIER1-001（Go + Rust ハイブリッド）と ADR-TIER1-003（内部言語不可視）により tier1 内部は 2 言語並行ビルドとなり、契約は ADR-DIR-001 の `src/contracts/` 集約を経由して 4 言語 SDK に展開される。本章はこれら 4 機構の境界設定・切り替え基準・将来の Bazel 移行経路を明示する。
 
-Phase 1c 時点で Rust / Go / TypeScript のいずれかで単言語ビルド時間が 30 分を超えた場合、当該言語のみ Bazel 導入を再評価する（新 ADR 起票）。本章はその判定を可能にする計測点の設置も含む。
+リリース時点 時点で Rust / Go / TypeScript のいずれかで単言語ビルド時間が 30 分を超えた場合、当該言語のみ Bazel 導入を再評価する（新 ADR 起票）。本章はその判定を可能にする計測点の設置も含む。
 
 ![ビルド設計概観: Cargo 2 分割 + Go module 5 分割 + buf 連動 + path-filter](img/10_ビルド設計概観.svg)
 
-## Phase 確定範囲
+## OSS リリース時点での確定範囲
 
-- Phase 0: Cargo workspace・go.mod 分離・pnpm workspace・dotnet sln 境界の確定、選択ビルド判定の path-filter 運用、ローカルキャッシュ戦略
-- Phase 1a: CI リモートキャッシュ（GitHub Actions cache / sccache）、並列化設定
-- Phase 1c: ビルド時間計測結果にもとづく Bazel 導入可否判定（新 ADR 起票）
+- リリース時点: Cargo workspace・go.mod 分離・pnpm workspace・dotnet sln 境界の確定、選択ビルド判定の path-filter 運用、ローカルキャッシュ戦略
+- リリース時点: CI リモートキャッシュ（GitHub Actions cache / sccache）、並列化設定
+- リリース時点: ビルド時間計測結果にもとづく Bazel 導入可否判定（新 ADR 起票）
 
 ## RACI
 

@@ -78,7 +78,7 @@
         <mxCell id="tec_metric_lbl" value="判定基準（監視指標の定量閾値）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="615" y="370" width="470" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="tec_m1" value="SLO 違反率：2 四半期連続で MonthlyBudget の 200% 超過&#10;→ 99% 稟議約束の根拠が崩壊、Grafana SLO ボードで月次可視化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="tec_m1" value="SLO 違反率：2 四半期連続で MonthlyBudget の 200% 超過&#10;→ 99% 採用検討で約束した値の根拠が崩壊、Grafana SLO ボードで月次可視化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="615" y="400" width="470" height="60" as="geometry" />
         </mxCell>
         <mxCell id="tec_m2" value="Critical CVE 48 時間ルール遵守率：50% 未満が 2 四半期継続&#10;→ NFR-C-MNT-002 の運用契約破綻、セキュリティ信頼消滅" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
@@ -101,14 +101,14 @@
         <mxCell id="biz_t2" value="利用テナント数 が計画の 30% 未満（2 年継続）&#10;収益 / 運用分母が縮小して固定費が賄えない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1150" y="240" width="470" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="biz_t3" value="予算削減 / 親会社の戦略変更&#10;稟議で約束した要員 / 投資が恒常的に確保不能" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="biz_t3" value="予算削減 / 親会社の戦略変更&#10;採用検討で約束した要員 / 投資が恒常的に確保不能" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1150" y="300" width="470" height="50" as="geometry" />
         </mxCell>
 
         <mxCell id="biz_metric_lbl" value="判定基準（企画書数値との乖離）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1150" y="370" width="470" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="biz_m1" value="年次 TCO レビュー：稟議試算と実績の乖離率 ≥ 30%&#10;→ CFO 起票で Product Council 撤退判定レビュー必須化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="biz_m1" value="年次 TCO レビュー：採用検討時の試算と実績の乖離率 ≥ 30%&#10;→ CFO 起票で Product Council 撤退判定レビュー必須化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="1150" y="400" width="470" height="60" as="geometry" />
         </mxCell>
         <mxCell id="biz_m2" value="テナント数：計画比 30% 未満が 8 四半期（2 年）連続&#10;→ 事業計画改定または撤退を Product Council で択一判断" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
@@ -146,7 +146,7 @@
           <mxGeometry x="1080" y="680" width="170" height="24" as="geometry" />
         </mxCell>
 
-        <mxCell id="next_step" value="撤退提案書ドラフト → Product Council レビュー（0〜14 日） → 稟議承認（14〜60 日） → 利用者通知（60 日） → 段階縮退（60〜150 日） → 停止後始末（150〜180 日）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="next_step" value="撤退提案書ドラフト → Product Council レビュー（0〜14 日） → 採用検討（14〜60 日） → 利用者通知（60 日） → 段階縮退（60〜150 日） → 停止後始末（150〜180 日）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="60" y="830" width="1580" height="50" as="geometry" />
         </mxCell>
         <mxCell id="e_council_next" style="html=1;strokeWidth=2;strokeColor=#ef6c00;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="council" target="next_step">
@@ -168,10 +168,10 @@
         <mxCell id="lg_biz" value="データ層（#e1d5e7）：事業指標 / 企画書の数値と突合される定量データ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1080" y="935" width="560" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="lg_rule" value="判定ルール：3 カテゴリは独立に評価し、いずれか 1 つの閾値到達で撤退検討の対象となる（AND ではなく OR）。閾値は稟議で約束した数値から演繹。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="lg_rule" value="判定ルール：3 カテゴリは独立に評価し、いずれか 1 つの閾値到達で撤退検討の対象となる（AND ではなく OR）。閾値は採用検討で約束した数値から演繹。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="975" width="1540" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="lg_note1" value="撤退検討 = 撤退決定ではない。提案書起草 → Council レビュー → 稟議 → 利用者通知の 4 ゲートを経て確定する。延期 3 か月 / 却下もあり得る。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_note1" value="撤退検討 = 撤退決定ではない。提案書起草 → Council レビュー → 経営承認 → 利用者通知の 4 ゲートを経て確定する。延期 3 か月 / 却下もあり得る。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="1005" width="1540" height="24" as="geometry" />
         </mxCell>
         <mxCell id="lg_note2" value="矢印：暖色実線＝組織要因の提起、寒色実線＝技術要因の提起、紫実線＝事業要因の提起、橙実線＝承認後の後続プロセス起動。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">

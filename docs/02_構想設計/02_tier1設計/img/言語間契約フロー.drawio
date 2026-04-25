@@ -73,7 +73,7 @@
         <mxCell id="a8" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="gosvc" target="rustsvc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="policybox" value="契約管理の原則&#10;&#10;• Protobuf 定義は src/tier1/contracts/ に単一集中。Go と Rust は同一 .proto から生成&#10;• 生成コードは Git にコミットしない (buf generate を CI / ビルドで毎回実行)&#10;• buf breaking で PR 単位で後方互換性違反を CI ブロック (稟議不要で失敗扱い)&#10;• エラーコードは共通 Protobuf enum で定義 → Go / Rust で同じ識別子を参照&#10;• 互換性テスト: Go で生成→Rust で parse, Rust で生成→Go で parse の双方向 CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9F9F9;strokeColor=#999999;fontSize=11;align=left;verticalAlign=top;spacingLeft=15;spacingTop=10;spacingRight=15;" vertex="1" parent="1">
+        <mxCell id="policybox" value="契約管理の原則&#10;&#10;• Protobuf 定義は src/tier1/contracts/ に単一集中。Go と Rust は同一 .proto から生成&#10;• 生成コードは Git にコミットしない (buf generate を CI / ビルドで毎回実行)&#10;• buf breaking で PR 単位で後方互換性違反を CI ブロック (申請不要で失敗扱い)&#10;• エラーコードは共通 Protobuf enum で定義 → Go / Rust で同じ識別子を参照&#10;• 互換性テスト: Go で生成→Rust で parse, Rust で生成→Go で parse の双方向 CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F9F9F9;strokeColor=#999999;fontSize=11;align=left;verticalAlign=top;spacingLeft=15;spacingTop=10;spacingRight=15;" vertex="1" parent="1">
           <mxGeometry x="60" y="680" width="1080" height="130" as="geometry" />
         </mxCell>
       </root>

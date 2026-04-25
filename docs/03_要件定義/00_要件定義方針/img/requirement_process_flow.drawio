@@ -25,7 +25,7 @@
         <mxCell id="s5" value="&lt;b&gt;⑤ トレーサビリティ&lt;/b&gt;&#xa;企画↔要件↔構想設計&#xa;孤立要件検出と補修&#xa;完了: マトリクス整合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000" vertex="1" parent="1">
           <mxGeometry x="800" y="140" width="170" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="s6" value="&lt;b&gt;⑥ 合意と凍結&lt;/b&gt;&#xa;5 ロール承認&#xa;Phase 0-1b 凍結&#xa;完了: tag 付与・署名" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontColor=#000000" vertex="1" parent="1">
+        <mxCell id="s6" value="&lt;b&gt;⑥ 合意と凍結&lt;/b&gt;&#xa;5 ロール承認&#xa;リリース時点-1b 凍結&#xa;完了: tag 付与・署名" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontColor=#000000" vertex="1" parent="1">
           <mxGeometry x="990" y="140" width="170" height="100" as="geometry" />
         </mxCell>
         <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="s1" target="s2">

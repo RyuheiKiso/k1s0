@@ -4,13 +4,13 @@
 
 ## 本書の位置付け
 
-SLO は単なる目標値ではなく、「この値を割った時にどう行動するか」の運用契約である。稟議書で「稼働率 99.9%」と宣言しても、それを測定する指標（SLI）、SLI の計算ウィンドウ、違反時の対応が定まっていなければ、実運用では形骸化する。本書は A 可用性・B 性能拡張・E セキュリティ・G データ保護の目標値を SLI/SLO/エラーバジェットの枠組みで再整理し、チーム間の責任境界を明確にする。
+SLO は単なる目標値ではなく、「この値を割った時にどう行動するか」の運用契約である。申請書で「稼働率 99.9%」と宣言しても、それを測定する指標（SLI）、SLI の計算ウィンドウ、違反時の対応が定まっていなければ、実運用では形骸化する。本書は A 可用性・B 性能拡張・E セキュリティ・G データ保護の目標値を SLI/SLO/エラーバジェットの枠組みで再整理し、チーム間の責任境界を明確にする。
 
 SLO 設定は Google SRE 書籍群および DORA State of DevOps Report の Elite 基準を参照する。tier1 API 群はプラットフォームのコアのため、Elite 水準（99.9% 以上・p99 < 500ms・デプロイ失敗率 < 15%）を目指す。
 
 ## 参照文献一覧（版号・発行年・参照範囲）
 
-SLO 数値の根拠を逆引きできるよう、参照元文献の版号・発行年・該当章節を明示する。稟議レビュアーや監査担当者が「この 99.9% はどこから来たか」を問うた際、本一覧から該当章節まで一意に辿れる状態を維持する。版が改訂された場合は四半期レビューで本一覧を更新する。
+SLO 数値の根拠を逆引きできるよう、参照元文献の版号・発行年・該当章節を明示する。採用検討レビュアーや監査担当者が「この 99.9% はどこから来たか」を問うた際、本一覧から該当章節まで一意に辿れる状態を維持する。版が改訂された場合は四半期レビューで本一覧を更新する。
 
 | 略称 | 正式名 | 発行元 | 版・発行年 | 参照章節 | 用途 |
 |---|---|---|---|---|---|
@@ -49,21 +49,21 @@ k1s0 の主要コンポーネント別に SLO を定める。SLO は複数の SL
 
 ### SLO 値の選定根拠表
 
-各 SLO 値は「業界標準 → k1s0 特有事情による調整 → 選定数値」の 3 段階で根拠化する。数値は稟議・監査で「なぜこの値を選んだか」を一意に説明できる粒度まで分解する。実測データが蓄積される Phase 1b パイロット 1Q 後に再検証し、必要なら本表を改訂する。
+各 SLO 値は「業界標準 → k1s0 特有事情による調整 → 選定数値」の 3 段階で根拠化する。数値は申請・監査で「なぜこの値を選んだか」を一意に説明できる粒度まで分解する。実測データが蓄積される リリース時点 パイロット 1Q 後に再検証し、必要なら本表を改訂する。
 
 | 指標 | 選定値 | 業界標準・先行事例 | k1s0 特有調整 | 出典 |
 |---|---|---|---|---|
 | tier1 Service Invoke 稼働率 | 99.9% | SRE Book の Elite 水準、AWS 内部サービス標準 | 単一クラスタ構成のため 99.99% は構成上到達不可。SLA（99%）に対し 0.9pt 厳しい内部目標として設定 | SRE Book 第 4 章、[A_可用性.md](A_可用性.md) 数値根拠表 |
-| tier1 State 稼働率 | 99.95% | AWS RDS Multi-AZ SLA（99.95%）、Azure SQL DB SLA | データ層は「失うと復旧困難」のため API 層より 0.05pt 厳しく設定。Phase 1c で HA 移行完了前は目標値として運用（実測 SLO は Phase 1b 中に別途） | AWS RDS SLA、[A_可用性.md](A_可用性.md) NFR-A-FT-003 |
+| tier1 State 稼働率 | 99.95% | AWS RDS Multi-AZ SLA（99.95%）、Azure SQL DB SLA | データ層は「失うと復旧困難」のため API 層より 0.05pt 厳しく設定。リリース時点 で HA 移行完了前は目標値として運用（実測 SLO は リリース時点 中に別途） | AWS RDS SLA、[A_可用性.md](A_可用性.md) NFR-A-FT-003 |
 | tier1 Service Invoke p99 レイテンシ | 500ms | SRE Book の Web サービス典型値、DORA Elite 水準 | Dapr + Istio Ambient 経由のオーバーヘッド（約 10〜20ms）込みで余裕を持たせた値。構想設計の Protobuf gRPC 前提で到達可能 | SRE Book 第 4 章、[B_性能拡張性.md](B_性能拡張性.md) NFR-B-PERF-001 |
-| tier1 State Valkey p99 レイテンシ | 10ms | Redis ベンチマーク（AWS ElastiCache 標準 1〜2ms）に対し余裕確保 | Valkey をクラスタ内設置する前提で network RTT 含め 10ms 上限。Istio Ambient ztunnel 追加分 3〜5ms を織り込み | Redis ベンチマーク、Istio Ambient POC 結果（Phase 2 に確定予定） |
-| tier1 PubSub Publish p99 レイテンシ | 50ms | Kafka Producer acks=all の典型値（ブローカー 3 台で 10〜30ms） | 1 ブローカー構成（Phase 1b/1c）では書込み待ち時間増加を織り込み 50ms 上限に設定。Phase 3 の 3 ブローカー化で 20ms 以内を目指す | Kafka Docs 3.7 Producer 章、[B_性能拡張性.md](B_性能拡張性.md) NFR-B-PERF-005 |
+| tier1 State Valkey p99 レイテンシ | 10ms | Redis ベンチマーク（AWS ElastiCache 標準 1〜2ms）に対し余裕確保 | Valkey をクラスタ内設置する前提で network RTT 含め 10ms 上限。Istio Ambient ztunnel 追加分 3〜5ms を織り込み | Redis ベンチマーク、Istio Ambient POC 結果（採用後の運用拡大時 に確定予定） |
+| tier1 PubSub Publish p99 レイテンシ | 50ms | Kafka Producer acks=all の典型値（ブローカー 3 台で 10〜30ms） | 1 ブローカー構成（採用初期）では書込み待ち時間増加を織り込み 50ms 上限に設定。採用側のマルチクラスタ移行時 の 3 ブローカー化で 20ms 以内を目指す | Kafka Docs 3.7 Producer 章、[B_性能拡張性.md](B_性能拡張性.md) NFR-B-PERF-005 |
 | tier1 PubSub メッセージ損失率 | < 0.001% | Kafka at-least-once 設定（acks=all、min.insync.replicas 2）の理論値 | 業務データ逸失は監査インシデント扱いのため、実運用で「2 週間に 1 件以下」を閾値 | Kafka Docs、OR-INC-005（メッセージ逸失の Severity 基準） |
 | tier1 Workflow 開始レイテンシ | 2 秒 | Temporal 公式ベンチマーク（通常 500ms〜1.5 秒） | k1s0 では Keycloak トークン検証 + テナント識別の追加処理で 500ms 増、余裕確保で 2 秒上限 | Temporal Docs 1.23、構想設計 tier1_workflow_design.md |
 | tier1 Decision in-process p99 | 1ms | ZEN Engine README ベンチマーク（100 ルール規模で 0.2〜0.5ms） | Rust in-process 実装のため JIT コスト無し。複雑ツリー（nested 3 階層以上）では 5ms まで許容 | ZEN Engine v0.36 ベンチマーク、[B_性能拡張性.md](B_性能拡張性.md) NFR-B-PERF-004 |
 | tier1 Audit 永続化遅延 | 5 秒 | WORM ストレージ（MinIO Object Lock）の書込み遅延、Kafka 経由の伝播時間 | Kafka → Audit Consumer → MinIO の 3 段構成で各段 1〜2 秒、余裕含め 5 秒上限。法令（個情法 30 日保管義務）は別要件 | MinIO Object Lock Docs、[G_データ保護とプライバシー.md](G_データ保護とプライバシー.md) |
-| Kubernetes API Server 稼働率 | 99.95% | kubeadm 構築の single-master 構成は 99.9%、HA 構成で 99.95% | Phase 1c 以降の control-plane HA 化前提で 99.95%。Phase 1b は 99.9% を暫定目標、Runbook で手動復旧 | Kubernetes コミュニティガイド、[A_可用性.md](A_可用性.md) NFR-A-FT-001 |
-| Keycloak 認証 稼働率 | 99.95% | Keycloak 公式 HA ガイドの 2-node 構成で 99.95% | SSO 障害は全 API 停止に直結するため 99.9% でなく 99.95% に設定。Phase 1c で HA 移行 | Keycloak HA Guide、構想設計 keycloak_sizing.md |
+| Kubernetes API Server 稼働率 | 99.95% | kubeadm 構築の single-master 構成は 99.9%、HA 構成で 99.95% | 運用蓄積後の control-plane HA 化前提で 99.95%。リリース時点 は 99.9% を暫定目標、Runbook で手動復旧 | Kubernetes コミュニティガイド、[A_可用性.md](A_可用性.md) NFR-A-FT-001 |
+| Keycloak 認証 稼働率 | 99.95% | Keycloak 公式 HA ガイドの 2-node 構成で 99.95% | SSO 障害は全 API 停止に直結するため 99.9% でなく 99.95% に設定。リリース時点 で HA 移行 | Keycloak HA Guide、構想設計 keycloak_sizing.md |
 
 ### バーンレート閾値の根拠
 
@@ -169,7 +169,7 @@ SLO 違反は早期検知のためマルチバーンレートで監視する。G
 
 対外（テナントとの契約）SLA は SLO より低く設定する。SLO は内部目標、SLA は対外約束で違反時にペナルティ（課金割引 10%）が発生する契約条項。BC-LGL-005（責任分界）で具体条項を定める。k1s0 の 2 層運用の数値は [A_可用性.md](A_可用性.md) の「数値根拠表」が単一の真実源（single source of truth）であり、本書の以下の値は A_可用性.md と一致していなければならない。不一致はリリース凍結ルールの発散を招くため四半期レビューで検証する。
 
-- **tier1 全般 SLA**: 99%（月間ダウンタイム許容 7.2 時間）— 稟議書提示値、[A_可用性.md](A_可用性.md) NFR-A-CONT-001
+- **tier1 全般 SLA**: 99%（月間ダウンタイム許容 7.2 時間）— 申請書提示値、[A_可用性.md](A_可用性.md) NFR-A-CONT-001
 - **tier1 全般 SLO**: 99.9%（月間 43 分以内）— 本書 NFR-I-SLO-001
 - **マージン**: 月 約 6.5 時間（7.2 h − 43 min）— 層別割当は [A_可用性.md](A_可用性.md) の「マージン 6.5 時間の層別割当」参照
 
@@ -192,42 +192,42 @@ tier1 公開 11 API それぞれに NFR-I-SLO-NNN を採番し、本書の各節
 
 ### SLI 計測要件
 
-- **NFR-I-SLI-001**: 全 tier1 公開 API で Availability / Latency / Freshness / Correctness の 4 SLI を Prometheus 互換メトリクスで計測（MUST、Phase 1a）
+- **NFR-I-SLI-001**: 全 tier1 公開 API で Availability / Latency / Freshness / Correctness の 4 SLI を Prometheus 互換メトリクスで計測（MUST、リリース時点）
 
 ### SLO 要件（tier1 公開 11 API 別）
 
-- **NFR-I-SLO-001**: Service Invoke API は 99.9% 稼働率・p99 < 500ms を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-002**: State API は 99.95% 稼働率・Valkey p99 < 10ms・PostgreSQL p99 < 100ms・レプリ遅延 < 5 秒を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-003**: PubSub API は 99.9% 稼働率・Publish p99 < 50ms・配信遅延 p99 < 1 秒・損失率 < 0.001% を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-004**: Secrets API は 99.9% 稼働率・取得 p99 < 50ms を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-005**: Binding API は 99.9% 稼働率・p99 < 200ms を SLO として設定（MUST、Phase 1b）
-- **NFR-I-SLO-006**: Workflow API は 99.9% 稼働率・Start p99 < 2 秒・Determinism 100%・永続性 99.999% を SLO として設定（MUST、Phase 1b）
-- **NFR-I-SLO-007**: Log API は 99.9% 稼働率・Ingest p99 < 1 秒・損失率 < 0.01% を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-008**: Telemetry API は 99.9% 稼働率・Ingest p99 < 1 秒・損失率 < 0.01% を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-009**: Decision API は 99.9% 稼働率・in-process p99 < 1ms・gRPC 経由 p99 < 50ms（シンプル） / < 200ms（複雑ツリー）・Correctness 100% を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-010**: Audit-Pii API は 99.9% 稼働率・Audit 永続化 p99 < 5 秒・損失 0% を SLO として設定（MUST、Phase 1a）
-- **NFR-I-SLO-011**: Feature API は 99.9% 稼働率・評価 p99 < 10ms を SLO として設定（MUST、Phase 1a）
+- **NFR-I-SLO-001**: Service Invoke API は 99.9% 稼働率・p99 < 500ms を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-002**: State API は 99.95% 稼働率・Valkey p99 < 10ms・PostgreSQL p99 < 100ms・レプリ遅延 < 5 秒を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-003**: PubSub API は 99.9% 稼働率・Publish p99 < 50ms・配信遅延 p99 < 1 秒・損失率 < 0.001% を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-004**: Secrets API は 99.9% 稼働率・取得 p99 < 50ms を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-005**: Binding API は 99.9% 稼働率・p99 < 200ms を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-006**: Workflow API は 99.9% 稼働率・Start p99 < 2 秒・Determinism 100%・永続性 99.999% を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-007**: Log API は 99.9% 稼働率・Ingest p99 < 1 秒・損失率 < 0.01% を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-008**: Telemetry API は 99.9% 稼働率・Ingest p99 < 1 秒・損失率 < 0.01% を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-009**: Decision API は 99.9% 稼働率・in-process p99 < 1ms・gRPC 経由 p99 < 50ms（シンプル） / < 200ms（複雑ツリー）・Correctness 100% を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-010**: Audit-Pii API は 99.9% 稼働率・Audit 永続化 p99 < 5 秒・損失 0% を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-011**: Feature API は 99.9% 稼働率・評価 p99 < 10ms を SLO として設定（MUST、リリース時点）
 
 ### SLO 要件（インフラ層）
 
-- **NFR-I-SLO-101**: Kubernetes API Server は 99.95% 稼働率・kubectl 応答 p99 < 500ms を SLO として設定（MUST、Phase 1c。Phase 1b は 99.9% 暫定）
-- **NFR-I-SLO-102**: Istio Ambient データプレーン（ztunnel）はレイテンシ増加 p99 < 5ms を SLO として設定（SHOULD、Phase 2）
-- **NFR-I-SLO-103**: Longhorn ストレージは IOPS 低下時 < 20%・復旧 RTO < 10 分を SLO として設定（MUST、Phase 1b）
-- **NFR-I-SLO-104**: MetalLB は VIP フェイルオーバー < 30 秒を SLO として設定（MUST、Phase 1b）
-- **NFR-I-SLO-105**: Keycloak 認証は 99.95% 稼働率・トークン発行 p99 < 200ms を SLO として設定（MUST、Phase 1c）
-- **NFR-I-SLO-106**: OpenBao は 99.9% 稼働率・シークレット取得 p99 < 100ms を SLO として設定（MUST、Phase 1b）
-- **NFR-I-SLO-107**: Argo CD Sync は Git push から apply 完了まで p99 < 2 分を SLO として設定（MUST、Phase 1a）
+- **NFR-I-SLO-101**: Kubernetes API Server は 99.95% 稼働率・kubectl 応答 p99 < 500ms を SLO として設定（MUST、リリース時点。リリース時点 は 99.9% 暫定）
+- **NFR-I-SLO-102**: Istio Ambient データプレーン（ztunnel）はレイテンシ増加 p99 < 5ms を SLO として設定（SHOULD、採用後の運用拡大時）
+- **NFR-I-SLO-103**: Longhorn ストレージは IOPS 低下時 < 20%・復旧 RTO < 10 分を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-104**: MetalLB は VIP フェイルオーバー < 30 秒を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-105**: Keycloak 認証は 99.95% 稼働率・トークン発行 p99 < 200ms を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-106**: OpenBao は 99.9% 稼働率・シークレット取得 p99 < 100ms を SLO として設定（MUST、リリース時点）
+- **NFR-I-SLO-107**: Argo CD Sync は Git push から apply 完了まで p99 < 2 分を SLO として設定（MUST、リリース時点）
 
 ### エラーバジェット要件
 
-- **NFR-I-EB-001**: エラーバジェット消費率を Grafana で常時可視化（MUST、Phase 1b）
-- **NFR-I-EB-002**: バジェット超過時のリリース凍結プロセスを Runbook で整備（MUST、Phase 1c）
-- **NFR-I-EB-003**: マルチバーンレートアラート（Fast 14.4x / Slow 6x）を設定（SHOULD、Phase 1b）
-- **NFR-I-EB-004**: 月次マージン（SLA − SLO）の層別消費実績をレビュー、閾値 70% 超の層は翌月の体質改善タスクを OKR に組込み（MUST、Phase 1c）
+- **NFR-I-EB-001**: エラーバジェット消費率を Grafana で常時可視化（MUST、リリース時点）
+- **NFR-I-EB-002**: バジェット超過時のリリース凍結プロセスを Runbook で整備（MUST、リリース時点）
+- **NFR-I-EB-003**: マルチバーンレートアラート（Fast 14.4x / Slow 6x）を設定（SHOULD、リリース時点）
+- **NFR-I-EB-004**: 月次マージン（SLA − SLO）の層別消費実績をレビュー、閾値 70% 超の層は翌月の体質改善タスクを OKR に組込み（MUST、リリース時点）
 
 ### SLA 要件
 
-- **NFR-I-SLA-001**: 対外 SLA は SLO より 0.9 ポイント緩い設定（tier1 全般 99%）で BC-LGL-005 に明文化。違反時ペナルティ条項を契約書に含める（MUST、Phase 1b 契約締結時）
+- **NFR-I-SLA-001**: 対外 SLA は SLO より 0.9 ポイント緩い設定（tier1 全般 99%）で BC-LGL-005 に明文化。違反時ペナルティ条項を契約書に含める（MUST、リリース時点 契約締結時）
 
 ## メンテナンス
 

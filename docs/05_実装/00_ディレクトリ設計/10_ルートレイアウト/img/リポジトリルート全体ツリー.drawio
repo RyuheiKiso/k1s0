@@ -67,7 +67,7 @@
         <mxCell id="b-tp" value="third_party/  &#8212; OSS フォーク vendoring（UPSTREAM.md / PATCHES.md）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="920" y="370" width="440" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="b-docs" value="docs/  &#8212; 全フェーズドキュメント（データ層）&#10;  01_企画 ＋ 02_構想 ＋ 03_要件 ＋ 04_概要 ＋ 05_実装&#10;  00_format（テンプレ） ＋ 90_knowledge（学習）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="b-docs" value="docs/  &#8212; 全段階ドキュメント（データ層）&#10;  01_企画 ＋ 02_構想 ＋ 03_要件 ＋ 04_概要 ＋ 05_実装&#10;  00_format（テンプレ） ＋ 90_knowledge（学習）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="920" y="410" width="440" height="70" as="geometry" />
         </mxCell>
         <mxCell id="b-rootf" value="ルート直下ファイル&#10;  CLAUDE.md / README.md / SECURITY.md / LICENSE&#10;  Makefile / .gitattributes / .git-blame-ignore-revs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">

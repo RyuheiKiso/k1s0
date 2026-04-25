@@ -1,6 +1,6 @@
 # 01. tier2 全体配置
 
-本ファイルは `src/tier2/` の全体構成を確定する。.NET と Go の 2 言語併存、テンプレートディレクトリの位置付け、Phase 導入タイミングを規定する。
+本ファイルは `src/tier2/` の全体構成を確定する。.NET と Go の 2 言語併存、テンプレートディレクトリの位置付け、導入タイミングを規定する。
 
 ## レイアウト
 
@@ -36,7 +36,7 @@ src/tier2/
 
 ## 2 言語併存の理由
 
-tier2 は JTC の既存 .NET 資産を段階的に取り込む受け皿であり、.NET が中心となる。ただし以下の場合は Go を選択する。
+tier2 は 採用側組織の既存 .NET 資産を段階的に取り込む受け皿であり、.NET が中心となる。ただし以下の場合は Go を選択する。
 
 - 高スループットが要求される統合・変換サービス（例: 在庫同期バッチ、通知ハブ）
 - tier1 Go ファサードと密結合する運用補助（例: Dapr Workflow をフル活用する業務フロー）
@@ -51,15 +51,15 @@ tier2 の各サービスは独立にビルド・デプロイ可能。
 - Go サービスは `src/tier2/go/services/<service>/cmd/main.go` を持ち、`go build ./services/<service>/cmd/` で個別ビルド可能
 - container image は各サービスごとに独立（`ghcr.io/k1s0/t2-approval-flow:<tag>` など）
 
-## Phase 導入タイミング
+## 導入タイミング
 
-| Phase | 追加内容 |
+| 適用段階 | 追加内容 |
 |---|---|
-| Phase 0 | 構造のみ（`services/` 空ディレクトリ + README） |
-| Phase 1a | `templates/dotnet-service/` と `templates/go-service/` を整備。雛形 CLI（src/platform/cli/）が参照する |
-| Phase 1b | JTC 業務サービス 2-3 個を実装（承認フロー・帳票生成・在庫同期など） |
-| Phase 1c | 品質確保（unit / integration / contract テスト拡充） |
-| Phase 2 | 追加サービスや外部連携の拡張 |
+| リリース時点 | 構造のみ（`services/` 空ディレクトリ + README） |
+| リリース時点 | `templates/dotnet-service/` と `templates/go-service/` を整備。雛形 CLI（src/platform/cli/）が参照する |
+| リリース時点 | 採用側組織の業務サービス 2-3 個を実装（承認フロー・帳票生成・在庫同期など） |
+| リリース時点 | 品質確保（unit / integration / contract テスト拡充） |
+| 採用後の運用拡大時 | 追加サービスや外部連携の拡張 |
 
 ## 依存方向
 
@@ -87,5 +87,5 @@ tier2 の各サービスは独立にビルド・デプロイ可能。
 ## 対応 ADR / DS-SW-COMP / 要件
 
 - ADR-TIER1-003（内部言語不可視）
-- DS-SW-COMP-019（Phase 2 再評価条件）
+- DS-SW-COMP-019（採用後の運用拡大時 再評価条件）
 - FR-\*（業務ユースケース全般）/ DX-GP-\* / DX-CICD-\*

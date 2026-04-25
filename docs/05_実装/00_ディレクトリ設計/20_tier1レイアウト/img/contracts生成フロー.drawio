@@ -79,7 +79,7 @@
         <mxCell id="u5" value="tier2 go services / tier1-go&#10;sdk/go を import" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="980" y="525" width="220" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="note-ci" value="★ CI フロー: PR で .proto 変更 → buf lint / buf breaking / buf generate の diff check を必須化。&#10;　scaffold 雛形 CLI からも buf.yaml を参照（tools/codegen/scaffold/templates/）。&#10;★ 既存 src/tier1/go/internal/proto/v1/ や src/tier1/rust/crates/rust-facade/src/gen/ は廃止（Phase 1a で移行）。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
+        <mxCell id="note-ci" value="★ CI フロー: PR で .proto 変更 → buf lint / buf breaking / buf generate の diff check を必須化。&#10;　scaffold 雛形 CLI からも buf.yaml を参照（tools/codegen/scaffold/templates/）。&#10;★ 既存 src/tier1/go/internal/proto/v1/ や src/tier1/rust/crates/rust-facade/src/gen/ は廃止（リリース時点 で移行）。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=12;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="40" y="605" width="1200" height="95" as="geometry" />
         </mxCell>
       </root>

@@ -134,7 +134,7 @@
         <mxCell id="p7b" value="2025/05&#xa;Tesco +237%&#xa;Rancher Prime 9-13×&#xa;Redis/Elastic AGPL 復帰" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="875" y="90" width="170" height="88" as="geometry" />
         </mxCell>
-        <mxCell id="concl" value="ロックインは印象論ではなく訴訟記録と CNCF 卒業の両面で裏付けられる。AT&amp;amp;T +1,050% / Tesco +237% / Camunda 8.6 有償化が主な稟議答弁材料。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#999999;fontSize=12;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="concl" value="ロックインは印象論ではなく訴訟記録と CNCF 卒業の両面で裏付けられる。AT&amp;amp;T +1,050% / Tesco +237% / Camunda 8.6 有償化が主な採用検討材料。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFCC;strokeColor=#999999;fontSize=12;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="30" y="546" width="1000" height="40" as="geometry" />
         </mxCell>
         <mxCell id="src" value="出典: The Register / Computer Weekly / Broadcom KB / Camunda Forum / CNCF 発表 / Redis Blog" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
