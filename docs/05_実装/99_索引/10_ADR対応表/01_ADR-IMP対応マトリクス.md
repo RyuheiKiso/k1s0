@@ -1,6 +1,6 @@
 # 99. 索引 / 10. ADR 対応表 / 01. ADR-IMP 対応マトリクス
 
-本ファイルは `02_構想設計/adr/` 配下の全 ADR（Phase 0 時点で 36 件 = 既存 29 + 新規起票予定 7）と、本実装フェーズで採番された IMP-\* ID の対応を「ADR から IMP を逆引き」する方向で表現する。ADR 改訂時に「どの実装 ID が影響を受けるか」を 1 ファイルで確定できる状態を IMP-TRACE-POL-005（双方向リンク必須）の系として保証する。
+本ファイルは `02_構想設計/adr/` 配下の全 ADR（リリース時点で 36 件 = 既存 29 + 新規起票予定 7）と、本実装段階で採番された IMP-\* ID の対応を「ADR から IMP を逆引き」する方向で表現する。ADR 改訂時に「どの実装 ID が影響を受けるか」を 1 ファイルで確定できる状態を IMP-TRACE-POL-005（双方向リンク必須）の系として保証する。
 
 ## マトリクスの読み方
 
@@ -8,13 +8,13 @@ ADR ごとに 1 セクションを配し、冒頭の散文で「ADR が決めた
 
 IMP 側からの逆引き（IMP → ADR）は各章の核心節ファイル内「対応 ADR / DS-SW-COMP / NFR」セクションで双方向に記載されているため、本ファイルは ADR 側からの引きのみを扱う。網羅性は CI の孤立リンク検出（IMP-TRACE-POL-005 で定義）で検証される前提。
 
-## Phase 0 新規起票予定の 7 ADR
+## リリース時点 新規起票予定の 7 ADR
 
-本実装フェーズでの各章 README が「本章初版策定時に起票予定」と明示した 7 本。Phase 0 の実装ドキュメント確定と同タイミングで adr 起票される。
+本実装段階での各章 README が「本章初版策定時に起票予定」と明示した 7 本。リリース時点 の実装ドキュメント確定と同タイミングで adr 起票される。
 
 ### ADR-SUP-001（SLSA L2 先行 → L3 到達）
 
-Phase 0 で SLSA L2（ビルド履歴の真正性と改ざん困難性）を満たし、Phase 1b で L3（ハーメティックビルド）を目指す段階到達戦略。L3 先行案との差分を記録する。
+リリース時点で SLSA L2（ビルド履歴の真正性と改ざん困難性）を満たし / L3（ハーメティックビルド）を目指す段階到達戦略。L3 先行案との差分を記録する。
 
 - 直接: `IMP-SUP-POL-001`（段階到達原則） / `IMP-SUP-POL-003`（SBOM 全添付） / `IMP-SUP-POL-006`（Kyverno 検証）
 - 間接: `IMP-SUP-COS-010〜018`（cosign 9 ID、L2 達成の実装面） / `IMP-SUP-FOR-040〜048`（Forensics Runbook、L3 到達時の監査再構成面）
@@ -61,7 +61,7 @@ Kyverno ポリシーを Platform + Security の二重承認で運用する構造
 - 直接: `IMP-OBS-POL-004`（Taxonomy 統合） / `IMP-OBS-INC-060〜071`（Incident Taxonomy 12 ID）全て
 - 間接: `IMP-SUP-FOR-040〜048`（Forensics Runbook は SEC 側の具体 Runbook） / `IMP-SEC-REV-050〜059`（退職 revoke は SEC × HIGH の Runbook）
 
-## 既存 ADR（Phase 0 以前に確定済）
+## 既存 ADR（リリース時点 以前に確定済）
 
 ### ADR-0001（Istio Ambient vs Sidecar）
 
@@ -121,7 +121,7 @@ Admission Controller として Kyverno を採用する ADR。
 
 ### ADR-DIR-001〜003（contracts 昇格 / infra 分離 / sparse-checkout）
 
-Phase 0 確定の 3 本の ディレクトリ設計 ADR。
+リリース時点 確定の 3 本の ディレクトリ設計 ADR。
 
 - 直接: `IMP-DIR-*`（並列索引で管理、本章では再掲せず）
 - 間接（本章採番 ID との関係）:
@@ -141,7 +141,7 @@ Feature flag エンジンとして flagd + OpenFeature を採用する ADR。
 既存 .NET Framework 資産の段階的移行 ADR 2 本。
 
 - 直接: 本章で採番する IMP なし（IMP-DIR-T3-060 で受ける）
-- 間接: `IMP-DEV-GP-025`（Phase 1a の 8 例への拡大で legacy-wrap 参照が入る）
+- 間接: `IMP-DEV-GP-025`（リリース時点 の 8 例への拡大で legacy-wrap 参照が入る）
 
 ### ADR-OBS-001（Grafana LGTM）
 
@@ -162,11 +162,11 @@ Collector を Agent（DaemonSet）+ Gateway（Deployment）の 2 層で運用す
 ルールエンジンとして GoRules ZEN Engine を採用する ADR。
 
 - 直接: 本章で採番する IMP なし（tier1 Rust `crates/policy/` に閉じる）
-- 間接: `IMP-DEV-GP-025`（Phase 1a の 8 例への拡大で decision-example 拡張）
+- 間接: `IMP-DEV-GP-025`（リリース時点 の 8 例への拡大で decision-example 拡張）
 
 ### ADR-RULE-002（Temporal）
 
-ワークフローエンジンとして Temporal を採用する ADR（Phase 1b 以降）。
+ワークフローエンジンとして Temporal を採用する ADR（運用蓄積後）。
 
 - 直接: 本章で採番する IMP なし
 - 間接: `IMP-DEV-GP-025`（saga-example は Temporal 上に構築）
@@ -222,9 +222,9 @@ tier2 / tier3 から tier1 の内部言語判別を不可視化する ADR。
 
 ## ADR 対応カバレッジ
 
-Phase 0 時点で `02_構想設計/adr/` 直下に実在する ADR（Glob `ADR-*.md` で 29 件）+ 新規起票予定 7 件（SUP-001 / DEV-001 / REL-001 / DEP-001 / DX-001 / POL-001 / OBS-003）の計 36 件のうち、本章で採番された IMP-\* と直接/間接のいずれかで結びつくのは 30 件。未結合の 6 件（ADR-0002 図解規約 / ADR-MIG-001/002 は IMP-DIR 側のみ / ADR-RULE-001/002 は Phase 1a 以降 / ADR-STOR-001 LoadBalancer は間接扱いのみ）は 05_実装/ 側で新規採番する IMP が発生する見込みが薄いもの、または他章（00 章・Phase 1a 以降）で受けるものとして分類する。
+リリース時点で `02_構想設計/adr/` 直下に実在する ADR（Glob `ADR-*.md` で 29 件）+ 新規起票予定 7 件（SUP-001 / DEV-001 / REL-001 / DEP-001 / DX-001 / POL-001 / OBS-003）の計 36 件のうち、本章で採番された IMP-\* と直接/間接のいずれかで結びつくのは 30 件。未結合の 6 件（ADR-0002 図解規約 / ADR-MIG-001/002 は IMP-DIR 側のみ / ADR-RULE-001/002 は リリース時点 以降 / ADR-STOR-001 LoadBalancer は間接扱いのみ）は 05_実装/ 側で新規採番する IMP が発生する見込みが薄いもの、または他章（00 章・リリース時点 以降）で受けるものとして分類する。
 
-カバレッジ率は 30/36 = 83%。Phase 1a で ADR-RULE-001（ZEN Engine）と ADR-MIG-001/002 の実装面採番で 100% に達する見通し。
+カバレッジ率は 30/36 = 83%。リリース時点 で ADR-RULE-001（ZEN Engine）と ADR-MIG-001/002 の実装面採番で 100% に達する見通し。
 
 ## 関連ファイル
 

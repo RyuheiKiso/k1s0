@@ -94,7 +94,7 @@
         <mxCell id="pf-reuse" value=".github/workflows/_reusable-*.yml&#10;quality gate は全 tier 共通で固定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="810" y="340" width="320" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="pf-cache" value="actions/cache + sccache + go mod cache + pnpm store&#10;Phase 1a でリモート化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="pf-cache" value="actions/cache + sccache + go mod cache + pnpm store&#10;リリース時点 でリモート化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1200" y="340" width="400" height="60" as="geometry" />
         </mxCell>
 

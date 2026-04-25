@@ -1,21 +1,21 @@
 # 01. Keycloak realm 設計
 
-本ファイルは k1s0 モノレポにおける Keycloak の realm 階層、client 定義、group claim と tenant_id 連動、MFA ポリシーを実装フェーズ確定版として示す。85 章方針 IMP-SEC-POL-001（Keycloak 単一 IdP 集約）および IMP-SEC-POL-003（group claim と tenant 連動）を物理配置レベルに落とし込み、ADR-SEC-001 で選定した Keycloak の運用形態を `infra/security/keycloak/` 配下に確定させる。人間 ID は Keycloak に一元化し、ワークロード ID（SPIRE / SPIFFE）は 20 節に、シークレット（OpenBao）は 30 節に、証明書（cert-manager）は 40 節に分離する。
+本ファイルは k1s0 モノレポにおける Keycloak の realm 階層、client 定義、group claim と tenant_id 連動、MFA ポリシーを実装段階確定版として示す。85 章方針 IMP-SEC-POL-001（Keycloak 単一 IdP 集約）および IMP-SEC-POL-003（group claim と tenant 連動）を物理配置レベルに落とし込み、ADR-SEC-001 で選定した Keycloak の運用形態を `infra/security/keycloak/` 配下に確定させる。人間 ID は Keycloak に一元化し、ワークロード ID（SPIRE / SPIFFE）は 20 節に、シークレット（OpenBao）は 30 節に、証明書（cert-manager）は 40 節に分離する。
 
 ![Keycloak 4 realm 階層と client/group/claim OIDC flow](img/10_Keycloak_realm階層.svg)
 
-Keycloak を採用する動機は「退職・委託終了時の 1 アカウント無効化で全経路を revoke できる構造」を JTC 運用の前提とする点にある。各システムが独自の認証を持てば、退職時の revoke 漏れが事故の種になる。本節は realm 分割の粒度、client の種別、group claim に載せる情報、MFA の強制範囲を固定し、後続 50 節の退職時 revoke 手順と連動する単一の真実の出所（Single Source of Truth）を構築する。
+Keycloak を採用する動機は「退職・委託終了時の 1 アカウント無効化で全経路を revoke できる構造」を 採用側組織の運用の前提とする点にある。各システムが独自の認証を持てば、退職時の revoke 漏れが事故の種になる。本節は realm 分割の粒度、client の種別、group claim に載せる情報、MFA の強制範囲を固定し、後続 50 節の退職時 revoke 手順と連動する単一の真実の出所（Single Source of Truth）を構築する。
 
 ## 4 realm 構造と分離理由
 
-k1s0 は 4 realm で構成する（IMP-SEC-KC-010）。1 realm に全 user を入れる簡素化案もあったが、JTC の契約関係（従業員 / 委託先 / 顧客テナント）を 1 realm に混ぜると user 属性と password policy が共通化されてしまい、顧客テナント用の弱いポリシーが従業員にも適用される構造リスクが生じる。realm 分割で policy を独立させる。
+k1s0 は 4 realm で構成する（IMP-SEC-KC-010）。1 realm に全 user を入れる簡素化案もあったが、採用側組織の契約関係（従業員 / 委託先 / 顧客テナント）（従業員 / 委託先 / 顧客テナント）を 1 realm に混ぜると user 属性と password policy が共通化されてしまい、顧客テナント用の弱いポリシーが従業員にも適用される構造リスクが生じる。realm 分割で policy を独立させる。
 
 - **`master` realm**: Keycloak 管理者専用。一般 user はゼロ。Keycloak 自体の admin UI アクセスと、他 realm 管理者の user 発行にのみ使用
 - **`k1s0-internal`**: 従業員（社員）向け。MFA 強制、password policy 最厳格、group claim に `k1s0-dev` / `k1s0-ops` / `k1s0-sec` / `k1s0-rd` の 4 種
 - **`k1s0-partners`**: 委託先（業務委託 / パートナー企業の担当者）向け。契約期間で自動失効（expiration attribute）、MFA 強制、group claim は限定（`k1s0-partner-dev` のみ）
-- **`k1s0-tenants`**: 顧客テナント向け（親 realm）。各 JTC 顧客が sub-realm として Identity Provider Brokering で連携。realm 自体に user は持たず、顧客 IdP（AD FS / Okta / Azure AD）から JWT を受け取るゲートウェイ realm として動作
+- **`k1s0-tenants`**: 顧客テナント向け（親 realm）。各 採用側組織の顧客が sub-realm として Identity Provider Brokering で連携。realm 自体に user は持たず、顧客 IdP（AD FS / Okta / Azure AD）から JWT を受け取るゲートウェイ realm として動作
 
-`k1s0-tenants` の設計は「顧客の ID 基盤を直接参照せず、必ず k1s0-tenants を経由させる」運用規律を強制する。顧客の IdP が停止しても k1s0-tenants のブローカー機能が最後の砦となる。新規 JTC 顧客オンボーディング時は k1s0-tenants に IdP エントリを追加するだけで、他 realm の設定は一切変更しない（IMP-SEC-KC-011）。
+`k1s0-tenants` の設計は「顧客の ID 基盤を直接参照せず、必ず k1s0-tenants を経由させる」運用規律を強制する。顧客の IdP が停止しても k1s0-tenants のブローカー機能が最後の砦となる。新規 採用側組織の顧客オンボーディング時は k1s0-tenants に IdP エントリを追加するだけで、他 realm の設定は一切変更しない（IMP-SEC-KC-011）。
 
 ## client 4 種類と認証フロー
 
@@ -54,8 +54,8 @@ group 定義と user attribute の編集は Keycloak admin UI で手作業せず
 MFA は realm / 役割別に強制レベルを変える（IMP-SEC-KC-015）。一律最強のポリシーは utility を下げて迂回行動を誘発するため、役割ベースで段階化する。
 
 - **Sec 管理者（`k1s0-sec` group）**: TOTP + WebAuthn の 2 要素同時必須。password 失効 90 日、履歴 24 世代、辞書攻撃検出
-- **Ops 管理者（`k1s0-ops` group）**: TOTP 必須、WebAuthn は Phase 1a 以降で推奨 → Phase 1b で必須
-- **一般開発者（`k1s0-dev` / `k1s0-rd`）**: TOTP 推奨（未設定でもログイン可だが、初回ログイン時に UI で強制誘導）。Phase 1a から必須化
+- **Ops 管理者（`k1s0-ops` group）**: TOTP 必須、WebAuthn は リリース時点 以降で推奨 → リリース時点 で必須
+- **一般開発者（`k1s0-dev` / `k1s0-rd`）**: TOTP 推奨（未設定でもログイン可だが、初回ログイン時に UI で強制誘導）。リリース時点 から必須化
 - **委託先（`k1s0-partners`）**: TOTP 必須、WebAuthn は顧客 PC の FIDO2 デバイス配布状況に応じて段階導入
 
 password policy は NIST SP 800-63B Rev.4 に準拠（IMP-SEC-KC-016）。最小 14 文字、最大 128 文字、特殊文字強制は廃止、既知 breach password リスト（HIBP）との照合を必須化する。password 履歴は 24 世代、固定ローテーション期間は撤廃し、breach 検知時のみ強制更新する方針を採用する。
@@ -66,13 +66,13 @@ password policy は NIST SP 800-63B Rev.4 に準拠（IMP-SEC-KC-016）。最小
 
 顧客 IdP との SAML 連携は realm 単位で個別設定し、`infra/security/keycloak/tenants/<customer-id>.json` に宣言的に保存する。顧客追加時の operation は PR 1 本に収まり、反映は Keycloak Operator の reconciliation で自動化される。
 
-## HA 構成と Phase 段階
+## HA 構成と 段階
 
 Keycloak は `k1s0-identity` namespace に HA 3 replica で展開する（IMP-SEC-KC-018）。Infinispan 分散キャッシュを有効化し、session / login token / realm cache を replica 間で共有する。DB は CloudNativePG（ADR-DATA-001）の `keycloak-db` cluster を使用し、read-replica を別ゾーンに配置する。
 
-- **Phase 0**: 3 replica / CloudNativePG 3 node / TLS は Istio Ambient mTLS（ADR-0001）で自動終端
-- **Phase 1a**: multi-region read-replica（東京 / 大阪）、realm 単位の分散書込を検証
-- **Phase 1b**: active-active で RPO/RTO を更新、JTC 顧客のオンプレ k8s に Keycloak federation を展開
+- **リリース時点**: 3 replica / CloudNativePG 3 node / TLS は Istio Ambient mTLS（ADR-0001）で自動終端
+- **リリース時点**: multi-region read-replica（東京 / 大阪）、realm 単位の分散書込を検証
+- **リリース時点**: active-active で RPO/RTO を更新、採用側組織のオンプレ k8s に Keycloak federation を展開
 
 Keycloak のバージョン追従は Renovate（40 章連動）で検知し、quarterly release cycle を Platform/Build（A）と Security（D）の共同承認で更新する。major version 跨ぎは staging で 1 週間以上の soak test を経てから prod に到達させる規律を固定する。
 
@@ -123,14 +123,14 @@ Keycloak 内部 DB には 90 日分のみ保持し、それ以降は定期削除
 ## 対応 IMP-SEC-KC ID
 
 - IMP-SEC-KC-010: 4 realm（master / internal / partners / tenants）構造固定
-- IMP-SEC-KC-011: `k1s0-tenants` を親 realm とした JTC 顧客 IdP Brokering
+- IMP-SEC-KC-011: `k1s0-tenants` を親 realm とした 採用側組織の顧客 IdP Brokering
 - IMP-SEC-KC-012: client 4 種類（Web / Native / BFF / tier1 API）の粒度と認証フロー
 - IMP-SEC-KC-013: realm / client 定義は JSON commit + Operator apply（UI 編集禁止）
 - IMP-SEC-KC-014: JWT に groups と tenant_id を一次埋込、tier1 で必須検証
 - IMP-SEC-KC-015: 役割別 MFA 段階化（Sec 強制 / 開発者推奨→必須）
 - IMP-SEC-KC-016: NIST SP 800-63B 準拠、HIBP 照合、固定ローテーション撤廃
 - IMP-SEC-KC-017: SAML は顧客 SSO 連携限定、内部は OIDC 統一
-- IMP-SEC-KC-018: HA 3 replica + CloudNativePG、Phase 段階で multi-region 拡張
+- IMP-SEC-KC-018: HA 3 replica + CloudNativePG、段階で multi-region 拡張
 - IMP-SEC-KC-019: user disable の原子性と Kafka 経由 chain revoke 起動
 - IMP-SEC-KC-020: tier1 bearer-only での JWT 検証 5 項目必須化
 - IMP-SEC-KC-021: Kafka 経由の Keycloak event 外出しと Parquet 長期保持

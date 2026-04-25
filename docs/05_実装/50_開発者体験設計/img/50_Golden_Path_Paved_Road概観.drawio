@@ -94,7 +94,7 @@
           <mxGeometry x="850" y="610" width="320" height="100" as="geometry" />
         </mxCell>
 
-        <mxCell id="catalog" value="Backstage Catalog (Phase 1a)&#10;catalog-info.yaml 自動登録&#10;所有者・オンコール・docs 一元参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="catalog" value="Backstage Catalog (リリース時点)&#10;catalog-info.yaml 自動登録&#10;所有者・オンコール・docs 一元参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="850" y="730" width="320" height="130" as="geometry" />
         </mxCell>
 

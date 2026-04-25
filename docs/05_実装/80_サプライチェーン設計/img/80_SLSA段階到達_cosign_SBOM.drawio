@@ -11,13 +11,13 @@
           <mxGeometry x="100" y="20" width="1200" height="30" as="geometry" />
         </mxCell>
 
-        <!-- Phase 0 L2 band -->
-        <mxCell id="phase0" value="Phase 0 (SLSA L2 到達)&#10;ビルド履歴の真正性 + 改ざん困難性" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2D7DD2;fontSize=11;fontStyle=1;verticalAlign=top;dashed=1;" vertex="1" parent="1">
+        <!-- リリース時点 L2 band -->
+        <mxCell id="stage0" value="リリース時点 (SLSA L2 到達)&#10;ビルド履歴の真正性 + 改ざん困難性" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2D7DD2;fontSize=11;fontStyle=1;verticalAlign=top;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="60" y="70" width="820" height="560" as="geometry" />
         </mxCell>
 
-        <!-- Phase 1b L3 band (to the right) -->
-        <mxCell id="phase1b" value="Phase 1b (SLSA L3 到達)&#10;ハーメティックビルド" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2D7DD2;fontSize=11;fontStyle=1;verticalAlign=top;dashed=1;" vertex="1" parent="1">
+        <!-- リリース時点 L3 band (to the right) -->
+        <mxCell id="stage1b" value="リリース時点 (SLSA L3 到達)&#10;ハーメティックビルド" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2D7DD2;fontSize=11;fontStyle=1;verticalAlign=top;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="900" y="70" width="440" height="560" as="geometry" />
         </mxCell>
 
@@ -98,7 +98,7 @@
           <mxGeometry x="570" y="615" width="180" height="35" as="geometry" />
         </mxCell>
 
-        <!-- Phase 1b L3 additions -->
+        <!-- リリース時点 L3 additions -->
         <mxCell id="l3_hermetic" value="ハーメティックビルド&#10;(ネットワーク隔離 builder)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe599;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="930" y="120" width="200" height="50" as="geometry" />
         </mxCell>
@@ -205,11 +205,11 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- phase0 -> phase1b migration arrow -->
-        <mxCell id="a_migrate" style="endArrow=classic;html=1;strokeColor=#2D7DD2;strokeWidth=3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="phase0" target="phase1b">
+        <!-- stage0 -> stage1b migration arrow -->
+        <mxCell id="a_migrate" style="endArrow=classic;html=1;strokeColor=#2D7DD2;strokeWidth=3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="stage0" target="stage1b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="a_migratelbl" value="Phase 1b 昇格 (ADR-SUP-001)" style="text;html=1;align=center;fontSize=11;fillColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="a_migratelbl" value="リリース時点 昇格 (ADR-SUP-001)" style="text;html=1;align=center;fontSize=11;fillColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="770" y="335" width="170" height="20" as="geometry" />
         </mxCell>
 
@@ -229,13 +229,13 @@
         <mxCell id="leg_data" value="データ層 (OCI artifact registry / ADR = 薄紫)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="760" width="380" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="leg_phase" value="破線枠=Phase 帯 (L2 / L3 区分)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="leg_stage" value="破線枠=段階帯 (L2 / L3 区分)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="480" y="760" width="420" height="30" as="geometry" />
         </mxCell>
         <mxCell id="leg_lines" value="実線太=明示呼出 / 点線細=透過捕捉 (verify) / 破線=非同期" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="910" y="760" width="420" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="leg_narrative" value="Phase 0 (L2): cosign keyless 署名 + CycloneDX SBOM + Provenance v1 + Forensics Runbook スケルトン。Phase 1b (L3): ハーメティックビルド + Policy Controller + SBOM 差分監視 + CVSS 連動 SLI を段階追加する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="leg_narrative" value="リリース時点 (L2): cosign keyless 署名 + CycloneDX SBOM + Provenance v1 + Forensics Runbook スケルトン。リリース時点 (L3): ハーメティックビルド + Policy Controller + SBOM 差分監視 + CVSS 連動 SLI を段階追加する。" style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="80" y="800" width="1250" height="60" as="geometry" />
         </mxCell>
       </root>

@@ -16,7 +16,7 @@
         <mxCell id="laneApp" value="アプリ層&#10;&#10;アプリが明示的に&#10;呼び出す抽象&#10;&#10;暖色" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d79b00;strokeWidth=2;fontSize=14;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="50" y="130" width="220" height="340" as="geometry" />
         </mxCell>
-        <mxCell id="app_tier3" value="tier3 業務アプリ&#10;&#10;JTC 業務ロジック" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="app_tier3" value="tier3 業務アプリ&#10;&#10;採用側組織の業務ロジック" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="290" y="140" width="200" height="90" as="geometry" />
         </mxCell>
         <mxCell id="app_tier2" value="tier2 ドメインサービス&#10;&#10;業種共通ドメイン" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="1">

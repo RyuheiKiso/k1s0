@@ -7,7 +7,7 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1600" height="1200" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="k1s0 Runbook 目録 15 本の階層構造と関連 SLI/SLO（Phase 1b 完了時点）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="k1s0 Runbook 目録 15 本の階層構造と関連 SLI/SLO（リリース時点）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
         </mxCell>
         <mxCell id="root_node" value="Runbook 目録 15 本（NFR-A-REC-002）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
@@ -105,7 +105,7 @@
         <mxCell id="rb_ops_002" value="RB-OPS-002&#10;Argo CD Out-of-Sync 長期化&#10;SEV3 / 30 分 / 2 h&#10;所有: 協力者" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;" vertex="1" parent="1">
           <mxGeometry x="820" y="380" width="220" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="rb_dr_001" value="RB-DR-001&#10;Disaster Recovery 発動&#10;SEV1 / RTO 4 h&#10;所有: 起案者（Phase 2 で DR 専任）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="rb_dr_001" value="RB-DR-001&#10;Disaster Recovery 発動&#10;SEV1 / RTO 4 h&#10;所有: 起案者（採用後の運用拡大時 で DR 専任）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=6;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1080" y="290" width="220" height="90" as="geometry" />
         </mxCell>
         <mxCell id="api_r" style="html=1;strokeWidth=1.5;strokeColor=#d79b00;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="cat_api" target="rb_api_001">
@@ -287,28 +287,28 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="phase_title" value="Phase 別整備計画（NFR-A-REC-002 コミット 15 本 @ Phase 1b）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="stage_title" value="段階別整備計画（NFR-A-REC-002 コミット 15 本 @ リリース時点）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="960" width="600" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="phase_1a" value="Phase 1a&#10;5 本（FMEA 上位事象）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="stage_1a" value="採用初期 (デモ)&#10;5 本（FMEA 上位事象）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="995" width="220" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="phase_1b" value="Phase 1b&#10;15 本（本章目録）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="stage_1b" value="採用初期 (パイロット)&#10;15 本（本章目録）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="300" y="995" width="220" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="phase_1c" value="Phase 1c&#10;20 本（運用経験反映）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="stage_1c" value="採用初期 (運用体制確立)&#10;20 本（運用経験反映）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="560" y="995" width="220" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="phase_2" value="Phase 2&#10;30 本（DR/Temporal 拡張）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="stage_2" value="採用後の運用拡大時&#10;30 本（DR/Temporal 拡張）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="820" y="995" width="220" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="p_1a_1b" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="phase_1a" target="phase_1b">
+        <mxCell id="p_1a_1b" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="stage_1a" target="stage_1b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="p_1b_1c" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="phase_1b" target="phase_1c">
+        <mxCell id="p_1b_1c" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="stage_1b" target="stage_1c">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="p_1c_2" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="phase_1c" target="phase_2">
+        <mxCell id="p_1c_2" style="html=1;strokeWidth=2;strokeColor=#d79b00;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;" edge="1" parent="1" source="stage_1c" target="stage_2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">

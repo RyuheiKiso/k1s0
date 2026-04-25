@@ -13,12 +13,12 @@ tier1 の State API（Relational Store）、Temporal のワークフロー永続
 制約条件は以下の通り。
 
 - オンプレミス完結（NFR-F-SYS-001）でクラウドマネージド（RDS、Cloud SQL）は選択肢外
-- 2 名運用チームで回せる運用密度（NFR-C-NOP-001）
+- 採用側の小規模運用チームで回せる運用密度（NFR-C-NOP-001）
 - RPO 秒オーダー、RTO 4 時間（NFR-A-CONT-001）
 - バックアップとレプリケーションは自動化必須（NFR-C-NOP-002）
 - Kubernetes 上で他コンポーネントと統合的に運用したい（GitOps、Argo CD ベース）
 
-手動運用の PostgreSQL（VM 上に pacemaker 等で HA）は運用工数が過大。Postgres Operator 系の OSS を比較した結果、CloudNativePG が最も JTC 要件に適合する。
+手動運用の PostgreSQL（VM 上に pacemaker 等で HA）は運用工数が過大。Postgres Operator 系の OSS を比較した結果、CloudNativePG が最も 採用側組織の要件に適合する。
 
 ## 決定
 
@@ -60,7 +60,7 @@ tier1 の State API（Relational Store）、Temporal のワークフロー永続
 - メリット: 商用サポート充実、MLH-grade 金融・医療案件の実績
 - デメリット:
   - 商用ライセンス（PGO for Kubernetes）が一部必要
-  - JTC のコスト削減目標（BC-COST-003）と逆行
+  - 採用側組織のコスト削減目標（BC-COST-003）と逆行
 
 ### 選択肢 D: VM 上の素の PostgreSQL + pacemaker/corosync
 
@@ -68,7 +68,7 @@ tier1 の State API（Relational Store）、Temporal のワークフロー永続
 - メリット: 運用ノウハウが豊富、障害事例が公開されている
 - デメリット:
   - Kubernetes 上の他コンポーネントとの統合（GitOps、サービスメッシュ、観測性）ができない
-  - 運用工数が 2 名で破綻
+  - 運用負荷が小規模運用で破綻
 
 ## 帰結
 

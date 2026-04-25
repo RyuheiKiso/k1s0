@@ -85,7 +85,7 @@
         <mxCell id="t1pii" value="tier1 t1-pii Pod&#10;(業務 PII 構造化マスキング)&#10;DS-SW-COMP-085/129" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="720" width="300" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="auxProm" value="補助 Prometheus (Phase 0/1a)&#10;infra/observability/prometheus-backup/&#10;15 分間隔で Gateway/Agent `up` scrape → 全滅時 Alertmanager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="auxProm" value="補助 Prometheus (採用初期)&#10;infra/observability/prometheus-backup/&#10;15 分間隔で Gateway/Agent `up` scrape → 全滅時 Alertmanager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="460" y="720" width="520" height="70" as="geometry" />
         </mxCell>
         <mxCell id="canaryNote" value="Pipeline カナリア: otel-gateway-canary 1 replica を重み 25% で追加 (IMP-OBS-OTEL-018)&#10;error rate 1%+ / export drop 10%+ で Argo Rollouts 自動 rollback" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">

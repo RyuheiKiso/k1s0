@@ -95,7 +95,7 @@
           <mxGeometry x="890" y="465" width="210" height="110" as="geometry" />
         </mxCell>
 
-        <mxCell id="hold_exc" value="Hold 降格時の既存採用例外 (IMP-POL-TR-035)&#xa;即撤退ではなく ADR 例外承認で継続可能&#xa;最長 2 Phase (12 か月) 以内に移行完了&#xa;新規プロジェクトでの再採用は CODEOWNERS で拒否&#xa;期限超過件数は DX メトリクス (95 章)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="hold_exc" value="Hold 降格時の既存採用例外 (IMP-POL-TR-035)&#xa;即撤退ではなく ADR 例外承認で継続可能&#xa;最長 12 か月 (12 か月) 以内に移行完了&#xa;新規プロジェクトでの再採用は CODEOWNERS で拒否&#xa;期限超過件数は DX メトリクス (95 章)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1140" y="95" width="520" height="180" as="geometry" />
         </mxCell>
 
@@ -161,7 +161,7 @@
         <mxCell id="lg_inf" value="インフラ層 (物理配置・ヘッダ): 中性灰 #f5f5f5 / #666666" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="60" y="945" width="1580" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="lg_note1" value="区分の判定基準: Adopt=複数 Phase 本番稼働 + ADR Accepted / Trial=1 Phase 以上 staging / Assess=PoC 段階、新規採用は architecture-team レビュー必須 / Hold=新規禁止、既存は例外 ADR 継続" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="lg_note1" value="区分の判定基準: Adopt=複数段階で本番稼働 + ADR Accepted / Trial=1 段階以上 staging / Assess=PoC 段階、新規採用は architecture-team レビュー必須 / Hold=新規禁止、既存は例外 ADR 継続" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="60" y="975" width="1580" height="30" as="geometry" />
         </mxCell>
         <mxCell id="lg_note2" value="IMP-POL-TR-030〜037 / ADR との双方向リンク (IMP-POL-ADR-027) / 半期更新は 7 名合議で評価者の偏りを減らす" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">

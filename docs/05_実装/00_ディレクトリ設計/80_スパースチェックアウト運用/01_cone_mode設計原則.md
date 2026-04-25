@@ -31,7 +31,7 @@ Microsoft は .NET runtime monorepo（dotnet/runtime）を VFS / Scalar + sparse
 - 参考: GitHub Engineering「Git's database internals IV: distributed synchronisation」
 - 参考: Git 公式ドキュメント `git-sparse-checkout(1)`
 
-k1s0 のモノレポは Phase 1c で 50 万行超を予測、Microsoft Scalar 方式を先取り採用する。
+k1s0 のモノレポは リリース時点 で 50 万行超を予測、Microsoft Scalar 方式を先取り採用する。
 
 ## k1s0 における cone 設計原則
 
@@ -125,7 +125,7 @@ git sparse-checkout set --stdin < .sparse-checkout/roles/tier1-rust-dev.txt
 
 - cone 定義変更は `@k1s0/arch-council` の承認必須
 - 役割未対応のディレクトリ追加は、既存 role の cone 更新を PR で同時に提案する必要がある
-- Phase 1c で cone mode の必須化可否を再評価（full cone 使用率が 20% 以下になったら必須化を検討）
+- リリース時点 で cone mode の必須化可否を再評価（full cone 使用率が 20% 以下になったら必須化を検討）
 
 ## 対応 IMP-DIR ID
 

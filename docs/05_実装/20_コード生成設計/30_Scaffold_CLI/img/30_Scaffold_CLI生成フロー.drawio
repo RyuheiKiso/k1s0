@@ -49,7 +49,7 @@
         <mxCell id="step8" value="Step 8: Backstage catalog provider&#10;catalog-info.yaml 検出 → 登録&#10;TechDocs レンダリング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="380" y="510" width="280" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="backstage" value="Backstage カタログ&#10;(単一発見窓口)&#10;Phase 1b で UI 統合&#10;(Custom action ラップ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="backstage" value="Backstage カタログ&#10;(単一発見窓口)&#10;リリース時点 で UI 統合&#10;(Custom action ラップ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="700" y="510" width="280" height="90" as="geometry" />
         </mxCell>
         <mxCell id="golden_fixtures" value="tests/golden/fixtures/scaffold/&#10;tier2-go-service.input.yaml&#10;tier3-web-app.input.yaml&#10;... (固定入力)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;verticalAlign=top;" vertex="1" parent="1">

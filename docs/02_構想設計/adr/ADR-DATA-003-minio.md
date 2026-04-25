@@ -53,7 +53,7 @@ AGPL 回避のため、MinIO のコードを直接組込んだり、MinIO のフ
 - メリット: Ceph の巨大エコシステム、Block/File/Object すべて統合可能
 - デメリット:
   - 運用の複雑度が高い（mon/mgr/osd/rgw のコンポーネント多数）
-  - 2 名チームでの運用工数が過大
+  - 採用側の小規模運用での運用負荷が過大
   - S3 API 互換性は MinIO に劣る部分あり
 
 ### 選択肢 C: SeaweedFS

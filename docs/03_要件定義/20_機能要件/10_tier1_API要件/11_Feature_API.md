@@ -6,7 +6,7 @@
 
 新機能の段階的公開、障害時の即時フォールバック、機能単位の ON/OFF 制御を可能にする。従来の「全社一斉リリース → 障害で全員影響」を「10% ユーザで検証 → 問題なければ 50% → 100%」に置き換える。
 
-内部実装は flagd の gRPC / HTTP エンドポイントを tier1 ファサードでラップする。flag 定義は Git 管理 + Argo CD デプロイ、または Backstage プラグインで情シス管理者が直接更新（Phase 2+）。
+内部実装は flagd の gRPC / HTTP エンドポイントを tier1 ファサードでラップする。flag 定義は Git 管理 + Argo CD デプロイ、または Backstage プラグインで情シス管理者が直接更新（採用後の運用拡大時）。
 
 ## 機能要件
 
@@ -55,7 +55,7 @@
 - Prometheus クエリを条件に指定可能
 - 閾値超過から false 化まで 30 秒以内
 - 自動切戻時の Audit 記録
-- 優先度 SHOULD、Phase 1c で実装判定
+- 優先度 SHOULD、リリース時点 で実装判定
 
 ### FR-T1-FEATURE-004: A/B テスト基盤
 
@@ -69,7 +69,7 @@
 - variant 数は最大 10
 - variant 配分の合計は 100%
 - variant 名を Telemetry の attribute に自動付与
-- 優先度 COULD、Phase 2+
+- 優先度 COULD、採用後の運用拡大時
 
 ## 入出力仕様
 
@@ -99,12 +99,12 @@ EvaluationContext = {
 - flag 定義の変更は Audit API に記録
 - Backstage での一覧・編集 UI
 
-## Phase 対応
+## 段階対応
 
-- **Phase 1a**: 未提供
-- **Phase 1b**: FR-T1-FEATURE-001、002（評価、段階ロールアウト、Go / C# SDK）
-- **Phase 1c**: FR-T1-FEATURE-003（circuit breaker）
-- **Phase 2+**: FR-T1-FEATURE-004（A/B テスト）、Backstage エディタ
+- **リリース時点**: 未提供
+- **リリース時点**: FR-T1-FEATURE-001、002（評価、段階ロールアウト、Go / C# SDK）
+- **リリース時点**: FR-T1-FEATURE-003（circuit breaker）
+- **採用後の運用拡大時**: FR-T1-FEATURE-004（A/B テスト）、Backstage エディタ
 
 ## 関連非機能要件
 

@@ -136,7 +136,7 @@ message BatchEvaluateResponse {
   repeated bytes outputs_json = 1;
 }
 
-// JDM ルール文書の登録・バージョン管理 (Phase 1b で proto 追加予定)
+// JDM ルール文書の登録・バージョン管理 (リリース時点 で proto 追加予定)
 service DecisionAdminService {
   // JDM 文書の登録 (schema validator と非決定要素 linter を通過必須)
   rpc RegisterRule(RegisterRuleRequest) returns (RegisterRuleResponse);

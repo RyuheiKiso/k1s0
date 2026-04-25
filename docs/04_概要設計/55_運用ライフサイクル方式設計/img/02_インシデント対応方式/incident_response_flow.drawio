@@ -124,22 +124,22 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="phase_title" value="対応 5 フェーズ（SEV1 時間軸を基準、SEV2 以降は順次長くなる）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="stage_title" value="対応 5 段階（SEV1 時間軸を基準、SEV2 以降は順次長くなる）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="500" width="900" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="p1" value="Phase 1&#10;検知・トリアージ&#10;0 〜 15 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p1" value="段階1&#10;検知・トリアージ&#10;0 〜 15 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="540" width="280" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="p2" value="Phase 2&#10;一次対応・暫定復旧&#10;15 分 〜 4 時間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p2" value="段階2&#10;一次対応・暫定復旧&#10;15 分 〜 4 時間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="340" y="540" width="280" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="p3" value="Phase 3&#10;根本原因特定&#10;4 〜 24 時間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p3" value="段階3&#10;根本原因特定&#10;4 〜 24 時間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="640" y="540" width="280" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="p4" value="Phase 4&#10;恒久対策実装&#10;24 時間 〜 1 週間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p4" value="段階4&#10;恒久対策実装&#10;24 時間 〜 1 週間" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="940" y="540" width="280" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="p5" value="Phase 5&#10;ポストモーテム・学習&#10;1 週間以内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="p5" value="段階5&#10;ポストモーテム・学習&#10;1 週間以内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1240" y="540" width="280" height="80" as="geometry" />
         </mxCell>
         <mxCell id="p1_d" value="・Alertmanager 受領&#10;・インシデント ID 発番&#10;・#k1s0-incident-active 宣言&#10;・SEV1 時は役員 30 分以内通知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=8;" vertex="1" parent="1">
@@ -234,7 +234,7 @@
         <mxCell id="lg_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
           <mxGeometry x="1200" y="972" width="24" height="16" as="geometry" />
         </mxCell>
-        <mxCell id="lg_app_t" value="アプリ層（Tier 主担当 / Phase）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_app_t" value="アプリ層（Tier 主担当 / 段階）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1230" y="970" width="300" height="20" as="geometry" />
         </mxCell>
         <mxCell id="lg_net" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">

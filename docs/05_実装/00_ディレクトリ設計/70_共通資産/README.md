@@ -31,4 +31,4 @@
 - IMP-DIR-COMM-115（devcontainer 配置）— `05_devcontainer配置.md`
 - IMP-DIR-COMM-116（codegen 配置）— `06_codegen配置.md`
 
-予約 IMP-DIR ID は `IMP-DIR-COMM-117` 〜 `IMP-DIR-COMM-125`（Phase 1b 以降で採番）。本章採番範囲は `IMP-DIR-COMM-111` 〜 `IMP-DIR-COMM-125`。
+予約 IMP-DIR ID は `IMP-DIR-COMM-117` 〜 `IMP-DIR-COMM-125`（運用蓄積後で採番）。本章採番範囲は `IMP-DIR-COMM-111` 〜 `IMP-DIR-COMM-125`。

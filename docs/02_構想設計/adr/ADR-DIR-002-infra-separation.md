@@ -10,7 +10,7 @@
 
 概要設計の DS-SW-COMP-120（[../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md](../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md) 参照）は、Kubernetes manifests / Dapr Components / Helm charts を `src/tier1/infra/` に配置する方針を確定している。これは tier1 のインフラ関連資産を tier1 配下にまとめる前提である。
 
-しかし実装フェーズで運用領域を俯瞰すると、以下の構造的な問題が浮上した。
+しかし実装段階で運用領域を俯瞰すると、以下の構造的な問題が浮上した。
 
 - **infra（素構成）と deploy（配信定義）と ops（Runbook / Chaos / DR）は責務が異なる**にもかかわらず、全部を `src/tier1/infra/` に押し込む設計になっている。CNCF のプラットフォームエンジニアリング標準（[CNCF Platform Engineering Maturity Model](https://tag-app-delivery.cncf.io/)）では、クラスタ素構成（Kubernetes マニフェスト・ミドルウェア）と GitOps 配信定義（ArgoCD Application・Kustomize overlays）と運用手順（Runbook・Chaos シナリオ）は別階層で管理することが推奨されている。
 - **infra 層は tier 横断の共通基盤**であり tier1 所有物ではない。Kafka、CloudNativePG、Keycloak、OpenBao は tier1 ・ tier2 ・ tier3 すべてに使われる。tier1 配下に置くと tier2 / tier3 のインフラ所有者が tier1 チームの承認を得なければ変更できない運用になる。
@@ -20,7 +20,7 @@
 - **運用 Runbook / Chaos / DR スクリプト**は手順書・実行可能スクリプトであり、ArgoCD が配信する対象ではない。ここを別ディレクトリに分離することで、GitOps の対象範囲と運用手順の管理範囲を明確に分離できる。
 - **ベアメタル OpenTofu プロビジョニング**は Kubernetes の前段にあり、さらに別の時間軸（Day -1 のハードウェア立ち上げ）で動くため、配信定義とも分離して管理する必要がある。
 
-Phase 0 稟議承認前に配置を確定することで、実装開始後の大規模な移動コスト（CI path-filter / CODEOWNERS / ArgoCD 検索パスの全書き換え）を回避する。
+k1s0 リリース前に配置を確定することで、実装開始後の大規模な移動コスト（CI path-filter / CODEOWNERS / ArgoCD 検索パスの全書き換え）を回避する。
 
 ## 決定
 
@@ -83,9 +83,9 @@ CODEOWNERS は `infra/` を SRE + tier 横断基盤担当、`deploy/` を GitOps
 - 概要: 既存 DS-SW-COMP-120 を変更せず、tier1 配下に infra を置く
 - メリット:
   - 概要設計の改訂が不要
-  - Phase 1a 時点では tier1 のみ実装されるため、tier1 所有物として扱っても破綻しない
+  - リリース時点では tier1 のみ実装されるため、tier1 所有物として扱っても破綻しない
 - デメリット:
-  - Phase 1b 以降で tier2 / tier3 の infra が加わると、tier1 配下に tier2 / tier3 の Kafka 設定等を置く矛盾が生じる
+  - 将来的に tier2 / tier3 の infra が加わると、tier1 配下に tier2 / tier3 の Kafka 設定等を置く矛盾が生じる
   - Kafka / CloudNativePG / Keycloak がクラスタ単位資源であり tier1 所有物ではないという論理が表現できない
   - スパースチェックアウト cone で tier1-rust-dev に infra YAML が混入する
   - ArgoCD 配信定義を同じ階層に混ぜるのか別にするのか曖昧なまま
@@ -121,7 +121,7 @@ CODEOWNERS は `infra/` を SRE + tier 横断基盤担当、`deploy/` を GitOps
 - ArgoCD ApplicationSet の検索パス（`deploy/apps/`）とクラスタ素構成（`infra/`）の参照関係が明示される
 - Argo CD Image Updater の write-back 先（`deploy/apps/` または `deploy/kustomize/overlays/*/`）が明確
 - スパースチェックアウト cone で tier 開発者と infra-ops 担当者のワーキングセットが構造的に分離
-- Phase 2 でマルチクラスタ化した際、`infra/environments/` に `prod-east/` `prod-west/` を追加する形で対応できる
+- 採用側がマルチクラスタ化した際、`infra/environments/` に `prod-east/` `prod-west/` を追加する形で対応できる
 
 ### ネガティブな帰結
 
@@ -133,7 +133,7 @@ CODEOWNERS は `infra/` を SRE + tier 横断基盤担当、`deploy/` を GitOps
 ### 移行・対応事項
 
 - [../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md](../../04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md) の DS-SW-COMP-120 を改訂し、`src/tier1/infra/` を削除、代わりに「infra / deploy / ops はルート直下の別階層で管理（ADR-DIR-002 参照）」と明記
-- 実装フェーズのディレクトリ設計書（`docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/`, `60_operationレイアウト/`）で本 ADR を参照
+- 実装段階のディレクトリ設計書（`docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/`, `60_operationレイアウト/`）で本 ADR を参照
 - CODEOWNERS サンプルで `infra/` / `deploy/` / `ops/` の責任分界を定義
 - ArgoCD ApplicationSet のマッチパターンを `deploy/apps/*/Application.yaml` 等に設定する雛形を実装ドキュメントに収録
 - IMP-DIR-INFRA-\* / IMP-DIR-OPS-\* と DS-SW-COMP-120 との双方向トレースを [../../../docs/05_実装/00_ディレクトリ設計/90_トレーサビリティ/02_DS-SW-COMP_121-135_との対応.md](../../../docs/05_実装/00_ディレクトリ設計/90_トレーサビリティ/02_DS-SW-COMP_121-135_との対応.md) で管理

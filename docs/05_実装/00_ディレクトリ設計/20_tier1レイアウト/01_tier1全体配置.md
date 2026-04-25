@@ -33,7 +33,7 @@ src/tier1/
 
 Dapr ファサード 3 Pod（State / Secret / Workflow）の Go 実装。DS-SW-COMP-124 の Go project layout を継承する。
 
-**Pod 構成**（Phase 1a）:
+**Pod 構成**（リリース時点）:
 
 - `cmd/state/` : t1-state Pod（Dapr State Building Block をラップ）
 - `cmd/secret/` : t1-secret Pod（Dapr Secrets Building Block をラップ）
@@ -49,7 +49,7 @@ Dapr ファサード 3 Pod（State / Secret / Workflow）の Go 実装。DS-SW-C
 
 自作 3 Pod（Decision / Audit / PII）と tier1 共通 crate の Rust 実装。DS-SW-COMP-129 の Cargo workspace layout を継承する。
 
-**Pod 構成**（Phase 1a）:
+**Pod 構成**（リリース時点）:
 
 - `crates/decision/` : t1-decision Pod（ZEN Engine によるルール評価）
 - `crates/audit/` : t1-audit Pod（監査証跡、append-only）

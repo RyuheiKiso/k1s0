@@ -31,7 +31,7 @@
         <mxCell id="t1C2" value="tier1 Go サービス群&#xa;Daprファサード / 認証プロキシ / OTel 集約" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="580" y="175" width="220" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="t1C3" value="tier1 Rust サービス群&#xa;ZEN Engine / JTC 固有機能 / 雛形 CLI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+        <mxCell id="t1C3" value="tier1 Rust サービス群&#xa;ZEN Engine / 採用側組織の固有機能 / 雛形 CLI" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="810" y="115" width="220" height="110" as="geometry" />
         </mxCell>
         <mxCell id="nsTier2" value="namespace: tier2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">

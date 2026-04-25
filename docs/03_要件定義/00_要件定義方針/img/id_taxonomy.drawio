@@ -31,10 +31,10 @@
         <mxCell id="RISK" value="&lt;b&gt;RISK- リスクレジスタ&lt;/b&gt; (19 件)&#xa;07_リスクレジスタ.md&#xa;━━━━━━━━━━━━━━━&#xa;TEC 技術 (001〜004) / OPS 運用 (001〜003)&#xa;SEC セキュリティ (001〜003) / LGL 法務 (001〜002)&#xa;BUS 事業 (001〜003) / FIN 財務 (001〜002)&#xa;HUM 人材 (001〜002)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
           <mxGeometry x="40" y="600" width="340" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="givennote" value="所与条件は稟議前に凍結され、&#xa;要件定義の前提となる。改訂は&#xa;重大扱いで Product Council 回付。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6;dashed=1" vertex="1" parent="1">
+        <mxCell id="givennote" value="所与条件は採用検討前に凍結され、&#xa;要件定義の前提となる。改訂は&#xa;重大扱いで Product Council 回付。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6;dashed=1" vertex="1" parent="1">
           <mxGeometry x="40" y="780" width="340" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="reqband" value="要件 (合計 330 件超・Phase スコープ管理対象)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
+        <mxCell id="reqband" value="要件 (合計 330 件超・スコープ管理対象)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=left;spacingLeft=12;verticalAlign=top;spacingTop=6;fontColor=#000000" vertex="1" parent="1">
           <mxGeometry x="420" y="140" width="760" height="740" as="geometry" />
         </mxCell>
         <mxCell id="BR" value="&lt;b&gt;BR- 業務要件&lt;/b&gt; (10_業務要件/, 散文中括弧書き運用)&#xa;━━━━━━━━━━━━━━━━━━━━━━━━━&#xa;PLATUSE プラットフォーム利用 (tier2 開発者視点)&#xa;PLATOPS プラットフォーム運用 (SRE 視点)&#xa;PLATGOV プラットフォーム統制 (監査・経営視点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d79b00;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">

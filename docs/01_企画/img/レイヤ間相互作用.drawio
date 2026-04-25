@@ -7,10 +7,10 @@
         <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="0" y="0" width="1500" height="900" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="レイヤ間相互作用 ― 稟議ダイジェスト (1 枚要約)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="title" value="レイヤ間相互作用 ― 全体ダイジェスト (1 枚要約)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="20" y="12" width="1200" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="稟議決裁者向け。4 レイヤの関係と主要な呼び出し経路を 1 枚で把握する。コンポーネント全配置は「全体構成図.svg」、判定基準は「04_レイヤ別責務詳細.md」参照。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="採用判断者向け。4 レイヤの関係と主要な呼び出し経路を 1 枚で把握する。コンポーネント全配置は「全体構成図.svg」、判定基準は「04_レイヤ別責務詳細.md」参照。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="20" y="45" width="1400" height="25" as="geometry" />
         </mxCell>
         <mxCell id="actor_user" value="ユーザー&#xa;(外部)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#999999;strokeWidth=1.5;fontSize=11;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="1">

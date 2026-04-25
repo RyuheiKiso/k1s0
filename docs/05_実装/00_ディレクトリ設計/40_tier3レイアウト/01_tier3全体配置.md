@@ -1,6 +1,6 @@
 # 01. tier3 全体配置
 
-本ファイルは `src/tier3/` の全体構成を確定する。4 カテゴリ（web / native / bff / legacy-wrap）の配置と、それぞれの技術スタック、Phase 導入タイミングを規定する。
+本ファイルは `src/tier3/` の全体構成を確定する。4 カテゴリ（web / native / bff / legacy-wrap）の配置と、それぞれの技術スタック、導入タイミングを規定する。
 
 ## レイアウト
 
@@ -14,7 +14,7 @@ src/tier3/
 │   ├── apps/
 │   │   ├── portal/         # 配信ポータル
 │   │   ├── admin/          # 管理画面
-│   │   └── docs-site/      # Phase 1b 以降
+│   │   └── docs-site/      # 運用蓄積後
 │   ├── packages/           # 共有ライブラリ
 │   │   ├── ui/             # shadcn/ui 派生の共通コンポーネント
 │   │   ├── api-client/     # k1s0 SDK wrapper
@@ -39,7 +39,8 @@ src/tier3/
 │   │   ├── graphql/
 │   │   ├── rest/
 │   │   └── k1s0client/
-│   └── Dockerfile
+│   ├── Dockerfile.portal       # portal Web 向け BFF
+│   └── Dockerfile.admin        # admin Web 向け BFF
 └── legacy-wrap/            # .NET Framework sidecar wrapper
     ├── LegacyWrap.sln
     └── sidecars/
@@ -62,7 +63,7 @@ src/tier3/
 
 - Language: C# 12 / .NET 8
 - Framework: .NET MAUI
-- Platforms: iOS / Android / Windows / macOS（Phase 1c）
+- Platforms: iOS / Android / Windows / macOS（リリース時点）
 - UI: XAML + MAUI Controls
 - 認証: `K1s0.Sdk.Auth`（Keycloak OIDC 連携）
 
@@ -77,18 +78,18 @@ src/tier3/
 
 - Language: C# 7+（.NET Framework 4.8）
 - Framework: ASP.NET Web API + Dapr sidecar
-- 役割: JTC 既存 .NET Framework 資産を Dapr sidecar パターンで現行 k1s0 基盤に接続する薄いラッパー
+- 役割: 採用側組織の既存 .NET Framework 資産を Dapr sidecar パターンで現行 k1s0 基盤に接続する薄いラッパー
 - ADR-MIG-001 に従い、段階的に .NET 8 / .NET MAUI への移行を進める
 
-## Phase 導入タイミング
+## 導入タイミング
 
-| Phase | web | native | bff | legacy-wrap |
+| 適用段階 | web | native | bff | legacy-wrap |
 |---|---|---|---|---|
-| Phase 0 | 構造のみ | 構造のみ | 構造のみ | 構造のみ |
-| Phase 1a | portal（最小配信ポータル） | - | - | - |
-| Phase 1b | portal 本格化 / admin 最小 | K1s0.Native.Hub 最小 | portal-bff 最小 | sidecar 雛形 |
-| Phase 1c | 本番品質 / i18n / a11y | 全プラットフォーム対応 | admin-bff | 移行ガイド整備 |
-| Phase 2 | マルチテナント UI | - | 高度な aggregator | - |
+| リリース時点 | 構造のみ | 構造のみ | 構造のみ | 構造のみ |
+| リリース時点 | portal（最小配信ポータル） | - | - | - |
+| リリース時点 | portal 本格運用 / admin 最小 | K1s0.Native.Hub 最小 | portal-bff 最小 | sidecar 雛形 |
+| リリース時点 | 本番品質 / i18n / a11y | 全プラットフォーム対応 | admin-bff | 移行ガイド整備 |
+| 採用後の運用拡大時 | マルチテナント UI | - | 高度な aggregator | - |
 
 ## 依存方向
 
@@ -98,7 +99,7 @@ tier3 の 4 サブカテゴリは、SDK への依存先が言語ごとに、BFF 
 
 - 許可: `src/sdk/typescript/` 経由で BFF の REST / GraphQL / gRPC-Web エンドポイントを呼ぶ
 - 禁止: `src/sdk/go/` / `src/sdk/dotnet/` の直接参照、`src/tier1/` / `src/tier2/` / `src/contracts/` の import、`src/tier3/bff/` の Go コードへの直接参照
-- Phase 1a は BFF 経由のみ、Phase 1b 以降で直 gRPC-Web も許容（[02_web_pnpm_workspace配置.md](02_web_pnpm_workspace配置.md) 参照）
+- リリース時点 は BFF 経由のみ、運用蓄積後で直 gRPC-Web も許容（[02_web_pnpm_workspace配置.md](02_web_pnpm_workspace配置.md) 参照）
 
 ### native（.NET MAUI）
 
@@ -109,7 +110,7 @@ tier3 の 4 サブカテゴリは、SDK への依存先が言語ごとに、BFF 
 
 - 許可: `src/sdk/go/` 経由で tier1 / tier2 にアクセス
 - 禁止: tier1 / tier2 の internal package 直接参照、`src/contracts/` の直接 import（SDK が契約を隠蔽するため）
-- Phase 1a では `replace` directive で `src/sdk/go/` を local 参照可（Phase 1b 以降で module publish に切替、[../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) と同方針）
+- リリース時点 では `replace` directive で `src/sdk/go/` を local 参照可（運用蓄積後で module publish に切替、[../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) と同方針）
 
 ### legacy-wrap（.NET Framework sidecar）
 

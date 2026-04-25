@@ -109,7 +109,7 @@
         <mxCell id="pod_workflow_nfrh" value="■ 駆動する非機能要件 / 未決" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
           <mxGeometry x="495" y="290" width="220" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="pod_workflow_nfr" value="NFR-A-FT-003 / NFR-A-DR-001〜002&#xa;NFR-A-REC-001〜002&#xa;U-005 (Phase 1b 決着)" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="pod_workflow_nfr" value="NFR-A-FT-003 / NFR-A-DR-001〜002&#xa;NFR-A-REC-001〜002&#xa;ADR-RULE-002 / U-005 決着済み" style="text;html=1;align=left;verticalAlign=top;fontSize=10;spacingLeft=18;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="495" y="310" width="220" height="70" as="geometry" />
         </mxCell>
         <mxCell id="pod_workflow_adrh" value="■ 参照 ADR" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">

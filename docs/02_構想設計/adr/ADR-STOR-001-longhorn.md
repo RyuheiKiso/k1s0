@@ -12,7 +12,7 @@ k1s0 はオンプレミス Kubernetes 上で稼働し、PostgreSQL（CloudNative
 
 制約条件は以下の通り。
 
-- オンプレミス完結（SaaS・商用ストレージアプライアンスは Phase 1 では予算上不可）
+- オンプレミス完結（SaaS・商用ストレージアプライアンスはコスト制約上不可）
 - Kubernetes ネイティブ（CSI 対応）
 - スナップショット / バックアップ / ReadWriteOnce 標準対応
 - 3 台以上のレプリカで HA
@@ -30,7 +30,7 @@ k1s0 はオンプレミス Kubernetes 上で稼働し、PostgreSQL（CloudNative
 - PVC の動的プロビジョニング、StorageClass 標準化
 - バックアップ先として MinIO（ADR-DATA-003）を使用、定期スナップショット
 - 高性能ワークロード（PostgreSQL primary、Kafka）は Longhorn の "data locality" 設定で同一 Node 優先
-- Phase 1: Node ローカル NVMe を Longhorn が管理、Phase 3 以降は分離 Storage Cluster 検討
+- リリース時点では Node ローカル NVMe を Longhorn が管理、採用側のクラスタ規模拡大時に分離 Storage Cluster 検討
 
 ## 検討した選択肢
 
@@ -74,7 +74,7 @@ k1s0 はオンプレミス Kubernetes 上で稼働し、PostgreSQL（CloudNative
 - メリット: 機能最大、商用サポート
 - デメリット:
   - 商用ライセンス（年間数千万円）
-  - Phase 1 予算では不可
+  - 採用側のコスト制約で不可
 
 ### 選択肢 E: Piraeus Datastore (LINSTOR/DRBD)
 
@@ -96,7 +96,7 @@ k1s0 はオンプレミス Kubernetes 上で稼働し、PostgreSQL（CloudNative
 ### ネガティブな帰結
 
 - レプリカ 3 で容量効率 33%、NVMe コストへの影響
-- 超大規模（数 PB 級）では Ceph 検討、Phase 3 以降の見直し候補
+- 超大規模（数 PB 級）では Ceph 検討、採用側のクラスタ規模拡大時の見直し候補
 - Longhorn 自体の HA 設計（CSI Driver、Manager の冗長化）
 - Node 障害時の rebuild 時間（数時間）、SLO 影響範囲の定義
 

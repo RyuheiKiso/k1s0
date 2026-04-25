@@ -11,7 +11,7 @@
           <mxGeometry x="40" y="20" width="1520" height="30" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase_label" value="時間軸: 左（移行開始）→ 右（移行完了）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="stage_label" value="時間軸: 左（移行開始）→ 右（移行完了）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="40" y="55" width="1520" height="20" as="geometry" />
         </mxCell>
 
@@ -32,11 +32,11 @@
           <mxGeometry x="40" y="250" width="1520" height="290" as="geometry" />
         </mxCell>
 
-        <mxCell id="dump" value="Phase A: 初回一括&#10;pg_dump / expdp / mysqldump&#10;→ 変換スクリプト (Python)&#10;→ pg_restore / COPY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="dump" value="段階A: 初回一括&#10;pg_dump / expdp / mysqldump&#10;→ 変換スクリプト (Python)&#10;→ pg_restore / COPY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="80" y="300" width="260" height="110" as="geometry" />
         </mxCell>
 
-        <mxCell id="cdc" value="Phase B: CDC ダブルライト&#10;Debezium Source Connector&#10;(Binlog / Redo Log / CDC Stream)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="cdc" value="段階B: CDC ダブルライト&#10;Debezium Source Connector&#10;(Binlog / Redo Log / CDC Stream)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="430" y="300" width="280" height="110" as="geometry" />
         </mxCell>
 
@@ -48,7 +48,7 @@
           <mxGeometry x="1100" y="310" width="240" height="90" as="geometry" />
         </mxCell>
 
-        <mxCell id="validate" value="Phase C: 整合性検証&#10;(1) 行数一致 COUNT(*)&#10;(2) チェックサム MD5&#10;(3) サンプル比較 1000 行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="validate" value="段階C: 整合性検証&#10;(1) 行数一致 COUNT(*)&#10;(2) チェックサム MD5&#10;(3) サンプル比較 1000 行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="550" y="430" width="280" height="100" as="geometry" />
         </mxCell>
 
@@ -142,10 +142,10 @@
         <mxCell id="e_final" value="段階 4 以降&#10;新 DB 単独運用" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2e7d32;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="final_state" target="newdb"><mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="e_old_final" value="段階 5&#10;旧 DB 廃止" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#2e7d32;dashed=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="olddb" target="final_state"><mxGeometry relative="1" as="geometry" /></mxCell>
 
-        <mxCell id="phase_a_label" value="Phase A&#10;初回一括" style="text;html=1;strokeColor=#6c8ebf;fillColor=#f5f8ff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="stage_a_label" value="段階A&#10;初回一括" style="text;html=1;strokeColor=#6c8ebf;fillColor=#f5f8ff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="80" y="230" width="260" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="phase_b_label" value="Phase B&#10;CDC ダブルライト" style="text;html=1;strokeColor=#6c8ebf;fillColor=#f5f8ff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="stage_b_label" value="段階B&#10;CDC ダブルライト" style="text;html=1;strokeColor=#6c8ebf;fillColor=#f5f8ff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="430" y="230" width="910" height="20" as="geometry" />
         </mxCell>
 

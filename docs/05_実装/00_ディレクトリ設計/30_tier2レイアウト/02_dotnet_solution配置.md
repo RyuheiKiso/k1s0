@@ -134,9 +134,9 @@ Visual Studio / Rider の IDE 起動時は `Tier2.sln` を推奨。CI は path-f
 `nuget.config` で以下を定義。
 
 - `nuget.org`（public）
-- 社内プライベート NuGet サーバ（Phase 1b 以降、Harbor の OCI artifacts / Azure Artifacts / GitHub Packages のいずれか）
+- 社内プライベート NuGet サーバ（運用蓄積後、Harbor の OCI artifacts / Azure Artifacts / GitHub Packages のいずれか）
 
-社内パッケージ（`K1s0.Sdk` など）は Phase 1a では GitHub Packages、Phase 1b で社内プライベートに移行する。
+社内パッケージ（`K1s0.Sdk` など）は リリース時点で は GitHub Packages / 社内プライベートに移行する。
 
 ## Dockerfile
 

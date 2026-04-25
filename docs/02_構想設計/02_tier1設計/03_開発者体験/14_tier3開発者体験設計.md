@@ -505,21 +505,21 @@ builder.Services.AddK1s0AspNet(options =>
 
 ## 10. 段階的導入
 
-| フェーズ | 施策 | 備考 |
+| 段階 | 施策 | 備考 |
 |---|---|---|
-| Phase 2 開始前 | tier3 専用オンボーディングパス (T1-T3) の設計書整備 | tier3 開発者参画の前提条件 |
-| Phase 2 前半 | REST ゲートウェイ (grpc-gateway) の実装 | tier1 Go ファサードに併設 |
-| Phase 2 前半 | `@k1s0/react` の最小構成 (`K1s0Provider` / `useK1s0Auth` / `useK1s0State`) | T1 オンボーディングの基盤 |
-| Phase 2 前半 | `K1s0.AspNet` の最小構成 (`AddK1s0AspNet` / `[K1s0Authorize]` / `K1s0LogActionFilter`) | T1 オンボーディングの基盤 |
-| Phase 2 前半 | 自動計装 (ログ / トレース / エラー) の実装 | フレームワーク SDK に組み込み |
-| Phase 2 前半 | エラー体験のデフォルト設計実装 | フレームワーク SDK に組み込み |
-| Phase 2 前半 | tier3 ファーストコンタクト体験 (60 分) の教材整備 | T1 サンプルアプリケーションを含む |
-| Phase 2 後半 | tier2 モックサーバー自動生成 CLI | tier3 の並行開発を可能にする |
-| Phase 2 後半 | `useK1s0Feature` / `useK1s0Settings` の追加 | T2-T3 オンボーディングの基盤 |
-| Phase 2 後半 | `crud` / `list-detail` テンプレートの提供 | 最小 2 パターンから開始 |
-| Phase 3 | `form-wizard` / `dashboard` / `approval-flow` テンプレートの追加 | 利用フィードバックに基づいて拡張 |
-| Phase 3 | `K1s0.Maui` の提供 | ネイティブアプリ開発の本格化に合わせる |
-| Phase 3 | `<K1s0TrackedButton>` / `<K1s0TrackedForm>` の追加 | 操作ログの自動記録 |
+| 採用後の運用拡大時 開始前 | tier3 専用オンボーディングパス (T1-T3) の設計書整備 | tier3 開発者参画の前提条件 |
+| 採用初期 | REST ゲートウェイ (grpc-gateway) の実装 | tier1 Go ファサードに併設 |
+| 採用初期 | `@k1s0/react` の最小構成 (`K1s0Provider` / `useK1s0Auth` / `useK1s0State`) | T1 オンボーディングの基盤 |
+| 採用初期 | `K1s0.AspNet` の最小構成 (`AddK1s0AspNet` / `[K1s0Authorize]` / `K1s0LogActionFilter`) | T1 オンボーディングの基盤 |
+| 採用初期 | 自動計装 (ログ / トレース / エラー) の実装 | フレームワーク SDK に組み込み |
+| 採用初期 | エラー体験のデフォルト設計実装 | フレームワーク SDK に組み込み |
+| 採用初期 | tier3 ファーストコンタクト体験 (60 分) の教材整備 | T1 サンプルアプリケーションを含む |
+| 採用後の運用拡大時 | tier2 モックサーバー自動生成 CLI | tier3 の並行開発を可能にする |
+| 採用後の運用拡大時 | `useK1s0Feature` / `useK1s0Settings` の追加 | T2-T3 オンボーディングの基盤 |
+| 採用後の運用拡大時 | `crud` / `list-detail` テンプレートの提供 | 最小 2 パターンから開始 |
+| 採用側のマルチクラスタ移行時 | `form-wizard` / `dashboard` / `approval-flow` テンプレートの追加 | 利用フィードバックに基づいて拡張 |
+| 採用側のマルチクラスタ移行時 | `K1s0.Maui` の提供 | ネイティブアプリ開発の本格化に合わせる |
+| 採用側のマルチクラスタ移行時 | `<K1s0TrackedButton>` / `<K1s0TrackedForm>` の追加 | 操作ログの自動記録 |
 
 ---
 

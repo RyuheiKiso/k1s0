@@ -68,7 +68,7 @@
           <mxGeometry x="1060" y="490" width="320" height="130" as="geometry" />
         </mxCell>
 
-        <mxCell id="operator" value="運用者 (Phase 1b 手動 / Phase 2 Backstage UI)&#xa;・kafka-console-consumer で DLQ 内容を確認&#xa;・原因特定後、kafkacat で元トピックへ再投入&#xa;・1 件 15 分以内の応答 SLO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="operator" value="運用者 (リリース時点 手動 / 採用後の運用拡大時 Backstage UI)&#xa;・kafka-console-consumer で DLQ 内容を確認&#xa;・原因特定後、kafkacat で元トピックへ再投入&#xa;・1 件 15 分以内の応答 SLO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontColor=#000000;align=left;spacingLeft=10;spacingTop=6;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="1060" y="720" width="480" height="110" as="geometry" />
         </mxCell>
 

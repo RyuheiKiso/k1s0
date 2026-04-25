@@ -1,20 +1,20 @@
 # 70. リリース設計
 
-本章は k1s0 のリリース戦略（ADR-CICD-001 で選定した Argo CD + ADR-CICD-002 で選定した Argo Rollouts + ADR-FM-001 で選定した flagd）を実装フェーズ確定版として固定する。GitOps による宣言的配信、カナリア / Blue-Green / Progressive Delivery、フィーチャーフラグによる段階的有効化、エラーバジェット連動の自動停止までを一貫したリリースパイプラインとして規定する。
+本章は k1s0 のリリース戦略（ADR-CICD-001 で選定した Argo CD + ADR-CICD-002 で選定した Argo Rollouts + ADR-FM-001 で選定した flagd）を実装段階確定版として固定する。GitOps による宣言的配信、カナリア / Blue-Green / Progressive Delivery、フィーチャーフラグによる段階的有効化、エラーバジェット連動の自動停止までを一貫したリリースパイプラインとして規定する。
 
 ## 本章の位置付け
 
 10 年保守を目指す以上、リリースは「稀に行う大玉」ではなく「日常的に繰り返される小玉」でなければならない。したがって、失敗時のロールバック経路が最短で、かつ影響範囲を段階的に拡大できる仕組みが必須となる。本章は Argo Rollouts の AnalysisTemplate で `60_観測性設計/` の SLI を参照し、SLI 劣化時に自動ロールバックを行う構造を確定する。
 
-Progressive Delivery（PD）は Phase 0 で必須化する（ADR-REL-001 として新規起票）。ただし例外範囲を明文化し、内部ツール・バッチは PD 対象外とする。フィーチャーフラグ（flagd）は flag 定義ファイルへの cosign 署名検証を必須とし、`80_サプライチェーン設計/` と結合する（構想設計 CICD 章と flagd ADR で既に枠は定まっている）。
+Progressive Delivery（PD）は リリース時点 で必須化する（ADR-REL-001 として新規起票）。ただし例外範囲を明文化し、内部ツール・バッチは PD 対象外とする。フィーチャーフラグ（flagd）は flag 定義ファイルへの cosign 署名検証を必須とし、`80_サプライチェーン設計/` と結合する（構想設計 CICD 章と flagd ADR で既に枠は定まっている）。
 
 ![リリース設計概観: ArgoCD App-of-Apps + Argo Rollouts Canary + flagd 段階配信](img/70_ArgoCD_Rollouts_flagd概観.svg)
 
-## Phase 確定範囲
+## OSS リリース時点での確定範囲
 
-- Phase 0: Argo CD App / ApplicationSet、Argo Rollouts（canary + AnalysisTemplate）、flagd、rollback runbook
-- Phase 1a: Blue-Green リリースの選択肢、マルチクラスタ配信
-- Phase 1b: Release Train（定期リリース）運用
+- リリース時点: Argo CD App / ApplicationSet、Argo Rollouts（canary + AnalysisTemplate）、flagd、rollback runbook
+- リリース時点: Blue-Green リリースの選択肢、マルチクラスタ配信
+- リリース時点: Release Train（定期リリース）運用
 
 ## RACI
 

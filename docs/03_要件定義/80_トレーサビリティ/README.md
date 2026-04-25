@@ -8,7 +8,7 @@
 
 ## ファイル構成
 
-- [01_要件ID索引.md](01_要件ID索引.md): 全要件 ID の索引、カテゴリ別・Phase 別・優先度別の集計
+- [01_要件ID索引.md](01_要件ID索引.md): 全要件 ID の索引、カテゴリ別・段階別・優先度別の集計
 - [02_企画要件マトリクス.md](02_企画要件マトリクス.md): 企画書の事業ゴールと要件 ID の対応（ゴール → BR → FR/NFR の 3 階層）
 - [03_構想設計マトリクス.md](03_構想設計マトリクス.md): 構想設計コンポーネント（tier1 API、OSS、ADR）と要件 ID の対応
 - [04_要件間依存マトリクス.md](04_要件間依存マトリクス.md): 要件間の依存関係、影響分析に利用
@@ -16,11 +16,12 @@
 
 ## 図表（drawio + SVG）
 
-本カテゴリには稟議審査・Phase ゲート評価で参照される 3 枚の drawio 図を整備した。各図は対応するマークダウンに SVG 埋め込みで掲載し、原本は [img/](img/) に置く。原本と SVG は常にペアで更新する運用とする（変更時は drawio CLI で SVG を再生成）。
+本カテゴリには採用検討審査・トレーサビリティ確認で参照される 2 枚の drawio 図を整備している。各図は対応するマークダウンに SVG 埋め込みで掲載し、原本は [img/](img/) に置く。原本と SVG は常にペアで更新する運用とする（変更時は drawio CLI で SVG を再生成）。
 
 - **BR × FR マッピング図** ([img/br_fr_mapping.drawio](img/br_fr_mapping.drawio)): 3 サブカテゴリ（PLATUSE/PLATOPS/PLATGOV）の業務要件と tier1 公開 11 API の主充足・副次関係を可視化。[05_業務機能マトリクス.md](05_業務機能マトリクス.md) に埋め込み済み。
-- **Phase 進捗積み上げ図** ([img/phase_progress.drawio](img/phase_progress.drawio)): Phase 1a → 1b → 1c → 2+ の累積要件達成（17 → 51 → 58 → 59）を縦バーで可視化、各 Phase ゲート通過条件を併記。[02_企画要件マトリクス.md](02_企画要件マトリクス.md) に埋め込み済み。
-- **要件 ID 依存グラフ** ([img/requirement_dependency.drawio](img/requirement_dependency.drawio)): NFR-D-PLN-001 を頂点とする Phase 1b パイロット合格チェーンと NFR-H-COMP-001 を頂点とするコンプライアンス連鎖を可視化。[04_要件間依存マトリクス.md](04_要件間依存マトリクス.md) に埋め込み済み。
+- **要件 ID 依存グラフ** ([img/requirement_dependency.drawio](img/requirement_dependency.drawio)): NFR-D-PLN-001 を頂点とするパイロット合格チェーンと NFR-H-COMP-001 を頂点とするコンプライアンス連鎖を可視化。[04_要件間依存マトリクス.md](04_要件間依存マトリクス.md) に埋め込み済み。
+
+> 旧 `img/phase_progress.drawio` は段階別累積要件達成（17 → 51 → 58 → 59）を表していたが、OSS 一気通貫方針への切り替え（リリース時点で機能要件 59 件すべてを本格実装）に伴い概念的に成り立たなくなったため本書からは参照していない。履歴互換のためファイル自体は残置しており、ファイル名と内部 ID に旧 `phase_*` 表記が残るのは意図的な互換維持である。
 
 drawio の編集規約は [../../00_format/drawio_layer_convention.md](../../00_format/drawio_layer_convention.md) と [../../../CLAUDE.md](../../../CLAUDE.md) を参照（白背景矩形必須・矢印交差検証必須）。
 

@@ -92,7 +92,7 @@
         <mxCell id="pd-exempt" value="PD 対象外 (明文化)&#10;内部ツール / バッチ / cron&#10;Security (D) 承認で例外指定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="420" y="680" width="260" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="bluegreen" value="Phase 1a:&#10;Blue-Green 選択肢&#10;(DB migration 伴う PR 向け)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+        <mxCell id="bluegreen" value="リリース時点:&#10;Blue-Green 選択肢&#10;(DB migration 伴う PR 向け)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=2;" vertex="1" parent="1">
           <mxGeometry x="720" y="680" width="240" height="100" as="geometry" />
         </mxCell>
 
@@ -128,7 +128,7 @@
         <mxCell id="otel-ref" value="OTel Agent / Gateway&#10;(60 章)&#10;Rollouts は Mimir 経由で SLI 参照" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="970" y="860" width="300" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="runbook-rollback" value="ops/runbooks/rollback-*.md&#10;Phase 0 必須&#10;(AnalysisTemplate 失敗時の手順)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="runbook-rollback" value="ops/runbooks/rollback-*.md&#10;リリース時点 必須&#10;(AnalysisTemplate 失敗時の手順)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1300" y="860" width="310" height="90" as="geometry" />
         </mxCell>
 

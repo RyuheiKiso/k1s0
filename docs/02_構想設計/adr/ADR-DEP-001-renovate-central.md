@@ -10,9 +10,9 @@
 
 k1s0 は tier1 Rust（Cargo crate）、tier1 Go（Go module）、tier2 .NET（NuGet）、tier3 Web（npm / pnpm workspace）、tier3 Native（.NET MAUI）、SDK 4 言語、infra 層の Helm Chart / Kustomize / OpenTofu provider、CI で利用する GitHub Actions アクション、`third_party/` 配下にフォーク vendoring した社内 OSS パッチ群と、計 9 種類の依存グラフを抱える。10 年保守を前提とし、CVE 対応・License 変更検知・breaking change の早期警告を継続的に回す必要がある。
 
-2 名運用のフェーズ（Phase 1a）から 10 名体制（Phase 2 後半）に拡大するまでの間、依存更新を人手で追う運用は以下の理由で破綻する。
+k1s0 は起案者個人による開発であり、採用側の運用体制が小規模であっても拡大しても、依存更新を人手で追う運用は以下の理由で破綻する。
 
-- **CVE 発見から緩和 SLO は 48 時間以内**（NFR-E-SEC 系）である一方、1 人あたり依存パッケージは数千件規模に到達し、週次目視レビューでは到底捕捉できない
+- **CVE 発見から緩和 SLO は 48 時間以内**（NFR-E-SEC 系）である一方、依存パッケージは数千件規模に到達し、週次目視レビューでは到底捕捉できない
 - **AGPL 分離アーキテクチャ**（[ADR-0003](ADR-0003-agpl-isolation-architecture.md)）の恒常維持には、間接依存を含めた全ライセンス変化を毎 PR で検証する必要がある。AGPL 系 OSS が同一プロセス境界に紛れ込む回帰を早期に遮断しなければ、法務リスクが蓄積する
 - **tier2/tier3 から内部言語を不可視化する方針**（[ADR-TIER1-003](ADR-TIER1-003-language-opacity.md)）の下、tier1 Go の内部依存が tier2 に漏洩しないかを依存グラフで機械検証する必要がある
 - **`third_party/` vendoring** はフォーク保守が必須で、`UPSTREAM.md`（上流リビジョン固定）と `PATCHES.md`（独自パッチ一覧）を機械的に突き合わせないと、時間経過でパッチが上流に吸収されても検知できず、不要パッチの負債化が進む
@@ -20,7 +20,7 @@ k1s0 は tier1 Rust（Cargo crate）、tier1 Go（Go module）、tier2 .NET（Nu
 
 GitHub 純正の Dependabot は枯れており GitHub Actions との親和性が最大だが、エコシステム対応数・ライセンス検査・グループ化更新の表現力・AGPL 含む License 台帳連動に決定打を欠く。一方 Mend Renovate（旧 WhiteSource Renovate）は CNCF Landscape に長く在籍し、Go modules / Cargo / npm / pnpm workspace / NuGet / Helm / Kustomize / Terraform / GitHub Actions / Docker / Gradle / Maven・pre-commit hook など、k1s0 が持つ 9 種類の依存グラフを単一の `renovate.json` で横断管理できる唯一の OSS である。
 
-本 ADR は Renovate を k1s0 の依存更新中枢として採用し、自動マージの閾値、vendoring 管理との接続、AGPL 分離恒常検証、2 名→10 名拡大時の運用規律までを定める。
+本 ADR は Renovate を k1s0 の依存更新中枢として採用し、自動マージの閾値、vendoring 管理との接続、AGPL 分離恒常検証、採用側の運用規律までを定める。
 
 ## 決定
 
@@ -30,15 +30,15 @@ GitHub 純正の Dependabot は枯れており GitHub Actions との親和性が
 
 - Renovate は self-hosted で運用する。Mend Cloud への委託はオンプレ制約（NFR-E-SEC）により採らない
 - 実行基盤は GitHub Actions 上の `renovatebot/github-action` を毎時トリガで起動する schedule workflow とする
-- 設定ファイルはリポジトリルートの `renovate.json` 単一に寄せる。サブディレクトリ別設定の分散は 2 名運用下では棚卸しコストが見合わないため禁止
-- `renovate.json` の変更は契約レビュー担当（CODEOWNERS）と SRE の 2 名承認必須。依存更新方針の恣意的な緩和を防ぐ
+- 設定ファイルはリポジトリルートの `renovate.json` 単一に寄せる。サブディレクトリ別設定の分散は小規模運用での棚卸しコストが見合わないため禁止
+- `renovate.json` の変更は契約レビュー担当（CODEOWNERS）と SRE の 複数名承認必須。依存更新方針の恣意的な緩和を防ぐ
 
 ### 自動マージ閾値
 
-Phase 1a まで（体制 2 名）は全更新を人手レビューで通す。Phase 1b 以降、以下の階層で段階的に自動マージを許容する。
+リリース時点では全更新を人手レビューで通す。採用側の運用蓄積後、以下の階層で段階的に自動マージを許容する。
 
 - **patch レベル**（SemVer の 3 桁目変更）かつ CI 全通過の場合、dev 依存に限り自動マージを許容
-- **minor レベル**は Phase 2 以降も人手レビュー必須。API 追加・内部実装変更を含むため、破壊的でなくとも影響範囲を読む工程を省けない
+- **minor レベル**は常時人手レビュー必須。API 追加・内部実装変更を含むため、破壊的でなくとも影響範囲を読む工程を省けない
 - **major レベル**は常に人手レビュー必須。breaking change の読み取りと移行計画の伴走が前提となる
 - **security 更新**（GHSA / OSV-DB / RustSec 連動）は patch/minor/major を問わず最優先キューに載せ、48 時間 SLO に連動した Slack 通知を行う
 
@@ -54,7 +54,7 @@ Phase 1a まで（体制 2 名）は全更新を人手レビューで通す。Ph
 
 ### グループ化戦略
 
-無意味に細かい PR が並ぶと 2 名運用のレビュー注意力を消耗する。以下のグループ化を `packageRules` で設定する。
+無意味に細かい PR が並ぶと小規模運用のレビュー注意力を消耗する。以下のグループ化を `packageRules` で設定する。
 
 - OpenTelemetry 関連 crate / module は単一 PR にまとめる（`otel-*`）
 - Argo CD / Argo Rollouts / Argo Workflows の更新を `argo-stack` グループに束ねる
@@ -91,7 +91,7 @@ Phase 1a まで（体制 2 名）は全更新を人手レビューで通す。Ph
 - デメリット:
   - `third_party/` vendoring のような独自フォーマットへの対応が貧弱
   - ライセンス検査（AGPL 混入検知）の表現力が Renovate より劣る
-  - グループ化の粒度が粗く、10 名体制以降で PR 洪水になる
+  - グループ化の粒度が粗く、採用側の運用拡大期に PR 洪水になる
   - Helm Chart / Kustomize / Cargo のエコシステム対応が遅れがち
 
 ### 選択肢 C: 人手管理（依存更新ツール不採用）
@@ -100,7 +100,7 @@ Phase 1a まで（体制 2 名）は全更新を人手レビューで通す。Ph
 - メリット: ツール導入ゼロ
 - デメリット:
   - 48 時間 CVE SLO を人手で達成することは数千パッケージ規模では数学的に不可能
-  - 2 名運用で破綻、10 名体制でも続かない
+  - 小規模運用で破綻、運用拡大期でも続かない
   - AGPL 分離の継続検証を人手で担保することは現実的でない
 
 ### 選択肢 D: 外部 SaaS（Snyk / Mend Cloud 等）
@@ -112,7 +112,7 @@ Phase 1a まで（体制 2 名）は全更新を人手レビューで通す。Ph
 - デメリット:
   - オンプレ制約（NFR-E-SEC）に合致しない、社内依存グラフを外部に送出
   - 年間ライセンス費が数百万〜千万円規模
-  - Phase 0 の稟議承認段階で追加の SaaS 契約を立ち上げる意思決定コストが重い
+  - 採用側で追加の SaaS 契約を立ち上げる意思決定コストが重い
 
 ## 帰結
 
@@ -129,15 +129,15 @@ Phase 1a まで（体制 2 名）は全更新を人手レビューで通す。Ph
 - `renovate.json` の `packageRules` 設計・棚卸しが恒常的な運用コストとして残る
 - Renovate のバージョン自体も依存対象であり、Renovate 自身の更新規律を別途定める必要がある
 - GitHub Actions の API rate limit に触れる可能性があり、schedule 調整と failback を Runbook 化する必要がある
-- 自動マージの閾値緩和を安易に行うと事故を誘発するため、`renovate.json` 変更の 2 名承認ゲートを恒常的に維持する規律が必要
+- 自動マージの閾値緩和を安易に行うと事故を誘発するため、`renovate.json` 変更の 複数名承認ゲートを恒常的に維持する規律が必要
 
 ### 移行・対応事項
 
-- `renovate.json` 初期版を Phase 0 承認後すぐにリポジトリ配下に配置（`packageRules` / `schedule` / `regex manager` 完備）
+- `renovate.json` 初期版を k1s0 リリース時点でリポジトリ配下に配置（`packageRules` / `schedule` / `regex manager` 完備）
 - GitHub Actions workflow `renovate.yml` を `tools/ci/` 配下に追加し、schedule + manual dispatch で駆動
 - `third_party/*/UPSTREAM.md` / `PATCHES.md` の雛形を `docs/00_format/` 配下に追加
 - `license-check` job を CI に追加、`cargo-deny` / `go-licenses` / `license-checker` / `dotnet list package` を tier 別に呼び分け
-- Phase 1b の自動マージ閾値開放タイミングで本 ADR を Review ステータスに戻し、運用実績を反映した改訂版を起票
+- 自動マージ閾値の開放タイミングで本 ADR を Review ステータスに戻し、運用実績を反映した改訂版を起票
 - SRE オンコールの Runbook 目録（`docs/04_概要設計/55_運用ライフサイクル方式設計/09_Runbook目録方式.md`）に `RB-OPS-003: Renovate 停止時の人手 fallback` を追加
 - `CLAUDE.md` の「プロジェクト構造」節に `renovate.json` の位置と所有権を明記
 

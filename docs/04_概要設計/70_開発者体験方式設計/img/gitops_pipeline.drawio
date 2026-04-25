@@ -218,7 +218,7 @@
         <mxCell id="lg_data_flow_t" value="状態・証跡の保存（manifest commit / 画像バイナリ / メトリクス / 署名鍵）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="930" y="794" width="700" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="note" value="注: 本図は Phase 2 代替フロー（GHA 不可環境向け）の Gitea + Tekton 構成を示す。主経路の GitHub Actions 構成は同一トポロジで Gitea→GitHub、Tekton→GHA Runner に置換される。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="note" value="注: 本図は 採用後の運用拡大時 代替フロー（GHA 不可環境向け）の Gitea + Tekton 構成を示す。主経路の GitHub Actions 構成は同一トポロジで Gitea→GitHub、Tekton→GHA Runner に置換される。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="60" y="828" width="1580" height="24" as="geometry" />
         </mxCell>
       </root>

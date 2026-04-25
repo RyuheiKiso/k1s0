@@ -24,7 +24,7 @@
 | [03_PubSub_API.md](03_PubSub_API.md) | Kafka 抽象 Publish/Subscribe API |
 | [04_Secrets_API.md](04_Secrets_API.md) | OpenBao 秘密情報取得・ローテーション API |
 | [05_Binding_API.md](05_Binding_API.md) | 外部 HTTP/SMTP/S3 バインディング API |
-| [06_Workflow_API.md](06_Workflow_API.md) | Temporal 長時間ワークフロー API |
+| [06_Workflow_API.md](06_Workflow_API.md) | 短期 Dapr Workflow / 長期 Temporal の Workflow API |
 | [07_Log_API.md](07_Log_API.md) | 構造化ログ送信 API（OpenTelemetry Logs 準拠） |
 | [08_Telemetry_API.md](08_Telemetry_API.md) | メトリクス・トレース送信 API |
 | [09_Decision_API.md](09_Decision_API.md) | ZEN Engine JDM 評価 API |

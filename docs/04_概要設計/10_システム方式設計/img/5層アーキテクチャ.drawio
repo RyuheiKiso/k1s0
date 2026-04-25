@@ -73,7 +73,7 @@
                 <mxCell id="t1_r_zen" value="ZEN Engine 統合&#xa;(Decision API)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="460" y="585" width="160" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="t1_r_jtc" value="JTC 固有機能 Rust&#xa;(電子署名 / 個情法)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="t1_r_jtc" value="採用側組織の固有機能 Rust&#xa;(電子署名 / 個情法)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="640" y="585" width="160" height="50" as="geometry"/>
                 </mxCell>
                 <mxCell id="t1_r_cli" value="雛形 CLI&#xa;(Rust)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" parent="1" vertex="1">

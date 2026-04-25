@@ -37,7 +37,7 @@ src/tier1/go/
 │   │       │   ├── workflow_grpc.pb.go
 │   │       │   └── ...（他 API 分）
 │   │       └── internal/
-│   │           └── v1/             # tier1 内部 API（SDK には漏れない、buf.gen.tier1.yaml のみで生成）
+│   │           └── v1/             # tier1 内部 API（SDK には漏れない、buf.gen.go.yaml の internal include_types で生成）
 │   │               ├── common.pb.go
 │   │               ├── errors.pb.go
 │   │               └── pii.pb.go
@@ -45,7 +45,7 @@ src/tier1/go/
 │   ├── state/                      # COMP-T1-STATE 固有実装
 │   ├── secret/                     # COMP-T1-SECRET 固有実装
 │   └── workflow/                   # COMP-T1-WORKFLOW 固有実装
-├── pkg/                            # Phase 1b 以降の public API（予約）
+├── pkg/                            # 運用蓄積後の public API（予約）
 ├── tests/
 │   ├── integration/                # testcontainers 利用の統合テスト
 │   └── fixtures/
@@ -97,7 +97,7 @@ require (
 )
 ```
 
-バージョンは Phase 1a 着手時点で最新安定版に合わせる。
+バージョンは リリース時点 着手時点で最新安定版に合わせる。
 
 ## cmd/<pod>/main.go の構造
 
@@ -153,14 +153,14 @@ func main() {
 
 buf generate 実行時の流れ。
 
-1. `src/contracts/` ディレクトリで `buf generate` を実行
-2. `buf.gen.yaml` の Go plugin が `src/contracts/tier1/v1/*.proto` と `src/contracts/internal/v1/*.proto` を入力として取り込む
+1. `src/contracts/` ディレクトリで `buf generate --template buf.gen.go.yaml` を実行
+2. `buf.gen.go.yaml` の Go plugin が `src/contracts/tier1/v1/*.proto` と `src/contracts/internal/v1/*.proto` を入力として取り込む
 3. 出力先 `../tier1/go/internal/proto/` に `.pb.go` / `_grpc.pb.go` を生成
 4. 生成物は git commit（DS-SW-COMP-122）
 
 CI で `buf generate` 実行後に `git diff --exit-code internal/proto/` を実行し、drift 検出を自動化する。
 
-なお multi-module 時の IDE 体験（tier1-go / tier2-go / tier3-bff / sdk-go を跨いだ go to definition など）はリポジトリルートの `go.work` で担保する。CI / 本番ビルドは `GOWORK=off` で各 module 独立させる運用。詳細は [../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) の「複数 module の開発体験: go.work」を参照。
+Go module 分離戦略（IMP-BUILD-GM-026 により go.work は不採用）の詳細は [../30_tier2レイアウト/03_go_services配置.md](../30_tier2レイアウト/03_go_services配置.md) の「Go module 戦略」を参照。
 
 ## 依存方向の強制
 
@@ -168,7 +168,7 @@ CI で `buf generate` 実行後に `git diff --exit-code internal/proto/` を実
 
 - `internal/` 配下の .go ファイルは `github.com/k1s0/k1s0/src/tier2/` や `src/tier3/` を import してはいけない
 - `cmd/` 配下の .go ファイルは `internal/` のみを import（他 Pod の internal 参照禁止、Go の internal 機構で自動強制）
-- `pkg/` 配下（Phase 1b 以降）の公開 API は破壊的変更時に ADR 起票
+- `pkg/` 配下（運用蓄積後）の公開 API は破壊的変更時に ADR 起票
 
 ## Container image
 
@@ -194,7 +194,7 @@ ENTRYPOINT ["/usr/local/bin/t1-state"]
 
 - **unit test**: 各 package 配下の `_test.go`（`go test -race ./...`）
 - **integration test**: `tests/integration/` で testcontainers を使い Dapr + Redis + Kafka を起動
-- **coverage**: `go test -cover ./...`、目標 80%（Phase 1c で達成）
+- **coverage**: `go test -cover ./...`、目標 80%（リリース時点 で達成）
 
 ## スパースチェックアウト cone
 

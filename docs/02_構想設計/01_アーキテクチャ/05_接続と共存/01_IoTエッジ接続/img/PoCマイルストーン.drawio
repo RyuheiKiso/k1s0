@@ -11,7 +11,7 @@
           <mxGeometry x="0" y="10" width="1500" height="30" as="geometry" />
         </mxCell>
 
-        <mxCell id="hdrTask" value="フェーズ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
+        <mxCell id="hdrTask" value="段階" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="40" y="60" width="280" height="40" as="geometry" />
         </mxCell>
         <mxCell id="hdrM1" value="月 1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontStyle=1" vertex="1" parent="1">
@@ -88,7 +88,7 @@
           <mxGeometry x="1300" y="500" width="160" height="40" as="geometry" />
         </mxCell>
 
-        <mxCell id="legend" value="凡例 :  緑 = 案 A 系 / 青 = 案 C 系 / 赤 = 障害試験 / 橙 = 評価&#xa;マイルストーンは各フェーズ末週末に判定。失敗時は次フェーズの分岐を再計画。" style="text;html=1;align=left;fontSize=12;verticalAlign=middle" vertex="1" parent="1">
+        <mxCell id="legend" value="凡例 :  緑 = 案 A 系 / 青 = 案 C 系 / 赤 = 障害試験 / 橙 = 評価&#xa;マイルストーンは各段階末週末に判定。失敗時は次段階の分岐を再計画。" style="text;html=1;align=left;fontSize=12;verticalAlign=middle" vertex="1" parent="1">
           <mxGeometry x="40" y="600" width="1420" height="60" as="geometry" />
         </mxCell>
       </root>

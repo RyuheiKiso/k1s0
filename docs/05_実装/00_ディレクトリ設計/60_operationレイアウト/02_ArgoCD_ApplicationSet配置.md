@@ -210,7 +210,7 @@ Kubernetes の Operator パターンでは「Operator 起動＋ CRD 登録」と
 
 ### backing store との接続タイミング
 
-Wave -5 で宣言された Dapr Component CR は Operator に登録されるが、この時点で backing store（Postgres / Kafka / Valkey / MinIO）が Ready である保証はない。実際の Component 接続確認はアプリ Pod が Dapr sidecar と共に起動する Wave 10 時点。Wave 0（`infra/data`）の readiness が満たされない場合は、ArgoCD の `PreSync` Hook Job で Wave 0 対象の Ready 状態を polling 検証するパターンを追加する（`deploy/charts/predeploy-hooks/` に Chart 化、Phase 1b で整備）。
+Wave -5 で宣言された Dapr Component CR は Operator に登録されるが、この時点で backing store（Postgres / Kafka / Valkey / MinIO）が Ready である保証はない。実際の Component 接続確認はアプリ Pod が Dapr sidecar と共に起動する Wave 10 時点。Wave 0（`infra/data`）の readiness が満たされない場合は、ArgoCD の `PreSync` Hook Job で Wave 0 対象の Ready 状態を polling 検証するパターンを追加する（`deploy/charts/predeploy-hooks/` に Chart 化、リリース時点 で整備）。
 
 ## 対応 IMP-DIR ID
 

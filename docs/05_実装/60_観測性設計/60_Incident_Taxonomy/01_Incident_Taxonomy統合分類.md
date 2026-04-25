@@ -62,13 +62,13 @@ SEC 系インシデントの Severity は CVSS スコアで機械的に決定し
 
 - Label 命名: `avl`, `sec`, `dq`, `ext`（主分類）+ `sev1`〜`sev4`（Severity）+ `api:<api-name>`（影響 API）+ `cvss:<score>`（SEC 時）
 - 採番は GitHub Issue / PagerDuty / Backstage Incident プラグインで共通化し、同一インシデントを同一 ID で参照
-- 採番元は Backstage の `incident-id` plugin（Phase 1a で導入）、それまでは手動採番
+- 採番元は Backstage の `incident-id` plugin（リリース時点 で導入）、それまでは手動採番
 
 この ID 体系により、可用性系とセキュリティ系の台帳を統合し、月次レビューで両者を一覧可能にする。IMP-OBS-POL-004 の「統合台帳」要件はこの ID 体系で物理化される。
 
 ## ポストモーテムと外部通告判定
 
-Sev1 / Sev2 は 14 日以内のポストモーテム公開を必須化する（IMP-OBS-INC-066）。公開先は `ops/postmortems/` 配下で、非公開版は Backstage 内、公開版は顧客向けポータル（Phase 1b）に展開する。
+Sev1 / Sev2 は 14 日以内のポストモーテム公開を必須化する（IMP-OBS-INC-066）。公開先は `ops/postmortems/` 配下で、非公開版は Backstage 内、公開版は顧客向けポータル（リリース時点）に展開する。
 
 ポストモーテムは「事実（timeline）→ 根本原因（5 whys）→ 対策（action items）→ 対策の PR リンク」の 4 構成で記述する。blame-less を徹底し、人物名ではなく役割で記述する。
 

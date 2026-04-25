@@ -22,7 +22,7 @@
         <mxCell id="out1" value="1. Runbook 優先順位決定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
           <mxGeometry x="60" y="360" width="320" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="out1_detail" value="RPN 30 以上の全故障モードに対し Runbook 整備。Phase 1b 完了までに 15 本を NFR-A-REC-002 として固定化。各 FMEA エントリ「対応策」欄に Runbook ID を必須記載し、CI（scripts/traceability/fmea_runbook_check.py）で整合検証。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+        <mxCell id="out1_detail" value="RPN 30 以上の全故障モードに対し Runbook 整備。リリース時点までに 15 本を NFR-A-REC-002 として固定化。各 FMEA エントリ「対応策」欄に Runbook ID を必須記載し、CI（scripts/traceability/fmea_runbook_check.py）で整合検証。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
           <mxGeometry x="60" y="420" width="320" height="180" as="geometry" />
         </mxCell>
         <mxCell id="out2" value="2. 監視アラート追加（D 低減）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
@@ -46,7 +46,7 @@
         <mxCell id="canary" value="Argo Rollouts Canary 反映&#10;Runbook 改訂時は Canary デプロイで段階展開し、本番影響を最小化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="680" width="640" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="monitoring" value="モニタリング実装 &amp; リグレッション検出&#10;新規アラートと Grafana ダッシュボードを Phase 1b 完了までに本番適用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="monitoring" value="モニタリング実装 &amp; リグレッション検出&#10;新規アラートと Grafana ダッシュボードを リリース時点までに本番適用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="820" y="680" width="640" height="70" as="geometry" />
         </mxCell>
         <mxCell id="feedback" value="四半期レビュー（Product Council）&#10;SEV1 / SEV2 インシデント後のポストモーテム PR で O / D スコアを実測値更新、RPN 100 超の新規検出を承認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e6;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">

@@ -32,7 +32,7 @@
         <mxCell id="g1" value="major (rust/go/npm/.net) 4 グループ&#xa;週1 必ず人手レビュー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="650" y="120" width="320" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="g2" value="minor 同上 4 グループ&#xa;Phase 1a 人手レビュー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="g2" value="minor 同上 4 グループ&#xa;リリース時点 人手レビュー" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="650" y="175" width="320" height="50" as="geometry" />
         </mxCell>
         <mxCell id="g3" value="patch 全 ecosystem 統合 1 PR&#xa;quality gate + 6 条件 AND で auto-merge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
@@ -50,7 +50,7 @@
           <mxGeometry x="1050" y="150" width="240" height="90" as="geometry" />
         </mxCell>
 
-        <mxCell id="automerge" value="auto-merge 6 条件 AND&#xa;(patch のみ Phase 1a〜)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="automerge" value="auto-merge 6 条件 AND&#xa;(patch のみ リリース時点〜)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1050" y="270" width="240" height="60" as="geometry" />
         </mxCell>
 
@@ -112,7 +112,7 @@
         <mxCell id="legend5" value="実線太 = 明示呼び出し / 点線 = 透過捕捉 / 破線 = 非同期・通知" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="560" y="800" width="980" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="legend6" value="Phase 0: GitHub App 稼働・週次 PR・AGPL detector / Phase 1a: patch auto-merge / Phase 1b: canary 連動・self-host 検討" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="legend6" value="リリース時点で一気通貫: GitHub App 稼働 / 週次 PR / AGPL detector / patch auto-merge / canary 連動 / self-host 検討" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="560" y="835" width="980" height="30" as="geometry" />
         </mxCell>
         <mxCell id="legend7" value="auto-merge 6 条件: (1) semver patch (2) quality gate 全 pass (3) Trivy Critical=0 (4) cosign 成功 (5) SPDX 許可 (6) AGPL denylist 衝突なし" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">

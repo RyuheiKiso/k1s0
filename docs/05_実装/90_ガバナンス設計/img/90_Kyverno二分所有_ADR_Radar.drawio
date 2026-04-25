@@ -113,7 +113,7 @@
         <mxCell id="g_audit" value="監査ログ + 他章連携" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="60" y="660" width="1280" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="aud_log" value="監査ログ基盤 (Phase 1b)&#10;Kyverno audit events → OTel → Mimir" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="aud_log" value="監査ログ基盤 (リリース時点)&#10;Kyverno audit events → OTel → Mimir" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="80" y="695" width="260" height="55" as="geometry" />
         </mxCell>
         <mxCell id="aud_40" value="40 章: ライセンス判定&#10;(SPDX 判断根拠 ADR 連携)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
@@ -125,7 +125,7 @@
         <mxCell id="aud_85" value="85 章: mTLS 強制&#10;(Istio Ambient + SPIRE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="840" y="695" width="220" height="55" as="geometry" />
         </mxCell>
-        <mxCell id="aud_cmp" value="ISO 27001 / SOC2 相当 (Phase 1c)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="aud_cmp" value="ISO 27001 / SOC2 相当 (リリース時点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1080" y="695" width="240" height="55" as="geometry" />
         </mxCell>
 

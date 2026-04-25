@@ -4,14 +4,14 @@
 
 ![buf 生成パイプライン全景](img/10_buf_4言語生成パイプライン.svg)
 
-`00_ディレクトリ設計/20_tier1レイアウト/02_contracts配置.md` は `src/contracts/` 内部構造と package 命名規約を確定済で、`00_方針/01_コード生成原則.md` は 7 軸の原則を固定済である。本ファイルはその中間層、つまり「buf をどう呼び、どこに出力し、どの CI ゲートに組み込むか」を実装フェーズ確定版として固定する。
+`00_ディレクトリ設計/20_tier1レイアウト/02_contracts配置.md` は `src/contracts/` 内部構造と package 命名規約を確定済で、`00_方針/01_コード生成原則.md` は 7 軸の原則を固定済である。本ファイルはその中間層、つまり「buf をどう呼び、どこに出力し、どの CI ゲートに組み込むか」を実装段階確定版として固定する。
 
 ## buf を選んだ理由の再確認
 
 Protobuf 生成ツールとしては `protoc` + 複数 plugin を直接呼ぶ方式、`buf` を使う方式、`bazel + rules_proto` を使う方式の 3 経路がある。ADR-TIER1-002 で buf を選んだ理由は以下 3 点に集約される。
 
 - **lint / breaking / generate の統合**: `protoc` 単独だと lint は `protolint` / breaking は `buf breaking` / generate は `protoc-gen-*` を個別導入する必要があるが、buf は 1 バイナリで 3 機能を提供する
-- **BSR（Buf Schema Registry）への移行経路**: Phase 1b で `googleapis` 等の外部 proto 依存を管理する際に buf.lock / deps の仕組みが既に用意されている
+- **BSR（Buf Schema Registry）への移行経路**: リリース時点 で `googleapis` 等の外部 proto 依存を管理する際に buf.lock / deps の仕組みが既に用意されている
 - **remote plugin の再現性**: `remote: buf.build/protocolbuffers/go` 等の remote plugin 指定で生成器バージョンが buf.lock に pin される。開発者端末に protoc-gen-* を個別インストールする必要が無い
 
 本ファイルはこの採用判断の上で、物理的な buf 呼び出し経路を固定する。
@@ -29,7 +29,7 @@ Protobuf 生成ツールとしては `protoc` + 複数 plugin を直接呼ぶ方
 | `src/contracts/buf.gen.ts.yaml` | TypeScript 向け生成設定（SDK TS のみ）|
 | `src/contracts/buf.gen.csharp.yaml` | C# 向け生成設定（SDK C# のみ）|
 
-4 言語を単一 `buf.gen.yaml` にまとめる選択肢もあるが、分離する理由は 3 つ。第一に、言語ごとに生成 plugin のバージョン更新頻度が異なる（TS の `connectrpc/es` と Go の `protocolbuffers/go` は独立に更新される）ため、ファイル単位で更新 PR を分けたほうがレビューが通しやすい。第二に、選択ビルド（IMP-BUILD-POL-004）で「Rust 開発者の PR では Go / TS / C# の生成を呼ばない」運用を実現するために、`buf generate --template buf.gen.rust.yaml` と指定できる必要がある。第三に、Phase 1b で BFF 側の OpenAPI 生成を追加した際、同じ分離原則で `buf.gen.openapi.yaml` を増やす一貫性を維持できる。
+4 言語を単一 `buf.gen.yaml` にまとめる選択肢もあるが、分離する理由は 3 つ。第一に、言語ごとに生成 plugin のバージョン更新頻度が異なる（TS の `connectrpc/es` と Go の `protocolbuffers/go` は独立に更新される）ため、ファイル単位で更新 PR を分けたほうがレビューが通しやすい。第二に、選択ビルド（IMP-BUILD-POL-004）で「Rust 開発者の PR では Go / TS / C# の生成を呼ばない」運用を実現するために、`buf generate --template buf.gen.rust.yaml` と指定できる必要がある。第三に、リリース時点 で BFF 側の OpenAPI 生成を追加した際、同じ分離原則で `buf.gen.openapi.yaml` を増やす一貫性を維持できる。
 
 ## 生成先の物理パス
 

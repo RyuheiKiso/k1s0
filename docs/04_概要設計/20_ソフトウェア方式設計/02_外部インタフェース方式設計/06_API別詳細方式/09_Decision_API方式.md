@@ -4,7 +4,7 @@
 
 ## 本ファイルの位置付け
 
-Decision API は業務ロジックが「ルール / ポリシーによる判定」を tier1 に委譲する価値抽象である。与信限度・割引適用・特権承認などの判定を各アプリでハードコードすると、ルール変更時のリリース多発・重複実装・齟齬という典型的な JTC の痛点が発生する。tier1 は [ZEN Engine](https://gorules.io) を Rust 実装 custom-decision pod にライブラリリンクで内包し、JDM（JSON Decision Model）準拠の宣言的ルールをプロセス内 JIT コンパイルで評価する構成で、p99 1ms の低レイテンシを実現する。
+Decision API は業務ロジックが「ルール / ポリシーによる判定」を tier1 に委譲する価値抽象である。与信限度・割引適用・特権承認などの判定を各アプリでハードコードすると、ルール変更時のリリース多発・重複実装・齟齬という典型的な 採用側組織の痛点が発生する。tier1 は [ZEN Engine](https://gorules.io) を Rust 実装 custom-decision pod にライブラリリンクで内包し、JDM（JSON Decision Model）準拠の宣言的ルールをプロセス内 JIT コンパイルで評価する構成で、p99 1ms の低レイテンシを実現する。
 
 この設計は [ADR-RULE-001] で確定した。OSS の決定エンジン候補（OPA Rego / DMN Camunda / Drools）の比較検討の結果、ZEN Engine を採用した理由は (1) MPL-2.0 ライセンスで商用利用に制約なし、(2) Rust ネイティブで tier1 の Rust 自作領域との親和性、(3) JDM のビジュアルエディタ提供、(4) ベンチマークで p99 100µs を記録（tier1 の 1ms SLO に対して 10 倍マージン）の 4 点である。本ファイルは ZEN Engine を tier1 公開 API として安全に露出するための契約を固定化する。
 
@@ -42,11 +42,11 @@ JDM は GoRules 社が提唱する宣言的ルール記述形式で、Decision T
 
 **設計項目 DS-SW-EIF-384 policy_id のバージョン suffix 必須化**
 
-`policy_id` は `<name>@<version>` 形式を必須とする。version は SemVer（`1.0.0`）または Calendar Versioning（`2026.04`）のどちらかを選択可能で、ポリシー単位で固定する。新旧バージョンの並行提供を前提とし、tier2 / tier3 アプリは明示的に `policy_id = "credit-check@1.2.0"` を指定して評価する。バージョン省略時の latest 解決は提供しない。理由は、アプリ側が意図しない新ルールで判定されることによる本番事故（過去 JTC 事例で頻発）を構造的に防ぐためである。段階展開は Feature API と連携して `if feature.enabled("credit-check-v2") then "credit-check@2.0.0" else "credit-check@1.2.0"` のパターンで実現する。
+`policy_id` は `<name>@<version>` 形式を必須とする。version は SemVer（`1.0.0`）または Calendar Versioning（`2026.04`）のどちらかを選択可能で、ポリシー単位で固定する。新旧バージョンの並行提供を前提とし、tier2 / tier3 アプリは明示的に `policy_id = "credit-check@1.2.0"` を指定して評価する。バージョン省略時の latest 解決は提供しない。理由は、アプリ側が意図しない新ルールで判定されることによる本番事故（過去 採用側組織の事例で頻発）を構造的に防ぐためである。段階展開は Feature API と連携して `if feature.enabled("credit-check-v2") then "credit-check@2.0.0" else "credit-check@1.2.0"` のパターンで実現する。
 
 **設計項目 DS-SW-EIF-385 Sigstore cosign によるポリシー署名検証**
 
-`DeployPolicy` は `policy_id` / `jdm_content`（bytes）/ `signature`（bytes、Sigstore cosign 署名）/ `version` / `deployer_identity` の 5 フィールドを受ける。tier1 は受領した JDM バイト列の cosign 署名を Sigstore Fulcio 発行の x509 証明書チェーンで検証し、検証失敗時は `SIGNATURE_VERIFICATION_FAILED` を返し登録を拒否する。署名は CI/CD パイプライン（GitHub Actions OIDC → Sigstore）で自動付与され、人間が手動で JDM を編集して直接 API 呼び出しする経路を遮断する。この署名フローは [../../../02_構想設計/04_CICDと配信/](../../../02_構想設計/04_CICDと配信/) の Keyless Signing 方針と連動する。
+`DeployPolicy` は `policy_id` / `jdm_content`（bytes）/ `signature`（bytes、Sigstore cosign 署名）/ `version` / `deployer_identity` の 5 フィールドを受ける。tier1 は受領した JDM バイト列の cosign 署名を Sigstore Fulcio 発行の x509 証明書チェーンで検証し、検証失敗時は `SIGNATURE_VERIFICATION_FAILED` を返し登録を拒否する。署名は CI/CD パイプライン（GitHub Actions OIDC → Sigstore）で自動付与され、人間が手動で JDM を編集して直接 API 呼び出しする経路を遮断する。この署名フローは [../../../02_構想設計/04_CICDと配信/](../../../../02_構想設計/04_CICDと配信/) の Keyless Signing 方針と連動する。
 
 **設計項目 DS-SW-EIF-386 ListPolicies / GetPolicy の監査用途**
 
@@ -70,11 +70,11 @@ tier1 custom-decision pod は Rust で実装され、ZEN Engine を `zen-engine`
 
 **設計項目 DS-SW-EIF-389 NUMA 最適化と CPU affinity**
 
-custom-decision pod は 4 vCPU / 8GB RAM の構成で、K8s `topologyManager` policy を `single-numa-node` に設定して NUMA ノードローカルメモリのみ使用させる。Rust の tokio runtime は `worker_threads=4` + `thread_per_core` モードで起動し、CPU affinity を pinning する。この最適化により L3 キャッシュミス率が 30% 減少し、p99 100µs → 70µs（ベンチマーク内部計測）の改善を確認済み。Phase 1b 時点では single-NUMA 構成で足り、マルチ NUMA 構成（Phase 2 の高負荷期）では per-NUMA pod でシャーディングする方針を [ADR-ZEN-002]（未起票、Phase 2 時点で起票予定）として保留する。
+custom-decision pod は 4 vCPU / 8GB RAM の構成で、K8s `topologyManager` policy を `single-numa-node` に設定して NUMA ノードローカルメモリのみ使用させる。Rust の tokio runtime は `worker_threads=4` + `thread_per_core` モードで起動し、CPU affinity を pinning する。この最適化により L3 キャッシュミス率が 30% 減少し、p99 100µs → 70µs（ベンチマーク内部計測）の改善を確認済み。リリース時点 時点では single-NUMA 構成で足り、マルチ NUMA 構成（採用後の運用拡大時 の高負荷期）では per-NUMA pod でシャーディングする方針を [ADR-ZEN-002]（未起票、採用後の運用拡大時 時点で起票予定）として保留する。
 
 **設計項目 DS-SW-EIF-390 MPL-2.0 ライセンス制約とコンプライアンス**
 
-ZEN Engine は MPL-2.0（Mozilla Public License 2.0）で配布されており、ライブラリリンクによる tier1 Rust バイナリへの組み込みはライセンス条項上問題ない。MPL-2.0 は「MPL 下のファイル単位」のコピーレフト条項であり、ZEN Engine のソースファイルを改変しない限り、tier1 の Rust コードは MPL に汚染されない（ファイルレベル copyleft）。tier1 の custom-decision Pod バイナリは「ZEN Engine オリジナルファイル + tier1 独自ファイル」の組み合わせであり、ZEN Engine オリジナルファイルのソース公開義務のみ負う。この義務はベンダ組込ではなく OSS そのものを流用するため実質的な追加負担なしで充足する。詳細は [../../../02_構想設計/05_法務とコンプライアンス/](../../../02_構想設計/05_法務とコンプライアンス/) の OSS ライセンス審査結果に従う。
+ZEN Engine は MPL-2.0（Mozilla Public License 2.0）で配布されており、ライブラリリンクによる tier1 Rust バイナリへの組み込みはライセンス条項上問題ない。MPL-2.0 は「MPL 下のファイル単位」のコピーレフト条項であり、ZEN Engine のソースファイルを改変しない限り、tier1 の Rust コードは MPL に汚染されない（ファイルレベル copyleft）。tier1 の custom-decision Pod バイナリは「ZEN Engine オリジナルファイル + tier1 独自ファイル」の組み合わせであり、ZEN Engine オリジナルファイルのソース公開義務のみ負う。この義務はベンダ組込ではなく OSS そのものを流用するため実質的な追加負担なしで充足する。詳細は [../../../02_構想設計/05_法務とコンプライアンス/](../../../../02_構想設計/05_法務とコンプライアンス/) の OSS ライセンス審査結果に従う。
 
 ## 監査トレイル連携
 
@@ -99,11 +99,11 @@ Decision API 固有のエラーは K1s0Error の `code` フィールドに以下
 | `EVALUATION_TIMEOUT` | DEADLINE_EXCEEDED | function ノード 50ms 超過 | DS-SW-EIF-387 サンドボックス制約 |
 | `SANDBOX_VIOLATION` | PERMISSION_DENIED | function ノードが禁止 API 呼び出し | 同上 |
 
-## フェーズ別提供範囲
+## 採用段階別提供範囲
 
-**設計項目 DS-SW-EIF-393 フェーズ別提供範囲**
+**設計項目 DS-SW-EIF-393 採用段階別提供範囲**
 
-Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `Evaluate` / `DeployPolicy` / `ListPolicies` / `GetPolicy` の 4 メソッド、単一評価のみ、JDM ノード type は `decisionTable` / `expression` / `switch` の 3 種（`function` ノードは未対応）。Phase 1c（MVP-1b）: `EvaluateBatch` 追加、`function` ノード（QuickJS サンドボックス付き）追加、段階展開 Feature API 連携。Phase 2: マルチテナント向けポリシー共有機能（テナント間で共通ポリシーを参照する仕組み、ただしテナント分離は維持）、NUMA シャーディング検討。
+採用初期: 提供なし。採用初期: `Evaluate` / `DeployPolicy` / `ListPolicies` / `GetPolicy` の 4 メソッド、単一評価のみ、JDM ノード type は `decisionTable` / `expression` / `switch` の 3 種（`function` ノードは未対応）。採用初期: `EvaluateBatch` 追加、`function` ノード（QuickJS サンドボックス付き）追加、段階展開 Feature API 連携。採用後の運用拡大時: マルチテナント向けポリシー共有機能（テナント間で共通ポリシーを参照する仕組み、ただしテナント分離は維持）、NUMA シャーディング検討。
 
 ## 対応要件一覧
 
@@ -120,7 +120,7 @@ Phase 1a（MVP-0）: 提供なし。Phase 1b（MVP-1a）: `Evaluate` / `DeployPo
 | NFR-H-COMP-002 | 判定結果の監査証跡（Audit-Pii 連携） | DS-SW-EIF-392, DS-NFR-COMP-002 | 完全 |
 | NFR-H-INT-004 | ポリシー改ざん防止（cosign 署名） | DS-SW-EIF-394, DS-NFR-SEC-020 | 完全 |
 
-表に載せた要件数は FR-T1-DECISION-* 4 件 + NFR 4 件 = 計 8 件。Decision p99 は要件定義書 [`../../../../03_要件定義/30_非機能要件/B_性能拡張性.md`](../../../../03_要件定義/30_非機能要件/B_性能拡張性.md) の **NFR-B-PERF-004**（Decision 評価 p99 < 1ms、Phase 1a MUST）に対応する。PubSub Publish p99 50ms は NFR-B-PERF-005 で別要件。過去改訂で「オフバイワン修正」として 004→005 へ書換えた記述は要件書側の連番を誤認した誤修正であり、本版で要件書の正規番号に戻した。
+表に載せた要件数は FR-T1-DECISION-* 4 件 + NFR 4 件 = 計 8 件。Decision p99 は要件定義書 [`../../../../03_要件定義/30_非機能要件/B_性能拡張性.md`](../../../../03_要件定義/30_非機能要件/B_性能拡張性.md) の **NFR-B-PERF-004**（Decision 評価 p99 < 1ms、リリース時点 MUST）に対応する。PubSub Publish p99 50ms は NFR-B-PERF-005 で別要件。過去改訂で「オフバイワン修正」として 004→005 へ書換えた記述は要件書側の連番を誤認した誤修正であり、本版で要件書の正規番号に戻した。
 
 補助参照は以下のとおり。
 

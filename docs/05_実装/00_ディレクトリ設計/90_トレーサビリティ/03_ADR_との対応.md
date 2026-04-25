@@ -123,10 +123,10 @@ Backstage / Dev Container / テスト戦略 / Golden Path の採用決定。
 |---|---|
 | IMP-DIR-COMM-114（third_party 配置） | 直接 |
 
-## 未起票の ADR（Phase 1c 以降判定）
+## 未起票の ADR（運用蓄積後判定）
 
 - ADR-DIR-004: Git LFS ポリシー
 - ADR-DIR-005: CODEOWNERS 構造（現時点は `06_CODEOWNERSマトリクス設計.md` に記述のみ）
 - ADR-DIR-006: Bazel / Buck2 / Nx / Turborepo 等のビルドツール導入
 
-これらは Phase 1c で判定する。本プランでは採番しない。
+これらは リリース時点 で判定する。本プランでは採番しない。

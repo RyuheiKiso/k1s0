@@ -27,7 +27,7 @@
         <mxCell id="ci" value="GitHub Actions CI&#10;k1s0-feature-flag-lint&#10;(期限 / 孤立 / 所有者 / ハードコード)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="60" y="220" width="240" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="branchprot" value="Branch Protection&#10;Production Ops: 2 名承認&#10;(SRE + Security Officer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="branchprot" value="Branch Protection&#10;Production Ops: 複数名承認&#10;(SRE + Security Officer)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="340" y="220" width="240" height="80" as="geometry" />
         </mxCell>
         <mxCell id="argocd" value="Argo CD&#10;(GitOps Sync)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
@@ -52,13 +52,13 @@
         <mxCell id="ofprov" value="OpenFeature in-process provider&#10;(tier1 内メモリ評価)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="980" y="340" width="260" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="flagd" value="flagd (CNCF Sandbox)&#10;Phase 1a 単一 Pod&#10;Phase 1b+ HA 2 Pod&#10;ConfigMap file provider watch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="flagd" value="flagd (CNCF Sandbox)&#10;リリース時点 単一 Pod&#10;リリース時点+ HA 2 Pod&#10;ConfigMap file provider watch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1300" y="340" width="280" height="80" as="geometry" />
         </mxCell>
         <mxCell id="jsonlogic" value="JSONLogic 評価エンジン&#10;Evaluation Context:&#10;tenant_id / user_id / env /&#10;percentage_rollout / date_range /&#10;source_ip_class" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1300" y="460" width="280" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="kill_note" value="Kill Switch: ConfigMap.data.kill_switch=true で全 Flag を defaultVariant に強制 (Platform Admin 2 名承認)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
+        <mxCell id="kill_note" value="Kill Switch: ConfigMap.data.kill_switch=true で全 Flag を defaultVariant に強制 (Platform Admin（複数名）承認)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=10;fontStyle=2;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="660" y="540" width="580" height="50" as="geometry" />
         </mxCell>
 

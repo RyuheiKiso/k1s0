@@ -32,7 +32,7 @@
           <mxGeometry x="100" y="150" width="740" height="60" as="geometry" />
         </mxCell>
 
-        <mxCell id="orchestrator_compensation" value="Temporal Workflow (Compensation フェーズに遷移)&#xa;失敗検出後 10 秒以内に補償開始 / 逆順で Compensation Activity を呼び出し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="orchestrator_compensation" value="Temporal Workflow (Compensation 段階に遷移)&#xa;失敗検出後 10 秒以内に補償開始 / 逆順で Compensation Activity を呼び出し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="960" y="150" width="740" height="60" as="geometry" />
         </mxCell>
 
@@ -80,7 +80,7 @@
           <mxGeometry x="980" y="380" width="230" height="70" as="geometry" />
         </mxCell>
 
-        <mxCell id="trigger_comp" value="Compensation フェーズ開始&#xa;既完了ステップを逆順処理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="trigger_comp" value="Compensation 段階開始&#xa;既完了ステップを逆順処理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=11;fontStyle=1;fontColor=#000000;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="1400" y="380" width="250" height="70" as="geometry" />
         </mxCell>
 
@@ -231,7 +231,7 @@
           <mxGeometry x="1272" y="1054" width="456" height="18" as="geometry" />
         </mxCell>
 
-        <mxCell id="legend_comp" value="■ 補償遷移 (橙): Compensation フェーズトリガ / 逆順実行" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#ef6c00;align=left;" vertex="1" parent="1">
+        <mxCell id="legend_comp" value="■ 補償遷移 (橙): Compensation 段階トリガ / 逆順実行" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#ef6c00;align=left;" vertex="1" parent="1">
           <mxGeometry x="1272" y="1074" width="456" height="18" as="geometry" />
         </mxCell>
 
@@ -243,7 +243,7 @@
           <mxGeometry x="1272" y="1114" width="456" height="18" as="geometry" />
         </mxCell>
 
-        <mxCell id="legend_orange_arrow" value="― 橙実線太: 補償フェーズ逆順トリガ" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
+        <mxCell id="legend_orange_arrow" value="― 橙実線太: 補償段階逆順トリガ" style="text;html=1;strokeColor=none;fillColor=none;fontSize=10;fontColor=#000000;align=left;" vertex="1" parent="1">
           <mxGeometry x="1272" y="1134" width="456" height="18" as="geometry" />
         </mxCell>
 

@@ -13,7 +13,7 @@
         <mxCell id="svrLbl" value="spire-system namespace" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="50" y="60" width="300" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="svrNode" value="SPIRE Server HA 3 replica&#10;署名 CA (Phase 0 自己署名)&#10;entry registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="svrNode" value="SPIRE Server HA 3 replica&#10;署名 CA (リリース時点 自己署名)&#10;entry registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="60" y="100" width="220" height="80" as="geometry" />
         </mxCell>
         <mxCell id="regEntry" value="Registration Entry (GitOps 宣言)&#10;infra/security/spire-server/entries/*.yaml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
@@ -61,7 +61,7 @@
         <mxCell id="rvkPanel" value="緊急 revoke&#10;emergency-revoke.sh&#10;entry 削除 + AuthZ deny&#10;(Keycloak disable 連動)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="940" y="470" width="380" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="fedPanel" value="Phase 1b Federation (trust domain 跨ぎ)&#10;bundle 交換: k1s0.local - k1s0-customer-&lt;id&gt;.local&#10;OCI artifact + cosign 署名で bundle 配送 / 週次再配信 / 1 か月有効" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
+        <mxCell id="fedPanel" value="リリース時点 Federation (trust domain 跨ぎ)&#10;bundle 交換: k1s0.local - k1s0-customer-&lt;id&gt;.local&#10;OCI artifact + cosign 署名で bundle 配送 / 週次再配信 / 1 か月有効" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="610" width="1300" height="90" as="geometry" />
         </mxCell>
         <mxCell id="lgd" value="凡例: アプリ層(暖色)=SPIRE Server/Agent/entry/SLI / ネットワーク層(寒色)=ztunnel/waypoint/SVID/SPIFFE ID / インフラ層(灰)=Pod/kapiserver/csi / データ層(紫)=CloudNativePG  実線太=明示呼出 / 点線細=透過捕捉" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#333333;fontSize=9;" vertex="1" parent="1">

@@ -183,10 +183,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
     // tonic-build で Rust コードを生成
-    // out_dir は crate root (Cargo.toml 位置) からの相対。src/ を指定すると
-    // proto package (k1s0.tier1.v1 / k1s0.tier1.internal.v1) が階層を決めるため、
-    // 実出力は src/tier1/v1/*.rs および src/tier1/internal/v1/*.rs になる。
-    // （`out_dir("src/v1")` のように末端まで指定すると階層がフラット化するため不可）
+    // out_dir は crate root (Cargo.toml 位置) からの相対。tonic-build は
+    // proto package 名を `.` → `_` に変換したフラットファイルを出力する。
+    // k1s0.tier1.v1 → src/k1s0.tier1.v1.rs
+    // k1s0.tier1.internal.v1 → src/k1s0.tier1.internal.v1.rs
+    // （階層ディレクトリは掘らない。lib.rs で include! マクロで再エクスポートする）
     tonic_build::configure()
         .build_server(true)
         .build_client(true)
@@ -197,13 +198,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-なお `build.rs` 方式と pre-generated 方式を同時に有効化すると生成先が衝突するため、どちらか一方のみ有効とする。Phase 1a は pre-generated を正、`build.rs` は drift 検出用に `--dry-run` 相当（生成後 diff 確認のみ）で運用する。
+なお `build.rs` 方式と pre-generated 方式を同時に有効化すると生成先が衝突するため、どちらか一方のみ有効とする。リリース時点 は pre-generated を正、`build.rs` は drift 検出用に `--dry-run` 相当（生成後 diff 確認のみ）で運用する。
 
 ## 生成物の commit
 
-DS-SW-COMP-132 で論じた通り、Phase 1a では `build.rs` 方式（OUT_DIR）と pre-generated 方式の両方を準備する。pre-generated は `crates/proto-gen/src/tier1/v1/` 配下に commit し、`build.rs` で生成した結果との diff を CI で検出する。
+DS-SW-COMP-132 で論じた通り、リリース時点 では `build.rs` 方式（OUT_DIR）と pre-generated 方式の両方を準備する。pre-generated は `crates/proto-gen/src/` 直下にフラット commit し（`k1s0.tier1.v1.rs` / `k1s0.tier1.internal.v1.rs`）、`build.rs` で生成した結果との diff を CI で検出する。
 
-Phase 1b で運用が安定したら、pre-generated 一本化（`build.rs` 廃止）を検討する。
+リリース時点 で運用が安定したら、pre-generated 一本化（`build.rs` 廃止）を検討する。
 
 ## 各 Pod crate の内部構造
 
@@ -262,12 +263,13 @@ DS-SW-COMP-134 に従い multi-stage build。
 
 ```dockerfile
 # Dockerfile.decision
+# build context はリポジトリルート（docker build -f src/tier1/rust/Dockerfile.decision .）
 FROM rust:1.85 AS builder
 WORKDIR /workspace
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY crates/ ./crates/
-# contracts も build.rs が参照するためコピー
-COPY ../../contracts/ /workspace-contracts/
+COPY src/tier1/rust/Cargo.toml src/tier1/rust/Cargo.lock src/tier1/rust/rust-toolchain.toml ./
+COPY src/tier1/rust/crates/ ./crates/
+# contracts も build.rs が参照するためコピー（build context がリポジトリルートのため src/ から参照可能）
+COPY src/contracts/ /workspace-contracts/
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/workspace/target \
@@ -281,7 +283,7 @@ EXPOSE 50001 9090
 ENTRYPOINT ["/usr/local/bin/t1-decision"]
 ```
 
-ただし上記 Dockerfile の `COPY ../../contracts/` は docker build context の制約で `docker build` のルートを src/tier1/rust/ ではなく リポジトリルート にする必要がある。CI では以下のように呼び出す。
+build context は **常にリポジトリルート** とする。Docker の `COPY` は build context 外部（`../` 参照）を禁止しているため、contracts を参照するには build context をリポジトリルートに設定し `src/contracts/` パスで参照する。CI は以下のように呼び出す。
 
 ```bash
 docker build -f src/tier1/rust/Dockerfile.decision -t ghcr.io/k1s0/t1-decision:$TAG .
@@ -291,7 +293,7 @@ docker build -f src/tier1/rust/Dockerfile.decision -t ghcr.io/k1s0/t1-decision:$
 
 - **unit test**: `#[cfg(test)]` モジュール内（`cargo nextest run` で並列実行）
 - **integration test**: `crates/<crate>/tests/integration/` で testcontainers を使って外部リソースを起動
-- **coverage**: `cargo llvm-cov`、目標 80%（Phase 1c）
+- **coverage**: `cargo llvm-cov`、目標 80%（リリース時点）
 - **fuzz**: `cargo-fuzz` を pii crate で使い、正規表現 DoS 対策を検証
 
 ## スパースチェックアウト cone

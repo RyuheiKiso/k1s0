@@ -36,7 +36,7 @@ src/tier3/native/
 │   │   │   ├── Styles/
 │   │   │   └── Raw/
 │   │   └── Properties/
-│   └── K1s0.Native.Admin/          # Phase 1c 以降
+│   └── K1s0.Native.Admin/          # 運用蓄積後
 │       └── ...
 └── shared/
     └── K1s0.Native.Shared/
@@ -61,7 +61,7 @@ src/tier3/native/
 
 ## 対象プラットフォーム
 
-Phase 1b では iOS + Android のみ。Phase 1c で Windows + macOS を追加。
+リリース時点 では iOS + Android のみ。リリース時点 で Windows + macOS を追加。
 
 - iOS: .NET 8 + Xcode 15
 - Android: .NET 8 + AndroidX + API 34（Android 14）以上
@@ -135,7 +135,7 @@ tier3 Native 内の共通コンポーネント（カスタム Control / Converte
 - `K1s0.Sdk` / `K1s0.Sdk.Auth`
 - `sqlite-net-pcl`
 - `CommunityToolkit.Mvvm`
-- `Sentry.Maui`（クラッシュログ収集、Phase 1c 以降）
+- `Sentry.Maui`（クラッシュログ収集、運用蓄積後）
 
 ## ビルド
 
@@ -153,19 +153,19 @@ dotnet publish apps/K1s0.Native.Hub/K1s0.Native.Hub.csproj \
 
 ## CI / CD
 
-Phase 1b 以降で以下を整備。
+運用蓄積後で以下を整備。
 
 - Android: GitHub Actions `macos-latest` または `ubuntu-latest` で APK ビルド、署名は internal distribution でのみ
 - iOS: GitHub Actions `macos-latest` で archive ビルド、TestFlight 配布
 - Windows: GitHub Actions `windows-latest` で MSIX ビルド
 - macOS: GitHub Actions `macos-latest` で dmg ビルド
 
-署名証明書の管理は Phase 1b で詳細設計。
+署名証明書の管理は リリース時点 で詳細設計。
 
 ## テスト戦略
 
 - unit test: xUnit + NSubstitute で ViewModel / Service を検証
-- UI test: MAUI UI Testing（Phase 1c 以降）
+- UI test: MAUI UI Testing（運用蓄積後）
 - 手動検証: 各プラットフォーム実機での動作確認
 
 ## 依存方向

@@ -18,7 +18,7 @@
 
 ### Tenant
 
-テナントは JTC 社内の部門、子会社、あるいは将来の外販先として想定する契約単位。`tenant_code` は人間可読の業務キー（`"finance-2024"` など）、`tenant_id` は UUID v4 でシステム的キー。`parent_tenant_id` で親子階層を表現し、企業グループの構造を反映できる。`tier` は課金階層（free / standard / enterprise）で、Feature Flag の targeting に使う。
+テナントは 採用側組織の社内の部門、子会社、あるいは将来の外販先として想定する契約単位。`tenant_code` は人間可読の業務キー（`"finance-2024"` など）、`tenant_id` は UUID v4 でシステム的キー。`parent_tenant_id` で親子階層を表現し、企業グループの構造を反映できる。`tier` は課金階層（free / standard / enterprise）で、Feature Flag の targeting に使う。
 
 ### User（Keycloak 同期）
 

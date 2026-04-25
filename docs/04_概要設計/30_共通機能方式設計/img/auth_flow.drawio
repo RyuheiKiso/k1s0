@@ -67,10 +67,10 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="phase1_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="stage1_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="160" width="1540" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="phase1_label" value="第一層: エンドユーザー認証 (OIDC Authorization Code Flow + PKCE)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#2e7d32;" vertex="1" parent="1">
+        <mxCell id="stage1_label" value="第一層: エンドユーザー認証 (OIDC Authorization Code Flow + PKCE)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#2e7d32;" vertex="1" parent="1">
           <mxGeometry x="60" y="136" width="1540" height="20" as="geometry" />
         </mxCell>
 
@@ -105,10 +105,10 @@
           </mxGeometry>
         </mxCell>
 
-        <mxCell id="phase2_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="stage2_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="380" width="1540" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="phase2_label" value="第二層: tier1 API 呼出時の JWT 検証 (Envoy ext_authz + Interceptor 二重検証)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#1565c0;" vertex="1" parent="1">
+        <mxCell id="stage2_label" value="第二層: tier1 API 呼出時の JWT 検証 (Envoy ext_authz + Interceptor 二重検証)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#1565c0;" vertex="1" parent="1">
           <mxGeometry x="60" y="358" width="1540" height="20" as="geometry" />
         </mxCell>
 
@@ -143,10 +143,10 @@
           <mxGeometry x="970" y="530" width="440" height="18" as="geometry" />
         </mxCell>
 
-        <mxCell id="phase3_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="stage3_band" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#6a1b9a;fontSize=11;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="590" width="1540" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="phase3_label" value="第三層: tier1 内部コンポーネント間通信 (SPIFFE/SPIRE + Istio Ambient 自動 mTLS)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#6a1b9a;" vertex="1" parent="1">
+        <mxCell id="stage3_label" value="第三層: tier1 内部コンポーネント間通信 (SPIFFE/SPIRE + Istio Ambient 自動 mTLS)" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#6a1b9a;" vertex="1" parent="1">
           <mxGeometry x="60" y="568" width="1540" height="20" as="geometry" />
         </mxCell>
 

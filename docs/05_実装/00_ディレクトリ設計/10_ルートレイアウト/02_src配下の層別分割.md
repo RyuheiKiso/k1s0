@@ -76,7 +76,7 @@ src/sdk/
 ├── dotnet/             # C# NuGet
 ├── go/                 # Go module（独立）
 ├── typescript/         # npm workspace package
-└── rust/               # Rust crate（Phase 2 骨組み）
+└── rust/               # Rust crate（採用後の運用拡大時 骨組み）
 ```
 
 **所有権**: `@k1s0/sdk-team`
@@ -87,7 +87,7 @@ src/sdk/
 
 ### tier2
 
-**役割**: ドメイン共通業務ロジック。JTC 業務の実装例やテンプレートを含む。
+**役割**: ドメイン共通業務ロジック。採用側組織の業務の実装例やテンプレートを含む。
 
 **内部構造**:
 
@@ -143,7 +143,7 @@ src/platform/
 
 **依存方向**: contracts / tier1 SDK を参照することはあるが、逆参照はなし。cli は tier2 / tier3 の scaffolding に templates/ を参照
 
-**対応**: [70_共通資産/](../70_共通資産/) および本章。platform 配下は Phase 1a で最小実装、Phase 1b で拡張、Phase 2 で Backstage 統合。
+**対応**: [70_共通資産/](../70_共通資産/) および本章。platform 配下は リリース時点で 最小実装 / 拡張、採用後の運用拡大時 で Backstage 統合。
 
 ## src/ 配下に置かないもの
 
@@ -160,16 +160,16 @@ src/platform/
 
 理由は責務境界の明確化（IMP-DIR-ROOT-001）と生成物とソースの分離（IMP-DIR-ROOT-005）に基づく。
 
-## 層ごとの Phase 導入タイミング
+## 層ごとの導入タイミング
 
-| 層 | Phase 0 | Phase 1a | Phase 1b | Phase 1c | Phase 2 |
+| 層 | リリース時点 | リリース時点 | リリース時点 | リリース時点 | 採用後の運用拡大時 |
 |---|---|---|---|---|---|
 | contracts | 構造のみ | tier1 v1 全 11 API | internal v1 追加 | 契約 breaking 管理強化 | tier2/3 独自契約追加 |
 | tier1 | 構造のみ | go + rust 全 6 Pod 実装 | HA 化 | 品質確保 | 拡張 |
 | sdk | 構造のみ | C# + TS 最小実装 | Go 追加 | Rust 骨組み | 4 言語完成度向上 |
-| tier2 | 構造のみ | テンプレのみ | JTC 業務サービス 2-3 個 | 拡張 | 拡張 |
-| tier3 | 構造のみ | 配信ポータル最小 | Web + BFF 本格化 | MAUI + Legacy-wrap | 拡張 |
-| platform | 構造のみ | CLI 最小 | analyzer | Backstage プラグイン骨組み | Backstage 本格化 |
+| tier2 | 構造のみ | テンプレのみ | 採用側組織の業務サービス 2-3 個 | 拡張 | 拡張 |
+| tier3 | 構造のみ | 配信ポータル最小 | Web + BFF 本格運用 | MAUI + Legacy-wrap | 拡張 |
+| platform | 構造のみ | CLI 最小 | analyzer | Backstage プラグイン骨組み | Backstage 本格運用 |
 
 ## 対応 IMP-DIR ID
 

@@ -1,12 +1,12 @@
 # 01. Argo Rollouts PD 設計
 
-本ファイルは k1s0 の Progressive Delivery（PD）を実装フェーズ確定版として固定する。ADR-CICD-002 で選定した Argo Rollouts 1.7+ と ADR-REL-001 で全リリース必須化した PD を、Canary の段階数・AnalysisTemplate の共通セット・SLI 連動の自動 rollback・例外経路・rollback runbook との結合までを物理配置レベルで規定する。
+本ファイルは k1s0 の Progressive Delivery（PD）を実装段階確定版として固定する。ADR-CICD-002 で選定した Argo Rollouts 1.7+ と ADR-REL-001 で全リリース必須化した PD を、Canary の段階数・AnalysisTemplate の共通セット・SLI 連動の自動 rollback・例外経路・rollback runbook との結合までを物理配置レベルで規定する。
 
 ![Argo Rollouts Canary と AnalysisTemplate SLI 連動](img/20_ArgoRollouts_Canary_Analysis.svg)
 
-## なぜ PD を Phase 0 から全リリース必須化するのか
+## なぜ PD を リリース時点 から全リリース必須化するのか
 
-一気通貫リリース（Deployment の RollingUpdate のみ）は「事故が起きた時点で全ユーザーに波及している」状態であり、JTC の 10 年保守では許容しない。ADR-REL-001 の核心は「PD を特定コンポーネントのみに絞ると境界判定コストが体制拡大で線形に増え、10 年後に必ず曖昧化する」であり、Phase 0 から全リリース必須化することで境界判定自体を消す設計とした。
+一気通貫リリース（Deployment の RollingUpdate のみ）は「事故が起きた時点で全ユーザーに波及している」状態であり、採用側組織の 10 年保守では許容しない。ADR-REL-001 の核心は「PD を特定コンポーネントのみに絞ると境界判定コストが体制拡大で線形に増え、10 年後に必ず曖昧化する」であり、リリース時点 から全リリース必須化することで境界判定自体を消す設計とした。
 
 例外範囲（内部ツール / バッチ / emergency patch）を明文化しつつ、SLI 連動の自動 rollback を AnalysisTemplate で共通セット化することで、PD は「リリース担当者が意識しない既定」として回る。本ファイルはこの既定の物理配置（Rollout CRD / AnalysisTemplate / rollback 経路）を `deploy/rollouts/` 配下に固定する。
 
@@ -14,7 +14,7 @@
 
 Canary の既定は `5% → 25% → 100%` の 3 段階とする。最小 3 段階は IMP-REL-POL-006 で固定しており、これ以下への短縮は SRE リード + 事業責任者の両者承認 + 理由の ADR 化を要する。各段階の `waitDuration` は 5 分を既定とし、AnalysisTemplate が並行して SLI を評価する。
 
-tier1 公開 11 API は Phase 1a で 10 段階（`5% → 10% → 20% → 30% → ... → 100%`）に細分化する。tier1 は影響範囲が広く、中間段階の観測窓を厚くすることで異常検知精度を上げる。細分化後の waitDuration は各 3 分とし、全体所要時間を約 30 分以内に収める。
+tier1 公開 11 API は リリース時点 で 10 段階（`5% → 10% → 20% → 30% → ... → 100%`）に細分化する。tier1 は影響範囲が広く、中間段階の観測窓を厚くすることで異常検知精度を上げる。細分化後の waitDuration は各 3 分とし、全体所要時間を約 30 分以内に収める。
 
 ```yaml
 # deploy/charts/tier1/templates/rollout.yaml（抜粋）
@@ -83,7 +83,7 @@ ADR-REL-001 に従い、次のカテゴリのみ標準 Kubernetes Deployment の
 
 ## Blue-Green 戦略の限定採用
 
-Blue-Green は `tier3/native/`（MAUI）の配布パイプラインにのみ Phase 1a で採用する。他領域で採用しない理由は「状態を持たないサービスでは Canary の方が情報量が多い」「Blue-Green は切替えの瞬間に全トラフィックが移動するため、中間段階の観測窓が消失する」ためである。MAUI 配布だけが例外な理由は、アプリストア配布（Apple App Store / Google Play / Microsoft Store）の本質が Blue-Green であり、Canary の段階重み付けが不可能なためである。
+Blue-Green は `tier3/native/`（MAUI）の配布パイプラインにのみ リリース時点 で採用する。他領域で採用しない理由は「状態を持たないサービスでは Canary の方が情報量が多い」「Blue-Green は切替えの瞬間に全トラフィックが移動するため、中間段階の観測窓が消失する」ためである。MAUI 配布だけが例外な理由は、アプリストア配布（Apple App Store / Google Play / Microsoft Store）の本質が Blue-Green であり、Canary の段階重み付けが不可能なためである。
 
 ## flagd 連動：リリースと機能公開の分離
 
@@ -120,7 +120,7 @@ IMP-REL-POL-007 の Release Notes 自動紐付けを PD パイプラインと結
 本ファイルで採番する実装 ID は以下とする。
 
 - `IMP-REL-PD-020` : Canary 3 段階既定（5% → 25% → 100%、各 waitDuration 5 分）
-- `IMP-REL-PD-021` : tier1 公開 11 API の Phase 1a 10 段階細分化（所要 30 分以内）
+- `IMP-REL-PD-021` : tier1 公開 11 API の リリース時点 10 段階細分化（所要 30 分以内）
 - `IMP-REL-PD-022` : AnalysisTemplate 共通セット 5 本の `deploy/rollouts/analysis/` 配置
 - `IMP-REL-PD-023` : Mimir Prometheus 互換 API を provider として統一（failureLimit 2）
 - `IMP-REL-PD-024` : 例外経路（rolling-internal / rolling-batch / rolling-emergency）の catalog-info.yaml 明示と Kyverno 検証
@@ -139,7 +139,7 @@ IMP-REL-POL-007 の Release Notes 自動紐付けを PD パイプラインと結
 
 - [`00_方針/01_リリース原則.md`](../00_方針/01_リリース原則.md) の IMP-REL-POL-002 / 003 / 006（PD 必須 / AnalysisTemplate / canary 3 段階）の物理配置を本ファイルで固定する
 - [`../10_ArgoCD_App構造/01_ArgoCD_App構造.md`](../10_ArgoCD_App構造/01_ArgoCD_App構造.md) の Helm chart 内 `rollout.yaml` が本ファイルの既定を継承する
-- `../30_flagd_フィーチャーフラグ/`（Phase B で節新設予定）が flagd の詳細運用を扱い、本ファイルは PD との結合のみを規定する
-- `../40_AnalysisTemplate/`（Phase B で節新設予定）が AnalysisTemplate の詳細閾値を扱い、本ファイルは共通セット配置のみを規定する
-- `../50_rollback_runbook/`（Phase B で節新設予定）が rollback 手順を詳細化し、本ファイルは 15 分目標との結合点を規定する
+- `../30_flagd_フィーチャーフラグ/`（節新設予定）が flagd の詳細運用を扱い、本ファイルは PD との結合のみを規定する
+- `../40_AnalysisTemplate/`（節新設予定）が AnalysisTemplate の詳細閾値を扱い、本ファイルは共通セット配置のみを規定する
+- `../50_rollback_runbook/`（節新設予定）が rollback 手順を詳細化し、本ファイルは 15 分目標との結合点を規定する
 - [`../../60_観測性設計/`](../../60_観測性設計/) の SLI が AnalysisTemplate の provider 参照先となる

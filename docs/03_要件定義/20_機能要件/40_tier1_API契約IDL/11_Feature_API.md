@@ -80,7 +80,7 @@ message ObjectResponse {
 ## Protobuf 定義（管理）
 
 ```protobuf
-// Flag 定義の登録・更新 (Phase 1b 提供)
+// Flag 定義の登録・更新 (リリース時点 提供)
 service FeatureAdminService {
   rpc RegisterFlag(RegisterFlagRequest) returns (RegisterFlagResponse);
   rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);

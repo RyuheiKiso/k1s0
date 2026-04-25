@@ -100,7 +100,7 @@
             <mxPoint x="1100" y="585" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="mvp_label" value="MVP 実測目標 350ms" style="text;html=1;strokeColor=#2d7d32;fillColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="mvp_label" value="リリース時点実測目標 350ms" style="text;html=1;strokeColor=#2d7d32;fillColor=#ffffff;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="1000" y="590" width="200" height="20" as="geometry" />
         </mxCell>
         <mxCell id="note_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
@@ -166,7 +166,7 @@
             <mxPoint x="1128" y="788" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="lg_mvp_t" value="緑実線: MVP 実測目標 (350ms、余白 150ms)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="lg_mvp_t" value="緑実線: リリース時点実測目標 (350ms、余白 150ms)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1136" y="778" width="400" height="22" as="geometry" />
         </mxCell>
         <mxCell id="lg_note" value="バッチスタックで隣接する同層色の帯は透明度で区別。上段はレイヤ別、下段は累積。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontSize=10;fontStyle=2;" vertex="1" parent="1">

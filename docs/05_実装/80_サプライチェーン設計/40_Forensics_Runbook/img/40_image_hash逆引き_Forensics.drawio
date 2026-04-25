@@ -49,7 +49,7 @@
         <mxCell id="proto" value="src/contracts/&#10;tier1/v1/*.proto&#10;(公開 11 API)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="600" y="360" width="200" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="rekor" value="Rekor&#10;(public + Phase1b local)&#10;Merkle Tree" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="rekor" value="Rekor&#10;(public + リリース時点 local)&#10;Merkle Tree" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="880" y="360" width="200" height="90" as="geometry" />
         </mxCell>
         <mxCell id="pagerduty" value="PagerDuty&#10;#incident-&lt;id&gt; Slack&#10;経営 / 顧客窓口" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">

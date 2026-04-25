@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="p1" name="oss_patterns">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1040" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1040" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="OSS 化の成功パターンと失敗パターン (国内外公開事例より)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="0" y="16" width="1040" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="okHdr" value="成功パターン: 社内実績 → OSS 化 → dogfooding 継続" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="980" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ok1" value="1. 社内内製&#xa;実ユースで運用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFBE4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ok2" value="2. 大規模運用実績&#xa;バグ露見/UX改善" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFBE4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="120" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ok3" value="3. OSS 化&#xa;社内決裁・ライセンス確定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFBE4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="440" y="120" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ok4" value="4. dogfooding 継続&#xa;社内本番稼働を切らさない" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFBE4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="640" y="120" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ok5" value="5. 属人性剥がし&#xa;外部採用拡大" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAFBE4;strokeColor=#82B366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="850" y="120" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="okA1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="ok1" target="ok2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="okA2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="ok2" target="ok3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="okA3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="ok3" target="ok4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="okA4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;" edge="1" parent="1" source="ok4" target="ok5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="okEx" value="実例: Armeria (LINE, 原作者退職後も継続) / Decaton (LINE, 100 万 tasks/sec) / PipeCD (CyberAgent, CNCF Sandbox 2023)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5FBF3;strokeColor=#82B366;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="210" width="980" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ngHdr" value="失敗パターン: dogfooding 停止 → 放置" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="290" width="980" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ng1" value="1. 社内内製" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ng2" value="2. OSS 化&#xa;外部採用拡大" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="340" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ng3" value="3. 社内で使われなくなる&#xa;or 本家が別技術に移行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="490" y="340" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ng4" value="4. 放置・メンテ停止&#xa;エコシステム崩壊" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDEAE8;strokeColor=#B85450;fontSize=12;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="760" y="340" width="250" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ngA1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#B85450;strokeWidth=2;" edge="1" parent="1" source="ng1" target="ng2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ngA2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#B85450;strokeWidth=2;" edge="1" parent="1" source="ng2" target="ng3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ngA3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#B85450;strokeWidth=2;" edge="1" parent="1" source="ng3" target="ng4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ngEx" value="実例: rrrspec (Cookpad, 2019 README で社内未使用宣言) / Hystrix (Netflix, resilience4j 推奨移行)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FEF5F4;strokeColor=#B85450;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="420" width="980" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="k1Hdr" value="k1s0 の設計条件 (成功パターン踏襲)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="500" width="980" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="k1a" value="① 順序&#xa;最初から Apache 2.0 で公開し、会社採用と同時に運用&#xa;(先行公開でも後追いでもない一気通貫)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="550" width="235" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="k1b" value="② dogfooding 継続&#xa;パイロット業務の本番稼働継続を&#xa;OSS 保守の前提条件として KPI 化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="290" y="550" width="235" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="k1c" value="③ ライセンス&#xa;Apache 2.0 を採用前に確定&#xa;(SSPL/BSL は採用しない)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="540" y="550" width="235" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="k1d" value="④ OSPO 規程&#xa;ZOZO の 3 ガイドライン (公開/貢献/利用) を&#xa;CC0 ベースから流用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EBF0F7;strokeColor=#6C8EBF;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="550" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value="出典: LINE Engineering / CyberAgent DevelopersBlog / Cookpad rrrspec README / Netflix Hystrix README / ZOZO TECH BLOG / st-tech/oss-policy" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="0" y="680" width="1040" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -19,7 +19,7 @@
         <mxCell id="ex2" value="tier3-native-maui&#10;&#10;.NET MAUI&#10;platforms/{ios,android,windows}&#10;&#10;SDK: K1s0.Sdk (.NET)&#10;オフライン: SQLite + 同期&#10;配布: ipa/apk/MSIX&#10;Test: xUnit + MAUI TestHost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="400" y="130" width="260" height="220" as="geometry" />
         </mxCell>
-        <mxCell id="ex3" value="tier3-bff (web-portal 内)&#10;&#10;Go BFF&#10;(tier3 → BFF → tier1)&#10;&#10;SDK: k1s0-sdk (go)&#10;session cookie 交換&#10;Pact 契約: BFF ↔ tier1&#10;Phase 1a で独立 example" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="ex3" value="tier3-bff (web-portal 内)&#10;&#10;Go BFF&#10;(tier3 → BFF → tier1)&#10;&#10;SDK: k1s0-sdk (go)&#10;session cookie 交換&#10;Pact 契約: BFF ↔ tier1&#10;リリース時点 で独立 example" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="690" y="130" width="260" height="220" as="geometry" />
         </mxCell>
         <mxCell id="ex4" value="tier2-dotnet-service&#10;&#10;C# ドメインサービス&#10;CRUD + Event Publish + PII&#10;&#10;SDK: K1s0.Sdk (.NET)&#10;tier1 API: State / PubSub / PII&#10;Test: xUnit + Pact + testcontainers&#10;(tier2 crud 代表)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
@@ -28,7 +28,7 @@
         <mxCell id="ex5" value="tier2-go-service&#10;&#10;Go ドメインサービス&#10;Temporal Workflow + ZEN&#10;&#10;SDK: k1s0-sdk (go)&#10;tier1 API: Workflow/Decision/State&#10;Test: Temporal TestSuite + ZEN 固定&#10;(tier2 workflow 代表)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1260" y="130" width="240" height="220" as="geometry" />
         </mxCell>
-        <mxCell id="ex1New" value="tier1-new-api (Phase 1a 追加)&#10;&#10;Rust 自作 tier1 API 参照実装" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="ex1New" value="tier1-new-api (リリース時点 追加)&#10;&#10;Rust 自作 tier1 API 参照実装" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;dashed=1;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1260" y="380" width="240" height="60" as="geometry" />
         </mxCell>
         <mxCell id="commonFiles" value="全 example 共通: Makefile / Dockerfile / catalog-info.yaml / README 5 section / deploy/dapr/components/ / .scaffoldignore / &lt;&lt;service-name&gt;&gt; プレースホルダ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
@@ -49,10 +49,10 @@
         <mxCell id="out4" value="新 BFF (copy)&#10;(本番用)&#10;&#10;差分: 集約ロジック / 認可ポリシー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1000" y="740" width="260" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="out5" value="新 tier1 API (copy)&#10;Rust / Phase 1a&#10;&#10;差分: proto 契約 / crate 配置 / SLO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
+        <mxCell id="out5" value="新 tier1 API (copy)&#10;Rust / リリース時点&#10;&#10;差分: proto 契約 / crate 配置 / SLO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="1300" y="740" width="220" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="ciAll" value="CI 3 層: 毎 PR (path filter) / nightly (kind 最新) / 月次 e2e (dev 環境)   →   壊れた瞬間に Golden Path 失格 / Phase 拡大凍結" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="ciAll" value="CI 3 層: 毎 PR (path filter) / nightly (kind 最新) / 月次 e2e (dev 環境)   →   壊れた瞬間に Golden Path 失格 / 段階拡大凍結" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="100" y="890" width="1420" height="40" as="geometry" />
         </mxCell>
         <mxCell id="backstage" value="Backstage Examples カタログ (catalog-info.yaml 自動登録, golden-path tag)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">

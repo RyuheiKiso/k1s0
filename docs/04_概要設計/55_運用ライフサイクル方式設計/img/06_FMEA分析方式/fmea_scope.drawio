@@ -112,7 +112,7 @@
         <mxCell id="fmea_box" value="FMEA 分析（S × O × D = RPN）&#10;テンプレート 8 項目でエントリ化 / RPN 60 超は最優先対策 / RPN 100 超は対策計画必達" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#ef6c00;fontSize=13;fontStyle=1;align=center;" vertex="1" parent="1">
           <mxGeometry x="400" y="680" width="800" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="out_runbook" value="Runbook 優先順位決定&#10;（Phase 1b 15 本整備）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
+        <mxCell id="out_runbook" value="Runbook 優先順位決定&#10;（リリース時点 15 本整備）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">
           <mxGeometry x="60" y="830" width="300" height="60" as="geometry" />
         </mxCell>
         <mxCell id="out_monitor" value="監視アラート追加&#10;（D スコア低減）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;" vertex="1" parent="1">

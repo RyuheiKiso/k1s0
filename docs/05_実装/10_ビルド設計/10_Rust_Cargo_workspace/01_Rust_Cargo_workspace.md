@@ -4,13 +4,13 @@
 
 ![Cargo workspace 2 分割と依存線](img/10_Rust_Cargo_workspace構造.svg)
 
-`00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md` は tier1 Rust の crate 内部構造を確定済である。本ファイルはその上位層、つまり「どの単位で Cargo workspace を切るか」と「どうビルド時間を維持するか」を固定する役割を持つ。`02_世界トップ企業事例比較.md` で参照した AWS SDK for Rust の `[workspace.dependencies]` 集約方式と Rust Foundation の toolchain 固定方式を引き継ぎ、2 名運用で破綻しない最小構成を選ぶ。
+`00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md` は tier1 Rust の crate 内部構造を確定済である。本ファイルはその上位層、つまり「どの単位で Cargo workspace を切るか」と「どうビルド時間を維持するか」を固定する役割を持つ。`02_世界トップ企業事例比較.md` で参照した AWS SDK for Rust の `[workspace.dependencies]` 集約方式と Rust Foundation の toolchain 固定方式を引き継ぎ、採用側の小規模運用で破綻しない最小構成を選ぶ。
 
 ## 2 workspace 分割の境界
 
 tier1 Rust と SDK Rust は物理的に近接した Rust コードだが、build / release / 依存方針のすべてが異なる。tier1 Rust は Pod として自社クラスタで 10 年稼働する実行バイナリを作るのが目的で、ランタイム依存（tokio / tonic / sqlx / rdkafka）を内部 crate で共有しつつ最終的に 3 バイナリ（decision / audit / pii）を吐き出す。SDK Rust は `src/sdk/rust/` 配下で tier2 / tier3 が依存する外部公開 crate（`k1s0-sdk`）を提供し、`crates.io` 公開も視野に入るため依存を最小化したい。この 2 者を同じ workspace に入れると、tier1 側のヘビー依存（rdkafka の librdkafka C ライブラリ、sqlx のマクロ展開）が SDK Rust のビルドにも伝搬し、ダウンストリームの tier2 / tier3 開発者の `cargo build` を遅くする。
 
-したがって境界は以下で固定する。`src/tier1/rust/Cargo.toml` が tier1 Rust の single workspace、`src/sdk/rust/Cargo.toml` が SDK Rust の single workspace。両者の間に横断依存は無く、共通の型は `src/contracts/` の Protobuf 経由で `tonic-build` により別々に生成される。platform CLI（`src/platform/`）は ADR-DIR-001 で独立昇格しており Phase 1b の別 workspace として扱う（本ファイルでは tier1 と SDK の 2 分割を確定）。
+したがって境界は以下で固定する。`src/tier1/rust/Cargo.toml` が tier1 Rust の single workspace、`src/sdk/rust/Cargo.toml` が SDK Rust の single workspace。両者の間に横断依存は無く、共通の型は `src/contracts/` の Protobuf 経由で `tonic-build` により別々に生成される。platform CLI（`src/platform/`）は ADR-DIR-001 で独立昇格しており リリース時点 の別 workspace として扱う（本ファイルでは tier1 と SDK の 2 分割を確定）。
 
 この境界は IMP-BUILD-POL-002（ワークスペース境界 = tier 境界）の具体適用であり、tier1 と SDK の間で Cargo.lock の書き換え事故を構造的に防ぐ。
 
@@ -24,7 +24,7 @@ SDK Rust 側は外部公開性が高いため集約は最小化する。`tonic` 
 
 ## rust-toolchain.toml による toolchain 固定
 
-2 workspace それぞれが `rust-toolchain.toml` を持ち、rustc の minor バージョンを明示的に固定する。`00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md` では `stable 1.85+` と記述しているが、本ファイルではビルド再現性の観点から **`stable 1.88.0`** のように patch レベルまで pin する運用とする（Phase 1a 着手時点で最新の stable patch 版を選ぶ）。
+2 workspace それぞれが `rust-toolchain.toml` を持ち、rustc の minor バージョンを明示的に固定する。`00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md` では `stable 1.85+` と記述しているが、本ファイルではビルド再現性の観点から **`stable 1.88.0`** のように patch レベルまで pin する運用とする（リリース時点 着手時点で最新の stable patch 版を選ぶ）。
 
 ```toml
 # src/tier1/rust/rust-toolchain.toml
@@ -35,13 +35,13 @@ targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu"]
 profile = "minimal"
 ```
 
-SDK Rust 側は同じ channel を指定するが、`targets` には crates.io 公開を見越して `wasm32-unknown-unknown` 等の追加ターゲットを含める判断を Phase 1b で行う。toolchain 差分が PR で発生した場合は ADR-TIER1-001 の追補で根拠を記録する。
+SDK Rust 側は同じ channel を指定するが、`targets` には crates.io 公開を見越して `wasm32-unknown-unknown` 等の追加ターゲットを含める判断を リリース時点 で行う。toolchain 差分が PR で発生した場合は ADR-TIER1-001 の追補で根拠を記録する。
 
 edition は両 workspace とも **2024** で揃える。Rust 2024 edition は `let-else` / `impl Trait in associated types` 等の構文改善と、unsafe 境界の厳格化を含み、tier1 Rust の crypto / audit crate（unsafe 禁止ポリシー）と整合する。
 
 ## sccache による 2 層キャッシュ連携
 
-IMP-BUILD-POL-005（3 層キャッシュ階層）を Rust で具体実装する。ローカル（開発者端末）と CI リモートの 2 層で sccache を稼働させる。開発者端末では `~/.cache/sccache` に local storage、CI では GitHub Actions cache 経由で sccache のオブジェクトストレージ（Phase 1a で S3 / R2 相当を選定）に接続する。
+IMP-BUILD-POL-005（3 層キャッシュ階層）を Rust で具体実装する。ローカル（開発者端末）と CI リモートの 2 層で sccache を稼働させる。開発者端末では `~/.cache/sccache` に local storage、CI では GitHub Actions cache 経由で sccache のオブジェクトストレージ（リリース時点 で S3 / R2 相当を選定）に接続する。
 
 `.cargo/config.toml` で rustc wrapper を sccache に向ける。
 
@@ -56,7 +56,7 @@ linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 ```
 
-`incremental = false` は sccache と incremental ビルドの排他関係による。incremental を有効化すると rustc が生成する `.rmeta` が session-local になり sccache ヒット率が下がる。2 名運用の初期はキャッシュヒット率を優先する判断。ローカル開発でインクリメンタル性を重視したい場合は `CARGO_PROFILE_DEV_INCREMENTAL=true` を環境変数で上書きする。
+`incremental = false` は sccache と incremental ビルドの排他関係による。incremental を有効化すると rustc が生成する `.rmeta` が session-local になり sccache ヒット率が下がる。採用側の小規模運用の初期はキャッシュヒット率を優先する判断。ローカル開発でインクリメンタル性を重視したい場合は `CARGO_PROFILE_DEV_INCREMENTAL=true` を環境変数で上書きする。
 
 CI ではさらに `actions/cache` を重ねる。キャッシュキーは `Cargo.lock` のハッシュ + rust-toolchain.toml のチャネル文字列で、PR 間共有を成立させる。sccache stats は CI ログに吐き、`95_DXメトリクス/` の compile 再利用率に集計する（IMP-BUILD-POL-006）。
 
@@ -92,7 +92,7 @@ yanked = "deny"
 ignore = []
 ```
 
-`multiple-versions = "warn"` に留める理由は、2 名運用初期に diamond dependency 解消コストを完全無視するのは現実的でないため。Phase 1a 終了時に `"deny"` へ昇格する ADR を起票する運用。
+`multiple-versions = "warn"` に留める理由は、採用側の小規模運用初期に diamond dependency 解消コストを完全無視するのは現実的でないため。リリース時点に `"deny"` へ昇格する ADR を起票する運用。
 
 ## clippy lint 運用と独自 deny lint
 
@@ -136,7 +136,7 @@ slow-timeout = { period = "60s", terminate-after = 3 }
 test-threads = "num-cpus"
 ```
 
-`cargo llvm-cov` はカバレッジ計測用に別途呼び、80% を Phase 1c 目標とする（`04_rust_workspace配置.md` 継承）。fuzz は `cargo-fuzz`、benchmark は `criterion` を使う。
+`cargo llvm-cov` はカバレッジ計測用に別途呼び、80% を リリース時点 目標とする（`04_rust_workspace配置.md` 継承）。fuzz は `cargo-fuzz`、benchmark は `criterion` を使う。
 
 ## ディレクトリ配置まとめ
 
@@ -145,7 +145,7 @@ test-threads = "num-cpus"
 | path | 役割 | members 数 |
 |---|---|---|
 | `src/tier1/rust/Cargo.toml` | tier1 自作領域 workspace | 7（decision / audit / pii / common / proto-gen / otel-util / policy） |
-| `src/sdk/rust/Cargo.toml` | SDK Rust workspace | Phase 1a 時点で 2（k1s0-sdk 本体、k1s0-sdk-proto 生成物） |
+| `src/sdk/rust/Cargo.toml` | SDK Rust workspace | リリース時点 時点で 2（k1s0-sdk 本体、k1s0-sdk-proto 生成物） |
 | `src/tier1/rust/deny.toml` | tier1 用 cargo-deny 設定 | — |
 | `src/sdk/rust/deny.toml` | SDK 用 cargo-deny 設定 | — |
 | `src/tier1/rust/rust-toolchain.toml` | tier1 toolchain pin | — |
@@ -153,7 +153,7 @@ test-threads = "num-cpus"
 | `src/tier1/rust/.cargo/config.toml` | rustc-wrapper = sccache | — |
 | `src/sdk/rust/.cargo/config.toml` | rustc-wrapper = sccache | — |
 
-platform CLI の workspace は Phase 1b で `src/platform/Cargo.toml` として追加され、Scaffold CLI は `20_コード生成設計/30_Scaffold_CLI/01_Scaffold_CLI設計.md` で詳細化する。
+platform CLI の workspace は リリース時点 で `src/platform/Cargo.toml` として追加され、Scaffold CLI は `20_コード生成設計/30_Scaffold_CLI/01_Scaffold_CLI設計.md` で詳細化する。
 
 ## 対応 IMP-BUILD ID
 
