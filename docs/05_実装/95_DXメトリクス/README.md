@@ -12,9 +12,9 @@ DORA 4 keys（Lead Time / Deploy Frequency / MTTR / Change Failure Rate）は業
 
 ## OSS リリース時点での確定範囲
 
-- リリース時点: DORA 4 keys の計測基盤、time-to-first-commit SLI、Scaffold 利用率
-- リリース時点: SPACE の導入（チーム拡大時）
-- リリース時点: DX ダッシュボード統合、EM への定期レポート
+- リリース時点: DORA 4 keys の計測基盤（IMP-DX-DORA-010〜020）/ SPACE 計測基盤の物理配置（IMP-DX-SPC-022 / 025 / 028）/ Scaffold 利用率の 3 軸計測点（IMP-DX-SCAF-030〜033 / 039）/ TFC 5 ステージ計測基盤（IMP-DX-TFC-040〜043）/ EM レポートの個人特定排除 CI 検証（IMP-DX-EMR-059）
+- 採用初期: SPACE Scorecards 表示、Scaffold Adoption Rate Scorecards、TFC SLI 化、EM 月次レポート 3 配信パイプライン
+- 運用拡大期: Efficiency 軸 opt-in 計測、Scaffold 利用率閾値運用、TFC 採用拡大期 2 時間目標、EM レポート機械的閾値違反検出
 
 ## RACI
 

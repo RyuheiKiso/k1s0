@@ -1,0 +1,98 @@
+<mxfile host="Electron" modified="2026-04-26T00:00:00.000Z" agent="claude" version="24.0.0" type="device">
+  <diagram name="cert-manager" id="crt-mgr">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="crt_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_title" value="cert-manager 配置: 3 ClusterIssuer + Certificate CR + istio-csr SVID 統合 + 監視 / アラート" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1280" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_lane_app" value="アプリ層 / Workload （Certificate を消費する Pod / Istio Ambient mTLS）" style="text;html=1;strokeColor=#d79b00;fillColor=#fff8e6;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="1280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_app_ingress" value="Ingress Gateway&#xa;（tier1 公開 11 API）&#xa;public 90 日 cert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_app_internal" value="Internal Service&#xa;（tier1 ↔ tier2 間 gRPC）&#xa;private 30 日 cert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="380" y="110" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_app_workload" value="Workload Pod&#xa;（Istio Ambient ztunnel）&#xa;SPIRE SVID 1h rotation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="680" y="110" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_app_admin" value="Admin Webhook&#xa;（Kyverno / OPA Gatekeeper）&#xa;internal 90 日 cert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="980" y="110" width="280" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_lane_net" value="ネットワーク層 / cert-manager Controller （Certificate Reconciliation Loop）" style="text;html=1;strokeColor=#6c8ebf;fillColor=#e6efff;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="1280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_cert_cr" value="Certificate CR&#xa;・spec.duration: 2160h（90日）&#xa;・spec.renewBefore: 720h（30日前）&#xa;・status.conditions = Ready" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_cm_ctrl" value="cert-manager controller&#xa;・Reconciliation 5 min cycle&#xa;・renewBefore 経過で再発行&#xa;・失敗時は exponential backoff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="380" y="240" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_csr" value="CertificateRequest&#xa;・CSR を Issuer に渡す&#xa;・status.certificate に署名済み配置&#xa;・全 CSR 履歴 = 監査経路" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="680" y="240" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_secret" value="kubernetes.io/tls Secret&#xa;・tls.crt + tls.key + ca.crt&#xa;・Pod に Volume mount&#xa;・Secret rotation = Pod restart" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="980" y="240" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_lane_iss" value="ClusterIssuer / Issuer 層 （3 種類の発行元と istio-csr）" style="text;html=1;strokeColor=#9673a6;fillColor=#f3ecf7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="1280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_iss_le" value="ClusterIssuer: Let's Encrypt&#xa;・public 公開 11 API 用&#xa;・ACME http01 / dns01 challenge&#xa;・rate limit 50/week 注意" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_iss_vault" value="ClusterIssuer: Vault PKI&#xa;・OpenBao PKI engine 連携&#xa;・private 内部 cert 用&#xa;・SA token 経由認証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="380" y="380" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_iss_self" value="Issuer: SelfSigned&#xa;・bootstrap 用（cert-manager 自身 webhook）&#xa;・以降は ClusterIssuer 経由" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="680" y="380" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_iss_csr" value="istio-csr&#xa;・SPIRE Workload API 経由&#xa;・SVID → Istio mTLS 変換&#xa;・1h rotation 自動化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="980" y="380" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_lane_mon" value="監視 / アラート層 （prometheus metrics + 期限 7 日前 warning）" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="490" width="1280" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_mon_metric" value="cert-manager controller metrics&#xa;・certmanager_certificate_expiration_timestamp_seconds&#xa;・certmanager_certificate_ready_status&#xa;・certmanager_acme_client_request_count" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="530" width="600" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_mon_alert" value="Prometheus Alert ルール&#xa;・cert 期限 7 日前 → Sev3 warning（自動 rotation 失敗を疑う）&#xa;・cert 期限 24h 前 → Sev2（PagerDuty に SRE オンコール）&#xa;・cert 期限 1h 前 → Sev1（CISO + CTO 即招集）&#xa;・renewal 連続失敗 3 回 → Sev2（PKI 経路異常）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="700" y="530" width="600" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_renewal" value="自動 renewal 失敗時の手動介入手順 （ops/runbooks/cert-renewal-failure/）&#xa;・Step 1: 該当 Certificate CR の status.conditions を確認&#xa;・Step 2: ClusterIssuer の到達性検証（OpenBao alive / Let's Encrypt rate limit）&#xa;・Step 3: kubectl cert-manager renew &lt;cert&gt; で強制再発行&#xa;・Step 4: 失敗継続時は ops/runbooks/cert-emergency-issue/ で手動 OpenBao PKI 発行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="80" y="660" width="1220" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_legend" value="凡例 ｜ アプリ層 = 暖色 / cert-manager 制御 = 寒色 / Issuer = 薄紫 / 監視 = 中性灰" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="800" width="1220" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="crt_e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#000000;endArrow=classic" edge="1" parent="1" source="crt_cert_cr" target="crt_cm_ctrl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#000000;endArrow=classic" edge="1" parent="1" source="crt_cm_ctrl" target="crt_csr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#000000;endArrow=classic" edge="1" parent="1" source="crt_csr" target="crt_secret">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_e4" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#000000;endArrow=classic" edge="1" parent="1" source="crt_csr" target="crt_iss_vault">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="crt_e5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;strokeColor=#000000;endArrow=classic" edge="1" parent="1" source="crt_secret" target="crt_app_ingress">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,76 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="sli_runbook_link" id="rb_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rb_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_title" value="SLI ↔ Alert ↔ Runbook 三層紐付けと Runbook 起動経路" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_sli" value="SLI 定義 (40_SLO_SLI定義)&#xa;tier1 公開 11 API × {availability, latency, correctness}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="380" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_alert" value="Alertmanager rule&#xa;`alert_id: tier1.identity.availability.5xx_burst`&#xa;annotations.runbook_url で Runbook を 1:1 結合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_runbook" value="Runbook (ops/runbooks/&lt;alert_id&gt;.md)&#xa;5 セクション固定: 症状 / 影響範囲 / 一次対応 / 根本対応 / 検証&#xa;15 本セット (リリース時点)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_e1" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="rb_sli" target="rb_alert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_e1_lbl" value="閾値超過で発火" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="180" y="155" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_e2" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="rb_alert" target="rb_runbook">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_e2_lbl" value="annotations.runbook_url" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="155" y="265" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_actor_zone" value="Runbook 起動経路 (3 入口)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=0;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="640" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_actor1" value="入口 1: PagerDuty 通知 → click で Slack thread 起動&#xa;Runbook URL が Slack 第一返信 bot で自動展開" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="115" width="600" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_actor2" value="入口 2: Grafana alert panel → annotation の Runbook link&#xa;ダッシュボード起点のオンコール (alert 発火前の prevention)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="190" width="600" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_actor3" value="入口 3: post-mortem → Runbook 改訂 PR (運用フィードバック loop)&#xa;インシデント解決後 24 時間以内に Runbook 改訂 PR 起こす運用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="265" width="600" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_15set" value="リリース時点 Runbook 15 本セット (本章で確定)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="395" width="1080" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_15box" value="Identity (3): keycloak-503 / openbao-seal / spire-bundle-rotation-fail&#xa;Edge (3): istio-ingress-503 / cert-expiry-warning / ratelimit-burst&#xa;Data (3): postgres-failover / redis-eviction-spike / kafka-isr-shrink&#xa;App (3): tier1-grpc-deadline / tier3-bff-5xx / dapr-sidecar-restart&#xa;Platform (3): argocd-sync-fail / prometheus-rule-load-fail / otel-gateway-queue-overflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="425" width="1080" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="565" width="1110" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_lg_t" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_n1" value="① alert_id と Runbook ファイル名は 1:1 対応 (`tier1.identity.availability.5xx_burst.md`)。Runbook 無き alert は CI で reject (`ci-overall` 含む lint check)。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="595" width="1090" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_n2" value="② Runbook 5 セクション固定。フォーマット逸脱は markdown lint で reject。Runbook の質を担保する設計。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="615" width="1090" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_n3" value="③ Runbook 改訂は post-mortem の 24 時間以内が原則。改訂しない場合は次の同種 incident で同じ判断ミスを繰り返すため。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="635" width="1090" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_n4" value="④ リリース時点 15 本は最小集合。採用初期 で 30 本、採用拡大期 で 50 本に拡張。新規 alert 追加時に同時に Runbook を必須起票。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="655" width="1090" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="rb_n5" value="⑤ 04_概要設計/55_運用ライフサイクル方式設計/ の Runbook 目録 15 本と本章は構造一致。論理 (55 章) → 物理 (本章) の役割分担。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="675" width="1090" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

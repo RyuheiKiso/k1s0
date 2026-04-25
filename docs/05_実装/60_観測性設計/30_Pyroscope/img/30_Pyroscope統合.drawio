@@ -1,0 +1,123 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="pyroscope_integration" id="pyr_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="pyr_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_title" value="Pyroscope 連続プロファイリング — eBPF 取得 + Pull/Push 二系統 + Tempo span 連携" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_apps_zone" value="アプリ層: 言語別 SDK で push / Grafana Alloy + eBPF で pull" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;dashed=0;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="540" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_rust" value="tier1 Rust crates&#xa;`pyroscope` crate で push (CPU + alloc)&#xa;sampling=100Hz / scrape interval=10s" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_go" value="tier1 Go (Dapr facade)&#xa;`grafana/pyroscope-go` で push (CPU+goroutine+heap)&#xa;sampling=100Hz" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="90" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_node" value="tier3 Node.js (BFF / SSR)&#xa;`@pyroscope/nodejs` で push (CPU + heap)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_dotnet" value="tier3 .NET (Windows native)&#xa;`Pyroscope.NET` で push (CPU + alloc)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="180" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_alloy" value="Grafana Alloy (DaemonSet)&#xa;eBPF プロファイラで言語非依存に CPU 取得&#xa;SDK 不可な container も自動 pull" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="260" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_alloy_n" value="Linux 5.4+ Node のみ対象 (Windows Node は SDK push に依存)" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="335" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_otel_zone" value="OTel Gateway (push transit) / Tempo (trace 連携)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=0;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="540" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_otel" value="OTel Gateway&#xa;Pyroscope は OTel pipeline 外 (専用エンドポイント直送)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="465" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_tempo_link" value="Tempo (traces) ←→ Pyroscope (profiles) span ID 結合&#xa;span attribute `pyroscope.profile.id` で双方向 link" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="525" width="500" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_backend_zone" value="Pyroscope backend (AGPL v3) — observability-lgtm namespace 内に同居" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;dashed=0;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="650" y="55" width="500" height="535" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_pyr" value="Pyroscope server (AGPL v3)&#xa;StatefulSet (3 replicas)&#xa;namespace=observability-lgtm&#xa;受信エンドポイント:&#xa;  ・push: HTTP POST /ingest&#xa;  ・pull: HTTP GET /scrape (Alloy が呼ぶ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="90" width="460" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_storage" value="S3 互換ストレージ (MinIO リリース時点)&#xa;Block 形式 (Mimir/Tempo と同じ retention 思想)&#xa;保持: 14 日 hot / 30 日 cold (compacted)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="230" width="460" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_grafana_panel" value="Grafana Pyroscope datasource&#xa;Flame Graph + Diff View&#xa;Tempo trace 起点 → Profile (deep link)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="310" width="460" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_use" value="想定ユースケース (採用初期)&#xa;・p99 latency 悪化時の hot-spot function 特定&#xa;・継続的 Allocation profiling での GC pressure 把握 (Go)&#xa;・Rust async runtime block-on 検出&#xa;・nightly diff レポートで regression 自動検出" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="670" y="410" width="460" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_e_rust" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="pyr_rust" target="pyr_pyr">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="610" y="125" />
+              <mxPoint x="610" y="126" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pyr_e_rust_lbl" value="push" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="595" y="115" width="40" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_e_go" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="pyr_go" target="pyr_pyr">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="125" />
+              <mxPoint x="600" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pyr_e_alloy" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;dashed=1;" edge="1" parent="1" source="pyr_alloy" target="pyr_pyr">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="615" y="295" />
+              <mxPoint x="615" y="174" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pyr_e_alloy_lbl" value="pull (eBPF)" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="585" y="220" width="80" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_e_storage" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=open;dashed=1;" edge="1" parent="1" source="pyr_pyr" target="pyr_storage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_e_grafana" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;dashed=1;" edge="1" parent="1" source="pyr_storage" target="pyr_grafana_panel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_e_grafana_lbl" value="datasource (read)" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="780" y="293" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_e_tempo_link" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="pyr_tempo_link" target="pyr_grafana_panel">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="550" />
+              <mxPoint x="630" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pyr_e_tempo_lbl" value="span → profile deep link" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="585" y="430" width="160" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="610" width="1110" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_lg_t" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="615" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_lg_n1" value="① 言語別 SDK push を主、Alloy + eBPF を補。SDK が無い古い container や監視外コードは Alloy で自動 pull できるが、Linux 5.4+ Node のみ。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="640" width="1090" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pyr_lg_n2" value="② Pyroscope は OTel Collector pipeline の外で動く。理由は profile データが OTLP の標準仕様化が遅れており、専用エンドポイント直送の方が運用安定 (採用初期で OTel profiles 経由に統合検討)。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="660" width="1090" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,169 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="lgtm_stack" id="lgtm_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1240" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lgt_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1240" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_title" value="LGTM Stack 配置 — AGPL 分離境界とテレメトリ 4 系統の収納先" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_apache_zone" value="Apache 2.0 ゾーン: tier1 / OTel Collector が同居可能" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;dashed=0;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="540" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_apps" value="tier1 / tier2 / tier3 アプリ&#xa;(metrics / logs / traces / profiles 発生源)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="90" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_otel_agent" value="OTel Agent (DaemonSet, Apache 2.0)&#xa;namespace=observability&#xa;Pod 受信 → Gateway 中継のみ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_otel_gw" value="OTel Gateway (Deployment, Apache 2.0)&#xa;PII mask / tail sampling / batch / routing&#xa;バックエンド分岐の単一接続点" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="270" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_agpl_zone" value="AGPL 分離ゾーン: 別 namespace / 別プロセス / 別 NetworkPolicy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;dashed=0;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="650" y="55" width="540" height="490" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_loki" value="Loki (AGPL v3) — Logs&#xa;namespace=observability-lgtm&#xa;StatefulSet (3 replicas) + S3 互換 (MinIO/Wasabi)&#xa;保持: 30 日 hot / 365 日 cold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="90" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_mimir" value="Mimir (AGPL v3) — Metrics (Prometheus 互換)&#xa;namespace=observability-lgtm&#xa;StatefulSet (3 replicas) + S3 互換&#xa;保持: 30 日 hot / 13 ヶ月 long-term" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="190" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_tempo" value="Tempo (AGPL v3) — Traces (OTLP)&#xa;namespace=observability-lgtm&#xa;StatefulSet (2 replicas) + S3 互換&#xa;保持: 14 日 (tail sampling 後)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="290" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_grafana" value="Grafana (AGPL v3) — UI / Dashboard / Alert&#xa;namespace=observability-lgtm&#xa;Deployment (2 replicas) + Postgres for state&#xa;Keycloak OIDC SSO 必須 (匿名閲覧禁止)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="670" y="390" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_object_store" value="Object Store (S3 互換: MinIO リリース時点 / クラウド S3 採用初期)&#xa;リリース時点 では infra/data/minio に同一クラスタ配置 / 採用初期で外部退避" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="670" y="490" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_logs" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="lgt_otel_gw" target="lgt_loki">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="287" />
+              <mxPoint x="430" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgt_e_logs_lbl" value="logs (OTLP-HTTP)" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="380" y="180" width="120" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_metrics" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="lgt_otel_gw" target="lgt_mimir">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="310" />
+              <mxPoint x="450" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgt_e_metrics_lbl" value="metrics (remote_write)" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="380" y="240" width="140" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_traces" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;" edge="1" parent="1" source="lgt_otel_gw" target="lgt_tempo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="470" y="333" />
+              <mxPoint x="470" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgt_e_traces_lbl" value="traces (OTLP)" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="380" y="295" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_apps" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="lgt_apps" target="lgt_otel_agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_agent" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="lgt_otel_agent" target="lgt_otel_gw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_grafana_loki" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;dashed=1;" edge="1" parent="1" source="lgt_grafana" target="lgt_loki">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="414" />
+              <mxPoint x="640" y="146" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgt_e_grafana_mimir" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;dashed=1;" edge="1" parent="1" source="lgt_grafana" target="lgt_mimir">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="430" />
+              <mxPoint x="630" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgt_e_grafana_tempo" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;dashed=1;" edge="1" parent="1" source="lgt_grafana" target="lgt_tempo">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="446" />
+              <mxPoint x="620" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lgt_e_grafana_lbl" value="Grafana → 各 backend へ datasource として接続 (read only)" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="396" y="490" width="240" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_store_loki" style="edgeStyle=none;rounded=0;html=1;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.3;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=open;dashed=1;" edge="1" parent="1" source="lgt_object_store" target="lgt_loki">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_store_mimir" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=open;dashed=1;" edge="1" parent="1" source="lgt_object_store" target="lgt_mimir">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_e_store_tempo" style="edgeStyle=none;rounded=0;html=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.7;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;endArrow=open;dashed=1;" edge="1" parent="1" source="lgt_object_store" target="lgt_tempo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="1150" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_legend_title" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="585" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_c1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="615" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_l1" value="Apache 2.0 ゾーン: アプリと OTel Collector の同居許容 (プロセス共有 OK)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="610" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_c2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="55" y="638" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_l2" value="AGPL v3 ゾーン: 別 namespace / 別 NetworkPolicy / プロセス境界共有禁止" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="633" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_c3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="55" y="661" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_l3" value="インフラ層: S3 互換オブジェクトストレージ (リリース時点 MinIO / 採用初期 で外部 S3 移行)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="656" width="600" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_lsolid" value="—" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="610" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_lsolid_t" value="実線太: テレメトリ送信経路 (アプリ → Agent → Gateway)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="610" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_ldashed" value="- - -" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="633" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_lg_ldashed_t" value="点線: Grafana の datasource 接続 (UI 起点の read 経路)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="633" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_n1" value="① AGPL 分離は ADR-0003 を物理化したもの。Loki / Mimir / Tempo / Grafana は別プロセス・別 namespace・別 ServiceAccount で動かし、tier1 バイナリと dynamic linking しない。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="685" width="1130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_n2" value="② OTel Gateway が単一接続点。Grafana から各 backend を直接見る設計を選ばず、Collector を経由させない理由は「データソース読込に Collector を介在させると read レイテンシが悪化」するため (read は datasource 直接 / write は Collector 集約)。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="705" width="1130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_n3" value="③ オブジェクトストレージは リリース時点 で同一クラスタ MinIO に配置、採用初期 で AWS S3 / GCS / Azure Blob などへ移行。S3 互換 API を採用することで、移行は datasource URL 変更と secret rotate のみで完了させる。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="725" width="1130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lgt_n4" value="④ 保持期間 (Loki 30 日 / Mimir 13 ヶ月 / Tempo 14 日) は Google SRE Book と CNCF Observability WG の典型例に揃え、コスト試算は 99 章索引 + 70 章リリースと結合する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="745" width="1130" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
