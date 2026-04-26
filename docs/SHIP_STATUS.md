@@ -181,12 +181,23 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 - `buf breaking` は v0 placeholder → v1 正式 RPC への移行を意図した破壊的変更を検出。
   本コミットを v1 のベースラインとし、以降の PR は本コミット以降の差分に対して `buf breaking` を強制
 
-### 2. SDK モジュール化（IMP-CODEGEN / IMP-DIR）
+### 2. SDK モジュール化（IMP-CODEGEN / IMP-DIR）— **完了**
 
-- `src/sdk/go/` に `go.mod`（module `github.com/k1s0/k1s0/src/sdk/go`）を配置
-- 同様に `src/sdk/rust/Cargo.toml` workspace、`src/sdk/typescript/package.json`、
-  `src/sdk/dotnet/*.sln` の最小化
-- リポジトリルートに `go.work` を配置して tier1/go から sdk/go を参照可能にする
+- 生成先パスを docs 正典に揃えた（旧 `src/sdk/*/generated/` フラット配置 → docs 正典の言語別構造化パス）:
+  - Go:  `src/sdk/go/proto/v1/k1s0/tier1/<api>/v1/`
+  - Rust: `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/`
+  - TS:   `src/sdk/typescript/src/proto/k1s0/tier1/<api>/v1/`
+  - .NET: `src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/`
+- 4 言語の module / workspace を配置:
+  - **Go**: `src/sdk/go/go.mod`（module `github.com/k1s0/sdk-go`、Go 1.22、`go build ./...` 通過）
+  - **Rust**: `src/sdk/rust/Cargo.toml` workspace（edition 2024）+ `crates/k1s0-sdk-proto/`（生成 stub）+ `crates/k1s0-sdk/`（薄い facade）、`cargo metadata` 通過
+  - **TypeScript**: `src/sdk/typescript/package.json`（`@k1s0/sdk-rpc`、Node 20+）+ `tsconfig.json` + `tsconfig.build.json`、`tsc --noEmit` と build 両方通過
+  - **.NET**: `src/sdk/dotnet/Sdk.sln` + `src/K1s0.Sdk.Proto/`（生成 stub）+ `src/K1s0.Sdk.Grpc/`（高水準 facade）+ `Directory.Build.props`（netstandard2.1 + net8.0 多重 TFM）
+- tier1 Go（`src/tier1/go/go.mod`）に `replace github.com/k1s0/sdk-go => ../../sdk/go` を追加。
+  リリース時点 SDK が外部 registry に publish されたら `replace` を削除する運用（docs 正典）
+- buf 入力 path を明示する形に `tools/codegen/buf/run.sh` を修正（workspace 全モジュール処理による
+  internal 漏洩バグを併せて修正）
+- TypeScript の生成 import に `.js` 拡張子を付与（`import_extension=.js`）し NodeNext 解決を満たす設定に統一
 
 ### 3. tier1 Go ファサードのハンドラ登録（DS-SW-COMP-005/006/010）
 

@@ -1,0 +1,24 @@
+{
+  "//": "k1s0 TypeScript SDK の dev 用 tsconfig。`tsc --noEmit` での型検査専用。",
+  "//doc": "docs 正典: docs/05_実装/10_ビルド設計/30_TypeScript_pnpm_workspace/01_TypeScript_pnpm_workspace.md（dev は noEmit:true、build は tsconfig.build.json で別途）",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "rootDir": "./src",
+    "baseUrl": "./src"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

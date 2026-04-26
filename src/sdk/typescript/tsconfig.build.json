@@ -1,0 +1,17 @@
+{
+  "//": "k1s0 TypeScript SDK の build 用 tsconfig（ESM 出力 + .d.ts 生成）。",
+  "//doc": "docs 正典: docs/05_実装/10_ビルド設計/30_TypeScript_pnpm_workspace/01_TypeScript_pnpm_workspace.md（build は tsconfig.build.json で ESM/CJS 両出力 + .d.ts、tier3 dev の noEmit:true と分離）",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": false,
+    "composite": false,
+    "incremental": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+}

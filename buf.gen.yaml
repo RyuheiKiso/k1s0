@@ -1,16 +1,22 @@
 # =============================================================================
 # k1s0 buf generate configuration（v2、リポジトリルート配置）
 #
-# 設計: docs/05_実装/20_コード生成設計/（IMP-CODEGEN-002 / 003 / 004）
-# 関連: src/contracts/buf.yaml（workspace）
+# 設計正典:
+#   docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+#     - 4 言語 SDK の生成先パス表（IMP-CODEGEN-002 / 003 / 004）
+#   docs/05_実装/10_ビルド設計/20_Go_module分離戦略/01_Go_module分離戦略.md
+#     - Go module 名: github.com/k1s0/sdk-go（OSS 公開用 module path、
+#       リポジトリ物理配置 src/sdk/go/ とは別宣言）
+#   docs/05_実装/10_ビルド設計/40_dotnet_sln境界/01_dotnet_sln境界.md
+#     - csharp_namespace_prefix と csproj 構成
 #
 # 4 言語 SDK + tier1 内部 gRPC stub を一括生成する。BSR remote plugin を
 # version 固定で参照し、Renovate（plan 02-09）が追従更新する。
 #
 # 利用:
-#   buf generate src/contracts                    # 全言語生成
-#   tools/codegen/buf/run.sh                      # 同等のラッパ
-#   make codegen                                  # tooling 確定後に統合
+#   buf generate --template buf.gen.yaml src/contracts/tier1   # 公開 SDK 生成（推奨）
+#   tools/codegen/buf/run.sh                                    # 同等のラッパ
+#   make codegen                                                # tooling 確定後に統合
 # =============================================================================
 version: v2
 
@@ -19,8 +25,9 @@ version: v2
 # tier2/tier3 から不可視を要求されるため、別ファイル `buf.gen.internal.yaml` で
 # Go / Rust のみに限定して生成する（SDK 配下には出さない）。
 
-# inputs で tier1 ディレクトリのみに限定し、internal の SDK 漏洩を構造的に防ぐ。
-# directory 指定（BSR module 名でなく local path）。
+# inputs を tier1 ディレクトリのみに限定し、internal の SDK 漏洩を構造的に防ぐ。
+# 呼び出し時は `buf generate --template buf.gen.yaml src/contracts/tier1` のように
+# 入力 path を明示することを推奨（workspace 全モジュール処理を避けるため）。
 inputs:
   - directory: src/contracts/tier1
 
@@ -29,10 +36,14 @@ inputs:
 managed:
   enabled: true
   override:
-    # docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md 正典に準拠（monorepo path-style）。
-    # SDK Go の module path は `github.com/k1s0/k1s0/src/sdk/go`、generated は `/generated` サブパス。
+    # Go SDK の module name は docs 正典で `github.com/k1s0/sdk-go`（OSS 公開 path）。
+    # リポジトリ物理配置は src/sdk/go/ だが、go.mod の module 宣言は外部公開 path に揃える。
+    # generated ファイルは out: src/sdk/go/proto/v1 + paths=source_relative の組合せで
+    # 実体は src/sdk/go/proto/v1/k1s0/tier1/<api>/v1/*.pb.go に配置される。
+    # よって import path は github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/<api>/v1。
     - file_option: go_package_prefix
-      value: github.com/k1s0/k1s0/src/sdk/go/generated
+      value: github.com/k1s0/sdk-go/proto/v1
+    # .NET SDK は K1s0.Sdk.Proto csproj の生成物として K1s0.Sdk.Generated namespace 配下に配置。
     - file_option: csharp_namespace_prefix
       value: K1s0.Sdk.Generated
     # Java SDK はリリース時点 対象外（4 言語: .NET / Go / Rust / TypeScript）。
@@ -41,41 +52,53 @@ managed:
 plugins:
   # ---------------------------------------------------------------------------
   # Go（protocolbuffers + grpc-go）
+  # 生成先（docs 正典）: src/sdk/go/proto/v1/
   # ---------------------------------------------------------------------------
   - remote: buf.build/protocolbuffers/go:v1.34.2
-    out: src/sdk/go/generated
+    out: src/sdk/go/proto/v1
     opt:
       - paths=source_relative
   - remote: buf.build/grpc/go:v1.5.1
-    out: src/sdk/go/generated
+    out: src/sdk/go/proto/v1
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
 
   # ---------------------------------------------------------------------------
   # .NET（protocolbuffers/csharp + grpc/csharp）
+  # 生成先（docs 正典）: src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/
   # ---------------------------------------------------------------------------
   - remote: buf.build/protocolbuffers/csharp:v28.3
-    out: src/sdk/dotnet/generated
+    out: src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated
   - remote: buf.build/grpc/csharp:v1.66.0
-    out: src/sdk/dotnet/generated
+    out: src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated
 
   # ---------------------------------------------------------------------------
   # Rust（prost + tonic、neoeinstein コミュニティ plugin を採用）
+  # 生成先（docs 正典）: src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/
   # ---------------------------------------------------------------------------
   - remote: buf.build/community/neoeinstein-prost:v0.4.0
-    out: src/sdk/rust/generated
+    out: src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1
   - remote: buf.build/community/neoeinstein-tonic:v0.4.0
-    out: src/sdk/rust/generated
+    out: src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1
 
   # ---------------------------------------------------------------------------
   # TypeScript（protobuf-es + connect-es、Connect-RPC 互換）
+  # 生成先（docs 正典）: src/sdk/typescript/src/proto/
+  # 生成オプション:
+  #   target=ts               ... TS ソースとして出力（.ts ファイル）
+  #   import_extension=js     ... NodeNext / node16 で require される .js 明示拡張子付与
+  # 注: 本リポジトリ採用時点で BSR の connect-es は v1.6.1 が最新公開版で、
+  #     protobuf-es v1.10 系と整合するため両方を v1 系に揃える。
+  #     v2 系は連動して BSR 公開時に追従する（package.json と buf.gen.yaml を併せて更新）。
   # ---------------------------------------------------------------------------
-  - remote: buf.build/bufbuild/es:v2.2.0
-    out: src/sdk/typescript/generated
+  - remote: buf.build/bufbuild/es:v1.10.0
+    out: src/sdk/typescript/src/proto
     opt:
       - target=ts
+      - import_extension=.js
   - remote: buf.build/connectrpc/es:v1.6.1
-    out: src/sdk/typescript/generated
+    out: src/sdk/typescript/src/proto
     opt:
       - target=ts
+      - import_extension=.js
