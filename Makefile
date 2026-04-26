@@ -10,7 +10,7 @@
 # =============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help codegen codegen-check lint pre-commit lint-proto verify-cones doctor clean
+.PHONY: help codegen codegen-check openapi openapi-check grpc-docs grpc-docs-check lint pre-commit lint-proto verify-cones doctor clean
 
 help: ## このヘルプを表示
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -20,6 +20,18 @@ codegen: ## buf generate で 4 言語 SDK を一括生成
 
 codegen-check: ## buf generate 後の差分検出（CI 用）
 	@./tools/codegen/buf/run.sh --check
+
+openapi: ## proto から OpenAPI v2（Swagger）を docs/ に export
+	@./tools/codegen/openapi/run.sh
+
+openapi-check: ## OpenAPI 生成後の差分検出（CI 用）
+	@./tools/codegen/openapi/run.sh --check
+
+grpc-docs: ## proto から gRPC reference docs（Markdown）を docs/ に生成
+	@./tools/codegen/grpc-docs/run.sh
+
+grpc-docs-check: ## gRPC docs 生成後の差分検出（CI 用）
+	@./tools/codegen/grpc-docs/run.sh --check
 
 lint-proto: ## buf lint
 	@./tools/codegen/buf/run.sh --lint
