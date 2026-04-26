@@ -1,0 +1,44 @@
+# =============================================================================
+# 本 composite action は CI で .NET SDK + NuGet cache を setup する共通部品。
+#
+# 設計: docs/05_実装/30_CI_CD設計/15_monorepo_orchestration.md（IMP-CI-MR-006）
+# =============================================================================
+name: setup-dotnet
+description: .NET SDK + NuGet cache を CI runner にセットアップする
+
+inputs:
+  dotnet-version:
+    description: .NET SDK バージョン（8.0.x / 9.0.x 等）
+    required: false
+    default: "8.0.x"
+  workspace:
+    description: csproj が存在するパス（NuGet cache key 計算に使用）
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: install dotnet sdk
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: nuget cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ inputs.workspace }}-${{ hashFiles(format('{0}/**/packages.lock.json', inputs.workspace), format('{0}/**/*.csproj', inputs.workspace)) }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-${{ inputs.workspace }}-
+          ${{ runner.os }}-nuget-
+
+    - name: deterministic build env
+      shell: bash
+      run: |
+        # IMP-CI-MR-002 / plan 13-12（再現可能ビルド）の準備。
+        # MSBuild は環境変数を **environment property** として読むため、
+        # 呼出側が `/p:Deterministic=...` で明示しなくても本 step の env が
+        # default として効く。`/p:` 渡しは environment property より優先されるため、
+        # 上書きしたい呼出側は引数で個別指定可能。
+        echo "Deterministic=true" >> "$GITHUB_ENV"
+        echo "ContinuousIntegrationBuild=true" >> "$GITHUB_ENV"

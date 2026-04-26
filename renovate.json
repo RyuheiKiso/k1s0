@@ -1,0 +1,218 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    "group:allNonMajor",
+    "schedule:weekdays",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "description": "k1s0 Renovate central config (ADR-DEP-001 / IMP-DEP-* 準拠)",
+  "timezone": "Asia/Tokyo",
+  "schedule": ["after 9am and before 6pm every weekday"],
+  "labels": ["automated"],
+  "assignees": ["RyuheiKiso"],
+  "reviewers": ["RyuheiKiso"],
+  "prHourlyLimit": 5,
+  "prConcurrentLimit": 15,
+  "prCreation": "not-pending",
+  "rebaseWhen": "behind-base-branch",
+  "platformAutomerge": false,
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Renovate dependency dashboard (k1s0)",
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "vulnerabilityAlerts": {
+    "labels": ["security", "priority/p0"],
+    "schedule": ["at any time"],
+    "prCreation": "immediate"
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on the first day of the month"],
+    "commitMessageAction": "chore(deps): refresh lockfiles"
+  },
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/target/**",
+    "**/_generated/**",
+    "**/generated/**",
+    "third_party/**/vendor/**"
+  ],
+  "packageRules": [
+    {
+      "description": "patch レベル + devDependencies のみ auto-merge を許容（リリース時点+ で発動）",
+      "matchUpdateTypes": ["patch"],
+      "matchDepTypes": ["devDependencies"],
+      "automerge": false,
+      "automergeType": "pr",
+      "platformAutomerge": false
+    },
+    {
+      "description": "major レベルは常に人手レビュー、breaking 注意ラベル付与",
+      "matchUpdateTypes": ["major"],
+      "labels": ["automated", "breaking-change", "priority/p1"],
+      "automerge": false,
+      "stabilityDays": 3
+    },
+    {
+      "description": "minor は常時人手レビュー（API 追加・内部実装変更を含むため）",
+      "matchUpdateTypes": ["minor"],
+      "automerge": false,
+      "stabilityDays": 1
+    },
+    {
+      "description": "GitHub Actions は SHA pin（IMP-CI-RWF-017 / セキュリティ要件）",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "labels": ["automated", "scope/tools", "type/ci"]
+    },
+    {
+      "description": "Dapr 関連は単一 PR にまとめる（control-plane / Go SDK / sidecar 同期）",
+      "matchPackagePatterns": ["^dapr/", "^github.com/dapr/"],
+      "groupName": "dapr-stack",
+      "labels": ["automated", "scope/tier1-go"]
+    },
+    {
+      "description": "OpenTelemetry 関連 crate / module は単一 PR",
+      "matchPackagePatterns": ["^opentelemetry", "^otel-", "^@opentelemetry/"],
+      "groupName": "otel-stack",
+      "labels": ["automated", "scope/tier1-go", "type/build"]
+    },
+    {
+      "description": "Argo CD / Argo Rollouts / Argo Workflows を argo-stack で束ねる",
+      "matchPackagePatterns": ["argoproj/argo", "argoproj/gitops", "argoproj-labs/"],
+      "groupName": "argo-stack",
+      "labels": ["automated", "scope/deploy"]
+    },
+    {
+      "description": "Istio control-plane と関連 CRD のグループ化",
+      "matchPackagePatterns": ["istio.io/", "istio/", "^istioctl"],
+      "groupName": "istio-stack",
+      "labels": ["automated", "scope/infra"]
+    },
+    {
+      "description": "Sigstore（cosign / fulcio / rekor）はサプライチェーンに直結、慎重レビュー",
+      "matchPackagePatterns": ["^sigstore/", "github.com/sigstore/"],
+      "groupName": "sigstore-stack",
+      "labels": ["automated", "scope/security", "type/build"],
+      "stabilityDays": 3
+    },
+    {
+      "description": "buf / protobuf 関連は契約軸（IMP-CI-POL-003）、単一 PR で扱う",
+      "matchPackagePatterns": ["^bufbuild/", "github.com/bufbuild/"],
+      "groupName": "buf-stack",
+      "labels": ["automated", "scope/contracts"]
+    },
+    {
+      "description": "Strimzi / CNPG / OpenBao / Keycloak / SPIRE は infra core",
+      "matchPackagePatterns": [
+        "strimzi/",
+        "cloudnative-pg/",
+        "openbao/",
+        "keycloak/",
+        "spiffe/"
+      ],
+      "groupName": "infra-core",
+      "labels": ["automated", "scope/infra"]
+    },
+    {
+      "description": "kubectl / helm / kustomize / kind / istioctl / argocd CLI 等の tooling",
+      "matchPackagePatterns": [
+        "kubernetes/kubernetes",
+        "helm/helm",
+        "kubernetes-sigs/kustomize",
+        "kubernetes-sigs/kind",
+        "argoproj/argo-cd"
+      ],
+      "groupName": "k8s-cli-tooling",
+      "labels": ["automated", "scope/tools"]
+    },
+    {
+      "description": "rust toolchain（rust-toolchain.toml）は重要、単独 PR で扱う",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["rust"],
+      "groupName": "rust-toolchain",
+      "labels": ["automated", "scope/tier1-rust"]
+    },
+    {
+      "description": "Go SDK は version 互換性を重視、stabilityDays 増",
+      "matchPackagePatterns": ["^github.com/dapr/go-sdk"],
+      "groupName": "dapr-go-sdk",
+      "stabilityDays": 7,
+      "labels": ["automated", "scope/tier1-go"]
+    },
+    {
+      "description": "セキュリティ更新は patch/minor/major を問わず最優先",
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "matchPackagePatterns": [".*"],
+      "isVulnerabilityAlert": true,
+      "labels": ["automated", "security", "priority/p0"],
+      "schedule": ["at any time"],
+      "prCreation": "immediate",
+      "stabilityDays": 0
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "third_party/<project>/UPSTREAM.md の upstream_ref を週次で追従（IMP-DEP-VEND-005）",
+      "customType": "regex",
+      "fileMatch": ["^third_party/[^/]+/UPSTREAM\\.md$"],
+      "matchStrings": [
+        "upstream_repo:\\s*(?<depName>[^\\s]+)\\s*\\nupstream_ref:\\s*(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-tags"
+    },
+    {
+      "description": "rust-toolchain.toml の channel を Renovate で追従",
+      "customType": "regex",
+      "fileMatch": ["^rust-toolchain\\.toml$", "^src/tier1/rust/rust-toolchain\\.toml$"],
+      "matchStrings": [
+        "channel\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)\""
+      ],
+      "depNameTemplate": "rust",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "rust-lang/rust"
+    }
+  ],
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "cargo": {
+    "enabled": true
+  },
+  "gomod": {
+    "enabled": true
+  },
+  "npm": {
+    "enabled": true,
+    "fileMatch": ["(^|/)package\\.json$"]
+  },
+  "nuget": {
+    "enabled": true
+  },
+  "helm-values": {
+    "fileMatch": ["(^|/)values.*\\.ya?ml$"]
+  },
+  "helmv3": {
+    "fileMatch": ["(^|/)Chart\\.ya?ml$"]
+  },
+  "kubernetes": {
+    "fileMatch": ["^infra/k8s/.*\\.ya?ml$", "^deploy/.*\\.ya?ml$"]
+  },
+  "dockerfile": {
+    "fileMatch": ["(^|/)Dockerfile(\\..+)?$"]
+  },
+  "docker-compose": {
+    "fileMatch": ["(^|/)docker-compose\\.ya?ml$"]
+  },
+  "github-actions": {
+    "fileMatch": ["^\\.github/workflows/.*\\.ya?ml$"]
+  },
+  "terraform": {
+    "fileMatch": ["^deploy/opentofu/.*\\.tf$"]
+  },
+  "pre-commit": {
+    "enabled": true,
+    "fileMatch": ["^\\.pre-commit-config\\.ya?ml$"]
+  }
+}

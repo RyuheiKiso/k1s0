@@ -1,0 +1,46 @@
+# =============================================================================
+# 本 composite action は CI で Go toolchain + module cache を setup する共通部品。
+#
+# 設計: docs/05_実装/30_CI_CD設計/15_monorepo_orchestration.md（IMP-CI-MR-006）
+# =============================================================================
+name: setup-go
+description: Go toolchain + module cache を CI runner にセットアップする
+
+inputs:
+  go-version:
+    description: Go バージョン（1.22 / 1.23 / 等）
+    required: false
+    default: "1.22"
+  workspace:
+    description: go module のパス（go.sum の場所）
+    required: true
+  cache-dependency-path:
+    description: cache key 計算用の go.sum パス（workspace から相対）
+    required: false
+    default: go.sum
+
+runs:
+  using: composite
+  steps:
+    - name: install go toolchain
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+        # actions/setup-go は go.sum を hashFiles して自動 cache する
+        cache-dependency-path: ${{ inputs.workspace }}/${{ inputs.cache-dependency-path }}
+
+    # actions/setup-go は GOMODCACHE（~/go/pkg/mod）を default で cache するが、
+    # GOCACHE（build cache）は cache 対象外。本 step で GOCACHE を明示保存する。
+    # path は Linux 既定値（~/.cache/go-build）。リリース時点 では ubuntu-22.04 のみ
+    # 想定（02-10 platform matrix と整合）。リリース時点+ で macOS / Windows matrix を
+    # 追加する場合は OS 別 path（macOS: ~/Library/Caches/go-build / Windows: %LocalAppData%）
+    # に分岐必要。
+    - name: go build cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+        key: ${{ runner.os }}-gobuild-${{ inputs.workspace }}-${{ hashFiles(format('{0}/go.sum', inputs.workspace)) }}
+        restore-keys: |
+          ${{ runner.os }}-gobuild-${{ inputs.workspace }}-
+          ${{ runner.os }}-gobuild-

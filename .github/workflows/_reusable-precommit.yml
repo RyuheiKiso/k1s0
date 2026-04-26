@@ -1,0 +1,60 @@
+# =============================================================================
+# 本ファイルは pre-commit run --all-files を CI で再現する reusable workflow。
+# ローカルで pre-commit を skip された commit を CI で必ず検出するための仕組み。
+#
+# 設計: plan/02_開発環境整備/05_pre-commit_hooks有効化.md
+# 関連 ID: IMP-CI-008（pre-commit / CI 二重防御）
+#
+# 4 reusable（lint/test/build/push）とは別系統で、PR 検証の最初に走らせる。
+# =============================================================================
+name: _reusable-precommit
+
+on:
+  workflow_call:
+    inputs:
+      from_ref:
+        description: "差分起点（指定しないと全ファイル走査）"
+        required: false
+        type: string
+        default: ""
+
+concurrency:
+  group: precommit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          # pre-commit の差分検出には base 側履歴が必要
+          fetch-depth: 0
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: install pre-commit
+        run: pip install pre-commit
+
+      - name: pre-commit cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: pre-commit run
+        run: |
+          if [ -n "${{ inputs.from_ref }}" ]; then
+            pre-commit run --from-ref "${{ inputs.from_ref }}" --to-ref HEAD --show-diff-on-failure
+          else
+            pre-commit run --all-files --show-diff-on-failure
+          fi

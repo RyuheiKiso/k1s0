@@ -1,0 +1,125 @@
+# =============================================================================
+# 本ファイルは k1s0 reusable workflow の 4 本目（image push + sign + SBOM attest）。
+# 4 本構成の最終段で、IMP-CI-RWF-010 / IMP-SUP-001（SLSA L2）に従う。
+#
+# 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+# 関連 ID: IMP-CI-RWF-014（OIDC keyless）/ IMP-SUP-001（SLSA provenance）
+#
+# 役割:
+#   - _reusable-build が出力した image artifact を取得
+#   - GHCR に push（OIDC でログイン、PAT 不要）
+#   - cosign sign --keyless で署名（Sigstore）
+#   - SBOM を cosign attest で attest
+#
+# 呼び出し条件:
+#   - main / release/* ブランチへの push、または tag push
+#   - PR では実行しない
+# =============================================================================
+name: _reusable-push
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: "image 名（registry prefix なし、例: k1s0-tier1-facade）"
+        required: true
+        type: string
+      registry:
+        description: "container registry"
+        required: false
+        type: string
+        default: "ghcr.io"
+      sign:
+        description: "cosign keyless 署名するか"
+        required: false
+        type: boolean
+        default: true
+      attest_sbom:
+        description: "SBOM を attest するか"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: push-${{ inputs.image_name }}-${{ github.ref }}
+  # push job は cancel しない（途中停止で registry に半成品を残さないため）
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write   # GHCR push に必要
+  id-token: write   # cosign keyless OIDC に必要（cosign attest も id-token のみで動作）
+  # attestations: write は GitHub Native attestation 用で cosign attest には不要のため削除（最小権限）
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ inputs.image_name }}-${{ github.sha }}
+          path: /tmp
+
+      - name: load image
+        run: docker load -i /tmp/${{ inputs.image_name }}.tar
+
+      - name: setup buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: lowercase owner
+        # GHCR は image path に lowercase を要求するため、repository_owner を強制小文字化する。
+        # `RyuheiKiso/k1s0` のような mixed-case 所有者でも push を確実に成功させる。
+        id: owner
+        run: |
+          lc="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "lc=${lc}" >> "$GITHUB_OUTPUT"
+
+      - name: login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: tag and push
+        env:
+          OWNER_LC: ${{ steps.owner.outputs.lc }}
+        run: |
+          set -eu
+          full="${{ inputs.registry }}/${OWNER_LC}/${{ inputs.image_name }}"
+          docker tag "${{ inputs.image_name }}:${{ github.sha }}" "${full}:${{ github.sha }}"
+          docker tag "${{ inputs.image_name }}:${{ github.sha }}" "${full}:latest"
+          docker push "${full}:${{ github.sha }}"
+          docker push "${full}:latest"
+          echo "PUSHED_REF=${full}:${{ github.sha }}" >> "$GITHUB_ENV"
+
+      - name: install cosign
+        if: inputs.sign
+        uses: sigstore/cosign-installer@v3
+
+      # cosign 2.x では keyless 署名が default 経路となり、`COSIGN_EXPERIMENTAL=1` は
+      # 必須ではない（cosign 1.x 互換のため残置）。リリース時点+ で cosign 2.x への
+      # 完全移行が確認できた段階で env 削除可能（plan 13-03 / 17-06 で再評価）。
+      - name: cosign sign (keyless)
+        if: inputs.sign
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign --yes "${PUSHED_REF}"
+
+      - name: attest SBOM
+        if: inputs.attest_sbom
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign attest --yes \
+            --predicate /tmp/${{ inputs.image_name }}.cdx.json \
+            --type cyclonedx \
+            "${PUSHED_REF}"

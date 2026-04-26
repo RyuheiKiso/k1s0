@@ -1,0 +1,16 @@
+// 本ファイルは tier1 公開 API 共通の `Principal`（呼出元 identity）型 stub。
+// 詳細フィールド定義は plan 03-02 の要件定義精緻化フェーズで完成予定（FR-T1-INVOKE-005 / FR-T1-AUDIT-* 等で参照）。
+//
+// 設計: docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/00_共通型定義.md
+syntax = "proto3";
+
+package k1s0.tier1.common.v1;
+
+// 呼出元の identity を表す（SPIFFE ID / OIDC sub / tenant_id 等を含む想定）。
+// 本 stub は構造の placeholder で、実フィールドは要件定義に基づき後段で追加する。
+message Principal {
+  // 呼出元のサービスアカウント識別子（SPIFFE ID または OIDC subject）
+  string subject = 1;
+  // tenant 境界を表す識別子（multi-tenancy、plan 04-17 と整合）
+  string tenant_id = 2;
+}

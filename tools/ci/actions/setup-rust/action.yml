@@ -1,0 +1,57 @@
+# =============================================================================
+# 本 composite action は CI で Rust toolchain + cache を setup する共通部品。
+#
+# 設計: docs/05_実装/30_CI_CD設計/15_monorepo_orchestration.md（IMP-CI-MR-006）
+#       docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md（IMP-CI-RWF-021）
+#
+# 利用:
+#   - uses: ./tools/ci/actions/setup-rust
+#     with:
+#       components: rustfmt,clippy
+#       workspace: src/tier1/rust
+#
+# 呼出元: reusable workflow（_reusable-lint.yml / _reusable-test.yml / _reusable-build.yml）
+# 呼出禁止: PR トリガ workflow から直接呼ぶことは禁止（IMP-CI-RWF-021）
+# =============================================================================
+name: setup-rust
+description: Rust toolchain + cargo cache を CI runner にセットアップする
+
+inputs:
+  toolchain:
+    description: rust toolchain（stable / nightly / 1.83.0 等）
+    required: false
+    default: stable
+  components:
+    description: "rustup components（カンマ区切り、例 rustfmt,clippy）"
+    required: false
+    default: ""
+  targets:
+    description: "rustup targets（カンマ区切り、例 x86_64-unknown-linux-musl）"
+    required: false
+    default: ""
+  workspace:
+    description: cargo workspace のパス（cache key の workspace 別分離に使用）
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: install rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+        targets: ${{ inputs.targets }}
+
+    - name: cargo cache
+      # IMP-CI-MR-002 の L1 cache 規約: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      # workspace 別に key を分離することで、tier1-rust と src/sdk/rust の cache を
+      # 衝突させずに保持する。
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ inputs.workspace }}
+        # cache 識別子に workspace を含める
+        prefix-key: rust-cache-${{ inputs.workspace }}
+        # CI 上の actions/cache サイズ制限（10GB）対策
+        save-if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}

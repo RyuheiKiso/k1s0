@@ -1,0 +1,66 @@
+# =============================================================================
+# 本ファイルは self-hosted Renovate を GitHub Actions 上で実行する schedule workflow。
+#
+# 設計: docs/02_構想設計/adr/ADR-DEP-001-renovate-central.md
+#       plan/02_開発環境整備/09_Renovate中央設定.md
+# 関連 ID: IMP-DEP-CFG-001（Renovate 中央設定）/ IMP-DEP-RUN-002（schedule 実行）
+#
+# 採用形態:
+#   - Mend Cloud は不採用（オンプレ制約 NFR-E-SEC）。GitHub Actions 上で self-hosted。
+#   - 毎時 schedule トリガで PR を生成。手動 trigger も workflow_dispatch で可能。
+#
+# 必要な secrets:
+#   - RENOVATE_TOKEN: GitHub PAT（fine-grained 推奨、対象 repo のみ）
+#     repo permissions: contents:write / pull-requests:write / metadata:read
+#
+# 注意:
+#   - GH Actions 自身の GITHUB_TOKEN は private repo 設定の操作権限が制限的なため
+#     Renovate には PAT が必要。リリース時点+ で GitHub App ベースに切替可能。
+# =============================================================================
+name: renovate
+
+on:
+  schedule:
+    # UTC 0:00 / 6:00 / 12:00 / 18:00 = JST 9:00 / 15:00 / 21:00 / 3:00 の 4 回
+    - cron: "0 0,6,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Renovate log level"
+        type: choice
+        default: "info"
+        options: [trace, debug, info, warn, error]
+      dryRun:
+        description: "dry-run（PR を作成しない、log のみ）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: renovate-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: run renovate
+        uses: renovatebot/github-action@v40
+        with:
+          configurationFile: renovate.json
+          token: ${{ secrets.RENOVATE_TOKEN }}
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_DRY_RUN: ${{ inputs.dryRun || 'false' }}
+          # 自分のリポジトリだけを対象に
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # 採用 platform
+          RENOVATE_PLATFORM: github

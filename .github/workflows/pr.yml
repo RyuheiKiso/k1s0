@@ -1,0 +1,404 @@
+# =============================================================================
+# 本ファイルは PR 起動の中心ワークフロー。
+# 1. path-filter で 11 軸の変更検出
+# 2. 検出した tier / 言語に対応する reusable workflow を呼び出し
+# 3. 全 job 完了後に集約 job ci-overall を実行（branch protection の必須 status check）
+#
+# 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+#       docs/05_実装/30_CI_CD設計/50_branch_protection/01_branch_protection.md
+# 関連 ID: IMP-CI-POL-002 / IMP-CI-POL-003（契約軸の強制ビルド）
+#
+# branch protection の Required status checks には `ci-overall` 1 本のみを登録。
+# skip された個別 reusable は ci-overall 内で「実行されない=success と等価扱い」を判定する。
+# =============================================================================
+name: pr
+
+on:
+  pull_request:
+    branches: [main, "release/*"]
+
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ------------------------------------------------------------------
+  # 0. path-filter（IMP-CI-POL-003）
+  # ------------------------------------------------------------------
+  filter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier1_rust:    ${{ steps.f.outputs.tier1_rust }}
+      tier1_go:      ${{ steps.f.outputs.tier1_go }}
+      tier2_dotnet:  ${{ steps.f.outputs.tier2_dotnet }}
+      tier2_go:      ${{ steps.f.outputs.tier2_go }}
+      tier3_web:     ${{ steps.f.outputs.tier3_web }}
+      tier3_native:  ${{ steps.f.outputs.tier3_native }}
+      sdk:           ${{ steps.f.outputs.sdk }}
+      platform:      ${{ steps.f.outputs.platform }}
+      contracts:     ${{ steps.f.outputs.contracts }}
+      infra:         ${{ steps.f.outputs.infra }}
+      docs:          ${{ steps.f.outputs.docs }}
+      docs_only:     ${{ steps.docs_only.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: f
+        uses: dorny/paths-filter@v3
+        with:
+          filters: tools/ci/path-filter.yaml
+      - id: docs_only
+        # docs のみ true、他がすべて false の場合に lint-only に分岐（IMP-CI-RWF-011）
+        run: |
+          docs_only="false"
+          if [[ "${{ steps.f.outputs.docs }}" == "true" \
+            && "${{ steps.f.outputs.tier1_rust }}" == "false" \
+            && "${{ steps.f.outputs.tier1_go }}" == "false" \
+            && "${{ steps.f.outputs.tier2_dotnet }}" == "false" \
+            && "${{ steps.f.outputs.tier2_go }}" == "false" \
+            && "${{ steps.f.outputs.tier3_web }}" == "false" \
+            && "${{ steps.f.outputs.tier3_native }}" == "false" \
+            && "${{ steps.f.outputs.sdk }}" == "false" \
+            && "${{ steps.f.outputs.platform }}" == "false" \
+            && "${{ steps.f.outputs.contracts }}" == "false" \
+            && "${{ steps.f.outputs.infra }}" == "false" ]]; then
+            docs_only="true"
+          fi
+          echo "docs_only=${docs_only}" >> "$GITHUB_OUTPUT"
+
+  # ------------------------------------------------------------------
+  # 1. pre-commit（全 PR で必ず走る前段ゲート）
+  # ------------------------------------------------------------------
+  pre-commit:
+    needs: [filter]
+    uses: ./.github/workflows/_reusable-precommit.yml
+    with:
+      from_ref: origin/${{ github.base_ref }}
+
+  # ------------------------------------------------------------------
+  # 1b. commitlint（PR title + 全 commit を Conventional Commits で検証）
+  #
+  # 設計: commitlint.config.js（type/scope の正典）
+  #       plan/02_開発環境整備/12_コミットメッセージ規約.md
+  # 関連 ID: IMP-CI-POL-002（ci-overall 1 本必須）に統合するため pr.yml に同居
+  # ------------------------------------------------------------------
+  commitlint-pr-title:
+    needs: [filter]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: lint PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          scopes: |
+            contracts
+            sdk-dotnet
+            sdk-go
+            sdk-rust
+            sdk-typescript
+            tier1-go
+            tier1-rust
+            tier2
+            tier3-web
+            tier3-native
+            tier3-bff
+            tier3-legacy
+            platform
+            infra
+            deploy
+            ops
+            tools
+            docs
+            tests
+            security
+            deps
+            release
+          requireScope: false
+          subjectPattern: ^[a-z぀-ゟ゠-ヿ一-鿿].+
+          subjectPatternError: |
+            PR title の subject が形式不正です。
+            「<type>(<scope>): <subject>」形式（subject は lowercase または日本語で開始）。
+
+  commitlint-commits:
+    needs: [filter]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: install commitlint
+        run: |
+          npm install --no-save \
+            @commitlint/cli@19 \
+            @commitlint/config-conventional@19
+      - name: validate commits
+        run: |
+          npx commitlint \
+            --from "origin/${{ github.base_ref }}" \
+            --to "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
+  # ------------------------------------------------------------------
+  # 2. lint（path-filter に基づく言語別呼び出し）
+  # ------------------------------------------------------------------
+
+  # docs（単独変更でも複合変更でも常に lint）
+  lint-docs:
+    needs: [filter]
+    if: needs.filter.outputs.docs == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: docs
+      language: docs
+
+  # contracts（proto）
+  lint-contracts:
+    needs: [filter]
+    if: needs.filter.outputs.contracts == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier1
+      language: proto
+      path: src/contracts
+
+  # codegen-check: contracts 変更時に buf generate 後の生成物に diff が無いか
+  # 検証する。生成物コミット方針（plan 03-04）の整合性を CI で強制。
+  codegen-check:
+    needs: [filter]
+    if: needs.filter.outputs.contracts == 'true' || needs.filter.outputs.sdk == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+      - name: buf generate diff check
+        run: |
+          buf generate src/contracts
+          if ! git diff --exit-code -- 'src/sdk/*/generated'; then
+            echo "::error title=codegen-check::生成物が最新でありません。"
+            echo "::error::ローカルで 'make codegen' を実行し、生成物を git add / commit してください。"
+            exit 1
+          fi
+          echo "[ok] 生成物 diff なし"
+
+  # tier1 rust
+  lint-tier1-rust:
+    needs: [filter]
+    if: needs.filter.outputs.tier1_rust == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier1
+      language: rust
+      path: src/tier1/rust
+
+  # tier1 go
+  lint-tier1-go:
+    needs: [filter]
+    if: needs.filter.outputs.tier1_go == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier1
+      language: go
+      path: src/tier1/go
+
+  # tier2 dotnet
+  lint-tier2-dotnet:
+    needs: [filter]
+    if: needs.filter.outputs.tier2_dotnet == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier2
+      language: dotnet
+      path: src/tier2/dotnet
+
+  # tier2 go
+  lint-tier2-go:
+    needs: [filter]
+    if: needs.filter.outputs.tier2_go == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier2
+      language: go
+      path: src/tier2/go
+
+  # tier3 web
+  lint-tier3-web:
+    needs: [filter]
+    if: needs.filter.outputs.tier3_web == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier3
+      language: typescript
+      path: src/tier3/web
+
+  # tier3 native
+  lint-tier3-native:
+    needs: [filter]
+    if: needs.filter.outputs.tier3_native == 'true'
+    uses: ./.github/workflows/_reusable-lint.yml
+    with:
+      tier: tier3
+      language: dotnet
+      path: src/tier3/native
+
+  # ------------------------------------------------------------------
+  # 3. test（unit）— docs_only 時は skip
+  # ------------------------------------------------------------------
+  test-tier1-rust:
+    needs: [filter, lint-tier1-rust]
+    if: needs.filter.outputs.tier1_rust == 'true' && needs.filter.outputs.docs_only != 'true'
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      tier: tier1
+      language: rust
+      path: src/tier1/rust
+
+  test-tier1-go:
+    needs: [filter, lint-tier1-go]
+    if: needs.filter.outputs.tier1_go == 'true' && needs.filter.outputs.docs_only != 'true'
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      tier: tier1
+      language: go
+      path: src/tier1/go
+
+  test-tier2-dotnet:
+    needs: [filter, lint-tier2-dotnet]
+    if: needs.filter.outputs.tier2_dotnet == 'true' && needs.filter.outputs.docs_only != 'true'
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      tier: tier2
+      language: dotnet
+      path: src/tier2/dotnet
+
+  test-tier2-go:
+    needs: [filter, lint-tier2-go]
+    if: needs.filter.outputs.tier2_go == 'true' && needs.filter.outputs.docs_only != 'true'
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      tier: tier2
+      language: go
+      path: src/tier2/go
+
+  test-tier3-web:
+    needs: [filter, lint-tier3-web]
+    if: needs.filter.outputs.tier3_web == 'true' && needs.filter.outputs.docs_only != 'true'
+    uses: ./.github/workflows/_reusable-test.yml
+    with:
+      tier: tier3
+      language: typescript
+      path: src/tier3/web
+
+  # ------------------------------------------------------------------
+  # 4. ci-overall（branch protection の必須 status check 集約 job）
+  #
+  # IMP-CI-POL-002 に従い、本 job 1 本のみが必須。skip された前段は
+  # success と等価扱いとし、選択ビルドの拡張（新 tier 追加）で
+  # required リスト変更が不要になる。
+  # ------------------------------------------------------------------
+  ci-overall:
+    needs:
+      - filter
+      - pre-commit
+      - commitlint-pr-title
+      - commitlint-commits
+      - lint-docs
+      - lint-contracts
+      - codegen-check
+      - lint-tier1-rust
+      - lint-tier1-go
+      - lint-tier2-dotnet
+      - lint-tier2-go
+      - lint-tier3-web
+      - lint-tier3-native
+      - test-tier1-rust
+      - test-tier1-go
+      - test-tier2-dotnet
+      - test-tier2-go
+      - test-tier3-web
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: judge aggregated result
+        run: |
+          set -eu
+          # needs 配下の各 job の結果を集約。'failure' / 'cancelled' があれば fail。
+          # 'skipped' / 'success' は許容（IMP-CI-POL-002）。
+          #
+          # 重要: filter は他の全 job が依存する初段 job。filter が failed の場合
+          # 下流 job は全部 skipped になるため、results に filter を含めずに判定すると
+          # 「failure を skipped 扱いで pass」する事故になる。filter は必ず判定する。
+          fails=0
+          declare -A results=(
+            [filter]="${{ needs.filter.result }}"
+            [pre-commit]="${{ needs.pre-commit.result }}"
+            [commitlint-pr-title]="${{ needs.commitlint-pr-title.result }}"
+            [commitlint-commits]="${{ needs.commitlint-commits.result }}"
+            [lint-docs]="${{ needs.lint-docs.result }}"
+            [lint-contracts]="${{ needs.lint-contracts.result }}"
+            [codegen-check]="${{ needs.codegen-check.result }}"
+            [lint-tier1-rust]="${{ needs.lint-tier1-rust.result }}"
+            [lint-tier1-go]="${{ needs.lint-tier1-go.result }}"
+            [lint-tier2-dotnet]="${{ needs.lint-tier2-dotnet.result }}"
+            [lint-tier2-go]="${{ needs.lint-tier2-go.result }}"
+            [lint-tier3-web]="${{ needs.lint-tier3-web.result }}"
+            [lint-tier3-native]="${{ needs.lint-tier3-native.result }}"
+            [test-tier1-rust]="${{ needs.test-tier1-rust.result }}"
+            [test-tier1-go]="${{ needs.test-tier1-go.result }}"
+            [test-tier2-dotnet]="${{ needs.test-tier2-dotnet.result }}"
+            [test-tier2-go]="${{ needs.test-tier2-go.result }}"
+            [test-tier3-web]="${{ needs.test-tier3-web.result }}"
+          )
+          for job in "${!results[@]}"; do
+            r="${results[$job]}"
+            if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
+              echo "::error title=ci-overall::${job} → ${r}"
+              fails=$((fails+1))
+            else
+              echo "::notice::${job} → ${r}"
+            fi
+          done
+          # filter が success 以外（skipped / failure / cancelled）なら ci-overall を fail する。
+          # filter は path-filter のみ実行で常に実行されるべき初段 job のため、success 以外は異常。
+          if [[ "${results[filter]}" != "success" ]]; then
+            echo "::error title=ci-overall::filter job did not succeed: ${results[filter]}"
+            fails=$((fails+1))
+          fi
+          echo "ci-overall failures: ${fails}"
+          test "$fails" -eq 0

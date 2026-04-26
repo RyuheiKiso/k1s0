@@ -1,0 +1,49 @@
+# =============================================================================
+# k1s0 buf generate configuration（internal module 専用）
+#
+# 設計: docs/02_構想設計/adr/ADR-TIER1-003-language-opacity.md（tier1 内部言語不可視）
+#       plan/03_Contracts実装/03_internal_proto定義.md（主作業 4: 生成先の隔離）
+#
+# **重要**: internal proto は tier2/tier3 不可視。SDK 配下に出さず、tier1 配下の
+# 限定的な path にのみ生成する。Go / Rust のみが対象（C# / TypeScript には出さない）。
+#
+# 利用:
+#   buf generate --template buf.gen.internal.yaml src/contracts/internal
+#   tools/codegen/buf/run.sh （内部で両 yaml を呼ぶ）
+# =============================================================================
+version: v2
+
+inputs:
+  - directory: src/contracts/internal
+
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/k1s0/tier1-go/internal/grpc
+
+plugins:
+  # ---------------------------------------------------------------------------
+  # Go: Dapr ファサード側で internal RPC stub を消費
+  # 出力先は src/tier1/go/internal/grpc/（本リリース時点 では暫定 path）
+  # ---------------------------------------------------------------------------
+  - remote: buf.build/protocolbuffers/go:v1.34.2
+    out: src/tier1/go/internal/grpc
+    opt:
+      - paths=source_relative
+  - remote: buf.build/grpc/go:v1.5.1
+    out: src/tier1/go/internal/grpc
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  # ---------------------------------------------------------------------------
+  # Rust: tonic ベースの core 側で internal RPC server を実装
+  # 出力先は src/tier1/rust/crates/proto/src/internal/（本リリース時点 暫定）
+  # ---------------------------------------------------------------------------
+  - remote: buf.build/community/neoeinstein-prost:v0.4.0
+    out: src/tier1/rust/crates/proto/src/internal
+  - remote: buf.build/community/neoeinstein-tonic:v0.4.0
+    out: src/tier1/rust/crates/proto/src/internal
+
+  # **C# / TypeScript への出力は意図的に省略**（tier2/tier3 不可視原則、ADR-TIER1-003）
