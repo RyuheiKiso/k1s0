@@ -3,17 +3,15 @@
 //     source: k1s0/tier1/state/v1/state_service.proto
 // </auto-generated>
 // Original file comments:
-// 本ファイルは tier1 公開 11 API のうち **State API** の最小 stub。
+// 本ファイルは tier1 公開 State API の正式 proto。
+// KV / Relational / Document 状態管理（楽観的排他とトランザクション境界付き）を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/02_State_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/02_State_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/state_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-STATE-001〜005
+// proto 構文宣言（proto3）
 #pragma warning disable 0414, 1591, 8981, 0612
 #region Designer generated code
 
@@ -21,8 +19,7 @@ using grpc = global::Grpc.Core;
 
 namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
   /// <summary>
-  /// StateService: tier1 公開 State API の最小 stub。
-  /// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+  /// 状態管理 API。Store 名で valkey / postgres / minio 等のバックエンドを切り替える。
   /// </summary>
   public static partial class StateService
   {
@@ -62,17 +59,65 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest> __Marshaller_k1s0_tier1_state_v1_PlaceholderCallRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest> __Marshaller_k1s0_tier1_state_v1_GetRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse> __Marshaller_k1s0_tier1_state_v1_PlaceholderCallResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse> __Marshaller_k1s0_tier1_state_v1_GetResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest> __Marshaller_k1s0_tier1_state_v1_SetRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse> __Marshaller_k1s0_tier1_state_v1_SetResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest> __Marshaller_k1s0_tier1_state_v1_DeleteRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse> __Marshaller_k1s0_tier1_state_v1_DeleteResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest> __Marshaller_k1s0_tier1_state_v1_BulkGetRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse> __Marshaller_k1s0_tier1_state_v1_BulkGetResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest> __Marshaller_k1s0_tier1_state_v1_TransactRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse> __Marshaller_k1s0_tier1_state_v1_TransactResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse> __Method_PlaceholderCall = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse>(
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse> __Method_Get = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "PlaceholderCall",
-        __Marshaller_k1s0_tier1_state_v1_PlaceholderCallRequest,
-        __Marshaller_k1s0_tier1_state_v1_PlaceholderCallResponse);
+        "Get",
+        __Marshaller_k1s0_tier1_state_v1_GetRequest,
+        __Marshaller_k1s0_tier1_state_v1_GetResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse> __Method_Set = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Set",
+        __Marshaller_k1s0_tier1_state_v1_SetRequest,
+        __Marshaller_k1s0_tier1_state_v1_SetResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse> __Method_Delete = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Delete",
+        __Marshaller_k1s0_tier1_state_v1_DeleteRequest,
+        __Marshaller_k1s0_tier1_state_v1_DeleteResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse> __Method_BulkGet = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "BulkGet",
+        __Marshaller_k1s0_tier1_state_v1_BulkGetRequest,
+        __Marshaller_k1s0_tier1_state_v1_BulkGetResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse> __Method_Transact = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Transact",
+        __Marshaller_k1s0_tier1_state_v1_TransactRequest,
+        __Marshaller_k1s0_tier1_state_v1_TransactResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -85,14 +130,61 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
     public abstract partial class StateServiceBase
     {
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-STATE-001（要件詳細は要件定義 IDL を参照）
+      /// キー単位の取得（未存在時は not_found=true、エラーには非該当）
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse> PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse> Get(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse> Set(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse> Delete(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse> BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse> Transact(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -127,8 +219,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       }
 
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-STATE-001（要件詳細は要件定義 IDL を参照）
+      /// キー単位の取得（未存在時は not_found=true、エラーには非該当）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -136,25 +227,23 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse Get(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCall(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return Get(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-STATE-001（要件詳細は要件定義 IDL を参照）
+      /// キー単位の取得（未存在時は not_found=true、エラーには非該当）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse Get(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_Get, null, options, request);
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-STATE-001（要件詳細は要件定義 IDL を参照）
+      /// キー単位の取得（未存在時は not_found=true、エラーには非該当）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -162,21 +251,212 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse> GetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCallAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return GetAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-STATE-001（要件詳細は要件定義 IDL を参照）
+      /// キー単位の取得（未存在時は not_found=true、エラーには非該当）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse> GetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_Get, null, options, request);
+      }
+      /// <summary>
+      /// キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse Set(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Set(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse Set(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Set, null, options, request);
+      }
+      /// <summary>
+      /// キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse> SetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return SetAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse> SetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Set, null, options, request);
+      }
+      /// <summary>
+      /// キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse Delete(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Delete(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse Delete(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Delete, null, options, request);
+      }
+      /// <summary>
+      /// キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse> DeleteAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return DeleteAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse> DeleteAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Delete, null, options, request);
+      }
+      /// <summary>
+      /// 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return BulkGet(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_BulkGet, null, options, request);
+      }
+      /// <summary>
+      /// 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse> BulkGetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return BulkGetAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse> BulkGetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_BulkGet, null, options, request);
+      }
+      /// <summary>
+      /// トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse Transact(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Transact(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse Transact(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Transact, null, options, request);
+      }
+      /// <summary>
+      /// トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse> TransactAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return TransactAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse> TransactAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Transact, null, options, request);
       }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -192,7 +472,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
     public static grpc::ServerServiceDefinition BindService(StateServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_PlaceholderCall, serviceImpl.PlaceholderCall).Build();
+          .AddMethod(__Method_Get, serviceImpl.Get)
+          .AddMethod(__Method_Set, serviceImpl.Set)
+          .AddMethod(__Method_Delete, serviceImpl.Delete)
+          .AddMethod(__Method_BulkGet, serviceImpl.BulkGet)
+          .AddMethod(__Method_Transact, serviceImpl.Transact).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -202,7 +486,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, StateServiceBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_PlaceholderCall, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.PlaceholderCallResponse>(serviceImpl.PlaceholderCall));
+      serviceBinder.AddMethod(__Method_Get, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse>(serviceImpl.Get));
+      serviceBinder.AddMethod(__Method_Set, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse>(serviceImpl.Set));
+      serviceBinder.AddMethod(__Method_Delete, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse>(serviceImpl.Delete));
+      serviceBinder.AddMethod(__Method_BulkGet, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.BulkGetResponse>(serviceImpl.BulkGet));
+      serviceBinder.AddMethod(__Method_Transact, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.TransactResponse>(serviceImpl.Transact));
     }
 
   }

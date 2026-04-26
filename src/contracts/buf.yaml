@@ -29,6 +29,23 @@ deps:
 lint:
   use:
     - STANDARD
+  # 正典 IDL（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）に追従するため、
+  # 以下の STANDARD ルールは module 全体で除外する。docs と buf 既定値が衝突する場合は
+  # docs を正典として扱う方針（README「責任分界表」参照）。
+  except:
+    # RPC が共通 Request/Response 型を共有することを許容（例: FeatureService の 4 つの
+    # Evaluate* RPC が EvaluateRequest を共有 / InvokeService の Invoke と InvokeStream が
+    # InvokeRequest を共有）。IDL 設計上の意図的な型共有。
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    # IDL の Request/Response 命名（例: RecordAuditRequest / GetSecretRequest /
+    # SendLogRequest）は service 名称を含む独自規約。buf 既定の `<RPC>Request` 強制から
+    # 外す。
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    # IDL の enum 値命名（例: K1S0_ERROR_UNSPECIFIED は K1S0_ERROR_ 接頭辞、
+    # FLAG_VALUE_BOOLEAN は FLAG_VALUE_ 接頭辞）は意図的に短縮形。buf 既定の
+    # 「enum 名フル接頭辞」強制から外す。
+    - ENUM_VALUE_PREFIX
   # k1s0 のパッケージ命名規約: k1s0.<module>.<api>.v<n>
   enum_zero_value_suffix: _UNSPECIFIED
   service_suffix: Service

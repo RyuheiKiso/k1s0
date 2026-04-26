@@ -1,35 +1,88 @@
-// 本ファイルは tier1 公開 12 API のうち **Log API** の最小 stub。
+// 本ファイルは tier1 公開 Log API の正式 proto。
+// 構造化ログ送信（OpenTelemetry Logs 準拠）を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/07_Log_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/07_Log_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/log_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-LOG-001〜004
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.log.v1;
 
-// LogService: tier1 公開 Log API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+// Timestamp 型の import（OTel Log の timestamp と整合）
+import "google/protobuf/timestamp.proto";
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// Log API。本 API は OTel Logs パイプラインに直接乗せる（Loki / Grafana で参照）。
 service LogService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-LOG-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // 単一エントリ送信
+  rpc Send(SendLogRequest) returns (SendLogResponse);
+  // 一括送信（accepted / rejected で集計を返す）
+  rpc BulkSend(BulkSendLogRequest) returns (BulkSendLogResponse);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// 重大度（OpenTelemetry Log Severity の数値仕様と整合）。
+// 注: 数値タグは OTel 仕様（trace=0 / debug=5 / info=9 / warn=13 / error=17 / fatal=21）に
+//     固定されているため、buf STANDARD lint の ENUM_ZERO_VALUE_SUFFIX /
+//     ENUM_VALUE_PREFIX を ignore する。
+// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+// buf:lint:ignore ENUM_VALUE_PREFIX
+enum Severity {
+  // OTel SeverityNumber TRACE（既定値）
+  TRACE = 0;
+  // OTel SeverityNumber DEBUG
+  DEBUG = 5;
+  // OTel SeverityNumber INFO
+  INFO = 9;
+  // OTel SeverityNumber WARN
+  WARN = 13;
+  // OTel SeverityNumber ERROR
+  ERROR = 17;
+  // OTel SeverityNumber FATAL
+  FATAL = 21;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// LogEntry（OTel LogRecord と等価）
+message LogEntry {
+  // 発生時刻（UTC、tier2 側で OTel SDK 経由付与）
+  google.protobuf.Timestamp timestamp = 1;
+  // 重大度
+  Severity severity = 2;
+  // メッセージ本文（PII 自動検出対象、Pii API で Mask 推奨）
+  string body = 3;
+  // 属性（service.name / env / trace_id / span_id を含む）
+  map<string, string> attributes = 4;
+  // 関連する例外スタック（オプション、マルチライン許容）
+  string stack_trace = 5;
+}
+
+// Send リクエスト
+message SendLogRequest {
+  // 送信エントリ
+  LogEntry entry = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+// Send 応答
+message SendLogResponse {}
+
+// BulkSend リクエスト
+message BulkSendLogRequest {
+  // 送信エントリ列
+  repeated LogEntry entries = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+// BulkSend 応答
+message BulkSendLogResponse {
+  // 受理件数（OTel パイプラインに渡された件数）
+  int32 accepted = 1;
+  // 拒否件数（PII フィルタや schema 違反で却下された件数）
+  int32 rejected = 2;
 }

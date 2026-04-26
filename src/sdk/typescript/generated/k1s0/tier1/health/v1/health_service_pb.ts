@@ -1,13 +1,13 @@
 // 本ファイルは tier1 ヘルスチェック用の補助 proto。
-// 11 API 公開リスト（state / pubsub / serviceinvoke / secrets / binding /
-// workflow / log / telemetry / decision / audit / feature）には **含まれない**
+// 12 API 公開リスト（state / pubsub / serviceinvoke / secrets / binding /
+// workflow / log / telemetry / decision / audit / feature / pii）には **含まれない**
 // プロセス生存確認 / k8s probe 用 RPC で、Liveness / Readiness の 2 RPC のみ。
 //
-// 11 API 本体は plan 03-02 で `src/contracts/tier1/k1s0/tier1/<api>/v1/` 配下に展開する。
+// 12 API 本体は plan 03-02 で `src/contracts/tier1/k1s0/tier1/<api>/v1/` 配下に展開する。
 // 本ファイルは buf generate パイプラインの動作確認も兼ねる（plan 03-01 完了条件）。
 //
 // 設計:
-//   docs/03_要件定義/20_機能要件/02_機能一覧.md（11 API の正典）
+//   docs/03_要件定義/20_機能要件/02_機能一覧.md（12 API の正典）
 //   docs/02_構想設計/adr/ADR-TIER1-002-protobuf-grpc.md
 //   plan/03_Contracts実装/02_tier1_proto定義.md
 
@@ -25,7 +25,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file k1s0/tier1/health/v1/health_service.proto.
  */
 export const file_k1s0_tier1_health_v1_health_service: GenFile = /*@__PURE__*/
-  fileDesc("CilrMXMwL3RpZXIxL2hlYWx0aC92MS9oZWFsdGhfc2VydmljZS5wcm90bxIUazFzMC50aWVyMS5oZWFsdGgudjEiEQoPTGl2ZW5lc3NSZXF1ZXN0IhIKEFJlYWRpbmVzc1JlcXVlc3QiOwoQTGl2ZW5lc3NSZXNwb25zZRIPCgd2ZXJzaW9uGAEgASgJEhYKDnVwdGltZV9zZWNvbmRzGAIgASgDItABChFSZWFkaW5lc3NSZXNwb25zZRINCgVyZWFkeRgBIAEoCBJPCgxkZXBlbmRlbmNpZXMYAiADKAsyOS5rMXMwLnRpZXIxLmhlYWx0aC52MS5SZWFkaW5lc3NSZXNwb25zZS5EZXBlbmRlbmNpZXNFbnRyeRpbChFEZXBlbmRlbmNpZXNFbnRyeRILCgNrZXkYASABKAkSNQoFdmFsdWUYAiABKAsyJi5rMXMwLnRpZXIxLmhlYWx0aC52MS5EZXBlbmRlbmN5U3RhdHVzOgI4ASI8ChBEZXBlbmRlbmN5U3RhdHVzEhEKCXJlYWNoYWJsZRgBIAEoCBIVCg1lcnJvcl9tZXNzYWdlGAIgASgJMsgBCg1IZWFsdGhTZXJ2aWNlElkKCExpdmVuZXNzEiUuazFzMC50aWVyMS5oZWFsdGgudjEuTGl2ZW5lc3NSZXF1ZXN0GiYuazFzMC50aWVyMS5oZWFsdGgudjEuTGl2ZW5lc3NSZXNwb25zZRJcCglSZWFkaW5lc3MSJi5rMXMwLnRpZXIxLmhlYWx0aC52MS5SZWFkaW5lc3NSZXF1ZXN0GicuazFzMC50aWVyMS5oZWFsdGgudjEuUmVhZGluZXNzUmVzcG9uc2VC9AEKGGNvbS5rMXMwLnRpZXIxLmhlYWx0aC52MUISSGVhbHRoU2VydmljZVByb3RvUAFaPmdpdGh1Yi5jb20vazFzMC9zZGsvZ28vZ2VuZXJhdGVkL2sxczAvdGllcjEvaGVhbHRoL3YxO2hlYWx0aHYxogIDS1RIqgInSzFzMC5TZGsuR2VuZXJhdGVkLksxczAuVGllcjEuSGVhbHRoLlYxygIUSzFzMFxUaWVyMVxIZWFsdGhcVjHiAiBLMXMwXFRpZXIxXEhlYWx0aFxWMVxHUEJNZXRhZGF0YeoCF0sxczA6OlRpZXIxOjpIZWFsdGg6OlYxYgZwcm90bzM");
+  fileDesc("CilrMXMwL3RpZXIxL2hlYWx0aC92MS9oZWFsdGhfc2VydmljZS5wcm90bxIUazFzMC50aWVyMS5oZWFsdGgudjEiEQoPTGl2ZW5lc3NSZXF1ZXN0IhIKEFJlYWRpbmVzc1JlcXVlc3QiOwoQTGl2ZW5lc3NSZXNwb25zZRIPCgd2ZXJzaW9uGAEgASgJEhYKDnVwdGltZV9zZWNvbmRzGAIgASgDItABChFSZWFkaW5lc3NSZXNwb25zZRINCgVyZWFkeRgBIAEoCBJPCgxkZXBlbmRlbmNpZXMYAiADKAsyOS5rMXMwLnRpZXIxLmhlYWx0aC52MS5SZWFkaW5lc3NSZXNwb25zZS5EZXBlbmRlbmNpZXNFbnRyeRpbChFEZXBlbmRlbmNpZXNFbnRyeRILCgNrZXkYASABKAkSNQoFdmFsdWUYAiABKAsyJi5rMXMwLnRpZXIxLmhlYWx0aC52MS5EZXBlbmRlbmN5U3RhdHVzOgI4ASI8ChBEZXBlbmRlbmN5U3RhdHVzEhEKCXJlYWNoYWJsZRgBIAEoCBIVCg1lcnJvcl9tZXNzYWdlGAIgASgJMsgBCg1IZWFsdGhTZXJ2aWNlElkKCExpdmVuZXNzEiUuazFzMC50aWVyMS5oZWFsdGgudjEuTGl2ZW5lc3NSZXF1ZXN0GiYuazFzMC50aWVyMS5oZWFsdGgudjEuTGl2ZW5lc3NSZXNwb25zZRJcCglSZWFkaW5lc3MSJi5rMXMwLnRpZXIxLmhlYWx0aC52MS5SZWFkaW5lc3NSZXF1ZXN0GicuazFzMC50aWVyMS5oZWFsdGgudjEuUmVhZGluZXNzUmVzcG9uc2VC/QEKGGNvbS5rMXMwLnRpZXIxLmhlYWx0aC52MUISSGVhbHRoU2VydmljZVByb3RvUAFaR2dpdGh1Yi5jb20vazFzMC9rMXMwL3NyYy9zZGsvZ28vZ2VuZXJhdGVkL2sxczAvdGllcjEvaGVhbHRoL3YxO2hlYWx0aHYxogIDS1RIqgInSzFzMC5TZGsuR2VuZXJhdGVkLksxczAuVGllcjEuSGVhbHRoLlYxygIUSzFzMFxUaWVyMVxIZWFsdGhcVjHiAiBLMXMwXFRpZXIxXEhlYWx0aFxWMVxHUEJNZXRhZGF0YeoCF0sxczA6OlRpZXIxOjpIZWFsdGg6OlYxYgZwcm90bzM");
 
 /**
  * Liveness probe のリクエスト（現状フィールドなし、将来拡張用）

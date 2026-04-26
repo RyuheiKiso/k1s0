@@ -40,12 +40,12 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Health.V1 {
             "dWVzdBomLmsxczAudGllcjEuaGVhbHRoLnYxLkxpdmVuZXNzUmVzcG9uc2US",
             "XAoJUmVhZGluZXNzEiYuazFzMC50aWVyMS5oZWFsdGgudjEuUmVhZGluZXNz",
             "UmVxdWVzdBonLmsxczAudGllcjEuaGVhbHRoLnYxLlJlYWRpbmVzc1Jlc3Bv",
-            "bnNlQvQBChhjb20uazFzMC50aWVyMS5oZWFsdGgudjFCEkhlYWx0aFNlcnZp",
-            "Y2VQcm90b1ABWj5naXRodWIuY29tL2sxczAvc2RrL2dvL2dlbmVyYXRlZC9r",
-            "MXMwL3RpZXIxL2hlYWx0aC92MTtoZWFsdGh2MaICA0tUSKoCJ0sxczAuU2Rr",
-            "LkdlbmVyYXRlZC5LMXMwLlRpZXIxLkhlYWx0aC5WMcoCFEsxczBcVGllcjFc",
-            "SGVhbHRoXFYx4gIgSzFzMFxUaWVyMVxIZWFsdGhcVjFcR1BCTWV0YWRhdGHq",
-            "AhdLMXMwOjpUaWVyMTo6SGVhbHRoOjpWMWIGcHJvdG8z"));
+            "bnNlQv0BChhjb20uazFzMC50aWVyMS5oZWFsdGgudjFCEkhlYWx0aFNlcnZp",
+            "Y2VQcm90b1ABWkdnaXRodWIuY29tL2sxczAvazFzMC9zcmMvc2RrL2dvL2dl",
+            "bmVyYXRlZC9rMXMwL3RpZXIxL2hlYWx0aC92MTtoZWFsdGh2MaICA0tUSKoC",
+            "J0sxczAuU2RrLkdlbmVyYXRlZC5LMXMwLlRpZXIxLkhlYWx0aC5WMcoCFEsx",
+            "czBcVGllcjFcSGVhbHRoXFYx4gIgSzFzMFxUaWVyMVxIZWFsdGhcVjFcR1BC",
+            "TWV0YWRhdGHqAhdLMXMwOjpUaWVyMTo6SGVhbHRoOjpWMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {

@@ -1,35 +1,144 @@
-// 本ファイルは tier1 公開 12 API のうち **Decision API** の最小 stub。
+// 本ファイルは tier1 公開 Decision API の正式 proto。
+// ZEN Engine による JDM（JSON Decision Model）ルール評価とルール文書管理を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/09_Decision_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/09_Decision_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/decision_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-DECISION-001〜004
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.decision.v1;
 
-// DecisionService: tier1 公開 Decision API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// Decision 評価 API。tier1 内の Rust 実装（ZEN Engine 統合）にディスパッチする。
 service DecisionService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-DEC-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // ルール評価（同期、非決定要素を含むルールは登録時に弾かれる）
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+  // バッチ評価（複数入力を一括評価、JIT 最適化対象）
+  rpc BatchEvaluate(BatchEvaluateRequest) returns (BatchEvaluateResponse);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// Evaluate リクエスト
+message EvaluateRequest {
+  // ルール ID（tier2 で登録した JDM 文書の識別子）
+  string rule_id = 1;
+  // ルールバージョン（省略時は最新有効）
+  string rule_version = 2;
+  // 入力（JDM の context に相当、任意 JSON）
+  bytes input_json = 3;
+  // trace 情報を返すか（デバッグ用、PII を含む可能性あり）
+  bool include_trace = 4;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 5;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// Evaluate 応答
+message EvaluateResponse {
+  // 出力（JDM 評価結果、任意 JSON）
+  bytes output_json = 1;
+  // 評価されたノードのトレース（include_trace=true の時のみ、空 bytes）
+  bytes trace_json = 2;
+  // 評価にかかった時間（マイクロ秒）
+  int64 elapsed_us = 3;
+}
+
+// BatchEvaluate リクエスト
+message BatchEvaluateRequest {
+  // ルール ID（全入力で共通）
+  string rule_id = 1;
+  // ルールバージョン
+  string rule_version = 2;
+  // 入力 JSON 列（順序を保って評価される）
+  repeated bytes inputs_json = 3;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 4;
+}
+
+// BatchEvaluate 応答
+message BatchEvaluateResponse {
+  // 出力 JSON 列（inputs_json と同じ順序）
+  repeated bytes outputs_json = 1;
+}
+
+// JDM ルール文書の登録・バージョン管理（リリース時点 で proto 追加予定）
+service DecisionAdminService {
+  // JDM 文書の登録（schema validator と非決定要素 linter を通過必須）
+  rpc RegisterRule(RegisterRuleRequest) returns (RegisterRuleResponse);
+  // バージョン一覧
+  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse);
+  // 特定バージョンの取得（レビュー用）
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+}
+
+// RegisterRule リクエスト
+message RegisterRuleRequest {
+  // ルール ID（tenant 内で一意）
+  string rule_id = 1;
+  // JDM 文書（前節 JSON Schema に準拠、UTF-8 JSON）
+  bytes jdm_document = 2;
+  // Sigstore 署名（ADR-RULE-001、registry に登録する署名）
+  bytes sigstore_signature = 3;
+  // コミット ID（Git commit hash、JDM バージョン追跡用）
+  string commit_hash = 4;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 5;
+}
+
+// RegisterRule 応答
+message RegisterRuleResponse {
+  // 採番されたバージョン（tenant + rule_id 内で一意、単調増加）
+  string rule_version = 1;
+  // 発効可能となる時刻（即時なら registered_at と同じ、Unix epoch ミリ秒）
+  int64 effective_at_ms = 2;
+}
+
+// ListVersions リクエスト
+message ListVersionsRequest {
+  // 対象ルール ID
+  string rule_id = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+// ListVersions 応答
+message ListVersionsResponse {
+  // バージョン一覧（登録時刻昇順）
+  repeated RuleVersionMeta versions = 1;
+}
+
+// ルールバージョンのメタ情報
+message RuleVersionMeta {
+  // バージョン文字列
+  string rule_version = 1;
+  // Git commit hash
+  string commit_hash = 2;
+  // 登録時刻（Unix epoch ミリ秒）
+  int64 registered_at_ms = 3;
+  // 登録者（subject 相当）
+  string registered_by = 4;
+  // DEPRECATED 状態（非推奨のみ true、廃止後は ListVersions から消える）
+  bool deprecated = 5;
+}
+
+// GetRule リクエスト
+message GetRuleRequest {
+  // 対象ルール ID
+  string rule_id = 1;
+  // 取得バージョン
+  string rule_version = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// GetRule 応答
+message GetRuleResponse {
+  // JDM 文書本体
+  bytes jdm_document = 1;
+  // メタ情報
+  RuleVersionMeta meta = 2;
 }

@@ -1,35 +1,65 @@
-// 本ファイルは tier1 公開 12 API のうち **Service Invoke API** の最小 stub。
+// 本ファイルは tier1 公開 Service Invoke API の正式 proto。
+// サービス間呼出を仲介する RPC を提供する（Dapr の app-to-app invoke 概念に対応）。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/01_Service_Invoke_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/01_Service_Invoke_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/serviceinvoke_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-INVOKE-001〜005
+//
+// 注: 正典 IDL では package を `k1s0.tier1.invoke.v1` と記載しているが、
+//     ディレクトリ設計（DS-DIR-* / IMP-DIR-*）と SDK 生成パスが
+//     `serviceinvoke` で統一されているため、buf STANDARD lint の
+//     PACKAGE_DIRECTORY_MATCH を満たすために本パッケージは
+//     `k1s0.tier1.serviceinvoke.v1` とする。RPC / message / フィールドは
+//     IDL 正典と完全一致させる。
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.serviceinvoke.v1;
 
-// ServiceInvokeService: tier1 公開 Service Invoke API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
-service ServiceInvokeService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-INVOKE-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// サービス間呼出を仲介する。tier1 が allowlist / RBAC / 監査を一括強制する。
+service InvokeService {
+  // 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
+  rpc Invoke(InvokeRequest) returns (InvokeResponse);
+  // ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+  rpc InvokeStream(InvokeRequest) returns (stream InvokeChunk);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// Invoke リクエスト
+message InvokeRequest {
+  // 呼出先のアプリ識別子（Dapr app_id 互換、tier2 のサービス名に相当）
+  string app_id = 1;
+  // 呼出先のメソッド名（HTTP の場合は path に相当）
+  string method = 2;
+  // 呼出データ（bytes で透過伝搬、encoding は content_type で示す）
+  bytes data = 3;
+  // Content-Type（application/json / application/grpc / application/protobuf 等）
+  string content_type = 4;
+  // 呼出元コンテキスト（テナント識別と相関 ID）
+  k1s0.tier1.common.v1.TenantContext context = 5;
+  // タイムアウト（ミリ秒、省略時は 5000ms）
+  int32 timeout_ms = 6;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// Invoke 応答
+message InvokeResponse {
+  // 応答データ（bytes で透過伝搬、encoding は content_type で示す）
+  bytes data = 1;
+  // Content-Type（呼出先が決定）
+  string content_type = 2;
+  // HTTP ステータス相当（成功 200、失敗時は詳細を Status に載せる）
+  int32 status = 3;
+}
+
+// ストリーム応答のチャンク
+message InvokeChunk {
+  // チャンク本文
+  bytes data = 1;
+  // ストリーム終端フラグ（true の場合は本チャンクが最終）
+  bool eof = 2;
 }

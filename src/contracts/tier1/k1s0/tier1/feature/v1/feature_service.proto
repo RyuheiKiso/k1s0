@@ -1,35 +1,227 @@
-// 本ファイルは tier1 公開 12 API のうち **Feature API** の最小 stub。
+// 本ファイルは tier1 公開 Feature API の正式 proto。
+// flagd / OpenFeature 互換の Feature Flag 評価と管理を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/11_Feature_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/11_Feature_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/feature_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-FEATURE-001〜004
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.feature.v1;
 
-// FeatureService: tier1 公開 Feature API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+// google.protobuf.Value（Object 型 variants の汎用 JSON 値）の import
+import "google/protobuf/struct.proto";
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// Feature Flag 評価 API。OpenFeature 互換、flagd 仕様準拠。
 service FeatureService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-FEATURE-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // Boolean Flag 評価
+  rpc EvaluateBoolean(EvaluateRequest) returns (BooleanResponse);
+  // String Flag 評価（Variant）
+  rpc EvaluateString(EvaluateRequest) returns (StringResponse);
+  // 数値 Flag 評価
+  rpc EvaluateNumber(EvaluateRequest) returns (NumberResponse);
+  // JSON オブジェクト Flag 評価
+  rpc EvaluateObject(EvaluateRequest) returns (ObjectResponse);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// Flag 評価の共通入力
+message EvaluateRequest {
+  // Flag キー（命名規則: <tenant>.<component>.<feature>）
+  string flag_key = 1;
+  // 評価コンテキスト（targetingKey は subject と同一）
+  map<string, string> evaluation_context = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// Flag の種別（OpenFeature / k1s0 固有）。
+// 注: 正典 IDL は zero value を `RELEASE = 0` と定義しているため、
+//     buf STANDARD lint の ENUM_ZERO_VALUE_SUFFIX / ENUM_VALUE_PREFIX を ignore する。
+// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+// buf:lint:ignore ENUM_VALUE_PREFIX
+enum FlagKind {
+  // リリース管理用（既定値、コード経路の段階公開）
+  RELEASE = 0;
+  // A/B テスト等の実験用
+  EXPERIMENT = 1;
+  // 運用上の緊急切替（Kill switch 含む）
+  OPS = 2;
+  // 権限制御（permission gate、Product Council 承認必須）
+  PERMISSION = 3;
+}
+
+// Flag 評価のメタ情報（OpenFeature の EvaluationDetails と整合）
+message FlagMetadata {
+  // Flag 種別
+  FlagKind kind = 1;
+  // バリアント名（有効化理由の参考）
+  string variant = 2;
+  // 評価の理由（DEFAULT / TARGETING_MATCH / SPLIT / ERROR）
+  string reason = 3;
+}
+
+// Boolean 評価応答
+message BooleanResponse {
+  // 評価値
+  bool value = 1;
+  // メタ情報
+  FlagMetadata metadata = 2;
+}
+
+// String 評価応答
+message StringResponse {
+  // 評価値
+  string value = 1;
+  // メタ情報
+  FlagMetadata metadata = 2;
+}
+
+// Number 評価応答
+message NumberResponse {
+  // 評価値
+  double value = 1;
+  // メタ情報
+  FlagMetadata metadata = 2;
+}
+
+// Object 評価応答
+message ObjectResponse {
+  // 評価値（JSON シリアライズ済み bytes）
+  bytes value_json = 1;
+  // メタ情報
+  FlagMetadata metadata = 2;
+}
+
+// Flag 定義の登録・更新（リリース時点 提供）
+service FeatureAdminService {
+  // Flag 定義の登録（permission 種別は approval_id 必須）
+  rpc RegisterFlag(RegisterFlagRequest) returns (RegisterFlagResponse);
+  // Flag 定義の取得
+  rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
+  // Flag 定義の一覧
+  rpc ListFlags(ListFlagsRequest) returns (ListFlagsResponse);
+}
+
+// flagd 互換の Flag 定義。k1s0 は OpenFeature / flagd 仕様に準拠。
+message FlagDefinition {
+  // Flag キー（命名規則: <tenant>.<component>.<feature>）
+  string flag_key = 1;
+  // Flag 種別（RELEASE / EXPERIMENT / OPS / PERMISSION）
+  FlagKind kind = 2;
+  // 戻り値型（boolean / string / number / object）
+  FlagValueType value_type = 3;
+  // デフォルト variant の名前（下記 variants にキーが存在すること）
+  string default_variant = 4;
+  // variants 定義: variant 名 → 値（value_type に応じた JSON literal）
+  map<string, google.protobuf.Value> variants = 5;
+  // targeting ルール（先頭から評価、最初に match したもの採用）
+  repeated TargetingRule targeting = 6;
+  // 状態（ENABLED / DISABLED / ARCHIVED）
+  FlagState state = 7;
+  // 説明（監査・運用者向け）
+  string description = 8;
+}
+
+// Flag の戻り値型
+enum FlagValueType {
+  // 未指定（既定値、登録時に弾かれる）
+  FLAG_VALUE_UNSPECIFIED = 0;
+  // boolean 型
+  FLAG_VALUE_BOOLEAN = 1;
+  // string 型
+  FLAG_VALUE_STRING = 2;
+  // number 型
+  FLAG_VALUE_NUMBER = 3;
+  // object 型（任意 JSON）
+  FLAG_VALUE_OBJECT = 4;
+}
+
+// Flag の状態
+enum FlagState {
+  // 未指定（既定値、登録時に弾かれる）
+  FLAG_STATE_UNSPECIFIED = 0;
+  // 有効（評価可能）
+  FLAG_STATE_ENABLED = 1;
+  // 無効（評価は default_variant 固定）
+  FLAG_STATE_DISABLED = 2;
+  // 廃止（ListFlags から消える、Get は可能）
+  FLAG_STATE_ARCHIVED = 3;
+}
+
+// targeting ルール（JsonLogic 互換、flagd 仕様準拠）。
+// 例: { "if": [ { "==": [{ "var": "userRole" }, "admin"] }, "blue-variant", "red-variant" ] }
+message TargetingRule {
+  // ルール ID（監査用、tenant+flag 内で一意）
+  string rule_id = 1;
+  // JsonLogic 式（bytes で保持、登録時に schema validator 通過必須）
+  bytes json_logic_expr = 2;
+  // 評価成立時に返す variant 名
+  string variant_if_match = 3;
+  // Fractional split（A/B テスト用、weights 合計 100 必須）
+  repeated FractionalSplit fractional = 4;
+}
+
+// Experiment 種別の Flag で A/B 比率を指定
+message FractionalSplit {
+  // バリアント名
+  string variant = 1;
+  // 重み（0〜100、全エントリ合計 100 必須）
+  int32 weight = 2;
+}
+
+// RegisterFlag リクエスト
+message RegisterFlagRequest {
+  // Flag 定義
+  FlagDefinition flag = 1;
+  // 変更理由（permission 種別 Flag の場合 Product Council 承認番号必須）
+  string change_reason = 2;
+  // permission 種別時の承認番号（空値は permission 種別で reject）
+  string approval_id = 3;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 4;
+}
+
+// RegisterFlag 応答
+message RegisterFlagResponse {
+  // バージョン（flag_key 内で単調増加）
+  int64 version = 1;
+}
+
+// GetFlag リクエスト
+message GetFlagRequest {
+  // 対象 Flag キー
+  string flag_key = 1;
+  // バージョン（省略時は最新）
+  optional int64 version = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// GetFlag 応答
+message GetFlagResponse {
+  // Flag 定義
+  FlagDefinition flag = 1;
+  // バージョン
+  int64 version = 2;
+}
+
+// ListFlags リクエスト
+message ListFlagsRequest {
+  // 種別フィルタ（省略で全種別）
+  optional FlagKind kind = 1;
+  // 状態フィルタ（省略で ENABLED のみ）
+  optional FlagState state = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// ListFlags 応答
+message ListFlagsResponse {
+  // Flag 定義列
+  repeated FlagDefinition flags = 1;
 }

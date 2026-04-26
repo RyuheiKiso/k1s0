@@ -3,17 +3,22 @@
 //     source: k1s0/tier1/serviceinvoke/v1/serviceinvoke_service.proto
 // </auto-generated>
 // Original file comments:
-// 本ファイルは tier1 公開 11 API のうち **Service Invoke API** の最小 stub。
+// 本ファイルは tier1 公開 Service Invoke API の正式 proto。
+// サービス間呼出を仲介する RPC を提供する（Dapr の app-to-app invoke 概念に対応）。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/01_Service_Invoke_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/01_Service_Invoke_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/serviceinvoke_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-INVOKE-001〜005
+//
+// 注: 正典 IDL では package を `k1s0.tier1.invoke.v1` と記載しているが、
+//     ディレクトリ設計（DS-DIR-* / IMP-DIR-*）と SDK 生成パスが
+//     `serviceinvoke` で統一されているため、buf STANDARD lint の
+//     PACKAGE_DIRECTORY_MATCH を満たすために本パッケージは
+//     `k1s0.tier1.serviceinvoke.v1` とする。RPC / message / フィールドは
+//     IDL 正典と完全一致させる。
+// proto 構文宣言（proto3）
 #pragma warning disable 0414, 1591, 8981, 0612
 #region Designer generated code
 
@@ -21,12 +26,11 @@ using grpc = global::Grpc.Core;
 
 namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
   /// <summary>
-  /// ServiceInvokeService: tier1 公開 Service Invoke API の最小 stub。
-  /// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+  /// サービス間呼出を仲介する。tier1 が allowlist / RBAC / 監査を一括強制する。
   /// </summary>
-  public static partial class ServiceInvokeService
+  public static partial class InvokeService
   {
-    static readonly string __ServiceName = "k1s0.tier1.serviceinvoke.v1.ServiceInvokeService";
+    static readonly string __ServiceName = "k1s0.tier1.serviceinvoke.v1.InvokeService";
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static void __Helper_SerializeMessage(global::Google.Protobuf.IMessage message, grpc::SerializationContext context)
@@ -62,17 +66,27 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest> __Marshaller_k1s0_tier1_serviceinvoke_v1_PlaceholderCallRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest> __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse> __Marshaller_k1s0_tier1_serviceinvoke_v1_PlaceholderCallResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse> __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk> __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeChunk = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse> __Method_PlaceholderCall = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse>(
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse> __Method_Invoke = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "PlaceholderCall",
-        __Marshaller_k1s0_tier1_serviceinvoke_v1_PlaceholderCallRequest,
-        __Marshaller_k1s0_tier1_serviceinvoke_v1_PlaceholderCallResponse);
+        "Invoke",
+        __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeRequest,
+        __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk> __Method_InvokeStream = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "InvokeStream",
+        __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeRequest,
+        __Marshaller_k1s0_tier1_serviceinvoke_v1_InvokeChunk);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -80,55 +94,66 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
       get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.ServiceinvokeServiceReflection.Descriptor.Services[0]; }
     }
 
-    /// <summary>Base class for server-side implementations of ServiceInvokeService</summary>
-    [grpc::BindServiceMethod(typeof(ServiceInvokeService), "BindService")]
-    public abstract partial class ServiceInvokeServiceBase
+    /// <summary>Base class for server-side implementations of InvokeService</summary>
+    [grpc::BindServiceMethod(typeof(InvokeService), "BindService")]
+    public abstract partial class InvokeServiceBase
     {
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-INVOKE-001（要件詳細は要件定義 IDL を参照）
+      /// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse> PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse> Invoke(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="responseStream">Used for sending responses back to the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>A task indicating completion of the handler.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task InvokeStream(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::IServerStreamWriter<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
 
     }
 
-    /// <summary>Client for ServiceInvokeService</summary>
-    public partial class ServiceInvokeServiceClient : grpc::ClientBase<ServiceInvokeServiceClient>
+    /// <summary>Client for InvokeService</summary>
+    public partial class InvokeServiceClient : grpc::ClientBase<InvokeServiceClient>
     {
-      /// <summary>Creates a new client for ServiceInvokeService</summary>
+      /// <summary>Creates a new client for InvokeService</summary>
       /// <param name="channel">The channel to use to make remote calls.</param>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public ServiceInvokeServiceClient(grpc::ChannelBase channel) : base(channel)
+      public InvokeServiceClient(grpc::ChannelBase channel) : base(channel)
       {
       }
-      /// <summary>Creates a new client for ServiceInvokeService that uses a custom <c>CallInvoker</c>.</summary>
+      /// <summary>Creates a new client for InvokeService that uses a custom <c>CallInvoker</c>.</summary>
       /// <param name="callInvoker">The callInvoker to use to make remote calls.</param>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public ServiceInvokeServiceClient(grpc::CallInvoker callInvoker) : base(callInvoker)
+      public InvokeServiceClient(grpc::CallInvoker callInvoker) : base(callInvoker)
       {
       }
       /// <summary>Protected parameterless constructor to allow creation of test doubles.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      protected ServiceInvokeServiceClient() : base()
+      protected InvokeServiceClient() : base()
       {
       }
       /// <summary>Protected constructor to allow creation of configured clients.</summary>
       /// <param name="configuration">The client configuration.</param>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      protected ServiceInvokeServiceClient(ClientBaseConfiguration configuration) : base(configuration)
+      protected InvokeServiceClient(ClientBaseConfiguration configuration) : base(configuration)
       {
       }
 
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-INVOKE-001（要件詳細は要件定義 IDL を参照）
+      /// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -136,25 +161,23 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse Invoke(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCall(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return Invoke(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-INVOKE-001（要件詳細は要件定義 IDL を参照）
+      /// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse Invoke(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_Invoke, null, options, request);
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-INVOKE-001（要件詳細は要件定義 IDL を参照）
+      /// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -162,37 +185,61 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse> InvokeAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCallAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return InvokeAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-INVOKE-001（要件詳細は要件定義 IDL を参照）
+      /// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse> InvokeAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_Invoke, null, options, request);
+      }
+      /// <summary>
+      /// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk> InvokeStream(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return InvokeStream(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk> InvokeStream(global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_InvokeStream, null, options, request);
       }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      protected override ServiceInvokeServiceClient NewInstance(ClientBaseConfiguration configuration)
+      protected override InvokeServiceClient NewInstance(ClientBaseConfiguration configuration)
       {
-        return new ServiceInvokeServiceClient(configuration);
+        return new InvokeServiceClient(configuration);
       }
     }
 
     /// <summary>Creates service definition that can be registered with a server</summary>
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    public static grpc::ServerServiceDefinition BindService(ServiceInvokeServiceBase serviceImpl)
+    public static grpc::ServerServiceDefinition BindService(InvokeServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_PlaceholderCall, serviceImpl.PlaceholderCall).Build();
+          .AddMethod(__Method_Invoke, serviceImpl.Invoke)
+          .AddMethod(__Method_InvokeStream, serviceImpl.InvokeStream).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -200,9 +247,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
     /// <param name="serviceBinder">Service methods will be bound by calling <c>AddMethod</c> on this object.</param>
     /// <param name="serviceImpl">An object implementing the server-side handling logic.</param>
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    public static void BindService(grpc::ServiceBinderBase serviceBinder, ServiceInvokeServiceBase serviceImpl)
+    public static void BindService(grpc::ServiceBinderBase serviceBinder, InvokeServiceBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_PlaceholderCall, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.PlaceholderCallResponse>(serviceImpl.PlaceholderCall));
+      serviceBinder.AddMethod(__Method_Invoke, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeResponse>(serviceImpl.Invoke));
+      serviceBinder.AddMethod(__Method_InvokeStream, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1.InvokeChunk>(serviceImpl.InvokeStream));
     }
 
   }

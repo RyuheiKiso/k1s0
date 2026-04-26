@@ -84,11 +84,107 @@ pub mod workflow_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn placeholder_call(
+        pub async fn start(
             &mut self,
-            request: impl tonic::IntoRequest<super::PlaceholderCallRequest>,
+            request: impl tonic::IntoRequest<super::StartRequest>,
+        ) -> std::result::Result<tonic::Response<super::StartResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.workflow.v1.WorkflowService/Start",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.workflow.v1.WorkflowService", "Start"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn signal(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SignalRequest>,
+        ) -> std::result::Result<tonic::Response<super::SignalResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.workflow.v1.WorkflowService/Signal",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.workflow.v1.WorkflowService", "Signal"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn query(
+            &mut self,
+            request: impl tonic::IntoRequest<super::QueryRequest>,
+        ) -> std::result::Result<tonic::Response<super::QueryResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.workflow.v1.WorkflowService/Query",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.workflow.v1.WorkflowService", "Query"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelRequest>,
+        ) -> std::result::Result<tonic::Response<super::CancelResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.workflow.v1.WorkflowService/Cancel",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.workflow.v1.WorkflowService", "Cancel"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn terminate(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TerminateRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::TerminateResponse>,
             tonic::Status,
         > {
             self.inner
@@ -102,14 +198,44 @@ pub mod workflow_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/k1s0.tier1.workflow.v1.WorkflowService/PlaceholderCall",
+                "/k1s0.tier1.workflow.v1.WorkflowService/Terminate",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "k1s0.tier1.workflow.v1.WorkflowService",
-                        "PlaceholderCall",
+                        "Terminate",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.workflow.v1.WorkflowService/GetStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "k1s0.tier1.workflow.v1.WorkflowService",
+                        "GetStatus",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -123,11 +249,34 @@ pub mod workflow_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with WorkflowServiceServer.
     #[async_trait]
     pub trait WorkflowService: Send + Sync + 'static {
-        async fn placeholder_call(
+        async fn start(
             &self,
-            request: tonic::Request<super::PlaceholderCallRequest>,
+            request: tonic::Request<super::StartRequest>,
+        ) -> std::result::Result<tonic::Response<super::StartResponse>, tonic::Status>;
+        async fn signal(
+            &self,
+            request: tonic::Request<super::SignalRequest>,
+        ) -> std::result::Result<tonic::Response<super::SignalResponse>, tonic::Status>;
+        async fn query(
+            &self,
+            request: tonic::Request<super::QueryRequest>,
+        ) -> std::result::Result<tonic::Response<super::QueryResponse>, tonic::Status>;
+        async fn cancel(
+            &self,
+            request: tonic::Request<super::CancelRequest>,
+        ) -> std::result::Result<tonic::Response<super::CancelResponse>, tonic::Status>;
+        async fn terminate(
+            &self,
+            request: tonic::Request<super::TerminateRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::TerminateResponse>,
+            tonic::Status,
+        >;
+        async fn get_status(
+            &self,
+            request: tonic::Request<super::GetStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetStatusResponse>,
             tonic::Status,
         >;
     }
@@ -210,26 +359,24 @@ pub mod workflow_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/k1s0.tier1.workflow.v1.WorkflowService/PlaceholderCall" => {
+                "/k1s0.tier1.workflow.v1.WorkflowService/Start" => {
                     #[allow(non_camel_case_types)]
-                    struct PlaceholderCallSvc<T: WorkflowService>(pub Arc<T>);
+                    struct StartSvc<T: WorkflowService>(pub Arc<T>);
                     impl<
                         T: WorkflowService,
-                    > tonic::server::UnaryService<super::PlaceholderCallRequest>
-                    for PlaceholderCallSvc<T> {
-                        type Response = super::PlaceholderCallResponse;
+                    > tonic::server::UnaryService<super::StartRequest> for StartSvc<T> {
+                        type Response = super::StartResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::PlaceholderCallRequest>,
+                            request: tonic::Request<super::StartRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as WorkflowService>::placeholder_call(&inner, request)
-                                    .await
+                                <T as WorkflowService>::start(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -241,7 +388,236 @@ pub mod workflow_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = PlaceholderCallSvc(inner);
+                        let method = StartSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.workflow.v1.WorkflowService/Signal" => {
+                    #[allow(non_camel_case_types)]
+                    struct SignalSvc<T: WorkflowService>(pub Arc<T>);
+                    impl<
+                        T: WorkflowService,
+                    > tonic::server::UnaryService<super::SignalRequest>
+                    for SignalSvc<T> {
+                        type Response = super::SignalResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SignalRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WorkflowService>::signal(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = SignalSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.workflow.v1.WorkflowService/Query" => {
+                    #[allow(non_camel_case_types)]
+                    struct QuerySvc<T: WorkflowService>(pub Arc<T>);
+                    impl<
+                        T: WorkflowService,
+                    > tonic::server::UnaryService<super::QueryRequest> for QuerySvc<T> {
+                        type Response = super::QueryResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::QueryRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WorkflowService>::query(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = QuerySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.workflow.v1.WorkflowService/Cancel" => {
+                    #[allow(non_camel_case_types)]
+                    struct CancelSvc<T: WorkflowService>(pub Arc<T>);
+                    impl<
+                        T: WorkflowService,
+                    > tonic::server::UnaryService<super::CancelRequest>
+                    for CancelSvc<T> {
+                        type Response = super::CancelResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CancelRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WorkflowService>::cancel(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = CancelSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.workflow.v1.WorkflowService/Terminate" => {
+                    #[allow(non_camel_case_types)]
+                    struct TerminateSvc<T: WorkflowService>(pub Arc<T>);
+                    impl<
+                        T: WorkflowService,
+                    > tonic::server::UnaryService<super::TerminateRequest>
+                    for TerminateSvc<T> {
+                        type Response = super::TerminateResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TerminateRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WorkflowService>::terminate(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = TerminateSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.workflow.v1.WorkflowService/GetStatus" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetStatusSvc<T: WorkflowService>(pub Arc<T>);
+                    impl<
+                        T: WorkflowService,
+                    > tonic::server::UnaryService<super::GetStatusRequest>
+                    for GetStatusSvc<T> {
+                        type Response = super::GetStatusResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetStatusRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as WorkflowService>::get_status(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = GetStatusSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

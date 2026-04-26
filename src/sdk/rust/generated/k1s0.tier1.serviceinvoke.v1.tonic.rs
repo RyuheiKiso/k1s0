@@ -1,14 +1,14 @@
 // @generated
 /// Generated client implementations.
-pub mod service_invoke_service_client {
+pub mod invoke_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
-    pub struct ServiceInvokeServiceClient<T> {
+    pub struct InvokeServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl ServiceInvokeServiceClient<tonic::transport::Channel> {
+    impl InvokeServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -19,7 +19,7 @@ pub mod service_invoke_service_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> ServiceInvokeServiceClient<T>
+    impl<T> InvokeServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -37,7 +37,7 @@ pub mod service_invoke_service_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> ServiceInvokeServiceClient<InterceptedService<T, F>>
+        ) -> InvokeServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -51,7 +51,7 @@ pub mod service_invoke_service_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            ServiceInvokeServiceClient::new(InterceptedService::new(inner, interceptor))
+            InvokeServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -84,11 +84,38 @@ pub mod service_invoke_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn placeholder_call(
+        pub async fn invoke(
             &mut self,
-            request: impl tonic::IntoRequest<super::PlaceholderCallRequest>,
+            request: impl tonic::IntoRequest<super::InvokeRequest>,
+        ) -> std::result::Result<tonic::Response<super::InvokeResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.serviceinvoke.v1.InvokeService/Invoke",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "k1s0.tier1.serviceinvoke.v1.InvokeService",
+                        "Invoke",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn invoke_stream(
+            &mut self,
+            request: impl tonic::IntoRequest<super::InvokeRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<tonic::codec::Streaming<super::InvokeChunk>>,
             tonic::Status,
         > {
             self.inner
@@ -102,37 +129,47 @@ pub mod service_invoke_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/k1s0.tier1.serviceinvoke.v1.ServiceInvokeService/PlaceholderCall",
+                "/k1s0.tier1.serviceinvoke.v1.InvokeService/InvokeStream",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
-                        "k1s0.tier1.serviceinvoke.v1.ServiceInvokeService",
-                        "PlaceholderCall",
+                        "k1s0.tier1.serviceinvoke.v1.InvokeService",
+                        "InvokeStream",
                     ),
                 );
-            self.inner.unary(req, path, codec).await
+            self.inner.server_streaming(req, path, codec).await
         }
     }
 }
 /// Generated server implementations.
-pub mod service_invoke_service_server {
+pub mod invoke_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with ServiceInvokeServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with InvokeServiceServer.
     #[async_trait]
-    pub trait ServiceInvokeService: Send + Sync + 'static {
-        async fn placeholder_call(
+    pub trait InvokeService: Send + Sync + 'static {
+        async fn invoke(
             &self,
-            request: tonic::Request<super::PlaceholderCallRequest>,
+            request: tonic::Request<super::InvokeRequest>,
+        ) -> std::result::Result<tonic::Response<super::InvokeResponse>, tonic::Status>;
+        /// Server streaming response type for the InvokeStream method.
+        type InvokeStreamStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<super::InvokeChunk, tonic::Status>,
+            >
+            + Send
+            + 'static;
+        async fn invoke_stream(
+            &self,
+            request: tonic::Request<super::InvokeRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<Self::InvokeStreamStream>,
             tonic::Status,
         >;
     }
     #[derive(Debug)]
-    pub struct ServiceInvokeServiceServer<T: ServiceInvokeService> {
+    pub struct InvokeServiceServer<T: InvokeService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
@@ -140,7 +177,7 @@ pub mod service_invoke_service_server {
         max_encoding_message_size: Option<usize>,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: ServiceInvokeService> ServiceInvokeServiceServer<T> {
+    impl<T: InvokeService> InvokeServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -192,10 +229,9 @@ pub mod service_invoke_service_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>>
-    for ServiceInvokeServiceServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for InvokeServiceServer<T>
     where
-        T: ServiceInvokeService,
+        T: InvokeService,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -211,29 +247,25 @@ pub mod service_invoke_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/k1s0.tier1.serviceinvoke.v1.ServiceInvokeService/PlaceholderCall" => {
+                "/k1s0.tier1.serviceinvoke.v1.InvokeService/Invoke" => {
                     #[allow(non_camel_case_types)]
-                    struct PlaceholderCallSvc<T: ServiceInvokeService>(pub Arc<T>);
+                    struct InvokeSvc<T: InvokeService>(pub Arc<T>);
                     impl<
-                        T: ServiceInvokeService,
-                    > tonic::server::UnaryService<super::PlaceholderCallRequest>
-                    for PlaceholderCallSvc<T> {
-                        type Response = super::PlaceholderCallResponse;
+                        T: InvokeService,
+                    > tonic::server::UnaryService<super::InvokeRequest>
+                    for InvokeSvc<T> {
+                        type Response = super::InvokeResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::PlaceholderCallRequest>,
+                            request: tonic::Request<super::InvokeRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ServiceInvokeService>::placeholder_call(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
+                                <T as InvokeService>::invoke(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -245,7 +277,7 @@ pub mod service_invoke_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = PlaceholderCallSvc(inner);
+                        let method = InvokeSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -257,6 +289,53 @@ pub mod service_invoke_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.serviceinvoke.v1.InvokeService/InvokeStream" => {
+                    #[allow(non_camel_case_types)]
+                    struct InvokeStreamSvc<T: InvokeService>(pub Arc<T>);
+                    impl<
+                        T: InvokeService,
+                    > tonic::server::ServerStreamingService<super::InvokeRequest>
+                    for InvokeStreamSvc<T> {
+                        type Response = super::InvokeChunk;
+                        type ResponseStream = T::InvokeStreamStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::InvokeRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as InvokeService>::invoke_stream(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = InvokeStreamSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
@@ -276,7 +355,7 @@ pub mod service_invoke_service_server {
             }
         }
     }
-    impl<T: ServiceInvokeService> Clone for ServiceInvokeServiceServer<T> {
+    impl<T: InvokeService> Clone for InvokeServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -288,7 +367,7 @@ pub mod service_invoke_service_server {
             }
         }
     }
-    impl<T: ServiceInvokeService> Clone for _Inner<T> {
+    impl<T: InvokeService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(Arc::clone(&self.0))
         }
@@ -298,8 +377,7 @@ pub mod service_invoke_service_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: ServiceInvokeService> tonic::server::NamedService
-    for ServiceInvokeServiceServer<T> {
-        const NAME: &'static str = "k1s0.tier1.serviceinvoke.v1.ServiceInvokeService";
+    impl<T: InvokeService> tonic::server::NamedService for InvokeServiceServer<T> {
+        const NAME: &'static str = "k1s0.tier1.serviceinvoke.v1.InvokeService";
     }
 }

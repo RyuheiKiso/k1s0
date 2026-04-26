@@ -3,17 +3,15 @@
 //     source: k1s0/tier1/binding/v1/binding_service.proto
 // </auto-generated>
 // Original file comments:
-// 本ファイルは tier1 公開 11 API のうち **Binding API** の最小 stub。
+// 本ファイルは tier1 公開 Binding API の正式 proto。
+// 外部システム（HTTP / SMTP / S3 等）への出力バインディング呼出を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/05_Binding_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/05_Binding_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/binding_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-BINDING-001〜004
+// proto 構文宣言（proto3）
 #pragma warning disable 0414, 1591, 8981, 0612
 #region Designer generated code
 
@@ -21,8 +19,7 @@ using grpc = global::Grpc.Core;
 
 namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
   /// <summary>
-  /// BindingService: tier1 公開 Binding API の最小 stub。
-  /// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+  /// Binding API。バインディング名は運用側で事前設定（s3-archive / smtp-notify 等）。
   /// </summary>
   public static partial class BindingService
   {
@@ -62,17 +59,17 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest> __Marshaller_k1s0_tier1_binding_v1_PlaceholderCallRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest> __Marshaller_k1s0_tier1_binding_v1_InvokeBindingRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse> __Marshaller_k1s0_tier1_binding_v1_PlaceholderCallResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse> __Marshaller_k1s0_tier1_binding_v1_InvokeBindingResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse> __Method_PlaceholderCall = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse>(
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse> __Method_Invoke = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "PlaceholderCall",
-        __Marshaller_k1s0_tier1_binding_v1_PlaceholderCallRequest,
-        __Marshaller_k1s0_tier1_binding_v1_PlaceholderCallResponse);
+        "Invoke",
+        __Marshaller_k1s0_tier1_binding_v1_InvokeBindingRequest,
+        __Marshaller_k1s0_tier1_binding_v1_InvokeBindingResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -85,14 +82,13 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     public abstract partial class BindingServiceBase
     {
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-BINDING-001（要件詳細は要件定義 IDL を参照）
+      /// 出力バインディング呼出（tier1 → 外部システムへ送信）
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse> PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse> Invoke(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -127,8 +123,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       }
 
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-BINDING-001（要件詳細は要件定義 IDL を参照）
+      /// 出力バインディング呼出（tier1 → 外部システムへ送信）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -136,25 +131,23 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse Invoke(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCall(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return Invoke(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-BINDING-001（要件詳細は要件定義 IDL を参照）
+      /// 出力バインディング呼出（tier1 → 外部システムへ送信）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse Invoke(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_Invoke, null, options, request);
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-BINDING-001（要件詳細は要件定義 IDL を参照）
+      /// 出力バインディング呼出（tier1 → 外部システムへ送信）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -162,21 +155,20 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse> InvokeAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCallAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return InvokeAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-BINDING-001（要件詳細は要件定義 IDL を参照）
+      /// 出力バインディング呼出（tier1 → 外部システムへ送信）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse> InvokeAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_Invoke, null, options, request);
       }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -192,7 +184,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     public static grpc::ServerServiceDefinition BindService(BindingServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_PlaceholderCall, serviceImpl.PlaceholderCall).Build();
+          .AddMethod(__Method_Invoke, serviceImpl.Invoke).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -202,7 +194,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, BindingServiceBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_PlaceholderCall, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse>(serviceImpl.PlaceholderCall));
+      serviceBinder.AddMethod(__Method_Invoke, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse>(serviceImpl.Invoke));
     }
 
   }

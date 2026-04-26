@@ -3,17 +3,15 @@
 //     source: k1s0/tier1/pubsub/v1/pubsub_service.proto
 // </auto-generated>
 // Original file comments:
-// 本ファイルは tier1 公開 11 API のうち **PubSub API** の最小 stub。
+// 本ファイルは tier1 公開 PubSub API の正式 proto。
+// Kafka 抽象 Publish / Subscribe を提供する（テナント境界はトピック接頭辞で自動隔離）。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/03_PubSub_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/03_PubSub_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/pubsub_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-PUBSUB-001〜005
+// proto 構文宣言（proto3）
 #pragma warning disable 0414, 1591, 8981, 0612
 #region Designer generated code
 
@@ -21,8 +19,7 @@ using grpc = global::Grpc.Core;
 
 namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
   /// <summary>
-  /// PubSubService: tier1 公開 PubSub API の最小 stub。
-  /// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+  /// PubSub API。Kafka をバックエンドとし、tier1 がテナント接頭辞付与と冪等性管理を行う。
   /// </summary>
   public static partial class PubSubService
   {
@@ -62,17 +59,41 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest> __Marshaller_k1s0_tier1_pubsub_v1_PlaceholderCallRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest> __Marshaller_k1s0_tier1_pubsub_v1_PublishRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse> __Marshaller_k1s0_tier1_pubsub_v1_PlaceholderCallResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse> __Marshaller_k1s0_tier1_pubsub_v1_PublishResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest> __Marshaller_k1s0_tier1_pubsub_v1_BulkPublishRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse> __Marshaller_k1s0_tier1_pubsub_v1_BulkPublishResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest> __Marshaller_k1s0_tier1_pubsub_v1_SubscribeRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event> __Marshaller_k1s0_tier1_pubsub_v1_Event = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse> __Method_PlaceholderCall = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse>(
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse> __Method_Publish = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "PlaceholderCall",
-        __Marshaller_k1s0_tier1_pubsub_v1_PlaceholderCallRequest,
-        __Marshaller_k1s0_tier1_pubsub_v1_PlaceholderCallResponse);
+        "Publish",
+        __Marshaller_k1s0_tier1_pubsub_v1_PublishRequest,
+        __Marshaller_k1s0_tier1_pubsub_v1_PublishResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse> __Method_BulkPublish = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "BulkPublish",
+        __Marshaller_k1s0_tier1_pubsub_v1_BulkPublishRequest,
+        __Marshaller_k1s0_tier1_pubsub_v1_BulkPublishResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event> __Method_Subscribe = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "Subscribe",
+        __Marshaller_k1s0_tier1_pubsub_v1_SubscribeRequest,
+        __Marshaller_k1s0_tier1_pubsub_v1_Event);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -85,14 +106,38 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
     public abstract partial class PubSubServiceBase
     {
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-PUBSUB-001（要件詳細は要件定義 IDL を参照）
+      /// 単発 Publish（idempotency_key で 24h 重複抑止）
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse> PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse> Publish(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse> BulkPublish(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="responseStream">Used for sending responses back to the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>A task indicating completion of the handler.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task Subscribe(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest request, grpc::IServerStreamWriter<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -127,8 +172,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
       }
 
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-PUBSUB-001（要件詳細は要件定義 IDL を参照）
+      /// 単発 Publish（idempotency_key で 24h 重複抑止）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -136,25 +180,23 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse Publish(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCall(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return Publish(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-PUBSUB-001（要件詳細は要件定義 IDL を参照）
+      /// 単発 Publish（idempotency_key で 24h 重複抑止）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse Publish(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_Publish, null, options, request);
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-PUBSUB-001（要件詳細は要件定義 IDL を参照）
+      /// 単発 Publish（idempotency_key で 24h 重複抑止）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -162,21 +204,92 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse> PublishAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCallAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return PublishAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-PUBSUB-001（要件詳細は要件定義 IDL を参照）
+      /// 単発 Publish（idempotency_key で 24h 重複抑止）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse> PublishAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_Publish, null, options, request);
+      }
+      /// <summary>
+      /// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse BulkPublish(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return BulkPublish(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse BulkPublish(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_BulkPublish, null, options, request);
+      }
+      /// <summary>
+      /// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse> BulkPublishAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return BulkPublishAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse> BulkPublishAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_BulkPublish, null, options, request);
+      }
+      /// <summary>
+      /// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event> Subscribe(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Subscribe(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event> Subscribe(global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_Subscribe, null, options, request);
       }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -192,7 +305,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
     public static grpc::ServerServiceDefinition BindService(PubSubServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_PlaceholderCall, serviceImpl.PlaceholderCall).Build();
+          .AddMethod(__Method_Publish, serviceImpl.Publish)
+          .AddMethod(__Method_BulkPublish, serviceImpl.BulkPublish)
+          .AddMethod(__Method_Subscribe, serviceImpl.Subscribe).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -202,7 +317,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, PubSubServiceBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_PlaceholderCall, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PlaceholderCallResponse>(serviceImpl.PlaceholderCall));
+      serviceBinder.AddMethod(__Method_Publish, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.PublishResponse>(serviceImpl.Publish));
+      serviceBinder.AddMethod(__Method_BulkPublish, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.BulkPublishResponse>(serviceImpl.BulkPublish));
+      serviceBinder.AddMethod(__Method_Subscribe, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.SubscribeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1.Event>(serviceImpl.Subscribe));
     }
 
   }

@@ -3,17 +3,15 @@
 //     source: k1s0/tier1/secrets/v1/secrets_service.proto
 // </auto-generated>
 // Original file comments:
-// 本ファイルは tier1 公開 11 API のうち **Secrets API** の最小 stub。
+// 本ファイルは tier1 公開 Secrets API の正式 proto。
+// OpenBao 経由でテナントスコープのシークレットを取得・ローテーションする。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/04_Secrets_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/04_Secrets_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/secrets_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-SECRETS-001〜004
+// proto 構文宣言（proto3）
 #pragma warning disable 0414, 1591, 8981, 0612
 #region Designer generated code
 
@@ -21,8 +19,7 @@ using grpc = global::Grpc.Core;
 
 namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
   /// <summary>
-  /// SecretsService: tier1 公開 Secrets API の最小 stub。
-  /// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+  /// Secrets API。OpenBao をバックエンドとし、tier1 が PII / アクセス制御を強制する。
   /// </summary>
   public static partial class SecretsService
   {
@@ -62,17 +59,41 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     }
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest> __Marshaller_k1s0_tier1_secrets_v1_PlaceholderCallRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest> __Marshaller_k1s0_tier1_secrets_v1_GetSecretRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse> __Marshaller_k1s0_tier1_secrets_v1_PlaceholderCallResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse.Parser));
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_GetSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest> __Marshaller_k1s0_tier1_secrets_v1_BulkGetSecretRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_BulkGetSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest> __Marshaller_k1s0_tier1_secrets_v1_RotateSecretRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_RotateSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse> __Method_PlaceholderCall = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse>(
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse> __Method_Get = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
-        "PlaceholderCall",
-        __Marshaller_k1s0_tier1_secrets_v1_PlaceholderCallRequest,
-        __Marshaller_k1s0_tier1_secrets_v1_PlaceholderCallResponse);
+        "Get",
+        __Marshaller_k1s0_tier1_secrets_v1_GetSecretRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_GetSecretResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> __Method_BulkGet = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "BulkGet",
+        __Marshaller_k1s0_tier1_secrets_v1_BulkGetSecretRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_BulkGetSecretResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> __Method_Rotate = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Rotate",
+        __Marshaller_k1s0_tier1_secrets_v1_RotateSecretRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_RotateSecretResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -85,14 +106,39 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     public abstract partial class SecretsServiceBase
     {
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-SECRETS-001（要件詳細は要件定義 IDL を参照）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse> PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest request, grpc::ServerCallContext context)
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse> Get(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// 一括取得（テナントに割当された全シークレット）
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// ローテーション実行（FR-T1-SECRETS-004）
+      /// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
+      /// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> Rotate(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -127,8 +173,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       }
 
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-SECRETS-001（要件詳細は要件定義 IDL を参照）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -136,25 +181,23 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse Get(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCall(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return Get(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-SECRETS-001（要件詳細は要件定義 IDL を参照）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The response received from the server.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse PlaceholderCall(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse Get(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.BlockingUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.BlockingUnaryCall(__Method_Get, null, options, request);
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-SECRETS-001（要件詳細は要件定義 IDL を参照）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -162,21 +205,124 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       /// <param name="cancellationToken">An optional token for canceling the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse> GetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
-        return PlaceholderCallAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+        return GetAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-      /// 関連要件: FR-T1-SECRETS-001（要件詳細は要件定義 IDL を参照）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
       /// <returns>The call object.</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
-      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse> PlaceholderCallAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest request, grpc::CallOptions options)
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse> GetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest request, grpc::CallOptions options)
       {
-        return CallInvoker.AsyncUnaryCall(__Method_PlaceholderCall, null, options, request);
+        return CallInvoker.AsyncUnaryCall(__Method_Get, null, options, request);
+      }
+      /// <summary>
+      /// 一括取得（テナントに割当された全シークレット）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return BulkGet(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 一括取得（テナントに割当された全シークレット）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_BulkGet, null, options, request);
+      }
+      /// <summary>
+      /// 一括取得（テナントに割当された全シークレット）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> BulkGetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return BulkGetAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 一括取得（テナントに割当された全シークレット）
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> BulkGetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_BulkGet, null, options, request);
+      }
+      /// <summary>
+      /// ローテーション実行（FR-T1-SECRETS-004）
+      /// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
+      /// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse Rotate(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Rotate(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// ローテーション実行（FR-T1-SECRETS-004）
+      /// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
+      /// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse Rotate(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Rotate, null, options, request);
+      }
+      /// <summary>
+      /// ローテーション実行（FR-T1-SECRETS-004）
+      /// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
+      /// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> RotateAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RotateAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// ローテーション実行（FR-T1-SECRETS-004）
+      /// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
+      /// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> RotateAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Rotate, null, options, request);
       }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -192,7 +338,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     public static grpc::ServerServiceDefinition BindService(SecretsServiceBase serviceImpl)
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
-          .AddMethod(__Method_PlaceholderCall, serviceImpl.PlaceholderCall).Build();
+          .AddMethod(__Method_Get, serviceImpl.Get)
+          .AddMethod(__Method_BulkGet, serviceImpl.BulkGet)
+          .AddMethod(__Method_Rotate, serviceImpl.Rotate).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -202,7 +350,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     public static void BindService(grpc::ServiceBinderBase serviceBinder, SecretsServiceBase serviceImpl)
     {
-      serviceBinder.AddMethod(__Method_PlaceholderCall, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.PlaceholderCallResponse>(serviceImpl.PlaceholderCall));
+      serviceBinder.AddMethod(__Method_Get, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse>(serviceImpl.Get));
+      serviceBinder.AddMethod(__Method_BulkGet, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse>(serviceImpl.BulkGet));
+      serviceBinder.AddMethod(__Method_Rotate, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse>(serviceImpl.Rotate));
     }
 
   }

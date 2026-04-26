@@ -84,11 +84,11 @@ pub mod audit_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn placeholder_call(
+        pub async fn record(
             &mut self,
-            request: impl tonic::IntoRequest<super::PlaceholderCallRequest>,
+            request: impl tonic::IntoRequest<super::RecordAuditRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::RecordAuditResponse>,
             tonic::Status,
         > {
             self.inner
@@ -102,16 +102,36 @@ pub mod audit_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/k1s0.tier1.audit.v1.AuditService/PlaceholderCall",
+                "/k1s0.tier1.audit.v1.AuditService/Record",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "k1s0.tier1.audit.v1.AuditService",
-                        "PlaceholderCall",
-                    ),
-                );
+                .insert(GrpcMethod::new("k1s0.tier1.audit.v1.AuditService", "Record"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn query(
+            &mut self,
+            request: impl tonic::IntoRequest<super::QueryAuditRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::QueryAuditResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.audit.v1.AuditService/Query",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("k1s0.tier1.audit.v1.AuditService", "Query"));
             self.inner.unary(req, path, codec).await
         }
     }
@@ -123,11 +143,18 @@ pub mod audit_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with AuditServiceServer.
     #[async_trait]
     pub trait AuditService: Send + Sync + 'static {
-        async fn placeholder_call(
+        async fn record(
             &self,
-            request: tonic::Request<super::PlaceholderCallRequest>,
+            request: tonic::Request<super::RecordAuditRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::RecordAuditResponse>,
+            tonic::Status,
+        >;
+        async fn query(
+            &self,
+            request: tonic::Request<super::QueryAuditRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::QueryAuditResponse>,
             tonic::Status,
         >;
     }
@@ -210,25 +237,25 @@ pub mod audit_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/k1s0.tier1.audit.v1.AuditService/PlaceholderCall" => {
+                "/k1s0.tier1.audit.v1.AuditService/Record" => {
                     #[allow(non_camel_case_types)]
-                    struct PlaceholderCallSvc<T: AuditService>(pub Arc<T>);
+                    struct RecordSvc<T: AuditService>(pub Arc<T>);
                     impl<
                         T: AuditService,
-                    > tonic::server::UnaryService<super::PlaceholderCallRequest>
-                    for PlaceholderCallSvc<T> {
-                        type Response = super::PlaceholderCallResponse;
+                    > tonic::server::UnaryService<super::RecordAuditRequest>
+                    for RecordSvc<T> {
+                        type Response = super::RecordAuditResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::PlaceholderCallRequest>,
+                            request: tonic::Request<super::RecordAuditRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as AuditService>::placeholder_call(&inner, request).await
+                                <T as AuditService>::record(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -240,7 +267,53 @@ pub mod audit_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = PlaceholderCallSvc(inner);
+                        let method = RecordSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.audit.v1.AuditService/Query" => {
+                    #[allow(non_camel_case_types)]
+                    struct QuerySvc<T: AuditService>(pub Arc<T>);
+                    impl<
+                        T: AuditService,
+                    > tonic::server::UnaryService<super::QueryAuditRequest>
+                    for QuerySvc<T> {
+                        type Response = super::QueryAuditResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::QueryAuditRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AuditService>::query(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = QuerySvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

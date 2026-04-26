@@ -84,11 +84,11 @@ pub mod binding_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn placeholder_call(
+        pub async fn invoke(
             &mut self,
-            request: impl tonic::IntoRequest<super::PlaceholderCallRequest>,
+            request: impl tonic::IntoRequest<super::InvokeBindingRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::InvokeBindingResponse>,
             tonic::Status,
         > {
             self.inner
@@ -102,15 +102,12 @@ pub mod binding_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/k1s0.tier1.binding.v1.BindingService/PlaceholderCall",
+                "/k1s0.tier1.binding.v1.BindingService/Invoke",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
-                    GrpcMethod::new(
-                        "k1s0.tier1.binding.v1.BindingService",
-                        "PlaceholderCall",
-                    ),
+                    GrpcMethod::new("k1s0.tier1.binding.v1.BindingService", "Invoke"),
                 );
             self.inner.unary(req, path, codec).await
         }
@@ -123,11 +120,11 @@ pub mod binding_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with BindingServiceServer.
     #[async_trait]
     pub trait BindingService: Send + Sync + 'static {
-        async fn placeholder_call(
+        async fn invoke(
             &self,
-            request: tonic::Request<super::PlaceholderCallRequest>,
+            request: tonic::Request<super::InvokeBindingRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::InvokeBindingResponse>,
             tonic::Status,
         >;
     }
@@ -210,26 +207,25 @@ pub mod binding_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/k1s0.tier1.binding.v1.BindingService/PlaceholderCall" => {
+                "/k1s0.tier1.binding.v1.BindingService/Invoke" => {
                     #[allow(non_camel_case_types)]
-                    struct PlaceholderCallSvc<T: BindingService>(pub Arc<T>);
+                    struct InvokeSvc<T: BindingService>(pub Arc<T>);
                     impl<
                         T: BindingService,
-                    > tonic::server::UnaryService<super::PlaceholderCallRequest>
-                    for PlaceholderCallSvc<T> {
-                        type Response = super::PlaceholderCallResponse;
+                    > tonic::server::UnaryService<super::InvokeBindingRequest>
+                    for InvokeSvc<T> {
+                        type Response = super::InvokeBindingResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::PlaceholderCallRequest>,
+                            request: tonic::Request<super::InvokeBindingRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as BindingService>::placeholder_call(&inner, request)
-                                    .await
+                                <T as BindingService>::invoke(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -241,7 +237,7 @@ pub mod binding_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = PlaceholderCallSvc(inner);
+                        let method = InvokeSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

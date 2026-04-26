@@ -1,37 +1,74 @@
-// 本ファイルは tier1 公開 12 API のうち **PII API** の最小 stub。
+// 本ファイルは tier1 公開 PII API の正式 proto。
+// PII（個人情報）の検出（Classify）とマスキング（Mask）を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC（Classify / Mask 等）/ message / フィールド / google.api.http annotation /
-//            google.rpc.Status の正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（PiiService 部）
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/10_Audit_Pii_API.md
 //
-// 担当 Pod（docs 正典）: t1-pii（Rust）。docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/01_tier1全体配置.md
+// 関連要件: FR-T1-PII-001〜002
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（Audit + PII 共通 IDL、PiiService 部）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 担当 Pod: t1-pii（Rust 純関数実装、ステートレス、DS-SW-COMP-009）
+//
+// 注: 正典 IDL では AuditService と PiiService を 1 ファイル（package
+//     k1s0.tier1.audit.v1）にまとめているが、ディレクトリ設計と Pod 構成に従い、
+//     本リポジトリでは pii.v1 パッケージに分離する。
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.pii.v1;
 
-// PiiService: tier1 公開 PII API の最小 stub。
-// 本 service は plan 03-02 のフル実装で Classify（判定のみ）/ Mask（置換後テキスト返却）等の RPC に拡張される。
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// PII API。t1-pii Pod は純関数（ステートレス）で副作用なし。
 service PiiService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-PII-001（マスキング）/ FR-T1-PII-002（仮名化）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // PII 種別の検出（テキスト → findings 列）
+  rpc Classify(ClassifyRequest) returns (ClassifyResponse);
+  // マスキング（テキスト → 置換後テキスト + findings）
+  rpc Mask(MaskRequest) returns (MaskResponse);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// Classify リクエスト
+message ClassifyRequest {
+  // 判定対象テキスト
+  string text = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// PII 検出結果の 1 件
+message PiiFinding {
+  // 検出された PII 種別（NAME / EMAIL / PHONE / MYNUMBER / CREDITCARD 等）
+  string type = 1;
+  // 文字列内の開始位置（0 始まり、UTF-8 byte 単位ではなく文字単位）
+  int32 start = 2;
+  // 文字列内の終了位置（exclusive）
+  int32 end = 3;
+  // 信頼度（0.0〜1.0）
+  double confidence = 4;
+}
+
+// Classify 応答
+message ClassifyResponse {
+  // 検出された PII 一覧（位置順）
+  repeated PiiFinding findings = 1;
+  // PII を含むか（findings が空でなければ true）
+  bool contains_pii = 2;
+}
+
+// Mask リクエスト
+message MaskRequest {
+  // マスキング対象テキスト
+  string text = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+// Mask 応答
+message MaskResponse {
+  // マスク後のテキスト（氏名 → [NAME]、メール → [EMAIL] 等）
+  string masked_text = 1;
+  // 検出された PII 一覧（マスキング前の位置情報）
+  repeated PiiFinding findings = 2;
 }

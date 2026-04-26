@@ -25,23 +25,33 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CitrMXMwL3RpZXIxL2JpbmRpbmcvdjEvYmluZGluZ19zZXJ2aWNlLnByb3Rv",
-            "EhVrMXMwLnRpZXIxLmJpbmRpbmcudjEiLAoWUGxhY2Vob2xkZXJDYWxsUmVx",
-            "dWVzdBISCgRub3RlGAEgASgJUgRub3RlIjMKF1BsYWNlaG9sZGVyQ2FsbFJl",
-            "c3BvbnNlEhgKB21lc3NhZ2UYASABKAlSB21lc3NhZ2UyggEKDkJpbmRpbmdT",
-            "ZXJ2aWNlEnAKD1BsYWNlaG9sZGVyQ2FsbBItLmsxczAudGllcjEuYmluZGlu",
-            "Zy52MS5QbGFjZWhvbGRlckNhbGxSZXF1ZXN0Gi4uazFzMC50aWVyMS5iaW5k",
-            "aW5nLnYxLlBsYWNlaG9sZGVyQ2FsbFJlc3BvbnNlQvwBChljb20uazFzMC50",
-            "aWVyMS5iaW5kaW5nLnYxQhNCaW5kaW5nU2VydmljZVByb3RvUAFaQGdpdGh1",
-            "Yi5jb20vazFzMC9zZGsvZ28vZ2VuZXJhdGVkL2sxczAvdGllcjEvYmluZGlu",
-            "Zy92MTtiaW5kaW5ndjGiAgNLVEKqAihLMXMwLlNkay5HZW5lcmF0ZWQuSzFz",
-            "MC5UaWVyMS5CaW5kaW5nLlYxygIVSzFzMFxUaWVyMVxCaW5kaW5nXFYx4gIh",
-            "SzFzMFxUaWVyMVxCaW5kaW5nXFYxXEdQQk1ldGFkYXRh6gIYSzFzMDo6VGll",
-            "cjE6OkJpbmRpbmc6OlYxYgZwcm90bzM="));
+            "EhVrMXMwLnRpZXIxLmJpbmRpbmcudjEaIWsxczAvdGllcjEvY29tbW9uL3Yx",
+            "L2NvbW1vbi5wcm90byKvAgoUSW52b2tlQmluZGluZ1JlcXVlc3QSEgoEbmFt",
+            "ZRgBIAEoCVIEbmFtZRIcCglvcGVyYXRpb24YAiABKAlSCW9wZXJhdGlvbhIS",
+            "CgRkYXRhGAMgASgMUgRkYXRhElUKCG1ldGFkYXRhGAQgAygLMjkuazFzMC50",
+            "aWVyMS5iaW5kaW5nLnYxLkludm9rZUJpbmRpbmdSZXF1ZXN0Lk1ldGFkYXRh",
+            "RW50cnlSCG1ldGFkYXRhEj0KB2NvbnRleHQYBSABKAsyIy5rMXMwLnRpZXIx",
+            "LmNvbW1vbi52MS5UZW5hbnRDb250ZXh0Ugdjb250ZXh0GjsKDU1ldGFkYXRh",
+            "RW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVl",
+            "OgI4ASLAAQoVSW52b2tlQmluZGluZ1Jlc3BvbnNlEhIKBGRhdGEYASABKAxS",
+            "BGRhdGESVgoIbWV0YWRhdGEYAiADKAsyOi5rMXMwLnRpZXIxLmJpbmRpbmcu",
+            "djEuSW52b2tlQmluZGluZ1Jlc3BvbnNlLk1ldGFkYXRhRW50cnlSCG1ldGFk",
+            "YXRhGjsKDU1ldGFkYXRhRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFs",
+            "dWUYAiABKAlSBXZhbHVlOgI4ATJ1Cg5CaW5kaW5nU2VydmljZRJjCgZJbnZv",
+            "a2USKy5rMXMwLnRpZXIxLmJpbmRpbmcudjEuSW52b2tlQmluZGluZ1JlcXVl",
+            "c3QaLC5rMXMwLnRpZXIxLmJpbmRpbmcudjEuSW52b2tlQmluZGluZ1Jlc3Bv",
+            "bnNlQoUCChljb20uazFzMC50aWVyMS5iaW5kaW5nLnYxQhNCaW5kaW5nU2Vy",
+            "dmljZVByb3RvUAFaSWdpdGh1Yi5jb20vazFzMC9rMXMwL3NyYy9zZGsvZ28v",
+            "Z2VuZXJhdGVkL2sxczAvdGllcjEvYmluZGluZy92MTtiaW5kaW5ndjGiAgNL",
+            "VEKqAihLMXMwLlNkay5HZW5lcmF0ZWQuSzFzMC5UaWVyMS5CaW5kaW5nLlYx",
+            "ygIVSzFzMFxUaWVyMVxCaW5kaW5nXFYx4gIhSzFzMFxUaWVyMVxCaW5kaW5n",
+            "XFYxXEdQQk1ldGFkYXRh6gIYSzFzMDo6VGllcjE6OkJpbmRpbmc6OlYxYgZw",
+            "cm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallRequest.Parser, new[]{ "Note" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.PlaceholderCallResponse.Parser, new[]{ "Message" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest.Parser, new[]{ "Name", "Operation", "Data", "Metadata", "Context" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse.Parser, new[]{ "Data", "Metadata" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, })
           }));
     }
     #endregion
@@ -49,19 +59,19 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
   }
   #region Messages
   /// <summary>
-  /// PlaceholderCallRequest: フル実装前の最小 message。
+  /// Invoke リクエスト
   /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class PlaceholderCallRequest : pb::IMessage<PlaceholderCallRequest>
+  public sealed partial class InvokeBindingRequest : pb::IMessage<InvokeBindingRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<PlaceholderCallRequest> _parser = new pb::MessageParser<PlaceholderCallRequest>(() => new PlaceholderCallRequest());
+    private static readonly pb::MessageParser<InvokeBindingRequest> _parser = new pb::MessageParser<InvokeBindingRequest>(() => new InvokeBindingRequest());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<PlaceholderCallRequest> Parser { get { return _parser; } }
+    public static pb::MessageParser<InvokeBindingRequest> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -77,7 +87,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public PlaceholderCallRequest() {
+    public InvokeBindingRequest() {
       OnConstruction();
     }
 
@@ -85,48 +95,115 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public PlaceholderCallRequest(PlaceholderCallRequest other) : this() {
-      note_ = other.note_;
+    public InvokeBindingRequest(InvokeBindingRequest other) : this() {
+      name_ = other.name_;
+      operation_ = other.operation_;
+      data_ = other.data_;
+      metadata_ = other.metadata_.Clone();
+      context_ = other.context_ != null ? other.context_.Clone() : null;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public PlaceholderCallRequest Clone() {
-      return new PlaceholderCallRequest(this);
+    public InvokeBindingRequest Clone() {
+      return new InvokeBindingRequest(this);
     }
 
-    /// <summary>Field number for the "note" field.</summary>
-    public const int NoteFieldNumber = 1;
-    private string note_ = "";
+    /// <summary>Field number for the "name" field.</summary>
+    public const int NameFieldNumber = 1;
+    private string name_ = "";
     /// <summary>
-    /// フル実装前の placeholder field
+    /// バインディング名（運用側で事前設定、例: s3-archive / smtp-notify）
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Note {
-      get { return note_; }
+    public string Name {
+      get { return name_; }
       set {
-        note_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        name_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "operation" field.</summary>
+    public const int OperationFieldNumber = 2;
+    private string operation_ = "";
+    /// <summary>
+    /// 操作種別（create / get / list / delete / send 等、バインディング型依存）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Operation {
+      get { return operation_; }
+      set {
+        operation_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "data" field.</summary>
+    public const int DataFieldNumber = 3;
+    private pb::ByteString data_ = pb::ByteString.Empty;
+    /// <summary>
+    /// 操作データ本文
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Data {
+      get { return data_; }
+      set {
+        data_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "metadata" field.</summary>
+    public const int MetadataFieldNumber = 4;
+    private static readonly pbc::MapField<string, string>.Codec _map_metadata_codec
+        = new pbc::MapField<string, string>.Codec(pb::FieldCodec.ForString(10, ""), pb::FieldCodec.ForString(18, ""), 34);
+    private readonly pbc::MapField<string, string> metadata_ = new pbc::MapField<string, string>();
+    /// <summary>
+    /// メタデータ（content-type / to / subject 等、バインディング型依存）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::MapField<string, string> Metadata {
+      get { return metadata_; }
+    }
+
+    /// <summary>Field number for the "context" field.</summary>
+    public const int ContextFieldNumber = 5;
+    private global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext context_;
+    /// <summary>
+    /// 呼出元コンテキスト
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext Context {
+      get { return context_; }
+      set {
+        context_ = value;
       }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as PlaceholderCallRequest);
+      return Equals(other as InvokeBindingRequest);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(PlaceholderCallRequest other) {
+    public bool Equals(InvokeBindingRequest other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Note != other.Note) return false;
+      if (Name != other.Name) return false;
+      if (Operation != other.Operation) return false;
+      if (Data != other.Data) return false;
+      if (!Metadata.Equals(other.Metadata)) return false;
+      if (!object.Equals(Context, other.Context)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -134,7 +211,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Note.Length != 0) hash ^= Note.GetHashCode();
+      if (Name.Length != 0) hash ^= Name.GetHashCode();
+      if (Operation.Length != 0) hash ^= Operation.GetHashCode();
+      if (Data.Length != 0) hash ^= Data.GetHashCode();
+      hash ^= Metadata.GetHashCode();
+      if (context_ != null) hash ^= Context.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -153,9 +234,22 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Note.Length != 0) {
+      if (Name.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Note);
+        output.WriteString(Name);
+      }
+      if (Operation.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Operation);
+      }
+      if (Data.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Data);
+      }
+      metadata_.WriteTo(output, _map_metadata_codec);
+      if (context_ != null) {
+        output.WriteRawTag(42);
+        output.WriteMessage(Context);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -167,9 +261,22 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Note.Length != 0) {
+      if (Name.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Note);
+        output.WriteString(Name);
+      }
+      if (Operation.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Operation);
+      }
+      if (Data.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Data);
+      }
+      metadata_.WriteTo(ref output, _map_metadata_codec);
+      if (context_ != null) {
+        output.WriteRawTag(42);
+        output.WriteMessage(Context);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -181,8 +288,18 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Note.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Note);
+      if (Name.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Name);
+      }
+      if (Operation.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Operation);
+      }
+      if (Data.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Data);
+      }
+      size += metadata_.CalculateSize(_map_metadata_codec);
+      if (context_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -192,12 +309,25 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(PlaceholderCallRequest other) {
+    public void MergeFrom(InvokeBindingRequest other) {
       if (other == null) {
         return;
       }
-      if (other.Note.Length != 0) {
-        Note = other.Note;
+      if (other.Name.Length != 0) {
+        Name = other.Name;
+      }
+      if (other.Operation.Length != 0) {
+        Operation = other.Operation;
+      }
+      if (other.Data.Length != 0) {
+        Data = other.Data;
+      }
+      metadata_.MergeFrom(other.metadata_);
+      if (other.context_ != null) {
+        if (context_ == null) {
+          Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+        }
+        Context.MergeFrom(other.Context);
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -219,7 +349,26 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Note = input.ReadString();
+            Name = input.ReadString();
+            break;
+          }
+          case 18: {
+            Operation = input.ReadString();
+            break;
+          }
+          case 26: {
+            Data = input.ReadBytes();
+            break;
+          }
+          case 34: {
+            metadata_.AddEntriesFrom(input, _map_metadata_codec);
+            break;
+          }
+          case 42: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
             break;
           }
         }
@@ -242,7 +391,26 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            Note = input.ReadString();
+            Name = input.ReadString();
+            break;
+          }
+          case 18: {
+            Operation = input.ReadString();
+            break;
+          }
+          case 26: {
+            Data = input.ReadBytes();
+            break;
+          }
+          case 34: {
+            metadata_.AddEntriesFrom(ref input, _map_metadata_codec);
+            break;
+          }
+          case 42: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
             break;
           }
         }
@@ -253,19 +421,19 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
   }
 
   /// <summary>
-  /// PlaceholderCallResponse: フル実装前の最小 message。
+  /// Invoke 応答
   /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
-  public sealed partial class PlaceholderCallResponse : pb::IMessage<PlaceholderCallResponse>
+  public sealed partial class InvokeBindingResponse : pb::IMessage<InvokeBindingResponse>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<PlaceholderCallResponse> _parser = new pb::MessageParser<PlaceholderCallResponse>(() => new PlaceholderCallResponse());
+    private static readonly pb::MessageParser<InvokeBindingResponse> _parser = new pb::MessageParser<InvokeBindingResponse>(() => new InvokeBindingResponse());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<PlaceholderCallResponse> Parser { get { return _parser; } }
+    public static pb::MessageParser<InvokeBindingResponse> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -281,7 +449,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public PlaceholderCallResponse() {
+    public InvokeBindingResponse() {
       OnConstruction();
     }
 
@@ -289,48 +457,64 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public PlaceholderCallResponse(PlaceholderCallResponse other) : this() {
-      message_ = other.message_;
+    public InvokeBindingResponse(InvokeBindingResponse other) : this() {
+      data_ = other.data_;
+      metadata_ = other.metadata_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public PlaceholderCallResponse Clone() {
-      return new PlaceholderCallResponse(this);
+    public InvokeBindingResponse Clone() {
+      return new InvokeBindingResponse(this);
     }
 
-    /// <summary>Field number for the "message" field.</summary>
-    public const int MessageFieldNumber = 1;
-    private string message_ = "";
+    /// <summary>Field number for the "data" field.</summary>
+    public const int DataFieldNumber = 1;
+    private pb::ByteString data_ = pb::ByteString.Empty;
     /// <summary>
-    /// 本 RPC 自体は dummy で、応答も placeholder
+    /// 応答本文（操作種別とバインディング型に依存）
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public string Message {
-      get { return message_; }
+    public pb::ByteString Data {
+      get { return data_; }
       set {
-        message_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+        data_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
       }
+    }
+
+    /// <summary>Field number for the "metadata" field.</summary>
+    public const int MetadataFieldNumber = 2;
+    private static readonly pbc::MapField<string, string>.Codec _map_metadata_codec
+        = new pbc::MapField<string, string>.Codec(pb::FieldCodec.ForString(10, ""), pb::FieldCodec.ForString(18, ""), 18);
+    private readonly pbc::MapField<string, string> metadata_ = new pbc::MapField<string, string>();
+    /// <summary>
+    /// メタデータ（外部システムから返るヘッダ等）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::MapField<string, string> Metadata {
+      get { return metadata_; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as PlaceholderCallResponse);
+      return Equals(other as InvokeBindingResponse);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(PlaceholderCallResponse other) {
+    public bool Equals(InvokeBindingResponse other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
       if (ReferenceEquals(other, this)) {
         return true;
       }
-      if (Message != other.Message) return false;
+      if (Data != other.Data) return false;
+      if (!Metadata.Equals(other.Metadata)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -338,7 +522,8 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (Message.Length != 0) hash ^= Message.GetHashCode();
+      if (Data.Length != 0) hash ^= Data.GetHashCode();
+      hash ^= Metadata.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -357,10 +542,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (Message.Length != 0) {
+      if (Data.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Message);
+        output.WriteBytes(Data);
       }
+      metadata_.WriteTo(output, _map_metadata_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -371,10 +557,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Message.Length != 0) {
+      if (Data.Length != 0) {
         output.WriteRawTag(10);
-        output.WriteString(Message);
+        output.WriteBytes(Data);
       }
+      metadata_.WriteTo(ref output, _map_metadata_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -385,9 +572,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (Message.Length != 0) {
-        size += 1 + pb::CodedOutputStream.ComputeStringSize(Message);
+      if (Data.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Data);
       }
+      size += metadata_.CalculateSize(_map_metadata_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -396,13 +584,14 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(PlaceholderCallResponse other) {
+    public void MergeFrom(InvokeBindingResponse other) {
       if (other == null) {
         return;
       }
-      if (other.Message.Length != 0) {
-        Message = other.Message;
+      if (other.Data.Length != 0) {
+        Data = other.Data;
       }
+      metadata_.MergeFrom(other.metadata_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -423,7 +612,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
           case 10: {
-            Message = input.ReadString();
+            Data = input.ReadBytes();
+            break;
+          }
+          case 18: {
+            metadata_.AddEntriesFrom(input, _map_metadata_codec);
             break;
           }
         }
@@ -446,7 +639,11 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
           case 10: {
-            Message = input.ReadString();
+            Data = input.ReadBytes();
+            break;
+          }
+          case 18: {
+            metadata_.AddEntriesFrom(ref input, _map_metadata_codec);
             break;
           }
         }

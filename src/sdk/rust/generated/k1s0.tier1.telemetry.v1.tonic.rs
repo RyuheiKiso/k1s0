@@ -84,11 +84,11 @@ pub mod telemetry_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn placeholder_call(
+        pub async fn emit_metric(
             &mut self,
-            request: impl tonic::IntoRequest<super::PlaceholderCallRequest>,
+            request: impl tonic::IntoRequest<super::EmitMetricRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::EmitMetricResponse>,
             tonic::Status,
         > {
             self.inner
@@ -102,14 +102,44 @@ pub mod telemetry_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/k1s0.tier1.telemetry.v1.TelemetryService/PlaceholderCall",
+                "/k1s0.tier1.telemetry.v1.TelemetryService/EmitMetric",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "k1s0.tier1.telemetry.v1.TelemetryService",
-                        "PlaceholderCall",
+                        "EmitMetric",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn emit_span(
+            &mut self,
+            request: impl tonic::IntoRequest<super::EmitSpanRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EmitSpanResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.telemetry.v1.TelemetryService/EmitSpan",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "k1s0.tier1.telemetry.v1.TelemetryService",
+                        "EmitSpan",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -123,11 +153,18 @@ pub mod telemetry_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with TelemetryServiceServer.
     #[async_trait]
     pub trait TelemetryService: Send + Sync + 'static {
-        async fn placeholder_call(
+        async fn emit_metric(
             &self,
-            request: tonic::Request<super::PlaceholderCallRequest>,
+            request: tonic::Request<super::EmitMetricRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::EmitMetricResponse>,
+            tonic::Status,
+        >;
+        async fn emit_span(
+            &self,
+            request: tonic::Request<super::EmitSpanRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EmitSpanResponse>,
             tonic::Status,
         >;
     }
@@ -210,26 +247,25 @@ pub mod telemetry_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/k1s0.tier1.telemetry.v1.TelemetryService/PlaceholderCall" => {
+                "/k1s0.tier1.telemetry.v1.TelemetryService/EmitMetric" => {
                     #[allow(non_camel_case_types)]
-                    struct PlaceholderCallSvc<T: TelemetryService>(pub Arc<T>);
+                    struct EmitMetricSvc<T: TelemetryService>(pub Arc<T>);
                     impl<
                         T: TelemetryService,
-                    > tonic::server::UnaryService<super::PlaceholderCallRequest>
-                    for PlaceholderCallSvc<T> {
-                        type Response = super::PlaceholderCallResponse;
+                    > tonic::server::UnaryService<super::EmitMetricRequest>
+                    for EmitMetricSvc<T> {
+                        type Response = super::EmitMetricResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::PlaceholderCallRequest>,
+                            request: tonic::Request<super::EmitMetricRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as TelemetryService>::placeholder_call(&inner, request)
-                                    .await
+                                <T as TelemetryService>::emit_metric(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -241,7 +277,53 @@ pub mod telemetry_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = PlaceholderCallSvc(inner);
+                        let method = EmitMetricSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.telemetry.v1.TelemetryService/EmitSpan" => {
+                    #[allow(non_camel_case_types)]
+                    struct EmitSpanSvc<T: TelemetryService>(pub Arc<T>);
+                    impl<
+                        T: TelemetryService,
+                    > tonic::server::UnaryService<super::EmitSpanRequest>
+                    for EmitSpanSvc<T> {
+                        type Response = super::EmitSpanResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::EmitSpanRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TelemetryService>::emit_span(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = EmitSpanSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -84,11 +84,11 @@ pub mod log_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn placeholder_call(
+        pub async fn send(
             &mut self,
-            request: impl tonic::IntoRequest<super::PlaceholderCallRequest>,
+            request: impl tonic::IntoRequest<super::SendLogRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::SendLogResponse>,
             tonic::Status,
         > {
             self.inner
@@ -102,13 +102,36 @@ pub mod log_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/k1s0.tier1.log.v1.LogService/PlaceholderCall",
+                "/k1s0.tier1.log.v1.LogService/Send",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("k1s0.tier1.log.v1.LogService", "PlaceholderCall"),
-                );
+                .insert(GrpcMethod::new("k1s0.tier1.log.v1.LogService", "Send"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn bulk_send(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BulkSendLogRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BulkSendLogResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.log.v1.LogService/BulkSend",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("k1s0.tier1.log.v1.LogService", "BulkSend"));
             self.inner.unary(req, path, codec).await
         }
     }
@@ -120,11 +143,15 @@ pub mod log_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with LogServiceServer.
     #[async_trait]
     pub trait LogService: Send + Sync + 'static {
-        async fn placeholder_call(
+        async fn send(
             &self,
-            request: tonic::Request<super::PlaceholderCallRequest>,
+            request: tonic::Request<super::SendLogRequest>,
+        ) -> std::result::Result<tonic::Response<super::SendLogResponse>, tonic::Status>;
+        async fn bulk_send(
+            &self,
+            request: tonic::Request<super::BulkSendLogRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::PlaceholderCallResponse>,
+            tonic::Response<super::BulkSendLogResponse>,
             tonic::Status,
         >;
     }
@@ -207,25 +234,24 @@ pub mod log_service_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/k1s0.tier1.log.v1.LogService/PlaceholderCall" => {
+                "/k1s0.tier1.log.v1.LogService/Send" => {
                     #[allow(non_camel_case_types)]
-                    struct PlaceholderCallSvc<T: LogService>(pub Arc<T>);
+                    struct SendSvc<T: LogService>(pub Arc<T>);
                     impl<
                         T: LogService,
-                    > tonic::server::UnaryService<super::PlaceholderCallRequest>
-                    for PlaceholderCallSvc<T> {
-                        type Response = super::PlaceholderCallResponse;
+                    > tonic::server::UnaryService<super::SendLogRequest> for SendSvc<T> {
+                        type Response = super::SendLogResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::PlaceholderCallRequest>,
+                            request: tonic::Request<super::SendLogRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as LogService>::placeholder_call(&inner, request).await
+                                <T as LogService>::send(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -237,7 +263,53 @@ pub mod log_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = PlaceholderCallSvc(inner);
+                        let method = SendSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.log.v1.LogService/BulkSend" => {
+                    #[allow(non_camel_case_types)]
+                    struct BulkSendSvc<T: LogService>(pub Arc<T>);
+                    impl<
+                        T: LogService,
+                    > tonic::server::UnaryService<super::BulkSendLogRequest>
+                    for BulkSendSvc<T> {
+                        type Response = super::BulkSendLogResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BulkSendLogRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as LogService>::bulk_send(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = BulkSendSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

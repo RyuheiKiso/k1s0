@@ -1,35 +1,133 @@
-// 本ファイルは tier1 公開 12 API のうち **State API** の最小 stub。
+// 本ファイルは tier1 公開 State API の正式 proto。
+// KV / Relational / Document 状態管理（楽観的排他とトランザクション境界付き）を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/02_State_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/02_State_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/state_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-STATE-001〜005
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.state.v1;
 
-// StateService: tier1 公開 State API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// 状態管理 API。Store 名で valkey / postgres / minio 等のバックエンドを切り替える。
 service StateService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-STATE-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // キー単位の取得（未存在時は not_found=true、エラーには非該当）
+  rpc Get(GetRequest) returns (GetResponse);
+  // キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+  rpc Set(SetRequest) returns (SetResponse);
+  // キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  // 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+  rpc BulkGet(BulkGetRequest) returns (BulkGetResponse);
+  // トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+  rpc Transact(TransactRequest) returns (TransactResponse);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// Get リクエスト
+message GetRequest {
+  // Store 名（valkey-default / postgres-tenant 等、運用側で設定）
+  string store = 1;
+  // キー（テナント境界は tier1 が自動付与、クライアントはテナント内キーのみ指定）
+  string key = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// Get 応答
+message GetResponse {
+  // 値本文（bytes で透過、encoding はクライアント責務）
+  bytes data = 1;
+  // 楽観的排他のための ETag（Set / Delete 時に expected_etag に再送する）
+  string etag = 2;
+  // キー未存在時は true（このとき data / etag は空、エラーではない）
+  bool not_found = 3;
+}
+
+// Set リクエスト
+message SetRequest {
+  // Store 名
+  string store = 1;
+  // キー
+  string key = 2;
+  // 保存値本文
+  bytes data = 3;
+  // 期待 ETag（空は未存在前提、新規作成時は空文字列）
+  string expected_etag = 4;
+  // TTL（秒、0 は永続）
+  int32 ttl_sec = 5;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 6;
+}
+
+// Set 応答
+message SetResponse {
+  // 保存後の新 ETag（次回 Set / Delete 時の expected_etag に渡す）
+  string new_etag = 1;
+}
+
+// Delete リクエスト
+message DeleteRequest {
+  // Store 名
+  string store = 1;
+  // キー
+  string key = 2;
+  // 期待 ETag（空は無条件削除、指定時は楽観的排他で削除）
+  string expected_etag = 3;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 4;
+}
+
+// Delete 応答
+message DeleteResponse {
+  // 削除実行可否（未存在キーへの削除も deleted=true で返す）
+  bool deleted = 1;
+}
+
+// BulkGet リクエスト
+message BulkGetRequest {
+  // Store 名（全キーで共通）
+  string store = 1;
+  // 取得するキー一覧
+  repeated string keys = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// BulkGet 応答
+message BulkGetResponse {
+  // 結果マップ（キー → GetResponse、未存在キーも not_found=true で含める）
+  map<string, GetResponse> results = 1;
+}
+
+// トランザクション内の 1 操作（Set / Delete のいずれか）
+message TransactOp {
+  // 操作種別（oneof で Set または Delete を排他選択）
+  oneof op {
+    // Set 操作
+    SetRequest set = 1;
+    // Delete 操作
+    DeleteRequest delete = 2;
+  }
+}
+
+// Transact リクエスト
+message TransactRequest {
+  // Store 名（全操作で共通、複数 Store を跨ぐトランザクションは不可）
+  string store = 1;
+  // 操作列（記述順に実行、途中失敗で全ロールバック）
+  repeated TransactOp operations = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// Transact 応答
+message TransactResponse {
+  // コミット成功可否（false の場合は全ロールバック済み）
+  bool committed = 1;
 }
