@@ -52,7 +52,7 @@ src/tier3/
 ### web（Web フロントエンド）
 
 - Language: TypeScript 5.x
-- Framework: Next.js（App Router）または Vite + React 18+
+- Framework: Vite + React 18+
 - Package manager: pnpm 9.x
 - UI library: shadcn/ui + Tailwind CSS
 - State management: Zustand / TanStack Query
@@ -95,7 +95,7 @@ src/tier3/
 
 tier3 の 4 サブカテゴリは、SDK への依存先が言語ごとに、BFF との関係が用途ごとに異なるため、粗い「tier3 → SDK」ではなく subtier 粒度で規定する。
 
-### web（TypeScript / Next.js・Vite）
+### web（TypeScript / Vite + React）
 
 - 許可: `src/sdk/typescript/` 経由で BFF の REST / GraphQL / gRPC-Web エンドポイントを呼ぶ
 - 禁止: `src/sdk/go/` / `src/sdk/dotnet/` の直接参照、`src/tier1/` / `src/tier2/` / `src/contracts/` の import、`src/tier3/bff/` の Go コードへの直接参照

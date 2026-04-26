@@ -50,11 +50,14 @@ examples/
 │   ├── go.mod
 │   ├── cmd/
 │   └── internal/
-├── tier3-web-portal/               # Next.js 最小 portal
+├── tier3-web-portal/               # React (Vite) 最小 portal
 │   ├── README.md
 │   ├── package.json
+│   ├── vite.config.ts
+│   ├── index.html
 │   ├── src/
-│   │   ├── app/
+│   │   ├── main.tsx
+│   │   ├── routes/
 │   │   └── components/
 │   └── Dockerfile
 ├── tier3-bff-graphql/              # portal-bff 最小例

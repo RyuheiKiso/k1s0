@@ -18,15 +18,18 @@ src/tier3/web/
 ├── apps/
 │   ├── portal/                     # 配信ポータル
 │   │   ├── package.json
-│   │   ├── next.config.ts
+│   │   ├── vite.config.ts
 │   │   ├── tsconfig.json
+│   │   ├── index.html
 │   │   ├── src/
-│   │   │   ├── app/                # Next.js App Router
+│   │   │   ├── main.tsx            # Vite エントリポイント
+│   │   │   ├── routes/             # React Router 定義
 │   │   │   ├── components/
 │   │   │   ├── lib/
 │   │   │   └── styles/
 │   │   ├── public/
 │   │   ├── Dockerfile
+│   │   ├── nginx.conf              # 静的配信 + SPA fallback
 │   │   └── e2e/                    # Playwright
 │   ├── admin/                      # 管理画面
 │   │   └── ...                     # portal と同構造
@@ -130,7 +133,7 @@ apps/*  →  tools/eslint-config（devDependency）
 
 ### リリース時点: 素の pnpm + tsc
 
-各 package は `pnpm build` で TypeScript を compile。apps は Next.js / Vite の CLI で build。CI は `pnpm --filter <pkg>...` で変更影響範囲のみビルド。
+各 package は `pnpm build` で TypeScript を compile。apps は Vite の CLI（`vite build`）で `dist/` に静的アセットを出力する。CI は `pnpm --filter <pkg>...` で変更影響範囲のみビルド。
 
 ### 運用蓄積後: Turborepo 検討
 
@@ -159,11 +162,10 @@ Turborepo 導入により、ビルド依存関係グラフとキャッシュ（r
 
 ## Dockerfile
 
-portal / admin の Docker image は Next.js standalone output 前提で構成する。`next.config.ts` に `output: 'standalone'` を宣言した上で、runtime ステージには standalone bundle のみを同梱する（外部 `node_modules` は不要、依存は bundle 内に組み込み済み）。
+portal / admin の Docker image は Vite ビルド成果物（`dist/` 配下の静的アセット）を `nginx:alpine` で配信する 2 ステージ構成で構成する。runtime ステージは Node ランタイムを必要とせず、build 済み静的ファイルと nginx 設定のみを含む（最小イメージ・攻撃面の縮小）。SPA のクライアントルーティングを成立させるため、nginx 側に `try_files` フォールバックを必ず置く。
 
 ```dockerfile
 # apps/portal/Dockerfile
-# 前提: apps/portal/next.config.ts で `output: 'standalone'` を有効化していること
 # build context: リポジトリルートからではなく、src/tier3/web/ をルートとして
 #   `docker build -f apps/portal/Dockerfile .` を実行する
 FROM node:20-alpine AS builder
@@ -178,32 +180,34 @@ RUN pnpm install --frozen-lockfile --filter '@k1s0/portal...'
 COPY apps/portal/ apps/portal/
 RUN pnpm --filter '@k1s0/portal' build
 
-FROM node:20-alpine AS runtime
-WORKDIR /app
-ENV NODE_ENV=production
-# Next.js standalone: 依存は standalone 配下に同梱済み。node_modules を別途 COPY しない。
-COPY --from=builder /workspace/apps/portal/.next/standalone ./
-COPY --from=builder /workspace/apps/portal/.next/static ./.next/static
-COPY --from=builder /workspace/apps/portal/public ./public
-USER node
-EXPOSE 3000
-# standalone は server.js をルート直下に吐くため、パスは ".next/standalone/..." ではなく "server.js"
-CMD ["node", "server.js"]
+FROM nginx:alpine AS runtime
+# Vite の静的アセットを nginx で配信。Node ランタイム不要。
+COPY --from=builder /workspace/apps/portal/dist /usr/share/nginx/html
+COPY apps/portal/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080
+# 非 root 実行のため listen 8080 / pid /tmp/nginx.pid を nginx.conf 側で指定する
 ```
 
-`next.config.ts` 側の最小宣言例:
+`nginx.conf` 側の最小例（SPA フォールバックと長期キャッシュ）:
 
-```ts
-// apps/portal/next.config.ts
-import type { NextConfig } from 'next';
+```nginx
+# apps/portal/nginx.conf
+server {
+  listen 8080;
+  root /usr/share/nginx/html;
+  index index.html;
 
-const config: NextConfig = {
-  output: 'standalone',
-  // pnpm workspace 依存を standalone bundle に含めるため、外部の依存解決root を明示
-  outputFileTracingRoot: require('path').join(__dirname, '../../'),
-};
+  # SPA: クライアントルーティングのため、未存在パスは index.html へ fallback
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
 
-export default config;
+  # ハッシュ付き静的アセットは長期キャッシュ
+  location /assets/ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+  }
+}
 ```
 
 ## gRPC-Web との連携
