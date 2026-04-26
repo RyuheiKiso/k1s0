@@ -10,7 +10,7 @@ $ARGUMENTS
 
 例:
 - `FR: tier1 State API に idempotency-key を必須化`
-- `NFR-B: tier1 公開 11 API のレイテンシ p99 200ms 以下`
+- `NFR-B: tier1 公開 12 API のレイテンシ p99 200ms 以下`
 - `BR: 採用検討者の承認フロー所要時間を 3 か月 → 1 週間に短縮`
 - `RISK: 法務 AGPL 条項の解釈曖昧さ`
 

@@ -5,7 +5,7 @@
 #       ADR-BS-001（Backstage TechDocs 連携）
 #
 # 役割:
-#   tier1 公開 11 API + 共通型から **gRPC reference docs** を Markdown / HTML で
+#   tier1 公開 12 API + 共通型から **gRPC reference docs** を Markdown / HTML で
 #   生成する。OpenAPI（buf.gen.openapi.yaml）が REST 互換クライアント向けなのに対し、
 #   本生成物は **gRPC native** で叩く採用側の正規仕様書として機能する。
 #
