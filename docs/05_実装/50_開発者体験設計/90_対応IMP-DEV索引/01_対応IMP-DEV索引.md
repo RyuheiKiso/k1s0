@@ -1,6 +1,6 @@
 # 01. 対応 IMP-DEV 索引
 
-本ファイルは `50_開発者体験設計/` 配下で採番した全 49 件の `IMP-DEV-*` ID を一覧化し、ID 採番ルール / 接頭辞別の所在 / 上流 ADR・DS-SW-COMP・NFR への逆引きを提供する。実装段階で「どの ID がどの設計判断に対応するか」を機械可読に追跡するための正典として固定する。
+本ファイルは `50_開発者体験設計/` 配下で採番した全 55 件の `IMP-DEV-*` ID を一覧化し、ID 採番ルール / 接頭辞別の所在 / 上流 ADR・DS-SW-COMP・NFR への逆引きを提供する。実装段階で「どの ID がどの設計判断に対応するか」を機械可読に追跡するための正典として固定する。
 
 ## ID 採番ルール
 
@@ -13,15 +13,16 @@
 | sub-prefix | 章 | 番号レンジ | 件数 | 設計対象 |
 |---|---|---|---|---|
 | POL | 00_方針/01_開発者体験原則.md | 001-007 | 7 | 開発者体験原則（Paved Road / SLI 原則） |
+| ENV | 05_ローカル環境基盤/01_WindowsWSL2環境構成.md | 060-065 | 6 | Windows 11 + WSL2 + ネイティブ docker-ce ホスト構成 |
 | DC | 10_DevContainer_10役/01_DevContainer_10役設計.md | 010-017 | 8 | Dev Container 10 役 / sparse-checkout cone |
 | GP | 20_Golden_Path_examples/01_Golden_Path_examples.md | 020-026 | 7 | Golden Path examples / Hello World |
 | SO | 30_Scaffold_CLI運用/01_Scaffold_CLI運用.md | 030-037 | 8 | Scaffold CLI / Backstage UI 同等性 |
 | BSN | 40_Backstage連携/01_Backstage連携.md | 040-048 | 9 | Backstage Catalog / TechDocs / TechInsights |
 | ONB | 50_オンボーディング/01_オンボーディング.md | 050-059 | 10 | 入社者 Day 1 〜 Month 1 動線 |
 
-接頭辞 6 種で機能境界が物理的に分離されている。「どの章で起こっている問題か」を ID 接頭辞だけで判定でき、ID を grep するだけで影響範囲を特定できる構造を保つ。
+接頭辞 7 種で機能境界が物理的に分離されている。「どの章で起こっている問題か」を ID 接頭辞だけで判定でき、ID を grep するだけで影響範囲を特定できる構造を保つ。番号レンジは ENV (060-065) が ONB (050-059) の次として連続的に配置されているが、章番号としては 05_ローカル環境基盤/ が 10_DevContainer_10役/ の前段に位置するため、表上は章順（00 → 05 → 10 → 20 → 30 → 40 → 50）に揃えている。
 
-## 全 49 件の ID 一覧
+## 全 55 件の ID 一覧
 
 ### POL: 開発者体験原則（00_方針）
 
@@ -34,6 +35,17 @@
 | IMP-DEV-POL-005 | チーム内ローカル文化を許容する範囲（IDE 設定 / 個人 git alias）と禁ずる範囲（リポジトリレベル設定） |
 | IMP-DEV-POL-006 | ドキュメント / 動線の自己更新サイクル（詰まりを `@k1s0/platform-dx` がフィードバック化） |
 | IMP-DEV-POL-007 | Backstage を「ポータル」ではなく「機械可読 metadata 真実源」として位置付ける |
+
+### ENV: ローカル環境基盤（05_ローカル環境基盤）
+
+| ID | 設計内容 |
+|---|---|
+| IMP-DEV-ENV-060 | Windows 11 + WSL2 (Ubuntu 24.04 LTS) + systemd を標準ホスト環境とする |
+| IMP-DEV-ENV-061 | Docker ランタイムは WSL ネイティブ docker-ce で固定（Docker Desktop 不採用） |
+| IMP-DEV-ENV-062 | `.wslconfig` による resource allocation 一元管理（memory / processors / swap / nestedVirt / localhostForwarding / vmIdleTimeout / guiApplications） |
+| IMP-DEV-ENV-063 | Dev Container / kind / Dapr Local sidecars を同一 WSL2 distribution 内で sibling 起動 |
+| IMP-DEV-ENV-064 | Windows host 側残置責務の固定（VS Code host UI / Browser / GCM Core / SSH agent / `.wslconfig` の 5 種） |
+| IMP-DEV-ENV-065 | リポジトリは WSL2 ext4 上に配置、`/mnt/c` 配下を禁止 |
 
 ### DC: Dev Container 10 役（10_DevContainer_10役）
 
@@ -108,14 +120,15 @@
 
 | ADR | 関連 IMP-DEV ID |
 |---|---|
-| ADR-DEV-001（開発者体験パッケージ採用） | POL-001 〜 007 / DC-010 / GP-020 / SO-030 / BSN-040 / ONB-050 |
+| ADR-DEV-001（開発者体験パッケージ採用） | POL-001 〜 007 / ENV-060 〜 065（思想伝播）/ DC-010 / GP-020 / SO-030 / BSN-040 / ONB-050 |
+| ADR-DEV-002（Windows + WSL2 docker ランタイム） | ENV-060 〜 065（直接対応）/ DC-012（docker.sock 経由の attach 経路） |
 | ADR-BS-001（Backstage 採用） | POL-007 / SO-037 / BSN-040 〜 048 / ONB-056 |
 | ADR-DIR-001（contracts 昇格 / monorepo 構造） | DC-013 / SO-035 / BSN-041 |
 | ADR-DIR-003（sparse-checkout cone 必須） | DC-013 / DC-014 / DC-015 / ONB-052 / ONB-057 |
 | ADR-TIER1-001（Go / Rust ハイブリッド） | DC-010 / DC-011 / GP-024 / ONB-056 |
 | ADR-CICD-001（GitHub Actions 採用） | SO-036 / BSN-044 / GP-025 |
 
-ADR-DEV-001 / ADR-BS-001 が本章の主要根拠で、DC / SO / BSN / ONB の 4 章はほぼ全 ID がこの 2 ADR に帰着する。POL は ADR-DEV-001 を全面的に物理化する位置付け。
+ADR-DEV-001 / ADR-BS-001 が本章の主要根拠で、DC / SO / BSN / ONB の 4 章はほぼ全 ID がこの 2 ADR に帰着する。POL は ADR-DEV-001 を全面的に物理化する位置付けで、ENV は ADR-DEV-002 を全面的に物理化する位置付け（POL と ENV は思想層と基盤層の関係）。
 
 ## DS-SW-COMP 逆引き
 
