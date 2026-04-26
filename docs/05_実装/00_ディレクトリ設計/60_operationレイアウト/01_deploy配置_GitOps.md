@@ -34,7 +34,7 @@ deploy/
 │   ├── tier1-rust-service/     # Rust 自作領域共通 chart
 │   ├── tier2-dotnet-service/
 │   ├── tier2-go-service/
-│   ├── tier3-web-app/          # Next.js / Vite 共通 chart
+│   ├── tier3-web-app/          # React (Vite) 共通 chart
 │   └── tier3-bff/
 ├── kustomize/
 │   ├── base/                   # tier1 / tier2 / tier3 共通 base

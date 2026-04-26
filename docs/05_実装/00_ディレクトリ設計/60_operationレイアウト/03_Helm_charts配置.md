@@ -46,7 +46,7 @@ deploy/charts/
 │   └── templates/
 ├── tier2-go-service/
 │   └── ...
-├── tier3-web-app/              # Next.js / Vite 汎用 chart
+├── tier3-web-app/              # React (Vite) 汎用 chart
 │   ├── Chart.yaml
 │   ├── values.yaml
 │   ├── values-dev.yaml
@@ -187,7 +187,7 @@ networkPolicy:
 - **tier1-rust-service**: Dapr 不使用（grpc 直接）、scratch image 前提（securityContext 厳格）
 - **tier2-dotnet-service**: .NET ヘルスチェック endpoint（/health/live、/health/ready）
 - **tier2-go-service**: Go 標準 /healthz
-- **tier3-web-app**: Next.js / Vite 共通、PORT: 3000 デフォルト、ingress Gateway HTTPRoute 同梱
+- **tier3-web-app**: React (Vite) ビルド成果物を nginx:alpine で静的配信、PORT: 8080 デフォルト、ingress Gateway HTTPRoute 同梱
 - **tier3-bff**: GraphQL /graphql + REST エンドポイント、認可 middleware 前提
 
 ## chart の test

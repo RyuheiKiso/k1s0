@@ -94,7 +94,7 @@ Go 1.22 + Dapr SDK + buf + delve debugger。
 
 ### tier3-web-dev
 
-Node.js 20 + pnpm 9 + Playwright + Vite / Next.js。
+Node.js 20 + pnpm 9 + Playwright + Vite + React。
 
 ### tier3-native-dev
 
