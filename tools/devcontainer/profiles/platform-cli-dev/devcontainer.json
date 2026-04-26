@@ -1,0 +1,54 @@
+{
+    "name": "k1s0 platform-cli-dev (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "platform-cli-dev"
+    },
+    "mounts": [
+        "source=k1s0-cargo-platform-registry,target=/usr/local/cargo/registry,type=volume",
+        "source=k1s0-cargo-platform-git,target=/usr/local/cargo/git,type=volume",
+        "source=k1s0-pnpm-platform-store,target=/home/vscode/.local/share/pnpm/store,type=volume"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "ms-azuretools.vscode-docker",
+                "rust-lang.rust-analyzer",
+                "vadimcn.vscode-lldb",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "ms-kubernetes-tools.vscode-kubernetes-tools"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "rust-analyzer.cargo.features": "all",
+                "rust-analyzer.check.command": "clippy",
+                "[rust]": {
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.tabSize": 2
+                }
+            }
+        }
+    }
+}

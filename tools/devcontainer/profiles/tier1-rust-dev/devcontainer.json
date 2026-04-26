@@ -1,0 +1,71 @@
+{
+    "name": "k1s0 tier1-rust-dev (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "1.24"
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "version": "latest",
+            "helm": "latest",
+            "minikube": "none"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "tier1-rust-dev"
+    },
+    "mounts": [
+        "source=k1s0-cargo-registry,target=/usr/local/cargo/registry,type=volume",
+        "source=k1s0-cargo-git,target=/usr/local/cargo/git,type=volume",
+        "source=k1s0-target,target=/workspaces/k1s0/target,type=volume"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "ms-azuretools.vscode-docker",
+                "rust-lang.rust-analyzer",
+                "vadimcn.vscode-lldb",
+                "fill-labs.dependi",
+                "zxh404.vscode-proto3",
+                "bufbuild.vscode-buf",
+                "golang.go",
+                "ms-kubernetes-tools.vscode-kubernetes-tools"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "files.eol": "\n",
+                "rust-analyzer.cargo.features": "all",
+                "rust-analyzer.check.command": "clippy",
+                "rust-analyzer.check.allTargets": true,
+                "rust-analyzer.cargo.buildScripts.enable": true,
+                "rust-analyzer.procMacro.enable": true,
+                "rust-analyzer.imports.granularity.group": "module",
+                "rust-analyzer.lens.enable": true,
+                "rust-analyzer.inlayHints.parameterHints.enable": true,
+                "rust-analyzer.inlayHints.typeHints.enable": true,
+                "[rust]": {
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+                    "editor.semanticHighlighting.enabled": true
+                },
+                "lldb.displayFormat": "auto",
+                "lldb.dereferencePointers": true
+            }
+        }
+    }
+}

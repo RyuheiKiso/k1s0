@@ -1,0 +1,12 @@
+{
+    "dotnet.defaultSolution": "disable",
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.useModernNet": true,
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp",
+        "editor.formatOnSave": true
+    },
+    "[xaml]": {
+        "editor.defaultFormatter": "ms-dotnettools.xaml"
+    }
+}

@@ -1,0 +1,27 @@
+# Tempo single-binary (grafana/tempo chart 1.24+)
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm install tempo grafana/tempo -n observability -f values-tempo.yaml
+#
+# 設計: 単一バイナリ構成。tempo-distributed ではなく tempo (single binary) chart を使う。
+
+tempo:
+  repository: grafana/tempo
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+service:
+  type: ClusterIP
+
+serviceAccount:
+  create: true

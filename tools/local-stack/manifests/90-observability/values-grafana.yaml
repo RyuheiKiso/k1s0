@@ -1,0 +1,47 @@
+# Grafana (ADR-OBS-001)
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm install grafana grafana/grafana -n observability -f values-grafana.yaml
+
+adminUser: admin
+adminPassword: k1s0-local-dev-password
+
+service:
+  type: NodePort
+  nodePort: 30300
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-gateway.observability.svc:80
+        # SingleBinary では loki Service が直接エンドポイント
+        # gateway.enabled: false なら http://loki.observability.svc:3100
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo.observability.svc:3200
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default

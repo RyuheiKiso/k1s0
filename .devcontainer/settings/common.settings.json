@@ -1,0 +1,52 @@
+{
+    "editor.formatOnSave": true,
+    "editor.rulers": [100],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.eol": "\n",
+    "files.encoding": "utf8",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/target": true,
+        "**/node_modules": true,
+        "**/.next": true,
+        "**/.turbo": true,
+        "**/dist": true,
+        "**/.cache": true
+    },
+    "search.exclude": {
+        "**/target": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/.cache": true,
+        "**/Cargo.lock": true,
+        "**/pnpm-lock.yaml": true,
+        "**/go.sum": true
+    },
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.scrollback": 50000,
+    "[markdown]": {
+        "editor.tabSize": 2,
+        "editor.wordWrap": "on",
+        "editor.rulers": []
+    },
+    "[json]": {
+        "editor.tabSize": 4
+    },
+    "[jsonc]": {
+        "editor.tabSize": 4
+    },
+    "[yaml]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.autoIndent": "advanced"
+    },
+    "[toml]": {
+        "editor.tabSize": 4
+    }
+}

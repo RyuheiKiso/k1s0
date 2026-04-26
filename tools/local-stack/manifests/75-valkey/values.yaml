@@ -1,0 +1,21 @@
+# Valkey (ADR-DATA-004) — Redis 互換 OSS
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm install valkey bitnami/valkey -n valkey --version 5.5.1 -f values.yaml
+
+architecture: standalone
+auth:
+  enabled: false
+
+primary:
+  persistence:
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+replica:
+  replicaCount: 0
+
+metrics:
+  enabled: false

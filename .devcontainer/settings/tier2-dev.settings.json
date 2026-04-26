@@ -1,0 +1,14 @@
+{
+    "dotnet.defaultSolution": "disable",
+    "omnisharp.enableRoslynAnalyzers": true,
+    "omnisharp.useModernNet": true,
+    "go.useLanguageServer": true,
+    "go.lintTool": "golangci-lint",
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp",
+        "editor.formatOnSave": true
+    },
+    "[go]": {
+        "editor.defaultFormatter": "golang.go"
+    }
+}

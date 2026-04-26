@@ -49,6 +49,10 @@ setup/gui/src-tauri/target/
 # 環境別ローカル環境変数ファイル
 .env.local
 .env.*.local
+# Dev Container ローカル環境変数（OpenBao dev token 等）
+.devcontainer/.env.local
+# postCreate / local-stack 起動ログ
+.devcontainer/.log/
 
 # ------------------------------------------------------------
 # OS 生成ファイル

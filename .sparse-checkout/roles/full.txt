@@ -1,0 +1,4 @@
+# 全体俯瞰（アーキテクト・ガバナンス）向け cone
+# cone mode で /* を指定することで全ディレクトリが include される。
+# 実質的に sparse-checkout 無効化と同等だが、sparse-checkout reapply で切替可能。
+/*

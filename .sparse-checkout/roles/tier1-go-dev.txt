@@ -1,0 +1,14 @@
+# tier1 Go Dapr facade 開発者向け cone
+/docs/
+/src/contracts/
+/src/tier1/go/
+/src/sdk/go/
+/tools/codegen/buf/
+/tools/sparse/
+/tools/devcontainer/profiles/tier1-go-dev/
+/tools/local-stack/
+/tests/contract/
+/tests/integration/go/
+/examples/tier1-go-facade/
+/.github/
+/.devcontainer/

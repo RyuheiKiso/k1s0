@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "vadimcn.vscode-lldb",
+        "fill-labs.dependi",
+        "zxh404.vscode-proto3",
+        "bufbuild.vscode-buf",
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+    ]
+}

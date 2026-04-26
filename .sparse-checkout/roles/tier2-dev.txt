@@ -1,0 +1,16 @@
+# tier2 ドメインサービス開発者向け cone
+/docs/
+/src/contracts/
+/src/tier2/
+/src/sdk/go/
+/src/sdk/dotnet/
+/tools/codegen/
+/tools/sparse/
+/tools/devcontainer/profiles/tier2-dev/
+/tools/local-stack/
+/tests/contract/
+/tests/integration/
+/examples/tier2-dotnet-service/
+/examples/tier2-go-service/
+/.github/
+/.devcontainer/

@@ -1,0 +1,47 @@
+# SPIRE umbrella chart values (ADR-SEC-003)
+# helm repo add spiffe https://spiffe.github.io/helm-charts-hardened/
+# helm repo update spiffe
+# helm install spire-crds spiffe/spire-crds -n spire-system --version 0.5.0
+# helm install spire spiffe/spire -n spire-system --version 0.28.4 -f values.yaml
+#
+# 構造: umbrella chart `spire` は spire-server / spire-agent / spiffe-csi-driver /
+# spiffe-oidc-discovery-provider / spire-controller-manager 等を子 chart として束ねる。
+# 各設定は子 chart 名のトップレベルキーで上書きする。
+
+global:
+  spire:
+    clusterName: k1s0-local
+    trustDomain: k1s0.local
+    caSubject:
+      commonName: SPIFFE k1s0 local CA
+      country: JP
+      organization: k1s0
+    recommendations:
+      enabled: true
+
+# spire-server 子 chart
+spire-server:
+  replicaCount: 1
+  service:
+    type: ClusterIP
+  controllerManager:
+    enabled: true
+  dataStore:
+    sql:
+      databaseType: sqlite3
+      connectionString: "/run/spire/data/datastore.sqlite3"
+
+# spire-agent 子 chart
+spire-agent:
+  workloadAttestors:
+    k8s:
+      enabled: true
+      disableContainerSelectors: false
+
+# spiffe-csi-driver 子 chart
+spiffe-csi-driver:
+  enabled: true
+
+# OIDC discovery は dev では不要
+spiffe-oidc-discovery-provider:
+  enabled: false

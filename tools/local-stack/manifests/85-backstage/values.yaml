@@ -1,0 +1,65 @@
+# Backstage (ADR-BS-001) ローカル開発用
+# helm repo add backstage https://backstage.github.io/charts
+# helm install backstage backstage/backstage -n backstage --version 2.6.3 -f values.yaml
+#
+# 設計: chart 2.6.x は backstage / postgresql / ingress / service / global がトップレベル。
+# 内蔵 PostgreSQL (postgresql.enabled) を切り、CNPG の k1s0-postgres-rw を参照する。
+# image.tag は latest を避けて固定する（dev でも mutable tag は脆弱性レビュー追跡に支障）。
+#
+# 注意: Backstage chart はアプリケーションの実 image を提供しない。
+#       本番運用ではユーザーが自前で `npx @backstage/create-app` 由来 image を build/push し、
+#       backstage.image.repository / tag を上書きする。
+#       本値はローカル疎通確認用に Backstage 公式の "showcase" image を仮配置する。
+
+backstage:
+  image:
+    repository: ghcr.io/backstage/backstage
+    tag: "1.43.4"  # 直近の stable showcase image。実プロダクトでは差替える
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+  appConfig:
+    app:
+      title: k1s0 (local)
+      baseUrl: http://localhost:30700
+    organization:
+      name: k1s0-local
+    backend:
+      baseUrl: http://localhost:30700
+      listen:
+        port: 7007
+        host: 0.0.0.0
+      cors:
+        origin: http://localhost:30700
+      database:
+        client: pg
+        connection:
+          host: k1s0-postgres-rw.cnpg-system.svc.cluster.local
+          port: 5432
+          user: k1s0
+          password: k1s0-local-dev-password
+    auth:
+      providers:
+        guest: {}
+    catalog:
+      rules:
+        - allow: [Component, System, API, Resource, Location, Domain, User, Group]
+
+service:
+  type: NodePort
+  ports:
+    backend: 7007
+    name: http-backend
+  # NodePort は backstage chart 2.6 系で targetPort と nodePort を両方明示する必要あり
+  nodePort: 30700
+
+ingress:
+  enabled: false
+
+postgresql:
+  enabled: false  # CNPG を再利用するため内蔵 PG は無効化
+
+global: {}

@@ -1,0 +1,49 @@
+{
+    "name": "k1s0 tier3-native-dev (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "tier3-native-dev",
+        "ANDROID_HOME": "/opt/android-sdk",
+        "ANDROID_SDK_ROOT": "/opt/android-sdk"
+    },
+    "mounts": [
+        "source=k1s0-nuget-native,target=/home/vscode/.nuget/packages,type=volume",
+        "source=k1s0-android-sdk-cache,target=/home/vscode/.android,type=volume"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "redhat.vscode-yaml",
+                "ms-azuretools.vscode-docker",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                "ms-dotnettools.dotnet-maui",
+                "ms-dotnettools.xaml"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [120],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "dotnet.defaultSolution": "disable",
+                "omnisharp.useModernNet": true,
+                "[csharp]": {
+                    "editor.defaultFormatter": "ms-dotnettools.csharp"
+                }
+            }
+        }
+    }
+}

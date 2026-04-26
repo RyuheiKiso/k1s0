@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "eamodio.gitlens",
+        "EditorConfig.EditorConfig",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker",
+        "golang.go",
+        "zxh404.vscode-proto3",
+        "bufbuild.vscode-buf",
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+    ]
+}

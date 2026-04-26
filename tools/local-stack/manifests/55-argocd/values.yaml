@@ -1,0 +1,49 @@
+# Argo CD (ADR-CICD-001)
+# helm repo add argo https://argoproj.github.io/argo-helm
+# helm install argocd argo/argo-cd -n argocd --version 9.5.4 -f values.yaml
+#
+# 設計: server.insecure は configs.params 経由で管理 (Argo CD 2.10+ 推奨)。
+# extraArgs での重複設定は避ける。
+
+global:
+  domain: argocd.k1s0.local
+
+server:
+  replicas: 1
+  service:
+    type: NodePort
+    nodePortHttp: 30080
+    nodePortHttps: 30443
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+
+repoServer:
+  replicas: 1
+
+redis:
+  enabled: true
+
+applicationSet:
+  enabled: true
+
+notifications:
+  enabled: false
+
+# server.insecure を configs.params (argocd-cmd-params-cm ConfigMap) で表現する。
+# dex は configs.cm 側で connectors を直接記述する設計に統一されたため、
+# 本値では Keycloak 連携前提のローカル開発として configs.params のみで運用する。
+configs:
+  params:
+    server.insecure: "true"
+  cm:
+    timeout.reconciliation: 30s
+    application.instanceLabelKey: argocd.argoproj.io/instance

@@ -1,0 +1,13 @@
+# k1s0 CLI / Backstage プラグイン開発者向け cone
+/docs/
+/src/contracts/
+/src/platform/
+/src/sdk/rust/
+/tools/codegen/
+/tools/sparse/
+/tools/devcontainer/profiles/platform-cli-dev/
+/tools/local-stack/
+/tests/golden/
+/examples/
+/.github/
+/.devcontainer/

@@ -1,0 +1,33 @@
+# Keycloak (ADR-SEC-001) ローカル開発用
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm install keycloak bitnami/keycloak -n keycloak --version 25.2.0 -f values.yaml
+#
+# 設計: 単一インスタンス + 外部 PostgreSQL (CNPG)。本番は HA + TLS + Backup を別 manifest で管理。
+
+auth:
+  adminUser: admin
+  adminPassword: k1s0-local-dev-password
+
+replicaCount: 1
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+service:
+  type: ClusterIP
+
+postgresql:
+  enabled: false
+
+externalDatabase:
+  host: k1s0-postgres-rw.cnpg-system.svc.cluster.local
+  port: 5432
+  user: keycloak
+  database: keycloak
+  password: k1s0-local-dev-password
+
+production: false
+proxy: edge
+
+metrics:
+  enabled: false

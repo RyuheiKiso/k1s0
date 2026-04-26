@@ -1,0 +1,16 @@
+{
+    "recommendations": [
+        "eamodio.gitlens",
+        "EditorConfig.EditorConfig",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker",
+        "rust-lang.rust-analyzer",
+        "vadimcn.vscode-lldb",
+        "fill-labs.dependi",
+        "zxh404.vscode-proto3",
+        "bufbuild.vscode-buf",
+        "golang.go",
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+    ]
+}

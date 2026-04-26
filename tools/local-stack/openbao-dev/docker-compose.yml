@@ -1,0 +1,57 @@
+# tools/local-stack/openbao-dev/docker-compose.yml
+#
+# 設計書: docs/05_実装/50_開発者体験設計/10_DevContainer_10役/01_DevContainer_10役設計.md
+# IMP-DEV-DC-015: OpenBao dev server のローカル展開
+#
+# 用途: kind を使わずに OpenBao dev のみを軽量起動する経路。
+#       本番再現の OpenBao は manifests/80-openbao/ で kind 上に配備される（k1s0-local 用）。
+#       この compose は「kind を立てる前に OpenBao API を試したい」「Dapr secret-store の動作
+#       のみを切り出したい」場面に使う。
+
+services:
+  openbao-dev:
+    image: openbao/openbao:2.1
+    container_name: k1s0-openbao-dev
+    cap_add:
+      - IPC_LOCK
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: dev-root-token
+      BAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      BAO_ADDR: http://0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    command: ["bao", "server", "-dev"]
+    healthcheck:
+      test: ["CMD", "bao", "status"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - k1s0-local
+
+  openbao-init:
+    image: openbao/openbao:2.1
+    container_name: k1s0-openbao-init
+    depends_on:
+      openbao-dev:
+        condition: service_healthy
+    environment:
+      BAO_ADDR: http://openbao-dev:8200
+      BAO_TOKEN: dev-root-token
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        bao secrets enable -path=secret kv-v2 || true
+        bao kv put secret/k1s0/dev/db-password value=k1s0-local-dev-password
+        bao kv put secret/k1s0/dev/argocd-admin value=admin-local-dev-password
+        echo "[init] OpenBao dev に初期 secret を投入しました"
+    networks:
+      - k1s0-local
+    restart: "no"
+
+networks:
+  k1s0-local:
+    name: k1s0-local
+    driver: bridge
+    external: true

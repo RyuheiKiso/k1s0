@@ -1,0 +1,21 @@
+# MetalLB の IPAddressPool / L2Advertisement
+# kind の docker network ブリッジ範囲（172.18.0.0/16）から空き IP プールを切り出す。
+# `docker network inspect kind | jq '.[].IPAM.Config'` で実 subnet を確認すること。
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: k1s0-local-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.18.255.200-172.18.255.250
+  autoAssign: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: k1s0-local-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - k1s0-local-pool
