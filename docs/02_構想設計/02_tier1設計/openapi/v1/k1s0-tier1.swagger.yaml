@@ -1,0 +1,152 @@
+swagger: "2.0"
+info:
+  title: 'パッケージ命名規約: k1s0.tier1.<api>.v1'
+  version: version not set
+tags:
+  - name: AuditService
+  - name: BindingService
+  - name: DecisionService
+  - name: FeatureService
+  - name: HealthService
+  - name: LogService
+  - name: PubSubService
+  - name: SecretsService
+  - name: ServiceInvokeService
+  - name: StateService
+  - name: TelemetryService
+  - name: WorkflowService
+consumes:
+  - application/json
+produces:
+  - application/json
+paths: {}
+definitions:
+  protobufAny:
+    type: object
+    properties:
+      '@type':
+        type: string
+    additionalProperties: {}
+  rpcStatus:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      details:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/protobufAny'
+  tier1auditv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1bindingv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1decisionv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1featurev1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1logv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1pubsubv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1secretsv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1serviceinvokev1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1statev1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1telemetryv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  tier1workflowv1PlaceholderCallResponse:
+    type: object
+    properties:
+      message:
+        type: string
+        title: 本 RPC 自体は dummy で、応答も placeholder
+    title: 'PlaceholderCallResponse: フル実装前の最小 message。'
+  v1DependencyStatus:
+    type: object
+    properties:
+      reachable:
+        type: boolean
+        title: 接続可能か
+      error_message:
+        type: string
+        title: 直近のエラー（reachable=false の時のみ意味を持つ）
+    title: 個別依存の状態
+  v1LivenessResponse:
+    type: object
+    properties:
+      version:
+        type: string
+        title: tier1 facade のビルドバージョン（SemVer）
+      uptime_seconds:
+        type: string
+        format: int64
+        title: 起動時刻からの経過時間（秒）
+    title: 'Liveness response: process の生存と version 情報を返す。'
+  v1ReadinessResponse:
+    type: object
+    properties:
+      ready:
+        type: boolean
+        title: 全体としての ready 判定（依存すべて OK なら true）
+      dependencies:
+        type: object
+        additionalProperties:
+          $ref: '#/definitions/v1DependencyStatus'
+        title: 各依存（postgres / kafka / openbao / keycloak / 等）の個別状態
+    title: 'Readiness response: 各依存の状態を個別に返す。'

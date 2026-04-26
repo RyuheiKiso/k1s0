@@ -216,6 +216,58 @@ jobs:
           fi
           echo "[ok] 生成物 diff なし"
 
+  # openapi-check: contracts または docs 変更時に buf.gen.openapi.yaml の出力が
+  # コミット済みか検証する（plan 03-06 / IMP-CODEGEN-006）。
+  openapi-check:
+    needs: [filter]
+    if: needs.filter.outputs.contracts == 'true' || needs.filter.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+      - name: openapi generate diff check
+        run: |
+          buf generate --template buf.gen.openapi.yaml
+          if ! git diff --exit-code -- 'docs/02_構想設計/02_tier1設計/openapi'; then
+            echo "::error title=openapi-check::OpenAPI 出力が最新でありません。"
+            echo "::error::ローカルで 'make openapi' を実行し、生成物を git add / commit してください。"
+            exit 1
+          fi
+          echo "[ok] OpenAPI diff なし"
+
+  # grpc-docs-check: contracts または docs 変更時に buf.gen.docs.yaml で生成される
+  # gRPC reference docs に diff が無いか検証（plan 03-07 / IMP-CODEGEN-007）。
+  grpc-docs-check:
+    needs: [filter]
+    if: needs.filter.outputs.contracts == 'true' || needs.filter.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: setup buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+      - name: grpc-docs generate diff check
+        run: |
+          buf generate --template buf.gen.docs.yaml
+          if ! git diff --exit-code -- 'docs/02_構想設計/02_tier1設計/grpc-reference'; then
+            echo "::error title=grpc-docs-check::gRPC reference docs が最新でありません。"
+            echo "::error::ローカルで 'make grpc-docs' を実行し、生成物を git add / commit してください。"
+            exit 1
+          fi
+          echo "[ok] gRPC docs diff なし"
+
   # tier1 rust
   lint-tier1-rust:
     needs: [filter]
@@ -340,6 +392,8 @@ jobs:
       - lint-docs
       - lint-contracts
       - codegen-check
+      - openapi-check
+      - grpc-docs-check
       - lint-tier1-rust
       - lint-tier1-go
       - lint-tier2-dotnet
@@ -373,6 +427,8 @@ jobs:
             [lint-docs]="${{ needs.lint-docs.result }}"
             [lint-contracts]="${{ needs.lint-contracts.result }}"
             [codegen-check]="${{ needs.codegen-check.result }}"
+            [openapi-check]="${{ needs.openapi-check.result }}"
+            [grpc-docs-check]="${{ needs.grpc-docs-check.result }}"
             [lint-tier1-rust]="${{ needs.lint-tier1-rust.result }}"
             [lint-tier1-go]="${{ needs.lint-tier1-go.result }}"
             [lint-tier2-dotnet]="${{ needs.lint-tier2-dotnet.result }}"
