@@ -174,9 +174,11 @@ git config core.sparseCheckoutCone true
 # 3. ローカルに infra を立てる（k3d + Dapr + Postgres + Kafka + Keycloak）
 ./tools/local-stack/up.sh
 
-# 4. contracts を再生成して tier1 facade を起動
+# 4. contracts を再生成して tier1 facade（3 Pod のいずれか）を起動
 buf generate
-cd src/tier1/go && go run ./cmd/k1s0d
+cd src/tier1/go && go run ./cmd/state    # State + PubSub APIs
+# or: go run ./cmd/secret                # Secrets + Binding APIs
+# or: go run ./cmd/workflow              # Workflow API
 ```
 
 VS Code で開く場合は、役割ごとの Dev Container プロファイル（`tools/devcontainer/profiles/`）を選ぶと、言語 toolchain / buf / kubectl / istioctl / dapr CLI / drawio CLI が揃う。docs-writer プロファイルがルート既定（軽量）。

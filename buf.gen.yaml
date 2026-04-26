@@ -29,8 +29,10 @@ inputs:
 managed:
   enabled: true
   override:
+    # docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md 正典に準拠（monorepo path-style）。
+    # SDK Go の module path は `github.com/k1s0/k1s0/src/sdk/go`、generated は `/generated` サブパス。
     - file_option: go_package_prefix
-      value: github.com/k1s0/sdk/go/generated
+      value: github.com/k1s0/k1s0/src/sdk/go/generated
     - file_option: csharp_namespace_prefix
       value: K1s0.Sdk.Generated
     # Java SDK はリリース時点 対象外（4 言語: .NET / Go / Rust / TypeScript）。

@@ -10,7 +10,7 @@
 //   cmd 配下からは internal/ のみ import 可能（他 Pod 内部参照禁止）の規約に整合。
 //
 // 提供する機能（リリース時点最小骨格）:
-//   - :50051 で listen（flag で上書き可）
+//   - :50001 で listen（flag で上書き可、docs 正典 EXPOSE 50001）
 //   - 標準 gRPC health protocol（grpc.health.v1.Health/Check）応答
 //   - gRPC reflection（dev / staging で grpcurl 疎通用、production は config で無効化予定）
 //   - SIGINT / SIGTERM で graceful shutdown（25s timeout）
@@ -21,8 +21,11 @@
 //   - TLS / mTLS（SPIRE 連携）
 //   - 設定読込（YAML + envvar、internal/config/）
 
-// Package runtime は tier1 Go の 3 Pod（state / secret / workflow）が共通で使う gRPC server bootstrap を提供する。
-package runtime
+// Package common は tier1 Go の 3 Pod（state / secret / workflow）が共通で使う gRPC server bootstrap を提供する。
+//
+// docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md の
+// `internal/{common, adapter, policy, state, secret, workflow}/` 責務分割正典に準拠（common = 横断 utility）。
+package common
 
 // 標準ライブラリと gRPC ライブラリを import する。
 import (
@@ -59,7 +62,7 @@ type Pod struct {
 	// 構造体のフィールドを 1 行ずつ宣言する（Go 慣用、ここでは説明コメントのため複数行）。
 	// Pod の論理名（例: "state" / "secret" / "workflow"）。ログ出力で使う。
 	Name string
-	// 既定 listen address（":50051"）。flag で上書き可能。
+	// 既定 listen address（":50001"）。flag で上書き可能。
 	DefaultListen string
 	// gRPC server に Pod 固有の service を登録する hook。最小骨格では nil でも可。
 	Register func(*grpc.Server)

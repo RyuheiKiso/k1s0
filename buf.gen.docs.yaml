@@ -30,8 +30,9 @@ managed:
   override:
     # protoc-gen-doc は go_package を要求しないが、managed.enabled=true で他の
     # warning を抑制するため統一設定にする。
+    # docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md 正典 monorepo path-style。
     - file_option: go_package_prefix
-      value: github.com/k1s0/sdk/go/generated
+      value: github.com/k1s0/k1s0/src/sdk/go/generated
 
 plugins:
   # Markdown 出力（Backstage TechDocs / GitHub での閲覧に最適）

@@ -31,9 +31,10 @@ managed:
   enabled: true
   # openapiv2 plugin は go_package option を要求する（plugin 内部で proto を Go コードと
   # して扱うため）。buf.gen.yaml と同じ prefix を設定して整合させる。
+  # docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md 正典 monorepo path-style。
   override:
     - file_option: go_package_prefix
-      value: github.com/k1s0/sdk/go/generated
+      value: github.com/k1s0/k1s0/src/sdk/go/generated
 
 plugins:
   # OpenAPI v2（Swagger）形式で出力。grpc-ecosystem の plugin は最も成熟しており、
