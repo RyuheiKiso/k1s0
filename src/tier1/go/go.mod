@@ -9,8 +9,8 @@
 //   protocol（grpc.health.v1.Health/Check）応答までを提供。Dapr / Temporal / Keycloak / OpenBao
 //   の各 client wrapper、11 API ハンドラの実装は plan 04-02 〜 04-13 で順次追加する。
 //
-// module path: 公開リポジトリ準拠（ADR-DEP-001 と整合）
-module github.com/k1s0/tier1-facade
+// module path: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md 正典に準拠（monorepo path-style）
+module github.com/k1s0/k1s0/src/tier1/go
 
 go 1.22
 
