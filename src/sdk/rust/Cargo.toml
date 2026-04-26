@@ -1,0 +1,45 @@
+# k1s0 Rust SDK Cargo workspace（リリース時点 最小、生成 stub のみ）
+#
+# docs 正典:
+#   docs/05_実装/10_ビルド設計/10_Rust_Cargo_workspace/01_Rust_Cargo_workspace.md
+#     - workspace ルートは src/sdk/rust/Cargo.toml
+#     - 必須 crate は k1s0-sdk-proto（生成物）+ k1s0-sdk（高水準ファサード）の 2 件
+#     - Cargo edition 2024（プロジェクト全体要件）
+#     - [workspace.dependencies] は最小化（tonic / prost / tokio / serde / thiserror）
+#   docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+#     - 生成先: src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/
+#
+# 利用側の Cargo.toml からの参照（外部公開時、crates.io）:
+#   k1s0-sdk = "0.1"
+# 同一リポジトリ内（tier1 Rust core 等）からの参照:
+#   k1s0-sdk-proto = { path = "../../../sdk/rust/crates/k1s0-sdk-proto" }
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/k1s0-sdk-proto",
+    "crates/k1s0-sdk",
+]
+
+# k1s0 全体で使う共通バージョン。`workspace = true` で各 crate が継承する。
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/k1s0/k1s0"
+
+# docs 正典「[workspace.dependencies] を最小化」に従い、tonic / prost / tokio /
+# serde / thiserror のみ集約管理する。利用者が features を上書きできる余地を残す。
+[workspace.dependencies]
+# gRPC ランタイム（tonic は prost に依存）
+tonic = { version = "0.12", default-features = false, features = ["codegen", "prost", "transport"] }
+# protobuf ランタイム
+prost = { version = "0.13", default-features = false, features = ["std"] }
+prost-types = { version = "0.13", default-features = false, features = ["std"] }
+# 非同期ランタイム（utility のみ依存、SDK 本体は中立）
+tokio = { version = "1", default-features = false }
+# 直列化（高水準ファサードの JSON 入出力で使用予定、proto stub は不要）
+serde = { version = "1", default-features = false, features = ["derive"] }
+# エラー型（高水準ファサード用）
+thiserror = "1"

@@ -1,35 +1,94 @@
-// 本ファイルは tier1 公開 12 API のうち **Telemetry API** の最小 stub。
+// 本ファイルは tier1 公開 Telemetry API の正式 proto。
+// メトリクス（Counter / Gauge / Histogram）と分散トレース Span 送信を提供する。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/08_Telemetry_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/08_Telemetry_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/telemetry_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-TELEMETRY-001〜004
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.telemetry.v1;
 
-// TelemetryService: tier1 公開 Telemetry API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+// Timestamp 型の import
+import "google/protobuf/timestamp.proto";
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// Telemetry API。OTel Collector → Mimir / Tempo に転送する経路で使う。
 service TelemetryService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-TELEMETRY-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // メトリクス送信（Counter / Gauge / Histogram の混在可）
+  rpc EmitMetric(EmitMetricRequest) returns (EmitMetricResponse);
+  // Span 送信（既に終了済みの Span のみ受け付ける、開始 Span は OTel SDK で）
+  rpc EmitSpan(EmitSpanRequest) returns (EmitSpanResponse);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// メトリクス種別。
+// 注: 正典 IDL は zero value を `COUNTER = 0` と定義しているため、
+//     buf STANDARD lint の ENUM_ZERO_VALUE_SUFFIX / ENUM_VALUE_PREFIX を ignore する。
+// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+// buf:lint:ignore ENUM_VALUE_PREFIX
+enum MetricKind {
+  // 単調増加カウンタ（Prometheus _total メトリクスに対応、既定値）
+  COUNTER = 0;
+  // 上下する瞬時値ゲージ
+  GAUGE = 1;
+  // 分布ヒストグラム（quantile / bucket 計算用）
+  HISTOGRAM = 2;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// 単一メトリクス
+message Metric {
+  // メトリクス名（OTel 慣行に従いドット区切り、例: k1s0.tier1.invoke.duration_ms）
+  string name = 1;
+  // メトリクス種別
+  MetricKind kind = 2;
+  // 値（Counter は加算、Gauge は瞬時値、Histogram は観測値）
+  double value = 3;
+  // ラベル（service.name / env / status_code 等の OTel attribute）
+  map<string, string> labels = 4;
+  // タイムスタンプ（観測時刻、UTC）
+  google.protobuf.Timestamp timestamp = 5;
 }
+
+// EmitMetric リクエスト
+message EmitMetricRequest {
+  // メトリクス列
+  repeated Metric metrics = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+// EmitMetric 応答
+message EmitMetricResponse {}
+
+// 単一 Span
+message Span {
+  // トレース ID（W3C Trace Context、16 byte 相当の 32 文字 hex）
+  string trace_id = 1;
+  // Span ID（8 byte 相当の 16 文字 hex）
+  string span_id = 2;
+  // 親 Span ID（ルート Span は空文字列）
+  string parent_span_id = 3;
+  // Span 名（操作名、例: HTTP GET /api/v1/foo）
+  string name = 4;
+  // 開始時刻
+  google.protobuf.Timestamp start_time = 5;
+  // 終了時刻
+  google.protobuf.Timestamp end_time = 6;
+  // 属性（http.method / db.system 等の OTel semantic conventions）
+  map<string, string> attributes = 7;
+}
+
+// EmitSpan リクエスト
+message EmitSpanRequest {
+  // Span 列
+  repeated Span spans = 1;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 2;
+}
+
+// EmitSpan 応答
+message EmitSpanResponse {}

@@ -1,0 +1,28 @@
+# k1s0-sdk: tier1 公開 API の高水準 Rust ファサード（リリース時点 最小）
+#
+# docs 正典:
+#   docs/05_実装/10_ビルド設計/10_Rust_Cargo_workspace/01_Rust_Cargo_workspace.md
+#     - 必須 crate（k1s0-sdk-proto と並ぶ 2 件目）
+#
+# 役割（リリース時点）:
+#   tonic クライアントを再 export し、利用者が `use k1s0_sdk::state;` のように
+#   ファサード化された型へアクセスできる薄いラッパを提供する。
+#   `k1s0.State.Save` 形式の動詞統一 facade はロードマップ #8（SDK 高水準 facade）で追加。
+
+[package]
+name = "k1s0-sdk"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 Rust SDK (high-level facade, work-in-progress)"
+
+[dependencies]
+# 生成 stub への依存（同 workspace の k1s0-sdk-proto を path 参照）
+k1s0-sdk-proto = { path = "../k1s0-sdk-proto", version = "0.1" }
+# tonic / tokio / serde / thiserror は workspace の最小設定を継承
+tonic = { workspace = true }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+serde = { workspace = true }
+thiserror = { workspace = true }

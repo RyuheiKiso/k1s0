@@ -1,0 +1,33 @@
+<!--
+  K1s0.Sdk.Grpc: tier1 公開 API の高水準 .NET ファサード（リリース時点 最小）。
+
+  docs 正典:
+    docs/05_実装/10_ビルド設計/40_dotnet_sln境界/01_dotnet_sln境界.md
+      - K1s0.Sdk.Grpc + K1s0.Sdk.Proto の 2 csproj 構成
+      - sln 跨ぎ ProjectReference 禁止（横断制約）
+
+  役割（リリース時点）:
+    K1s0.Sdk.Proto への参照を持ち、tier2 / tier3 native 利用者が
+    K1s0.Sdk.Grpc 1 つだけを参照すれば動作する形を提供する。
+    `k1s0.State.SaveAsync(...)` 形式の動詞統一 facade はロードマップ #8 で追加。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>K1s0.Sdk.Grpc</PackageId>
+    <Description>k1s0 tier1 .NET SDK (gRPC client facade)</Description>
+    <RootNamespace>K1s0.Sdk</RootNamespace>
+    <AssemblyName>K1s0.Sdk.Grpc</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 生成 stub（同 sln 内の ProjectReference は許容） -->
+    <ProjectReference Include="../K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- README.md を NuGet Package に同梱 -->
+    <None Include="../../README.md" Pack="true" PackagePath="\" Condition="Exists('../../README.md')" />
+  </ItemGroup>
+
+</Project>

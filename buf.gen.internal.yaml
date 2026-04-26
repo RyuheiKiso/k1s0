@@ -1,8 +1,11 @@
 # =============================================================================
 # k1s0 buf generate configuration（internal module 専用）
 #
-# 設計: docs/02_構想設計/adr/ADR-TIER1-003-language-opacity.md（tier1 内部言語不可視）
-#       plan/03_Contracts実装/03_internal_proto定義.md（主作業 4: 生成先の隔離）
+# 設計正典:
+#   docs/02_構想設計/adr/ADR-TIER1-003-language-opacity.md（tier1 内部言語不可視）
+#   docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+#     - tier1 サーバ生成先: Go = src/tier1/go/internal/proto/v1/、
+#                            Rust = src/tier1/rust/crates/proto-gen/src/
 #
 # **重要**: internal proto は tier2/tier3 不可視。SDK 配下に出さず、tier1 配下の
 # 限定的な path にのみ生成する。Go / Rust のみが対象（C# / TypeScript には出さない）。
@@ -19,33 +22,34 @@ inputs:
 managed:
   enabled: true
   override:
-    # docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md 正典に準拠（monorepo path-style）。
-    # tier1 Go module 名 `github.com/k1s0/k1s0/src/tier1/go` の internal/proto サブパス（docs 正典: internal/proto/）。
+    # tier1 Go module（github.com/k1s0/k1s0/src/tier1/go）の internal/proto/v1 サブパスに配置。
+    # 出力先 src/tier1/go/internal/proto/v1 + paths=source_relative により、
+    # 実体は src/tier1/go/internal/proto/v1/k1s0/internal/v1/*.pb.go となる。
     - file_option: go_package_prefix
-      value: github.com/k1s0/k1s0/src/tier1/go/internal/proto
+      value: github.com/k1s0/k1s0/src/tier1/go/internal/proto/v1
 
 plugins:
   # ---------------------------------------------------------------------------
   # Go: Dapr ファサード側で internal RPC stub を消費
-  # 出力先は src/tier1/go/internal/proto/（docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md 正典）
+  # 生成先（docs 正典）: src/tier1/go/internal/proto/v1/
   # ---------------------------------------------------------------------------
   - remote: buf.build/protocolbuffers/go:v1.34.2
-    out: src/tier1/go/internal/proto
+    out: src/tier1/go/internal/proto/v1
     opt:
       - paths=source_relative
   - remote: buf.build/grpc/go:v1.5.1
-    out: src/tier1/go/internal/proto
+    out: src/tier1/go/internal/proto/v1
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
 
   # ---------------------------------------------------------------------------
   # Rust: tonic ベースの core 側で internal RPC server を実装
-  # 出力先は src/tier1/rust/crates/proto/src/internal/（本リリース時点 暫定）
+  # 生成先（docs 正典）: src/tier1/rust/crates/proto-gen/src/
   # ---------------------------------------------------------------------------
   - remote: buf.build/community/neoeinstein-prost:v0.4.0
-    out: src/tier1/rust/crates/proto/src/internal
+    out: src/tier1/rust/crates/proto-gen/src
   - remote: buf.build/community/neoeinstein-tonic:v0.4.0
-    out: src/tier1/rust/crates/proto/src/internal
+    out: src/tier1/rust/crates/proto-gen/src
 
   # **C# / TypeScript への出力は意図的に省略**（tier2/tier3 不可視原則、ADR-TIER1-003）

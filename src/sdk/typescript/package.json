@@ -1,0 +1,46 @@
+{
+  "//": "k1s0 TypeScript SDK パッケージ。docs 正典: docs/05_実装/10_ビルド設計/30_TypeScript_pnpm_workspace/01_TypeScript_pnpm_workspace.md / docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md",
+  "//namingRule": "package 名は npm registry 公開時の正典名 @k1s0/sdk-rpc。tier3 web の pnpm workspace とは完全分離（独立した package.json）。",
+  "//generated": "buf generate の出力先は src/proto/ 配下（src/sdk/typescript/src/proto/）。",
+  "name": "@k1s0/sdk-rpc",
+  "version": "0.1.0",
+  "description": "k1s0 tier1 TypeScript SDK (protobuf-es / connect-es generated stubs)",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k1s0/k1s0.git",
+    "directory": "src/sdk/typescript"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./proto/*": {
+      "types": "./dist/proto/*.d.ts",
+      "import": "./dist/proto/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/proto"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^1.10.0",
+    "@connectrpc/connect": "^1.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

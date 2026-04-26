@@ -36,7 +36,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
-| `src/contracts/tier1/` proto 12 サービス | 12 API（state / pubsub / serviceinvoke / secrets / binding / workflow / log / telemetry / decision / audit / feature / pii） | **雛形あり** | 12 サービス分の `.proto` ファイルが存在するが、各サービスの RPC は `PlaceholderCall` のみ。正式 RPC 定義は `docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/` 側に残置 |
+| `src/contracts/tier1/` proto 12 サービス | 12 API（state / pubsub / serviceinvoke / secrets / binding / workflow / log / telemetry / decision / audit / feature / pii） | **同梱済** | 12 サービスの正式 RPC を `docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/` 正典から移植済（合計 43 RPC、`buf lint` / `buf format` 通過、4 SDK 再生成済）。共通型は `common/v1/common.proto`（TenantContext / ErrorDetail / K1s0ErrorCategory）に集約。Audit と PII は IDL 上 1 ファイルだがディレクトリ設計に従い 2 パッケージに分割 |
 | `src/contracts/internal/` proto | tier1 内部 gRPC（Go ↔ Rust core） | **雛形あり** | placeholder 1 ファイル |
 | `src/tier1/go/cmd/{state,secret,workflow}/` | Go 側 3 Pod（DS-SW-COMP-005/006/010、6 Pod 構成のうち Go 担当分） | **雛形あり** | gRPC server bootstrap + standard health protocol + reflection + graceful shutdown は動作。各 API のハンドラ実装は未登録（`Register: nil`）。Log / Telemetry は t1-state Pod の内部 adapter（DS-SW-COMP-037/038）として収容される設計 |
 | `src/tier1/go/internal/common/` | 共通 runtime（gRPC bootstrap / config / retry / timeout） | **同梱済** | runtime / config / retry / timeout の 4 ユーティリティとテストが存在 |
@@ -50,10 +50,10 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
 | `buf.gen.yaml` | 4 言語生成設定（Go / .NET / Rust / TypeScript） | **同梱済** | tier1 公開と internal の 2 module 構成 |
-| `src/sdk/go/generated/` | Go gRPC stub 生成 | **同梱済** | 12 サービス分生成済（PlaceholderCall のみ） |
-| `src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/` | .NET stub | **同梱済** | 12 サービス分生成済 |
-| `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/` | Rust prost stub | **同梱済** | 12 サービス分生成済 |
-| `src/sdk/typescript/packages/proto/src/` | TS stub | **同梱済** | 12 サービス分生成済 |
+| `src/sdk/go/generated/` | Go gRPC stub 生成 | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: pb.go + grpc.pb.go の 14 proto 分） |
+| `src/sdk/dotnet/generated/` | .NET stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル） |
+| `src/sdk/rust/generated/` | Rust prost / tonic stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: prost + tonic の 14 proto 分） |
+| `src/sdk/typescript/generated/` | TS protobuf-es / connect-es stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: pb.ts + connect.ts の 14 proto 分） |
 | 高水準 SDK（`k1s0.Log.Info(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **設計のみ** | 生成された stub はあるが、README が示す `k1s0.State.SaveAsync(...)` 等の facade 層は未実装 |
 
 ### tier2（C# / Go ドメイン共通）
@@ -165,19 +165,39 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 リリース時点（v0.x）から採用初期段階へ進むために、以下を**docs を逸脱せず**実装する必要がある。
 順序は依存方向（contracts → SDK → tier1 → tier2/tier3）と外部評価の費用対効果を考慮した推奨順。
 
-### 1. contracts の正式 RPC 化（IMP-CODEGEN / FR-T1-*）
+### 1. contracts の正式 RPC 化（IMP-CODEGEN / FR-T1-*）— **完了**
 
 - `src/contracts/tier1/*/v1/*.proto` の各サービスを `PlaceholderCall` 1 RPC から
-  正式 RPC 群に置換する。正典は `docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/`
-- `make codegen` で 4 SDK を再生成
-- `buf breaking` のベースライン更新
+  正式 RPC 群に置換済（IDL 正典 `docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/` 移植）。
+  - 12 サービス計 43 RPC（state 5 / pubsub 3 / serviceinvoke 2 / secrets 3 /
+    binding 1 / workflow 6 / log 2 / telemetry 2 / decision 5 / audit 2 /
+    pii 2 / feature 7、別途 health 2 RPC）
+  - 共通型 `common.proto` 集約（旧 `principal.proto` / `page.proto` を削除し
+    `TenantContext` / `ErrorDetail` / `K1s0ErrorCategory` に統一）
+  - IDL 命名規約と `buf` STANDARD lint の衝突箇所は `src/contracts/buf.yaml`
+    の `lint.except` で除外（IDL 正典を優先する方針を明記）
+- `make codegen`（`buf generate`）で 4 SDK を再生成済（各 28 ファイル × 4 言語）
+- `buf lint` / `buf format` 通過確認済
+- `buf breaking` は v0 placeholder → v1 正式 RPC への移行を意図した破壊的変更を検出。
+  本コミットを v1 のベースラインとし、以降の PR は本コミット以降の差分に対して `buf breaking` を強制
 
-### 2. SDK モジュール化（IMP-CODEGEN / IMP-DIR）
+### 2. SDK モジュール化（IMP-CODEGEN / IMP-DIR）— **完了**
 
-- `src/sdk/go/` に `go.mod`（module `github.com/k1s0/k1s0/src/sdk/go`）を配置
-- 同様に `src/sdk/rust/Cargo.toml` workspace、`src/sdk/typescript/package.json`、
-  `src/sdk/dotnet/*.sln` の最小化
-- リポジトリルートに `go.work` を配置して tier1/go から sdk/go を参照可能にする
+- 生成先パスを docs 正典に揃えた（旧 `src/sdk/*/generated/` フラット配置 → docs 正典の言語別構造化パス）:
+  - Go:  `src/sdk/go/proto/v1/k1s0/tier1/<api>/v1/`
+  - Rust: `src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1/`
+  - TS:   `src/sdk/typescript/src/proto/k1s0/tier1/<api>/v1/`
+  - .NET: `src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/`
+- 4 言語の module / workspace を配置:
+  - **Go**: `src/sdk/go/go.mod`（module `github.com/k1s0/sdk-go`、Go 1.22、`go build ./...` 通過）
+  - **Rust**: `src/sdk/rust/Cargo.toml` workspace（edition 2024）+ `crates/k1s0-sdk-proto/`（生成 stub）+ `crates/k1s0-sdk/`（薄い facade）、`cargo metadata` 通過
+  - **TypeScript**: `src/sdk/typescript/package.json`（`@k1s0/sdk-rpc`、Node 20+）+ `tsconfig.json` + `tsconfig.build.json`、`tsc --noEmit` と build 両方通過
+  - **.NET**: `src/sdk/dotnet/Sdk.sln` + `src/K1s0.Sdk.Proto/`（生成 stub）+ `src/K1s0.Sdk.Grpc/`（高水準 facade）+ `Directory.Build.props`（netstandard2.1 + net8.0 多重 TFM）
+- tier1 Go（`src/tier1/go/go.mod`）に `replace github.com/k1s0/sdk-go => ../../sdk/go` を追加。
+  リリース時点 SDK が外部 registry に publish されたら `replace` を削除する運用（docs 正典）
+- buf 入力 path を明示する形に `tools/codegen/buf/run.sh` を修正（workspace 全モジュール処理による
+  internal 漏洩バグを併せて修正）
+- TypeScript の生成 import に `.js` 拡張子を付与（`import_extension=.js`）し NodeNext 解決を満たす設定に統一
 
 ### 3. tier1 Go ファサードのハンドラ登録（DS-SW-COMP-005/006/010）
 

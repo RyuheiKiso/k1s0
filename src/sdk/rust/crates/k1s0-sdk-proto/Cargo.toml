@@ -1,0 +1,24 @@
+# k1s0-sdk-proto: tier1 公開 12 API + health の Protobuf / tonic 生成 stub crate
+#
+# docs 正典:
+#   docs/05_実装/10_ビルド設計/10_Rust_Cargo_workspace/01_Rust_Cargo_workspace.md
+#   docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+#
+# 役割: buf generate の出力（src/gen/v1/k1s0.tier1.<api>.v1.rs と同 .tonic.rs）を
+#       Rust の module 階層 `crate::k1s0::tier1::<api>::v1` に束ねる。
+#       本 crate には手書きコードを置かない（生成物 + lib.rs の include 文のみ）。
+
+[package]
+name = "k1s0-sdk-proto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 Protobuf / tonic generated stubs"
+
+[dependencies]
+# prost と tonic に依存。features は workspace 側の最小設定をそのまま継承。
+prost = { workspace = true }
+prost-types = { workspace = true }
+tonic = { workspace = true }

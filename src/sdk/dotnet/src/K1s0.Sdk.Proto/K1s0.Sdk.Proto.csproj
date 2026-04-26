@@ -1,0 +1,39 @@
+<!--
+  K1s0.Sdk.Proto: tier1 公開 12 API + health の Protobuf / gRPC 生成 stub csproj。
+
+  docs 正典:
+    docs/05_実装/10_ビルド設計/40_dotnet_sln境界/01_dotnet_sln境界.md
+    docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+      - 生成先: Generated/ 配下（buf 出力）
+
+  役割: buf generate の出力を <Compile> として取り込み、NuGet Package として配布する。
+        手書きコードはここに置かない（生成物のみ）。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>K1s0.Sdk.Proto</PackageId>
+    <Description>k1s0 tier1 Protobuf / gRPC generated stubs for .NET</Description>
+    <RootNamespace>K1s0.Sdk.Generated</RootNamespace>
+    <AssemblyName>K1s0.Sdk.Proto</AssemblyName>
+    <!-- 生成物の警告は無視（buf 生成物のため修正できない） -->
+    <NoWarn>$(NoWarn);CS8981;CS0612;CS3021;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- gRPC + protobuf ランタイム -->
+    <PackageReference Include="Google.Protobuf" Version="3.28.3" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.66.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.66.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- README.md を NuGet Package に同梱 -->
+    <None Include="../../README.md" Pack="true" PackagePath="\" Condition="Exists('../../README.md')" />
+  </ItemGroup>
+
+</Project>

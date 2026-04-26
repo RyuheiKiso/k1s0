@@ -1,35 +1,96 @@
-// 本ファイルは tier1 公開 12 API のうち **PubSub API** の最小 stub。
+// 本ファイルは tier1 公開 PubSub API の正式 proto。
+// Kafka 抽象 Publish / Subscribe を提供する（テナント境界はトピック接頭辞で自動隔離）。
 //
-// **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
-//            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
-//            詳細 RPC / message / フィールド / google.api.http annotation / google.rpc.Status の
-//            正式定義は次セッション以降の plan 03-02 で展開する。
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/03_PubSub_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/03_PubSub_API.md
 //
-// 関連:
-//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/pubsub_API.md（正典、未抽出）
-//   docs/02_構想設計/02_tier1設計/（論理仕様）
-//   plan/03_Contracts実装/02_tier1_proto定義.md
+// 関連要件: FR-T1-PUBSUB-001〜005
+// proto 構文宣言（proto3）
 syntax = "proto3";
 
-// パッケージ命名規約: k1s0.tier1.<api>.v1
+// パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.pubsub.v1;
 
-// PubSubService: tier1 公開 PubSub API の最小 stub。
-// 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
+// 共通型（TenantContext / ErrorDetail）の import
+import "k1s0/tier1/common/v1/common.proto";
+
+// PubSub API。Kafka をバックエンドとし、tier1 がテナント接頭辞付与と冪等性管理を行う。
 service PubSubService {
-  // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。
-  // 関連要件: FR-T1-PUBSUB-001（要件詳細は要件定義 IDL を参照）
-  rpc PlaceholderCall(PlaceholderCallRequest) returns (PlaceholderCallResponse);
+  // 単発 Publish（idempotency_key で 24h 重複抑止）
+  rpc Publish(PublishRequest) returns (PublishResponse);
+  // バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+  rpc BulkPublish(BulkPublishRequest) returns (BulkPublishResponse);
+  // サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+  rpc Subscribe(SubscribeRequest) returns (stream Event);
 }
 
-// PlaceholderCallRequest: フル実装前の最小 message。
-message PlaceholderCallRequest {
-  // フル実装前の placeholder field
-  string note = 1;
+// Publish リクエスト
+message PublishRequest {
+  // トピック名（テナント接頭辞は tier1 が自動付与、クライアントはテナント内名のみ）
+  string topic = 1;
+  // イベント本文（bytes で透過、encoding は content_type で示す）
+  bytes data = 2;
+  // Content-Type（application/json / application/protobuf 等）
+  string content_type = 3;
+  // 冪等性キー（重複 Publish を抑止、TTL 24h）
+  string idempotency_key = 4;
+  // メタデータ（partition_key / trace_id 等の Kafka メッセージヘッダ相当）
+  map<string, string> metadata = 5;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 6;
 }
 
-// PlaceholderCallResponse: フル実装前の最小 message。
-message PlaceholderCallResponse {
-  // 本 RPC 自体は dummy で、応答も placeholder
-  string message = 1;
+// Publish 応答
+message PublishResponse {
+  // Kafka 側のオフセット
+  int64 offset = 1;
+}
+
+// BulkPublish リクエスト
+message BulkPublishRequest {
+  // トピック名（全エントリで共通）
+  string topic = 1;
+  // 公開するエントリ列
+  repeated PublishRequest entries = 2;
+}
+
+// BulkPublish 応答
+message BulkPublishResponse {
+  // 各エントリの結果（失敗時は error_code に詳細）
+  repeated BulkPublishEntry results = 1;
+}
+
+// BulkPublish の個別エントリ結果
+message BulkPublishEntry {
+  // 入力 entries 配列内のインデックス（0 始まり）
+  int32 entry_index = 1;
+  // Kafka 側のオフセット（成功時のみ意味を持つ）
+  int64 offset = 2;
+  // 失敗時のエラーコード（成功時は空文字列）
+  string error_code = 3;
+}
+
+// Subscribe リクエスト
+message SubscribeRequest {
+  // トピック名
+  string topic = 1;
+  // コンシューマグループ（テナント単位で分離）
+  string consumer_group = 2;
+  // 呼出元コンテキスト
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// Event（Subscribe の stream 要素）
+message Event {
+  // トピック名（接頭辞除去済みのテナント内名）
+  string topic = 1;
+  // イベント本文
+  bytes data = 2;
+  // Content-Type
+  string content_type = 3;
+  // Kafka 側のオフセット
+  int64 offset = 4;
+  // メタデータ（Publish 時に付与されたヘッダがそのまま伝わる）
+  map<string, string> metadata = 5;
 }

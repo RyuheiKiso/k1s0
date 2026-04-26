@@ -1,0 +1,42 @@
+<!--
+  k1s0 .NET SDK 共通プロパティ。本ディレクトリ配下の全 csproj に自動継承される。
+
+  docs 正典:
+    docs/05_実装/10_ビルド設計/40_dotnet_sln境界/01_dotnet_sln境界.md
+      - Sdk.sln / Tier2.sln / Native.sln の 3 sln 分割
+      - sln 跨ぎの ProjectReference を禁止し NuGet Package 経由参照を強制（横断制約 MSBuild 検証）
+      - TargetFramework 多重: netstandard2.1 + net8.0
+    docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+      - 生成先: src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/
+-->
+<Project>
+
+  <PropertyGroup>
+    <!-- リリース時点 多重 TFM（OSS 配布用、netstandard2.1 で .NET Framework 4.6.2+ にも届く） -->
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- NuGet Package 用メタ情報 -->
+    <Authors>k1s0 Contributors</Authors>
+    <Company>k1s0</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/k1s0/k1s0</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/k1s0/k1s0</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Version>0.1.0</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      docs 正典の横断制約: sln 跨ぎ ProjectReference を禁止する。
+      tier2 / tier3 native 側は NuGet Package 経由で参照すること。
+      本ディレクトリ配下の Sdk.sln 内の ProjectReference は許容。
+    -->
+    <_IsK1s0SdkSln>true</_IsK1s0SdkSln>
+  </PropertyGroup>
+
+</Project>
