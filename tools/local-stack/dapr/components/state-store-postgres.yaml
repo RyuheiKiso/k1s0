@@ -1,0 +1,19 @@
+# Dapr state-store: Postgres (CNPG)
+# tier1/tier2/tier3 から `dapr.io/state-store` 経由で利用される。
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-state
+  namespace: default
+spec:
+  type: state.postgresql
+  version: v2
+  metadata:
+    - name: connectionString
+      value: "host=k1s0-postgres-rw.cnpg-system.svc.cluster.local user=k1s0 password=k1s0-local-dev-password port=5432 dbname=k1s0 sslmode=disable"
+    - name: tableName
+      value: dapr_state
+    - name: actorStateStore
+      value: "true"
+auth:
+  secretStore: k1s0-secrets

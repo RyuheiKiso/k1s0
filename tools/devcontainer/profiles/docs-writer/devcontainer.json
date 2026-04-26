@@ -1,0 +1,62 @@
+{
+    "name": "k1s0 docs-writer (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": "false",
+            "username": "node",
+            "userUid": "1000",
+            "userGid": "1000"
+        }
+    },
+    "remoteUser": "node",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "docs-writer"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "yzhang.markdown-all-in-one",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "DavidAnson.vscode-markdownlint",
+                "streetsidesoftware.code-spell-checker",
+                "streetsidesoftware.code-spell-checker-japanese",
+                "ms-azuretools.vscode-docker",
+                "GitHub.vscode-pull-request-github",
+                "3w36zj6.textlint",
+                "bierner.markdown-mermaid",
+                "hediet.vscode-drawio"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "files.eol": "\n",
+                "[markdown]": {
+                    "editor.tabSize": 2,
+                    "editor.wordWrap": "on",
+                    "editor.formatOnSave": false,
+                    "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+                },
+                "markdownlint.config": {
+                    "default": true,
+                    "MD013": false,
+                    "MD024": { "siblings_only": true },
+                    "MD033": false,
+                    "MD041": false
+                },
+                "cSpell.language": "en,ja",
+                "textlint.languages": ["markdown"]
+            }
+        }
+    }
+}

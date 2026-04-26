@@ -1,0 +1,60 @@
+{
+    "name": "k1s0 sdk-dev (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "sdk-dev"
+    },
+    "mounts": [
+        "source=k1s0-sdk-cargo-registry,target=/usr/local/cargo/registry,type=volume",
+        "source=k1s0-sdk-go-mod,target=/go/pkg/mod,type=volume",
+        "source=k1s0-sdk-nuget,target=/home/vscode/.nuget/packages,type=volume"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "rust-lang.rust-analyzer",
+                "golang.go",
+                "ms-dotnettools.csharp",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "zxh404.vscode-proto3",
+                "bufbuild.vscode-buf"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "rust-analyzer.check.command": "clippy",
+                "[rust]": {
+                    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+                },
+                "[go]": {
+                    "editor.defaultFormatter": "golang.go"
+                },
+                "[csharp]": {
+                    "editor.defaultFormatter": "ms-dotnettools.csharp"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.tabSize": 2
+                }
+            }
+        }
+    }
+}

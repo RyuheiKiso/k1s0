@@ -1,0 +1,58 @@
+{
+    "name": "k1s0 tier1-go-dev (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "tier1-go-dev"
+    },
+    "mounts": [
+        "source=k1s0-go-mod,target=/go/pkg/mod,type=volume",
+        "source=k1s0-go-build-cache,target=/home/vscode/.cache/go-build,type=volume"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "ms-azuretools.vscode-docker",
+                "golang.go",
+                "zxh404.vscode-proto3",
+                "bufbuild.vscode-buf",
+                "ms-kubernetes-tools.vscode-kubernetes-tools"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "go.useLanguageServer": true,
+                "go.formatTool": "goimports",
+                "go.lintTool": "golangci-lint",
+                "go.lintOnSave": "package",
+                "go.testFlags": ["-v", "-race"],
+                "[go]": {
+                    "editor.defaultFormatter": "golang.go",
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit"
+                    }
+                },
+                "gopls": {
+                    "ui.semanticTokens": true,
+                    "formatting.gofumpt": true
+                }
+            }
+        }
+    }
+}

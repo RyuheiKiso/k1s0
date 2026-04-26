@@ -1,0 +1,14 @@
+# CloudNativePG operator (ADR-DATA-001)
+# helm repo add cnpg https://cloudnative-pg.github.io/charts
+# helm install cnpg cnpg/cloudnative-pg -n cnpg-system --version 0.28.0 -f values.yaml
+
+replicaCount: 1
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+monitoring:
+  podMonitorEnabled: false
+  grafanaDashboard:
+    create: false

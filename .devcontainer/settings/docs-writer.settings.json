@@ -1,0 +1,23 @@
+{
+    "markdownlint.config": {
+        "default": true,
+        "MD013": false,
+        "MD024": { "siblings_only": true },
+        "MD033": false,
+        "MD041": false
+    },
+    "[markdown]": {
+        "editor.tabSize": 2,
+        "editor.wordWrap": "on",
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "off"
+        }
+    },
+    "cSpell.language": "en,ja",
+    "cSpell.allowCompoundWords": true,
+    "textlint.languages": ["markdown"]
+}

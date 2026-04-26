@@ -1,0 +1,31 @@
+# MinIO (ADR-DATA-003)
+# helm repo add minio https://charts.min.io/
+# helm install minio minio/minio -n minio -f values.yaml
+#
+# 注: chart 5.x の rootUser / rootPassword は最小 8 文字。
+
+mode: standalone
+replicas: 1
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+rootUser: k1s0minioroot
+rootPassword: k1s0-local-dev-password
+
+buckets:
+  - name: k1s0-artifacts
+    policy: none
+  - name: k1s0-events
+    policy: none
+
+ingress:
+  enabled: false
+consoleIngress:
+  enabled: false

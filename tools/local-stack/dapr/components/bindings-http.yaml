@@ -1,0 +1,15 @@
+# Dapr bindings: HTTP (output binding 用テンプレート)
+# tier1/tier2 から外部 HTTP サービスを呼ぶ際の汎用バインディング。
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-http-out
+  namespace: default
+spec:
+  type: bindings.http
+  version: v1
+  metadata:
+    - name: url
+      value: "http://example.k1s0.local"
+    - name: method
+      value: "POST"

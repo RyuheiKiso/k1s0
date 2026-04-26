@@ -1,0 +1,12 @@
+# SDK 4 言語同格開発者向け cone
+/docs/
+/src/contracts/
+/src/sdk/
+/tools/codegen/
+/tools/sparse/
+/tools/devcontainer/profiles/sdk-dev/
+/tools/local-stack/
+/tests/contract/
+/examples/
+/.github/
+/.devcontainer/

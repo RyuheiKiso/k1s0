@@ -1,0 +1,16 @@
+# tier3 Web 開発者向け cone
+/docs/
+/src/sdk/typescript/
+/src/sdk/go/
+/src/tier3/web/
+/src/tier3/bff/
+/tools/codegen/openapi/
+/tools/codegen/buf/
+/tools/sparse/
+/tools/devcontainer/profiles/tier3-web-dev/
+/tools/local-stack/
+/tests/e2e/
+/examples/tier3-web-portal/
+/examples/tier3-bff-graphql/
+/.github/
+/.devcontainer/

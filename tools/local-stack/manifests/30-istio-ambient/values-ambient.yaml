@@ -1,0 +1,22 @@
+# Istio Ambient Mesh (CNI + ztunnel) 共通 values
+# 設計書 / ADR: 02_構想設計/05_アーキテクチャ詳細/03_セキュリティ/ で言及されている Ambient mode を採用。
+#
+# istioctl install --set profile=ambient -y を後段で呼ぶため、本 values は istio operator 経由
+# のカスタマイズ用（必要に応じて values パッチに使う）。基本は istioctl ambient install で済ます。
+profile: ambient
+components:
+  pilot:
+    k8s:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+  ingressGateways: []
+  egressGateways: []
+meshConfig:
+  defaultConfig:
+    proxyMetadata:
+      ISTIO_META_DNS_CAPTURE: "true"
+  enableTracing: true
+  defaultProviders:
+    tracing: []

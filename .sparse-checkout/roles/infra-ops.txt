@@ -1,0 +1,12 @@
+# インフラ運用・SRE 向け cone
+/docs/
+/infra/
+/deploy/
+/ops/
+/tools/ci/
+/tools/local-stack/
+/tools/sparse/
+/tools/devcontainer/profiles/infra-ops/
+/tests/integration/
+/.github/
+/.devcontainer/

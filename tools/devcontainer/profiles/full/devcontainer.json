@@ -1,0 +1,51 @@
+{
+    "name": "k1s0 full (Phase 2, CI 専用)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "full"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "vadimcn.vscode-lldb",
+                "tamasfe.even-better-toml",
+                "fill-labs.dependi",
+                "golang.go",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                "ms-dotnettools.dotnet-maui",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "ms-playwright.playwright",
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "redhat.vscode-yaml",
+                "zxh404.vscode-proto3",
+                "bufbuild.vscode-buf",
+                "hashicorp.terraform",
+                "yzhang.markdown-all-in-one",
+                "DavidAnson.vscode-markdownlint"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "rust-analyzer.check.command": "clippy",
+                "go.useLanguageServer": true,
+                "[yaml]": { "editor.tabSize": 2 }
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+# tier1 Rust 自作領域開発者向け cone
+# 対象: src/tier1/rust/ + contracts + docs + tools
+# 注: src/sdk/rust/ は採用後の運用拡大時の骨組みのため含めない（必要時は sdk-dev を兼任）
+/docs/
+/src/contracts/
+/src/tier1/rust/
+/src/platform/cli/
+/tools/codegen/buf/
+/tools/sparse/
+/tools/devcontainer/profiles/tier1-rust-dev/
+/tools/local-stack/
+/tests/fuzz/rust/
+/tests/contract/
+/examples/tier1-rust-service/
+/.github/
+/.devcontainer/

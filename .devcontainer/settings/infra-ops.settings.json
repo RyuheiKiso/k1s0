@@ -1,0 +1,19 @@
+{
+    "yaml.schemas": {
+        "kubernetes": "*.k8s.yaml",
+        "https://json.schemastore.org/kustomization.json": "kustomization.yaml",
+        "https://json.schemastore.org/helmfile.json": "helmfile.yaml",
+        "https://raw.githubusercontent.com/argoproj/argo-cd/master/assets/swagger.json": "**/argocd/**/*.yaml"
+    },
+    "redhat.telemetry.enabled": false,
+    "[yaml]": {
+        "editor.tabSize": 2,
+        "editor.formatOnSave": true,
+        "editor.autoIndent": "advanced"
+    },
+    "[shellscript]": {
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "foxundermoon.shell-format"
+    }
+}

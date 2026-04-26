@@ -1,0 +1,73 @@
+# .devcontainer/docker-compose.yml
+#
+# 設計書: docs/05_実装/50_開発者体験設計/10_DevContainer_10役/01_DevContainer_10役設計.md
+#
+# 用途: Dev Container と並走するローカルサイドカー (OpenBao dev / Postgres / Kafka / Valkey)
+# を「kind を使わない軽量ローカル開発」向けに提供する補助スタック。
+#
+# 本ファイルは Dev Container 自体の docker-compose 連携 (`devcontainer.json` の
+# `dockerComposeFile` フィールド) には現状接続していない。各プロファイルの devcontainer.json
+# は単体 Dockerfile build で動作し、本 compose は手動 `docker compose -f .devcontainer/
+# docker-compose.yml up -d <service>` で必要なサイドカーのみ起動する用途を想定する。
+#
+# 本番再現を伴う日常開発では `tools/local-stack/up.sh --role <role>` (kind ベース) を
+# 推奨し、本 compose はその前段の素早い切り出し検証用として位置付ける。
+
+services:
+  openbao-dev:
+    image: openbao/openbao:2.1
+    container_name: k1s0-openbao-dev
+    cap_add: [IPC_LOCK]
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: dev-root-token
+      BAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "8200:8200"
+    command: ["bao", "server", "-dev"]
+    networks: [k1s0-local]
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: k1s0-postgres
+    environment:
+      POSTGRES_USER: k1s0
+      POSTGRES_PASSWORD: k1s0
+      POSTGRES_DB: k1s0
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [k1s0-local]
+
+  kafka:
+    image: bitnami/kafka:3.9
+    container_name: k1s0-kafka
+    environment:
+      KAFKA_CFG_NODE_ID: "0"
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@kafka:9093
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks: [k1s0-local]
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: k1s0-valkey
+    ports:
+      - "6379:6379"
+    networks: [k1s0-local]
+
+volumes:
+  postgres-data:
+  kafka-data:
+
+networks:
+  k1s0-local:
+    name: k1s0-local
+    driver: bridge

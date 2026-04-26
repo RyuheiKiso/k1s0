@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck",
+        "foxundermoon.shell-format",
+        "hashicorp.terraform",
+        "ms-azuretools.vscode-docker"
+    ]
+}

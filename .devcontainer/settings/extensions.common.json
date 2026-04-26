@@ -1,0 +1,13 @@
+{
+    "recommendations": [
+        "eamodio.gitlens",
+        "EditorConfig.EditorConfig",
+        "yzhang.markdown-all-in-one",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "DavidAnson.vscode-markdownlint",
+        "streetsidesoftware.code-spell-checker",
+        "ms-azuretools.vscode-docker",
+        "GitHub.vscode-pull-request-github"
+    ]
+}

@@ -1,0 +1,128 @@
+# 本番再現スタックの namespace 群（事前作成）
+# 各レイヤの Helm chart / Kustomize は基本的に専用 namespace に配備する。
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    k1s0.io/layer: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-system-extras
+  labels:
+    k1s0.io/layer: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metallb-system
+  labels:
+    k1s0.io/layer: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    k1s0.io/layer: mesh
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kyverno
+  labels:
+    k1s0.io/layer: policy
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spire-system
+  labels:
+    k1s0.io/layer: identity
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dapr-system
+  labels:
+    k1s0.io/layer: dapr
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flagd
+  labels:
+    k1s0.io/layer: feature-flag
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    k1s0.io/layer: gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cnpg-system
+  labels:
+    k1s0.io/layer: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka
+  labels:
+    k1s0.io/layer: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minio
+  labels:
+    k1s0.io/layer: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: valkey
+  labels:
+    k1s0.io/layer: data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openbao
+  labels:
+    k1s0.io/layer: secret
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backstage
+  labels:
+    k1s0.io/layer: developer-portal
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    k1s0.io/layer: ingress
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    k1s0.io/layer: observability
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  labels:
+    k1s0.io/layer: identity

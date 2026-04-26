@@ -1,0 +1,32 @@
+# OpenBao (ADR-SEC-002) ローカル dev mode
+# helm repo add openbao https://openbao.github.io/openbao-helm
+# helm install openbao openbao/openbao -n openbao --version 0.27.2 -f values.yaml
+#
+# 構造: chart 0.27.x の top-level keys は global / server / ui / injector
+# server.dev.enabled で揮発 dev mode を有効化、devRootToken で root token 固定。
+
+global:
+  enabled: true
+
+server:
+  dev:
+    enabled: true
+    devRootToken: dev-root-token
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+  affinity: ""
+  standalone:
+    enabled: false
+  ha:
+    enabled: false
+
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+injector:
+  enabled: false

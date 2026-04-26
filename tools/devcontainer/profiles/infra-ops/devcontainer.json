@@ -1,0 +1,49 @@
+{
+    "name": "k1s0 infra-ops (Phase 2)",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "../../../.."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/k1s0",
+    "postCreateCommand": "bash tools/devcontainer/postCreate.sh",
+    "containerEnv": {
+        "K1S0_DEV_ROLE": "infra-ops"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "eamodio.gitlens",
+                "EditorConfig.EditorConfig",
+                "tamasfe.even-better-toml",
+                "redhat.vscode-yaml",
+                "DavidAnson.vscode-markdownlint",
+                "ms-azuretools.vscode-docker",
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "timonwong.shellcheck",
+                "foxundermoon.shell-format",
+                "hashicorp.terraform"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.rulers": [100],
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "files.eol": "\n",
+                "yaml.schemas": {
+                    "kubernetes": "*.k8s.yaml",
+                    "https://json.schemastore.org/kustomization.json": "kustomization.yaml"
+                },
+                "redhat.telemetry.enabled": false,
+                "[yaml]": {
+                    "editor.tabSize": 2
+                }
+            }
+        }
+    }
+}

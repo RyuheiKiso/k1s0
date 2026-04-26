@@ -1,0 +1,16 @@
+# Dapr configuration: flagd (機能フラグ参照)
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-flagd
+  namespace: default
+spec:
+  type: configuration.flagd
+  version: v1
+  metadata:
+    - name: host
+      value: "flagd.flagd.svc.cluster.local"
+    - name: port
+      value: "8013"
+    - name: scheme
+      value: "grpc"

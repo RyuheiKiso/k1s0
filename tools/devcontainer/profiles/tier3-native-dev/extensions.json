@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "eamodio.gitlens",
+        "EditorConfig.EditorConfig",
+        "redhat.vscode-yaml",
+        "ms-azuretools.vscode-docker",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.dotnet-maui",
+        "ms-dotnettools.xaml"
+    ]
+}

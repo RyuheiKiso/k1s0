@@ -34,6 +34,7 @@
 | 技術説明書・設計書（`05_実装/` / `04_概要設計/` / `02_構想設計/`） | Skill `docs-design-spec` / コマンド `/design` |
 | Knowledge ドキュメント（`90_knowledge/`） | コマンド `/knowledge` |
 | ポストモーテム | Skill `docs-postmortem` |
+| Runbook（`docs/40_運用ライフサイクル/`、タイプ C: 検出 / 初動 / 復旧 / 原因調査 / 事後処理 5 段構成） | Skill `docs-design-spec`（共通フォーマット）+ `docs-postmortem`（インシデント由来の場合） |
 | PR レビュー / セルフチェック | Skill `docs-review-checklist`（汎用レビューは組み込み `/review`） |
 | drawio 図の新規作成・編集 | Skill `drawio-authoring` |
 | 複数レイヤが登場する drawio | Skill `figure-layer-convention` |

@@ -1,0 +1,72 @@
+# flagd (ADR-FM-001: flagd / OpenFeature)
+# 軽量な ConfigMap ベースのスタンドアロン flagd デーモンを deployment 化する。
+# OpenFeature provider 経由で tier1/tier2/tier3 から参照される。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flagd-config
+  namespace: flagd
+data:
+  flags.json: |
+    {
+      "$schema": "https://flagd.dev/schema/v0/flags.json",
+      "flags": {
+        "k1s0-canary-rollout": {
+          "state": "ENABLED",
+          "variants": { "on": true, "off": false },
+          "defaultVariant": "off"
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagd
+  namespace: flagd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flagd
+  template:
+    metadata:
+      labels:
+        app: flagd
+    spec:
+      containers:
+        - name: flagd
+          image: ghcr.io/open-feature/flagd:v0.11.6
+          args:
+            - "start"
+            - "--uri"
+            - "file:/etc/flagd/flags.json"
+            - "--port"
+            - "8013"
+          ports:
+            - containerPort: 8013
+              name: flagd
+          volumeMounts:
+            - name: config
+              mountPath: /etc/flagd
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      volumes:
+        - name: config
+          configMap:
+            name: flagd-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagd
+  namespace: flagd
+spec:
+  selector:
+    app: flagd
+  ports:
+    - name: grpc
+      port: 8013
+      targetPort: 8013

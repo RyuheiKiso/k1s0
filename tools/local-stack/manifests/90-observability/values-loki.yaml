@@ -1,0 +1,72 @@
+# Loki single-binary (Grafana Loki chart 6.x)
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm install loki grafana/loki -n observability -f values-loki.yaml
+#
+# 設計: deploymentMode=SingleBinary でスケーラブル系 chart の単一ノード運用を有効化する。
+# read/write/backend はゼロ replica にして single-binary に集約。
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  schemaConfig:
+    configs:
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  pattern_ingester:
+    enabled: false
+  ruler:
+    enable_api: false
+  storage:
+    type: filesystem
+
+singleBinary:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  persistence:
+    enabled: true
+    size: 5Gi
+
+# scalable 系コンポーネントは無効化（singleBinary に集約）
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+
+test:
+  enabled: false
+lokiCanary:
+  enabled: false
+gateway:
+  enabled: false
+
+monitoring:
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+  serviceMonitor:
+    enabled: false
+  rules:
+    enabled: false
+  dashboards:
+    enabled: false
+  lokiCanary:
+    enabled: false

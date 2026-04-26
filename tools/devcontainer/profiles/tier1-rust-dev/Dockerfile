@@ -13,6 +13,8 @@
 ARG VARIANT=1-bookworm
 FROM mcr.microsoft.com/devcontainers/rust:${VARIANT}
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 USER root
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -29,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pkg-config \
         libssl-dev \
         cmake \
+        python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # protoc バイナリ導入 (Protocol Buffers 公式リリース)

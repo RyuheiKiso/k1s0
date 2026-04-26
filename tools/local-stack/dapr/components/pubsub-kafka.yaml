@@ -1,0 +1,18 @@
+# Dapr pub-sub: Kafka (Strimzi)
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-pubsub
+  namespace: default
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    - name: brokers
+      value: "k1s0-kafka-kafka-bootstrap.kafka.svc.cluster.local:9092"
+    - name: consumerGroup
+      value: "k1s0"
+    - name: authType
+      value: "none"
+    - name: disableTls
+      value: "true"

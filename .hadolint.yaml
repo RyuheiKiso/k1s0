@@ -1,0 +1,17 @@
+# hadolint config for k1s0 Dev Container Dockerfiles
+#
+# 設計書: docs/05_実装/50_開発者体験設計/10_DevContainer_10役/01_DevContainer_10役設計.md
+#
+# 緩和ルールの根拠:
+#   DL3008: Dev Container 用途では apt パッケージのマイナー更新追従が重要で、
+#           毎回 version 固定するとセキュリティパッチが滞る。トリック性の高い
+#           パッケージのみ個別にバージョン指定する運用とする。
+#   DL3015: 一部の .deb local install (apt-get install /tmp/drawio.deb 等) では
+#           recommends を伴う依存解決が必要で、--no-install-recommends を強要すると
+#           drawio や Android SDK の起動が壊れる。
+
+ignored:
+  - DL3008
+  - DL3015
+
+failure-threshold: error

@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "golang.go",
+        "temporalio.temporalio",
+        "zxh404.vscode-proto3",
+        "bufbuild.vscode-buf"
+    ]
+}

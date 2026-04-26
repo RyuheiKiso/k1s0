@@ -1,0 +1,14 @@
+{
+    "recommendations": [
+        "eamodio.gitlens",
+        "EditorConfig.EditorConfig",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "DavidAnson.vscode-markdownlint",
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "timonwong.shellcheck",
+        "foxundermoon.shell-format",
+        "hashicorp.terraform"
+    ]
+}
