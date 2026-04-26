@@ -1,0 +1,145 @@
+# =============================================================================
+# k1s0 tier1-facade Helm chart values（リリース時点最小骨格）
+#
+# 設計: docs/05_実装/70_リリース設計/
+#       docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md
+# 関連 ID: ADR-CICD-001 / ADR-CICD-002 / ADR-TIER1-001
+#
+# 利用例:
+#   helm install tier1-facade deploy/charts/tier1-facade \
+#       --namespace k1s0-tier1 \
+#       --create-namespace \
+#       --set image.tag=v0.1.0
+#
+# 環境別 overlay は deploy/kustomize/overlays/{dev,staging,prod}/ で実施する想定
+# （Argo CD ApplicationSet が values.yaml + overlay を kustomize で merge する）。
+# =============================================================================
+
+# 全 Pod 共通の image 設定。tag は CI が SemVer + commit SHA で push する。
+image:
+  # GHCR（GitHub Container Registry）配下の k1s0 organization。
+  registry: ghcr.io
+  # repository prefix。各 Pod は repository: "${prefix}/tier1-${pod}" の形で参照する。
+  repositoryPrefix: k1s0/k1s0
+  # CI が tag を上書きするまでは "latest"（運用環境では明示 tag を必須化する）。
+  tag: latest
+  # k8s 既定（IfNotPresent）で十分。digest pinning は Renovate で自動更新する想定。
+  pullPolicy: IfNotPresent
+
+# 全 Pod 共通の serviceAccount 設定。SPIRE workload identity 連携時に
+# serviceAccount.name → SPIFFE ID の mapping が必要になる（採用初期）。
+serviceAccount:
+  # 自動生成しない。create=false の場合は existingName を使う。
+  create: true
+  # name は "" で chart 名 + Pod 名から導出（templates/_helpers.tpl）。
+  name: ""
+  # ServiceAccount に付与する annotation（SPIRE 採用初期で k8s.io/spire... を追加）。
+  annotations: {}
+
+# Pod 共通の securityContext（distroless / nonroot 整合）。
+podSecurityContext:
+  # 全コンテナを UID 65532 で起動（distroless/static-debian12:nonroot 整合）。
+  runAsUser: 65532
+  # 同 GID で起動。
+  runAsGroup: 65532
+  # 非 root 強制。
+  runAsNonRoot: true
+  # fsGroup は不要（永続ボリュームを持たないため）。
+  fsGroup: 65532
+
+# コンテナレベルの securityContext（最小権限）。
+containerSecurityContext:
+  # 特権昇格禁止。
+  allowPrivilegeEscalation: false
+  # ファイルシステムを read-only にする（secret / config は emptyDir / projected で書き込む）。
+  readOnlyRootFilesystem: true
+  # 全 capability を drop する。
+  capabilities:
+    drop:
+      - ALL
+  # seccompProfile は RuntimeDefault（k8s 1.24+ の安全側既定）。
+  seccompProfile:
+    type: RuntimeDefault
+
+# Pod 別設定。3 Pod（state / secret / workflow）を独立してチューニングする。
+pods:
+  # ---------------------------------------------------------------------------
+  # state Pod（DS-SW-COMP-023: ServiceInvoke + State + PubSub + Binding + Feature の 5 API Router）
+  # ---------------------------------------------------------------------------
+  state:
+    # この Pod を配備するか（false で完全スキップ可能）。
+    enabled: true
+    # repository は "${image.repositoryPrefix}/tier1-state" として導出される。
+    repositorySuffix: tier1-state
+    # 起動コマンド引数（main.go の flag に対応）。
+    args: []
+    # replicas。リリース時点は 1、production は HPA/KEDA で 2+ 推奨。
+    replicas: 1
+    # gRPC 公開ポート（docs 正典 EXPOSE 50001、Dapr sidecar app-port と整合）。
+    grpcPort: 50001
+    # Prometheus metrics ポート（採用初期で OTel collector / Prometheus が scrape する）。
+    metricsPort: 9090
+    # resources は production の想定下限（採用初期で実測に置換）。
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  # ---------------------------------------------------------------------------
+  # secret Pod（SecretsService 1 API、OpenBao 連携）
+  # ---------------------------------------------------------------------------
+  secret:
+    enabled: true
+    repositorySuffix: tier1-secret
+    args: []
+    replicas: 1
+    grpcPort: 50001
+    metricsPort: 9090
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  # ---------------------------------------------------------------------------
+  # workflow Pod（WorkflowService、Dapr Workflow + Temporal 振り分け）
+  # ---------------------------------------------------------------------------
+  workflow:
+    enabled: true
+    repositorySuffix: tier1-workflow
+    args: []
+    replicas: 1
+    grpcPort: 50001
+    metricsPort: 9090
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
+
+# 共通 ConfigMap（採用初期で Dapr / OTel / OpenBao endpoint を環境別に注入する）。
+config:
+  # OTel exporter endpoint（ローカル kind なら otel-collector.observability:4317 想定）。
+  otelExporterEndpoint: "otel-collector.observability.svc.cluster.local:4317"
+  # ログレベル（debug / info / warn / error）。
+  logLevel: "info"
+
+# Service の type（既定 ClusterIP、Istio Ambient ztunnel 経由で十分）。
+service:
+  type: ClusterIP
+  # Istio Ambient labels（namespace に istio.io/dataplane-mode=ambient を要する）。
+  annotations: {}
+
+# Pod に注入する追加 labels / annotations（trace / cost-center 等）。
+podLabels: {}
+podAnnotations: {}
+
+# Pod の affinity / tolerations / nodeSelector。リリース時点は空、production で設定。
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,48 @@
+# =============================================================================
+# k1s0 tier1-facade Helm chart（リリース時点最小骨格）
+#
+# 設計: docs/05_実装/70_リリース設計/（IMP-REL-* / ADR-CICD-001 / ADR-CICD-002）
+#       docs/02_構想設計/02_tier1設計/
+# 関連 ID: ADR-CICD-001（Argo CD）/ ADR-CICD-002（Argo Rollouts）/ ADR-TIER1-001
+#
+# scope（リリース時点）:
+#   - 3 Pod（state / secret / workflow）の標準的な Deployment / Service / ConfigMap /
+#     ServiceAccount を生成する。values.yaml で 3 Pod の image / replicas / resources を
+#     上書き可能にする。
+#   - distroless / nonroot / readOnlyRootFilesystem を securityContext で強制
+#   - Argo Rollouts の Rollout リソースは採用初期で追加（リリース時点は通常 Deployment）
+#
+# 採用初期で拡張:
+#   - Argo Rollouts 移行（canary 戦略 / AnalysisTemplate）
+#   - HPA / KEDA ScaledObject
+#   - SPIRE workload identity（serviceAccount → SPIFFE ID）
+#   - Istio Ambient L7 waypoint（AuthorizationPolicy）
+# =============================================================================
+apiVersion: v2
+name: tier1-facade
+description: |
+  k1s0 tier1 Go ファサード（state / secret / workflow の 3 Pod）を
+  Kubernetes に配備する Helm chart。3 Pod は同一 chart 内のサブテンプレートで
+  ループ生成する。docs DS-SW-COMP-023（5 API Router）正典に準拠。
+type: application
+version: 0.1.0
+# tier1 facade のセマンティックバージョン。go module / SDK と独立して管理する。
+appVersion: "0.1.0"
+home: https://github.com/k1s0/k1s0
+sources:
+  - https://github.com/k1s0/k1s0
+maintainers:
+  - name: k1s0 maintainers
+    url: https://github.com/k1s0/k1s0
+keywords:
+  - k1s0
+  - tier1
+  - dapr
+  - facade
+  - grpc
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/01_企画/img/logo.svg
+annotations:
+  # Argo CD への通知（採用初期に Rollouts 化したらヘルス判定に使う）。
+  artifacthub.io/changes: |
+    - kind: added
+      description: "リリース時点最小骨格（3 Pod の Deployment / Service / ConfigMap）"

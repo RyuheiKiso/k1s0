@@ -1,0 +1,20 @@
+# Helm chart にパッケージしないファイル（helm package 時の除外パタン）。
+# OCI チャートサイズ最小化のため、開発時のみ必要なファイルを除外する。
+
+# git メタデータ
+.git/
+.gitignore
+.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.bak
+*.tmp
+*.orig
+.DS_Store
+
+# ヘルパスクリプト
+**/*.tgz
+README.md.bak
