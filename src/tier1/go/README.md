@@ -2,6 +2,8 @@
 
 stable Dapr Go SDK を直接叩く Go ファサード層。tier2 / tier3 / 外部 SDK 利用者が見るのは本層が露出する gRPC のみ。Dapr 型は `internal/dapr/` 配下に封じ込め、analyzer（plan フェーズ 06）と golangci-lint `forbidigo` の二重防御で漏洩を遮断する（ADR-TIER1-003）。
 
+**module path**: `github.com/k1s0/k1s0/src/tier1/go`（monorepo path-style、`docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md` 正典）
+
 ## Pod 構成（docs 正典）
 
 `docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/01_tier1全体配置.md` 準拠で **3 Pod** に分離。

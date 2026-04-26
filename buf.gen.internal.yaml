@@ -19,8 +19,10 @@ inputs:
 managed:
   enabled: true
   override:
+    # docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md 正典に準拠（monorepo path-style）。
+    # tier1 Go module 名 `github.com/k1s0/k1s0/src/tier1/go` の internal/grpc サブパス。
     - file_option: go_package_prefix
-      value: github.com/k1s0/tier1-go/internal/grpc
+      value: github.com/k1s0/k1s0/src/tier1/go/internal/grpc
 
 plugins:
   # ---------------------------------------------------------------------------

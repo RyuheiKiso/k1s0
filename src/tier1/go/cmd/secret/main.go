@@ -29,7 +29,7 @@ import (
 	"log"
 
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
-	"github.com/k1s0/tier1-facade/internal/server/runtime"
+	"github.com/k1s0/k1s0/src/tier1/go/internal/server/runtime"
 )
 
 // :50051 は gRPC の de facto デフォルト。docs/02_構想設計/02_tier1設計/ で確定後 ConfigMap で上書き予定。
