@@ -1,0 +1,105 @@
+<mxfile host="Electron" modified="2026-04-26T00:00:00.000Z" agent="claude" version="24.0.0" type="device">
+  <diagram name="rollback-timeline" id="rb-timeline">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rbt_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_title" value="rollback 15 分タイムライン: 検知 → Git revert → Argo CD sync → AnalysisTemplate → 安定化観測" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1280" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rbt_axis" value="" style="endArrow=classic;html=1;strokeColor=#000000;strokeWidth=2" edge="1" parent="1">
+          <mxGeometry width="50" height="50" as="geometry">
+            <mxPoint x="80" y="100" as="sourcePoint" />
+            <mxPoint x="1320" y="100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rbt_t0" value="T+0&#xa;検知" style="text;html=1;align=center;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="60" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_t2" value="T+2&#xa;Git revert" style="text;html=1;align=center;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="220" y="60" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_t5" value="T+5&#xa;Argo sync" style="text;html=1;align=center;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="60" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_t10" value="T+10&#xa;AT 判定" style="text;html=1;align=center;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="60" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_t15" value="T+15&#xa;完了" style="text;html=1;align=center;fontSize=10;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1100" y="60" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rbt_phase1" value="Phase 1: 検知 / 起動 (2 分)&#xa;・PagerDuty Sev2 通知&#xa;・Incident Commander 立ち上げ&#xa;・Slack #k1s0-incidents 招集&#xa;・自動 / 手動 rollback 判定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="80" y="140" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_phase2" value="Phase 2: Git revert (3 分)&#xa;・ops/scripts/rollback.sh 起動&#xa;・対象 Application を特定&#xa;・git revert &lt;merge-sha&gt;&#xa;・自動生成 PR を SRE 承認&#xa;・main マージ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="320" y="140" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_phase3" value="Phase 3: Argo CD sync (5 分)&#xa;・argocd app sync &lt;app&gt;&#xa;・prev-sha への巻き戻し&#xa;・Helm chart 再展開&#xa;・Pod 入替（Rollout undo）&#xa;・kubectl argo rollouts undo（並列）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="580" y="140" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_phase4" value="Phase 4: AnalysisTemplate (5 分)&#xa;・5 本共通テンプレ評価&#xa;・error rate / latency / cpu&#xa;・dependency / EB burn&#xa;・全 pass = 安定化 OK&#xa;・任意 fail = 第二経路へ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="840" y="140" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_phase5" value="Phase 5: 安定化観測 (5 分)&#xa;・post-rollback ダッシュボード&#xa;・SLI 5 分連続 GREEN 確認&#xa;・PagerDuty resolve&#xa;・Postmortem PR テンプレ生成&#xa;・15 分以内完了 SLO 計測" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="1100" y="140" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rbt_alt1" value="第二経路: Forward fix&#xa;AT fail 時に 5 分以内で hot-patch&#xa;（CVSS 9.0+ 限定、SRE 承認必須）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="840" y="340" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_alt2" value="第三経路: 全停止 (kill)&#xa;tier1 = 業務影響極大時のみ&#xa;Maintenance Page へ切替" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="1100" y="340" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_e_alt" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#b85450;endArrow=classic;dashed=1" edge="1" parent="1" source="rbt_phase4" target="rbt_alt1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_e_alt2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#b85450;endArrow=classic;dashed=1" edge="1" parent="1" source="rbt_alt1" target="rbt_alt2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rbt_cmd_title" value="Phase 2-3 の 1 コマンド化（ops/scripts/rollback.sh）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_cmd" value="$ ./ops/scripts/rollback.sh \&#xa;    --app tier1-workflow \&#xa;    --revision &lt;prev-sha&gt; \&#xa;    --reason &quot;canary AT error-rate fail&quot;&#xa;&#xa;# 内部実行:&#xa;# 1. git revert &lt;merge-sha&gt; → PR 生成&#xa;# 2. SRE オンコール approval 検証&#xa;# 3. argocd app sync tier1-workflow --revision &lt;prev-sha&gt;&#xa;# 4. kubectl argo rollouts undo workflow-rollout&#xa;# 5. PagerDuty incident に実行ログ自動添付" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top;fontFamily=Courier New" vertex="1" parent="1">
+          <mxGeometry x="80" y="490" width="500" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rbt_drill" value="四半期 rollback 演習&#xa;・staging 環境で 1 サービス抽選&#xa;・実時間計測 / 詰まりポイント記録&#xa;・15 分超過時は構成改善 PR 必須&#xa;・記録: ops/runbooks/quarterly/rollback-drill/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="620" y="490" width="320" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_legend" value="凡例" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;fontStyle=1;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="980" y="490" width="360" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_p1" value="赤: 起動/異常経路" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1000" y="520" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_p2" value="黄: 自動化スクリプト/演習" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1170" y="520" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_p3" value="青: GitOps 配信" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1000" y="560" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_p4" value="紫: 観測/判定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1170" y="560" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_p5" value="緑: 復旧成功" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1000" y="600" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_dash" value="--- 異常時の代替経路" style="text;html=1;align=left;verticalAlign=middle;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="1170" y="600" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_note" value="15 分内訳: 検知 2 + revert 3 + sync 5 + 観測 5 = 15" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="1000" y="640" width="320" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="rbt_lg_note2" value="第二/第三経路は SLO 超過容認の暫定運用" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="1000" y="670" width="320" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

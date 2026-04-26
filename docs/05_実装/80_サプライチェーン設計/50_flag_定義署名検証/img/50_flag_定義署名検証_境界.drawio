@@ -1,0 +1,47 @@
+<mxfile host="Electron" modified="2026-04-26T00:00:00.000Z" agent="claude" version="24.0.0" type="device">
+  <diagram name="flag-sign-boundary" id="flg-sb">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="flg_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="flg_title" value="flag 定義署名検証の境界: 70_リリース章（運用） vs 80_サプライチェーン章（cosign 監査統制）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1280" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flg_rel" value="70_リリース章 / 30_flagd_フィーチャーフラグ（運用責務）&#xa;&#xa;・フラグ定義の Git 構造（release/kill/experiment/ops）&#xa;・CODEOWNERS による reviewer 分離&#xa;・JSON Schema + 構文チェック&#xa;・flagd sidecar 配置 / OpenFeature SDK 統合&#xa;・3 利用パターン（Release/Kill/Experiment）&#xa;・評価ログ OTel span / Loki 30 日保管" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="380" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="flg_sup" value="80_サプライチェーン章 / 50_flag_定義署名検証（監査統制責務）&#xa;&#xa;・cosign sign-blob keyless 署名の鍵モデル&#xa;・OCI Artifact 配布の Rekor 透明性ログ統合&#xa;・Kyverno verify-blob admission 監査統制&#xa;・署名検証失敗時の Forensics 連携&#xa;・四半期 flag 棚卸し監査（孤立フラグ検出）&#xa;・全社 cosign 鍵運用との統合（IMP-SUP-COS-*）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="960" y="80" width="380" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="flg_share" value="共有契約面（両章の境界点）&#xa;&#xa;・OCI Artifact 形式（OCI Image Spec v1.1 + Referrers API）&#xa;・cosign attest predicate スキーマ（独自 type: k1s0.flag.v1）&#xa;・Rekor entry の subject = release-flagd.yml@refs/heads/main 固定&#xa;・Kyverno ClusterPolicy verify-flag-attestation の名前空間&#xa;・PagerDuty Sev2 連動（kill switch + 検証失敗 = Sev2）&#xa;・rejected flag 通知の Slack #k1s0-supply-chain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="480" y="80" width="440" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flg_e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#9673a6;endArrow=classic" edge="1" parent="1" source="flg_rel" target="flg_share">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flg_e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#9673a6;endArrow=classic" edge="1" parent="1" source="flg_share" target="flg_sup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flg_audit" value="四半期 flag 棚卸し（IMP-SUP-FLG-053〜055）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;align=center;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="640" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="flg_audit_steps" value="Step 1: 全 flag 定義列挙&#xa;・Argo CD ApplicationSet 経由で配布された全 ConfigMap を収集&#xa;・predicate type=k1s0.flag.v1 の attestation がある flag のみ正規&#xa;&#xa;Step 2: 評価ログとの cross-check&#xa;・Loki 30 日分の flagd.evaluation span を集計&#xa;・90 日間 1 度も評価されない flag = 孤立 flag 候補&#xa;&#xa;Step 3: 孤立 flag の reviewer 通知&#xa;・該当 flag の作成者 / CODEOWNERS に PR 作成依頼&#xa;・PR 作成期限 30 日（経過後は自動削除 PR）&#xa;&#xa;Step 4: 棚卸しレポート&#xa;・ops/audit/flag-inventory-YYYY-Qn.md 生成&#xa;・WORM Object Lock で 7 年保管&#xa;・Security CISO 確認後に署名" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="600" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flg_flow" value="検証失敗時 Forensics 連携（IMP-SUP-FLG-056〜057）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=center;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="720" y="340" width="640" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="flg_flow_steps" value="Step 1: Kyverno reject イベント受信&#xa;・OPA Gatekeeper / Kyverno admission webhook log&#xa;・rejected reason = sigstore verify failure&#xa;&#xa;Step 2: 該当 flag の Rekor 検索&#xa;・rekor-cli search --artifact &lt;flag-hash&gt;&#xa;・過去の正常署名履歴の有無を確認&#xa;&#xa;Step 3: 改ざん vs 鍵異常 の判別&#xa;・Rekor entry なし = 完全未署名（改ざん疑義）&#xa;・Rekor entry あり / 検証 fail = 鍵異常（cert subject mismatch）&#xa;&#xa;Step 4: PagerDuty Sev1 自動エスカレーション&#xa;・改ざん疑義時は CISO + Security チーム 即招集&#xa;・affected services 列挙（Forensics 経路）&#xa;・15 分以内に CTO へエスカ判定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#b85450;fontSize=10;align=left;verticalAlign=top" vertex="1" parent="1">
+          <mxGeometry x="740" y="380" width="600" height="320" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

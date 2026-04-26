@@ -1,0 +1,133 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="error_budget_states" id="eb_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="eb_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_title" value="Error Budget 4 状態と発火する自動アクション" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_s_healthy" value="HEALTHY&#xa;残バジェット ≥ 50%&#xa;通常 deploy 自由&#xa;feature merge 自由" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_s_warn" value="WARNING&#xa;残バジェット 50% &gt; x ≥ 25%&#xa;Slack 通知 (#sre-budget)&#xa;Canary 比率 25%→10% 強制" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="100" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_s_alert" value="ALERT&#xa;残バジェット 25% &gt; x &gt; 0%&#xa;PagerDuty 起票 (Severity 3)&#xa;PR auto-merge 停止&#xa;Renovate auto-merge 停止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="100" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_s_freeze" value="FROZEN&#xa;残バジェット ≤ 0%&#xa;feature deploy 全凍結&#xa;hotfix のみ SRE+Security 二重承認&#xa;Argo Sync auto 停止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_h_w" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="eb_s_healthy" target="eb_s_warn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_h_w_l" value="50% 割れ" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="140" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_w_a" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="eb_s_warn" target="eb_s_alert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_w_a_l" value="25% 割れ" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="570" y="140" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_a_f" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="eb_s_alert" target="eb_s_freeze">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_a_f_l" value="0% 到達" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="850" y="140" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_e_w_h" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;dashed=1;" edge="1" parent="1" source="eb_s_warn" target="eb_s_healthy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="240" />
+              <mxPoint x="300" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb_e_a_w" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;dashed=1;" edge="1" parent="1" source="eb_s_alert" target="eb_s_warn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="240" />
+              <mxPoint x="580" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb_e_f_a" style="edgeStyle=none;rounded=0;html=1;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#b85450;endArrow=classic;dashed=1;" edge="1" parent="1" source="eb_s_freeze" target="eb_s_alert">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="880" y="240" />
+              <mxPoint x="860" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eb_recover_lbl" value="点線: 28日 rolling window で budget 回復 (自動)" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="430" y="245" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_calc" value="Budget 計算式 (28 日 rolling window)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="1060" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_formula" value="Budget(t) = (1 - SLO_target) * 総リクエスト数(t-28d, t)&#xa;Consumed(t) = エラーリクエスト数(t-28d, t)&#xa;Remaining(t) = 1 - Consumed(t) / Budget(t)&#xa;例: SLO=99.9%, 7日間で総 100M req → 28日 budget 400K, 消費 200K → Remaining=50% (WARNING 境界)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;spacingLeft=15;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="325" width="1060" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_actor_title" value="状態別の自動アクション主体" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="445" width="1060" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_actor1" value="Mimir Alertmanager → Slack / PagerDuty 通知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="485" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_actor2" value="Argo Rollouts AnalysisTemplate&#xa;→ Canary 比率自動下方修正 / Sync 一時停止" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="370" y="485" width="290" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_actor3" value="GitHub Actions check `error-budget-gate`&#xa;→ PR auto-merge 停止 / Renovate auto-merge 停止" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="690" y="485" width="290" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="555" width="1110" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_t" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_c1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="55" y="588" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_l1" value="HEALTHY: 平常運転、何の制約も発火しない" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="583" width="450" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_c2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="611" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_l2" value="WARNING: 観測強化 + Canary 慎重化、開発は自由" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="606" width="450" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_c3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="634" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_l3" value="ALERT: PagerDuty で人間関与、auto-merge 停止 (人手 review 強制)" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="629" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_c4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="55" y="657" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_l4" value="FROZEN: feature deploy 全停止、hotfix のみ SRE+Security 二重承認で通過" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="652" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_n1" value="① 28 日 rolling window を採用。週次 / 月次の固定窓は「窓のリセット日に集中して deploy する」aliasing を生むため不採用。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="600" y="583" width="540" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_n2" value="② FROZEN は ADR-OBS-001 + ADR-REL-001 の境界に位置する。観測 (本章) が判定し、リリース (70 章) が実行する責務分離。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="600" y="603" width="540" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_n3" value="③ 状態遷移は Mimir の recording rule で 5 分粒度で評価。瞬間的な spike で WARNING 化することを避けるため 15 分平均で評価。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="600" y="623" width="540" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="eb_lg_n4" value="④ Budget 回復は自動 (deploy 抑制で error 減 → window から消費が外れる)。手動リセットは禁止 (リセット文化が広がると意味喪失)。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="600" y="643" width="540" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

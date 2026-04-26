@@ -1,0 +1,145 @@
+<mxfile host="app.diagrams.net" agent="claude" version="24.0.0">
+  <diagram name="backstage_catalog" id="bsn_diagram">
+    <mxGraphModel dx="1422" dy="757" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bsn_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_title" value="Backstage カタログ連携: catalog-info.yaml の物理位置と 5 entity 種別" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="15" width="1140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_repo_zone" value="モノレポ（src/ 配下）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="500" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_t1" value="src/tier1/&lt;component&gt;/catalog-info.yaml&#xa;Component（kind: Component, type: service）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="460" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_t2" value="src/tier2/&lt;component&gt;/catalog-info.yaml&#xa;Component（kind: Component, type: service）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="460" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_t3" value="src/tier3/&lt;component&gt;/catalog-info.yaml&#xa;Component（kind: Component, type: website / native-app）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="220" width="460" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_sdk" value="src/sdk/{rust|go|ts|csharp}/catalog-info.yaml&#xa;Component（kind: Component, type: library）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="280" width="460" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_api" value="src/contracts/&lt;name&gt;/catalog-info.yaml&#xa;API（kind: API, type: grpc / openapi）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="340" width="460" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_grp" value="catalog/groups.yaml（リポジトリ直下 catalog/）&#xa;Group（kind: Group, owner team 16 件）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_sys" value="catalog/systems.yaml&#xa;System（kind: System, 5 系統）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="400" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_disc" value="Backstage GitHub provider&#xa;5 分間隔で src/**/catalog-info.yaml を polling discovery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="200" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_proc" value="Backstage Catalog Processor&#xa;YAML 検証 + entity ref 解決 + 重複検出" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="290" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_ui" value="Backstage UI / API&#xa;Software Catalog / TechDocs / TechInsights / Software Templates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="380" width="380" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_err" value="Catalog Errors ダッシュボード&#xa;owner 未登録 / lifecycle 不正 / API ref 解決失敗 を集約" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="475" width="380" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;" edge="1" parent="1" source="bsn_t1" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;" edge="1" parent="1" source="bsn_t2" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.6;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;" edge="1" parent="1" source="bsn_t3" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e4" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#d79b00;endArrow=classic;" edge="1" parent="1" source="bsn_sdk" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e5" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.9;entryDx=0;entryDy=0;strokeColor=#6c8ebf;endArrow=classic;" edge="1" parent="1" source="bsn_api" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e6" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="bsn_grp" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="425" />
+              <mxPoint x="560" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bsn_e7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;strokeColor=#82b366;endArrow=classic;" edge="1" parent="1" source="bsn_sys" target="bsn_disc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="425" />
+              <mxPoint x="570" y="262" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bsn_e8" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="bsn_disc" target="bsn_proc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e9" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;endArrow=classic;strokeWidth=2;" edge="1" parent="1" source="bsn_proc" target="bsn_ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_e10" style="edgeStyle=none;rounded=0;html=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;dashed=1;endArrow=open;" edge="1" parent="1" source="bsn_proc" target="bsn_err">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="866" y="365" />
+              <mxPoint x="866" y="455" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bsn_e10_lbl" value="検証 NG" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="836" y="395" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="555" width="1100" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_legend_title" value="凡例 / 設計判断" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_c1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="590" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_l1" value="Component entity（5 種別: service / website / native-app / library / template）— 各 src/{tier}/{component}/ 配下に同居配置" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="585" width="1040" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_c2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="55" y="613" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_l2" value="API entity（grpc / openapi）— src/contracts/ 配下に同居。Component が providesApis / consumesApis で参照" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="608" width="1040" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_c3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="55" y="636" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_l3" value="Group / System entity — リポジトリ直下 catalog/ に集約配置（owner team / system 名は組織横断のため component 別配置にしない）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="631" width="1040" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_c4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="55" y="659" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_l4" value="Backstage 内部処理（GitHub provider polling / Catalog Processor / UI 表示）— infra/data/backstage/ で運用" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="654" width="1040" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_c5" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="55" y="682" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_l5" value="検証エラー出力（Catalog Errors ダッシュボード）— @k1s0/platform-dx が日次で監視。リリース時点は Slack 通知なし、目視運用" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="677" width="1040" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_n1" value="① Component の分散配置 vs Group / System の集約配置は意図的に分けている。Component は path 直下のため誰でも触る一方、Group / System は組織変更時のみ触り、変更頻度が異なる。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="704" width="1080" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_n2" value="② 5 分間隔の polling は Backstage 標準。Webhook 連動も可能だが、リリース時点では polling のみ採用（webhook 失敗時のリカバリが polling で代替できるため）。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="724" width="1080" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="bsn_lg_n3" value="③ catalog-info.yaml の lint は CI 段で `backstage-cli catalog:validate` を必須化（IMP-CI-PF-034 への path-filter 連動）。本番 Backstage に到達してから検証されるのを防ぐ。" style="text;html=1;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="50" y="744" width="1080" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -12,7 +12,7 @@
 
 ## OSS リリース時点での確定範囲
 
-- リリース時点: IMP-\* 接頭辞別の ID 一覧スケルトン、ADR / NFR / DS-SW-COMP との対応表スケルトン
+- リリース時点: IMP-\* 接頭辞別の ID 一覧 / ADR / NFR / DS-SW-COMP との対応表 / Backstage catalog 対応 / 整合性 CI（IMP-TRACE-CI-010〜019 = 台帳 grand total 検算・90_対応索引相互整合・孤立 ID 検出・採番重複検出・予約帯外採番検出 / pre-commit + GitHub Actions 二段検証）/ catalog-info.yaml スキーマ検証（IMP-TRACE-CAT-020〜029 = 必須属性 / annotation / lifecycle 許可リスト / owner Group 実在 / Scaffold 出力 bit 一致 / Off-Path 検出 / `ci-overall` 必須化）
 - リリース時点 以降: 各章の ID 採番に追従して随時更新
 
 ## RACI
@@ -27,11 +27,14 @@
 ```
 99_索引/
 ├── README.md
-├── 00_IMP-ID一覧/          # 接頭辞別（BUILD / CODEGEN / CI / DEP / DEV / OBS / REL / SUP / SEC / POL / DX / TRACE）
+├── 00_方針/                 # 索引運用原則 (IMP-TRACE-POL-001〜007)
+├── 00_IMP-ID一覧/           # 接頭辞別（BUILD / CODEGEN / CI / DEP / DEV / OBS / REL / SUP / SEC / POL / DX / TRACE）
 ├── 10_ADR対応表/
 ├── 20_DS-SW-COMP対応表/
 ├── 30_NFR対応表/
 ├── 40_Backstage_catalog対応/
+├── 50_整合性CI/             # 索引と参照網の自動検証 (IMP-TRACE-CI-010〜019)
+├── 60_catalog-info検証/     # catalog-info.yaml スキーマ検証 (IMP-TRACE-CAT-020〜029)
 └── 90_改訂履歴/
 ```
 

@@ -1,0 +1,136 @@
+<mxfile host="65bd71144e">
+  <diagram id="emr-diagram" name="EM レポート配信構造">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="emr_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1400" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_title" value="EM 月次レポート — 4 入力統合と 3 配信先" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="700" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_data_label" value="データ層 (Mimir / Loki / Postgres / MinIO)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_data" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="1320" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_app_label" value="アプリ層 (EM Report Generator)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_app" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="1320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_nw_label" value="ネットワーク層 (Slack API / Confluence API / Backstage Catalog API)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_nw" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="1320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_infra_label" value="インフラ層 (Slack / Confluence / Backstage UI)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_lane_infra" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;opacity=20;" vertex="1" parent="1">
+          <mxGeometry x="40" y="660" width="1320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_dora" value="DORA 4 keys&#xa;Mimir 13 ヶ月&#xa;( IMP-DX-DORA-010〜020 )" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_space" value="SPACE 5 軸&#xa;Postgres + Mimir + Loki&#xa;( IMP-DX-SPC-021〜029 )" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="130" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_scaf" value="Scaffold 利用率&#xa;Mimir + Loki + PG&#xa;( IMP-DX-SCAF-030〜039 )" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="130" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_tfc" value="TFC ( time-to-first-commit )&#xa;Mimir + Postgres&#xa;( IMP-DX-TFC-040〜049 )" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="130" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_gen" value="EM Report Generator ( Backstage backend job )&#xa;月次 cron ( 1 日 09:00 JST ) で前月分集計&#xa;PromQL + LogQL + SQL 統合 → Markdown / HTML / JSON 3 形式生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="305" width="1000" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_template" value="レポートテンプレート ( docs/INDEX.md スタイル )&#xa;1. 4 軸サマリ ( DORA / SPACE / Scaffold / TFC )&#xa;2. 前月差分とトレンド注記&#xa;3. onboarding-stumble label 月次集計&#xa;4. Paved Road 改善アクション提案 ( 自動 = 機械的閾値違反 / 手動 = EM コメント )" style="text;html=1;strokeColor=#d79b00;fillColor=#fff2cc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="395" width="1000" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_slack_api" value="Slack API&#xa;#dx-monthly-report" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="540" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_confluence_api" value="Confluence API&#xa;DX/EM スペース 自動 page" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="540" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_bs_api" value="Backstage Catalog API&#xa;DX-Report Entity 自動更新" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="540" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_slack" value="Slack&#xa;Markdown 短縮版 ( 4 軸 1 行 + リンク )&#xa;EM / Platform / DX 各 channel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="680" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_confluence" value="Confluence&#xa;HTML 全文版 ( 5 章構成 )&#xa;EM 四半期 retrospective 入力" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="680" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_bs_ui" value="Backstage UI&#xa;DX-Report Entity ( JSON ) + TechInsights pane&#xa;EM 日次 dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="920" y="680" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e1" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;exitX=0.5;exitY=1;entryX=0.15;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_dora" target="emr_gen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e2" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;exitX=0.5;exitY=1;entryX=0.4;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_space" target="emr_gen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e3" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;exitX=0.5;exitY=1;entryX=0.6;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_scaf" target="emr_gen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e4" style="endArrow=classic;html=1;rounded=0;strokeColor=#9673a6;exitX=0.5;exitY=1;entryX=0.85;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_tfc" target="emr_gen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e5" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;exitX=0.2;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_template" target="emr_slack_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e6" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_template" target="emr_confluence_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e7" style="endArrow=classic;html=1;rounded=0;strokeColor=#d79b00;exitX=0.8;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_template" target="emr_bs_api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e8" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_slack_api" target="emr_slack">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e9" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_confluence_api" target="emr_confluence">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_e10" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="emr_bs_api" target="emr_bs_ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="345" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_title" value="凡例 ( レイヤ色 )" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="350" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_data_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1095" y="375" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_data_text" value="データ ( 4 入力 )" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="373" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_app_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1095" y="395" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_app_text" value="アプリ ( Generator / template )" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="393" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_nw_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1095" y="415" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_nw_text" value="ネットワーク ( 3 配信 API )" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="413" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_infra_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1095" y="435" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="emr_legend_infra_text" value="インフラ ( Slack / Confluence / BS )" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="433" width="240" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
