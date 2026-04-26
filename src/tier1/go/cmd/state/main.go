@@ -28,34 +28,64 @@ package main
 
 // 標準ライブラリと共通 runtime を import する。
 import (
+	// 起動コンテキスト（adapter 初期化に渡す）。
+	"context"
 	// listen address を flag で受け取り、ConfigMap での上書きに備える。
 	"flag"
 	// 起動 / shutdown / エラーログを stderr に出す（OTel logger は plan 04-02 で導入）。
 	"log"
 
+	// Dapr adapter（State / PubSub / Binding / Invoke / Feature の 5 building block 共通 Client）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// t1-state Pod の handler（5 公開 API のオーケストレータ）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/state"
 )
 
 // :50001 は docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md（EXPOSE 50001）正典準拠。
 // Dapr sidecar 経由の app-port も 50001 を期待（dapr.io/app-port=50001）。
 const defaultListen = ":50001"
 
-// プロセスエントリポイント。flag パースと common.Run への委譲のみを行う。
+// プロセスエントリポイント。flag パースと adapter 初期化、common.Run への委譲を行う。
 func main() {
 	// listen address の上書き flag を定義（既定 :50001、後で ConfigMap → envvar → flag の優先順で読む）。
 	addr := flag.String("listen", defaultListen, "gRPC server listen address")
+	// Dapr sidecar address の flag（既定は dapr.go 側 defaultDaprAddress、空文字で adapter 既定値を使う）。
+	daprAddr := flag.String("dapr-address", "", "Dapr sidecar gRPC address (empty = use adapter default)")
 	// flag 解析を起動直後に確定させる。
 	flag.Parse()
 
-	// Pod メタデータを構築する（service 登録は plan 04-04 / 04-05 / 04-11 / 04-12 / 04-10 で実装、5 API）。
+	// Dapr Client を起動時に初期化する（lazy 不可、health check 開始時点で初期化済が docs 正典）。
+	daprClient, err := dapr.New(context.Background(), dapr.Config{SidecarAddress: *daprAddr})
+	// 初期化失敗は即時 exit(1)。
+	if err != nil {
+		// 失敗ログを stderr に書く。
+		log.Fatalf("t1-state: dapr client init: %v", err)
+		// if 分岐を閉じる。
+	}
+	// Pod 終了時に Client を解放する。
+	defer func() {
+		// Close エラーは ログのみ（exit code に影響させない）。
+		if cerr := daprClient.Close(); cerr != nil {
+			// 失敗を stderr に残す。
+			log.Printf("t1-state: dapr client close: %v", cerr)
+			// if 分岐を閉じる。
+		}
+		// defer 関数を閉じる。
+	}()
+
+	// 5 公開 API の handler が依存する adapter 集合を構築する。
+	deps := state.NewDepsFromClient(daprClient)
+
+	// Pod メタデータを構築する（5 API すべて Register hook で登録）。
 	pod := common.Pod{
 		// Pod 論理名。ログ出力で "tier1/state" として表示される。
 		Name: "state",
-		// 既定 listen address。flag 未指定時に common.Run へ渡される値の参照用。
+		// 既定 listen address。
 		DefaultListen: defaultListen,
-		// service 登録 hook。5 API（ServiceInvoke / State / PubSub / Binding / Feature）handler 実装が揃うまで nil。
-		Register: nil,
+		// service 登録 hook。5 公開 API（ServiceInvoke / State / PubSub / Binding / Feature）を登録する。
+		Register: state.Register(deps),
 		// 構造体リテラルを閉じる。
 	}
 
