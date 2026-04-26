@@ -1,0 +1,25 @@
+# k1s0-tier1-proto-gen: tier1 内部 gRPC（Go ⇄ Rust）の prost / tonic 生成 stub crate
+#
+# docs 正典:
+#   docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+#     - tier1 サーバ生成先（Rust）: src/tier1/rust/crates/proto-gen/src/
+#   docs/02_構想設計/adr/ADR-TIER1-003-language-opacity.md
+#     - tier2/tier3 不可視原則（SDK 配下に出さず tier1 配下のみ）
+#
+# 役割: buf generate（buf.gen.internal.yaml）の出力を Rust の module 階層
+#       k1s0::internal::v1 に束ねる。本リリース時点 では placeholder.proto のみが生成対象。
+
+[package]
+name = "k1s0-tier1-proto-gen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 internal Protobuf / tonic generated stubs (Go <-> Rust)"
+
+[dependencies]
+# prost / tonic に依存（workspace の最小設定を継承）
+prost = { workspace = true }
+prost-types = { workspace = true }
+tonic = { workspace = true }
