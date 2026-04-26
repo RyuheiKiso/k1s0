@@ -1,0 +1,225 @@
+# =============================================================================
+# .github/labels.yml — k1s0 リポジトリのラベル定義（type / scope / priority / status の 4 軸）
+#
+# 設計: plan/02_開発環境整備/06_GitHubリポジトリ設定.md
+# 適用: GitHub Actions の `crazy-max/ghaction-github-labeler` 等で同期、または
+#       手動 sync 用 `gh` CLI スクリプトを `tools/ci/labels-sync.sh` に配置（後段）。
+#
+# 命名規約:
+#   <category>/<value>   各軸を / で区切り、UI で軸ごとにグルーピングしやすくする
+#   色は色覚バリアフリー（青 / 緑 / 黄 / オレンジ / 赤）の段階に整理。
+# =============================================================================
+
+# ----- type 軸: 変更の種類（Conventional Commits の type と整合） -------------
+- name: "type/feat"
+  description: "新機能の追加"
+  color: "0E8A16"  # green
+
+- name: "type/fix"
+  description: "バグ修正"
+  color: "B60205"  # red
+
+- name: "type/docs"
+  description: "ドキュメントのみの変更"
+  color: "0075CA"  # blue
+
+- name: "type/refactor"
+  description: "機能変更を伴わないリファクタリング"
+  color: "5319E7"  # purple
+
+- name: "type/style"
+  description: "フォーマット / 空白 / セミコロン等、コード意味変更なし"
+  color: "F9D0C4"
+
+- name: "type/perf"
+  description: "性能改善"
+  color: "1D76DB"
+
+- name: "type/test"
+  description: "テストの追加・修正"
+  color: "BFD4F2"
+
+- name: "type/build"
+  description: "ビルドシステム / 依存"
+  color: "FBCA04"
+
+- name: "type/ci"
+  description: "CI 設定の変更"
+  color: "FBCA04"
+
+- name: "type/chore"
+  description: "その他の軽微な変更"
+  color: "C2E0C6"
+
+- name: "type/revert"
+  description: "以前の変更の取り消し"
+  color: "E99695"
+
+# ----- scope 軸: どの領域を変更するか（PR template / commitlint と整合） -----
+- name: "scope/contracts"
+  description: "src/contracts/（proto / 公開契約）"
+  color: "5319E7"
+
+- name: "scope/tier1-go"
+  description: "src/tier1/go/（Dapr ファサード）"
+  color: "00ADD8"  # Go blue
+
+- name: "scope/tier1-rust"
+  description: "src/tier1/rust/（ZEN / 暗号 / Audit / scaffold CLI）"
+  color: "CE422B"  # Rust orange
+
+- name: "scope/sdk-dotnet"
+  description: "src/sdk/dotnet/（C# SDK）"
+  color: "512BD4"
+
+- name: "scope/sdk-go"
+  description: "src/sdk/go/（Go SDK）"
+  color: "00ADD8"
+
+- name: "scope/sdk-rust"
+  description: "src/sdk/rust/（Rust SDK）"
+  color: "CE422B"
+
+- name: "scope/sdk-typescript"
+  description: "src/sdk/typescript/（TypeScript SDK）"
+  color: "3178C6"
+
+- name: "scope/tier2"
+  description: "src/tier2/（ドメイン共通）"
+  color: "BFE5BF"
+
+- name: "scope/tier3-web"
+  description: "src/tier3/web/（React + TS）"
+  color: "61DAFB"
+
+- name: "scope/tier3-native"
+  description: "src/tier3/native/（.NET MAUI）"
+  color: "512BD4"
+
+- name: "scope/tier3-bff"
+  description: "src/tier3/bff/（Go BFF）"
+  color: "00ADD8"
+
+- name: "scope/tier3-legacy"
+  description: "src/tier3/legacy-wrap/（.NET Framework wrap）"
+  color: "C5DEF5"
+
+- name: "scope/platform"
+  description: "src/platform/（CLI / analyzer / Backstage plugin）"
+  color: "5319E7"
+
+- name: "scope/infra"
+  description: "infra/（k8s / mesh / Dapr / data / security / observability）"
+  color: "326CE5"  # k8s blue
+
+- name: "scope/deploy"
+  description: "deploy/（Argo CD / Helm / Kustomize / OpenTofu）"
+  color: "EF5B25"  # ArgoCD orange
+
+- name: "scope/ops"
+  description: "ops/（runbook / chaos / DR / oncall / load）"
+  color: "F9D0C4"
+
+- name: "scope/tools"
+  description: "tools/（codegen / devcontainer / sparse / ci）"
+  color: "C2E0C6"
+
+- name: "scope/docs"
+  description: "docs/（要件 / 概要設計 / 実装 / ADR / Knowledge）"
+  color: "0075CA"
+
+- name: "scope/tests"
+  description: "tests/（unit / integration / contract / e2e / fuzz / chaos）"
+  color: "BFD4F2"
+
+- name: "scope/security"
+  description: "セキュリティ全般（SBOM / SLSA / cosign / 鍵）"
+  color: "B60205"
+
+- name: "scope/deps"
+  description: "依存パッケージ更新（Renovate / Dependabot）"
+  color: "C2E0C6"
+
+- name: "scope/release"
+  description: "リリース pipeline（タグ / GitHub Release / SDK 公開 / GHCR push）"
+  color: "EF5B25"
+
+# ----- priority 軸: 優先度 -----------------------------------------------------
+- name: "priority/p0"
+  description: "P0: 緊急 / 即時対応必須"
+  color: "B60205"
+
+- name: "priority/p1"
+  description: "P1: 高 / リリース前に必須"
+  color: "D93F0B"
+
+- name: "priority/p2"
+  description: "P2: 中 / 次期 minor で対応"
+  color: "FBCA04"
+
+- name: "priority/p3"
+  description: "P3: 低 / nice-to-have"
+  color: "C2E0C6"
+
+# ----- status 軸: 状態管理 -----------------------------------------------------
+- name: "status/needs-triage"
+  description: "受付直後、優先度未判定"
+  color: "FEF2C0"
+
+- name: "status/needs-info"
+  description: "報告者からの追加情報待ち"
+  color: "FBCA04"
+
+- name: "status/blocked"
+  description: "他 issue / 外部要因で着手できない"
+  color: "B60205"
+
+- name: "status/in-progress"
+  description: "着手中"
+  color: "0E8A16"
+
+- name: "status/needs-review"
+  description: "レビュー待ち"
+  color: "1D76DB"
+
+- name: "status/wontfix"
+  description: "対応しないと判断"
+  color: "C5DEF5"
+
+- name: "status/duplicate"
+  description: "他 issue と重複"
+  color: "C5DEF5"
+
+# ----- リリース系 / コミュニティ系 ---------------------------------------------
+- name: "release-blocker"
+  description: "リリースをブロックする問題（次タグまでに必須対応）"
+  color: "B60205"
+
+- name: "good-first-issue"
+  description: "新規貢献者にお勧めの簡単な issue"
+  color: "7057FF"
+
+- name: "help-wanted"
+  description: "コミュニティの助けを求めている"
+  color: "008672"
+
+- name: "breaking-change"
+  description: "後方互換性を破壊する変更（MAJOR バージョン候補）"
+  color: "B60205"
+
+- name: "deprecated"
+  description: "廃止予定の機能・API"
+  color: "FBCA04"
+
+- name: "security"
+  description: "セキュリティ関連（公開報告のみ。脆弱性は private advisory で）"
+  color: "B60205"
+
+# ----- 自動化補助 --------------------------------------------------------------
+- name: "automated"
+  description: "Renovate / Dependabot 等の自動 PR"
+  color: "C2E0C6"
+
+- name: "do-not-merge"
+  description: "merge してはならない（議論中 / WIP）"
+  color: "B60205"

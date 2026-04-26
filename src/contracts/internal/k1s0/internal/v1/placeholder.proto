@@ -1,0 +1,14 @@
+// 本ファイルは internal module の placeholder proto。
+// plan 03-03 で tier1 内部 gRPC（Go ファサード ⇄ Rust core）の正式 proto が
+// 配置されるまでの間、buf の「module に proto がない」エラーを回避する。
+//
+// plan 03-03 の本実装で本 placeholder は削除予定。
+syntax = "proto3";
+
+package k1s0.internal.v1;
+
+// internal 通信のメタ情報を表す placeholder メッセージ。
+// 本格的な audit_chain / decision_eval / crypto_envelope は plan 03-03 で展開。
+message InternalPlaceholder {
+  string note = 1;
+}

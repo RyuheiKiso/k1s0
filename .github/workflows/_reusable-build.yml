@@ -1,0 +1,168 @@
+# =============================================================================
+# 本ファイルは k1s0 reusable workflow の 3 本目（image build + SBOM）。
+# 4 本構成の第 3 段で、IMP-CI-RWF-010（1 言語 1 job 原則）に従う。
+#
+# 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+# 関連 ID: IMP-CI-RWF-010 / IMP-SUP-* (SBOM 生成)
+#
+# 役割:
+#   - 言語別ビルド成果物の生成（cargo build / go build / dotnet publish / pnpm build）
+#   - container image build（buildx + multi-arch、リリース時点 は amd64 のみ）
+#   - SBOM 生成（syft、CycloneDX 形式）
+#   - 中間 artifact として upload（push job で再利用）
+# =============================================================================
+name: _reusable-build
+
+on:
+  workflow_call:
+    inputs:
+      tier:
+        required: true
+        type: string
+      language:
+        description: "rust / go / dotnet / typescript"
+        required: true
+        type: string
+      path:
+        required: true
+        type: string
+      image_name:
+        description: "container image 名（registry prefix なし、例: k1s0-tier1-facade）"
+        required: false
+        type: string
+        default: ""
+      build_image:
+        description: "container image をビルドするか"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ inputs.tier }}-${{ inputs.language }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read  # GHCR base image pull で使用
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ----- 言語別ビルド -----
+
+      # Rust
+      - name: setup rust toolchain
+        if: inputs.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: rust cache
+        if: inputs.language == 'rust'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.path }}
+
+      - name: cargo build release
+        if: inputs.language == 'rust'
+        working-directory: ${{ inputs.path }}
+        run: cargo build --release --workspace --locked
+
+      # Go
+      - name: setup go
+        if: inputs.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: ${{ inputs.path }}/go.sum
+
+      - name: go build
+        if: inputs.language == 'go'
+        working-directory: ${{ inputs.path }}
+        run: |
+          # -trimpath / ldflags=-buildid= は再現可能ビルド（plan 13-12）の準備
+          go build -trimpath -ldflags="-s -w -buildid=" -o bin/ ./...
+
+      # .NET
+      - name: setup dotnet
+        if: inputs.language == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: dotnet publish
+        if: inputs.language == 'dotnet'
+        working-directory: ${{ inputs.path }}
+        run: |
+          dotnet publish -c Release -o ./publish \
+            -p:Deterministic=true \
+            -p:ContinuousIntegrationBuild=true
+
+      # TypeScript
+      - name: setup node
+        if: inputs.language == 'typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: setup pnpm
+        if: inputs.language == 'typescript'
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: pnpm install
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm build
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm run build
+
+      # ----- container image build（オプション）-----
+      - name: setup buildx
+        if: inputs.build_image && inputs.image_name != ''
+        uses: docker/setup-buildx-action@v3
+
+      - name: docker build
+        if: inputs.build_image && inputs.image_name != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.path }}
+          file: ${{ inputs.path }}/Dockerfile
+          push: false
+          tags: ${{ inputs.image_name }}:${{ github.sha }}
+          # 再現可能ビルドのため SOURCE_DATE_EPOCH を固定
+          build-args: |
+            SOURCE_DATE_EPOCH=0
+          # 結果を ローカル tar に出力（push job で再利用）
+          outputs: type=docker,dest=/tmp/${{ inputs.image_name }}.tar
+
+      # ----- SBOM 生成（plan 13-01 の syft） -----
+      - name: install syft
+        if: inputs.build_image && inputs.image_name != ''
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: generate SBOM (CycloneDX)
+        if: inputs.build_image && inputs.image_name != ''
+        run: |
+          # syft v1+ の推奨形式: `syft scan SOURCE -o FORMAT=FILE`
+          syft scan "docker-archive:/tmp/${{ inputs.image_name }}.tar" \
+            -o cyclonedx-json=/tmp/${{ inputs.image_name }}.cdx.json
+
+      - name: upload build artifact
+        if: inputs.build_image && inputs.image_name != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ inputs.image_name }}-${{ github.sha }}
+          path: |
+            /tmp/${{ inputs.image_name }}.tar
+            /tmp/${{ inputs.image_name }}.cdx.json
+          retention-days: 7

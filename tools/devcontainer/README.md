@@ -8,6 +8,7 @@
 tools/devcontainer/
 ├── README.md                    # 本ファイル: 実装ステータスと差分宣言
 ├── postCreate.sh                # 共通 postCreate (toolchain 検証 + cone verify + local-stack 起動)
+├── doctor.sh                    # 役別 toolchain 診断（CI / 開発者ローカル両対応）
 ├── base/                        # 未配置: 共通最小ベース image (debian slim 由来) は次フェーズ
 └── profiles/                    # 10 役プロファイル全実体化済み (Phase 2)
     ├── tier1-rust-dev/          # Rust Edition 2024 / mold / cargo-nextest
@@ -56,6 +57,48 @@ tools/devcontainer/
 | `examples/<role>-service/` の中身 | ディレクトリ自体未配置。10 役 cone は examples/ を参照しているため、役割切替後に当該ディレクトリは空のまま | Phase 3（tier1/tier2/tier3 の最初の実稼働サービスを起こす時点で配置） |
 | `tools/codegen/buf/` `tools/codegen/openapi/` | ディレクトリ未配置（cone 参照対象として空） | Phase 3（最初の `.proto` / OpenAPI 仕様が確定した時点） |
 | `tests/contract/` `tests/integration/` `tests/e2e/` `tests/fuzz/rust/` `tests/golden/` | ディレクトリ未配置 | Phase 3（テスト基盤の最初のジョブを CI に乗せる時点） |
+
+## toolchain 診断（doctor.sh）
+
+`postCreate.sh` は環境構築の通過点として fail-soft でツール一覧を出すのみだが、`doctor.sh` は現状診断（fail-hard）として CI とローカル両方で利用する。
+
+```bash
+# 自動検出（symlink から role 判定）
+./tools/devcontainer/doctor.sh
+
+# 役を明示
+./tools/devcontainer/doctor.sh tier1-rust-dev
+
+# 全 10 役の必須／推奨ツール状態を一括確認（CI matrix で代替可能）
+./tools/devcontainer/doctor.sh --all
+
+# 機械可読出力（JSON）
+./tools/devcontainer/doctor.sh --json --all
+```
+
+役ごとの必須／推奨ツールは `doctor.sh` 内の `REQUIRED` / `RECOMMENDED` / `MIN_VERSION` 配列で集中管理されており、設計書（[`docs/05_実装/50_開発者体験設計/10_DevContainer_10役/01_DevContainer_10役設計.md`](../../docs/05_実装/50_開発者体験設計/10_DevContainer_10役/01_DevContainer_10役設計.md)）の各役記述と整合する。
+
+| 役 | 必須ツール | 主な推奨ツール | 最低バージョン |
+|---|---|---|---|
+| `docs-writer` | git, markdownlint-cli2 | textlint, mmdc, pandoc, drawio-export | — |
+| `tier1-rust-dev` | git, rustc, cargo, buf, protoc | cargo-nextest, cargo-audit, cargo-deny, cargo-fuzz, mold | rustc ≥ 1.83 |
+| `tier1-go-dev` | git, go, buf, protoc | dapr, golangci-lint, dlv | go ≥ 1.22 |
+| `tier2-dev` | git, dotnet, go | temporal, buf | dotnet ≥ 8, go ≥ 1.22 |
+| `tier3-web-dev` | git, node, pnpm | playwright | node ≥ 20, pnpm ≥ 9 |
+| `tier3-native-dev` | git, dotnet | adb | dotnet ≥ 8 |
+| `platform-cli-dev` | git, rustc, cargo, node | cosign, syft | rustc ≥ 1.83, node ≥ 20 |
+| `sdk-dev` | git, rustc, cargo, go, dotnet, node, pnpm, buf | — | 各 LTS |
+| `infra-ops` | git, kubectl, helm, kustomize | kind, argocd, istioctl, flagd, tofu, k6, dapr, cosign, syft | — |
+| `full` | 上記の union | markdownlint-cli2 など | 各 LTS |
+
+CI では各 role の Dev Container を立て、`doctor.sh <role>` を必須 status check として実行する。役固有の必須ツールが欠けた PR は CI で reject される（02-07 reusable workflow と統合予定）。
+
+`postCreate.sh` との責務分離:
+
+| スクリプト | 実行タイミング | 失敗時 | 役割 |
+|---|---|---|---|
+| `postCreate.sh` | Dev Container 起動直後（自動） | 警告のみ（fail-soft） | 環境構築の通過点。toolchain version 列挙、sparse 整合チェック、local-stack 起動 |
+| `doctor.sh` | CI / 任意（手動） | exit 1（fail-hard） | 現状診断。役別必須ツール集合との突合、CI ゲート用 |
 
 ## ビルド / 利用
 

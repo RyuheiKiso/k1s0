@@ -1,0 +1,54 @@
+# =============================================================================
+# 本 composite action は CI で Node.js + pnpm + store cache を setup する共通部品。
+#
+# 設計: docs/05_実装/30_CI_CD設計/15_monorepo_orchestration.md（IMP-CI-MR-006）
+# =============================================================================
+name: setup-node
+description: Node.js + pnpm + pnpm-store cache を CI runner にセットアップする
+
+inputs:
+  node-version:
+    description: Node.js バージョン
+    required: false
+    default: "20"
+  pnpm-version:
+    description: pnpm バージョン
+    required: false
+    default: "9"
+  workspace:
+    description: pnpm-lock.yaml が存在するパス
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: install node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
+        run_install: false
+
+    - name: get pnpm store dir
+      id: pnpm-store
+      shell: bash
+      run: |
+        echo "dir=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+    - name: pnpm store cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-store.outputs.dir }}
+        key: ${{ runner.os }}-pnpm-${{ inputs.workspace }}-${{ hashFiles(format('{0}/pnpm-lock.yaml', inputs.workspace)) }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-${{ inputs.workspace }}-
+          ${{ runner.os }}-pnpm-
+
+    - name: pnpm install
+      working-directory: ${{ inputs.workspace }}
+      shell: bash
+      run: pnpm install --frozen-lockfile

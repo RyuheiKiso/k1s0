@@ -1,0 +1,54 @@
+# =============================================================================
+# k1s0 buf generate configuration（OpenAPI v2/v3 export 専用）
+#
+# 設計: plan/03_Contracts実装/06_OpenAPI_export.md（IMP-CODEGEN-006）
+#       ADR-BS-001（Backstage）/ IMP-DEV-006（Backstage 連携）
+#
+# 役割:
+#   tier1 公開 11 API の proto から OpenAPI 仕様を生成し、REST/JSON 互換クライアント
+#   （curl / SaaS / Backstage TechDocs / OpenAPI viewer）から tier1 を叩く道を開く。
+#
+# plugin 選定:
+#   `grpc-ecosystem/openapiv2` を採用（gRPC-Gateway 派生、`google.api.http`
+#   annotation を読んで HTTP path を生成、k1s0 の REST 互換ニーズに合致）。
+#   Google gnostic の `protoc-gen-openapi`（OAS3 ネイティブ）はリリース時点+ で再評価。
+#
+# 注意:
+#   現状（リリース時点 stub フェーズ）の proto には `google.api.http` annotation が
+#   未付与のため、生成される OpenAPI には path が空。フル実装（plan 03-02 持ち越し）
+#   時点で path 付き仕様が出る前提。
+#
+# 利用:
+#   buf generate --template buf.gen.openapi.yaml
+#   tools/codegen/openapi/run.sh
+# =============================================================================
+version: v2
+
+inputs:
+  - directory: src/contracts/tier1
+
+managed:
+  enabled: true
+  # openapiv2 plugin は go_package option を要求する（plugin 内部で proto を Go コードと
+  # して扱うため）。buf.gen.yaml と同じ prefix を設定して整合させる。
+  override:
+    - file_option: go_package_prefix
+      value: github.com/k1s0/sdk/go/generated
+
+plugins:
+  # OpenAPI v2（Swagger）形式で出力。grpc-ecosystem の plugin は最も成熟しており、
+  # `google.api.http` の URL pattern を OpenAPI path に変換する。
+  - remote: buf.build/grpc-ecosystem/openapiv2:v2.22.0
+    out: docs/02_構想設計/02_tier1設計/openapi/v1
+    opt:
+      # 全 service を 1 yaml にマージ（k1s0-tier1-merged.openapi.yaml 相当）
+      - allow_merge=true
+      - merge_file_name=k1s0-tier1
+      # JSON でなく YAML 出力（diff レビュー性 + Backstage 互換）
+      - output_format=yaml
+      # gRPC API カスタム HTTP body の許容
+      - allow_delete_body=true
+      # field_name は snake_case で出力（OpenAPI 慣行）
+      - json_names_for_fields=false
+      # 同一 RPC の HTTP method を省略（POST default）
+      - simple_operation_ids=true

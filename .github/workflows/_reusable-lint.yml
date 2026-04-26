@@ -1,0 +1,246 @@
+# =============================================================================
+# 本ファイルは k1s0 reusable workflow の 1 本目（lint）。
+# 4 本構成: _reusable-lint / _reusable-test / _reusable-build / _reusable-push の
+# 第 1 段で、IMP-CI-RWF-010（1 言語 1 job 原則）に従う。
+#
+# 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+# 関連 ID: IMP-CI-RWF-010 / IMP-CI-RWF-018（coverage は _reusable-test で扱う）
+#
+# 入力規約:
+#   tier:     tier1 / tier2 / tier3 / sdk / platform / infra / docs
+#   language: rust / go / dotnet / typescript / proto / docs / yaml
+#   path:     変更範囲の起点ディレクトリ（hashFiles の精度向上に使用）
+#
+# 出力:
+#   failure_reason: 最初に失敗した step 名（呼び出し側で PR コメント表示用）
+# =============================================================================
+name: _reusable-lint
+
+on:
+  workflow_call:
+    inputs:
+      tier:
+        description: "対象 tier（tier1/tier2/tier3/sdk/platform/infra/docs）"
+        required: true
+        type: string
+      language:
+        description: "対象言語（rust/go/dotnet/typescript/proto/docs/yaml）"
+        required: true
+        type: string
+      path:
+        description: "変更範囲の起点ディレクトリ（例: src/tier1/rust）"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      failure_reason:
+        description: "最初に失敗した step 名（成功時は空文字）"
+        value: ${{ jobs.lint.outputs.failure_reason }}
+
+# 同一ブランチの旧実行をキャンセル（PR 連投で runner を浪費しない）
+concurrency:
+  group: lint-${{ github.workflow }}-${{ inputs.tier }}-${{ inputs.language }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      failure_reason: ${{ steps.report.outputs.failure_reason }}
+    steps:
+      # ------------------------------------------------------------------
+      # 1. checkout: proto の buf breaking が base ref への履歴を要求するため、
+      #    fetch-depth: 0（full history）を選択。他言語の lint には不要だが、
+      #    1 reusable で全言語を扱う設計（IMP-CI-RWF-010）と整合させる。
+      # ------------------------------------------------------------------
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------
+      # 2. 言語別 toolchain セットアップと lint 実行
+      #    1 言語 1 step、未該当言語は skip（IMP-CI-RWF-010）
+      # ------------------------------------------------------------------
+
+      # ----- Rust -----
+      - name: setup rust toolchain
+        if: inputs.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+
+      - name: rust cache
+        if: inputs.language == 'rust'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.path }}
+
+      - name: cargo fmt
+        id: rust-fmt
+        if: inputs.language == 'rust'
+        working-directory: ${{ inputs.path }}
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        id: rust-clippy
+        if: inputs.language == 'rust'
+        working-directory: ${{ inputs.path }}
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # ----- Go -----
+      - name: setup go
+        if: inputs.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: ${{ inputs.path }}/go.sum
+
+      - name: go vet
+        id: go-vet
+        if: inputs.language == 'go'
+        working-directory: ${{ inputs.path }}
+        run: go vet ./...
+
+      - name: golangci-lint
+        id: go-lint
+        if: inputs.language == 'go'
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: ${{ inputs.path }}
+          args: --timeout=10m
+
+      # ----- .NET -----
+      - name: setup dotnet
+        if: inputs.language == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: dotnet format check
+        id: dotnet-format
+        if: inputs.language == 'dotnet'
+        working-directory: ${{ inputs.path }}
+        run: dotnet format --verify-no-changes --severity warn
+
+      # ----- TypeScript / Node -----
+      - name: setup node
+        if: inputs.language == 'typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: setup pnpm
+        if: inputs.language == 'typescript'
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: pnpm install
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm lint
+        id: pnpm-lint
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm run lint
+
+      - name: pnpm typecheck
+        id: pnpm-typecheck
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm exec tsc --noEmit
+
+      # ----- proto -----
+      - name: setup buf
+        if: inputs.language == 'proto'
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: latest
+
+      - name: buf lint
+        id: buf-lint
+        if: inputs.language == 'proto'
+        run: buf lint
+
+      - name: buf breaking
+        id: buf-breaking
+        if: inputs.language == 'proto' && github.event_name == 'pull_request'
+        run: buf breaking --against ".git#branch=${{ github.base_ref }}"
+
+      # buf format で proto のフォーマット崩れを検出（plan 03-05 主作業 4）。
+      # `-d` で diff、`--exit-code` で diff があれば exit 1 → CI fail。
+      - name: buf format check
+        id: buf-format
+        if: inputs.language == 'proto'
+        run: buf format -d --exit-code
+
+      # ----- docs / yaml -----
+      - name: setup node for markdownlint
+        if: inputs.language == 'docs'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: markdownlint
+        id: markdownlint
+        if: inputs.language == 'docs'
+        run: |
+          npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#target" "#third_party"
+
+      - name: yaml lint
+        id: yaml-lint
+        if: inputs.language == 'yaml'
+        run: |
+          if command -v yamllint >/dev/null 2>&1; then
+            yamllint -c .yamllint.yml . || true
+          else
+            python3 -c "import yaml, sys, glob; [yaml.safe_load(open(f)) for f in glob.glob('**/*.y*ml', recursive=True)]"
+          fi
+
+      # ------------------------------------------------------------------
+      # 3. 失敗 step の特定（IMP-CI-RWF-019）
+      #
+      # Actions expression は bash 内で動的に組み立てられないため、各 step
+      # ごとに outcome を expression で個別判定する。失敗した step の id を
+      # job outputs として返し、呼出側の `if: failure()` で PR コメント表示に使う。
+      # SHOULD 段階の実装で、リリース時点+ で Loki / Mimir 連携を追加する余地。
+      # ------------------------------------------------------------------
+      - name: report failure_reason
+        id: report
+        if: always()
+        run: |
+          set -eu
+          rs="${{ steps.rust-fmt.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="rust-fmt" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.rust-clippy.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="rust-clippy" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.go-vet.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="go-vet" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.go-lint.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="golangci-lint" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.dotnet-format.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="dotnet-format" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.pnpm-lint.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="pnpm-lint" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.pnpm-typecheck.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="pnpm-typecheck" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.buf-lint.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="buf-lint" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.buf-breaking.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="buf-breaking" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.buf-format.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="buf-format" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.markdownlint.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="markdownlint" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          rs="${{ steps.yaml-lint.outcome || 'skipped' }}"
+          [[ "$rs" == "failure" ]] && reason="yaml-lint" && echo "failure_reason=${reason}" >> "$GITHUB_OUTPUT" && exit 0
+          # 失敗 step が無ければ空（success / skipped のみ）
+          echo "failure_reason=" >> "$GITHUB_OUTPUT"
+        shell: bash

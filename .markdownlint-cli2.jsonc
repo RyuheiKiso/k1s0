@@ -1,0 +1,62 @@
+// =============================================================================
+// markdownlint-cli2 設定 — k1s0 docs/plan 向け
+//
+// 設計: plan/02_開発環境整備/05_pre-commit_hooks有効化.md
+// 設計書: docs/00_format/document_standards.md（k1s0 ドキュメント記述標準）
+// =============================================================================
+{
+  // 既定 rule セットを継承し、k1s0 規約に合わせて個別調整
+  "config": {
+    "default": true,
+
+    // MD013 line-length: 日本語混在の長文 / 表 / コードを考慮し無効化
+    // （docs は散文主体で line-break を厳密に強制すると編集効率が落ちる）
+    "MD013": false,
+
+    // MD033 inline HTML: README.md は <div align="center"> や <img> を意図的に使用
+    "MD033": {
+      "allowed_elements": ["div", "img", "sub", "sup", "br", "details", "summary", "kbd"]
+    },
+
+    // MD041 first-line-h1: ADR / Knowledge は frontmatter 風メタが先頭に来る場合あり
+    "MD041": false,
+
+    // MD024 no-duplicate-heading: 「## 関連」「## 背景」のような同名見出しを段階的に許容
+    "MD024": {
+      "siblings_only": true
+    },
+
+    // MD026 trailing-punctuation in heading: 「？」「！」を含む見出しを許容
+    "MD026": {
+      "punctuation": ".,;:"
+    },
+
+    // MD007 unordered-list-indent: tab や 4 spaces を許容
+    "MD007": {
+      "indent": 2
+    },
+
+    // MD025 single-h1: ADR は 1 H1 厳守（既定で OK）
+    "MD025": true,
+
+    // MD040 fenced-code-language: 言語タグ無しの fenced code を warning 表示
+    "MD040": true
+  },
+
+  // 対象から外すパス（linter を回さない）
+  "ignores": [
+    "node_modules/**",
+    "target/**",
+    "third_party/**",
+    "**/CHANGELOG.md",
+    ".github/**/*.md",
+    "**/_generated/**",
+    ".claude/**"
+  ],
+
+  // 対象パス（明示）
+  "globs": [
+    "**/*.md",
+    "**/*.markdown"
+  ]
+}

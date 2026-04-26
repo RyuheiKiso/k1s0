@@ -1,0 +1,79 @@
+# =============================================================================
+# k1s0 buf generate configuration（v2、リポジトリルート配置）
+#
+# 設計: docs/05_実装/20_コード生成設計/（IMP-CODEGEN-002 / 003 / 004）
+# 関連: src/contracts/buf.yaml（workspace）
+#
+# 4 言語 SDK + tier1 内部 gRPC stub を一括生成する。BSR remote plugin を
+# version 固定で参照し、Renovate（plan 02-09）が追従更新する。
+#
+# 利用:
+#   buf generate src/contracts                    # 全言語生成
+#   tools/codegen/buf/run.sh                      # 同等のラッパ
+#   make codegen                                  # tooling 確定後に統合
+# =============================================================================
+version: v2
+
+# **重要**: 本ファイルは tier1 公開 module のみを対象とする 4 言語生成設定。
+# internal module（tier1 内部 gRPC、Go ↔ Rust core）は ADR-TIER1-003 で
+# tier2/tier3 から不可視を要求されるため、別ファイル `buf.gen.internal.yaml` で
+# Go / Rust のみに限定して生成する（SDK 配下には出さない）。
+
+# inputs で tier1 ディレクトリのみに限定し、internal の SDK 漏洩を構造的に防ぐ。
+# directory 指定（BSR module 名でなく local path）。
+inputs:
+  - directory: src/contracts/tier1
+
+# managed: 生成物の package option（go_package / csharp_namespace 等）を
+# proto 内に書かず buf.gen.yaml で集中管理する。
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/k1s0/sdk/go/generated
+    - file_option: csharp_namespace_prefix
+      value: K1s0.Sdk.Generated
+    # Java SDK はリリース時点 対象外（4 言語: .NET / Go / Rust / TypeScript）。
+    # 必要になった時に java_package_prefix を追加する。
+
+plugins:
+  # ---------------------------------------------------------------------------
+  # Go（protocolbuffers + grpc-go）
+  # ---------------------------------------------------------------------------
+  - remote: buf.build/protocolbuffers/go:v1.34.2
+    out: src/sdk/go/generated
+    opt:
+      - paths=source_relative
+  - remote: buf.build/grpc/go:v1.5.1
+    out: src/sdk/go/generated
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+
+  # ---------------------------------------------------------------------------
+  # .NET（protocolbuffers/csharp + grpc/csharp）
+  # ---------------------------------------------------------------------------
+  - remote: buf.build/protocolbuffers/csharp:v28.3
+    out: src/sdk/dotnet/generated
+  - remote: buf.build/grpc/csharp:v1.66.0
+    out: src/sdk/dotnet/generated
+
+  # ---------------------------------------------------------------------------
+  # Rust（prost + tonic、neoeinstein コミュニティ plugin を採用）
+  # ---------------------------------------------------------------------------
+  - remote: buf.build/community/neoeinstein-prost:v0.4.0
+    out: src/sdk/rust/generated
+  - remote: buf.build/community/neoeinstein-tonic:v0.4.0
+    out: src/sdk/rust/generated
+
+  # ---------------------------------------------------------------------------
+  # TypeScript（protobuf-es + connect-es、Connect-RPC 互換）
+  # ---------------------------------------------------------------------------
+  - remote: buf.build/bufbuild/es:v2.2.0
+    out: src/sdk/typescript/generated
+    opt:
+      - target=ts
+  - remote: buf.build/connectrpc/es:v1.6.1
+    out: src/sdk/typescript/generated
+    opt:
+      - target=ts

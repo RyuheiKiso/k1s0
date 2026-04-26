@@ -1,0 +1,147 @@
+# =============================================================================
+# 本ファイルは k1s0 reusable workflow の 2 本目（unit test + coverage）。
+# 4 本構成: _reusable-lint / _reusable-test / _reusable-build / _reusable-push の
+# 第 2 段で、IMP-CI-RWF-018 の coverage 段階導入を実装する。
+#
+# 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+# 関連 ID: IMP-CI-RWF-010 / IMP-CI-RWF-018
+#
+# coverage 段階:
+#   リリース時点: 計測のみ、閾値 50% で warning（fail させない）
+#   リリース時点+: 80% / 90% で fail（段階適用）
+# =============================================================================
+name: _reusable-test
+
+on:
+  workflow_call:
+    inputs:
+      tier:
+        required: true
+        type: string
+      language:
+        description: "rust / go / dotnet / typescript"
+        required: true
+        type: string
+      path:
+        required: false
+        type: string
+        default: ""
+      coverage_threshold:
+        description: "coverage 閾値（パーセント）。0 を指定すると warning のみ"
+        required: false
+        type: number
+        default: 0
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ inputs.tier }}-${{ inputs.language }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ----- Rust -----
+      - name: setup rust toolchain
+        if: inputs.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: rust cache
+        if: inputs.language == 'rust'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ inputs.path }}
+
+      - name: install cargo-nextest
+        if: inputs.language == 'rust'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest,cargo-tarpaulin
+
+      - name: cargo nextest
+        if: inputs.language == 'rust'
+        working-directory: ${{ inputs.path }}
+        run: cargo nextest run --workspace --all-features
+
+      - name: cargo tarpaulin (coverage)
+        if: inputs.language == 'rust'
+        working-directory: ${{ inputs.path }}
+        run: |
+          cargo tarpaulin --workspace --all-features --out Lcov --output-dir coverage || true
+
+      # ----- Go -----
+      - name: setup go
+        if: inputs.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: ${{ inputs.path }}/go.sum
+
+      - name: go test with coverage
+        if: inputs.language == 'go'
+        working-directory: ${{ inputs.path }}
+        run: |
+          go test -coverprofile=coverage.out -covermode=atomic ./...
+
+      # ----- .NET -----
+      - name: setup dotnet
+        if: inputs.language == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: dotnet test with coverage
+        if: inputs.language == 'dotnet'
+        working-directory: ${{ inputs.path }}
+        run: |
+          dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      # ----- TypeScript -----
+      - name: setup node
+        if: inputs.language == 'typescript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: setup pnpm
+        if: inputs.language == 'typescript'
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      - name: pnpm install
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm install --frozen-lockfile
+
+      - name: vitest with coverage
+        if: inputs.language == 'typescript'
+        working-directory: ${{ inputs.path }}
+        run: pnpm test -- --coverage
+
+      # ----- coverage 段階判定（IMP-CI-RWF-018） -----
+      - name: coverage threshold check
+        if: inputs.coverage_threshold > 0
+        run: |
+          # coverage 閾値判定は言語別に lcov を統一フォーマットで読む
+          # 現段階（リリース時点）は閾値 0 を default とするため、本 step は基本実行されない
+          echo "::notice::coverage threshold check (>=${{ inputs.coverage_threshold }}%) はリリース時点+ で有効化"
+
+      - name: upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ inputs.tier }}-${{ inputs.language }}
+          path: |
+            ${{ inputs.path }}/coverage/
+            ${{ inputs.path }}/coverage.out
+          if-no-files-found: ignore
+          retention-days: 14

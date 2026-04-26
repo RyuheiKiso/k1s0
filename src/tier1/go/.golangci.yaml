@@ -1,0 +1,49 @@
+# =============================================================================
+# tier1 Go ファサード用 golangci-lint 設定（v2）
+#
+# 設計: plan/04_tier1_Goファサード実装/01_リポジトリレイアウト.md（主作業 7）
+# 関連 ID: ADR-TIER1-003（tier1 内部言語不可視）/ IMP-LINT-002（Go lint 標準）
+#
+# 役割:
+#   tier2 / tier3 / SDK が tier1 facade を使う際、Dapr Go SDK 型が境界を越えて
+#   流出することを防ぐ。`forbidigo` で `dapr.` import を `internal/dapr/` 配下
+#   以外で禁止し、analyzer（plan フェーズ 06）と二重で防御する。
+# =============================================================================
+version: "2"
+
+run:
+  timeout: 10m
+  go: "1.22"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - forbidigo
+    - revive
+    - misspell
+
+  settings:
+    forbidigo:
+      forbid:
+        # Dapr Go SDK の直接利用は internal/dapr/ 配下のみ許可。
+        # ADR-TIER1-003 に従い、handler 層（internal/server/）には漏らさない。
+        - pattern: ^github\.com/dapr/go-sdk
+          msg: "Dapr Go SDK は internal/dapr/ 経由でのみ利用してください（ADR-TIER1-003）"
+      analyze-types: true
+
+  exclusions:
+    rules:
+      # internal/dapr/ 配下は Dapr SDK の直接 import を許可する例外。
+      - path: internal/dapr/
+        linters:
+          - forbidigo
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

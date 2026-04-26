@@ -1,0 +1,91 @@
+# =============================================================================
+# gitleaks 設定 — k1s0 リポジトリ向け
+#
+# 設計: plan/02_開発環境整備/05_pre-commit_hooks有効化.md
+# 関連: 13-05 secret scan / 16-08 秘密情報スキャン最終
+#
+# 公式 default rule に加え、k1s0 固有の許容パターン（テスト fixture / dev fixture）と
+# k1s0 固有の禁止パターン（Dapr secret store の sample token 等）を上書き定義。
+# =============================================================================
+
+# 公式 default rule を継承
+[extend]
+useDefault = true
+
+# -----------------------------------------------------------------------------
+# 許容（allowlist）: 検出されても fail させないパターン
+# -----------------------------------------------------------------------------
+# テスト fixture や dev mode の偽 token、サンプルコード内のプレースホルダなど。
+# 本番 secret に見えるが実体は無害なものを限定して許可する。
+
+[allowlist]
+description = "k1s0 で許容されるテスト fixture / dev fixture / サンプル"
+
+# 許容パス（このパス配下の hit は無視）
+paths = [
+    # 既存のテスト用 fixture（OpenBao dev mode の root token 含む）
+    '''tools/local-stack/openbao-dev/.*''',
+    # ドキュメントの例示コード（コードブロック内の架空 token）
+    '''docs/.*\.md''',
+    # 計画文書（実 secret は含まないが API key 風の文字列が議論で出る）
+    '''plan/.*\.md''',
+    # gitleaks 自身の設定例
+    '''\.gitleaks\.toml''',
+    # pre-commit / Renovate の設定参照
+    '''\.pre-commit-config\.yaml''',
+    # 開発者ローカル `.env` の雛形（dev 固定値のみ。`.env`（実体）は .gitignore 済）
+    '''\.env\.example''',
+    # OpenBao policy 雛形（`{{environment}}` 等の placeholder と secret-like な path 表記を含む）
+    '''infra/security/openbao/policies/.*\.(hcl|md)''',
+    # 開発者向け runbook 例示（dev fixture の token を例として挙げる箇所がある）
+    '''ops/runbooks/secret-rotation\.md''',
+]
+
+# 許容する正規表現（マッチした行は無視）
+regexes = [
+    # 例示用の固定文字列
+    '''(?i)example[-_]?api[-_]?key''',
+    '''(?i)dummy[-_]?token''',
+    '''(?i)placeholder[-_]?secret''',
+    # OpenBao dev token は固定値「root」が公式（dev mode のみ、prod では別）
+    '''VAULT_DEV_ROOT_TOKEN_ID\s*=\s*["']?root["']?''',
+    # SHA256 / SHA1 のテスト固定値
+    '''[0-9a-fA-F]{64}\s*#\s*test fixture''',
+]
+
+# stopwords: マッチした語が含まれる行は許容
+stopwords = [
+    "example",
+    "EXAMPLE",
+    "dummy",
+    "DUMMY",
+    "placeholder",
+    "PLACEHOLDER",
+    "fixture",
+    "TEST_",
+]
+
+# -----------------------------------------------------------------------------
+# k1s0 固有の追加検出 rule（公式 default に加える）
+# -----------------------------------------------------------------------------
+
+[[rules]]
+id = "k1s0-real-vault-token"
+description = "本番 OpenBao token（hvs.* で始まる service token）の混入検出"
+regex = '''hvs\.[A-Za-z0-9_-]{20,}'''
+keywords = ["hvs."]
+
+[[rules]]
+id = "k1s0-real-cosign-key"
+description = "cosign の private key（PEM）が誤コミットされた場合の検出"
+regex = '''-----BEGIN ENCRYPTED COSIGN PRIVATE KEY-----'''
+keywords = ["BEGIN ENCRYPTED COSIGN"]
+
+[[rules]]
+id = "k1s0-real-age-key"
+description = "age の private key（AGE-SECRET-KEY-1...）の混入検出"
+# age secret key は uppercase mode の bech32（age 仕様 v1）で 58 文字の data 部。
+# uppercase bech32 charset = [A-Z0-9] から B/I/O/1 を除く = [ACDEFGHJKLMNPQRSTUVWXYZ02-9]。
+# 過剰検出側（B/I/O/1 を含む偽陽性を許容）として簡潔な [A-Z0-9]{58} を採用。
+regex = '''AGE-SECRET-KEY-1[A-Z0-9]{58}'''
+keywords = ["AGE-SECRET-KEY-1"]

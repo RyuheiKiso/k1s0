@@ -1,0 +1,57 @@
+// 本ファイルは tier1 ヘルスチェック用の補助 proto。
+// 11 API 公開リスト（state / pubsub / serviceinvoke / secrets / binding /
+// workflow / log / telemetry / decision / audit / feature）には **含まれない**
+// プロセス生存確認 / k8s probe 用 RPC で、Liveness / Readiness の 2 RPC のみ。
+//
+// 11 API 本体は plan 03-02 で `src/contracts/tier1/k1s0/tier1/<api>/v1/` 配下に展開する。
+// 本ファイルは buf generate パイプラインの動作確認も兼ねる（plan 03-01 完了条件）。
+//
+// 設計:
+//   docs/03_要件定義/20_機能要件/02_機能一覧.md（11 API の正典）
+//   docs/02_構想設計/adr/ADR-TIER1-002-protobuf-grpc.md
+//   plan/03_Contracts実装/02_tier1_proto定義.md
+syntax = "proto3";
+
+// パッケージ命名規約: k1s0.<module>.<api>.v<n>
+package k1s0.tier1.health.v1;
+
+// ヘルスチェック用の最小 service。Kubernetes liveness/readiness probe からの
+// gRPC ヘルスチェックと、tier2/tier3 からの疎通確認に使う。
+service HealthService {
+  // Liveness probe: process が応答可能なら OK。依存 backend は見ない。
+  rpc Liveness(LivenessRequest) returns (LivenessResponse);
+
+  // Readiness probe: 依存 backend（Postgres / Kafka / OpenBao 等）が到達可能
+  // かどうかも含めて判定する。詳細仕様は plan 04-16。
+  rpc Readiness(ReadinessRequest) returns (ReadinessResponse);
+}
+
+// Liveness probe のリクエスト（現状フィールドなし、将来拡張用）
+message LivenessRequest {}
+
+// Readiness probe のリクエスト（現状フィールドなし、将来拡張用）
+message ReadinessRequest {}
+
+// Liveness response: process の生存と version 情報を返す。
+message LivenessResponse {
+  // tier1 facade のビルドバージョン（SemVer）
+  string version = 1;
+  // 起動時刻からの経過時間（秒）
+  int64 uptime_seconds = 2;
+}
+
+// Readiness response: 各依存の状態を個別に返す。
+message ReadinessResponse {
+  // 全体としての ready 判定（依存すべて OK なら true）
+  bool ready = 1;
+  // 各依存（postgres / kafka / openbao / keycloak / 等）の個別状態
+  map<string, DependencyStatus> dependencies = 2;
+}
+
+// 個別依存の状態
+message DependencyStatus {
+  // 接続可能か
+  bool reachable = 1;
+  // 直近のエラー（reachable=false の時のみ意味を持つ）
+  string error_message = 2;
+}

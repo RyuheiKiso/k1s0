@@ -1,0 +1,41 @@
+# =============================================================================
+# k1s0 buf generate configuration（gRPC reference docs 専用）
+#
+# 設計: plan/03_Contracts実装/07_gRPC_reference_docs.md（IMP-CODEGEN-007）
+#       ADR-BS-001（Backstage TechDocs 連携）
+#
+# 役割:
+#   tier1 公開 11 API + 共通型から **gRPC reference docs** を Markdown / HTML で
+#   生成する。OpenAPI（buf.gen.openapi.yaml）が REST 互換クライアント向けなのに対し、
+#   本生成物は **gRPC native** で叩く採用側の正規仕様書として機能する。
+#
+# plugin 選定:
+#   `pseudomuto/protoc-gen-doc` を採用（Markdown / HTML / DocBook 出力対応、
+#   proto コメントを直接 reference docs に反映、Backstage TechDocs で表示可能）。
+#
+# 出力:
+#   docs/02_構想設計/02_tier1設計/grpc-reference/v1/k1s0-tier1-grpc.md
+#
+# 利用:
+#   buf generate --template buf.gen.docs.yaml
+#   tools/codegen/grpc-docs/run.sh
+# =============================================================================
+version: v2
+
+inputs:
+  - directory: src/contracts/tier1
+
+managed:
+  enabled: true
+  override:
+    # protoc-gen-doc は go_package を要求しないが、managed.enabled=true で他の
+    # warning を抑制するため統一設定にする。
+    - file_option: go_package_prefix
+      value: github.com/k1s0/sdk/go/generated
+
+plugins:
+  # Markdown 出力（Backstage TechDocs / GitHub での閲覧に最適）
+  - remote: buf.build/community/pseudomuto-doc:v1.5.1
+    out: docs/02_構想設計/02_tier1設計/grpc-reference/v1
+    opt:
+      - markdown,k1s0-tier1-grpc.md

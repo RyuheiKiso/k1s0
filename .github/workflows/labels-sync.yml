@@ -1,0 +1,62 @@
+# =============================================================================
+# 本ファイルは .github/labels.yml の定義を GitHub repository labels に同期する。
+#
+# 設計: plan/02_開発環境整備/06_GitHubリポジトリ設定.md（主作業 7: ラベル定義）
+#       .github/repo-settings.md / .github/labels.yml（52 ラベル）
+# 関連 ID: IMP-CI-006（branch protection / repo configuration as code）
+#
+# 役割:
+#   1. labels.yml が変更された PR で diff を表示（dry-run）
+#   2. main への merge 後に GitHub repository に同期適用
+#   3. 月次 schedule で drift 検出（手動変更を検知）
+#
+# 必要な permissions:
+#   - issues: write（label CRUD に必要）
+#   - GITHUB_TOKEN（自動発行、PAT 不要）
+# =============================================================================
+name: labels-sync
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/labels.yml"]
+  pull_request:
+    branches: [main]
+    paths: [".github/labels.yml"]
+  schedule:
+    # 月初 1 日 0:00 UTC = JST 9:00 に drift 検出
+    - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: labels-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: sync labels (dry-run on PR, apply on main / schedule)
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .github/labels.yml
+          # PR 上では dry-run で diff を出すだけ、main への merge / schedule で実適用
+          dry-run: ${{ github.event_name == 'pull_request' }}
+          # **重要**: skip-delete: true で labels.yml に無い既存 label は削除しない。
+          # GitHub default labels（bug / enhancement / documentation / wontfix /
+          # duplicate / invalid / question / good first issue / help wanted）と、
+          # 過去に手動作成された label を保護する。labels.yml で意図的に削除したい
+          # 場合は別途手動 or 一時的に skip-delete: false で実行する運用とする。
+          skip-delete: true
