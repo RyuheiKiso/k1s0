@@ -21,6 +21,7 @@
 [Docs](docs/) ·
 [ADR](docs/02_構想設計/adr/) ·
 [Contracts](docs/02_構想設計/02_tier1設計/) ·
+[Ship Status](docs/SHIP_STATUS.md) ·
 [License](#license)
  
 </div>
@@ -195,6 +196,11 @@ VS Code で開く場合は、役割ごとの Dev Container プロファイル（
 ## リリース範囲
 
 k1s0 は起案者が業務外の時間で開発した個人開発 OSS で、リリース時点で全機能を一気通貫に同梱した状態で GitHub に公開している。リリース後の段階分割追加は採らず、採用側組織が必要な範囲を選び取って導入できる構成にしてある。
+
+> **実装マチュリティの正確な把握**: 本表は docs（設計）側の同梱範囲を示す。
+> 実コードの実装率（同梱済 / 雛形あり / 設計のみ）は領域別に
+> [`docs/SHIP_STATUS.md`](docs/SHIP_STATUS.md) で開示している。
+> OSS 採用検討者は SHIP_STATUS を必ず確認のうえ評価してほしい。
 
 | 領域 | 同梱内容 |
 |---|---|
