@@ -1,6 +1,6 @@
 # ADR 索引（軽量版）
 
-本 README は `docs/02_構想設計/adr/` 配下の Architecture Decision Record を、ファイル本体に最短距離で到達するための軽量索引である。k1s0 では ADR を技術選定と決定根拠の一次記録として扱い、`ADR-DOMAIN-NNN-short-name.md` 形式のファイルをリリース時点で 36 件蓄積している。新規参画者・外部レビュワー・監査担当がディレクトリを直接辿って目的の ADR を探す際、ファイル名のみでは何が書いてあるか把握しづらいため、本 README が「ファイル名 + 1 行要約」の段で探索を支援する。
+本 README は `docs/02_構想設計/adr/` 配下の Architecture Decision Record を、ファイル本体に最短距離で到達するための軽量索引である。k1s0 では ADR を技術選定と決定根拠の一次記録として扱い、`ADR-DOMAIN-NNN-short-name.md` 形式のファイルをリリース時点で 37 件蓄積している。新規参画者・外部レビュワー・監査担当がディレクトリを直接辿って目的の ADR を探す際、ファイル名のみでは何が書いてあるか把握しづらいため、本 README が「ファイル名 + 1 行要約」の段で探索を支援する。
 
 本索引は軽量版であり、各 ADR の決定内容要約・却下された代替案・影響章・改訂履歴といった詳細情報は扱わない。それらは概要設計側の詳細索引 [../../04_概要設計/90_付録/02_ADR索引.md](../../04_概要設計/90_付録/02_ADR索引.md) が担う。両索引は重複ではなく役割分担の関係にある。本 README は「ADR 本体に辿り着く入口」、詳細索引は「ADR 本体を読まずに要点を掴むための要約集」として機能する。概要設計の読者は詳細索引から先に見て、そこから本 README 経由で ADR 本体に飛ぶ導線を想定している。
 
@@ -83,11 +83,12 @@ Feature Management の OSS 選定。OpenFeature 準拠。
 
 - [ADR-FM-001](./ADR-FM-001-flagd-openfeature.md) — flagd を OpenFeature 準拠の FM として採用
 
-### 開発者体験（2 件）
+### 開発者体験（3 件）
 
-DX の思想と計測基盤。Paved Road で Golden Path を一本化し、DX メトリクスを稼働 SLI と分離する。
+DX の思想と計測基盤、ローカル開発のホスト Docker ランタイム選定。Paved Road で Golden Path を一本化し、DX メトリクスを稼働 SLI と分離し、Windows + WSL2 ホストの Docker ランタイムを WSL ネイティブ docker-ce で固定する。
 
 - [ADR-DEV-001](./ADR-DEV-001-paved-road.md) — 開発者体験の根幹思想に Paved Road を採用
+- [ADR-DEV-002](./ADR-DEV-002-windows-wsl2-docker-runtime.md) — Windows 11 + WSL2 環境の Docker ランタイムに WSL ネイティブ docker-ce を採用
 - [ADR-DX-001](./ADR-DX-001-dx-metrics-separation.md) — DX メトリクスを稼働 SLI と分離して管理する
 
 ### 依存管理・サプライチェーン（2 件）

@@ -31,6 +31,7 @@ catalog-info.yaml は Backstage 連携の first-class 属性として扱い、Sc
 50_開発者体験設計/
 ├── README.md
 ├── 00_方針/                # Paved Road と time-to-first-commit
+├── 05_ローカル環境基盤/    # Windows 11 + WSL2 + ネイティブ docker-ce
 ├── 10_DevContainer_10役/
 ├── 20_Golden_Path_examples/
 ├── 30_Scaffold_CLI運用/
@@ -39,13 +40,15 @@ catalog-info.yaml は Backstage 連携の first-class 属性として扱い、Sc
 └── 90_対応IMP-DEV索引/
 ```
 
+`05_ローカル環境基盤/` は 10_DevContainer_10役/ の前段に位置し、Dev Container が乗るホスト OS と Docker ランタイムを確定する。10_DevContainer_10役/ は「Dev Container 内の toolchain」、05_ローカル環境基盤/ は「Dev Container を起動する Windows + WSL2 ホストの構成」を担い、責務を物理的に分離する。
+
 ## IMP ID 予約
 
 本章で採番する実装 ID は `IMP-DEV-*`（予約範囲: IMP-DEV-001 〜 IMP-DEV-099）。
 
 ## 対応 ADR / 概要設計 ID / NFR
 
-- ADR: [ADR-BS-001](../../02_構想設計/adr/ADR-BS-001-backstage.md)（Backstage）/ [ADR-FM-001](../../02_構想設計/adr/ADR-FM-001-flagd-openfeature.md)（flagd / OpenFeature）/ 本章初版策定時に ADR-DEV-001（Paved Road 思想）を起票予定
+- ADR: [ADR-BS-001](../../02_構想設計/adr/ADR-BS-001-backstage.md)（Backstage）/ [ADR-FM-001](../../02_構想設計/adr/ADR-FM-001-flagd-openfeature.md)（flagd / OpenFeature）/ [ADR-DEV-001](../../02_構想設計/adr/ADR-DEV-001-paved-road.md)（Paved Road 思想）/ [ADR-DEV-002](../../02_構想設計/adr/ADR-DEV-002-windows-wsl2-docker-runtime.md)（Windows + WSL2 の Docker ランタイム選定）
 - DS-SW-COMP: DS-SW-COMP-135（配信系インフラ = Harbor / ArgoCD / Backstage / Scaffold）/ DS-SW-COMP-132（SDK 4 言語配布、examples / Hello World 経由で間接結合）
 - NFR: NFR-C-SUP-001（SRE 体制）/ NFR-C-NOP-004（運用監視）/ `03_要件定義/50_開発者体験/` 章全般
 
