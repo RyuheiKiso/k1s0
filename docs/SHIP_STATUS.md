@@ -89,7 +89,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `infra/k8s/{bootstrap, namespaces, networking, storage}` | kubeadm HA + Calico/MetalLB | **設計のみ** | `.gitkeep` のみ |
 | `infra/mesh/{istio-ambient, envoy-gateway}` | ADR-0001 / ADR-MIG-002 | **設計のみ** | `.gitkeep` のみ |
 | `infra/dapr/control-plane/` | Dapr operator | **設計のみ** | `.gitkeep` のみ |
-| `infra/data/{cloudnativepg, kafka, minio, valkey}` | ADR-DATA-001/002/003/004 | **設計のみ** | `.gitkeep` のみ |
+| `infra/data/{cloudnativepg, kafka, minio, valkey}` | ADR-DATA-001/002/003/004 | **雛形あり** | 4 backend を production-grade defaults（HA / 監視 / バックアップ）で正規化済。CNPG: 3 instance HA + WAL アーカイブ + PodMonitor。Kafka: Strimzi KRaft 3 broker + TLS mTLS + Cruise Control。MinIO: distributed mode 4 replica + erasure coding + ServiceMonitor。Valkey: replication + Sentinel + 認証有効。各ディレクトリに `values.yaml` + `<backend>-cluster.yaml` + `README.md`（dev 差分表 / ADR リンク）を配置 |
 | `infra/security/{cert-manager, keycloak, openbao, spire, kyverno}` | ADR-SEC-001/002/003 / ADR-POL-001 | **雛形あり** | `infra/security/openbao/policies/{tier1-facade, tier2-service, tier3-bff}.hcl` のみ実体 |
 | `infra/observability/{loki, tempo, mimir, grafana, otel-collector, pyroscope}` | ADR-OBS-001/002 | **設計のみ** | `.gitkeep` のみ |
 | `infra/scaling/keda/` | KEDA | **設計のみ** | `.gitkeep` のみ |
@@ -226,13 +226,20 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 - `cargo metadata` / `cargo verify-project` 通過（フル `cargo check` は C リンカが必要なため CI 任せ）
 - 補助 crate（common / otel-util / policy / proto）は内容実装まで `workspace.exclude` に置き、plan 04-02 / 04-08 で順次合流
 
-### 5. infra マニフェストの実体化（IMP-DEV-POL-006）
+### 5. infra マニフェストの実体化（IMP-DEV-POL-006）— **部分完了**
 
-- `infra/k8s/bootstrap/`（kubeadm Cluster API ベース）
-- `infra/mesh/istio-ambient/`（Istio Helm values）
-- `infra/data/{cloudnativepg,kafka,minio,valkey}/`（各 CRD と manifest）
-- `infra/observability/`（LGTM スタック Helm values）
-- 多くは `tools/local-stack/manifests/` の values.yaml を `infra/` 側に正規化する形
+- ✅ `infra/data/{cloudnativepg,kafka,minio,valkey}/` を production-grade defaults で正規化
+  - CNPG: operator 3 replica + Cluster CRD（3 instance HA + WAL アーカイブ to MinIO + PodMonitor）
+  - Kafka: Strimzi operator + Kafka Cluster（KRaft 3 broker + TLS mTLS + Cruise Control + JMX Exporter）
+  - MinIO: distributed mode 4 replica + erasure coding + ServiceMonitor
+  - Valkey: replication + Sentinel + 認証有効 + ServiceMonitor
+- 🔲 残り（plan 05-XX 以降）:
+  - `infra/k8s/bootstrap/`（kubeadm Cluster API ベース）
+  - `infra/mesh/istio-ambient/`（Istio Helm values）
+  - `infra/observability/`（LGTM スタック Helm values: loki / tempo / mimir / grafana / otel-collector / pyroscope）
+  - `infra/security/`（cert-manager / keycloak / spire / kyverno）
+  - `infra/scaling/keda/`、`infra/feature-management/flagd/`
+  - 多くは `tools/local-stack/manifests/` の values.yaml を `infra/` 側に正規化する形
 
 ### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）
 

@@ -1,0 +1,71 @@
+# MinIO（ADR-DATA-003）の production-grade Helm values。
+# helm repo add minio https://charts.min.io/
+# helm upgrade --install minio minio/minio -n minio -f values.yaml
+#
+# dev 用最小構成は tools/local-stack/manifests/70-minio/values.yaml を参照（standalone）。
+
+# distributed mode で稼働（erasure coding による冗長化、4 server × 4 drive 推奨）。
+mode: distributed
+replicas: 4
+drivesPerNode: 4
+
+# 各 drive のストレージサイズ（合計 4×4×100Gi = 1.6TiB の論理容量、有効容量は erasure 比による）。
+persistence:
+  enabled: true
+  size: 100Gi
+  storageClass: ""
+
+# resource sizing（prod、PUT/GET それぞれ数千 RPS を想定）。
+resources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 4Gi
+
+# Pod Disruption Budget（k8s upgrade 時に最低 quorum を保つ）。
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# 認証情報。!! placeholder !! prod では OpenBao 動的シークレットに切替（plan 04-06）。
+# 注: chart 5.x の rootUser / rootPassword は最小 8 文字。
+rootUser: REPLACE_VIA_OPENBAO
+rootPassword: REPLACE_VIA_OPENBAO
+
+# 起動時に作成するバケット（infra/data/minio/README.md に用途記載）。
+buckets:
+  - name: k1s0-artifacts
+    policy: none
+    purge: false
+  - name: k1s0-events
+    policy: none
+    purge: false
+  - name: k1s0-postgres-backup
+    policy: none
+    purge: false
+  - name: k1s0-audit-export
+    policy: none
+    purge: false
+
+# Ingress は Istio Ambient Gateway 経由で外部公開（cert-manager 連携 TLS）。
+ingress:
+  enabled: false
+consoleIngress:
+  enabled: false
+
+# Prometheus 監視（自動 ServiceMonitor 生成）。
+metrics:
+  serviceMonitor:
+    enabled: true
+    public: true
+
+# Pod の anti-affinity（4 replica が別 node に分散）。
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app: minio
+        topologyKey: kubernetes.io/hostname

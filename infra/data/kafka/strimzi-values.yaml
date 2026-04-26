@@ -1,0 +1,34 @@
+# Strimzi Kafka operator（ADR-DATA-002）の production-grade Helm values。
+# helm repo add strimzi https://strimzi.io/charts/
+# helm upgrade --install strimzi strimzi/strimzi-kafka-operator -n kafka -f strimzi-values.yaml --version 0.51.0
+#
+# dev 用最小構成は tools/local-stack/manifests/65-kafka/strimzi-values.yaml を参照。
+
+# operator replica（Strimzi は 1 で十分、active-passive HA は不要）。
+replicas: 1
+
+# operator resource sizing（10+ Kafka cluster を捌ける程度）。
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+
+# 全 namespace を監視（k1s0 では kafka namespace 配下に Cluster を集約予定）。
+watchAnyNamespace: true
+
+# Prometheus 監視（PrometheusRule + ServiceMonitor 自動生成）。
+metrics:
+  enabled: true
+
+# operator Pod の affinity（同一 cluster で複数 operator が立つ事故を防ぐ）。
+nodeSelector: {}
+
+# 環境変数で Strimzi の挙動を上書き（リーダー選出間隔等）。
+extraEnvs: []
+
+# 監査ログを stdout に出力（後段の Loki / Elasticsearch が拾う）。
+logVolume:
+  type: emptyDir
