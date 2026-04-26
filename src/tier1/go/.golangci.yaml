@@ -6,7 +6,7 @@
 #
 # 役割:
 #   tier2 / tier3 / SDK が tier1 facade を使う際、Dapr Go SDK 型が境界を越えて
-#   流出することを防ぐ。`forbidigo` で `dapr.` import を `internal/dapr/` 配下
+#   流出することを防ぐ。`forbidigo` で `dapr.` import を `internal/adapter/dapr/` 配下
 #   以外で禁止し、analyzer（plan フェーズ 06）と二重で防御する。
 # =============================================================================
 version: "2"
@@ -30,16 +30,16 @@ linters:
   settings:
     forbidigo:
       forbid:
-        # Dapr Go SDK の直接利用は internal/dapr/ 配下のみ許可。
-        # ADR-TIER1-003 に従い、handler 層（internal/server/）には漏らさない。
+        # Dapr Go SDK の直接利用は internal/adapter/dapr/ 配下のみ許可。
+        # ADR-TIER1-003 に従い、handler 層（cmd/* および internal/{state,secret,workflow}/）には漏らさない。
         - pattern: ^github\.com/dapr/go-sdk
-          msg: "Dapr Go SDK は internal/dapr/ 経由でのみ利用してください（ADR-TIER1-003）"
+          msg: "Dapr Go SDK は internal/adapter/dapr/ 経由でのみ利用してください（ADR-TIER1-003）"
       analyze-types: true
 
   exclusions:
     rules:
-      # internal/dapr/ 配下は Dapr SDK の直接 import を許可する例外。
-      - path: internal/dapr/
+      # internal/adapter/dapr/ 配下は Dapr SDK の直接 import を許可する例外。
+      - path: internal/adapter/dapr/
         linters:
           - forbidigo
 

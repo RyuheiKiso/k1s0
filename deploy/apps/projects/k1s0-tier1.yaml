@@ -1,0 +1,49 @@
+# =============================================================================
+# k1s0 tier1 Argo CD AppProject（リリース時点最小骨格）
+#
+# 設計: docs/05_実装/70_リリース設計/
+# 関連 ID: ADR-CICD-001（Argo CD 採用）/ ADR-TIER1-001
+#
+# scope（リリース時点）:
+#   - tier1 専用 AppProject を切り出し、tier2 / tier3 / infra 系 Application との
+#     RBAC / sourceRepo / destination 境界を明確化する
+#   - クラスタ内 namespace `k1s0-tier1` への配備のみ許可
+#
+# 採用初期で拡張:
+#   - 複数クラスタ対応（destination の cluster 指定を増やす）
+#   - SyncWindow（メンテ時間外の自動同期禁止）
+#   - role 別の signedBy（Cosign 署名検証）
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: k1s0-tier1
+  namespace: argocd
+  finalizers:
+    # AppProject 削除時に紐づく Application も削除する。
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    k1s0.io/tier: tier1
+spec:
+  description: |
+    k1s0 tier1（Go ファサード + Rust コア）の Argo CD AppProject。
+    Helm chart は deploy/charts/tier1-* / Kustomize overlay は
+    deploy/kustomize/overlays/* から取得する。
+  # 同一リポジトリのみ許可（採用初期でフォーク運用や private chart repo を追加）。
+  sourceRepos:
+    - "https://github.com/k1s0/k1s0.git"
+  # 配備先 namespace を限定する（k8s API server 単一、namespace は k1s0-tier1）。
+  destinations:
+    - namespace: "k1s0-tier1"
+      server: "https://kubernetes.default.svc"
+  # tier1 が触るべきでない cluster 級リソースを明示的に拒否する。
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    # tier1 から secret 直接作成を禁止する（OpenBao + ESO で注入する設計）。
+    - group: ""
+      kind: Secret
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

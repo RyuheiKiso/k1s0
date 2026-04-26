@@ -1,4 +1,5 @@
-// 本ファイルは tier1 公開 11 API のうち **Audit/PII API** の最小 stub。
+// 本ファイルは tier1 公開 12 API のうち **Audit API** の最小 stub。
+// PII API は別 proto（k1s0/tier1/pii/v1/pii_service.proto）に分離（IDL 上は 1 ファイルに同居だが service 分離）。
 //
 // **scope**: plan 03-02 のフル実装は要件定義（docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/）の
 //            精緻読込を要するため、本セッションでは service + 1 RPC の placeholder 構造のみ配置する。
@@ -14,7 +15,7 @@ syntax = "proto3";
 // パッケージ命名規約: k1s0.tier1.<api>.v1
 package k1s0.tier1.audit.v1;
 
-// AuditService: tier1 公開 Audit/PII API の最小 stub。
+// AuditService: tier1 公開 Audit API の最小 stub。
 // 本 service は plan 03-02 のフル実装で 1〜5 個の RPC に拡張される。
 service AuditService {
   // PlaceholderCall: フル実装前の最小 RPC。本 RPC は plan 03-02 で実 RPC 群に置換される。

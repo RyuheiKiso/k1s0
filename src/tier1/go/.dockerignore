@@ -1,0 +1,33 @@
+# =============================================================================
+# tier1 Go Docker build 用の .dockerignore
+# 設計: plan/04_tier1_Goファサード実装/01_リポジトリレイアウト.md
+# 役割: Docker build context に不要なファイルを除外（build 時間短縮 + 機密情報の image 混入防止）
+# =============================================================================
+
+# テストキャッシュ・成果物
+*_test.go
+testdata/
+coverage.out
+coverage.html
+
+# README は image に不要（運用時参照しない）
+README.md
+*.md
+
+# linter / formatter 設定（image build 中は不要）
+.golangci.yaml
+.golangci.yml
+
+# Dockerfile 自身（再帰防止）
+Dockerfile*
+.dockerignore
+
+# OS / IDE 一時ファイル
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# git 履歴（image に含めない）
+.git/
+.gitignore

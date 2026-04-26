@@ -1,0 +1,116 @@
+{{/*
+本ファイルは tier1-facade chart の Deployment 生成テンプレート。
+3 Pod（state / secret / workflow）を range で展開し、それぞれ独立した Deployment を生成する。
+
+設計: docs/05_実装/70_リリース設計/
+       docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md
+関連 ID: ADR-CICD-001 / ADR-CICD-002 / ADR-TIER1-001
+*/}}
+{{- range $podName, $podCfg := .Values.pods }}
+{{- if $podCfg.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tier1-facade.podFullname" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "tier1-facade.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
+    {{- include "tier1-facade.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $podCfg.replicas }}
+  selector:
+    matchLabels:
+      {{- include "tier1-facade.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tier1-facade.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 8 }}
+        {{- with $.Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        # Prometheus scrape 設定（採用初期で OTel collector に切替可能）。
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $podCfg.metricsPort | quote }}
+        prometheus.io/path: "/metrics"
+        # Dapr sidecar 注入（採用初期で本格運用、リリース時点ではコメント参考程度）。
+        dapr.io/enabled: "true"
+        dapr.io/app-id: {{ printf "tier1-%s" $podName | quote }}
+        dapr.io/app-port: {{ $podCfg.grpcPort | quote }}
+        dapr.io/app-protocol: "grpc"
+        {{- with $.Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "tier1-facade.serviceAccountName" $ }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ printf "tier1-%s" $podName }}
+          image: "{{ $.Values.image.registry }}/{{ $.Values.image.repositoryPrefix }}/{{ $podCfg.repositorySuffix }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- with $podCfg.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: grpc
+              containerPort: {{ $podCfg.grpcPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ $podCfg.metricsPort }}
+              protocol: TCP
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: {{ printf "k1s0-tier1-%s" $podName | quote }}
+            - name: K1S0_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: {{ include "tier1-facade.fullname" $ }}-config
+          # 標準 gRPC health protocol を probe する（grpc-health-probe は不要、k8s 1.24+ は gRPC probe 標準対応）。
+          livenessProbe:
+            grpc:
+              port: {{ $podCfg.grpcPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            grpc:
+              port: {{ $podCfg.grpcPort }}
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          resources:
+            {{- toYaml $podCfg.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          # readOnlyRootFilesystem=true 環境で /tmp が必要な場合は emptyDir を mount する。
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # graceful shutdown 用の余裕（common.Run の shutdownTimeout=25s + 余白 5s）。
+      terminationGracePeriodSeconds: 30
+{{- end }}
+{{- end }}

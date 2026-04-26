@@ -1,0 +1,21 @@
+{{/*
+本ファイルは tier1-facade chart の共通 ConfigMap 生成テンプレート。
+3 Pod すべてが同一 ConfigMap を envFrom で参照する。
+
+設計: docs/05_実装/70_リリース設計/
+関連 ID: ADR-OBS-002（OTel Collector）
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tier1-facade.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tier1-facade.labels" . | nindent 4 }}
+data:
+  # OTel exporter endpoint（gRPC / OTLP）。otel-collector が namespace 横断 Service として動く前提。
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.config.otelExporterEndpoint | quote }}
+  # ログレベル。各 Pod の log/slog handler が読み取る。
+  K1S0_LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  # OTel Resource attributes（service.name / service.namespace は Pod 別に Deployment 側で上書き）。
+  OTEL_RESOURCE_ATTRIBUTES: "service.namespace=k1s0,service.tier=tier1"

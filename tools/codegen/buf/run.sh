@@ -70,7 +70,7 @@ fi
 echo "[info] buf lint（事前チェック）"
 buf lint src/contracts
 
-# tier1 module（公開 11 API + health + 共通型）→ 4 言語 SDK
+# tier1 module（公開 12 API + health + 共通型）→ 4 言語 SDK
 # 引数なしで buf.gen.yaml の `inputs: directory` を活用（src/contracts/tier1 限定）
 echo "[info] buf generate (tier1 → SDK 4 言語)"
 buf generate --template buf.gen.yaml

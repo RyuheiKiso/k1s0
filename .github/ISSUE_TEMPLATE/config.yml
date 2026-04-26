@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+    - name: 質問 / Q&A
+      url: https://github.com/k1s0/k1s0/discussions/categories/q-a
+      about: バグでも機能要望でもない質問は GitHub Discussions の Q&A カテゴリへ
+    - name: アイデア共有 / Discussion
+      url: https://github.com/k1s0/k1s0/discussions/categories/ideas
+      about: 構想段階の議論は Discussions Ideas カテゴリへ
+    - name: セキュリティ報告
+      url: https://github.com/k1s0/k1s0/security/advisories/new
+      about: |
+          脆弱性報告は GitHub private vulnerability reporting で。
+          公開 Issue を作らないでください。SECURITY.md も参照のこと。

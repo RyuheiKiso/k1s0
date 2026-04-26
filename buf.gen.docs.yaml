@@ -5,7 +5,7 @@
 #       ADR-BS-001（Backstage TechDocs 連携）
 #
 # 役割:
-#   tier1 公開 11 API + 共通型から **gRPC reference docs** を Markdown / HTML で
+#   tier1 公開 12 API + 共通型から **gRPC reference docs** を Markdown / HTML で
 #   生成する。OpenAPI（buf.gen.openapi.yaml）が REST 互換クライアント向けなのに対し、
 #   本生成物は **gRPC native** で叩く採用側の正規仕様書として機能する。
 #
@@ -30,8 +30,9 @@ managed:
   override:
     # protoc-gen-doc は go_package を要求しないが、managed.enabled=true で他の
     # warning を抑制するため統一設定にする。
+    # docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md 正典 monorepo path-style。
     - file_option: go_package_prefix
-      value: github.com/k1s0/sdk/go/generated
+      value: github.com/k1s0/k1s0/src/sdk/go/generated
 
 plugins:
   # Markdown 出力（Backstage TechDocs / GitHub での閲覧に最適）

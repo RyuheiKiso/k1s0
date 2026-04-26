@@ -21,6 +21,7 @@
 [Docs](docs/) ·
 [ADR](docs/02_構想設計/adr/) ·
 [Contracts](docs/02_構想設計/02_tier1設計/) ·
+[Ship Status](docs/SHIP_STATUS.md) ·
 [License](#license)
  
 </div>
@@ -49,7 +50,7 @@ k1s0 は `infra` → `tier1` → `tier2` → `tier3` の 4 レイヤ構成をと
 | Layer | 責務 | 実装 | app から可視? |
 |---|---|---|---|
 | `infra/` | k8s / mesh / messaging / observability / secrets | kubeadm, Istio Ambient, Envoy Gateway, Strimzi Kafka, CloudNativePG, MinIO, OpenBao, LGTMP | — |
-| `tier1/` | 11 公開 API（Log / State / PubSub / Secret / Workflow / Audit / Decision / Settings / ...） | Go（Dapr ファサード）+ Rust（ZEN Engine / 暗号 / 雛形 CLI）+ `.proto` 契約 | SDK / gRPC のみ可視、内部言語は不可視 |
+| `tier1/` | 12 公開 API（Log / State / PubSub / Secret / Workflow / Audit / Decision / Settings / ...） | Go（Dapr ファサード）+ Rust（ZEN Engine / 暗号 / 雛形 CLI）+ `.proto` 契約 | SDK / gRPC のみ可視、内部言語は不可視 |
 | `sdk/` | contracts から生成される多言語クライアント | `K1s0.Sdk`（NuGet）/ `github.com/k1s0/sdk` / `k1s0-sdk` crate / `@k1s0/sdk` | yes |
 | `tier2/` | ドメイン共通業務ロジック | C# / Go（自由選択） | — |
 | `tier3/` | Web（React + TS + pnpm）/ Native（.NET MAUI）/ BFF（Go）/ Legacy wrap（.NET Framework） | — | — |
@@ -138,7 +139,7 @@ ADR-DIR-001/002/003 によりリリース時点で確定済み。ルートから
 ```
 k1s0/
 ├── src/
-│   ├── contracts/          # .proto — source of truth（tier1 公開 11 API + 内部 gRPC）
+│   ├── contracts/          # .proto — source of truth（tier1 公開 12 API + 内部 gRPC）
 │   ├── tier1/go/           # Dapr ファサード（stable Dapr Go SDK）
 │   ├── tier1/rust/         # ZEN Engine / crypto / 雛形 CLI
 │   ├── sdk/{dotnet,go,rust,typescript}/   # contracts から生成
@@ -174,9 +175,11 @@ git config core.sparseCheckoutCone true
 # 3. ローカルに infra を立てる（k3d + Dapr + Postgres + Kafka + Keycloak）
 ./tools/local-stack/up.sh
 
-# 4. contracts を再生成して tier1 facade を起動
+# 4. contracts を再生成して tier1 facade（3 Pod のいずれか）を起動
 buf generate
-cd src/tier1/go && go run ./cmd/k1s0d
+cd src/tier1/go && go run ./cmd/state    # State + PubSub APIs
+# or: go run ./cmd/secret                # Secrets + Binding APIs
+# or: go run ./cmd/workflow              # Workflow API
 ```
 
 VS Code で開く場合は、役割ごとの Dev Container プロファイル（`tools/devcontainer/profiles/`）を選ぶと、言語 toolchain / buf / kubectl / istioctl / dapr CLI / drawio CLI が揃う。docs-writer プロファイルがルート既定（軽量）。
@@ -194,10 +197,15 @@ VS Code で開く場合は、役割ごとの Dev Container プロファイル（
 
 k1s0 は起案者が業務外の時間で開発した個人開発 OSS で、リリース時点で全機能を一気通貫に同梱した状態で GitHub に公開している。リリース後の段階分割追加は採らず、採用側組織が必要な範囲を選び取って導入できる構成にしてある。
 
+> **実装マチュリティの正確な把握**: 本表は docs（設計）側の同梱範囲を示す。
+> 実コードの実装率（同梱済 / 雛形あり / 設計のみ）は領域別に
+> [`docs/SHIP_STATUS.md`](docs/SHIP_STATUS.md) で開示している。
+> OSS 採用検討者は SHIP_STATUS を必ず確認のうえ評価してほしい。
+
 | 領域 | 同梱内容 |
 |---|---|
 | infra | kubeadm / Istio Ambient / Envoy Gateway / Strimzi Kafka / CloudNativePG / MinIO / OpenBao / LGTMP |
-| tier1 | 11 公開 API（Log / State / PubSub / Secret / Workflow / Audit / Decision / Settings / ...） |
+| tier1 | 12 公開 API（Log / State / PubSub / Secret / Workflow / Audit / Decision / Settings / ...） |
 | ファサード | Dapr Go ファサード（stable Dapr Go SDK）+ Rust コア（ZEN Engine / 暗号 / 雛形 CLI） |
 | SDK | .NET / Go / Rust / TypeScript の 4 言語クライアント（contracts から自動生成） |
 | 配信 | Backstage 開発者ポータル / Argo CD / Argo Rollouts / OpenTofu |

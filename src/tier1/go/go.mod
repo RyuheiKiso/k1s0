@@ -7,7 +7,7 @@
 // scope（リリース時点）:
 //   plan 04-01 完了条件の最小骨格として `cmd/k1s0d` の gRPC server 起動 + 標準 gRPC health
 //   protocol（grpc.health.v1.Health/Check）応答までを提供。Dapr / Temporal / Keycloak / OpenBao
-//   の各 client wrapper、11 API ハンドラの実装は plan 04-02 〜 04-13 で順次追加する。
+//   の各 client wrapper、12 API ハンドラの実装は plan 04-02 〜 04-13 で順次追加する。
 //
 // module path: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md 正典に準拠（monorepo path-style）
 module github.com/k1s0/k1s0/src/tier1/go

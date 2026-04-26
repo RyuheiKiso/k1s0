@@ -1,0 +1,42 @@
+{{/*
+本ファイルは tier1-facade chart の Service 生成テンプレート。
+3 Pod 各 1 Service（gRPC + metrics ポート）を生成する。
+
+設計: docs/05_実装/70_リリース設計/
+関連 ID: ADR-CICD-001 / ADR-TIER1-001
+*/}}
+{{- range $podName, $podCfg := .Values.pods }}
+{{- if $podCfg.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tier1-facade.podFullname" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "tier1-facade.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
+    {{- include "tier1-facade.labels" $ | nindent 4 }}
+  {{- with $.Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $.Values.service.type }}
+  selector:
+    {{- include "tier1-facade.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
+  ports:
+    # gRPC ポート（tier2 / tier3 から SDK 経由で叩かれる、Istio Ambient で mTLS される）。
+    - name: grpc
+      port: {{ $podCfg.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      # appProtocol=grpc は Istio / Envoy が L7 識別に使う（k8s 1.20+）。
+      appProtocol: grpc
+    # metrics ポート（Prometheus / OTel collector が scrape する）。
+    - name: metrics
+      port: {{ $podCfg.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      appProtocol: http
+{{- end }}
+{{- end }}

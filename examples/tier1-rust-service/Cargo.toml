@@ -1,0 +1,46 @@
+# k1s0 examples/tier1-rust-service — Golden Path tier1 Rust 自作領域最小例
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/70_共通資産/03_examples配置.md（IMP-DIR-COMM-113）
+#       docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md
+# 関連 ID: ADR-TIER1-001 / ADR-RULE-001
+#
+# scope（リリース時点）:
+#   - Edition 2024 / `#![forbid(unsafe_code)]`
+#   - 最小 lib + bin 構成
+#   - panic-free / 型のみで動作する health check ロジック
+#
+# 採用初期で拡張:
+#   - tonic 経由の tier1 gRPC 呼び出し例
+#   - ZEN Engine 統合
+#   - integration test（Testcontainers ベース）
+#
+# 注: 本 example は src/tier1/rust/ workspace と独立させる（standalone）。
+#     新規メンバーが「単体で cargo run できる最小形」を学ぶための設計。
+
+[package]
+name = "k1s0-example-tier1-rust-service"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "k1s0 Golden Path: tier1 Rust 自作領域の最小例"
+repository = "https://github.com/k1s0/k1s0"
+publish = false
+rust-version = "1.85"
+
+[lib]
+name = "k1s0_example_tier1_rust_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "example-rust-service"
+path = "src/main.rs"
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+# binary size 最適化（ZEN Engine 等の本実装が増えても再現性ある最小形）
+strip = true
+lto = "thin"
+codegen-units = 1

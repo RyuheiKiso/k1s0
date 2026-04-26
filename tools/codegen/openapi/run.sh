@@ -7,7 +7,7 @@
 #
 # 出力:
 #   docs/02_構想設計/02_tier1設計/openapi/v1/k1s0-tier1.swagger.yaml
-#   （allow_merge=true で 11 API + health + 共通型を 1 yaml にマージ）
+#   （allow_merge=true で 12 API + health + 共通型を 1 yaml にマージ）
 #
 # Usage:
 #   tools/codegen/openapi/run.sh         # 通常生成

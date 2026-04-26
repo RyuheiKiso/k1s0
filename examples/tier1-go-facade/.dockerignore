@@ -1,0 +1,20 @@
+# Docker build に不要なファイルを除外する。
+# README.md は採用検討者の参照用、catalog-info.yaml は Backstage 用。
+
+# git メタデータ
+.git
+.gitignore
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+
+# テスト成果物
+*.out
+*.test
+coverage.txt
+
+# ローカル一時
+tmp/
+*.log

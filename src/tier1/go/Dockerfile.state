@@ -1,0 +1,57 @@
+# =============================================================================
+# t1-state Pod 用 Dockerfile（5 API 統合 Router: ServiceInvoke / State / PubSub / Binding / Feature）
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md（Pod 別 Dockerfile 配置正典）
+#       docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md
+#       plan/04_tier1_Goファサード実装/01_リポジトリレイアウト.md
+# 関連 ID: IMP-BUILD-002 / IMP-BUILD-DOCKER-* / DS-SW-COMP-023 / ADR-TIER1-001
+#
+# build context: リポジトリルート（`docker build -f src/tier1/go/Dockerfile.state src/tier1/go/`）
+#
+# 設計方針:
+#   - multi-stage: golang:1.22-alpine で build → distroless/static-debian12:nonroot で run
+#   - CGO_ENABLED=0: pure Go ビルド、glibc 依存なしで distroless でも動作
+#   - -ldflags="-s -w": symbol table と debug info 削除でバイナリサイズ削減
+#   - -trimpath: ビルド path を normalize（再現性向上、CI/CD で同一ハッシュ保証）
+#   - distroless: shell / package manager 含まない最小 base image（攻撃面最小化）
+#   - nonroot: UID 65532 で起動（特権削除、k8s securityContext 整合）
+#   - EXPOSE 50001 9090: gRPC + metrics ポート（docs 正典）
+# =============================================================================
+
+# build stage: Go 1.22 Alpine（最小サイズの builder）
+FROM golang:1.22-alpine AS builder
+
+# ビルド作業ディレクトリ。リポジトリルートから本 Dockerfile が呼ばれる前提なので src/tier1/go/ をマウントする。
+WORKDIR /workspace
+
+# 依存関係を先に解決してレイヤキャッシュを効かせる（go.mod 変更時のみ再 download）。
+COPY go.mod go.sum ./
+RUN go mod download
+
+# ソース全体をコピーしてビルド。.dockerignore で不要ファイルを除外する想定。
+COPY . .
+
+# t1-state バイナリをビルド。
+# -ldflags="-s -w" で symbol/debug info 削除、-trimpath で path 正規化。
+RUN CGO_ENABLED=0 go build \
+    -ldflags="-s -w" \
+    -trimpath \
+    -o /out/t1-state \
+    ./cmd/state
+
+# =============================================================================
+# runtime stage: distroless static（debian12 ベース、shell/pkg manager なし）
+# =============================================================================
+FROM gcr.io/distroless/static-debian12:nonroot
+
+# build stage からバイナリのみをコピー（ソース / Go toolchain は image に残らない）。
+COPY --from=builder /out/t1-state /usr/local/bin/t1-state
+
+# gRPC（50001）と metrics（9090）の 2 ポートを公開する（docs 正典 EXPOSE）。
+EXPOSE 50001 9090
+
+# distroless の nonroot user（UID 65532）で起動。k8s securityContext.runAsNonRoot=true と整合。
+USER nonroot:nonroot
+
+# exec 形式の ENTRYPOINT（PID 1 で signal が直接バイナリに届く、graceful shutdown が正常動作）。
+ENTRYPOINT ["/usr/local/bin/t1-state"]
