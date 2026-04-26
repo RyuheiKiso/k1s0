@@ -31,6 +31,8 @@ import (
 
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// t1-secret Pod の handler（SecretsService 単独）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/secret"
 )
 
 // :50001 は docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md（EXPOSE 50001）正典準拠。
@@ -44,14 +46,14 @@ func main() {
 	// flag 解析を起動直後に確定させる。
 	flag.Parse()
 
-	// Pod メタデータを構築する（service 登録は plan 04-06 で実装）。
+	// Pod メタデータを構築する（SecretsService 登録、OpenBao 結線は plan 04-06）。
 	pod := common.Pod{
 		// Pod 論理名。ログ出力で "tier1/secret" として表示される。
 		Name: "secret",
 		// 既定 listen address。flag 未指定時に common.Run へ渡される値の参照用。
 		DefaultListen: defaultListen,
-		// service 登録 hook。Secrets handler 実装が揃うまで nil。
-		Register: nil,
+		// service 登録 hook。SecretsService を登録（リリース時点 全 RPC は Unimplemented）。
+		Register: secret.Register(),
 		// 構造体リテラルを閉じる。
 	}
 

@@ -1,0 +1,153 @@
+// 本ファイルは t1-state Pod の StateService 5 RPC ハンドラ実装。
+//
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/02_State_API.md
+//   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md
+//
+// scope（リリース時点 placeholder）:
+//   adapter.StateAdapter に委譲するが、adapter は ErrNotWired を返すため
+//   全 RPC で codes.Unimplemented を返却する。
+//   実 Dapr State Management（Valkey）結線は plan 04-04。
+
+package state
+
+// 標準 / 内部パッケージ。
+import (
+	// 全 RPC で context を伝搬する。
+	"context"
+	// Dapr adapter（ErrNotWired 判定用）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// SDK 生成 stub の StateService 型。
+	statev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/state/v1"
+	// gRPC エラーコード。
+	"google.golang.org/grpc/codes"
+	// gRPC ステータスエラー。
+	"google.golang.org/grpc/status"
+	// errors.Is で sentinel エラー判定。
+	"errors"
+)
+
+// stateHandler は StateService の handler 実装。
+// Unimplemented を埋め込むことで、proto 側に新 RPC が追加されてもコンパイル可能。
+type stateHandler struct {
+	// 将来追加 RPC のため埋め込み（本リリース時点は全 5 RPC を override 済）。
+	statev1.UnimplementedStateServiceServer
+	// adapter 集合への参照。
+	deps Deps
+}
+
+// Get は単一キー取得。adapter 経由 Valkey 取得（リリース時点 placeholder）。
+func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*statev1.GetResponse, error) {
+	// 入力 nil 防御（gRPC では通常起きないが defensive）。
+	if req == nil {
+		// gRPC 慣用のエラー返却。
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
+	}
+	// adapter 入力に変換する。
+	areq := dapr.StateGetRequest{
+		// proto の store フィールドをそのまま渡す。
+		Store: req.GetStore(),
+		// proto の key フィールドをそのまま渡す。
+		Key: req.GetKey(),
+		// TenantContext.tenant_id を adapter に渡す。
+		TenantID: tenantIDOf(req.GetContext()),
+	}
+	// adapter 呼出。
+	aresp, err := h.deps.StateAdapter.Get(ctx, areq)
+	// ErrNotWired は Unimplemented に翻訳する。
+	if err != nil {
+		// 翻訳 helper に委譲する。
+		return nil, translateErr(err, "Get", "plan 04-04")
+	}
+	// adapter 応答を proto 応答に変換する。
+	return &statev1.GetResponse{
+		// 値本文。
+		Data: aresp.Data,
+		// ETag。
+		Etag: aresp.Etag,
+		// 未存在フラグ。
+		NotFound: aresp.NotFound,
+	}, nil
+}
+
+// Set は単一キー保存。
+func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*statev1.SetResponse, error) {
+	// 入力 nil 防御。
+	if req == nil {
+		// 不正引数として返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
+	}
+	// adapter 入力に変換する。
+	areq := dapr.StateSetRequest{
+		// store。
+		Store: req.GetStore(),
+		// key。
+		Key: req.GetKey(),
+		// data。
+		Data: req.GetData(),
+		// 期待 ETag。
+		ExpectedEtag: req.GetExpectedEtag(),
+		// TTL 秒。
+		TTLSeconds: req.GetTtlSec(),
+		// テナント。
+		TenantID: tenantIDOf(req.GetContext()),
+	}
+	// adapter 呼出。
+	if err := h.deps.StateAdapter.Set(ctx, areq); err != nil {
+		// 翻訳して返却する。
+		return nil, translateErr(err, "Set", "plan 04-04")
+	}
+	// 成功応答（new_etag は plan 04-04 で adapter 戻り値から埋める）。
+	return &statev1.SetResponse{NewEtag: ""}, nil
+}
+
+// Delete は単一キー削除。
+func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (*statev1.DeleteResponse, error) {
+	// 入力 nil 防御。
+	if req == nil {
+		// 不正引数として返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
+	}
+	// adapter 入力に変換する（StateSetRequest を流用）。
+	areq := dapr.StateSetRequest{
+		// store。
+		Store: req.GetStore(),
+		// key。
+		Key: req.GetKey(),
+		// 期待 ETag。
+		ExpectedEtag: req.GetExpectedEtag(),
+		// テナント。
+		TenantID: tenantIDOf(req.GetContext()),
+	}
+	// adapter 呼出。
+	if err := h.deps.StateAdapter.Delete(ctx, areq); err != nil {
+		// 翻訳して返却する。
+		return nil, translateErr(err, "Delete", "plan 04-04")
+	}
+	// 成功応答。
+	return &statev1.DeleteResponse{Deleted: true}, nil
+}
+
+// BulkGet は複数キーの一括取得。リリース時点 では Unimplemented。
+func (h *stateHandler) BulkGet(_ context.Context, _ *statev1.BulkGetRequest) (*statev1.BulkGetResponse, error) {
+	// 翻訳 helper を経由せず直接 Unimplemented。
+	return nil, status.Error(codes.Unimplemented, "tier1/state: BulkGet not yet wired (plan 04-04)")
+}
+
+// Transact はトランザクション境界付き複数操作。リリース時点 では Unimplemented。
+func (h *stateHandler) Transact(_ context.Context, _ *statev1.TransactRequest) (*statev1.TransactResponse, error) {
+	// 直接 Unimplemented。
+	return nil, status.Error(codes.Unimplemented, "tier1/state: Transact not yet wired (plan 04-04)")
+}
+
+// translateErr は adapter エラーを gRPC ステータスエラーに翻訳する。
+// ErrNotWired は Unimplemented に、それ以外は Internal に翻訳する。
+func translateErr(err error, rpc string, plan string) error {
+	// ErrNotWired は計画に従い Unimplemented とする。
+	if errors.Is(err, dapr.ErrNotWired) {
+		// 呼出 RPC 名と計画 ID を含めたメッセージを返却する。
+		return status.Errorf(codes.Unimplemented, "tier1/state: %s not yet wired to Dapr backend (%s)", rpc, plan)
+	}
+	// 想定外エラーは Internal にマップする。
+	return status.Errorf(codes.Internal, "tier1/state: %s adapter error: %v", rpc, err)
+}

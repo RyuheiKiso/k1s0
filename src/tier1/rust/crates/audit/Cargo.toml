@@ -1,0 +1,32 @@
+# t1-audit Pod の crate。WORM ストア（Postgres + immutable view）StatefulSet Pod。
+#
+# docs 正典:
+#   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/01_tier1全体コンポーネント俯瞰.md
+#     - DS-SW-COMP-007（t1-audit Pod）
+#   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（AuditService 部）
+#
+# 役割（リリース時点 最小骨格）:
+#   tonic server を :50001 で起動し AuditService（Record / Query）を登録する。
+#   全 RPC は Status::unimplemented を返却。実 Postgres WORM 結線は plan 04-09 で実装。
+
+[package]
+name = "k1s0-tier1-audit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 t1-audit Pod (WORM audit log)"
+
+# Pod バイナリ。
+[[bin]]
+name = "t1-audit"
+path = "src/main.rs"
+
+[dependencies]
+# 公開 API（AuditService）の Service trait。
+k1s0-sdk-proto = { workspace = true }
+# tonic / tokio / prost は workspace 共通設定を継承。
+tonic = { workspace = true }
+tokio = { workspace = true }
+prost = { workspace = true }

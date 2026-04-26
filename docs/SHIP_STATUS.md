@@ -38,11 +38,11 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 |---|---|---|---|
 | `src/contracts/tier1/` proto 12 サービス | 12 API（state / pubsub / serviceinvoke / secrets / binding / workflow / log / telemetry / decision / audit / feature / pii） | **同梱済** | 12 サービスの正式 RPC を `docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/` 正典から移植済（合計 43 RPC、`buf lint` / `buf format` 通過、4 SDK 再生成済）。共通型は `common/v1/common.proto`（TenantContext / ErrorDetail / K1s0ErrorCategory）に集約。Audit と PII は IDL 上 1 ファイルだがディレクトリ設計に従い 2 パッケージに分割 |
 | `src/contracts/internal/` proto | tier1 内部 gRPC（Go ↔ Rust core） | **雛形あり** | placeholder 1 ファイル |
-| `src/tier1/go/cmd/{state,secret,workflow}/` | Go 側 3 Pod（DS-SW-COMP-005/006/010、6 Pod 構成のうち Go 担当分） | **雛形あり** | gRPC server bootstrap + standard health protocol + reflection + graceful shutdown は動作。各 API のハンドラ実装は未登録（`Register: nil`）。Log / Telemetry は t1-state Pod の内部 adapter（DS-SW-COMP-037/038）として収容される設計 |
+| `src/tier1/go/cmd/{state,secret,workflow}/` | Go 側 3 Pod（DS-SW-COMP-005/006/010、6 Pod 構成のうち Go 担当分） | **雛形あり** | gRPC server bootstrap + standard health protocol + reflection + graceful shutdown 動作。**全 7 公開 API の handler 登録完了**（t1-state: 5 / t1-secret: 1 / t1-workflow: 1）。各 RPC は `internal/adapter/dapr/` 経由で `codes.Unimplemented` を返す（Dapr backend 結線は plan 04-04〜04-13 で順次）。Log / Telemetry は t1-state Pod の内部 adapter（DS-SW-COMP-037/038）として収容される設計 |
 | `src/tier1/go/internal/common/` | 共通 runtime（gRPC bootstrap / config / retry / timeout） | **同梱済** | runtime / config / retry / timeout の 4 ユーティリティとテストが存在 |
 | `src/tier1/go/internal/otel/` | OTel 初期化 | **雛形あり** | 1 ファイルの最小骨格 |
-| `src/tier1/rust/crates/{decision, audit, pii}` | Rust 側 3 Pod（DS-SW-COMP-008/007/009、6 Pod 構成のうち Rust 担当分） | **設計のみ** | crate ディレクトリは存在するが Cargo.toml / .rs ファイルなし。t1-decision（ZEN Engine）/ t1-audit（StatefulSet WORM）/ t1-pii（純関数マスキング）の 3 独立 Pod として実装予定 |
-| `src/tier1/rust/crates/{common, otel-util, policy, proto, proto-gen}` | 共通 crate / proto stub | **設計のみ** | crate ディレクトリは存在するが中身未着手 |
+| `src/tier1/rust/crates/{decision, audit, pii}` | Rust 側 3 Pod（DS-SW-COMP-008/007/009、6 Pod 構成のうち Rust 担当分） | **雛形あり** | 3 crate（k1s0-tier1-decision / k1s0-tier1-audit / k1s0-tier1-pii）の Cargo.toml + src/main.rs を配置。tonic server を :50001 で起動し公開 Service trait を登録、graceful shutdown 対応。**全 RPC は Status::unimplemented を返す**（実 ZEN Engine / Postgres WORM / PII 検出ロジックは plan 04-08〜04-10 で順次） |
+| `src/tier1/rust/crates/{common, otel-util, policy, proto, proto-gen}` | 共通 crate / proto stub | **雛形あり** | proto-gen crate（k1s0-tier1-proto-gen）を配置し buf 生成 internal proto を Rust module 階層に束ねた。common / otel-util / policy / proto は plan 04-02 / 04-08 等で内容実装に追従し workspace.members に追加予定（現在は exclude） |
 | Dockerfile（distroless / nonroot / multi-stage） | 3 Pod 各 1 Dockerfile | **同梱済** | `Dockerfile.{state,secret,workflow}` は完成 |
 
 ### contracts と SDK 生成
@@ -199,18 +199,32 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   internal 漏洩バグを併せて修正）
 - TypeScript の生成 import に `.js` 拡張子を付与（`import_extension=.js`）し NodeNext 解決を満たす設定に統一
 
-### 3. tier1 Go ファサードのハンドラ登録（DS-SW-COMP-005/006/010）
+### 3. tier1 Go ファサードのハンドラ登録（DS-SW-COMP-005/006/010）— **完了**
 
-- `src/tier1/go/cmd/{state,secret,workflow}/main.go` の `Register: nil` を実装に置換
-- t1-state Pod は 5 API（ServiceInvoke / State / PubSub / Binding / Feature）を登録
-- t1-secret は SecretsService、t1-workflow は WorkflowService
-- Dapr Go SDK adapter（`internal/adapter/dapr/`）に I/O を委譲する
+- `src/tier1/go/cmd/{state,secret,workflow}/main.go` の `Register: nil` を `state.Register(deps)` /
+  `secret.Register()` / `workflow.Register()` に置換済
+- t1-state Pod は 5 API（ServiceInvoke / State / PubSub / Binding / Feature）を登録、合計 22 RPC handler を実装
+  - `internal/state/{register,invoke,state,pubsub,binding,feature,context,errors}.go`
+- t1-secret Pod は SecretsService（3 RPC）を登録、t1-workflow Pod は WorkflowService（6 RPC）を登録
+- Dapr Go SDK adapter scaffold を `internal/adapter/dapr/{dapr,state,pubsub,binding,invoke,feature}.go` に配置
+  - `Client` / 5 つの building block 別 adapter（StateAdapter / PubSubAdapter / BindingAdapter / InvokeAdapter / FeatureAdapter）
+  - `ErrNotWired` センチネルで Dapr 未結線を表現、handler 側で `codes.Unimplemented` に翻訳
+- 実 Dapr SDK 接続（`github.com/dapr/go-sdk/client`）と OpenBao / Temporal の結線は plan 04-04 〜 04-14 で
+  順次実装。本リリース時点 では **registration shape のみ完成**（gRPC reflection で 7 service が見える）
+- `go build ./...` / `go vet ./...` / `go test ./...` 全通過
 
-### 4. tier1 Rust 3 Pod の最小実装（DS-SW-COMP-008/007/009）
+### 4. tier1 Rust 3 Pod の最小実装（DS-SW-COMP-008/007/009）— **完了**
 
-- `src/tier1/rust/Cargo.toml` workspace の起点を作る
-- `src/tier1/rust/crates/{decision,audit,pii}/` に Cargo.toml + src/{lib,main}.rs を配置
-- それぞれ `tonic` server を起動し `k1s0-sdk-proto` から型を import
+- `src/tier1/rust/Cargo.toml` workspace を配置（edition 2024、4 members: decision / audit / pii / proto-gen）
+- 3 Pod crate に `Cargo.toml` + `src/main.rs` を配置:
+  - `crates/decision/`（k1s0-tier1-decision）: DecisionService（Evaluate / BatchEvaluate）+ DecisionAdminService（RegisterRule / ListVersions / GetRule）登録、5 RPC 全て Status::unimplemented
+  - `crates/audit/`（k1s0-tier1-audit）: AuditService（Record / Query）登録、2 RPC 全て Status::unimplemented
+  - `crates/pii/`（k1s0-tier1-pii）: PiiService（Classify / Mask）登録、2 RPC 全て Status::unimplemented
+- `crates/proto-gen/`（k1s0-tier1-proto-gen）: buf 生成 internal proto を `k1s0::internal::v1` module に束ねる薄い lib crate
+- `k1s0-sdk-proto` を path 参照で取込（`../../sdk/rust/crates/k1s0-sdk-proto`）し公開 Service trait と型を共有
+- 各 main.rs は `tokio::main` runtime + tonic Server + SIGINT/SIGTERM graceful shutdown
+- `cargo metadata` / `cargo verify-project` 通過（フル `cargo check` は C リンカが必要なため CI 任せ）
+- 補助 crate（common / otel-util / policy / proto）は内容実装まで `workspace.exclude` に置き、plan 04-02 / 04-08 で順次合流
 
 ### 5. infra マニフェストの実体化（IMP-DEV-POL-006）
 

@@ -1,0 +1,62 @@
+# k1s0 tier1 Rust core Cargo workspace（リリース時点 最小、3 Pod の起点骨格）
+#
+# docs 正典:
+#   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/01_tier1全体コンポーネント俯瞰.md
+#     - DS-SW-COMP-008（t1-decision: ZEN Engine JDM 評価 Pod）
+#     - DS-SW-COMP-007（t1-audit: WORM ストア StatefulSet Pod）
+#     - DS-SW-COMP-009（t1-pii: 純関数ステートレス Pod）
+#   docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/04_rust_crate配置.md
+#     - workspace ルート: src/tier1/rust/Cargo.toml
+#     - 3 Pod crate（decision / audit / pii）+ 補助 crate（common / otel-util / policy / proto / proto-gen）
+#   docs/05_実装/10_ビルド設計/10_Rust_Cargo_workspace/01_Rust_Cargo_workspace.md
+#     - Cargo edition 2024、[workspace.dependencies] 最小化
+#   docs/02_構想設計/adr/ADR-TIER1-001-go-rust-hybrid.md
+#     - Go ファサード ⇄ Rust core の Hybrid 構成、内部通信 Protobuf gRPC
+#
+# 構成（リリース時点 最小、補助 crate は内容実装に追従して順次 members に追加）:
+#   crates/decision/    ... t1-decision Pod 実装（DS-SW-COMP-008）
+#   crates/audit/       ... t1-audit Pod 実装（DS-SW-COMP-007）
+#   crates/pii/         ... t1-pii Pod 実装（DS-SW-COMP-009）
+#   crates/proto-gen/   ... buf 生成 internal proto stub（k1s0.internal.v1）
+#
+# tier1 Rust core が公開 API（DecisionService / AuditService / PiiService）の Service trait を
+# 取得するため、SDK Rust workspace（src/sdk/rust/）の k1s0-sdk-proto crate を path 参照する。
+# リリース時点 SDK が crates.io に publish されたら path を crate version に切り替える。
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/decision",
+    "crates/audit",
+    "crates/pii",
+    "crates/proto-gen",
+]
+# 補助 crate（common / otel-util / policy / proto）は内容実装に伴い members に追加する（plan 04-08 〜）。
+exclude = [
+    "crates/common",
+    "crates/otel-util",
+    "crates/policy",
+    "crates/proto",
+]
+
+# k1s0 tier1 全体で使う共通バージョン情報。
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/k1s0/k1s0"
+
+# docs 正典「[workspace.dependencies] を最小化」に従い、tonic / prost / tokio に絞る。
+[workspace.dependencies]
+# gRPC ランタイム（tonic は prost に依存）
+tonic = { version = "0.12", default-features = false, features = ["codegen", "prost", "transport"] }
+# protobuf ランタイム
+prost = { version = "0.13", default-features = false, features = ["std"] }
+prost-types = { version = "0.13", default-features = false, features = ["std"] }
+# 非同期ランタイム（Pod 起動時にフル機能必要）
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "signal", "net"] }
+# SDK 公開 API の Service trait を取得するため、SDK workspace の k1s0-sdk-proto を path 参照する。
+k1s0-sdk-proto = { path = "../../sdk/rust/crates/k1s0-sdk-proto", version = "0.1" }
+# 内部 proto stub
+k1s0-tier1-proto-gen = { path = "crates/proto-gen", version = "0.1" }

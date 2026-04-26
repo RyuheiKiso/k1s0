@@ -1,0 +1,32 @@
+# t1-pii Pod の crate。純関数ステートレスな PII 検出 / マスキング Pod。
+#
+# docs 正典:
+#   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/01_tier1全体コンポーネント俯瞰.md
+#     - DS-SW-COMP-009（t1-pii Pod、純関数 / ステートレス / 副作用なし）
+#   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（PiiService 部）
+#
+# 役割（リリース時点 最小骨格）:
+#   tonic server を :50001 で起動し PiiService（Classify / Mask）を登録する。
+#   全 RPC は Status::unimplemented を返却。実 PII 検出ロジック実装は plan 04-10。
+
+[package]
+name = "k1s0-tier1-pii"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 t1-pii Pod (stateless PII detection and masking)"
+
+# Pod バイナリ。
+[[bin]]
+name = "t1-pii"
+path = "src/main.rs"
+
+[dependencies]
+# 公開 API（PiiService）の Service trait。
+k1s0-sdk-proto = { workspace = true }
+# tonic / tokio / prost は workspace 共通設定を継承。
+tonic = { workspace = true }
+tokio = { workspace = true }
+prost = { workspace = true }
