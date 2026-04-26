@@ -7,12 +7,12 @@
 # 関連 ID: IMP-CODEGEN-001（buf workspace 構成）
 #
 # v2 では従来の buf.work.yaml を廃止し、modules 配下に複数 module を集約する。
-# tier1（公開 11 API）と internal（tier1 内部 gRPC）を 2 module で分離する設計。
+# tier1（公開 12 API）と internal（tier1 内部 gRPC）を 2 module で分離する設計。
 # =============================================================================
 version: v2
 
 modules:
-  # tier1: 公開 11 API（state / pubsub / serviceinvoke / secrets / binding /
+  # tier1: 公開 12 API（state / pubsub / serviceinvoke / secrets / binding /
   #        workflow / log / telemetry / decision / audit / feature）
   - path: tier1
     name: buf.build/k1s0/tier1
