@@ -1,0 +1,89 @@
+name: バグ報告 / Bug report
+description: k1s0 のバグ報告
+title: "[bug] "
+labels: ["type/bug", "needs-triage"]
+body:
+    - type: markdown
+      attributes:
+          value: |
+              バグ報告ありがとうございます。再現手順と期待動作・実動作を明記してください。
+
+    - type: input
+      id: version
+      attributes:
+          label: バージョン / commit
+          description: k1s0 のリリースタグ、または git commit SHA
+          placeholder: v0.1.0 / 5fb53a83
+      validations:
+          required: true
+
+    - type: dropdown
+      id: area
+      attributes:
+          label: 影響領域
+          multiple: true
+          options:
+              - tier1-go
+              - tier1-rust
+              - tier2
+              - tier3-web
+              - tier3-native
+              - tier3-bff
+              - sdk-dotnet
+              - sdk-go
+              - sdk-rust
+              - sdk-typescript
+              - contracts
+              - infra
+              - deploy
+              - ops
+              - tools
+              - docs
+              - その他
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduce
+      attributes:
+          label: 再現手順
+          description: 最小再現手順（Minimal Reproducible Example）
+          placeholder: |
+              1. clone する
+              2. `tools/local-stack/up.sh --role tier1-go-dev` を実行
+              3. ...
+      validations:
+          required: true
+
+    - type: textarea
+      id: expected
+      attributes:
+          label: 期待動作
+      validations:
+          required: true
+
+    - type: textarea
+      id: actual
+      attributes:
+          label: 実動作 / エラーログ
+          render: shell
+      validations:
+          required: true
+
+    - type: textarea
+      id: env
+      attributes:
+          label: 環境
+          description: OS / k8s 版 / 言語 toolchain 版 / Dev Container 利用有無 等
+          placeholder: |
+              - OS: Ubuntu 22.04 / WSL2
+              - k8s: kind v0.24
+              - go: 1.22.5
+              - dapr: 1.17.5
+      validations:
+          required: false
+
+    - type: textarea
+      id: notes
+      attributes:
+          label: 補足
