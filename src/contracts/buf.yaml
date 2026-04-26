@@ -13,7 +13,7 @@ version: v2
 
 modules:
   # tier1: 公開 12 API（state / pubsub / serviceinvoke / secrets / binding /
-  #        workflow / log / telemetry / decision / audit / feature）
+  #        workflow / log / telemetry / decision / audit / feature / pii）
   - path: tier1
     name: buf.build/k1s0/tier1
 

@@ -1,6 +1,6 @@
 // 本ファイルは tier1 ヘルスチェック用の補助 proto。
 // 12 API 公開リスト（state / pubsub / serviceinvoke / secrets / binding /
-// workflow / log / telemetry / decision / audit / feature）には **含まれない**
+// workflow / log / telemetry / decision / audit / feature / pii）には **含まれない**
 // プロセス生存確認 / k8s probe 用 RPC で、Liveness / Readiness の 2 RPC のみ。
 //
 // 12 API 本体は plan 03-02 で `src/contracts/tier1/k1s0/tier1/<api>/v1/` 配下に展開する。
