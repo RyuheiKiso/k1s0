@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: admin
+  description: tier3 管理画面（React + Vite、role=admin）
+  tags:
+    - tier3
+    - typescript
+    - react
+    - admin
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/tier: tier3
+    k1s0.io/component: admin
+    k1s0.io/lang: typescript
+    k1s0.io/env: dev
+spec:
+  type: website
+  lifecycle: experimental
+  owner: tier3-web
+  providesApis: []
+  consumesApis:
+    - admin-bff
+  dependsOn:
+    - component:admin-bff

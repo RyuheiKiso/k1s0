@@ -1,0 +1,33 @@
+{
+  "name": "@k1s0/admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "k1s0 管理画面（React + Vite、admin-bff 連携）",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@k1s0/api-client": "workspace:*",
+    "@k1s0/config": "workspace:*",
+    "@k1s0/i18n": "workspace:*",
+    "@k1s0/ui": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}

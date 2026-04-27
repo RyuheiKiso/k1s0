@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: docs-site
+  description: tier3 ドキュメントサイト（React + Vite、リリース時点 で Docusaurus 移行予定）
+  tags:
+    - tier3
+    - typescript
+    - react
+    - docs
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/tier: tier3
+    k1s0.io/component: docs-site
+    k1s0.io/lang: typescript
+    k1s0.io/env: dev
+spec:
+  type: website
+  lifecycle: experimental
+  owner: tier3-web
+  providesApis: []
+  consumesApis: []
+  dependsOn: []

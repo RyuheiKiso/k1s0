@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: portal
+  description: tier3 配信ポータル（React + Vite）
+  tags:
+    - tier3
+    - typescript
+    - react
+    - vite
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/tier: tier3
+    k1s0.io/component: portal
+    k1s0.io/lang: typescript
+    k1s0.io/env: dev
+spec:
+  type: website
+  lifecycle: experimental
+  owner: tier3-web
+  providesApis: []
+  consumesApis:
+    - portal-bff
+  dependsOn:
+    - component:portal-bff
