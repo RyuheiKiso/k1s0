@@ -54,7 +54,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `src/sdk/dotnet/generated/` | .NET stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル） |
 | `src/sdk/rust/generated/` | Rust prost / tonic stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: prost + tonic の 14 proto 分） |
 | `src/sdk/typescript/generated/` | TS protobuf-es / connect-es stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: pb.ts + connect.ts の 14 proto 分） |
-| 高水準 SDK（`k1s0.Log.Info(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **設計のみ** | 生成された stub はあるが、README が示す `k1s0.State.SaveAsync(...)` 等の facade 層は未実装 |
+| 高水準 SDK（`k1s0.State.Save(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **雛形あり**（State / PubSub / Secrets の 3 代表 service） | 4 言語すべてに Client + 動詞統一 facade を実装。Go: `c.State().Save()` / `c.PubSub().Publish()` / `c.Secrets().Get()`。Rust: `client.state().save()` 等（async）。TypeScript: `client.state.save()` 等（Promise）。.NET: `client.State.SaveAsync()` 等。Go `go build ./...` 通過、Rust `cargo verify-project` 通過、TypeScript `pnpm typecheck && pnpm build` 通過、.NET `dotnet build Sdk.sln` 通過。残り 9 service（Invoke / Workflow / Log / Telemetry / Decision / Audit / Pii / Feature / Binding）は raw client 経由（`Client.Raw()` / `client.raw_state()` / `client.rawState()` / `client.Raw`） |
 
 ### tier2（C# / Go ドメイン共通）
 
@@ -288,10 +288,17 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   tier3-bff-graphql / tier3-native-maui の 4 種を完動状態に
 - 週次 E2E ワークフロー `.github/workflows/example-<name>.yml` を 7 種分配置
 
-### 8. SDK 高水準ファサード（README に示された動詞統一）
+### 8. SDK 高水準ファサード（README に示された動詞統一）— **代表 3 service 完了**
 
-- `k1s0.Log.Info(ctx, ...)` / `k1s0.State.Save(...)` 等の動詞統一 API を
-  各 SDK 言語で実装（生成 stub の上に薄い facade を被せる）
-- README コードサンプルが実コンパイルする状態を保証する
+- ✅ 4 言語すべてに Client + 動詞統一 facade を State / PubSub / Secrets の 3 代表 service で配置
+  - Go: `src/sdk/go/k1s0/{client,state,pubsub,secrets,doc}.go`、`go build ./...` 通過
+  - Rust: `src/sdk/rust/crates/k1s0-sdk/src/{lib,client,state,pubsub,secrets}.rs`、async/Channel 共有、`cargo verify-project` 通過
+  - TypeScript: `src/sdk/typescript/src/{index,client,state,pubsub,secrets}.ts`、Connect-RPC + protobuf-es v1、`pnpm typecheck && pnpm build` 通過
+  - .NET: `src/sdk/dotnet/src/K1s0.Sdk.Grpc/{K1s0Client,StateFacade,PubSubFacade,SecretsFacade}.cs`、`dotnet build Sdk.sln` 通過（net8.0 単独に変更、netstandard2.1 多重 TFM は plan 後続で再導入）
+- 🔲 残り 9 service の動詞統一 facade（plan 06-XX 以降）:
+  - Invoke / Workflow / Log / Telemetry / Decision / Audit / Pii / Feature / Binding
+  - 本リリース時点 では Client.Raw() / Client.raw_state() / Client.rawState() / Client.Raw 経由で生成 stub に直接アクセス可能
+  - パターンは State facade に確立済（4 言語ともに proto Request/Response 変換 + TenantContext 自動付与 + idiomatic 引数）
+- README コードサンプルが各言語で実コンパイルすることを `dotnet build` / `go build` / `tsc` で確認済
 
 各タスクは完成のたびに本 SHIP_STATUS.md のマチュリティ表を更新する運用とする。
