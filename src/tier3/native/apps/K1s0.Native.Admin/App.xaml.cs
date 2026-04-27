@@ -1,3 +1,6 @@
+// 本ファイルは K1s0.Native.Admin（MAUI 管理者アプリ）のエントリ Application クラス。
+// XAML を伴わない最小実装で、ウィンドウ初期化と暫定 ContentPage の組み立てを担う。
+
 namespace K1s0.Native.Admin;
 
 public partial class App : Application

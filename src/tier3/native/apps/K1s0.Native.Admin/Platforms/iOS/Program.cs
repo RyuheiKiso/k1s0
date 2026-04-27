@@ -1,3 +1,6 @@
+// 本ファイルは iOS プラットフォームのエントリポイント。
+// UIApplication.Main で AppDelegate を起動するだけの最小実装。
+
 using ObjCRuntime;
 using UIKit;
 
