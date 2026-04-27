@@ -80,7 +80,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 |---|---|---|---|
 | `src/platform/cli/` | k1s0-scaffold 雛形 CLI | **設計のみ** | ディレクトリ存在のみ |
 | `src/platform/analyzer/` | 内製依存方向 analyzer（`tier3 → tier2 → tier1 → infra` 一方向強制） | **設計のみ** | ディレクトリ存在のみ |
-| `src/platform/backstage-plugins/` | Backstage 開発者ポータル plugin | **設計のみ** | ディレクトリ存在のみ |
+| `src/platform/backstage-plugins/` | Backstage 開発者ポータル plugin（ADR-DEVEX-002） | **雛形あり** | 2 plugin の skeleton を配置: `k1s0-catalog/`（k1s0 拡張 annotation prefix `k1s0.io/` と 4 キー定数 Tier/Component/Lang/Env、`getPluginManifest()`）と `k1s0-scaffolder/`（`k1s0-scaffold` CLI を Backstage Scaffolder の Custom Action として公開する input schema、4 ServiceType `tier2-go` / `tier2-dotnet` / `tier3-bff` / `tier3-web` 対応）。各 plugin に `package.json`（`@k1s0/backstage-plugin-{catalog,scaffolder}`、Backstage 4.x peerDependencies）+ `src/{plugin,index}.ts` + `tsconfig.json`（target ES2022 / strict / noEmit）+ README を配置。実 Backstage SDK 連携は採用組織が `@backstage/core-plugin-api` 等を import して `createPlugin` / `createTemplateAction` で接続する想定（採用組織の Backstage バージョンへの強い依存を避けるため OSS 側は skeleton のみ提供） |
 
 ### infra（k8s / mesh / data / observability / security）
 
