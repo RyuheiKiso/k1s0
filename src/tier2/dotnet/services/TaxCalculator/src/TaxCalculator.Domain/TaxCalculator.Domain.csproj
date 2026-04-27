@@ -1,0 +1,8 @@
+<!-- TaxCalculator Domain 層（外部依存ゼロ）。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.TaxCalculator.Domain</RootNamespace>
+    <AssemblyName>K1s0.Tier2.TaxCalculator.Domain</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>

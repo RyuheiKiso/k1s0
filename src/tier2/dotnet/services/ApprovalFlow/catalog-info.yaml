@@ -1,0 +1,30 @@
+# Backstage catalog エントリ（ApprovalFlow）。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/01_tier2全体配置.md
+
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: approval-flow
+  description: tier2 承認フローサービス（.NET 8 + ASP.NET Core minimal API）
+  tags:
+    - tier2
+    - dotnet
+    - approval
+    - workflow
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/tier: tier2
+    k1s0.io/component: approval-flow
+    k1s0.io/lang: csharp
+    k1s0.io/env: dev
+spec:
+  type: service
+  lifecycle: experimental
+  owner: tier2-dev
+  providesApis: []
+  consumesApis:
+    - k1s0-tier1-state
+    - k1s0-tier1-pubsub
+  dependsOn: []

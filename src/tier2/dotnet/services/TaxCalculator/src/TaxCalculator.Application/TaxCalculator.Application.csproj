@@ -1,0 +1,11 @@
+<!-- TaxCalculator Application 層。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.TaxCalculator.Application</RootNamespace>
+    <AssemblyName>K1s0.Tier2.TaxCalculator.Application</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TaxCalculator.Domain\TaxCalculator.Domain.csproj" />
+  </ItemGroup>
+</Project>

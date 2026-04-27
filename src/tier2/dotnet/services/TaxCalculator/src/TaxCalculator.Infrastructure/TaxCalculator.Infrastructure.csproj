@@ -1,0 +1,13 @@
+<!-- TaxCalculator Infrastructure 層。
+     計算サービスは外部永続化を持たないため、本層は空（structural placeholder）。
+     リリース時点 で税率テーブルの DB 読込実装を追加する場合に拡張する。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.TaxCalculator.Infrastructure</RootNamespace>
+    <AssemblyName>K1s0.Tier2.TaxCalculator.Infrastructure</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TaxCalculator.Domain\TaxCalculator.Domain.csproj" />
+  </ItemGroup>
+</Project>

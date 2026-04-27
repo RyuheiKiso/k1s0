@@ -1,0 +1,23 @@
+<!--
+  ApprovalFlow Api 層（ASP.NET Core minimal API）。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+
+  scope:
+    HTTP エンドポイント。Application のみを参照する。
+-->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.ApprovalFlow.Api</RootNamespace>
+    <AssemblyName>K1s0.Tier2.ApprovalFlow.Api</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>k1s0-tier2-approval-flow</UserSecretsId>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApprovalFlow.Application\ApprovalFlow.Application.csproj" />
+    <!-- DI 登録時のみ Infrastructure を参照する（Composition Root として許容、Domain 純粋性は維持） -->
+    <ProjectReference Include="..\ApprovalFlow.Infrastructure\ApprovalFlow.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
