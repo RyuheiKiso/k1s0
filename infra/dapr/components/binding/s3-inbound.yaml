@@ -1,0 +1,53 @@
+# =============================================================================
+# tier1 Binding API の S3 input binding（bindings.aws.s3、MinIO 互換）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+#   docs/02_構想設計/adr/ADR-DATA-003-minio.md
+#
+# MinIO は AWS S3 API と互換のため、aws.s3 binding をそのまま利用できる。
+# 本 binding は監査ログ / 帳票出力等の zip / parquet 取込用途。
+# =============================================================================
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: s3-inbound
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-component
+spec:
+  # Input binding（subscriber 側）
+  type: bindings.aws.s3
+  version: v1
+  metadata:
+    # MinIO endpoint（infra/data/minio/values.yaml）
+    - name: endpoint
+      value: minio.k1s0-data.svc.cluster.local:9000
+    - name: bucket
+      value: k1s0-tier1-inbound
+    # MinIO MinIO root credentials は通常 OpenBao に格納
+    - name: accessKey
+      secretKeyRef:
+        name: minio-app-credentials
+        key: accessKey
+    - name: secretKey
+      secretKeyRef:
+        name: minio-app-credentials
+        key: secretKey
+    # 仮想ホストスタイル無効化（path-style 必須、MinIO の制約）
+    - name: forcePathStyle
+      value: "true"
+    # MinIO の TLS 証明書（cert-manager 内部 CA）
+    - name: insecureSSL
+      value: "false"
+    # input binding は polling 間隔で新着 object を検出
+    - name: directionsList
+      value: input
+    - name: pollingInterval
+      value: "30s"
+auth:
+  secretStore: vault
+scopes:
+  - tier1-facade-state
+  - tier1-audit-pii

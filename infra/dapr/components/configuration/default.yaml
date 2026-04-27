@@ -1,0 +1,68 @@
+# =============================================================================
+# Dapr Configuration（tracing / mTLS / feature flag の base 設定）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/03_サービスメッシュ配置.md
+#
+# 全 tier1 アプリ Pod の sidecar が dapr.io/config: default annotation で参照する。
+# =============================================================================
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: default
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-config
+spec:
+  # 分散トレース設定（OTel Collector へ転送）
+  tracing:
+    # tier1 内の全 RPC を 100% sampling（NFR-D-TRACE-* 充足）
+    samplingRate: "1.0"
+    otel:
+      # gateway OTel Collector（infra/observability/otel-collector/）
+      endpointAddress: otel-collector-gateway.k1s0-observability.svc.cluster.local:4317
+      isSecure: false
+      protocol: grpc
+  # mTLS は Dapr Sentry が SPIFFE SVID を発行する形に統一（ADR-SEC-002 と整合）
+  mtls:
+    enabled: true
+    workloadCertTTL: 24h
+    allowedClockSkew: 15m
+  # API access control（tier1 facade のみが呼び出せる）
+  accessControl:
+    defaultAction: deny
+    trustDomain: k1s0.local
+    policies:
+      - appId: tier1-facade-state
+        defaultAction: allow
+        trustDomain: k1s0.local
+        namespace: k1s0-tier1
+        operations: []
+      - appId: tier1-facade-secret
+        defaultAction: allow
+        trustDomain: k1s0.local
+        namespace: k1s0-tier1
+        operations: []
+      - appId: tier1-facade-workflow
+        defaultAction: allow
+        trustDomain: k1s0.local
+        namespace: k1s0-tier1
+        operations: []
+      - appId: tier1-audit-pii
+        defaultAction: allow
+        trustDomain: k1s0.local
+        namespace: k1s0-tier1
+        operations: []
+      - appId: tier1-feature
+        defaultAction: allow
+        trustDomain: k1s0.local
+        namespace: k1s0-tier1
+        operations: []
+  # 機能フラグ（Dapr 1.14+ の preview features）
+  features:
+    - name: SchedulerReminders
+      enabled: true
+    - name: AppHealthCheck
+      enabled: true

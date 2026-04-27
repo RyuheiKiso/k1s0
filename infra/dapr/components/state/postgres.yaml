@@ -1,0 +1,45 @@
+# =============================================================================
+# tier1 State API の主要 backing store（state.postgresql / CloudNativePG）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+#   docs/02_構想設計/adr/ADR-DATA-001-cnpg.md（PostgreSQL backend）
+#
+# 環境差分は infra/environments/<env>/dapr-components-overlay/ で patch 適用する。
+# - dev: namespace 上の標準 secret を直接参照
+# - prod: OpenBao 動的シークレット経由（plan 04-06）
+# =============================================================================
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  # Dapr Component 名（tier1 アプリが metadata.stateStore で指定）
+  name: postgres
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-component
+spec:
+  # state.postgresql は Dapr の標準 state store（v1）
+  type: state.postgresql
+  version: v1
+  metadata:
+    # CloudNativePG が公開する Service。Cluster name = k1s0-postgres、ns = cnpg-system
+    - name: connectionString
+      secretKeyRef:
+        name: k1s0-postgres-app
+        key: dsn
+    # 接続プール上限（per-Pod）
+    - name: connectionMaxIdleTime
+      value: "5m"
+    # eTag 判定有効化（State API の First-Write-Wins 制約）
+    - name: actorStateStore
+      value: "false"
+    # Dapr 1.14+ の table 自動作成（dev 用、prod は migration で先行作成）
+    - name: tableName
+      value: "k1s0_state"
+auth:
+  # secret store 名（同 namespace の `vault` Component を参照）
+  secretStore: vault
+scopes:
+  # 本 Component を参照可能なアプリ（tier1 facade のみ）
+  - tier1-facade-state
