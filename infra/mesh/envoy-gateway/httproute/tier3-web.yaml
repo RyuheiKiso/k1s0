@@ -1,0 +1,70 @@
+# 本ファイルは tier3 Web（portal / admin / docs-site）への HTTPRoute。
+# `app.k1s0.internal` へ届いた `/{portal,admin,docs}` を web SPA に振り分ける。
+# `/api/` プレフィックスは BFF（portal-bff / admin-bff）にプロキシする。
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tier3-web
+  namespace: k1s0-tier3
+  labels:
+    k1s0.io/tier: tier3
+spec:
+  parentRefs:
+    - name: k1s0-gateway-public
+      namespace: k1s0-mesh
+      sectionName: https-app
+  hostnames:
+    - app.k1s0.internal
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/portal
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: portal-bff
+          port: 8080
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/admin
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: admin-bff
+          port: 8080
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      backendRefs:
+        - name: tier3-admin-web
+          port: 80
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /docs
+      backendRefs:
+        - name: tier3-docs-site
+          port: 80
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: tier3-portal-web
+          port: 80
+          weight: 100

@@ -1,0 +1,94 @@
+# 本ファイルは Envoy Gateway（ADR-CNCF-004）の Helm values 設定。
+# Istio Ambient と並走する ingress 層を Gateway API 標準準拠で運用する。
+# helm install eg oci://docker.io/envoyproxy/gateway-helm --namespace envoy-gateway-system \
+#   --create-namespace --version v1.2.0 -f values.yaml
+#
+# Ambient（東西 mTLS）と Envoy Gateway（南北 ingress）の責務分離方針:
+#   - Ambient: pod ↔ pod の L4 mTLS と L7 認可（waypoint）
+#   - Envoy Gateway: クラスタ外部からの L7 ingress（Gateway API 経由）
+#
+# dev は tools/local-stack/manifests/30-istio-ambient/ に揃えず、Envoy Gateway も同一構成を採用。
+
+# Envoy Gateway controller の prod sizing
+deployment:
+  replicas: 3
+  envoyGateway:
+    image:
+      repository: docker.io/envoyproxy/gateway
+      tag: v1.2.0
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+  pod:
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: envoy-gateway
+              topologyKey: kubernetes.io/hostname
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "19001"
+
+# Envoy Gateway の admission webhook 設定
+config:
+  envoyGateway:
+    provider:
+      type: Kubernetes
+    gateway:
+      controllerName: gateway.envoyproxy.io/gatewayclass-controller
+    # OpenTelemetry トレーシングを Collector gateway へ送信
+    extensionApis:
+      enableEnvoyPatchPolicy: true
+      enableBackend: true
+    telemetry:
+      metrics:
+        prometheus:
+          disable: false
+        sinks:
+          - type: OpenTelemetry
+            openTelemetry:
+              host: otel-collector-gateway.observability.svc.cluster.local
+              port: 4317
+              protocol: grpc
+      tracing:
+        provider:
+          host: otel-collector-gateway.observability.svc.cluster.local
+          port: 4317
+          type: OpenTelemetry
+        samplingRate: 100
+      accessLog:
+        settings:
+          - format:
+              type: JSON
+              json:
+                start_time: "%START_TIME%"
+                method: "%REQ(:METHOD)%"
+                path: "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%"
+                protocol: "%PROTOCOL%"
+                response_code: "%RESPONSE_CODE%"
+                upstream_cluster: "%UPSTREAM_CLUSTER%"
+                trace_id: "%REQ(x-b3-traceid)%"
+            sinks:
+              - type: File
+                file:
+                  path: /dev/stdout
+
+# RBAC / ServiceAccount は chart のデフォルトに任せる
+serviceAccount:
+  create: true
+
+# Prometheus 連携
+metrics:
+  port: 19001
+  serviceMonitor:
+    enabled: true
+    namespace: envoy-gateway-system
+    interval: 30s

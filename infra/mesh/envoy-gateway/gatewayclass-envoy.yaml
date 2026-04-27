@@ -1,0 +1,15 @@
+# 本ファイルは Envoy Gateway の GatewayClass 定義。
+# Gateway API 標準（gateway.networking.k8s.io/v1）の `gatewayClassName` を提供し、
+# 各 Gateway リソースから本クラスを参照することで Envoy Gateway controller が
+# 該当 Gateway を実体化する。
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway-class
+  labels:
+    app.kubernetes.io/name: envoy-gateway-class
+    app.kubernetes.io/managed-by: argocd
+    k1s0.io/component: ingress
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  description: "k1s0 共通の Envoy Gateway クラス（南北 ingress）"

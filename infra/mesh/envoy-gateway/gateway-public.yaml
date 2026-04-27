@@ -1,0 +1,61 @@
+# 本ファイルはインターネット公開用 Gateway（MetalLB の external IP で露出）。
+# ホスト名 `api.k1s0.internal` / `app.k1s0.internal` を受け、
+# `httproute/` 配下の HTTPRoute で tier1 API と tier3 Web に振り分ける。
+#
+# TLS: cert-manager が発行する Let's Encrypt 証明書を `tls.k1s0-public-cert` に保管し、
+# Gateway は本 Secret を参照して TLS 終端する（ADR-SEC-001）。
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: k1s0-gateway-public
+  namespace: k1s0-mesh
+  annotations:
+    metallb.universe.tf/address-pool: public-pool
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  labels:
+    k1s0.io/component: ingress
+    k1s0.io/exposure: public
+spec:
+  gatewayClassName: envoy-gateway-class
+  listeners:
+    - name: http-redirect
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-api
+      protocol: HTTPS
+      port: 443
+      hostname: api.k1s0.internal
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: k1s0-public-api-cert
+            namespace: k1s0-mesh
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              k1s0.io/tier: tier1
+    - name: https-app
+      protocol: HTTPS
+      port: 443
+      hostname: app.k1s0.internal
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: k1s0-public-app-cert
+            namespace: k1s0-mesh
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              k1s0.io/tier: tier3
+  infrastructure:
+    annotations:
+      service.beta.kubernetes.io/external-traffic: Local

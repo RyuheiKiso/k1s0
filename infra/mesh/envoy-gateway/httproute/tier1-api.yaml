@@ -1,0 +1,114 @@
+# 本ファイルは tier1 公開 12 API への HTTPRoute（path 単位ルーティング）。
+# `api.k1s0.internal` へ届いた `/api/v1/{state,pubsub,...}` を t1-state / t1-secret /
+# t1-workflow および Rust 側 3 Pod（decision / audit / pii）にバックエンド振り分けする。
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tier1-api
+  namespace: k1s0-tier1
+  labels:
+    k1s0.io/tier: tier1
+spec:
+  parentRefs:
+    - name: k1s0-gateway-public
+      namespace: k1s0-mesh
+      sectionName: https-api
+  hostnames:
+    - api.k1s0.internal
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/state
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/pubsub
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/serviceinvoke
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/binding
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/feature
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/log
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/telemetry
+      backendRefs:
+        - name: t1-state
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/secrets
+      backendRefs:
+        - name: t1-secret
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/workflow
+      backendRefs:
+        - name: t1-workflow
+          port: 50051
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/decision
+      backendRefs:
+        - name: t1-decision
+          port: 50001
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/audit
+      backendRefs:
+        - name: t1-audit
+          port: 50001
+          weight: 100
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v1/pii
+      backendRefs:
+        - name: t1-pii
+          port: 50001
+          weight: 100
