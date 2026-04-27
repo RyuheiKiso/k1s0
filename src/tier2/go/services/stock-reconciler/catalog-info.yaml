@@ -1,0 +1,47 @@
+# Backstage catalog エントリ。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/01_tier2全体配置.md
+#   docs/05_実装/50_開発者体験設計/40_Backstage連携/
+#
+# 役割:
+#   Backstage Software Catalog に stock-reconciler を Component として登録する。
+#   catalog-info.yaml は Backstage の locations registrar から自動取込される（リリース時点 で
+#   全リポジトリ catalog-info を一括スキャンする運用）。
+
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  # Component 名（snake/kebab、Kubernetes resource name と揃える）。
+  name: stock-reconciler
+  # 簡易説明。
+  description: tier2 在庫差分検出 / 同期サービス（Go + k1s0 SDK）
+  # 機能ドメインのタグ。
+  tags:
+    - tier2
+    - go
+    - reconciler
+    - inventory
+  # techdocs サイトのソース指定（同階層の README を起点）。
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    # k1s0 拡張 annotation（platform/backstage-plugins/k1s0-catalog で利用）。
+    k1s0.io/tier: tier2
+    k1s0.io/component: stock-reconciler
+    k1s0.io/lang: go
+    k1s0.io/env: dev
+spec:
+  # Component の種類（service / library / website）。
+  type: service
+  # 開発ライフサイクルの段階。
+  lifecycle: experimental
+  # チームの所有権（CODEOWNERS と整合）。
+  owner: tier2-dev
+  # 提供 API（リリース時点 では HTTP のみ、リリース時点 で gRPC 公開を追加）。
+  providesApis: []
+  # 依存先 API（k1s0 tier1 公開 API のうち実利用 service）。
+  consumesApis:
+    - k1s0-tier1-state
+    - k1s0-tier1-pubsub
+  # 依存先 Component。
+  dependsOn: []

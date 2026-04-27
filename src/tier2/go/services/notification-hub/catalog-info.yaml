@@ -1,0 +1,39 @@
+# Backstage catalog エントリ。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/01_tier2全体配置.md
+
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  # Component 名。
+  name: notification-hub
+  # 簡易説明。
+  description: tier2 通知ハブサービス（Go + k1s0 SDK）
+  # 機能ドメインのタグ。
+  tags:
+    - tier2
+    - go
+    - notification
+  # techdocs サイトのソース指定。
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    # k1s0 拡張 annotation。
+    k1s0.io/tier: tier2
+    k1s0.io/component: notification-hub
+    k1s0.io/lang: go
+    k1s0.io/env: dev
+spec:
+  # Component の種類。
+  type: service
+  # ライフサイクル段階。
+  lifecycle: experimental
+  # チームの所有権。
+  owner: tier2-dev
+  # 提供 API。
+  providesApis: []
+  # 依存先 API。
+  consumesApis:
+    - k1s0-tier1-binding
+  # 依存先 Component。
+  dependsOn: []
