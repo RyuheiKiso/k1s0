@@ -40,7 +40,10 @@
     "MD025": true,
 
     // MD040 fenced-code-language: 言語タグ無しの fenced code を warning 表示
-    "MD040": true
+    "MD040": true,
+
+    // MD060 table-column-style: 既存ドキュメント全件と style 不一致のため無効化（IMP-CI-LCDT-080 系で別途方針整理）
+    "MD060": false
   },
 
   // 対象から外すパス（linter を回さない）
