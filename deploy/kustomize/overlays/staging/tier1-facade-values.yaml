@@ -1,0 +1,25 @@
+# staging 環境の tier1-facade values overlay。
+image:
+  # release candidate（v0.1.0-rc1 等）を staging で焼く。
+  tag: rc
+  pullPolicy: IfNotPresent
+
+config:
+  logLevel: info
+
+pods:
+  state:
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 1000m, memory: 512Mi }
+  secret:
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 1000m, memory: 512Mi }
+  workflow:
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 1000m, memory: 1Gi }

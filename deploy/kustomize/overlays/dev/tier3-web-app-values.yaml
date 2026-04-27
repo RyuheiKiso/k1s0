@@ -1,0 +1,20 @@
+# dev 環境の tier3-web-app values overlay。
+image:
+  tag: latest
+  pullPolicy: Always
+
+replicas: 1
+
+resources:
+  requests: { cpu: 25m, memory: 32Mi }
+  limits: { cpu: 250m, memory: 128Mi }
+
+autoscaling:
+  enabled: false
+
+ingress:
+  enabled: true
+  host: "portal.dev.k1s0.local"
+
+# kind 環境の BFF Service は同 namespace 想定。
+bffUpstream: "http://example-tier3-bff.tier3-bff.svc.cluster.local:8080"

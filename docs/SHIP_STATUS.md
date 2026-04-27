@@ -103,7 +103,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | tier1-facade 用 ApplicationSet を最小同梱 |
 | `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | 6 chart 全て配置完了。tier1-facade（既存、Go 3 Pod）/ tier1-rust-service（Rust 3 Pod ループ）/ tier2-go-service（汎用 Go テンプレート）/ tier2-dotnet-service（汎用 .NET テンプレート、aspnet runtime + ASPNETCORE_URLS）/ tier3-bff（Go BFF + OIDC + ingress）/ tier3-web-app（nginx + SPA fallback + BFF reverse proxy）。`helm lint` 全 5 chart 通過、`helm template` 描画 OK |
 | `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート + AnalysisTemplate 2 件（error-rate / latency-p99、Mimir Prometheus クエリ）。experiments は採用後の運用拡大時 で追加 |
-| `deploy/kustomize/{base, overlays/*}` | Kustomize | **設計のみ** | `.gitkeep` のみ |
+| `deploy/kustomize/{base, overlays/*}` | Kustomize | **雛形あり** | base（共通 Namespace + label）+ overlays/{dev,staging,prod}/ に 6 chart × 3 環境 = 18 values overlay と 3 kustomization.yaml + README を配置。dev: replica=1 / debug、staging: replica=2 / info / HPA、prod: replica=3 / warn / podAntiAffinity / image semver pinning |
 | `deploy/opentofu/{environments, modules}` | OpenTofu（採用後の運用拡大時に Terraform から移行） | **設計のみ** | `.gitkeep` のみ |
 | `deploy/image-updater/` | Argo CD Image Updater | **設計のみ** | `.gitkeep` のみ |
 
@@ -276,11 +276,13 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 - ✅ `deploy/rollouts/{canary-strategies,analysis-templates}/` に Argo Rollouts CRD
   - canary-25-50-100: 3 段階 setWeight + pause + analysis（自動評価）
   - error-rate / latency-p99: Mimir（Prometheus 互換）クエリベースの自動評価
+- ✅ `deploy/kustomize/{base,overlays/{dev,staging,prod}}/` に 6 chart × 3 環境の values overlay + base 共通リソース + README を配置
+  - dev: replica=1 / debug log / 最小 resources
+  - staging: replica=2 / info log / HPA 緩い
+  - prod: replica=3 / warn log / podAntiAffinity / image semver pinning / HPA 実測ベース
 - 🔲 残り（plan 06-XX 以降）:
-  - `deploy/kustomize/{base,overlays/*}/` に環境別 overlay 雛形
   - `deploy/image-updater/` Argo CD Image Updater 設定
   - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
-  - 各 chart の environments overlay（dev / staging / prod）
 
 ### 7. examples 完動 4 種（IMP-DIR-COMM-113）— **完了**
 

@@ -1,0 +1,23 @@
+# staging 環境の tier1-rust-service values overlay。
+image:
+  tag: rc
+
+config:
+  logLevel: info
+
+pods:
+  decision:
+    replicas: 2
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 1500m, memory: 1Gi }
+  audit:
+    replicas: 2
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: 1500m, memory: 2Gi }
+  pii:
+    replicas: 2
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 1000m, memory: 512Mi }

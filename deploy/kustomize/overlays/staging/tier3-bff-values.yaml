@@ -1,0 +1,27 @@
+# staging 環境の tier3-bff values overlay。
+image:
+  tag: rc
+
+replicas: 2
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 1000m, memory: 512Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+oidc:
+  enabled: true
+  issuerUrl: "https://keycloak.staging.k1s0.example.com/realms/k1s0"
+  clientId: "tier3-bff"
+
+ingress:
+  enabled: true
+  host: "bff.staging.k1s0.example.com"
+
+env:
+  - name: LOG_LEVEL
+    value: info
