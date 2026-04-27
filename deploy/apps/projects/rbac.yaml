@@ -1,0 +1,53 @@
+# 本ファイルは Argo CD グローバル RBAC（SSO 連携）の ConfigMap 定義。
+# Keycloak の OIDC 経由で `groups` claim を受け取り、Argo CD 内の role に写像する。
+# Argo CD admin UI 操作と CLI 操作の両方に適用される。
+#
+# 詳細設計: docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    # SRE / Platform 管理者 — 全プロジェクト admin
+    p, role:platform-admin, applications, *, */*, allow
+    p, role:platform-admin, clusters, *, *, allow
+    p, role:platform-admin, repositories, *, *, allow
+    p, role:platform-admin, projects, *, *, allow
+    p, role:platform-admin, accounts, *, *, allow
+    p, role:platform-admin, gpgkeys, *, *, allow
+    p, role:platform-admin, certificates, *, *, allow
+
+    # tier1 開発者 — k1s0-tier1 配下のみ sync 可能
+    p, role:tier1-developer, applications, get, k1s0-tier1/*, allow
+    p, role:tier1-developer, applications, sync, k1s0-tier1/*, allow
+    p, role:tier1-developer, logs, get, k1s0-tier1/*, allow
+
+    # tier2 開発者 — k1s0-tier2 配下のみ sync 可能
+    p, role:tier2-developer, applications, get, k1s0-tier2/*, allow
+    p, role:tier2-developer, applications, sync, k1s0-tier2/*, allow
+    p, role:tier2-developer, logs, get, k1s0-tier2/*, allow
+
+    # tier3 開発者 — k1s0-tier3 配下のみ sync 可能
+    p, role:tier3-developer, applications, get, k1s0-tier3/*, allow
+    p, role:tier3-developer, applications, sync, k1s0-tier3/*, allow
+    p, role:tier3-developer, logs, get, k1s0-tier3/*, allow
+
+    # 全社員 — 閲覧専用
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, projects, get, *, allow
+    p, role:readonly, logs, get, */*, allow
+
+    # Keycloak `groups` claim → Argo CD role の写像
+    g, k1s0:sre-ops, role:platform-admin
+    g, k1s0:platform-admin, role:platform-admin
+    g, k1s0:tier1-team, role:tier1-developer
+    g, k1s0:tier2-team, role:tier2-developer
+    g, k1s0:tier3-team, role:tier3-developer
+    g, k1s0:developers, role:readonly
+  scopes: "[groups]"

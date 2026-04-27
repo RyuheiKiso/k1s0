@@ -1,0 +1,62 @@
+# 本ファイルは ops 系ツール（Backstage 開発者ポータル / LitmusChaos / Runbook サーバ）を配備する ApplicationSet。
+# Sync Wave 40 で展開し、tier1〜tier3 のアプリ Pod 起動完了後に運用ツールを順次立ち上げる。
+# Backstage は別途 `infra/k8s/namespaces/k1s0-platform-tools.yaml` で namespace 確保済み前提。
+#
+# 詳細設計:
+#   docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md
+#   docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/06_Backstage_プラグイン配置.md
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ops
+  namespace: argocd
+  labels:
+    k1s0.io/component: gitops-ops
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - app: backstage
+            path: ops/backstage
+            namespace: k1s0-platform-tools
+            wave: "40"
+          - app: chaos
+            path: ops/chaos
+            namespace: k1s0-chaos
+            wave: "45"
+          - app: runbooks
+            path: ops/runbooks
+            namespace: k1s0-platform-tools
+            wave: "45"
+  template:
+    metadata:
+      name: "ops-{{.app}}"
+      labels:
+        k1s0.io/component: ops
+        k1s0.io/app: "{{.app}}"
+      annotations:
+        argocd.argoproj.io/sync-wave: "{{.wave}}"
+    spec:
+      project: k1s0-platform
+      source:
+        repoURL: https://github.com/k1s0/k1s0.git
+        targetRevision: HEAD
+        path: "{{.path}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{.namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - ServerSideApply=true
+          - CreateNamespace=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 5m

@@ -1,0 +1,85 @@
+{{- if .Values.postgres.enabled }}
+# 本ファイルは Postgres（CNPG Cluster）の Ready 状態を polling 検証する PreSync Job。
+# Wave -5 で Dapr Component CR が宣言された後、Wave 0 で CNPG Cluster が立ち上がるが、
+# その後 tier1 Pod 起動（Wave 10）の前に本 Job が `pg_isready` で接続可能性を確認する。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "predeploy-hooks.fullname" . }}-postgres-ready
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "predeploy-hooks.labels" . | nindent 4 }}
+    k1s0.io/check: postgres-ready
+  annotations:
+    argocd.argoproj.io/hook: {{ .Values.job.hook }}
+    argocd.argoproj.io/hook-delete-policy: {{ .Values.job.hookDeletePolicy }}
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "predeploy-hooks.labels" . | nindent 8 }}
+        k1s0.io/check: postgres-ready
+    spec:
+      serviceAccountName: {{ .Values.job.serviceAccountName }}
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pg-isready
+          image: "postgres:16-alpine"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: PGHOST
+              value: {{ .Values.postgres.service | quote }}
+            - name: PGPORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.postgres.database | quote }}
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.credentialsSecret }}
+                  key: username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.credentialsSecret }}
+                  key: password
+            - name: POLL_INTERVAL
+              value: {{ .Values.job.polling.intervalSeconds | quote }}
+            - name: TIMEOUT
+              value: {{ .Values.job.polling.timeoutSeconds | quote }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              DEADLINE=$(( $(date +%s) + ${TIMEOUT} ))
+              while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+                if pg_isready -h "${PGHOST}" -p "${PGPORT}" -d "${PGDATABASE}" -U "${PGUSER}" -t 5; then
+                  echo "[predeploy-hooks] Postgres Ready: ${PGHOST}:${PGPORT}/${PGDATABASE}"
+                  exit 0
+                fi
+                echo "[predeploy-hooks] Postgres NotReady, retrying in ${POLL_INTERVAL}s..."
+                sleep "${POLL_INTERVAL}"
+              done
+              echo "[predeploy-hooks] Postgres readiness timeout after ${TIMEOUT}s" >&2
+              exit 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+{{- end }}

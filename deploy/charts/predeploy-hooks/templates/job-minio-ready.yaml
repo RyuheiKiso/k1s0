@@ -1,0 +1,73 @@
+{{- if .Values.minio.enabled }}
+# 本ファイルは MinIO（S3 互換オブジェクトストレージ）の Ready 状態を polling 検証する PreSync Job。
+# MinIO `/minio/health/ready` エンドポイントを HTTP HEAD で叩いて 200 を確認する。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "predeploy-hooks.fullname" . }}-minio-ready
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "predeploy-hooks.labels" . | nindent 4 }}
+    k1s0.io/check: minio-ready
+  annotations:
+    argocd.argoproj.io/hook: {{ .Values.job.hook }}
+    argocd.argoproj.io/hook-delete-policy: {{ .Values.job.hookDeletePolicy }}
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "predeploy-hooks.labels" . | nindent 8 }}
+        k1s0.io/check: minio-ready
+    spec:
+      serviceAccountName: {{ .Values.job.serviceAccountName }}
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: minio-health
+          image: "curlimages/curl:8.10.1"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: MINIO_HOST
+              value: {{ .Values.minio.service | quote }}
+            - name: MINIO_PORT
+              value: {{ .Values.minio.port | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.job.polling.intervalSeconds | quote }}
+            - name: TIMEOUT
+              value: {{ .Values.job.polling.timeoutSeconds | quote }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              DEADLINE=$(( $(date +%s) + ${TIMEOUT} ))
+              URL="http://${MINIO_HOST}:${MINIO_PORT}/minio/health/ready"
+              while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+                if curl -fsS --max-time 5 -o /dev/null -w "%{http_code}" "${URL}" | grep -q '^200$'; then
+                  echo "[predeploy-hooks] MinIO Ready: ${URL}"
+                  exit 0
+                fi
+                echo "[predeploy-hooks] MinIO NotReady, retrying in ${POLL_INTERVAL}s..."
+                sleep "${POLL_INTERVAL}"
+              done
+              echo "[predeploy-hooks] MinIO readiness timeout after ${TIMEOUT}s" >&2
+              exit 1
+          resources:
+            requests:
+              cpu: 30m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+{{- end }}

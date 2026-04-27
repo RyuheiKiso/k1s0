@@ -1,0 +1,52 @@
+# 本ファイルは k1s0 全体の umbrella AppProject「k1s0-platform」。
+# infra / ops / app-of-apps が所属し、tier1 / tier2 / tier3 の各 AppProject に
+# 直接所属しないリソース（Cluster 級 CRD / Operator / 観測性 / 開発者ポータル）を扱う。
+# クラスタ越境（dev / staging / prod の 3 cluster）を許可することで GitOps を一元化する。
+#
+# 詳細設計: docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: k1s0-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    k1s0.io/scope: platform
+spec:
+  description: |
+    k1s0 全体の umbrella AppProject。infra / ops / GitOps ルート Application を所属させ、
+    Cluster 級リソース（Operator / CRD / Mesh / Observability）の同期を許可する。
+  sourceRepos:
+    - https://github.com/k1s0/k1s0.git
+  destinations:
+    - namespace: "*"
+      server: https://kubernetes.default.svc
+    - namespace: "*"
+      server: https://dev.k1s0.internal
+    - namespace: "*"
+      server: https://staging.k1s0.internal
+    - namespace: "*"
+      server: https://prod.k1s0.internal
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  roles:
+    - name: admin
+      description: SRE / Platform team 管理者ロール
+      policies:
+        - p, proj:k1s0-platform:admin, applications, *, k1s0-platform/*, allow
+        - p, proj:k1s0-platform:admin, repositories, *, *, allow
+      groups:
+        - k1s0:sre-ops
+        - k1s0:platform-admin
+    - name: viewer
+      description: 開発者向け閲覧専用ロール
+      policies:
+        - p, proj:k1s0-platform:viewer, applications, get, k1s0-platform/*, allow
+        - p, proj:k1s0-platform:viewer, applications, sync, k1s0-platform/*, deny
+      groups:
+        - k1s0:developers
