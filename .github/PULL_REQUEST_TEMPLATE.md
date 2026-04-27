@@ -5,6 +5,10 @@ type:  feat / fix / docs / style / refactor / perf / test / build / ci / chore /
 scope: contracts / sdk-{dotnet,go,rust,typescript} / tier1-{go,rust} / tier2 /
        tier3-{web,native,bff,legacy} / platform / infra / deploy / ops / tools /
        docs / tests / security / deps / release
+
+ヒント: branch 名を <type>/<scope>/<subject>（例: feat/tools/add-verify-target）
+にすると、PR 作成時に .github/workflows/pr-title-autofix.yml が title を
+自動補正します。違反時は形式案内のコメントが付きます。
 -->
 
 ## 概要

@@ -10,7 +10,7 @@
 # =============================================================================
 
 .DEFAULT_GOAL := help
-.PHONY: help codegen codegen-check openapi openapi-check grpc-docs grpc-docs-check lint pre-commit lint-proto verify-cones doctor clean
+.PHONY: help codegen codegen-check openapi openapi-check grpc-docs grpc-docs-check lint pre-commit lint-proto verify verify-quick verify-cones doctor clean
 
 help: ## このヘルプを表示
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -46,6 +46,12 @@ verify-cones: ## sparse-checkout cone 定義の構文・整合性検証（10 役
 	@./tools/sparse/verify.sh
 
 lint: lint-proto pre-commit ## proto + pre-commit を一括 lint
+
+verify: ## CI と同等の検査を全 tier / 全言語で実行（push 前の最終ゲート）
+	@./tools/ci/verify-local.sh full
+
+verify-quick: ## origin/main からの差分スコープのみ verify（高速イテレーション用）
+	@./tools/ci/verify-local.sh quick
 
 clean: ## Python / pytest キャッシュのみ削除（Rust target/ は cargo clean を使うこと）
 	@# Rust の target/ は容量大かつ再ビルド負荷大のため、本 target からは除外。
