@@ -146,7 +146,7 @@ Argo Rollouts のカナリア分析は AnalysisTemplate で定義する。以下
 
 kube-state-metrics は Prometheus の ServiceMonitor (Prometheus Operator) でスクレイプする。
 
-```
+```text
 Prometheus
     ↓ scrape (ServiceMonitor)
 kube-state-metrics (Deployment)

@@ -191,14 +191,14 @@ Desktop モードでは kubeconfig に登録された複数のクラスタを切
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://headlamp.dev/docs/latest/
-- Headlamp GitHub リポジトリ: https://github.com/kubernetes-sigs/headlamp
-- Artifact Hub（プラグイン検索）: https://artifacthub.io/packages/search?kind=21
+- 公式ドキュメント: <https://headlamp.dev/docs/latest/>
+- Headlamp GitHub リポジトリ: <https://github.com/kubernetes-sigs/headlamp>
+- Artifact Hub（プラグイン検索）: <https://artifacthub.io/packages/search?kind=21>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)
 
 ## 13. 参考資料
 
-- Headlamp Architecture: https://headlamp.dev/docs/latest/development/architecture
-- Headlamp Installation Guide: https://headlamp.dev/docs/latest/installation
-- Headlamp Plugin Development: https://headlamp.dev/docs/latest/development/plugins
-- Kubernetes RBAC: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+- Headlamp Architecture: <https://headlamp.dev/docs/latest/development/architecture>
+- Headlamp Installation Guide: <https://headlamp.dev/docs/latest/installation>
+- Headlamp Plugin Development: <https://headlamp.dev/docs/latest/development/plugins>
+- Kubernetes RBAC: <https://kubernetes.io/docs/reference/access-authn-authz/rbac/>

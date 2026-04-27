@@ -207,12 +207,12 @@ function TodoList({ items }) {
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://react.dev/
-- React チュートリアル（三目並べ）: https://react.dev/learn/tutorial-tic-tac-toe
+- 公式ドキュメント: <https://react.dev/>
+- React チュートリアル（三目並べ）: <https://react.dev/learn/tutorial-tic-tac-toe>
 - 関連 Knowledge: （作成予定）`react_hooks.md`, `react_state-management.md`
 
 ## 13. 参考資料
 
-- React 公式ドキュメント: https://react.dev/
-- React GitHub リポジトリ: https://github.com/facebook/react
-- Vite 公式ドキュメント: https://vite.dev/
+- React 公式ドキュメント: <https://react.dev/>
+- React GitHub リポジトリ: <https://github.com/facebook/react>
+- Vite 公式ドキュメント: <https://vite.dev/>

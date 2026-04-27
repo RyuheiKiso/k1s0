@@ -41,14 +41,14 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### 全体デフォルト
 
-```
+```text
 # 全体のフォールバック - アーキテクチャ評議会が確認
 *                                               @k1s0/arch-council
 ```
 
 ### ルート直下ファイル
 
-```
+```text
 # ルート直下の重要ファイル
 /CLAUDE.md                                      @k1s0/arch-council
 /README.md                                      @k1s0/arch-council @k1s0/docs-team
@@ -67,7 +67,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### GitHub ワークフロー
 
-```
+```text
 # CI/CD 定義は SRE と arch-council の両方の approval が必要
 /.github/                                       @k1s0/sre-ops @k1s0/arch-council
 /.github/workflows/                             @k1s0/sre-ops @k1s0/arch-council
@@ -78,14 +78,14 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### スパースチェックアウト cone 定義
 
-```
+```text
 # cone 定義の変更は arch-council + sre-ops の approval が必要
 /.sparse-checkout/                              @k1s0/arch-council @k1s0/sre-ops
 ```
 
 ### 契約（最優先）
 
-```
+```text
 # Protobuf 契約は契約レビュー担当が必須
 /src/contracts/                                 @k1s0/contract-reviewers
 /src/contracts/buf.yaml                         @k1s0/contract-reviewers @k1s0/arch-council
@@ -96,7 +96,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### tier1
 
-```
+```text
 # tier1 実装は各言語担当
 /src/tier1/                                     @k1s0/tier1-rust @k1s0/tier1-go
 /src/tier1/go/                                  @k1s0/tier1-go
@@ -105,7 +105,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### SDK
 
-```
+```text
 # SDK は SDK チーム + 契約レビュー（契約変更に追随する場合）
 /src/sdk/                                       @k1s0/sdk-team
 /src/sdk/dotnet/                                @k1s0/sdk-team @k1s0/tier3-native
@@ -116,7 +116,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### tier2
 
-```
+```text
 /src/tier2/                                     @k1s0/tier2-dev
 /src/tier2/dotnet/                              @k1s0/tier2-dev
 /src/tier2/go/                                  @k1s0/tier2-dev
@@ -125,7 +125,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### tier3
 
-```
+```text
 /src/tier3/                                     @k1s0/tier3-web @k1s0/tier3-native
 /src/tier3/web/                                 @k1s0/tier3-web
 /src/tier3/native/                              @k1s0/tier3-native
@@ -135,7 +135,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### platform
 
-```
+```text
 /src/platform/                                  @k1s0/platform-team
 /src/platform/cli/                              @k1s0/platform-team @k1s0/tier1-rust
 /src/platform/analyzer/                         @k1s0/platform-team
@@ -144,7 +144,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### infra
 
-```
+```text
 /infra/                                         @k1s0/sre-ops
 /infra/k8s/                                     @k1s0/sre-ops
 /infra/mesh/                                    @k1s0/sre-ops @k1s0/security-team
@@ -159,7 +159,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### deploy
 
-```
+```text
 /deploy/                                        @k1s0/gitops-team @k1s0/sre-ops
 /deploy/apps/                                   @k1s0/gitops-team
 /deploy/charts/                                 @k1s0/gitops-team @k1s0/sre-ops
@@ -171,7 +171,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### ops
 
-```
+```text
 /ops/                                           @k1s0/sre-ops
 /ops/runbooks/                                  @k1s0/sre-ops @k1s0/docs-team
 /ops/chaos/                                     @k1s0/sre-ops
@@ -183,7 +183,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### tools
 
-```
+```text
 /tools/                                         @k1s0/platform-team
 /tools/devcontainer/                            @k1s0/platform-team @k1s0/arch-council
 /tools/local-stack/                             @k1s0/platform-team @k1s0/sre-ops
@@ -196,7 +196,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### tests / examples / third_party
 
-```
+```text
 /tests/                                         @k1s0/sre-ops @k1s0/platform-team
 /tests/e2e/                                     @k1s0/sre-ops
 /tests/contract/                                @k1s0/contract-reviewers @k1s0/platform-team
@@ -209,7 +209,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ### docs
 
-```
+```text
 /docs/                                          @k1s0/docs-team
 /docs/00_format/                                @k1s0/docs-team @k1s0/arch-council
 /docs/01_企画/                                  @k1s0/arch-council

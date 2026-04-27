@@ -195,14 +195,14 @@ k8s_yaml(kustomize('./k8s/overlays/dev'))
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://docs.tilt.dev/
-- Tilt Getting Started チュートリアル: https://docs.tilt.dev/tutorial/
-- Tiltfile API リファレンス: https://docs.tilt.dev/api.html
-- Tilt Extensions: https://github.com/tilt-dev/tilt-extensions
+- 公式ドキュメント: <https://docs.tilt.dev/>
+- Tilt Getting Started チュートリアル: <https://docs.tilt.dev/tutorial/>
+- Tiltfile API リファレンス: <https://docs.tilt.dev/api.html>
+- Tilt Extensions: <https://github.com/tilt-dev/tilt-extensions>
 
 ## 13. 参考資料
 
-- Tilt GitHub リポジトリ: https://github.com/tilt-dev/tilt
-- Tilt 公式サイト: https://tilt.dev/
-- Tiltfile Concepts: https://docs.tilt.dev/tiltfile_concepts.html
-- Docker Blog - Welcome Tilt: https://www.docker.com/blog/welcome-tilt-fixing-the-pains-of-microservice-development-for-kubernetes/
+- Tilt GitHub リポジトリ: <https://github.com/tilt-dev/tilt>
+- Tilt 公式サイト: <https://tilt.dev/>
+- Tiltfile Concepts: <https://docs.tilt.dev/tiltfile_concepts.html>
+- Docker Blog - Welcome Tilt: <https://www.docker.com/blog/welcome-tilt-fixing-the-pains-of-microservice-development-for-kubernetes/>

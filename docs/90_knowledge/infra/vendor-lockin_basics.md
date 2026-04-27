@@ -154,4 +154,4 @@ type ObjectStore interface {
 - Opara-Martins, J. et al.「Critical analysis of vendor lock-in and its impact on cloud computing migration」(Journal of Cloud Computing, 2016)
 - CNCF Technical Oversight Committee「CNCF Cloud Native Definition v1.0」(2018)
 - Broadcom VMware ライセンス変更に関する公開報道（2024 年）
-- Martin Fowler「StranglerFigApplication」: https://martinfowler.com/bliki/StranglerFigApplication.html
+- Martin Fowler「StranglerFigApplication」: <https://martinfowler.com/bliki/StranglerFigApplication.html>

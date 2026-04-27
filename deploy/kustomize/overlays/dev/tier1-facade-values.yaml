@@ -1,0 +1,39 @@
+# dev 環境の tier1-facade values overlay。
+# kind 単一 cluster 想定: replica=1、debug log、リソース最小、TLS 任意。
+
+image:
+  tag: latest
+  pullPolicy: Always
+
+config:
+  logLevel: debug
+
+# 3 Pod とも replica=1 に絞る（kind の resource を圧迫しないため）。
+pods:
+  state:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+  secret:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+  workflow:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi

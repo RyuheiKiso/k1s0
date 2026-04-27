@@ -4,7 +4,7 @@
 
 ## 配置
 
-```
+```text
 40_運用ライフサイクル/
 ├── README.md                              # 本ファイル（索引）
 ├── 01_ローカル本番再現スタック.md          # kind / Dapr Local の起動・停止・トラブルシュート
@@ -16,7 +16,7 @@
 - `03_本番デプロイ.md` — Argo CD への昇格・ロールバック手順
 - `04_インシデント対応.md` — Severity 別エスカレーション・通報経路
 - `05_OpenBao_unseal.md` — OpenBao 本番の sealed 復旧手順
-- `06_postmortem/` — ポストモーテム記録（[`docs-postmortem`](.../) Skill 経由で起票）
+- `06_postmortem/` — ポストモーテム記録（`docs-postmortem` Skill 経由で起票）
 
 ## Runbook が「個人運用」段階から書かれる理由
 

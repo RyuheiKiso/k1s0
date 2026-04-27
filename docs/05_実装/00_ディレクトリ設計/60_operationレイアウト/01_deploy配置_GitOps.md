@@ -15,7 +15,7 @@
 
 ## レイアウト
 
-```
+```text
 deploy/
 ├── README.md
 ├── apps/                       # ArgoCD Application / ApplicationSet

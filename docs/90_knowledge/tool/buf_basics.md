@@ -205,14 +205,14 @@ buf generate
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://buf.build/docs
-- Buf CLI クイックスタート: https://buf.build/docs/cli/quickstart
-- BSR ドキュメント: https://buf.build/docs/bsr/introduction
+- 公式ドキュメント: <https://buf.build/docs>
+- Buf CLI クイックスタート: <https://buf.build/docs/cli/quickstart>
+- BSR ドキュメント: <https://buf.build/docs/bsr/introduction>
 - 関連 Knowledge: gRPC の基本は `../protocol/grpc_basics.md` を参照（作成予定）
 
 ## 13. 参考資料
 
-- Buf 公式サイト: https://buf.build
-- Buf CLI GitHub リポジトリ: https://github.com/bufbuild/buf
-- Buf CLI ドキュメント: https://buf.build/docs/cli/quickstart
-- Breaking Change Detection: https://buf.build/docs/breaking/quickstart
+- Buf 公式サイト: <https://buf.build>
+- Buf CLI GitHub リポジトリ: <https://github.com/bufbuild/buf>
+- Buf CLI ドキュメント: <https://buf.build/docs/cli/quickstart>
+- Breaking Change Detection: <https://buf.build/docs/breaking/quickstart>

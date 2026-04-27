@@ -1,0 +1,19 @@
+# staging 環境の tier2-go-service values overlay。
+image:
+  tag: rc
+
+replicas: 2
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 512Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+env:
+  - name: LOG_LEVEL
+    value: info

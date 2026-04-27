@@ -75,7 +75,7 @@ Output Binding は tier2 から外部システムへの一方向送信（例: Mi
 
 本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/05_Binding_API.md](../40_tier1_API契約IDL/05_Binding_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `BindingService` RPC と意味論的に対応する。
 
-```
+```text
 k1s0.Binding.Send(
     binding_name: string,
     operation: string,   // "create" | "send" | "get" 等、Binding 種別で異なる

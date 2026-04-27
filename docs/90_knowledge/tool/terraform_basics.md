@@ -196,13 +196,13 @@ output "instance_ip" {
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://developer.hashicorp.com/terraform
-- Get Started チュートリアル: https://developer.hashicorp.com/terraform/tutorials
-- HCL 言語仕様: https://developer.hashicorp.com/terraform/language
-- Terraform Registry（Provider / Module 検索）: https://registry.terraform.io/
+- 公式ドキュメント: <https://developer.hashicorp.com/terraform>
+- Get Started チュートリアル: <https://developer.hashicorp.com/terraform/tutorials>
+- HCL 言語仕様: <https://developer.hashicorp.com/terraform/language>
+- Terraform Registry（Provider / Module 検索）: <https://registry.terraform.io/>
 
 ## 13. 参考資料
 
-- What is Terraform?: https://developer.hashicorp.com/terraform/intro
-- Terraform CLI Documentation: https://developer.hashicorp.com/terraform/cli
-- Terraform Language Documentation: https://developer.hashicorp.com/terraform/language
+- What is Terraform?: <https://developer.hashicorp.com/terraform/intro>
+- Terraform CLI Documentation: <https://developer.hashicorp.com/terraform/cli>
+- Terraform Language Documentation: <https://developer.hashicorp.com/terraform/language>

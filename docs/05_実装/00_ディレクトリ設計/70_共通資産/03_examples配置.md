@@ -15,7 +15,7 @@ scaffold CLI で生成される雛形とは別に、「実際に動作して SLI
 
 ## レイアウト
 
-```
+```text
 examples/
 ├── README.md
 ├── tier1-rust-service/             # Rust 自作領域の最小サービス例

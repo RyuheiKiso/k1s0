@@ -10,7 +10,7 @@
 
 ## 配置
 
-```
+```text
 tools/git-hooks/
 ├── README.md                        # 本ファイル
 ├── install.sh                       # `pre-commit install` のラッパ
@@ -21,7 +21,7 @@ tools/git-hooks/
 
 関連配置:
 
-```
+```text
 /.pre-commit-config.yaml             # pre-commit のルート設定
 /.gitleaks.toml                      # gitleaks の許容 / 追加 rule
 /.markdownlint-cli2.jsonc            # markdownlint-cli2 の rule 調整

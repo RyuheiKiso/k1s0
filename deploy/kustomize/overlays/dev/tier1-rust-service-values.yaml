@@ -1,0 +1,24 @@
+# dev 環境の tier1-rust-service values overlay。
+image:
+  tag: latest
+  pullPolicy: Always
+
+config:
+  logLevel: debug
+
+pods:
+  decision:
+    replicas: 1
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+  audit:
+    replicas: 1
+    resources:
+      requests: { cpu: 50m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  pii:
+    replicas: 1
+    resources:
+      requests: { cpu: 25m, memory: 32Mi }
+      limits: { cpu: 250m, memory: 128Mi }

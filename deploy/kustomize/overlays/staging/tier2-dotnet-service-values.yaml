@@ -1,0 +1,21 @@
+# staging 環境の tier2-dotnet-service values overlay。
+image:
+  tag: rc
+
+replicas: 2
+
+resources:
+  requests: { cpu: 200m, memory: 256Mi }
+  limits: { cpu: 1000m, memory: 1Gi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+env:
+  - name: ASPNETCORE_URLS
+    value: "http://+:8080"
+  - name: DOTNET_ENVIRONMENT
+    value: "Staging"

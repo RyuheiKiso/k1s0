@@ -100,12 +100,12 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
-| `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | tier1-facade 用 ApplicationSet を最小同梱 |
+| `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | 6 ApplicationSet（tier1-facade / tier1-rust-service / tier2-go-service / tier2-dotnet-service / tier3-bff / tier3-web-app）+ 3 AppProject（k1s0-tier1 / k1s0-tier2 / k1s0-tier3）を配置。全 ApplicationSet に Argo CD Image Updater annotation（ghcr.io 追跡 / semver / git write-back）を注入済 |
 | `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | 6 chart 全て配置完了。tier1-facade（既存、Go 3 Pod）/ tier1-rust-service（Rust 3 Pod ループ）/ tier2-go-service（汎用 Go テンプレート）/ tier2-dotnet-service（汎用 .NET テンプレート、aspnet runtime + ASPNETCORE_URLS）/ tier3-bff（Go BFF + OIDC + ingress）/ tier3-web-app（nginx + SPA fallback + BFF reverse proxy）。`helm lint` 全 5 chart 通過、`helm template` 描画 OK |
 | `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート + AnalysisTemplate 2 件（error-rate / latency-p99、Mimir Prometheus クエリ）。experiments は採用後の運用拡大時 で追加 |
-| `deploy/kustomize/{base, overlays/*}` | Kustomize | **設計のみ** | `.gitkeep` のみ |
+| `deploy/kustomize/{base, overlays/*}` | Kustomize | **雛形あり** | base（共通 Namespace + label）+ overlays/{dev,staging,prod}/ に 6 chart × 3 環境 = 18 values overlay と 3 kustomization.yaml + README を配置。dev: replica=1 / debug、staging: replica=2 / info / HPA、prod: replica=3 / warn / podAntiAffinity / image semver pinning |
 | `deploy/opentofu/{environments, modules}` | OpenTofu（採用後の運用拡大時に Terraform から移行） | **設計のみ** | `.gitkeep` のみ |
-| `deploy/image-updater/` | Argo CD Image Updater | **設計のみ** | `.gitkeep` のみ |
+| `deploy/image-updater/` | Argo CD Image Updater | **雛形あり** | argocd-image-updater Helm values（HA 2 + ServiceMonitor）+ registries.conf ConfigMap（GHCR + GHCR pull secret 連携）+ application-annotations.md（ApplicationSet への annotation 追加例、環境別 strategy 表、Renovate との責任分界）を配置 |
 
 ### tools / tests / examples
 
@@ -276,11 +276,15 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 - ✅ `deploy/rollouts/{canary-strategies,analysis-templates}/` に Argo Rollouts CRD
   - canary-25-50-100: 3 段階 setWeight + pause + analysis（自動評価）
   - error-rate / latency-p99: Mimir（Prometheus 互換）クエリベースの自動評価
-- 🔲 残り（plan 06-XX 以降）:
-  - `deploy/kustomize/{base,overlays/*}/` に環境別 overlay 雛形
-  - `deploy/image-updater/` Argo CD Image Updater 設定
+- ✅ `deploy/kustomize/{base,overlays/{dev,staging,prod}}/` に 6 chart × 3 環境の values overlay + base 共通リソース + README を配置
+  - dev: replica=1 / debug log / 最小 resources
+  - staging: replica=2 / info log / HPA 緩い
+  - prod: replica=3 / warn log / podAntiAffinity / image semver pinning / HPA 実測ベース
+- ✅ `deploy/image-updater/` Argo CD Image Updater 設定（HA 2 + GHCR registry + Git write-back）
+- ✅ 残り 5 chart の ApplicationSet（tier1-rust-service / tier2-go-service / tier2-dotnet-service / tier3-bff / tier3-web-app）と k1s0-tier2 / k1s0-tier3 の AppProject を配置
+- ✅ 全 6 ApplicationSet に Argo CD Image Updater annotation を注入（ghcr.io 追跡 + semver + git write-back）
+- 🔲 残り（採用後の運用拡大時）:
   - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
-  - 各 chart の environments overlay（dev / staging / prod）
 
 ### 7. examples 完動 4 種（IMP-DIR-COMM-113）— **完了**
 
@@ -322,8 +326,12 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - Rust: `client.invoke().stream(...).await` / `client.pubsub().subscribe(...).await`（`tonic::Streaming<T>` 返却）
   - TypeScript: `client.invoke.stream(...)` / `client.pubsub.subscribe(...)`（`AsyncIterable<T>` 返却、`for await` で消費）
   - .NET: `client.Invoke.StreamAsync(...)` / `client.PubSub.SubscribeAsync(...)`（`IAsyncEnumerable<T>` 返却、`await foreach` で消費）
+- ✅ 各 facade の単体テスト雛形を 4 言語に配置
+  - Go: `src/sdk/go/k1s0/client_test.go`（bufconn ベース、4 tests）
+  - Rust: `src/sdk/rust/crates/{k1s0-sdk,k1s0-sdk-proto}/tests/smoke.rs`（Config / proto 型 / Severity / K1s0ErrorCategory 整合）
+  - TypeScript: `src/sdk/typescript/src/__tests__/client.test.ts` + `vitest.config.ts`（5 tests / vitest）
+  - .NET: `src/sdk/dotnet/tests/K1s0.Sdk.Grpc.Tests/`（xunit + coverlet、5 tests）
 - 🔲 残り（採用後の運用拡大時）:
   - netstandard2.1 多重 TFM 再導入（OSS 配布の互換性向上）
-  - 各 facade の単体テスト雛形
 
 各タスクは完成のたびに本 SHIP_STATUS.md のマチュリティ表を更新する運用とする。

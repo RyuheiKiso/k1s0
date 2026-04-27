@@ -1,0 +1,28 @@
+# prod 環境の tier3-bff values overlay。
+image:
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: 200m, memory: 256Mi }
+  limits: { cpu: 2000m, memory: 1Gi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+
+oidc:
+  enabled: true
+  issuerUrl: "https://keycloak.k1s0.example.com/realms/k1s0"
+  clientId: "tier3-bff"
+
+ingress:
+  enabled: true
+  host: "bff.k1s0.example.com"
+
+env:
+  - name: LOG_LEVEL
+    value: warn

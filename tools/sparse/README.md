@@ -4,7 +4,7 @@
 
 ## 配置
 
-```
+```text
 tools/sparse/
 ├── README.md            # 本ファイル
 ├── checkout-role.sh     # 役割切替の実体スクリプト（IMP-DIR-SPARSE-127 + IMP-DEV-DC-010）

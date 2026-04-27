@@ -28,7 +28,7 @@
 
 各 sln 直下には以下の 4 ファイルを必ず置く。
 
-```
+```text
 src/tier2/dotnet/
 ├── Tier2.sln
 ├── Directory.Build.props        # 横断制約（後述）

@@ -196,13 +196,13 @@ spec:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://docs.dapr.io/
-- Dapr Quickstarts（公式チュートリアル集）: https://github.com/dapr/quickstarts
+- 公式ドキュメント: <https://docs.dapr.io/>
+- Dapr Quickstarts（公式チュートリアル集）: <https://github.com/dapr/quickstarts>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)、[マイクロサービスアーキテクチャ: 基本](./microservice-architecture_basics.md)
 
 ## 13. 参考資料
 
-- Dapr 公式ドキュメント Concepts: https://docs.dapr.io/concepts/
-- Dapr Sidecar Overview: https://docs.dapr.io/concepts/dapr-services/sidecar/
-- Dapr Building Blocks: https://docs.dapr.io/developing-applications/building-blocks/
-- Dapr GitHub リポジトリ: https://github.com/dapr/dapr
+- Dapr 公式ドキュメント Concepts: <https://docs.dapr.io/concepts/>
+- Dapr Sidecar Overview: <https://docs.dapr.io/concepts/dapr-services/sidecar/>
+- Dapr Building Blocks: <https://docs.dapr.io/developing-applications/building-blocks/>
+- Dapr GitHub リポジトリ: <https://github.com/dapr/dapr>

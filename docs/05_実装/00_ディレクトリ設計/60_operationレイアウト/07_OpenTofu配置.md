@@ -16,7 +16,7 @@
 
 OpenTofu は **2 階層** に分割する。bootstrap 階層がアプリ階層を前提としない（state 保存先が自己の出力に依存しない）ことで循環依存を断つ。
 
-```
+```text
 deploy/opentofu/
 ├── README.md
 ├── bootstrap/                      # 第 1 階層：local state で動作する最小構成

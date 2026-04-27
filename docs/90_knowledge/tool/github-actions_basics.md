@@ -196,13 +196,13 @@ steps:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://docs.github.com/en/actions
-- ワークフロー構文リファレンス: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions
-- GitHub Marketplace（アクション検索）: https://github.com/marketplace?type=actions
+- 公式ドキュメント: <https://docs.github.com/en/actions>
+- ワークフロー構文リファレンス: <https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions>
+- GitHub Marketplace（アクション検索）: <https://github.com/marketplace?type=actions>
 - 関連 Knowledge: Docker の基本は `docker_basics.md` を参照
 
 ## 13. 参考資料
 
-- GitHub Actions Documentation: https://docs.github.com/en/actions
-- Understanding GitHub Actions: https://docs.github.com/en/actions/get-started/understand-github-actions
-- Events that trigger workflows: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
+- GitHub Actions Documentation: <https://docs.github.com/en/actions>
+- Understanding GitHub Actions: <https://docs.github.com/en/actions/get-started/understand-github-actions>
+- Events that trigger workflows: <https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows>

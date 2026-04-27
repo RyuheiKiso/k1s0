@@ -134,7 +134,7 @@ branch protection の設定項目は以下とする。
 
 ## 図表
 
-```
+```text
 [CI 7 段ステージ × CD 境界]
   ┌──────────── CI (GitHub Actions) ────────────┐
   │ fetch → lint → unit-test → build → scan → push │ Harbor

@@ -26,7 +26,7 @@ DORA 4 keys（Lead Time / Deploy Frequency / MTTR / Change Failure Rate）は業
 
 ## 節構成予定
 
-```
+```text
 95_DXメトリクス/
 ├── README.md
 ├── 00_方針/                # 稼働 SLI との分離原則

@@ -185,12 +185,12 @@ emitter.emit('greet', 'Node.js');
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://nodejs.org/docs/latest/api/
-- Node.js 入門ガイド: https://nodejs.org/en/learn/getting-started/introduction-to-nodejs
+- 公式ドキュメント: <https://nodejs.org/docs/latest/api/>
+- Node.js 入門ガイド: <https://nodejs.org/en/learn/getting-started/introduction-to-nodejs>
 - 関連 Knowledge: なし（本ドキュメントが Node.js の入門にあたる）
 
 ## 13. 参考資料
 
-- Node.js 公式 API ドキュメント: https://nodejs.org/docs/latest-v22.x/api/
-- libuv Design Overview: https://docs.libuv.org/en/v1.x/design.html
-- Node.js Event Loop: https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
+- Node.js 公式 API ドキュメント: <https://nodejs.org/docs/latest-v22.x/api/>
+- libuv Design Overview: <https://docs.libuv.org/en/v1.x/design.html>
+- Node.js Event Loop: <https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick>

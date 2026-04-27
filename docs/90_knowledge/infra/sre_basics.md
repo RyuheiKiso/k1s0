@@ -167,14 +167,14 @@ SLO の設定指針を以下に示す。
 
 ## 12. さらに学ぶには
 
-- Google SRE Book（無料公開）: https://sre.google/sre-book/table-of-contents/
-- Google SRE Workbook: https://sre.google/workbook/table-of-contents/
-- Google SLO ガイド: https://sre.google/resources/practices-and-processes/art-of-slos/
+- Google SRE Book（無料公開）: <https://sre.google/sre-book/table-of-contents/>
+- Google SRE Workbook: <https://sre.google/workbook/table-of-contents/>
+- Google SLO ガイド: <https://sre.google/resources/practices-and-processes/art-of-slos/>
 - 関連 Knowledge: [Chaos Engineering: 基本](./chaos-engineering_basics.md)
 
 ## 13. 参考資料
 
 - Betsy Beyer et al., "Site Reliability Engineering", O'Reilly Media, 2016
 - Betsy Beyer et al., "The Site Reliability Workbook", O'Reilly Media, 2018
-- Google SRE 公式サイト: https://sre.google/
-- Ben Treynor Sloss, "What is Site Reliability Engineering?": https://sre.google/in-conversation/
+- Google SRE 公式サイト: <https://sre.google/>
+- Ben Treynor Sloss, "What is Site Reliability Engineering?": <https://sre.google/in-conversation/>

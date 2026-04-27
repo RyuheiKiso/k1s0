@@ -108,8 +108,8 @@ issue、その他の貢献を編集または削除する権利と責任を持ち
 翻訳は [https://www.contributor-covenant.org/translations][translations] で
 入手可能です。
 
-[homepage]: https://www.contributor-covenant.org
-[v2.1]: https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
-[Mozilla CoC]: https://github.com/mozilla/diversity
-[FAQ]: https://www.contributor-covenant.org/faq
-[translations]: https://www.contributor-covenant.org/translations
+[homepage]: <https://www.contributor-covenant.org>
+[v2.1]: <https://www.contributor-covenant.org/version/2/1/code_of_conduct.html>
+[Mozilla CoC]: <https://github.com/mozilla/diversity>
+[FAQ]: <https://www.contributor-covenant.org/faq>
+[translations]: <https://www.contributor-covenant.org/translations>

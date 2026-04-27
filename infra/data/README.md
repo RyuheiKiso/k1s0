@@ -35,7 +35,7 @@ manifests は **production-grade defaults** を持ち、環境別差分（dev / 
 Argo CD に Application を作る。環境別に `infra/environments/<env>/data-overlay/`（plan 05-XX 予定）
 の Kustomize overlay で values を上書きする。
 
-```
+```text
 deploy/apps/application-sets/data-cnpg.yaml   --refs--> infra/data/cloudnativepg/
                                                             └ values.yaml + cluster.yaml
                                               --overlay--> infra/environments/<env>/data-cnpg/

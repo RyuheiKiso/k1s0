@@ -212,12 +212,12 @@ kubectl rollout status deployment/my-nginx
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://kubernetes.io/ja/docs/home/
-- 公式チュートリアル: https://kubernetes.io/ja/docs/tutorials/
-- Kubernetes The Hard Way（構築を通じて内部構造を学ぶ）: https://github.com/kelseyhightower/kubernetes-the-hard-way
+- 公式ドキュメント: <https://kubernetes.io/ja/docs/home/>
+- 公式チュートリアル: <https://kubernetes.io/ja/docs/tutorials/>
+- Kubernetes The Hard Way（構築を通じて内部構造を学ぶ）: <https://github.com/kelseyhightower/kubernetes-the-hard-way>
 
 ## 13. 参考資料
 
-- Kubernetes 公式ドキュメント Concepts: https://kubernetes.io/docs/concepts/
-- Kubernetes Components: https://kubernetes.io/docs/concepts/overview/components/
-- Kubernetes API Reference v1.32: https://kubernetes.io/docs/reference/kubernetes-api/
+- Kubernetes 公式ドキュメント Concepts: <https://kubernetes.io/docs/concepts/>
+- Kubernetes Components: <https://kubernetes.io/docs/concepts/overview/components/>
+- Kubernetes API Reference v1.32: <https://kubernetes.io/docs/reference/kubernetes-api/>

@@ -27,7 +27,7 @@ catalog-info.yaml は Backstage 連携の first-class 属性として扱い、Sc
 
 ## 節構成予定
 
-```
+```text
 50_開発者体験設計/
 ├── README.md
 ├── 00_方針/                # Paved Road と time-to-first-commit

@@ -51,7 +51,7 @@ tier1 が直接依存する以下の領域の OSS は、patchless でも vendori
 
 ### 判定フロー
 
-```
+```text
 新規 OSS 採用時
   │
   ├─ 軸 1（パッチ本数）判定 ─┐
@@ -66,7 +66,7 @@ tier1 が直接依存する以下の領域の OSS は、patchless でも vendori
 
 ## レイアウト
 
-```
+```text
 third_party/
 ├── README.md
 ├── LICENSES/                       # 各 OSS の元ライセンス保持
@@ -162,7 +162,7 @@ upstream v1.15 release 後、本 fork を削除して通常依存に戻す。
 
 ## CODEOWNERS
 
-```
+```text
 /third_party/                       @k1s0/arch-council @k1s0/security-team
 ```
 

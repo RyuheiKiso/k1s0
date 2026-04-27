@@ -180,12 +180,12 @@ minio server https://minio{1...4}.example.net/mnt/disk{1...4}
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://min.io/docs/minio/linux/index.html
-- GitHub: https://github.com/minio/minio
-- mc リファレンス: https://min.io/docs/minio/linux/reference/minio-mc.html
+- 公式ドキュメント: <https://min.io/docs/minio/linux/index.html>
+- GitHub: <https://github.com/minio/minio>
+- mc リファレンス: <https://min.io/docs/minio/linux/reference/minio-mc.html>
 
 ## 13. 参考資料
 
-- MinIO 公式ドキュメント: https://min.io/docs/minio/linux/index.html
-- MinIO Architecture: https://min.io/docs/minio/linux/operations/concepts/architecture.html
-- MinIO Erasure Coding: https://min.io/docs/minio/linux/operations/concepts/erasure-coding.html
+- MinIO 公式ドキュメント: <https://min.io/docs/minio/linux/index.html>
+- MinIO Architecture: <https://min.io/docs/minio/linux/operations/concepts/architecture.html>
+- MinIO Erasure Coding: <https://min.io/docs/minio/linux/operations/concepts/erasure-coding.html>

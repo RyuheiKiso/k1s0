@@ -41,7 +41,7 @@ make lint            # proto lint + pre-commit
 
 [Conventional Commits 1.0](https://www.conventionalcommits.org/) を強制します（commitlint で検証）。
 
-```
+```text
 <type>(<scope>): <subject>
 
 [optional body]

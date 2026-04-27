@@ -63,7 +63,7 @@ Controller は Use Cases 層の Input Port に依存し、Presenter は Output P
 
 Clean Architecture は設計原則であり、特定のツールのインストールは不要である。あらゆる言語・フレームワークで適用できる。実践にあたっては以下のディレクトリ構成を参考にするとよい。
 
-```
+```text
 src/
 ├── domain/          # Entities レイヤー
 ├── usecase/         # Use Cases レイヤー

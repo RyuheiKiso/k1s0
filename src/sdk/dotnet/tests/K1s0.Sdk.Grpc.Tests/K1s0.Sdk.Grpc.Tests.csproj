@@ -1,0 +1,39 @@
+<!--
+  K1s0.Sdk.Grpc.Tests: K1s0.Sdk.Grpc の最小単体テスト雛形（xunit）。
+
+  範囲（リリース時点）:
+    - K1s0Config の妥当性
+    - K1s0Client の構築（Target が解析可能）
+    - 14 facade すべての非 null 検査
+    - K1s0ErrorCategory / Severity の数値が IDL 正典と整合
+
+  採用初期で拡張:
+    - Moq による gRPC client の mock + 各 facade method の往復テスト
+    - TestServer ベースの integration テスト
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>K1s0.Sdk.Grpc.Tests</RootNamespace>
+    <AssemblyName>K1s0.Sdk.Grpc.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/K1s0.Sdk.Grpc/K1s0.Sdk.Grpc.csproj" />
+    <ProjectReference Include="../../src/K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
+  </ItemGroup>
+</Project>

@@ -17,7 +17,7 @@ Argo CD で `observability` namespace に展開される。
 
 ## 信号フロー
 
-```
+```text
 tier1/2/3 アプリ（OTel SDK）
    │
    ├─ logs   ──┐

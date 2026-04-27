@@ -74,7 +74,7 @@ Runbook は特定のツールに依存しない。以下の環境があれば作
 
 ### 6.2 推奨ディレクトリ構成
 
-```
+```text
 runbooks/
 ├── incident/          # インシデント対応用
 │   ├── high-cpu.md
@@ -193,12 +193,12 @@ Runbook は段階的に自動化できる。
 
 ## 12. さらに学ぶには
 
-- Google SRE Book: https://sre.google/sre-book/table-of-contents/
-- PagerDuty Incident Response: https://response.pagerduty.com/
+- Google SRE Book: <https://sre.google/sre-book/table-of-contents/>
+- PagerDuty Incident Response: <https://response.pagerduty.com/>
 - 関連 Knowledge: [Chaos Engineering: 基本](./chaos-engineering_basics.md)
 
 ## 13. 参考資料
 
-- Google Site Reliability Engineering — Chapter 14 Managing Incidents: https://sre.google/sre-book/managing-incidents/
-- PagerDuty Incident Response Documentation: https://response.pagerduty.com/
-- Atlassian Runbook Guide: https://www.atlassian.com/incident-management/kbs/runbooks
+- Google Site Reliability Engineering — Chapter 14 Managing Incidents: <https://sre.google/sre-book/managing-incidents/>
+- PagerDuty Incident Response Documentation: <https://response.pagerduty.com/>
+- Atlassian Runbook Guide: <https://www.atlassian.com/incident-management/kbs/runbooks>

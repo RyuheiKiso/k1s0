@@ -89,8 +89,8 @@ CNCF 自体はインストールするソフトウェアではないため、環
 
 ### 6.1 CNCF Landscape へのアクセス
 
-- Web: https://landscape.cncf.io/
-- GitHub: https://github.com/cncf/landscape
+- Web: <https://landscape.cncf.io/>
+- GitHub: <https://github.com/cncf/landscape>
 
 ### 6.2 フィルタリング
 
@@ -161,15 +161,15 @@ CNCF はクラウドネイティブ技術の認定プログラムを提供して
 
 ## 12. さらに学ぶには
 
-- CNCF 公式サイト: https://www.cncf.io/
-- CNCF Landscape: https://landscape.cncf.io/
-- Cloud Native 定義: https://github.com/cncf/toc/blob/main/DEFINITION.md
-- CNCF Trail Map: https://github.com/cncf/trailmap
+- CNCF 公式サイト: <https://www.cncf.io/>
+- CNCF Landscape: <https://landscape.cncf.io/>
+- Cloud Native 定義: <https://github.com/cncf/toc/blob/main/DEFINITION.md>
+- CNCF Trail Map: <https://github.com/cncf/trailmap>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)、[Dapr: 基本](./dapr_basics.md)
 
 ## 13. 参考資料
 
-- CNCF Charter: https://github.com/cncf/foundation/blob/main/charter.md
-- CNCF Graduation Criteria: https://github.com/cncf/toc/blob/main/process/graduation_criteria.md
-- CNCF Annual Report: https://www.cncf.io/reports/
-- CNCF TOC: https://github.com/cncf/toc
+- CNCF Charter: <https://github.com/cncf/foundation/blob/main/charter.md>
+- CNCF Graduation Criteria: <https://github.com/cncf/toc/blob/main/process/graduation_criteria.md>
+- CNCF Annual Report: <https://www.cncf.io/reports/>
+- CNCF TOC: <https://github.com/cncf/toc>

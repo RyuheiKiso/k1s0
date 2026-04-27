@@ -21,7 +21,7 @@
 
 ## tier1-rust-dev.txt
 
-```
+```text
 # tier1 Rust 自作領域開発者向け cone
 # 対象: src/tier1/rust/ + contracts + docs + tools
 # 注: src/sdk/rust/ は 採用後の運用拡大時 骨組みのため含めない（必要時は sdk-dev を兼任）
@@ -41,7 +41,7 @@
 
 ## tier1-go-dev.txt
 
-```
+```text
 # tier1 Go Dapr facade 開発者向け cone
 # 対象: src/tier1/go/ + 関連 SDK + contracts + docs + tools
 /docs/
@@ -60,7 +60,7 @@
 
 ## tier2-dev.txt
 
-```
+```text
 # tier2 ドメインサービス開発者向け cone
 # 対象: src/tier2/ 全体 + SDK（Go/.NET） + contracts + docs + tools
 /docs/
@@ -81,7 +81,7 @@
 
 ## tier3-web-dev.txt
 
-```
+```text
 # tier3 Web 開発者向け cone
 # 対象: src/tier3/web/ + src/tier3/bff/ + TypeScript SDK + Go SDK（BFF 用） + docs
 /docs/
@@ -108,7 +108,7 @@
 
 ## tier3-native-dev.txt
 
-```
+```text
 # tier3 Native (.NET MAUI) 開発者向け cone
 # 対象: src/tier3/native/ + src/tier3/legacy-wrap/ + .NET SDK + docs
 /docs/
@@ -126,7 +126,7 @@
 
 ## platform-cli-dev.txt
 
-```
+```text
 # k1s0 CLI / Backstage プラグイン開発者向け cone
 # 対象: src/platform/ 全体 + codegen + tools
 /docs/
@@ -144,7 +144,7 @@
 
 ## sdk-dev.txt
 
-```
+```text
 # SDK 4 言語同格開発者向け cone
 # 対象: src/sdk/ 全言語 + contracts + codegen 関連 + 契約テスト
 /docs/
@@ -165,7 +165,7 @@ cone に `src/contracts/` を含めているのは Protobuf を読み取って c
 
 ## infra-ops.txt
 
-```
+```text
 # インフラ運用・SRE 向け cone
 # 対象: infra/ + deploy/ + ops/ + docs + tools + tests/integration
 /docs/
@@ -183,7 +183,7 @@ cone に `src/contracts/` を含めているのは Protobuf を読み取って c
 
 ## docs-writer.txt
 
-```
+```text
 # ドキュメント作成者向け cone
 # 対象: docs/ + 最小ツール
 /docs/
@@ -196,7 +196,7 @@ cone に `src/contracts/` を含めているのは Protobuf を読み取って c
 
 ## full.txt
 
-```
+```text
 # 全体俯瞰（アーキテクト・ガバナンス）向け cone
 # 対象: リポジトリ全体
 /*

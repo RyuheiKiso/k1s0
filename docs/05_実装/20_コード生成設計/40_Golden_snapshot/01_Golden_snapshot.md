@@ -29,7 +29,7 @@ drift だけだと、CLI 更新 PR では「contracts 不変だが生成物 200 
 
 ## ディレクトリ配置
 
-```
+```text
 tests/codegen/
 ├── golden-input/
 │   ├── proto/

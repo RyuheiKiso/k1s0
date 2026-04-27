@@ -8,7 +8,7 @@
 - [20_path_filter選択ビルド/](20_path_filter選択ビルド/)（11 軸の path-filter）
 - [30_quality_gate/](30_quality_gate/)（4 段 quality gate）
 - [50_branch_protection/01_branch_protection.md](50_branch_protection/01_branch_protection.md)（`ci-overall` 1 本必須）
-- [plan/02_開発環境整備/11_monorepo_CI_orchestration.md](../../../plan/02_開発環境整備/11_monorepo_CI_orchestration.md)
+- plan/02_開発環境整備/11_monorepo_CI_orchestration.md
 - 配置: [`.github/workflows/`](../../../.github/workflows/) / [`tools/ci/actions/`](../../../tools/ci/actions/) / [`tools/ci/path-filter.yaml`](../../../tools/ci/path-filter.yaml)
 
 ## 1. workflow taxonomy（命名規約と配置）

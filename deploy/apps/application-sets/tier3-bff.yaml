@@ -1,0 +1,72 @@
+# =============================================================================
+# k1s0 tier3-bff Argo CD ApplicationSet（リファレンステンプレート）
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/02_bff配置.md
+#
+# scope: tier3 BFF（portal-bff / admin-bff 等）を環境別に配備する。
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tier3-bff-example
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: tier3-bff
+            valuesFile: deploy/kustomize/overlays/dev/tier3-bff-values.yaml
+          - env: staging
+            namespace: tier3-bff
+            valuesFile: deploy/kustomize/overlays/staging/tier3-bff-values.yaml
+          - env: prod
+            namespace: tier3-bff
+            valuesFile: deploy/kustomize/overlays/prod/tier3-bff-values.yaml
+  template:
+    metadata:
+      name: "tier3-bff-example-{{env}}"
+      labels:
+        k1s0.io/tier: tier3
+        k1s0.io/lang: go-bff
+        k1s0.io/env: "{{env}}"
+      annotations:
+        argocd-image-updater.argoproj.io/image-list: |
+          tier3-example-bff=ghcr.io/k1s0/k1s0/tier3-example-bff
+        argocd-image-updater.argoproj.io/tier3-example-bff.update-strategy: semver
+        argocd-image-updater.argoproj.io/tier3-example-bff.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        argocd-image-updater.argoproj.io/write-back-method: git
+        argocd-image-updater.argoproj.io/write-back-target: kustomization
+        argocd-image-updater.argoproj.io/git-branch: main
+    spec:
+      project: k1s0-tier3
+      source:
+        repoURL: "https://github.com/k1s0/k1s0.git"
+        targetRevision: main
+        path: deploy/charts/tier3-bff
+        helm:
+          valueFiles:
+            - values.yaml
+            - "$values/{{valuesFile}}"
+      sources:
+        - repoURL: "https://github.com/k1s0/k1s0.git"
+          targetRevision: main
+          ref: values
+      destination:
+        server: "https://kubernetes.default.svc"
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

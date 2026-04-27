@@ -1,0 +1,39 @@
+# prod 環境の tier1-facade values overlay。
+# image は CI が semver tag で pin する想定（Renovate + Argo CD Image Updater で digest 追跡）。
+image:
+  # CI が semver tag に置換する placeholder。本番では `latest` 直接運用は禁止。
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+
+config:
+  logLevel: warn
+
+# Pod の affinity を node 分散に強制（HA）。
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/part-of
+              operator: In
+              values: [k1s0]
+        topologyKey: kubernetes.io/hostname
+
+pods:
+  state:
+    replicas: 3
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 2000m, memory: 1Gi }
+  secret:
+    # Leader Election active 1 + standby 2 の構成（HPA 禁止、固定 3 replica）。
+    replicas: 3
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 2000m, memory: 1Gi }
+  workflow:
+    # 固定 3 replica（sticky task queue 必須、HPA 禁止）。
+    replicas: 3
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits: { cpu: 2000m, memory: 2Gi }

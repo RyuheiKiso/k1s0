@@ -26,7 +26,7 @@ Technology Radar（Thoughtworks 方式）は半期ごとに Adopt / Trial / Asse
 
 ## 節構成予定
 
-```
+```text
 90_ガバナンス設計/
 ├── README.md
 ├── 00_方針/                # 二分所有モデルと ADR 運用

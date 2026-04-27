@@ -213,13 +213,13 @@ message Event {
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://protobuf.dev/
-- Language Guide (proto3): https://protobuf.dev/programming-guides/proto3/
+- 公式ドキュメント: <https://protobuf.dev/>
+- Language Guide (proto3): <https://protobuf.dev/programming-guides/proto3/>
 - 関連 Knowledge: [gRPC の基本](./gRPC_basics.md)
 - Buf（proto 管理ツール）: [Buf の基本](../tool/buf_basics.md)
 
 ## 13. 参考資料
 
-- Protocol Buffers Language Guide (proto3): https://protobuf.dev/programming-guides/proto3/
-- Protocol Buffers Encoding: https://protobuf.dev/programming-guides/encoding/
-- Protocol Buffers Style Guide: https://protobuf.dev/programming-guides/style/
+- Protocol Buffers Language Guide (proto3): <https://protobuf.dev/programming-guides/proto3/>
+- Protocol Buffers Encoding: <https://protobuf.dev/programming-guides/encoding/>
+- Protocol Buffers Style Guide: <https://protobuf.dev/programming-guides/style/>

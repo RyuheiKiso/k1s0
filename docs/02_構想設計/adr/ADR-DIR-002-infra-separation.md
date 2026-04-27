@@ -26,7 +26,7 @@ k1s0 リリース前に配置を確定することで、実装開始後の大規
 
 **`src/tier1/infra/` を廃止し、以下の 3 階層に分離してリポジトリルートに昇格する。**
 
-```
+```text
 k1s0/
 ├── infra/                       # ★昇格 1: クラスタ素構成
 │   ├── k8s/                     # bootstrap / namespaces / networking / storage

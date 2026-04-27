@@ -1,0 +1,70 @@
+# Argo CD Image Updater の Helm values（argocd-image-updater chart）。
+# helm repo add argo https://argoproj.github.io/argo-helm
+# helm upgrade --install argocd-image-updater argo/argocd-image-updater -n argocd -f values.yaml --version 0.13.0
+
+# operator 自体を HA 化（leader election）。
+replicaCount: 2
+
+# resource sizing（数十 Application 程度の polling を想定）。
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# 監視（PodMonitor 経由で Mimir に metrics を送る）。
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+# Argo CD Image Updater の動作設定。
+config:
+  # 主にデバッグログ。本番は info、staging も info、dev は debug。
+  logLevel: info
+  # Argo CD API への接続情報（同 namespace 内）。
+  argocd:
+    grpcWeb: true
+    serverAddress: argocd-server.argocd.svc.cluster.local:443
+    insecure: false
+    plaintext: false
+  # 全 image を polling するインターバル。
+  interval: 2m
+  # registry の設定は registries.conf を別 ConfigMap で渡す（registries.conf.yaml 参照）。
+  registriesConfPath: /app/config/registries.conf
+
+# registries.conf を本 chart に注入する（別 yaml の内容を文字列で）。
+registries:
+  - name: GitHub Container Registry
+    api_url: https://ghcr.io
+    prefix: ghcr.io
+    ping: yes
+    credentials: pullsecret:argocd/ghcr-pullsecret
+    credsexpire: 1h
+    defaultns: k1s0/k1s0
+
+# Git write-back の認証情報（OpenBao 動的シークレット移行までの placeholder）。
+# argocd-image-updater が Git に commit する際の SSH key を ssh-key-secret として参照する。
+# 実 secret は ESO（External Secrets Operator）+ OpenBao で生成する。
+gitCommitConfig:
+  # commit author / email
+  user: argocd-image-updater[bot]
+  email: argocd-image-updater@k1s0.example.com
+  # commit message テンプレート
+  messageTemplate: |
+    chore(image): bump {{.AppName}} to {{.NewTag}}
+
+    {{ range .Images -}}
+    - {{.Image}}: {{.OldTag}} → {{.NewTag}}
+    {{ end -}}
+
+# Pod の anti-affinity（HA で同一 node に乗らない）。
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: argocd-image-updater
+        topologyKey: kubernetes.io/hostname

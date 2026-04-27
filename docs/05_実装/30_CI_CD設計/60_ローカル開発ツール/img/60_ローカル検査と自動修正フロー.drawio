@@ -1,0 +1,99 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="layered-defense" name="多層防御">
+    <mxGraphModel dx="1200" dy="720" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1180" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;ローカル開発から CI まで — 4 層防御&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="20" width="600" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-local" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0F7FF;strokeColor=#A6BCD8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="70" width="560" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-remote" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8F0;strokeColor=#D8B58A;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="70" width="560" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="label-local" value="&lt;b&gt;ローカル (開発者 PC)&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fillColor=none;strokeColor=none;fontColor=#3C5A82;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="label-remote" value="&lt;b&gt;リモート (GitHub Actions)&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=13;fillColor=none;strokeColor=none;fontColor=#9B6F2A;" vertex="1" parent="1">
+          <mxGeometry x="620" y="80" width="280" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="t1-timing" value="git commit 直後" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="240" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="t1-header" value="&lt;b&gt;L1: pre-commit hooks&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="40" y="158" width="240" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="t1-content" value="&lt;b&gt;主体:&lt;/b&gt; 開発者 PC&lt;br/&gt;&lt;b&gt;前提:&lt;/b&gt; pre-commit install&lt;br/&gt;&lt;br/&gt;&lt;b&gt;捕捉する違反:&lt;/b&gt;&lt;br/&gt;・commitlint (commit-msg)&lt;br/&gt;・markdownlint&lt;br/&gt;・shellcheck&lt;br/&gt;・gitleaks (秘密検出)&lt;br/&gt;・japanese-header-guard&lt;br/&gt;・file-length-guard&lt;br/&gt;・drawio-svg-staleness&lt;br/&gt;&lt;br/&gt;&lt;b&gt;bypass:&lt;/b&gt; --no-verify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="225" width="240" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="t2-timing" value="git push 前 (任意)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="115" width="240" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="t2-header" value="&lt;b&gt;L2: make verify&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="320" y="158" width="240" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="t2-content" value="&lt;b&gt;主体:&lt;/b&gt; 開発者 PC&lt;br/&gt;&lt;b&gt;実体:&lt;/b&gt; tools/ci/verify-local.sh&lt;br/&gt;&lt;br/&gt;&lt;b&gt;捕捉する違反:&lt;/b&gt;&lt;br/&gt;・pre-commit run --all-files&lt;br/&gt;・cargo fmt + clippy&lt;br/&gt;・go vet + golangci-lint&lt;br/&gt;・dotnet format&lt;br/&gt;・pnpm install/lint/typecheck&lt;br/&gt;・buf lint/format/breaking&lt;br/&gt;・codegen/openapi/grpc-docs 差分&lt;br/&gt;&lt;br/&gt;&lt;b&gt;bypass:&lt;/b&gt; 実行しなければ skip" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="225" width="240" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="t3-timing" value="PR opened" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="115" width="240" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="t3-header" value="&lt;b&gt;L3: pr-title-autofix&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="620" y="158" width="240" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="t3-content" value="&lt;b&gt;主体:&lt;/b&gt; GitHub Actions&lt;br/&gt;&lt;b&gt;event:&lt;/b&gt; pull_request_target&lt;br/&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;.opened&lt;br/&gt;&lt;br/&gt;&lt;b&gt;捕捉する違反:&lt;/b&gt;&lt;br/&gt;・PR title の Conventional&lt;br/&gt;&amp;nbsp;&amp;nbsp;Commits 違反&lt;br/&gt;&lt;br/&gt;&lt;b&gt;動作:&lt;/b&gt;&lt;br/&gt;・branch 名から導出して&lt;br/&gt;&amp;nbsp;&amp;nbsp;gh pr edit で書き換え&lt;br/&gt;・補正不能ならコメント案内&lt;br/&gt;&lt;br/&gt;&lt;b&gt;対象外:&lt;/b&gt; bot 起源 PR /&lt;br/&gt;renovate/ dependabot/ branch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="225" width="240" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="t4-timing" value="PR / push 駆動 (自動)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="115" width="240" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="t4-header" value="&lt;b&gt;L4: CI lint / commitlint&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="900" y="158" width="240" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="t4-content" value="&lt;b&gt;主体:&lt;/b&gt; GitHub Actions&lt;br/&gt;&lt;b&gt;実体:&lt;/b&gt; pr.yml + reusable-*&lt;br/&gt;&lt;br/&gt;&lt;b&gt;捕捉する違反 (最終):&lt;/b&gt;&lt;br/&gt;・commitlint-pr-title&lt;br/&gt;・commitlint-commits&lt;br/&gt;・pre-commit (再走)&lt;br/&gt;・lint-tier* (4 言語)&lt;br/&gt;・openapi-check&lt;br/&gt;・grpc-docs-check&lt;br/&gt;・path-filter で選択ビルド&lt;br/&gt;&lt;br/&gt;&lt;b&gt;bypass:&lt;/b&gt; 不可&lt;br/&gt;(branch protection 必須)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#9DA5B0;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="900" y="225" width="240" height="370" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-12" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="t1-header" target="t2-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-23" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;endFill=1;dashed=1;" edge="1" parent="1" source="t2-header" target="t3-header">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="182" />
+              <mxPoint x="590" y="182" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-34" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;endFill=1;" edge="1" parent="1" source="t3-header" target="t4-header">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="20" y="650" width="1140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;凡例:&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="35" y="655" width="50" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-flow" value="→ 実線: 必ず通過する流れ。各層は前段で捕捉されなかった違反のみを次段に流す（責務分担）。" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="85" y="655" width="700" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-dashed" value="→ 破線: Local → Remote 境界 (push)。bypass (--no-verify / verify 実行省略) で L1, L2 を skip 可能。" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="85" y="678" width="700" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color1" value="L1, L2 (Local)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="660" width="115" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-color2" value="L3, L4 (Remote)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="683" width="115" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-impref" value="対応 ID: &lt;b&gt;IMP-CI-LCDT-080&lt;/b&gt; (L2) / &lt;b&gt;LCDT-081&lt;/b&gt; (L3) / &lt;b&gt;LCDT-082&lt;/b&gt; (branch 命名)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fillColor=none;strokeColor=none;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="930" y="670" width="220" height="22" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -4,7 +4,7 @@
 
 ## ファイル
 
-```
+```text
 openbao-dev/
 ├── README.md
 ├── docker-compose.yml   # openbao-dev (server) + openbao-init (初期 secret 投入)
@@ -19,7 +19,7 @@ openbao-dev/
 
 実行後、`.devcontainer/.env.local` に dev token が記録される（`.gitignore` 対象）。
 
-```
+```text
 BAO_ADDR=http://localhost:8200
 BAO_TOKEN=dev-root-token
 ```

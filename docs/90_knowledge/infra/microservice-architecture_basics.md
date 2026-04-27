@@ -194,13 +194,13 @@ curl http://user-service:8080/users/123
 
 ## 12. さらに学ぶには
 
-- Martin Fowler - Microservices: https://martinfowler.com/articles/microservices.html
+- Martin Fowler - Microservices: <https://martinfowler.com/articles/microservices.html>
 - 関連 Knowledge: [Kubernetes の基本](./kubernetes_basics.md)（マイクロサービスの運用基盤）
 - 関連 Knowledge: [Docker の基本](../tool/docker_basics.md)（コンテナ化の前提知識）
 - 推奨書籍: Sam Newman 著「Building Microservices」（O'Reilly）
 
 ## 13. 参考資料
 
-- Martin Fowler, James Lewis「Microservices」(2014): https://martinfowler.com/articles/microservices.html
+- Martin Fowler, James Lewis「Microservices」(2014): <https://martinfowler.com/articles/microservices.html>
 - Chris Richardson「Microservices Patterns」(Manning, 2018)
 - Sam Newman「Building Microservices, 2nd Edition」(O'Reilly, 2021)

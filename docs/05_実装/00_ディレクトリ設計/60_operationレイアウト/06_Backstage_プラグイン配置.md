@@ -15,7 +15,7 @@
 
 Backstage 本体は `src/platform/backstage-plugins/` に配置。`src/platform/` は ADR-DIR-001 由来の「雛形・ツール・内製プラグイン」を集約する場所。
 
-```
+```text
 src/platform/
 ├── README.md
 ├── cli/                            # k1s0 CLI（Rust）

@@ -16,7 +16,7 @@
 
 ## レイアウト
 
-```
+```text
 tools/
 ├── README.md
 ├── devcontainer/

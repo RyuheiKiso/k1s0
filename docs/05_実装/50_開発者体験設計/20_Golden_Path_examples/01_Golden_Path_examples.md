@@ -14,7 +14,7 @@ tier2 向け（.NET / Go）と tier3 向け（Web / Native）の 4 ケースを 
 
 ## リリース時点 の必須 4 例
 
-```
+```text
 examples/
 ├── tier2-dotnet-service/      # C# ドメインサービス: CRUD + Event Publish + PII マスキング
 ├── tier2-go-service/          # Go ドメインサービス: Temporal Workflow + ZEN Engine 呼出

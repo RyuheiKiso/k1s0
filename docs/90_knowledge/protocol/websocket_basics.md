@@ -177,14 +177,14 @@ WebSocket の切断は Close フレームによる双方向のハンドシェイ
 
 ## 12. さらに学ぶには
 
-- RFC 6455（WebSocket Protocol）: https://datatracker.ietf.org/doc/html/rfc6455
-- MDN Web Docs - WebSocket API: https://developer.mozilla.org/ja/docs/Web/API/WebSocket
-- RFC 7692（WebSocket Per-Message Compression）: https://datatracker.ietf.org/doc/html/rfc7692
-- RFC 8441（Bootstrapping WebSockets with HTTP/2）: https://datatracker.ietf.org/doc/html/rfc8441
+- RFC 6455（WebSocket Protocol）: <https://datatracker.ietf.org/doc/html/rfc6455>
+- MDN Web Docs - WebSocket API: <https://developer.mozilla.org/ja/docs/Web/API/WebSocket>
+- RFC 7692（WebSocket Per-Message Compression）: <https://datatracker.ietf.org/doc/html/rfc7692>
+- RFC 8441（Bootstrapping WebSockets with HTTP/2）: <https://datatracker.ietf.org/doc/html/rfc8441>
 
 ## 13. 参考資料
 
-- RFC 6455 - The WebSocket Protocol: https://datatracker.ietf.org/doc/html/rfc6455
-- MDN Web Docs - WebSocket: https://developer.mozilla.org/ja/docs/Web/API/WebSocket
-- Gorilla WebSocket（Go 実装）: https://github.com/gorilla/websocket
-- Coder WebSocket（Go 実装）: https://github.com/coder/websocket
+- RFC 6455 - The WebSocket Protocol: <https://datatracker.ietf.org/doc/html/rfc6455>
+- MDN Web Docs - WebSocket: <https://developer.mozilla.org/ja/docs/Web/API/WebSocket>
+- Gorilla WebSocket（Go 実装）: <https://github.com/gorilla/websocket>
+- Coder WebSocket（Go 実装）: <https://github.com/coder/websocket>

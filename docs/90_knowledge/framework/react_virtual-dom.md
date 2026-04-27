@@ -197,12 +197,12 @@ const ExpensiveList = memo(function ExpensiveList({ items }) {
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント（Render and Commit）: https://react.dev/learn/render-and-commit
-- 公式ドキュメント（Preserving and Resetting State）: https://react.dev/learn/preserving-and-resetting-state
+- 公式ドキュメント（Render and Commit）: <https://react.dev/learn/render-and-commit>
+- 公式ドキュメント（Preserving and Resetting State）: <https://react.dev/learn/preserving-and-resetting-state>
 - 関連 Knowledge: [react_basics.md](./react_basics.md)
 
 ## 13. 参考資料
 
-- React 公式ドキュメント: https://react.dev/
-- React GitHub リポジトリ: https://github.com/facebook/react
-- React Reconciliation 解説: https://legacy.reactjs.org/docs/reconciliation.html
+- React 公式ドキュメント: <https://react.dev/>
+- React GitHub リポジトリ: <https://github.com/facebook/react>
+- React Reconciliation 解説: <https://legacy.reactjs.org/docs/reconciliation.html>

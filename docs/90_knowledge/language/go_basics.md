@@ -219,13 +219,13 @@ func main() {
 
 ## 12. さらに学ぶには
 
-- 公式チュートリアル: https://go.dev/tour/
-- Effective Go: https://go.dev/doc/effective_go
-- Go by Example: https://gobyexample.com/
+- 公式チュートリアル: <https://go.dev/tour/>
+- Effective Go: <https://go.dev/doc/effective_go>
+- Go by Example: <https://gobyexample.com/>
 - 関連 Knowledge: 並行処理の詳細は `go_concurrency.md`（作成予定）を参照
 
 ## 13. 参考資料
 
-- The Go Programming Language Specification: https://go.dev/ref/spec
-- Go Documentation: https://go.dev/doc/
-- Go Standard Library: https://pkg.go.dev/std
+- The Go Programming Language Specification: <https://go.dev/ref/spec>
+- Go Documentation: <https://go.dev/doc/>
+- Go Standard Library: <https://pkg.go.dev/std>

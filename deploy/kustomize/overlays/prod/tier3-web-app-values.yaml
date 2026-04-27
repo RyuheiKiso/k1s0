@@ -1,0 +1,21 @@
+# prod 環境の tier3-web-app values overlay。
+image:
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 1000m, memory: 512Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+
+ingress:
+  enabled: true
+  host: "portal.k1s0.example.com"
+
+bffUpstream: "http://portal-bff.tier3-bff.svc.cluster.local:8080"

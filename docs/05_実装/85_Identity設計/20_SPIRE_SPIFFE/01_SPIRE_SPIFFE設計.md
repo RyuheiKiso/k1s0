@@ -32,7 +32,7 @@ Agent の設定は `infra/security/spire-agent/config/agent.conf`、Helm values 
 
 SPIFFE ID は SVID に埋め込まれるワークロード識別子である。命名が散乱すると AuthorizationPolicy の記述が不可能になるため、k1s0 では以下の命名規約を IMP-SEC-SP-023 として固定する。
 
-```
+```text
 spiffe://k1s0.local/ns/<namespace>/sa/<service-account>/<workload>
 
 # 例

@@ -174,14 +174,14 @@ OpenBao はオンデマンドでシークレットを生成する「動的シー
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://openbao.org/docs/
-- OpenBao GitHub リポジトリ: https://github.com/openbao/openbao
-- Developer Quick Start: https://openbao.org/docs/get-started/developer-qs
+- 公式ドキュメント: <https://openbao.org/docs/>
+- OpenBao GitHub リポジトリ: <https://github.com/openbao/openbao>
+- Developer Quick Start: <https://openbao.org/docs/get-started/developer-qs>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)、[Dapr: 基本](./dapr_basics.md)
 
 ## 13. 参考資料
 
-- OpenBao 公式ドキュメント What is OpenBao?: https://openbao.org/docs/what-is-openbao
-- OpenBao Concepts - Seal/Unseal: https://openbao.org/docs/concepts/seal
-- OpenBao KV Secrets Engine: https://openbao.org/docs/secrets/kv/kv-v2
-- OpenBao Auth Methods: https://openbao.org/docs/auth
+- OpenBao 公式ドキュメント What is OpenBao?: <https://openbao.org/docs/what-is-openbao>
+- OpenBao Concepts - Seal/Unseal: <https://openbao.org/docs/concepts/seal>
+- OpenBao KV Secrets Engine: <https://openbao.org/docs/secrets/kv/kv-v2>
+- OpenBao Auth Methods: <https://openbao.org/docs/auth>

@@ -218,13 +218,13 @@ spec:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://argo-cd.readthedocs.io/en/stable/
-- Argo CD Getting Started: https://argo-cd.readthedocs.io/en/stable/getting_started/
-- ApplicationSet（複数クラスタ・環境への一括デプロイ）: https://argo-cd.readthedocs.io/en/stable/user-guide/application-set/
+- 公式ドキュメント: <https://argo-cd.readthedocs.io/en/stable/>
+- Argo CD Getting Started: <https://argo-cd.readthedocs.io/en/stable/getting_started/>
+- ApplicationSet（複数クラスタ・環境への一括デプロイ）: <https://argo-cd.readthedocs.io/en/stable/user-guide/application-set/>
 
 ## 13. 参考資料
 
-- Argo CD GitHub リポジトリ: https://github.com/argoproj/argo-cd
-- Argo CD Architecture: https://argo-cd.readthedocs.io/en/stable/operator-manual/architecture/
-- GitOps の原則（OpenGitOps）: https://opengitops.dev/
-- CNCF Argo Project: https://www.cncf.io/projects/argo/
+- Argo CD GitHub リポジトリ: <https://github.com/argoproj/argo-cd>
+- Argo CD Architecture: <https://argo-cd.readthedocs.io/en/stable/operator-manual/architecture/>
+- GitOps の原則（OpenGitOps）: <https://opengitops.dev/>
+- CNCF Argo Project: <https://www.cncf.io/projects/argo/>

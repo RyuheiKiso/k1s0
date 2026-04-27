@@ -1,0 +1,14 @@
+# deploy/kustomize/overlays/dev/ — 開発環境（kind 単一 cluster 想定）の overlay。
+#
+# 本 kustomization は base リソースを継承し、dev 用の image registry 上書きや
+# debug 用 ConfigMap を追加する。Helm values は本ディレクトリの <chart>-values.yaml
+# が ApplicationSet から参照される。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../base
+
+# dev 環境であることを示す label。
+commonLabels:
+  k1s0.io/env: dev

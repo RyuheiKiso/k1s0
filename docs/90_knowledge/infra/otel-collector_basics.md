@@ -197,14 +197,14 @@ OTel Collector には主に 2 つのデプロイパターンがある。
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://opentelemetry.io/docs/collector/
-- OpenTelemetry Collector GitHub: https://github.com/open-telemetry/opentelemetry-collector
-- Contrib コンポーネント一覧: https://github.com/open-telemetry/opentelemetry-collector-contrib
+- 公式ドキュメント: <https://opentelemetry.io/docs/collector/>
+- OpenTelemetry Collector GitHub: <https://github.com/open-telemetry/opentelemetry-collector>
+- Contrib コンポーネント一覧: <https://github.com/open-telemetry/opentelemetry-collector-contrib>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)、[Dapr: 基本](./dapr_basics.md)
 
 ## 13. 参考資料
 
-- OpenTelemetry Collector Architecture: https://opentelemetry.io/docs/collector/architecture/
-- OpenTelemetry Collector Configuration: https://opentelemetry.io/docs/collector/configuration/
-- OpenTelemetry Collector Deployment: https://opentelemetry.io/docs/collector/deployment/
-- OTLP Specification: https://opentelemetry.io/docs/specs/otlp/
+- OpenTelemetry Collector Architecture: <https://opentelemetry.io/docs/collector/architecture/>
+- OpenTelemetry Collector Configuration: <https://opentelemetry.io/docs/collector/configuration/>
+- OpenTelemetry Collector Deployment: <https://opentelemetry.io/docs/collector/deployment/>
+- OTLP Specification: <https://opentelemetry.io/docs/specs/otlp/>
