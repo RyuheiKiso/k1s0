@@ -50,10 +50,14 @@ pnpm-debug.log*
 # ------------------------------------------------------------
 # フロントエンド ビルド成果物
 # ------------------------------------------------------------
-# Viteのプロダクションビルド出力
+# Viteのプロダクションビルド出力（setup gui / tier3 web 全般）
 setup/gui/dist/
+src/tier3/web/apps/*/dist/
+src/tier3/web/packages/*/dist/
+# 例外: src/sdk/typescript/dist/ は npm 配布物として意図的にコミットする
 # Vitestのカバレッジレポート
 setup/gui/coverage/
+**/coverage/
 
 # ------------------------------------------------------------
 # Tauri 固有
