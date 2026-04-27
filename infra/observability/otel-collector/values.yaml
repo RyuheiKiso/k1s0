@@ -1,0 +1,113 @@
+# OpenTelemetry Collector（ADR-OBS-002、agent + gateway の 2 段構成）。
+# helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+# helm upgrade --install otel-collector-agent open-telemetry/opentelemetry-collector -n observability -f values.yaml
+#
+# 本ファイルは "agent"（DaemonSet）用 values。"gateway"（Deployment）は values-gateway.yaml で別途デプロイ。
+
+mode: daemonset
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: 0.115.0
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# Pod 各 Node 配置（DaemonSet なので tolerations 必要）
+tolerations:
+  - operator: Exists
+    effect: NoSchedule
+
+# 各 node の hostmetrics と filelog を receive、gateway に gRPC で転送
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+    hostmetrics:
+      collection_interval: 30s
+      scrapers:
+        cpu: {}
+        memory: {}
+        disk: {}
+        filesystem: {}
+        load: {}
+        network: {}
+    filelog:
+      include:
+        - /var/log/pods/*/*/*.log
+      include_file_path: true
+      include_file_name: false
+
+  processors:
+    batch:
+      timeout: 10s
+      send_batch_size: 1024
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+    resourcedetection:
+      detectors:
+        - env
+        - system
+        - k8snode
+    k8sattributes:
+      auth_type: serviceAccount
+      passthrough: false
+      extract:
+        metadata:
+          - k8s.namespace.name
+          - k8s.pod.name
+          - k8s.deployment.name
+          - k8s.node.name
+
+  exporters:
+    # gateway へ転送（同 namespace の otel-collector-gateway service）
+    otlp:
+      endpoint: otel-collector-gateway.observability.svc.cluster.local:4317
+      tls:
+        insecure: true
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+        exporters: [otlp]
+      metrics:
+        receivers: [otlp, hostmetrics]
+        processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+        exporters: [otlp]
+      logs:
+        receivers: [otlp, filelog]
+        processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+        exporters: [otlp]
+
+ports:
+  otlp:
+    enabled: true
+    containerPort: 4317
+    servicePort: 4317
+    protocol: TCP
+  otlp-http:
+    enabled: true
+    containerPort: 4318
+    servicePort: 4318
+    protocol: TCP
+
+# RBAC は k8sattributes processor が必要とする node / pod の get / list / watch
+clusterRole:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["nodes", "pods", "namespaces"]
+      verbs: ["get", "list", "watch"]

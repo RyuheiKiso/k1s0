@@ -1,0 +1,72 @@
+# Pyroscope（ADR-OBS-001、LGTM の T2 = continuous profiling）の Helm values。
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm upgrade --install pyroscope grafana/pyroscope -n observability -f values.yaml
+
+pyroscope:
+  # micro-services モード（distributor / ingester / store-gateway / querier 分離）
+  components:
+    distributor:
+      kind: Deployment
+      replicaCount: 2
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+    ingester:
+      kind: StatefulSet
+      replicaCount: 3
+      persistence:
+        enabled: true
+        size: 50Gi
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 4Gi
+    querier:
+      kind: Deployment
+      replicaCount: 2
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+    query-frontend:
+      kind: Deployment
+      replicaCount: 2
+    query-scheduler:
+      kind: Deployment
+      replicaCount: 2
+    store-gateway:
+      kind: StatefulSet
+      replicaCount: 3
+      persistence:
+        enabled: true
+        size: 10Gi
+    compactor:
+      kind: StatefulSet
+      replicaCount: 2
+
+  # storage backend は MinIO（S3 互換）
+  structuredConfig:
+    storage:
+      backend: s3
+      s3:
+        endpoint: minio.minio.svc.cluster.local:9000
+        bucket_name: k1s0-events
+        insecure: true
+        access_key_id: ${ACCESS_KEY_ID}
+        secret_access_key: ${SECRET_ACCESS_KEY}
+    limits:
+      ingestion_rate_mb: 200
+      max_query_lookback: 90d
+
+# 監視
+serviceMonitor:
+  enabled: true
+
+# 環境変数で S3 認証情報を注入
+extraEnvFrom:
+  - secretRef:
+      name: k1s0-pyroscope-s3-credentials

@@ -1,0 +1,89 @@
+# Tempo（ADR-OBS-001、LGTM の T = Traces）の production-grade Helm values。
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm upgrade --install tempo grafana/tempo-distributed -n observability -f values.yaml
+#
+# 注: chart は単一バイナリ tempo ではなく distributed 版を使う（dev は single binary）。
+
+# storage backend は MinIO（S3 互換）
+storage:
+  trace:
+    backend: s3
+    s3:
+      endpoint: minio.minio.svc.cluster.local:9000
+      bucket: k1s0-events
+      forcepathstyle: true
+      insecure: true
+      access_key: ${ACCESS_KEY_ID}
+      secret_key: ${SECRET_ACCESS_KEY}
+
+# distributed 構成（compactor / distributor / ingester / query-frontend / querier）
+compactor:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+
+distributor:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+ingester:
+  replicas: 3
+  persistence:
+    enabled: true
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+querier:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+
+queryFrontend:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# memcached（query 結果キャッシュ）
+memcached:
+  enabled: true
+  replicas: 2
+
+# 監視
+serviceMonitor:
+  enabled: true
+
+# OTLP receiver を有効化（OTel Collector からの送信を受ける）
+traces:
+  otlp:
+    grpc:
+      enabled: true
+    http:
+      enabled: true
+  # zipkin / jaeger 互換 receiver も任意で有効化可能（OTel に統一する prod では不要）
+
+# 認証情報注入
+global_overrides:
+  per_tenant_override_config: /conf/overrides.yaml
+
+# 環境変数で S3 認証情報を注入
+extraEnvFrom:
+  - secretRef:
+      name: k1s0-tempo-s3-credentials
