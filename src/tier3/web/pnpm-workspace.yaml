@@ -1,0 +1,13 @@
+# tier3 web pnpm workspace 構成。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/02_web_pnpm_workspace配置.md
+#
+# packages の 3 カテゴリ:
+#   apps/    : 起動可能なアプリ（portal / admin / docs-site）
+#   packages/: 再利用可能 library（ui / api-client / i18n / config）
+#   tools/   : Lint / Formatter 設定パッケージ（eslint-config）
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "tools/*"

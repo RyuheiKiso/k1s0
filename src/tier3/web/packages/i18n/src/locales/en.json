@@ -1,0 +1,21 @@
+{
+  "common.appName": "k1s0",
+  "common.welcome": "Welcome",
+  "common.loading": "Loading…",
+  "common.error": "An error occurred",
+  "common.retry": "Retry",
+  "common.cancel": "Cancel",
+  "common.save": "Save",
+  "common.delete": "Delete",
+  "auth.signIn": "Sign in",
+  "auth.signOut": "Sign out",
+  "approval.title": "Approval Management",
+  "approval.submit": "Submit",
+  "approval.approve": "Approve",
+  "approval.reject": "Reject",
+  "approval.cancel": "Cancel",
+  "approval.status.pending": "Pending",
+  "approval.status.approved": "Approved",
+  "approval.status.rejected": "Rejected",
+  "approval.status.cancelled": "Cancelled"
+}
