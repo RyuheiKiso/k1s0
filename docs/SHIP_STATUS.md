@@ -105,7 +105,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート + AnalysisTemplate 2 件（error-rate / latency-p99、Mimir Prometheus クエリ）。experiments は採用後の運用拡大時 で追加 |
 | `deploy/kustomize/{base, overlays/*}` | Kustomize | **雛形あり** | base（共通 Namespace + label）+ overlays/{dev,staging,prod}/ に 6 chart × 3 環境 = 18 values overlay と 3 kustomization.yaml + README を配置。dev: replica=1 / debug、staging: replica=2 / info / HPA、prod: replica=3 / warn / podAntiAffinity / image semver pinning |
 | `deploy/opentofu/{environments, modules}` | OpenTofu（採用後の運用拡大時に Terraform から移行） | **設計のみ** | `.gitkeep` のみ |
-| `deploy/image-updater/` | Argo CD Image Updater | **設計のみ** | `.gitkeep` のみ |
+| `deploy/image-updater/` | Argo CD Image Updater | **雛形あり** | argocd-image-updater Helm values（HA 2 + ServiceMonitor）+ registries.conf ConfigMap（GHCR + GHCR pull secret 連携）+ application-annotations.md（ApplicationSet への annotation 追加例、環境別 strategy 表、Renovate との責任分界）を配置 |
 
 ### tools / tests / examples
 
@@ -280,9 +280,10 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - dev: replica=1 / debug log / 最小 resources
   - staging: replica=2 / info log / HPA 緩い
   - prod: replica=3 / warn log / podAntiAffinity / image semver pinning / HPA 実測ベース
-- 🔲 残り（plan 06-XX 以降）:
-  - `deploy/image-updater/` Argo CD Image Updater 設定
+- ✅ `deploy/image-updater/` Argo CD Image Updater 設定（HA 2 + GHCR registry + Git write-back）
+- 🔲 残り（採用後の運用拡大時）:
   - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
+  - ApplicationSet への image-updater annotation 注入
 
 ### 7. examples 完動 4 種（IMP-DIR-COMM-113）— **完了**
 

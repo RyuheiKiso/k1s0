@@ -1,0 +1,30 @@
+# Argo CD Image Updater の registry 設定（独立 ConfigMap として配信）。
+# values.yaml の `registries:` ブロックと内容は同一だが、ConfigMap として運用が容易。
+# Helm chart が ConfigMap を生成しない構成では本ファイルを直接 apply する。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-image-updater
+    k1s0.io/component: image-updater
+data:
+  registries.conf: |
+    registries:
+    - name: GitHub Container Registry
+      # GHCR を polling する registry endpoint
+      api_url: https://ghcr.io
+      prefix: ghcr.io
+      ping: yes
+      # GHCR pull secret（K8s Secret、ESO + OpenBao で動的生成、plan 04-06）
+      credentials: pullsecret:argocd/ghcr-pullsecret
+      credsexpire: 1h
+      defaultns: k1s0/k1s0
+  # Git write-back 用 SSH key の参照（実 Secret は別途配置、ESO で生成）。
+  git.config: |
+    [user]
+        name = argocd-image-updater[bot]
+        email = argocd-image-updater@k1s0.example.com
+    [push]
+        default = current
