@@ -4,7 +4,7 @@
 
 ## 配置
 
-```
+```text
 tools/local-stack/
 ├── README.md                     # 本ファイル
 ├── kind-cluster.yaml             # control-plane 1 + worker 3 + Calico CNI 対応
@@ -68,9 +68,9 @@ tools/local-stack/
 
 | URL | 用途 | 認証 |
 |---|---|---|
-| http://localhost:30080 | Argo CD UI | admin / `kubectl -n argocd get secret argocd-initial-admin-secret -o json \| jq -r '.data.password' \| base64 -d` |
-| http://localhost:30700 | Backstage | basic auth（dev image のみ） |
-| http://localhost:30300 | Grafana | admin / k1s0-local-dev-password |
+| <http://localhost:30080> | Argo CD UI | admin / `kubectl -n argocd get secret argocd-initial-admin-secret -o json \| jq -r '.data.password' \| base64 -d` |
+| <http://localhost:30700> | Backstage | basic auth（dev image のみ） |
+| <http://localhost:30300> | Grafana | admin / k1s0-local-dev-password |
 
 ## Phase 3 残置項目
 

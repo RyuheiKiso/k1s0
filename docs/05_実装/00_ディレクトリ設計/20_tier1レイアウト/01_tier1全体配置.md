@@ -8,7 +8,7 @@
 
 ### DS-SW-COMP-120 改訂前（旧）
 
-```
+```text
 src/tier1/
 ├── contracts/        # Protobuf .proto 一元配置
 ├── go/               # Go module（Dapr ファサード層）
@@ -18,7 +18,7 @@ src/tier1/
 
 ### DS-SW-COMP-120 改訂後（新）
 
-```
+```text
 src/tier1/
 ├── go/               # Go module（Dapr ファサード層）
 └── rust/             # Cargo workspace（自作領域）

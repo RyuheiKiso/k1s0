@@ -99,7 +99,7 @@ Pii API は、個人情報（氏名、社員番号、メール、電話、マイ
 
 本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/10_Audit_Pii_API.md](../40_tier1_API契約IDL/10_Audit_Pii_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `AuditService` / `PiiService` RPC と意味論的に対応する。
 
-```
+```text
 // Audit
 k1s0.Audit.Record(event: AuditEvent) -> error?
 k1s0.Audit.Query(filter: AuditQuery) -> (events: AuditEvent[], error?)

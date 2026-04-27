@@ -14,7 +14,7 @@ k1s0 は以下 3 種類のコード生成を行う。
 
 ## レイアウト
 
-```
+```text
 tools/codegen/
 ├── README.md
 ├── buf/

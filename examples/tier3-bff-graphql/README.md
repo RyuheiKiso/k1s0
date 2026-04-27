@@ -20,7 +20,7 @@ tier3 BFF（Backend For Frontend）レイヤの典型的な実装パタンを示
 
 ## 想定構成（採用初期）
 
-```
+```text
 tier3-bff-graphql/
 ├── README.md                       # 本ファイル
 ├── go.mod                          # github.com/k1s0/k1s0/examples/tier3-bff-graphql

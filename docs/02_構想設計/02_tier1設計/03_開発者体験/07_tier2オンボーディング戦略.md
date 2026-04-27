@@ -49,7 +49,7 @@ tier1 公開 API を 5 段階に分類し、前のレベルを習得してから
 
 ### 2.3 サンプルサービスの配置
 
-```
+```text
 examples/
 ├── tier2-reference-service/    # 既存: 全 API 網羅の模範サービス (最終形)
 ├── onboarding-L1/              # Log + Telemetry + Auth のみ

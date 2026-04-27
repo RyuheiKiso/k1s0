@@ -239,12 +239,12 @@ spec:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://metallb.io/
+- 公式ドキュメント: <https://metallb.io/>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)
-- CNCF Landscape（ネットワーキング）: https://landscape.cncf.io/
+- CNCF Landscape（ネットワーキング）: <https://landscape.cncf.io/>
 
 ## 13. 参考資料
 
-- MetalLB Concepts: https://metallb.io/concepts/
-- MetalLB Configuration: https://metallb.io/configuration/
-- MetalLB GitHub: https://github.com/metallb/metallb
+- MetalLB Concepts: <https://metallb.io/concepts/>
+- MetalLB Configuration: <https://metallb.io/configuration/>
+- MetalLB GitHub: <https://github.com/metallb/metallb>

@@ -194,12 +194,12 @@ tap:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://docs.kubeshark.co/
-- Kubeshark GitHub: https://github.com/kubeshark/kubeshark
+- 公式ドキュメント: <https://docs.kubeshark.co/>
+- Kubeshark GitHub: <https://github.com/kubeshark/kubeshark>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)
 
 ## 13. 参考資料
 
-- Kubeshark 公式リポジトリ README: https://github.com/kubeshark/kubeshark/blob/master/README.md
-- Kubeshark Filter Language (KFL) ドキュメント: https://docs.kubeshark.co/en/filtering
-- eBPF 公式サイト: https://ebpf.io/
+- Kubeshark 公式リポジトリ README: <https://github.com/kubeshark/kubeshark/blob/master/README.md>
+- Kubeshark Filter Language (KFL) ドキュメント: <https://docs.kubeshark.co/en/filtering>
+- eBPF 公式サイト: <https://ebpf.io/>

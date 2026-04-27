@@ -209,13 +209,13 @@ container.rm().await.expect("削除に失敗");
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://testcontainers.com/
-- testcontainers-rs GitHub: https://github.com/testcontainers/testcontainers-rs
+- 公式ドキュメント: <https://testcontainers.com/>
+- testcontainers-rs GitHub: <https://github.com/testcontainers/testcontainers-rs>
 - 関連 Knowledge: [Docker: 基本](../tool/docker_basics.md)
 
 ## 13. 参考資料
 
-- Testcontainers 公式サイト: https://testcontainers.com/
-- testcontainers-rs クレートドキュメント: https://docs.rs/testcontainers/
-- testcontainers-rs GitHub リポジトリ: https://github.com/testcontainers/testcontainers-rs
-- Testcontainers Getting Started Guide: https://testcontainers.com/guides/
+- Testcontainers 公式サイト: <https://testcontainers.com/>
+- testcontainers-rs クレートドキュメント: <https://docs.rs/testcontainers/>
+- testcontainers-rs GitHub リポジトリ: <https://github.com/testcontainers/testcontainers-rs>
+- Testcontainers Getting Started Guide: <https://testcontainers.com/guides/>

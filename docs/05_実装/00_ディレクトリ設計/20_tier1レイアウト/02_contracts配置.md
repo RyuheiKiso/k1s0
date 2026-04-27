@@ -10,7 +10,7 @@ ADR-DIR-001 で論じた通り、契約は tier1 所有物ではなく tier1 / t
 
 ## src/contracts/ の内部構造
 
-```
+```text
 src/contracts/
 ├── README.md
 ├── buf.yaml              # buf モジュール設定
@@ -162,7 +162,7 @@ done
 
 ## CODEOWNERS
 
-```
+```text
 /src/contracts/                                 @k1s0/contract-reviewers
 /src/contracts/buf.yaml                         @k1s0/contract-reviewers @k1s0/arch-council
 /src/contracts/buf.gen.*.yaml                   @k1s0/contract-reviewers @k1s0/platform-team

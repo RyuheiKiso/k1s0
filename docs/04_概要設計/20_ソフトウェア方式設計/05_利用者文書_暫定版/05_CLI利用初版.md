@@ -55,7 +55,7 @@ JSON 出力は機械可読を徹底し、色付けやスペース整形は抑え
 
 **`k1s0 new`** — tier2 Go サービスの雛形をローカル生成する。`--dry-run` で生成予定ファイル一覧のみ表示。
 
-```
+```text
 $ k1s0 new tier2-microservice --name order-service --lang go --team team-order
 Generated: order-service/
   - .github/workflows/ci.yml
@@ -69,7 +69,7 @@ Next: cd order-service && k1s0 dev up
 
 **`k1s0 dev up`** — Tilt 連動でローカル起動。tier1 モック・Dapr sidecar・自コンテナを同時起動。
 
-```
+```text
 $ k1s0 dev up
 [dev] Starting Tilt dashboard at http://localhost:10350
 [dev] k1s0 tier1 mock: ready (11 APIs on port 50051)
@@ -80,7 +80,7 @@ $ k1s0 dev up
 
 **`k1s0 state get`** — tier1 State API 経由で Valkey の値を取得。
 
-```
+```text
 $ k1s0 state get --key order-123 --tenant jtc-demo
 {
   "key": "order-123",
@@ -92,7 +92,7 @@ $ k1s0 state get --key order-123 --tenant jtc-demo
 
 **`k1s0 secret rotate`** — OpenBao 上のシークレットをローテート。運用者権限が必要。
 
-```
+```text
 $ k1s0 secret rotate --name jwt-signing-key
 Rotating secret 'jwt-signing-key'...
 New version created: v5 (previous: v4)
@@ -102,7 +102,7 @@ Audit logged: secret.rotate event recorded.
 
 **`k1s0 feature enable`** — Feature Flag を有効化。段階ロールアウト指定可能。
 
-```
+```text
 $ k1s0 feature enable --flag new-checkout --rollout 10%
 Feature 'new-checkout' set to enabled=true at 10% rollout.
 flagd propagation: ~5 seconds.
@@ -111,7 +111,7 @@ Audit logged: feature.change event recorded.
 
 **`k1s0 audit query`** — Audit-Pii API で監査ログを検索。tenant / user / 時間範囲で絞込。
 
-```
+```text
 $ k1s0 audit query --user user-001 --since "24h ago"
 2026-04-20 09:15:23 | user-001 | secret.rotate | name=jwt-signing-key
 2026-04-20 10:22:18 | user-001 | feature.change | flag=new-checkout, enabled=true

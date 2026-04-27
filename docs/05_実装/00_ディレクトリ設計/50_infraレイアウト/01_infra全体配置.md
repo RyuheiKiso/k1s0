@@ -14,7 +14,7 @@
 
 ## レイアウト
 
-```
+```text
 infra/
 ├── README.md
 ├── k8s/                    # Kubernetes ブートストラップ

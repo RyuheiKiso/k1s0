@@ -26,7 +26,7 @@ Progressive Delivery（PD）は リリース時点 で必須化する（ADR-REL-
 
 ## 節構成予定
 
-```
+```text
 70_リリース設計/
 ├── README.md
 ├── 00_方針/                # GitOps と PD の原則

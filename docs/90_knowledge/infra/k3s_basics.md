@@ -163,12 +163,12 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
 
 ## 12. さらに学ぶには
 
-- k3s 公式ドキュメント: https://docs.k3s.io/
+- k3s 公式ドキュメント: <https://docs.k3s.io/>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)
-- k3s GitHub リポジトリ: https://github.com/k3s-io/k3s
+- k3s GitHub リポジトリ: <https://github.com/k3s-io/k3s>
 
 ## 13. 参考資料
 
-- k3s Architecture: https://docs.k3s.io/architecture
-- k3s Quick-Start Guide: https://docs.k3s.io/quick-start
-- k3s HA with Embedded DB: https://docs.k3s.io/datastore/ha-embedded
+- k3s Architecture: <https://docs.k3s.io/architecture>
+- k3s Quick-Start Guide: <https://docs.k3s.io/quick-start>
+- k3s HA with Embedded DB: <https://docs.k3s.io/datastore/ha-embedded>

@@ -14,7 +14,7 @@
 
 ## レイアウト
 
-```
+```text
 infra/dapr/
 ├── README.md
 ├── control-plane/
@@ -160,7 +160,7 @@ scopes:
 
 ADR-DIR-002 の infra / deploy 分離原則に従い、環境差分（dev / staging / prod で backing store 接続先が異なる）は **infra レイヤ内で完結** させる。具体的には以下の階層を取る。
 
-```
+```text
 infra/
 ├── dapr/
 │   └── components/                     # 型定義 + prod ベース値（base）

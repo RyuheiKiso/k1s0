@@ -26,7 +26,7 @@
 
 ## 節構成予定
 
-```
+```text
 40_依存管理設計/
 ├── README.md
 ├── 00_方針/                # Renovate 中心運用と vendoring の条件

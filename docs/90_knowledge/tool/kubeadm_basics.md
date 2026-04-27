@@ -188,12 +188,12 @@ sudo iptables -F && sudo iptables -t nat -F
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/
-- kubeadm init リファレンス: https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/
-- 高可用性クラスタの構築: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/
+- 公式ドキュメント: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/>
+- kubeadm init リファレンス: <https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/>
+- 高可用性クラスタの構築: <https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/>
 
 ## 13. 参考資料
 
-- Kubernetes 公式 kubeadm ドキュメント: https://kubernetes.io/docs/reference/setup-tools/kubeadm/
-- kubeadm Design Documents: https://github.com/kubernetes/kubeadm/tree/main/docs/design
-- Kubernetes The Hard Way: https://github.com/kelseyhightower/kubernetes-the-hard-way
+- Kubernetes 公式 kubeadm ドキュメント: <https://kubernetes.io/docs/reference/setup-tools/kubeadm/>
+- kubeadm Design Documents: <https://github.com/kubernetes/kubeadm/tree/main/docs/design>
+- Kubernetes The Hard Way: <https://github.com/kelseyhightower/kubernetes-the-hard-way>

@@ -154,12 +154,12 @@ Feature Flag は用途に応じて 4 種類に分類される。
 
 ## 12. さらに学ぶには
 
-- OpenFeature 公式サイト: https://openfeature.dev/
-- OpenFeature 仕様書: https://github.com/open-feature/spec
-- flagd（OSS フラグ管理バックエンド）: https://github.com/open-feature/flagd
+- OpenFeature 公式サイト: <https://openfeature.dev/>
+- OpenFeature 仕様書: <https://github.com/open-feature/spec>
+- flagd（OSS フラグ管理バックエンド）: <https://github.com/open-feature/flagd>
 
 ## 13. 参考資料
 
-- OpenFeature Documentation: https://openfeature.dev/docs/reference/intro
-- OpenFeature Specification - Flag Evaluation: https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md
-- Pete Hodgson "Feature Toggles" (martinfowler.com): https://martinfowler.com/articles/feature-toggles.html
+- OpenFeature Documentation: <https://openfeature.dev/docs/reference/intro>
+- OpenFeature Specification - Flag Evaluation: <https://github.com/open-feature/spec/blob/main/specification/sections/01-flag-evaluation.md>
+- Pete Hodgson "Feature Toggles" (martinfowler.com): <https://martinfowler.com/articles/feature-toggles.html>

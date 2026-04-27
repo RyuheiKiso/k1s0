@@ -13,7 +13,7 @@ ArgoCD は Helm と Kustomize を同時サポート。ApplicationSet で `helm:`
 
 ## レイアウト
 
-```
+```text
 deploy/kustomize/
 ├── README.md
 ├── base/                       # Helm で吸収しきれない共通定義

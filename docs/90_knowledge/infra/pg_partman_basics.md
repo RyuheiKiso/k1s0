@@ -226,13 +226,13 @@ SELECT partman.create_parent(
 
 ## 12. さらに学ぶには
 
-- 公式リポジトリ: https://github.com/pgpartman/pg_partman
-- PostgreSQL パーティショニング: https://www.postgresql.org/docs/current/ddl-partitioning.html
+- 公式リポジトリ: <https://github.com/pgpartman/pg_partman>
+- PostgreSQL パーティショニング: <https://www.postgresql.org/docs/current/ddl-partitioning.html>
 - 関連 Knowledge: [PostgreSQL: 基本](./postgresql_basics.md)
 - 関連 Knowledge: [CloudNativePG: 基本](./cloudnativepg_basics.md)
 
 ## 13. 参考資料
 
-- pg_partman 公式ドキュメント: https://github.com/pgpartman/pg_partman/blob/development/doc/pg_partman.md
-- pg_partman How-To Guide: https://github.com/pgpartman/pg_partman/blob/development/doc/pg_partman_howto.md
-- pg_partman Migration Guide: https://github.com/pgpartman/pg_partman/blob/development/doc/migrate_to_partman.md
+- pg_partman 公式ドキュメント: <https://github.com/pgpartman/pg_partman/blob/development/doc/pg_partman.md>
+- pg_partman How-To Guide: <https://github.com/pgpartman/pg_partman/blob/development/doc/pg_partman_howto.md>
+- pg_partman Migration Guide: <https://github.com/pgpartman/pg_partman/blob/development/doc/migrate_to_partman.md>

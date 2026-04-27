@@ -4,7 +4,7 @@
 
 ## 配置
 
-```
+```text
 infra/security/openbao/policies/
 ├── README.md           # 本ファイル
 ├── tier1-facade.hcl    # tier1 facade（Go + Rust core）

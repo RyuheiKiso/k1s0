@@ -4,7 +4,7 @@
 
 ## レイアウト
 
-```
+```text
 src/tier3/web/
 ├── README.md
 ├── package.json                    # root package（scripts / private）
@@ -113,7 +113,7 @@ Lint / Formatter 設定を package 化したもの。
 
 リリース時点 は BFF 経由のみ、運用蓄積後で直 gRPC-Web も許容するため、`packages/api-client` の下流が 段階により分岐する。
 
-```
+```text
                              （リリース時点）
 apps/*  →  packages/api-client  ─────►  BFF（HTTP/REST・GraphQL）
             │                             → tier2 / tier1（SDK 経由）

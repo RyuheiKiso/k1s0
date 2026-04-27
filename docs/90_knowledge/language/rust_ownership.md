@@ -232,12 +232,12 @@ fn main() {
 
 ## 12. さらに学ぶには
 
-- The Rust Programming Language Chapter 4: https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html
-- Rust by Example - Ownership and moves: https://doc.rust-lang.org/rust-by-example/scope/move.html
+- The Rust Programming Language Chapter 4: <https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html>
+- Rust by Example - Ownership and moves: <https://doc.rust-lang.org/rust-by-example/scope/move.html>
 - 関連 Knowledge: [Rust: 概要](./rust_basics.md)
 
 ## 13. 参考資料
 
-- The Rust Reference - Type system: https://doc.rust-lang.org/reference/type-system.html
-- Rust RFC 2094 - Non-lexical lifetimes: https://rust-lang.github.io/rfcs/2094-nll.html
-- The Rustonomicon: https://doc.rust-lang.org/nomicon/
+- The Rust Reference - Type system: <https://doc.rust-lang.org/reference/type-system.html>
+- Rust RFC 2094 - Non-lexical lifetimes: <https://rust-lang.github.io/rfcs/2094-nll.html>
+- The Rustonomicon: <https://doc.rust-lang.org/nomicon/>

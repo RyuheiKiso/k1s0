@@ -26,7 +26,7 @@
 
 ## 節構成予定
 
-```
+```text
 85_Identity設計/
 ├── README.md
 ├── 00_方針/                # 退職時一括 revoke の原則

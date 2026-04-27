@@ -157,7 +157,7 @@ helm install my-nginx bitnami/nginx -f base.yaml -f production.yaml
 
 Chart は以下のディレクトリ構造を持つ。`helm create <名前>` で雛形を生成できる。
 
-```
+```text
 mychart/
 ├── Chart.yaml          # Chart のメタデータ（名前、バージョン、説明）
 ├── values.yaml         # デフォルトの設定値
@@ -193,14 +193,14 @@ mychart/
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://helm.sh/docs/
-- Artifact Hub（公開 Chart の検索）: https://artifacthub.io/
-- Chart 開発ガイド: https://helm.sh/docs/chart_template_guide/
+- 公式ドキュメント: <https://helm.sh/docs/>
+- Artifact Hub（公開 Chart の検索）: <https://artifacthub.io/>
+- Chart 開発ガイド: <https://helm.sh/docs/chart_template_guide/>
 - 関連 Knowledge: Kubernetes の基本は `../infra/kubernetes_basics.md` を参照
 - 関連 Knowledge: Argo CD によるデプロイは `../tool/argo-cd_basics.md` を参照
 
 ## 13. 参考資料
 
-- Helm Documentation: https://helm.sh/docs/
-- Helm GitHub: https://github.com/helm/helm
-- Helm Cheat Sheet: https://helm.sh/docs/intro/cheatsheet/
+- Helm Documentation: <https://helm.sh/docs/>
+- Helm GitHub: <https://github.com/helm/helm>
+- Helm Cheat Sheet: <https://helm.sh/docs/intro/cheatsheet/>

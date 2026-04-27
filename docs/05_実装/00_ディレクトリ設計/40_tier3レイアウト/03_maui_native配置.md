@@ -4,7 +4,7 @@
 
 ## レイアウト
 
-```
+```text
 src/tier3/native/
 ├── README.md
 ├── Native.sln
@@ -176,7 +176,7 @@ dotnet publish apps/K1s0.Native.Hub/K1s0.Native.Hub.csproj \
 
 ## CODEOWNERS
 
-```
+```text
 /src/tier3/native/                              @k1s0/tier3-native
 ```
 

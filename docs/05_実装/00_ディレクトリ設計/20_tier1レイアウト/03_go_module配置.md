@@ -4,7 +4,7 @@
 
 ## レイアウト
 
-```
+```text
 src/tier1/go/
 ├── README.md
 ├── go.mod                          # module github.com/k1s0/k1s0/src/tier1/go

@@ -195,13 +195,13 @@ dotnet_analyzer_diagnostic.category-Naming.severity = none
 
 ## 12. さらに学ぶには
 
-- 公式チュートリアル: https://learn.microsoft.com/ja-jp/dotnet/csharp/roslyn-sdk/tutorials/how-to-write-csharp-analyzer-code-fix
-- Roslyn GitHub リポジトリ: https://github.com/dotnet/roslyn
-- Roslyn Analyzers リポジトリ: https://github.com/dotnet/roslyn-analyzers
+- 公式チュートリアル: <https://learn.microsoft.com/ja-jp/dotnet/csharp/roslyn-sdk/tutorials/how-to-write-csharp-analyzer-code-fix>
+- Roslyn GitHub リポジトリ: <https://github.com/dotnet/roslyn>
+- Roslyn Analyzers リポジトリ: <https://github.com/dotnet/roslyn-analyzers>
 - Syntax Visualizer（Visual Studio 拡張）: 構文木をリアルタイムに可視化できるツール
 
 ## 13. 参考資料
 
-- Microsoft Learn - .NET Compiler Platform SDK: https://learn.microsoft.com/ja-jp/dotnet/csharp/roslyn-sdk/
-- Microsoft Learn - Roslyn Analyzers Overview: https://learn.microsoft.com/ja-jp/visualstudio/code-quality/roslyn-analyzers-overview
-- .NET Compiler Platform SDK API Reference: https://learn.microsoft.com/ja-jp/dotnet/api/microsoft.codeanalysis
+- Microsoft Learn - .NET Compiler Platform SDK: <https://learn.microsoft.com/ja-jp/dotnet/csharp/roslyn-sdk/>
+- Microsoft Learn - Roslyn Analyzers Overview: <https://learn.microsoft.com/ja-jp/visualstudio/code-quality/roslyn-analyzers-overview>
+- .NET Compiler Platform SDK API Reference: <https://learn.microsoft.com/ja-jp/dotnet/api/microsoft.codeanalysis>

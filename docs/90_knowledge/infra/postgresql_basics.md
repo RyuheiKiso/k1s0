@@ -205,12 +205,12 @@ CREATE INDEX idx_active_users ON users (created_at)
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://www.postgresql.org/docs/17/
-- 公式チュートリアル: https://www.postgresql.org/docs/17/tutorial.html
-- PostgreSQL Wiki: https://wiki.postgresql.org/
+- 公式ドキュメント: <https://www.postgresql.org/docs/17/>
+- 公式チュートリアル: <https://www.postgresql.org/docs/17/tutorial.html>
+- PostgreSQL Wiki: <https://wiki.postgresql.org/>
 
 ## 13. 参考資料
 
-- PostgreSQL 17 Documentation - Tutorial: https://www.postgresql.org/docs/17/tutorial.html
-- PostgreSQL 17 Documentation - Architecture: https://www.postgresql.org/docs/17/tutorial-arch.html
-- PostgreSQL 17 Documentation - SQL Language: https://www.postgresql.org/docs/17/sql.html
+- PostgreSQL 17 Documentation - Tutorial: <https://www.postgresql.org/docs/17/tutorial.html>
+- PostgreSQL 17 Documentation - Architecture: <https://www.postgresql.org/docs/17/tutorial-arch.html>
+- PostgreSQL 17 Documentation - SQL Language: <https://www.postgresql.org/docs/17/sql.html>

@@ -221,13 +221,13 @@ docker volume ls
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://docs.docker.com/
-- Docker Getting Started: https://docs.docker.com/get-started/
-- Dockerfile リファレンス: https://docs.docker.com/reference/dockerfile/
+- 公式ドキュメント: <https://docs.docker.com/>
+- Docker Getting Started: <https://docs.docker.com/get-started/>
+- Dockerfile リファレンス: <https://docs.docker.com/reference/dockerfile/>
 - 関連 Knowledge: Kubernetes の基本は `../infra/kubernetes_basics.md` を参照
 
 ## 13. 参考資料
 
-- Docker Documentation: https://docs.docker.com/
-- Docker Hub: https://hub.docker.com/
-- Dockerfile Best Practices: https://docs.docker.com/build/building/best-practices/
+- Docker Documentation: <https://docs.docker.com/>
+- Docker Hub: <https://hub.docker.com/>
+- Dockerfile Best Practices: <https://docs.docker.com/build/building/best-practices/>

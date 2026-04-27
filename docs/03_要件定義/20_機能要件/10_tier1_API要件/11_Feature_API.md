@@ -75,7 +75,7 @@
 
 本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/11_Feature_API.md](../40_tier1_API契約IDL/11_Feature_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `FeatureService` RPC と意味論的に対応する。
 
-```
+```text
 k1s0.Feature.IsEnabled(
     flag_name: string,
     context: EvaluationContext

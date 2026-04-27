@@ -26,7 +26,7 @@ ADR-DEV-001（Paved Road 思想）と IMP-DEV-POL-002（Scaffold 経由必須）
 
 Paved Road 健全度は以下の式で算出する:
 
-```
+```text
 Paved Road 健全度 = (Scaffold + Template) / (Scaffold + Template + Off-Path)
 ```
 

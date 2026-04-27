@@ -203,14 +203,14 @@ PushSecret は同期の方向を逆にし、Kubernetes Secret の値を外部プ
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://external-secrets.io/
-- GitHub リポジトリ: https://github.com/external-secrets/external-secrets
-- 対応プロバイダ一覧: https://external-secrets.io/latest/provider/aws-secrets-manager/
+- 公式ドキュメント: <https://external-secrets.io/>
+- GitHub リポジトリ: <https://github.com/external-secrets/external-secrets>
+- 対応プロバイダ一覧: <https://external-secrets.io/latest/provider/aws-secrets-manager/>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)、[OpenBao: 基本](./openbao_basics.md)
 
 ## 13. 参考資料
 
-- External Secrets Operator 公式ドキュメント Introduction: https://external-secrets.io/latest/introduction/overview/
-- External Secrets Operator API Specification: https://external-secrets.io/latest/api/spec/
-- External Secrets Operator GCP Provider Guide: https://external-secrets.io/latest/provider/google-secrets-manager/
-- External Secrets Operator Helm Installation: https://external-secrets.io/latest/introduction/getting-started/
+- External Secrets Operator 公式ドキュメント Introduction: <https://external-secrets.io/latest/introduction/overview/>
+- External Secrets Operator API Specification: <https://external-secrets.io/latest/api/spec/>
+- External Secrets Operator GCP Provider Guide: <https://external-secrets.io/latest/provider/google-secrets-manager/>
+- External Secrets Operator Helm Installation: <https://external-secrets.io/latest/introduction/getting-started/>

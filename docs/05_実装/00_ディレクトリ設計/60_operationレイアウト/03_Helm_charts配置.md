@@ -12,7 +12,7 @@
 
 ## レイアウト
 
-```
+```text
 deploy/charts/
 ├── README.md
 ├── tier1-facade/               # Go Dapr facade 用 chart

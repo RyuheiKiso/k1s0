@@ -4,7 +4,7 @@
 
 ## レイアウト
 
-```
+```text
 src/tier3/
 ├── README.md
 ├── web/                    # React + TypeScript + pnpm workspace
@@ -123,7 +123,7 @@ tier3 の 4 サブカテゴリは、SDK への依存先が言語ごとに、BFF 
 
 ## CODEOWNERS
 
-```
+```text
 /src/tier3/                                     @k1s0/tier3-web @k1s0/tier3-native
 /src/tier3/web/                                 @k1s0/tier3-web
 /src/tier3/native/                              @k1s0/tier3-native

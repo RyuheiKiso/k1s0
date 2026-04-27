@@ -284,12 +284,12 @@ spec:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://argoproj.github.io/argo-rollouts/
-- Getting Started ガイド: https://argoproj.github.io/argo-rollouts/getting-started/
-- GitHub リポジトリ: https://github.com/argoproj/argo-rollouts
+- 公式ドキュメント: <https://argoproj.github.io/argo-rollouts/>
+- Getting Started ガイド: <https://argoproj.github.io/argo-rollouts/getting-started/>
+- GitHub リポジトリ: <https://github.com/argoproj/argo-rollouts>
 
 ## 13. 参考資料
 
-- Argo Rollouts 公式ドキュメント: https://argoproj.github.io/argo-rollouts/
-- Argo Rollouts CRD Specification: https://argoproj.github.io/argo-rollouts/features/specification/
-- Analysis and Progressive Delivery: https://argoproj.github.io/argo-rollouts/features/analysis/
+- Argo Rollouts 公式ドキュメント: <https://argoproj.github.io/argo-rollouts/>
+- Argo Rollouts CRD Specification: <https://argoproj.github.io/argo-rollouts/features/specification/>
+- Analysis and Progressive Delivery: <https://argoproj.github.io/argo-rollouts/features/analysis/>

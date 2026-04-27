@@ -173,8 +173,8 @@ Toil 削減は一度きりの作業ではなく、継続的なサイクルとし
 
 ## 12. さらに学ぶには
 
-- Google SRE Book Chapter 5 "Eliminating Toil": https://sre.google/sre-book/eliminating-toil/
-- Google SRE Workbook Chapter 6 "Eliminating Toil": https://sre.google/workbook/eliminating-toil/
+- Google SRE Book Chapter 5 "Eliminating Toil": <https://sre.google/sre-book/eliminating-toil/>
+- Google SRE Workbook Chapter 6 "Eliminating Toil": <https://sre.google/workbook/eliminating-toil/>
 - 関連 Knowledge: [SRE: 基本](./sre_basics.md)
 
 ## 13. 参考資料
@@ -182,4 +182,4 @@ Toil 削減は一度きりの作業ではなく、継続的なサイクルとし
 - Betsy Beyer et al., "Site Reliability Engineering" Chapter 5, O'Reilly Media, 2016
 - Betsy Beyer et al., "The Site Reliability Workbook" Chapter 6, O'Reilly Media, 2018
 - Vivek Rau, "Identifying and Tracking Toil Using SRE Principles", Google Cloud Blog
-- Google SRE 公式サイト: https://sre.google/
+- Google SRE 公式サイト: <https://sre.google/>

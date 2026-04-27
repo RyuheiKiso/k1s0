@@ -4,7 +4,7 @@
 
 ## 配置の二重構造
 
-```
+```text
 .devcontainer/
 ├── devcontainer.json               # デフォルト（docs-writer 最軽量）
 ├── post-create.sh

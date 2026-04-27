@@ -173,13 +173,13 @@ Valkey は 2 つの高可用性パターンを提供する。
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://valkey.io/docs/
-- Valkey コマンドリファレンス: https://valkey.io/commands/
-- GitHub リポジトリ: https://github.com/valkey-io/valkey
+- 公式ドキュメント: <https://valkey.io/docs/>
+- Valkey コマンドリファレンス: <https://valkey.io/commands/>
+- GitHub リポジトリ: <https://github.com/valkey-io/valkey>
 
 ## 13. 参考資料
 
-- Valkey 公式ドキュメント Introduction: https://valkey.io/topics/introduction/
-- Valkey Persistence: https://valkey.io/topics/persistence/
-- Valkey Cluster Specification: https://valkey.io/topics/cluster-spec/
-- Valkey Sentinel: https://valkey.io/topics/sentinel/
+- Valkey 公式ドキュメント Introduction: <https://valkey.io/topics/introduction/>
+- Valkey Persistence: <https://valkey.io/topics/persistence/>
+- Valkey Cluster Specification: <https://valkey.io/topics/cluster-spec/>
+- Valkey Sentinel: <https://valkey.io/topics/sentinel/>

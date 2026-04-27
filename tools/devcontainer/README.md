@@ -4,7 +4,7 @@
 
 ## 配置
 
-```
+```text
 tools/devcontainer/
 ├── README.md                    # 本ファイル: 実装ステータスと差分宣言
 ├── postCreate.sh                # 共通 postCreate (toolchain 検証 + cone verify + local-stack 起動)

@@ -202,15 +202,15 @@ v5.0 では実運用で求められてきた機能が拡充された。代表的
 
 ## 12. さらに学ぶには
 
-- OASIS MQTT v5.0 仕様: https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
-- OASIS MQTT v3.1.1 仕様: https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html
-- Eclipse Mosquitto 公式: https://mosquitto.org/documentation/
-- HiveMQ MQTT Essentials（連載記事）: https://www.hivemq.com/mqtt-essentials/
+- OASIS MQTT v5.0 仕様: <https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html>
+- OASIS MQTT v3.1.1 仕様: <https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html>
+- Eclipse Mosquitto 公式: <https://mosquitto.org/documentation/>
+- HiveMQ MQTT Essentials（連載記事）: <https://www.hivemq.com/mqtt-essentials/>
 
 ## 13. 参考資料
 
-- OASIS MQTT Version 5.0 Standard（2019）: https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html
-- ISO/IEC 20922:2016 - MQTT Version 3.1.1: https://www.iso.org/standard/69466.html
-- Eclipse Mosquitto: https://mosquitto.org/
-- rumqttc（Rust クライアント）: https://github.com/bytebeamio/rumqtt
-- Eclipse Paho（多言語クライアント）: https://eclipse.dev/paho/
+- OASIS MQTT Version 5.0 Standard（2019）: <https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html>
+- ISO/IEC 20922:2016 - MQTT Version 3.1.1: <https://www.iso.org/standard/69466.html>
+- Eclipse Mosquitto: <https://mosquitto.org/>
+- rumqttc（Rust クライアント）: <https://github.com/bytebeamio/rumqtt>
+- Eclipse Paho（多言語クライアント）: <https://eclipse.dev/paho/>

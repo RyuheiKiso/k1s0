@@ -136,7 +136,7 @@ k1s0-saga-test --workflow "order.create" --fail-at "決済承認" --fail-compens
 
 ### 3.2 出力形式
 
-```
+```text
 k1s0 Saga テスト: order.create
 ──────────────────────────────
   テストケース: "決済承認" で失敗を注入
@@ -151,7 +151,7 @@ k1s0 Saga テスト: order.create
 
 全ステップ網羅テストの出力:
 
-```
+```text
 k1s0 Saga テスト: order.create (全ステップ網羅)
 ──────────────────────────────────────────────
   [1/3] "在庫確保" で失敗を注入

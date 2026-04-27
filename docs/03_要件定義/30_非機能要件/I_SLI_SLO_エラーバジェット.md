@@ -69,8 +69,6 @@ k1s0 の主要コンポーネント別に SLO を定める。SLO は複数の SL
 
 Fast burn 14.4x・Slow burn 6x は SRE Workbook 第 5 章「Multi-window Multi-burn-rate Alerts」の推奨値を採用している。14.4x は「1 時間で月間予算の 2% 消費」を MTTD 5 分以内で検知できる値、6x は「慢性的劣化を 6 時間以内に検知」する値。k1s0 独自の調整は行わず、SRE Workbook の値をそのまま使用する。これは「先に k1s0 独自に最適化するより、業界標準を採用して運用経験を蓄積する方が安全」との判断による。
 
-
-
 ### tier1 Service Invoke API
 
 - 目標稼働率: 99.9%（月間ダウンタイム 43 分以内）

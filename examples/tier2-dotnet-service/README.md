@@ -19,7 +19,7 @@ tier2 ドメイン共通サービスの .NET 8 / Clean Architecture 構造を示
 
 ## 想定構成（採用初期）
 
-```
+```text
 tier2-dotnet-service/
 ├── README.md                          # 本ファイル
 ├── Example.Payroll.sln

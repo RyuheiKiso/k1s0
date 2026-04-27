@@ -15,7 +15,7 @@
 
 ## レイアウト
 
-```
+```text
 ops/
 ├── README.md
 ├── runbooks/

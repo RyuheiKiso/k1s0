@@ -221,15 +221,15 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=servicelb" sh -s - se
 
 ## 12. さらに学ぶには
 
-- kube-vip 公式ドキュメント: https://kube-vip.io/
+- kube-vip 公式ドキュメント: <https://kube-vip.io/>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)
 - 関連 Knowledge: [k3s: 基本](./k3s_basics.md)
-- kube-vip GitHub: https://github.com/kube-vip/kube-vip
+- kube-vip GitHub: <https://github.com/kube-vip/kube-vip>
 
 ## 13. 参考資料
 
-- kube-vip Architecture: https://kube-vip.io/docs/about/architecture/
-- kube-vip ARP Mode: https://kube-vip.io/docs/modes/arp/
-- kube-vip Static Pod Installation: https://kube-vip.io/docs/installation/static/
-- kube-vip DaemonSet Installation: https://kube-vip.io/docs/installation/daemonset/
-- kube-vip Cloud Provider: https://kube-vip.io/docs/usage/cloud-provider/
+- kube-vip Architecture: <https://kube-vip.io/docs/about/architecture/>
+- kube-vip ARP Mode: <https://kube-vip.io/docs/modes/arp/>
+- kube-vip Static Pod Installation: <https://kube-vip.io/docs/installation/static/>
+- kube-vip DaemonSet Installation: <https://kube-vip.io/docs/installation/daemonset/>
+- kube-vip Cloud Provider: <https://kube-vip.io/docs/usage/cloud-provider/>

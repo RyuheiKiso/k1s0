@@ -113,7 +113,7 @@ git sparse-checkout init --cone --sparse-index
 
 GitHub は partial clone をデフォルトサポート。セルフホスト Git 運用（Gitea 等）の場合、サーバ設定で `uploadpack.allowFilter=true` が必要。
 
-```
+```text
 # /etc/gitconfig on Gitea server
 [uploadpack]
     allowFilter = true

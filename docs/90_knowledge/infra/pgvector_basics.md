@@ -201,11 +201,11 @@ INSERT INTO sparse_items (embedding) VALUES ('{1:1.5,100:2.3,5000:0.8}/10000');
 
 ## 12. さらに学ぶには
 
-- 公式リポジトリ: https://github.com/pgvector/pgvector
+- 公式リポジトリ: <https://github.com/pgvector/pgvector>
 - 関連 Knowledge: [PostgreSQL: 基本](./postgresql_basics.md)
 - 関連 Knowledge: [CloudNativePG: 基本](./cloudnativepg_basics.md)
 
 ## 13. 参考資料
 
-- pgvector README: https://github.com/pgvector/pgvector/blob/master/README.md
-- pgvector Documentation (Context7): https://context7.com/pgvector/pgvector
+- pgvector README: <https://github.com/pgvector/pgvector/blob/master/README.md>
+- pgvector Documentation (Context7): <https://context7.com/pgvector/pgvector>

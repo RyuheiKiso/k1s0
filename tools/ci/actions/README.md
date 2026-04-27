@@ -9,7 +9,7 @@
 
 ## 配置
 
-```
+```text
 tools/ci/actions/
 ├── README.md           # 本ファイル
 ├── setup-rust/         # Rust toolchain + cargo cache

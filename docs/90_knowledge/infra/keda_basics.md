@@ -229,14 +229,14 @@ spec:
 
 ## 12. さらに学ぶには
 
-- KEDA 公式ドキュメント: https://keda.sh/docs/
-- KEDA Scalers 一覧: https://keda.sh/docs/scalers/
-- KEDA GitHub リポジトリ: https://github.com/kedacore/keda
+- KEDA 公式ドキュメント: <https://keda.sh/docs/>
+- KEDA Scalers 一覧: <https://keda.sh/docs/scalers/>
+- KEDA GitHub リポジトリ: <https://github.com/kedacore/keda>
 - 関連 Knowledge: [Kubernetes: 基本](./kubernetes_basics.md)
 
 ## 13. 参考資料
 
-- KEDA 公式ドキュメント v2.16: https://keda.sh/docs/2.16/
-- KEDA Concepts - ScaledObject: https://keda.sh/docs/2.16/concepts/scaling-deployments/
-- KEDA Concepts - ScaledJob: https://keda.sh/docs/2.16/concepts/scaling-jobs/
-- CNCF KEDA Project Page: https://www.cncf.io/projects/keda/
+- KEDA 公式ドキュメント v2.16: <https://keda.sh/docs/2.16/>
+- KEDA Concepts - ScaledObject: <https://keda.sh/docs/2.16/concepts/scaling-deployments/>
+- KEDA Concepts - ScaledJob: <https://keda.sh/docs/2.16/concepts/scaling-jobs/>
+- CNCF KEDA Project Page: <https://www.cncf.io/projects/keda/>

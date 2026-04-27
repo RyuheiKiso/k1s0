@@ -74,7 +74,7 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 
 本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/07_Log_API.md](../40_tier1_API契約IDL/07_Log_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `LogService` RPC と意味論的に対応する（同期書込は SDK 側で非同期バッファリングし、IDL の `LogBatch` メッセージにマッピングする）。
 
-```
+```text
 k1s0.Log.Info(message: string, fields?: map<string, any>) -> void
 k1s0.Log.Warn(message: string, fields?: map<string, any>) -> void
 k1s0.Log.Error(message: string, error: any, fields?: map<string, any>) -> void

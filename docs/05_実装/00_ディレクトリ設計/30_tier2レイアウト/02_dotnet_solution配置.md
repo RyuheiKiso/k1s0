@@ -4,7 +4,7 @@
 
 ## レイアウト
 
-```
+```text
 src/tier2/dotnet/
 ├── Tier2.sln                       # 全サービス統合ソリューション（全 csproj を参照）
 ├── Directory.Build.props           # 共通プロパティ（LangVersion / Nullable / TargetFramework）

@@ -15,7 +15,7 @@
 
 ## レイアウト
 
-```
+```text
 tests/
 ├── README.md
 ├── e2e/

@@ -206,14 +206,14 @@ async fn test_user_insert(pool: PgPool) -> sqlx::Result<()> {
 
 ## 12. さらに学ぶには
 
-- SQLx 公式リポジトリ: https://github.com/launchbadge/sqlx
-- sqlx-cli README: https://github.com/launchbadge/sqlx/tree/main/sqlx-cli
+- SQLx 公式リポジトリ: <https://github.com/launchbadge/sqlx>
+- sqlx-cli README: <https://github.com/launchbadge/sqlx/tree/main/sqlx-cli>
 - 関連 Knowledge: [PostgreSQL: 基本](../infra/postgresql_basics.md)
 - 関連 Knowledge: [Testcontainers: 基本](testcontainers_basics.md)
 
 ## 13. 参考資料
 
-- SQLx GitHub リポジトリ: https://github.com/launchbadge/sqlx
-- SQLx クレートドキュメント: https://docs.rs/sqlx/
-- sqlx-cli README: https://github.com/launchbadge/sqlx/tree/main/sqlx-cli
-- SQLx マイグレーション API ドキュメント: https://docs.rs/sqlx/latest/sqlx/migrate/
+- SQLx GitHub リポジトリ: <https://github.com/launchbadge/sqlx>
+- SQLx クレートドキュメント: <https://docs.rs/sqlx/>
+- sqlx-cli README: <https://github.com/launchbadge/sqlx/tree/main/sqlx-cli>
+- SQLx マイグレーション API ドキュメント: <https://docs.rs/sqlx/latest/sqlx/migrate/>

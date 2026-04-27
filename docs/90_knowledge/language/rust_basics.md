@@ -208,13 +208,13 @@ fn main() {
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント（The Rust Programming Language）: https://doc.rust-lang.org/book/
-- Rust by Example: https://doc.rust-lang.org/rust-by-example/
-- Rust リファレンス: https://doc.rust-lang.org/reference/
+- 公式ドキュメント（The Rust Programming Language）: <https://doc.rust-lang.org/book/>
+- Rust by Example: <https://doc.rust-lang.org/rust-by-example/>
+- Rust リファレンス: <https://doc.rust-lang.org/reference/>
 - 関連 Knowledge: [Rust: 所有権（Ownership）](./rust_ownership.md)
 
 ## 13. 参考資料
 
-- The Rust Reference: https://doc.rust-lang.org/reference/
-- Comprehensive Rust（Google）: https://google.github.io/comprehensive-rust/
-- Rust Edition Guide: https://doc.rust-lang.org/edition-guide/
+- The Rust Reference: <https://doc.rust-lang.org/reference/>
+- Comprehensive Rust（Google）: <https://google.github.io/comprehensive-rust/>
+- Rust Edition Guide: <https://doc.rust-lang.org/edition-guide/>

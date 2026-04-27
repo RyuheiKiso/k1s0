@@ -81,7 +81,7 @@ adr new データベースに PostgreSQL を採用する
 
 ADR ファイルは連番とタイトルで命名する。
 
-```
+```text
 docs/adr/
 ├── 0001-record-architecture-decisions.md
 ├── 0002-use-postgresql-for-database.md

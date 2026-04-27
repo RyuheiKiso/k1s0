@@ -21,7 +21,7 @@
 
 ## 配置
 
-```
+```text
 examples/
 ├── README.md                       # 本ファイル
 ├── tier1-rust-service/             # Rust 自作領域（ZEN / crypto / 雛形 CLI 系）の最小例

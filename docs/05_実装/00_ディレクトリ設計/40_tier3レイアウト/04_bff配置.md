@@ -14,7 +14,7 @@ tier3 クライアントは以下の理由で BFF を介して tier1 / tier2 に
 
 ## レイアウト
 
-```
+```text
 src/tier3/bff/
 ├── README.md
 ├── go.mod                          # module github.com/k1s0/k1s0/src/tier3/bff

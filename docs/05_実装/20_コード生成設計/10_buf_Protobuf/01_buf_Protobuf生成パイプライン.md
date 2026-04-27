@@ -172,7 +172,7 @@ drift がある PR は「開発者が `.proto` を変更したが `buf generate`
 
 加えて `.gitattributes` で linguist-generated を宣言し、GitHub の PR diff で生成物を折りたたみ表示する。
 
-```
+```text
 # .gitattributes（抜粋）
 src/tier1/go/internal/proto/**/*.pb.go               linguist-generated=true
 src/tier1/rust/crates/proto-gen/src/**/*.rs          linguist-generated=true
@@ -186,7 +186,7 @@ src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/**/*.cs  linguist-generated=true
 
 buf CLI 自体のバージョン不整合は「開発者端末と CI で生成結果が異なる」事故を招く。`tools/codegen/buf.version` に固定バージョン文字列を置き、全環境で同じ buf を使う。
 
-```
+```text
 # tools/codegen/buf.version
 1.45.0
 ```

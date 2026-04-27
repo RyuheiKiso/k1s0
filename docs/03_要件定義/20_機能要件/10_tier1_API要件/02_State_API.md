@@ -82,7 +82,7 @@
 
 本 API の機械可読な契約骨格（Protobuf IDL）は [40_tier1_API契約IDL/02_State_API.md](../40_tier1_API契約IDL/02_State_API.md) に定義されている。SDK 生成・契約テストは IDL 側を正とする。以下は SDK 利用者向けの疑似インタフェースであり、IDL の `StateService` RPC と意味論的に対応する（SDK のフィールド名と IDL のフィールド名が異なる場合は SDK コメントで対応を明示）。
 
-```
+```text
 k1s0.State.Get(key: string) -> (value: bytes | null, etag: string | null)
 k1s0.State.Set(key: string, value: bytes, options?: {
     ttl_seconds?: int,

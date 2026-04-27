@@ -80,7 +80,10 @@ module.exports = {
     'scope-empty': [1, 'never'], // scope は warning（強制しないが推奨）
 
     // ----- subject -----
-    'subject-case': [2, 'always', ['lower-case', 'sentence-case']],
+    // 日本語 subject + 英語固有名詞（Argo CD / Node / RPC 等）の組み合わせは
+    // case 判定が誤検出する事例多数（PR #839 / #840 で観測）。warning に降格し、
+    // 完全強制は subject-case とは別途 README で推奨表記を案内する方針。
+    'subject-case': [1, 'always', ['lower-case', 'sentence-case']],
     'subject-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
     'subject-max-length': [2, 'always', 72],

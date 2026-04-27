@@ -198,15 +198,15 @@ message User {
 
 ## 12. さらに学ぶには
 
-- 公式 Language Guide: https://protobuf.dev/programming-guides/proto3/
-- Field Presence: https://protobuf.dev/programming-guides/field_presence/
+- 公式 Language Guide: <https://protobuf.dev/programming-guides/proto3/>
+- Field Presence: <https://protobuf.dev/programming-guides/field_presence/>
 - 関連 Knowledge: [Protocol Buffers の基本](./protobuf_basics.md)
 - 関連 Knowledge: [gRPC の基本](./gRPC_basics.md)
 - Buf ツール: [Buf の基本](../tool/buf_basics.md)
 
 ## 13. 参考資料
 
-- Protocol Buffers Language Guide (proto3): https://protobuf.dev/programming-guides/proto3/
-- Protocol Buffers Field Presence: https://protobuf.dev/programming-guides/field_presence/
-- Protocol Buffers JSON Mapping: https://protobuf.dev/programming-guides/proto3/#json
-- Protobuf Editions Overview: https://protobuf.dev/editions/overview/
+- Protocol Buffers Language Guide (proto3): <https://protobuf.dev/programming-guides/proto3/>
+- Protocol Buffers Field Presence: <https://protobuf.dev/programming-guides/field_presence/>
+- Protocol Buffers JSON Mapping: <https://protobuf.dev/programming-guides/proto3/#json>
+- Protobuf Editions Overview: <https://protobuf.dev/editions/overview/>

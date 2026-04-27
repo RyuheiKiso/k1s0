@@ -231,12 +231,12 @@ spec:
 
 ## 12. さらに学ぶには
 
-- 公式ドキュメント: https://kubectl.docs.kubernetes.io/references/kustomize/
-- Kustomize GitHub: https://github.com/kubernetes-sigs/kustomize
-- Kustomize Components（再利用可能なカスタマイズ）: https://kubectl.docs.kubernetes.io/guides/config_management/components/
+- 公式ドキュメント: <https://kubectl.docs.kubernetes.io/references/kustomize/>
+- Kustomize GitHub: <https://github.com/kubernetes-sigs/kustomize>
+- Kustomize Components（再利用可能なカスタマイズ）: <https://kubectl.docs.kubernetes.io/guides/config_management/components/>
 
 ## 13. 参考資料
 
-- Kubernetes SIG CLI - Kustomize: https://github.com/kubernetes-sigs/kustomize
-- Kustomize API Reference: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/
-- Kubernetes Documentation - Managing Kubernetes Objects: https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/
+- Kubernetes SIG CLI - Kustomize: <https://github.com/kubernetes-sigs/kustomize>
+- Kustomize API Reference: <https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/>
+- Kubernetes Documentation - Managing Kubernetes Objects: <https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/>

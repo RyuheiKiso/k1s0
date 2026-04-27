@@ -4,7 +4,7 @@
 
 ## レイアウト
 
-```
+```text
 src/tier2/
 ├── README.md
 ├── dotnet/
@@ -69,7 +69,7 @@ tier2 の各サービスは独立にビルド・デプロイ可能。
 
 ## CODEOWNERS
 
-```
+```text
 /src/tier2/                                     @k1s0/tier2-dev
 /src/tier2/dotnet/                              @k1s0/tier2-dev
 /src/tier2/go/                                  @k1s0/tier2-dev
