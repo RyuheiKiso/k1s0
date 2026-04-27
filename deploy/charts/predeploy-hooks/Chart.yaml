@@ -1,0 +1,21 @@
+# 本ファイルは Argo CD PreSync Hook Job 群を束ねる Helm chart の Chart.yaml。
+# Wave -5 で宣言された Dapr Component CR の backing store（Postgres / Kafka /
+# Valkey / MinIO）の Ready 状態を polling 検証する Job 4 種を提供する。
+# 参照設計: docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md
+apiVersion: v2
+name: predeploy-hooks
+description: "Argo CD PreSync Hook Jobs — backing store readiness gate for k1s0 GitOps Wave control"
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - argocd
+  - presync-hook
+  - readiness
+  - k1s0
+maintainers:
+  - name: k1s0-platform-team
+    email: platform@k1s0.example
+annotations:
+  k1s0.io/component: predeploy-hooks
+  k1s0.io/sync-wave: "-1"

@@ -1,0 +1,77 @@
+{{- if .Values.valkey.enabled }}
+# 本ファイルは Valkey（Redis 互換キャッシュ）の Ready 状態を polling 検証する PreSync Job。
+# `redis-cli ping` 互換の TCP probe で接続性を確認する。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "predeploy-hooks.fullname" . }}-valkey-ready
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "predeploy-hooks.labels" . | nindent 4 }}
+    k1s0.io/check: valkey-ready
+  annotations:
+    argocd.argoproj.io/hook: {{ .Values.job.hook }}
+    argocd.argoproj.io/hook-delete-policy: {{ .Values.job.hookDeletePolicy }}
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "predeploy-hooks.labels" . | nindent 8 }}
+        k1s0.io/check: valkey-ready
+    spec:
+      serviceAccountName: {{ .Values.job.serviceAccountName }}
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valkey-ping
+          image: "valkey/valkey:7.2-alpine"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: VALKEY_HOST
+              value: {{ .Values.valkey.service | quote }}
+            - name: VALKEY_PORT
+              value: {{ .Values.valkey.port | quote }}
+            - name: VALKEY_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.valkey.authSecret }}
+                  key: password
+            - name: POLL_INTERVAL
+              value: {{ .Values.job.polling.intervalSeconds | quote }}
+            - name: TIMEOUT
+              value: {{ .Values.job.polling.timeoutSeconds | quote }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              DEADLINE=$(( $(date +%s) + ${TIMEOUT} ))
+              while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+                if valkey-cli -h "${VALKEY_HOST}" -p "${VALKEY_PORT}" -a "${VALKEY_AUTH}" --no-auth-warning ping | grep -q PONG; then
+                  echo "[predeploy-hooks] Valkey Ready: ${VALKEY_HOST}:${VALKEY_PORT}"
+                  exit 0
+                fi
+                echo "[predeploy-hooks] Valkey NotReady, retrying in ${POLL_INTERVAL}s..."
+                sleep "${POLL_INTERVAL}"
+              done
+              echo "[predeploy-hooks] Valkey readiness timeout after ${TIMEOUT}s" >&2
+              exit 1
+          resources:
+            requests:
+              cpu: 30m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+{{- end }}

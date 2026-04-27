@@ -1,0 +1,28 @@
+# 本ファイルは共通 ClusterAnalysisTemplate「at-common-cpu」（IMP-REL-AT-042）。
+# Pod の CPU 使用率が 80% を 10 分継続で fail とする。HPA scale-up が間に合わず
+# スループット低下する前段で検知する目的。count 10 + failureLimit 8 で
+# 「10 分中 8 分超過」を意味し、瞬間スパイクを許容しつつ持続的飽和のみ検知する。
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: at-common-cpu
+  labels:
+    k1s0.io/component: analysis-template
+    k1s0.io/scope: cluster
+    k1s0.io/imp-id: IMP-REL-AT-042
+spec:
+  args:
+    - name: service-name
+    - name: namespace
+  metrics:
+    - name: cpu-utilization-sustained
+      interval: 1m
+      count: 10
+      failureLimit: 8
+      provider:
+        prometheus:
+          address: http://mimir-query-frontend.k1s0-observability:8080/prometheus
+          query: |
+            avg(rate(container_cpu_usage_seconds_total{namespace="{{args.namespace}}",container="{{args.service-name}}"}[2m])
+                / on (pod) kube_pod_container_resource_limits{resource="cpu"})
+      failureCondition: result[0] > 0.8

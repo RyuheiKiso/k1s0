@@ -1,0 +1,53 @@
+# 本ファイルは VPN / Bastion 内部公開用 Gateway。
+# 採用組織の VPN 内部 IP プールから露出し、運用ツール（Backstage / Grafana / Argo CD UI）への
+# アクセスを社内ネットワークに限定する。
+# 内部 CA（cert-manager の ClusterIssuer `internal-ca`）が発行する証明書で TLS 終端。
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: k1s0-gateway-internal
+  namespace: k1s0-mesh
+  annotations:
+    metallb.universe.tf/address-pool: internal-pool
+    cert-manager.io/cluster-issuer: internal-ca
+  labels:
+    k1s0.io/component: ingress
+    k1s0.io/exposure: internal
+spec:
+  gatewayClassName: envoy-gateway-class
+  listeners:
+    - name: https-ops
+      protocol: HTTPS
+      port: 443
+      hostname: ops.k1s0.internal
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: k1s0-internal-ops-cert
+            namespace: k1s0-mesh
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              k1s0.io/exposure: internal
+    - name: https-portal
+      protocol: HTTPS
+      port: 443
+      hostname: portal.k1s0.internal
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: k1s0-internal-portal-cert
+            namespace: k1s0-mesh
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              k1s0.io/component: developer-portal
+  infrastructure:
+    annotations:
+      service.beta.kubernetes.io/external-traffic: Local

@@ -1,0 +1,22 @@
+# 本ファイルは HTTP → HTTPS への 301 redirect HTTPRoute。
+# Gateway listener `http-redirect`（port 80）に届く全リクエストを
+# 同一ホストの HTTPS（port 443）へ恒久リダイレクトする。
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https
+  namespace: k1s0-mesh
+  labels:
+    k1s0.io/component: ingress
+spec:
+  parentRefs:
+    - name: k1s0-gateway-public
+      namespace: k1s0-mesh
+      sectionName: http-redirect
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+            port: 443

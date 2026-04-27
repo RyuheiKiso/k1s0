@@ -1,0 +1,73 @@
+{{- if .Values.kafka.enabled }}
+# 本ファイルは Kafka（Strimzi KRaft Cluster）の Ready 状態を polling 検証する PreSync Job。
+# `kafka-cluster-kafka-bootstrap` Service の TCP 接続性のみを確認する（mTLS 通過は
+# tier1 Pod 起動時に Dapr sidecar が検証するため、ここでは TCP レベルに留める）。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "predeploy-hooks.fullname" . }}-kafka-ready
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "predeploy-hooks.labels" . | nindent 4 }}
+    k1s0.io/check: kafka-ready
+  annotations:
+    argocd.argoproj.io/hook: {{ .Values.job.hook }}
+    argocd.argoproj.io/hook-delete-policy: {{ .Values.job.hookDeletePolicy }}
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "predeploy-hooks.labels" . | nindent 8 }}
+        k1s0.io/check: kafka-ready
+    spec:
+      serviceAccountName: {{ .Values.job.serviceAccountName }}
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kafka-tcp-check
+          image: "{{ .Values.job.image.repository }}:{{ .Values.job.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: KAFKA_HOST
+              value: {{ .Values.kafka.service | quote }}
+            - name: KAFKA_PORT
+              value: {{ .Values.kafka.port | quote }}
+            - name: POLL_INTERVAL
+              value: {{ .Values.job.polling.intervalSeconds | quote }}
+            - name: TIMEOUT
+              value: {{ .Values.job.polling.timeoutSeconds | quote }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -eu
+              DEADLINE=$(( $(date +%s) + ${TIMEOUT} ))
+              while [ "$(date +%s)" -lt "${DEADLINE}" ]; do
+                if nc -z -w 5 "${KAFKA_HOST}" "${KAFKA_PORT}"; then
+                  echo "[predeploy-hooks] Kafka Ready: ${KAFKA_HOST}:${KAFKA_PORT}"
+                  exit 0
+                fi
+                echo "[predeploy-hooks] Kafka NotReady, retrying in ${POLL_INTERVAL}s..."
+                sleep "${POLL_INTERVAL}"
+              done
+              echo "[predeploy-hooks] Kafka readiness timeout after ${TIMEOUT}s" >&2
+              exit 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+{{- end }}

@@ -1,0 +1,52 @@
+# 本ファイルは predeploy-hooks Helm chart の既定 values。
+# 各 backing store（Postgres / Kafka / Valkey / MinIO）の Service / Port / 認証情報を
+# 環境別 overlay（deploy/kustomize/overlays/<env>/predeploy-hooks-values.yaml）で上書きする。
+
+# Job 共通設定
+job:
+  # PreSync Hook 動作の基本設定。
+  hook: PreSync
+  # Hook 完了後 / 失敗後に削除する。
+  hookDeletePolicy: HookSucceeded,BeforeHookCreation
+  # 異常終了時の再試行回数（指数バックオフは shell 側で実装）。
+  backoffLimit: 5
+  # 1 Job あたりの最大実行時間（秒）。これを超えたら異常停止扱い。
+  activeDeadlineSeconds: 600
+  # Job pod の RBAC（ServiceAccount は templates/serviceaccount.yaml で生成）。
+  serviceAccountName: predeploy-hooks
+  # 共通 image（busybox + curl）。distroless ではなく busybox を選ぶのは sleep / echo / nc 等を
+  # 1 image で完結させるため（cold start を高速化）。
+  image:
+    repository: busybox
+    tag: "1.36"
+  # 共通 polling 設定。
+  polling:
+    intervalSeconds: 5
+    timeoutSeconds: 300
+
+# 各 backing store の接続情報。
+# values は環境別 overlay で上書きする想定。
+postgres:
+  enabled: true
+  service: cnpg-cluster-rw.k1s0-data.svc.cluster.local
+  port: 5432
+  database: k1s0
+  # secret 経由で認証情報を取る（ServiceAccount は dataStore に read 権限）。
+  credentialsSecret: cnpg-app-credentials
+kafka:
+  enabled: true
+  service: kafka-cluster-kafka-bootstrap.k1s0-messaging.svc.cluster.local
+  port: 9092
+  # mTLS 経由（cert-manager 発行）。
+  certSecret: kafka-client-cert
+valkey:
+  enabled: true
+  service: valkey-headless.k1s0-data.svc.cluster.local
+  port: 6379
+  authSecret: valkey-credentials
+minio:
+  enabled: true
+  service: minio.k1s0-data.svc.cluster.local
+  port: 9000
+  credentialsSecret: minio-credentials
+  bucket: k1s0

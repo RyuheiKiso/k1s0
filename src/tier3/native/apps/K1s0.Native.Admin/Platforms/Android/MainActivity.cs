@@ -1,3 +1,6 @@
+// 本ファイルは Android プラットフォームの起動 Activity 定義。
+// MAUI の MauiAppCompatActivity を継承し、SplashTheme と画面回転設定を Android に伝える。
+
 using Android.App;
 using Android.Content.PM;
 

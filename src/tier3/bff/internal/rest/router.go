@@ -1,4 +1,5 @@
-// REST endpoint。
+// 本ファイルは portal-bff / admin-bff 共通の REST エンドポイント定義。
+// `/healthz` `/readyz` の k8s probe と JSON エラー応答ヘルパを束ねる。
 
 // Package rest は portal-bff / admin-bff 共通の REST エンドポイントを提供する。
 package rest
