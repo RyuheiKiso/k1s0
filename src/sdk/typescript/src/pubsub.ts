@@ -1,7 +1,7 @@
-// 本ファイルは k1s0 TypeScript SDK の PubSub 動詞統一 facade。
-// `client.pubsub.publish(...)` 形式で PubSubService への呼出を提供する。
+// 本ファイルは k1s0 TypeScript SDK の PubSub 動詞統一 facade（publish + subscribe）。
 
 import type { K1s0Client } from "./client.js";
+import type { Event } from "./proto/k1s0/tier1/pubsub/v1/pubsub_service_pb.js";
 
 // Publish オプション。
 export interface PublishOptions {
@@ -39,5 +39,20 @@ export class PubSubFacade {
     });
     // offset は proto3 int64 のため bigint を返却する。
     return resp.offset;
+  }
+
+  /** subscribe はトピックの購読。AsyncIterable<Event> を返す。
+   *  利用例:
+   *    for await (const event of client.pubsub.subscribe("orders", "consumer-A")) {
+   *      handle(event);
+   *    }
+   */
+  subscribe(topic: string, consumerGroup: string): AsyncIterable<Event> {
+    const raw = this.client.rawPubSub();
+    return raw.subscribe({
+      topic,
+      consumerGroup,
+      context: this.client.tenantContext(),
+    });
   }
 }

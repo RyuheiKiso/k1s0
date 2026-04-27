@@ -1,6 +1,6 @@
-// 本ファイルは k1s0 .NET SDK の PubSub 動詞統一 facade。
-// `client.PubSub.PublishAsync(...)` 形式で PubSubService への呼出を提供する。
+// 本ファイルは k1s0 .NET SDK の PubSub 動詞統一 facade（publish + subscribe）。
 
+using System.Runtime.CompilerServices;
 using Google.Protobuf;
 using K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1;
 
@@ -52,5 +52,27 @@ public sealed class PubSubFacade
         var resp = await _client.RawPubSub().PublishAsync(req, cancellationToken: ct);
         // offset を返却する。
         return resp.Offset;
+    }
+
+    /// SubscribeAsync: トピックの購読。IAsyncEnumerable&lt;Event&gt; を返す。
+    /// 利用例:
+    ///   await foreach (var ev in client.PubSub.SubscribeAsync("orders", "consumer-A"))
+    ///   {
+    ///       Handle(ev);
+    ///   }
+    public async IAsyncEnumerable<Event> SubscribeAsync(
+        string topic, string consumerGroup,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        using var call = _client.RawPubSub().Subscribe(new SubscribeRequest
+        {
+            Topic = topic,
+            ConsumerGroup = consumerGroup,
+            Context = _client.TenantContext(),
+        }, cancellationToken: ct);
+        while (await call.ResponseStream.MoveNext(ct))
+        {
+            yield return call.ResponseStream.Current;
+        }
     }
 }

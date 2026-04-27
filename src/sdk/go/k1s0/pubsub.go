@@ -7,6 +7,9 @@ package k1s0
 import (
 	// context 伝搬。
 	"context"
+	// EOF 判定。
+	"errors"
+	"io"
 	// SDK 生成 stub の PubSubService 型。
 	commonv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/common/v1"
 	pubsubv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/pubsub/v1"
@@ -71,4 +74,43 @@ func (p *PubSubClient) Publish(ctx context.Context, topic string, data []byte, c
 	}
 	// offset を返却する。
 	return resp.GetOffset(), nil
+}
+
+// EventHandler は Subscribe で受信した各 Event を処理するコールバック。
+// 戻り値の error が non-nil なら Subscribe は中断される。
+type EventHandler func(event *pubsubv1.Event) error
+
+// Subscribe はトピックの購読。受信した各 Event を handler に渡す。
+// stream 終端 / context 完了 / handler error / RPC error で終了する。
+func (p *PubSubClient) Subscribe(ctx context.Context, topic, consumerGroup string, handler EventHandler) error {
+	// proto Request を構築する。
+	req := &pubsubv1.SubscribeRequest{
+		Topic:         topic,
+		ConsumerGroup: consumerGroup,
+		Context: &commonv1.TenantContext{
+			TenantId: p.client.cfg.TenantID,
+			Subject:  p.client.cfg.Subject,
+		},
+	}
+	// 生成 stub の Subscribe を起動する。
+	stream, err := p.client.raw.PubSub.Subscribe(ctx, req)
+	if err != nil {
+		return err
+	}
+	// 各 Event を受信し handler に渡す。
+	for {
+		event, err := stream.Recv()
+		// 終端時。
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		// RPC error は伝搬。
+		if err != nil {
+			return err
+		}
+		// handler エラーは Subscribe を中断させる。
+		if err := handler(event); err != nil {
+			return err
+		}
+	}
 }
