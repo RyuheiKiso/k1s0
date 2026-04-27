@@ -1,0 +1,26 @@
+# 本ファイルは共通 ClusterAnalysisTemplate「at-common-error-budget-burn」（IMP-REL-AT-044）。
+# `60_観測性設計/50_ErrorBudget運用/` の burn rate が 2x（fast burn）を超過したら fail。
+# burn rate 2x = バジェットを 14 日で枯渇するペース（28 日 SLO バジェット ÷ 2 = 14 日）。
+# fail 時は Argo Rollouts が abort し、後続で Git revert PR と PagerDuty Sev2 を発火。
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: at-common-error-budget-burn
+  labels:
+    k1s0.io/component: analysis-template
+    k1s0.io/scope: cluster
+    k1s0.io/imp-id: IMP-REL-AT-044
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: error-budget-burn-rate
+      interval: 5m
+      count: 3
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://mimir-query-frontend.k1s0-observability:8080/prometheus
+          query: |
+            api:burn_rate_1h{service="{{args.service-name}}"}
+      failureCondition: result[0] > 2.0

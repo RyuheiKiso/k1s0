@@ -1,0 +1,29 @@
+# 本ファイルは共通 ClusterAnalysisTemplate「at-common-latency-p99」（IMP-REL-AT-041）。
+# レイテンシ p99 がサービス別 SLO 値（args 経由で渡す）を超過した場合に fail とする。
+# SLO 値の典型: tier1=0.1s / tier2=0.2s / tier3=0.5s（60_観測性設計/40_SLI_SLO定義 で定義）。
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: at-common-latency-p99
+  labels:
+    k1s0.io/component: analysis-template
+    k1s0.io/scope: cluster
+    k1s0.io/imp-id: IMP-REL-AT-041
+spec:
+  args:
+    - name: service-name
+    - name: namespace
+    - name: slo-latency-seconds
+  metrics:
+    - name: latency-p99-slo
+      interval: 1m
+      count: 5
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://mimir-query-frontend.k1s0-observability:8080/prometheus
+          query: |
+            histogram_quantile(0.99,
+              sum by (le) (rate(http_request_duration_seconds_bucket{service="{{args.service-name}}",namespace="{{args.namespace}}"}[5m]))
+            )
+      failureCondition: result[0] > {{args.slo-latency-seconds}}
