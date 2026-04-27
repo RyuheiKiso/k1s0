@@ -1,0 +1,44 @@
+# =============================================================================
+# k1s0 tier2 Argo CD AppProject
+#
+# 設計: docs/05_実装/70_リリース設計/、docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/
+# 関連 ID: ADR-CICD-001 / ADR-TIER1-003（言語不可視原則）
+#
+# scope（リリース時点）:
+#   - tier2 ドメイン共通サービス（Go / .NET）専用 AppProject を切り出す
+#   - クラスタ内 namespace `tier2-services` への配備のみ許可
+#
+# 採用初期で拡張:
+#   - 複数クラスタ対応
+#   - SyncWindow（メンテ時間外の自動同期禁止）
+#   - signedBy（Cosign 署名検証）
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: k1s0-tier2
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    k1s0.io/tier: tier2
+spec:
+  description: |
+    k1s0 tier2（Go / .NET ドメイン共通サービス）の Argo CD AppProject。
+    Helm chart は deploy/charts/tier2-*-service / Kustomize overlay は
+    deploy/kustomize/overlays/* から取得する。
+  sourceRepos:
+    - "https://github.com/k1s0/k1s0.git"
+  destinations:
+    - namespace: "tier2-services"
+      server: "https://kubernetes.default.svc"
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    # tier2 から secret 直接作成を禁止する（OpenBao + ESO で注入する設計）。
+    - group: ""
+      kind: Secret
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

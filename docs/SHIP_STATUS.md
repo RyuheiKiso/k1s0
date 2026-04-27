@@ -100,7 +100,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
-| `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | tier1-facade 用 ApplicationSet を最小同梱 |
+| `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | 6 ApplicationSet（tier1-facade / tier1-rust-service / tier2-go-service / tier2-dotnet-service / tier3-bff / tier3-web-app）+ 3 AppProject（k1s0-tier1 / k1s0-tier2 / k1s0-tier3）を配置。全 ApplicationSet に Argo CD Image Updater annotation（ghcr.io 追跡 / semver / git write-back）を注入済 |
 | `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | 6 chart 全て配置完了。tier1-facade（既存、Go 3 Pod）/ tier1-rust-service（Rust 3 Pod ループ）/ tier2-go-service（汎用 Go テンプレート）/ tier2-dotnet-service（汎用 .NET テンプレート、aspnet runtime + ASPNETCORE_URLS）/ tier3-bff（Go BFF + OIDC + ingress）/ tier3-web-app（nginx + SPA fallback + BFF reverse proxy）。`helm lint` 全 5 chart 通過、`helm template` 描画 OK |
 | `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート + AnalysisTemplate 2 件（error-rate / latency-p99、Mimir Prometheus クエリ）。experiments は採用後の運用拡大時 で追加 |
 | `deploy/kustomize/{base, overlays/*}` | Kustomize | **雛形あり** | base（共通 Namespace + label）+ overlays/{dev,staging,prod}/ に 6 chart × 3 環境 = 18 values overlay と 3 kustomization.yaml + README を配置。dev: replica=1 / debug、staging: replica=2 / info / HPA、prod: replica=3 / warn / podAntiAffinity / image semver pinning |
@@ -281,9 +281,10 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - staging: replica=2 / info log / HPA 緩い
   - prod: replica=3 / warn log / podAntiAffinity / image semver pinning / HPA 実測ベース
 - ✅ `deploy/image-updater/` Argo CD Image Updater 設定（HA 2 + GHCR registry + Git write-back）
+- ✅ 残り 5 chart の ApplicationSet（tier1-rust-service / tier2-go-service / tier2-dotnet-service / tier3-bff / tier3-web-app）と k1s0-tier2 / k1s0-tier3 の AppProject を配置
+- ✅ 全 6 ApplicationSet に Argo CD Image Updater annotation を注入（ghcr.io 追跡 + semver + git write-back）
 - 🔲 残り（採用後の運用拡大時）:
   - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
-  - ApplicationSet への image-updater annotation 注入
 
 ### 7. examples 完動 4 種（IMP-DIR-COMM-113）— **完了**
 

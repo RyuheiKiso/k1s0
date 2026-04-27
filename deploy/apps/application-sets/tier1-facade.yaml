@@ -40,6 +40,23 @@ spec:
       labels:
         k1s0.io/tier: tier1
         k1s0.io/env: "{{env}}"
+      annotations:
+        # Argo CD Image Updater 連携（deploy/image-updater/application-annotations.md）。
+        # tier1-facade 配下の 3 Pod（state / secret / workflow）の image を追跡する。
+        argocd-image-updater.argoproj.io/image-list: |
+          tier1-state=ghcr.io/k1s0/k1s0/tier1-state,
+          tier1-secret=ghcr.io/k1s0/k1s0/tier1-secret,
+          tier1-workflow=ghcr.io/k1s0/k1s0/tier1-workflow
+        argocd-image-updater.argoproj.io/tier1-state.update-strategy: semver
+        argocd-image-updater.argoproj.io/tier1-state.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        argocd-image-updater.argoproj.io/tier1-secret.update-strategy: semver
+        argocd-image-updater.argoproj.io/tier1-secret.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        argocd-image-updater.argoproj.io/tier1-workflow.update-strategy: semver
+        argocd-image-updater.argoproj.io/tier1-workflow.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        # values.yaml への書き戻し（kustomize overlay の image.tag を更新する）。
+        argocd-image-updater.argoproj.io/write-back-method: git
+        argocd-image-updater.argoproj.io/write-back-target: kustomization
+        argocd-image-updater.argoproj.io/git-branch: main
     spec:
       project: k1s0-tier1
       source:

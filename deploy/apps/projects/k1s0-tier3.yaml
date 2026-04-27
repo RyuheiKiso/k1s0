@@ -1,0 +1,38 @@
+# =============================================================================
+# k1s0 tier3 Argo CD AppProject
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/
+# 関連 ID: ADR-CICD-001 / ADR-TIER3-001（BFF パターン）/ ADR-TIER3-002（SPA + BFF）
+#
+# scope（リリース時点）:
+#   - tier3 ユーザ近接層（Web / BFF / Native）専用 AppProject を切り出す
+#   - クラスタ内 namespace `tier3-bff` への配備のみ許可（Native は OS 配布）
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: k1s0-tier3
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    k1s0.io/tier: tier3
+spec:
+  description: |
+    k1s0 tier3（Web SPA / BFF / Native アプリ）の Argo CD AppProject。
+    Helm chart は deploy/charts/tier3-{bff, web-app} / Kustomize overlay は
+    deploy/kustomize/overlays/* から取得する。Native（MAUI）は本 AppProject 対象外。
+  sourceRepos:
+    - "https://github.com/k1s0/k1s0.git"
+  destinations:
+    - namespace: "tier3-bff"
+      server: "https://kubernetes.default.svc"
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: Secret
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

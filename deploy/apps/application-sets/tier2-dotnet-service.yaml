@@ -1,0 +1,74 @@
+# =============================================================================
+# k1s0 tier2-dotnet-service Argo CD ApplicationSet（リファレンステンプレート）
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_dotnet_services配置.md
+#
+# scope: tier2 .NET service の典型例を環境別に配備する。
+# 実 service（ApprovalFlow / InvoiceGenerator / TaxCalculator 等）は本テンプレートを
+# 複製して service.name と image.repository を上書きする運用とする。
+# =============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tier2-dotnet-service-example
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/dev/tier2-dotnet-service-values.yaml
+          - env: staging
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/staging/tier2-dotnet-service-values.yaml
+          - env: prod
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/prod/tier2-dotnet-service-values.yaml
+  template:
+    metadata:
+      name: "tier2-dotnet-service-example-{{env}}"
+      labels:
+        k1s0.io/tier: tier2
+        k1s0.io/lang: dotnet
+        k1s0.io/env: "{{env}}"
+      annotations:
+        argocd-image-updater.argoproj.io/image-list: |
+          tier2-example-dotnet=ghcr.io/k1s0/k1s0/tier2-example-dotnet
+        argocd-image-updater.argoproj.io/tier2-example-dotnet.update-strategy: semver
+        argocd-image-updater.argoproj.io/tier2-example-dotnet.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        argocd-image-updater.argoproj.io/write-back-method: git
+        argocd-image-updater.argoproj.io/write-back-target: kustomization
+        argocd-image-updater.argoproj.io/git-branch: main
+    spec:
+      project: k1s0-tier2
+      source:
+        repoURL: "https://github.com/k1s0/k1s0.git"
+        targetRevision: main
+        path: deploy/charts/tier2-dotnet-service
+        helm:
+          valueFiles:
+            - values.yaml
+            - "$values/{{valuesFile}}"
+      sources:
+        - repoURL: "https://github.com/k1s0/k1s0.git"
+          targetRevision: main
+          ref: values
+      destination:
+        server: "https://kubernetes.default.svc"
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
