@@ -1,0 +1,18 @@
+<!--
+  tier3 legacy-wrap 共通プロパティ。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/05_レガシーラップ配置.md
+
+  scope:
+    .NET Framework 4.8 sidecar および .NET 8 wrappers の共通設定。
+    ライセンスと著作権のみ波及（ASP.NET classic は MSBuild 設定が独自のため最小化）。
+-->
+<Project>
+  <PropertyGroup>
+    <Authors>k1s0 contributors</Authors>
+    <Company>k1s0</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/k1s0/k1s0</RepositoryUrl>
+  </PropertyGroup>
+</Project>
