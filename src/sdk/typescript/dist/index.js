@@ -10,10 +10,19 @@
 //   - K1s0Client.pubsub.publish
 //   - K1s0Client.secrets.{get|rotate}
 //   - その他 9 service は raw 経由で利用可能（Connect transport を返す）
-// 共通型 / 3 代表 facade を再 export
+// 共通型 / 12 service facade を再 export
 export * as Common from "./proto/k1s0/tier1/common/v1/common_pb.js";
 export { K1s0Client } from "./client.js";
 export { StateFacade } from "./state.js";
 export { PubSubFacade } from "./pubsub.js";
 export { SecretsFacade } from "./secrets.js";
+export { LogFacade } from "./log.js";
+export { WorkflowFacade } from "./workflow.js";
+export { DecisionFacade } from "./decision.js";
+export { AuditFacade } from "./audit.js";
+export { PiiFacade } from "./pii.js";
+export { FeatureFacade } from "./feature.js";
+export { BindingFacade } from "./binding.js";
+export { InvokeFacade } from "./invoke.js";
+export { TelemetryFacade } from "./telemetry.js";
 //# sourceMappingURL=index.js.map

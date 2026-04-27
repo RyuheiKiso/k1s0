@@ -47,12 +47,21 @@ public sealed class K1s0Client : IDisposable
     // 親 Config への参照。
     public K1s0Config Config { get; }
 
-    // 動詞統一 facade（State / PubSub / Secrets を最小同梱）。
+    // 動詞統一 facade（12 service すべて）。
     public StateFacade State { get; }
     public PubSubFacade PubSub { get; }
     public SecretsFacade Secrets { get; }
+    public LogFacade Log { get; }
+    public WorkflowFacade Workflow { get; }
+    public DecisionFacade Decision { get; }
+    public AuditFacade Audit { get; }
+    public PiiFacade Pii { get; }
+    public FeatureFacade Feature { get; }
+    public BindingFacade Binding { get; }
+    public InvokeFacade Invoke { get; }
+    public TelemetryFacade Telemetry { get; }
 
-    // 残り 9 service の raw client（動詞統一 facade 未実装）。
+    // 12 service の生成 stub client への直接アクセス（FeatureAdmin / DecisionAdmin はここから）。
     public RawClients Raw { get; }
 
     public K1s0Client(K1s0Config config)
@@ -67,6 +76,15 @@ public sealed class K1s0Client : IDisposable
         State = new StateFacade(this);
         PubSub = new PubSubFacade(this);
         Secrets = new SecretsFacade(this);
+        Log = new LogFacade(this);
+        Workflow = new WorkflowFacade(this);
+        Decision = new DecisionFacade(this);
+        Audit = new AuditFacade(this);
+        Pii = new PiiFacade(this);
+        Feature = new FeatureFacade(this);
+        Binding = new BindingFacade(this);
+        Invoke = new InvokeFacade(this);
+        Telemetry = new TelemetryFacade(this);
     }
 
     // 内部用: TenantContext proto を生成する。

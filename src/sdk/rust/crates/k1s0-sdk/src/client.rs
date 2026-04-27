@@ -66,6 +66,51 @@ impl Client {
         crate::secrets::SecretsFacade::new(self.clone())
     }
 
+    /// Log 動詞統一 facade。
+    pub fn log(&self) -> crate::log::LogFacade {
+        crate::log::LogFacade::new(self.clone())
+    }
+
+    /// Workflow 動詞統一 facade。
+    pub fn workflow(&self) -> crate::workflow::WorkflowFacade {
+        crate::workflow::WorkflowFacade::new(self.clone())
+    }
+
+    /// Decision 動詞統一 facade（評価部）。
+    pub fn decision(&self) -> crate::decision::DecisionFacade {
+        crate::decision::DecisionFacade::new(self.clone())
+    }
+
+    /// Audit 動詞統一 facade。
+    pub fn audit(&self) -> crate::audit::AuditFacade {
+        crate::audit::AuditFacade::new(self.clone())
+    }
+
+    /// Pii 動詞統一 facade。
+    pub fn pii(&self) -> crate::pii::PiiFacade {
+        crate::pii::PiiFacade::new(self.clone())
+    }
+
+    /// Feature 動詞統一 facade（評価部）。
+    pub fn feature(&self) -> crate::feature::FeatureFacade {
+        crate::feature::FeatureFacade::new(self.clone())
+    }
+
+    /// Binding 動詞統一 facade。
+    pub fn binding(&self) -> crate::binding::BindingFacade {
+        crate::binding::BindingFacade::new(self.clone())
+    }
+
+    /// ServiceInvoke 動詞統一 facade。
+    pub fn invoke(&self) -> crate::invoke::InvokeFacade {
+        crate::invoke::InvokeFacade::new(self.clone())
+    }
+
+    /// Telemetry 動詞統一 facade。
+    pub fn telemetry(&self) -> crate::telemetry::TelemetryFacade {
+        crate::telemetry::TelemetryFacade::new(self.clone())
+    }
+
     /// 動詞統一 facade が未実装の service にアクセスする際の生成 stub クライアント。
     /// 例: client.raw_state() で StateServiceClient<Channel> を直接取得。
     pub fn raw_state(&self) -> StateServiceClient<Channel> {

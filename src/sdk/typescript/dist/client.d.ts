@@ -3,6 +3,15 @@ import { TenantContext } from "./proto/k1s0/tier1/common/v1/common_pb.js";
 import { StateFacade } from "./state.js";
 import { PubSubFacade } from "./pubsub.js";
 import { SecretsFacade } from "./secrets.js";
+import { LogFacade } from "./log.js";
+import { WorkflowFacade } from "./workflow.js";
+import { DecisionFacade } from "./decision.js";
+import { AuditFacade } from "./audit.js";
+import { PiiFacade } from "./pii.js";
+import { FeatureFacade } from "./feature.js";
+import { BindingFacade } from "./binding.js";
+import { InvokeFacade } from "./invoke.js";
+import { TelemetryFacade } from "./telemetry.js";
 export interface K1s0Config {
     baseUrl: string;
     tenantId: string;
@@ -15,6 +24,15 @@ export declare class K1s0Client {
     readonly state: StateFacade;
     readonly pubsub: PubSubFacade;
     readonly secrets: SecretsFacade;
+    readonly log: LogFacade;
+    readonly workflow: WorkflowFacade;
+    readonly decision: DecisionFacade;
+    readonly audit: AuditFacade;
+    readonly pii: PiiFacade;
+    readonly feature: FeatureFacade;
+    readonly binding: BindingFacade;
+    readonly invoke: InvokeFacade;
+    readonly telemetry: TelemetryFacade;
     constructor(config: K1s0Config);
     tenantContext(): TenantContext;
     rawState(): import("@connectrpc/connect").Client<{

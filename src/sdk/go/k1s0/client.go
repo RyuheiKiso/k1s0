@@ -66,10 +66,19 @@ type Client struct {
 	cfg Config
 	// 12 service の生成 stub クライアント（Raw() で全件アクセス可）。
 	raw RawClients
-	// 動詞統一 facade（State / PubSub / Secrets を最小同梱、残り 9 は次リリース）。
-	state   *StateClient
-	pubsub  *PubSubClient
-	secrets *SecretsClient
+	// 動詞統一 facade（12 service すべて）。
+	state     *StateClient
+	pubsub    *PubSubClient
+	secrets   *SecretsClient
+	log       *LogClient
+	workflow  *WorkflowClient
+	decision  *DecisionClient
+	audit     *AuditClient
+	pii       *PiiClient
+	feature   *FeatureClient
+	binding   *BindingClient
+	invoke    *InvokeClient
+	telemetry *TelemetryClient
 }
 
 // RawClients は 12 service すべての生成 stub クライアントを保持する。
@@ -136,6 +145,15 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 	c.state = &StateClient{client: c}
 	c.pubsub = &PubSubClient{client: c}
 	c.secrets = &SecretsClient{client: c}
+	c.log = &LogClient{client: c}
+	c.workflow = &WorkflowClient{client: c}
+	c.decision = &DecisionClient{client: c}
+	c.audit = &AuditClient{client: c}
+	c.pii = &PiiClient{client: c}
+	c.feature = &FeatureClient{client: c}
+	c.binding = &BindingClient{client: c}
+	c.invoke = &InvokeClient{client: c}
+	c.telemetry = &TelemetryClient{client: c}
 	// 構築済 Client を返却する。
 	return c, nil
 }

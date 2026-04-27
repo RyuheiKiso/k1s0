@@ -17,6 +17,15 @@ import { TenantContext } from "./proto/k1s0/tier1/common/v1/common_pb.js";
 import { StateFacade } from "./state.js";
 import { PubSubFacade } from "./pubsub.js";
 import { SecretsFacade } from "./secrets.js";
+import { LogFacade } from "./log.js";
+import { WorkflowFacade } from "./workflow.js";
+import { DecisionFacade } from "./decision.js";
+import { AuditFacade } from "./audit.js";
+import { PiiFacade } from "./pii.js";
+import { FeatureFacade } from "./feature.js";
+import { BindingFacade } from "./binding.js";
+import { InvokeFacade } from "./invoke.js";
+import { TelemetryFacade } from "./telemetry.js";
 
 // K1s0Config は Client 初期化時に渡す設定。
 export interface K1s0Config {
@@ -36,10 +45,19 @@ export class K1s0Client {
   readonly transport: Transport;
   // 自動付与する TenantContext 情報。
   readonly config: K1s0Config;
-  // 動詞統一 facade（State / PubSub / Secrets を最小同梱）。
+  // 動詞統一 facade（12 service すべて）。
   readonly state: StateFacade;
   readonly pubsub: PubSubFacade;
   readonly secrets: SecretsFacade;
+  readonly log: LogFacade;
+  readonly workflow: WorkflowFacade;
+  readonly decision: DecisionFacade;
+  readonly audit: AuditFacade;
+  readonly pii: PiiFacade;
+  readonly feature: FeatureFacade;
+  readonly binding: BindingFacade;
+  readonly invoke: InvokeFacade;
+  readonly telemetry: TelemetryFacade;
 
   // Config から Client を生成する。transport が省略されたら gRPC-Web を使う。
   constructor(config: K1s0Config) {
@@ -52,6 +70,15 @@ export class K1s0Client {
     this.state = new StateFacade(this);
     this.pubsub = new PubSubFacade(this);
     this.secrets = new SecretsFacade(this);
+    this.log = new LogFacade(this);
+    this.workflow = new WorkflowFacade(this);
+    this.decision = new DecisionFacade(this);
+    this.audit = new AuditFacade(this);
+    this.pii = new PiiFacade(this);
+    this.feature = new FeatureFacade(this);
+    this.binding = new BindingFacade(this);
+    this.invoke = new InvokeFacade(this);
+    this.telemetry = new TelemetryFacade(this);
   }
 
   // 内部用: TenantContext proto を生成する。

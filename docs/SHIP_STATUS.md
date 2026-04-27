@@ -54,7 +54,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `src/sdk/dotnet/generated/` | .NET stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル） |
 | `src/sdk/rust/generated/` | Rust prost / tonic stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: prost + tonic の 14 proto 分） |
 | `src/sdk/typescript/generated/` | TS protobuf-es / connect-es stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: pb.ts + connect.ts の 14 proto 分） |
-| 高水準 SDK（`k1s0.State.Save(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **雛形あり**（State / PubSub / Secrets の 3 代表 service） | 4 言語すべてに Client + 動詞統一 facade を実装。Go: `c.State().Save()` / `c.PubSub().Publish()` / `c.Secrets().Get()`。Rust: `client.state().save()` 等（async）。TypeScript: `client.state.save()` 等（Promise）。.NET: `client.State.SaveAsync()` 等。Go `go build ./...` 通過、Rust `cargo verify-project` 通過、TypeScript `pnpm typecheck && pnpm build` 通過、.NET `dotnet build Sdk.sln` 通過。残り 9 service（Invoke / Workflow / Log / Telemetry / Decision / Audit / Pii / Feature / Binding）は raw client 経由（`Client.Raw()` / `client.raw_state()` / `client.rawState()` / `client.Raw`） |
+| 高水準 SDK（`k1s0.State.Save(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **同梱済**（12 service 全件） | 4 言語すべてに Client + 動詞統一 facade を 12 service 全件で実装。Go: `c.State().Save()` / `c.Log().Info()` / `c.Workflow().Start()` / `c.Decision().Evaluate()` / `c.Audit().Record()` / `c.Pii().Mask()` / `c.Feature().EvaluateBoolean()` / `c.Binding().Invoke()` / `c.Invoke().Call()` / `c.Telemetry().EmitMetric()` 等。Rust / TypeScript / .NET も同等の動詞統一 API。Go `go build ./...` / Rust `cargo verify-project` / TypeScript `pnpm build` / .NET `dotnet build Sdk.sln` 全通過。Admin service（DecisionAdminService / FeatureAdminService）と stream RPC（InvokeStream / Subscribe）は raw client 経由でアクセス可能 |
 
 ### tier2（C# / Go ドメイン共通）
 
@@ -300,17 +300,26 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - 各 example の unit / integration test 追加（テスト雛形は配置済の規約に沿って）
   - tier3-native-maui の Android / iOS multi-target ビルド
 
-### 8. SDK 高水準ファサード（README に示された動詞統一）— **代表 3 service 完了**
+### 8. SDK 高水準ファサード（README に示された動詞統一）— **完了**
 
-- ✅ 4 言語すべてに Client + 動詞統一 facade を State / PubSub / Secrets の 3 代表 service で配置
-  - Go: `src/sdk/go/k1s0/{client,state,pubsub,secrets,doc}.go`、`go build ./...` 通過
-  - Rust: `src/sdk/rust/crates/k1s0-sdk/src/{lib,client,state,pubsub,secrets}.rs`、async/Channel 共有、`cargo verify-project` 通過
-  - TypeScript: `src/sdk/typescript/src/{index,client,state,pubsub,secrets}.ts`、Connect-RPC + protobuf-es v1、`pnpm typecheck && pnpm build` 通過
-  - .NET: `src/sdk/dotnet/src/K1s0.Sdk.Grpc/{K1s0Client,StateFacade,PubSubFacade,SecretsFacade}.cs`、`dotnet build Sdk.sln` 通過（net8.0 単独に変更、netstandard2.1 多重 TFM は plan 後続で再導入）
-- 🔲 残り 9 service の動詞統一 facade（plan 06-XX 以降）:
-  - Invoke / Workflow / Log / Telemetry / Decision / Audit / Pii / Feature / Binding
-  - 本リリース時点 では Client.Raw() / Client.raw_state() / Client.rawState() / Client.Raw 経由で生成 stub に直接アクセス可能
-  - パターンは State facade に確立済（4 言語ともに proto Request/Response 変換 + TenantContext 自動付与 + idiomatic 引数）
-- README コードサンプルが各言語で実コンパイルすることを `dotnet build` / `go build` / `tsc` で確認済
+- ✅ 4 言語すべてに Client + 動詞統一 facade を 12 service 全件で配置
+  - Go: `src/sdk/go/k1s0/{client,state,pubsub,secrets,log,workflow,decision,audit,pii,feature,binding,invoke,telemetry,doc}.go`
+  - Rust: `src/sdk/rust/crates/k1s0-sdk/src/{lib,client,state,pubsub,secrets,log,workflow,decision,audit,pii,feature,binding,invoke,telemetry}.rs`
+  - TypeScript: `src/sdk/typescript/src/{index,client,state,pubsub,secrets,log,workflow,decision,audit,pii,feature,binding,invoke,telemetry}.ts`
+  - .NET: `src/sdk/dotnet/src/K1s0.Sdk.Grpc/{K1s0Client,StateFacade,PubSubFacade,SecretsFacade,LogFacade,WorkflowFacade,DecisionFacade,AuditFacade,PiiFacade,FeatureFacade,BindingFacade,InvokeFacade,TelemetryFacade}.cs`
+- ビルド検証: `go build ./...` / `cargo verify-project` / `pnpm build` / `dotnet build Sdk.sln` 全通過
+- 動詞統一 API（README コードサンプル整合）:
+  - State: Get / Save / Delete  Log: Send / Info / Warn / Error / Debug
+  - PubSub: Publish              Telemetry: EmitMetric / EmitSpan
+  - Secrets: Get / Rotate        Audit: Record / Query
+  - Workflow: Start / Signal / Query / Cancel / Terminate / GetStatus
+  - Decision: Evaluate / BatchEvaluate
+  - Pii: Classify / Mask          Feature: EvaluateBoolean/String/Number/Object
+  - Binding: Invoke               ServiceInvoke: Call
+- 🔲 残り（plan 06-XX 以降）:
+  - Admin service（DecisionAdminService / FeatureAdminService）の facade（本リリース時点 は raw 経由）
+  - Stream RPC（InvokeStream / PubSub.Subscribe）の facade（本リリース時点 は raw 経由）
+  - netstandard2.1 多重 TFM 再導入（OSS 配布の互換性向上）
+  - 各 facade の単体テスト雛形
 
 各タスクは完成のたびに本 SHIP_STATUS.md のマチュリティ表を更新する運用とする。

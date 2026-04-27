@@ -16,16 +16,34 @@ import { TenantContext } from "./proto/k1s0/tier1/common/v1/common_pb.js";
 import { StateFacade } from "./state.js";
 import { PubSubFacade } from "./pubsub.js";
 import { SecretsFacade } from "./secrets.js";
+import { LogFacade } from "./log.js";
+import { WorkflowFacade } from "./workflow.js";
+import { DecisionFacade } from "./decision.js";
+import { AuditFacade } from "./audit.js";
+import { PiiFacade } from "./pii.js";
+import { FeatureFacade } from "./feature.js";
+import { BindingFacade } from "./binding.js";
+import { InvokeFacade } from "./invoke.js";
+import { TelemetryFacade } from "./telemetry.js";
 // K1s0Client は 12 service へのアクセス起点。
 export class K1s0Client {
     // Connect transport（HTTP/1.1 ベースの gRPC-Web 互換）。
     transport;
     // 自動付与する TenantContext 情報。
     config;
-    // 動詞統一 facade（State / PubSub / Secrets を最小同梱）。
+    // 動詞統一 facade（12 service すべて）。
     state;
     pubsub;
     secrets;
+    log;
+    workflow;
+    decision;
+    audit;
+    pii;
+    feature;
+    binding;
+    invoke;
+    telemetry;
     // Config から Client を生成する。transport が省略されたら gRPC-Web を使う。
     constructor(config) {
         // baseUrl から transport を構築する（外部注入があればそれを優先）。
@@ -37,6 +55,15 @@ export class K1s0Client {
         this.state = new StateFacade(this);
         this.pubsub = new PubSubFacade(this);
         this.secrets = new SecretsFacade(this);
+        this.log = new LogFacade(this);
+        this.workflow = new WorkflowFacade(this);
+        this.decision = new DecisionFacade(this);
+        this.audit = new AuditFacade(this);
+        this.pii = new PiiFacade(this);
+        this.feature = new FeatureFacade(this);
+        this.binding = new BindingFacade(this);
+        this.invoke = new InvokeFacade(this);
+        this.telemetry = new TelemetryFacade(this);
     }
     // 内部用: TenantContext proto を生成する。
     tenantContext() {

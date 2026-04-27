@@ -15,14 +15,32 @@
 // proto 生成物を `proto` 名で再 export する。
 pub use k1s0_sdk_proto as proto;
 
-// 公開 sub module。
+// 公開 sub module（12 service すべて）。
 pub mod client;
 pub mod state;
 pub mod pubsub;
 pub mod secrets;
+pub mod log;
+pub mod workflow;
+pub mod decision;
+pub mod audit;
+pub mod pii;
+pub mod feature;
+pub mod binding;
+pub mod invoke;
+pub mod telemetry;
 
 // 主要型を crate ルートで再 export する（`use k1s0_sdk::Client;` で使えるように）。
 pub use client::{Client, Config};
 pub use state::StateFacade;
 pub use pubsub::PubSubFacade;
 pub use secrets::SecretsFacade;
+pub use log::LogFacade;
+pub use workflow::WorkflowFacade;
+pub use decision::DecisionFacade;
+pub use audit::AuditFacade;
+pub use pii::PiiFacade;
+pub use feature::FeatureFacade;
+pub use binding::BindingFacade;
+pub use invoke::InvokeFacade;
+pub use telemetry::TelemetryFacade;
