@@ -1,0 +1,59 @@
+# KEDA（Event-driven autoscaling、ADR-SCALE-001）の production-grade Helm values。
+# helm repo add kedacore https://kedacore.github.io/charts
+# helm upgrade --install keda kedacore/keda -n keda -f values.yaml --version 2.16.1
+#
+# 用途:
+#   - tier2 サービスを Kafka topic lag / Postgres queue depth でオートスケール
+#   - tier1-state Pod を per-tenant RPS でオートスケール（HPA 補完）
+
+# operator HA（cluster-wide watcher は 1、leader election で active 1 + standby 2）
+replicaCount: 2
+operator:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# metrics-apiserver（HPA から KEDA メトリクスを参照する API server）
+metricsServer:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# admission webhook
+webhooks:
+  enabled: true
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Prometheus 監視
+prometheus:
+  metricServer:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+  operator:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# anti-affinity（HA）
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app: keda-operator
+          topologyKey: kubernetes.io/hostname

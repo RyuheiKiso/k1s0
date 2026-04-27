@@ -1,0 +1,66 @@
+# Dapr operator + control-plane（ADR-DAPR-001）の production-grade Helm values。
+# helm repo add dapr https://dapr.github.io/helm-charts/
+# helm upgrade --install dapr dapr/dapr -n dapr-system -f values.yaml --version 1.17.5
+#
+# dev は tools/local-stack/manifests/45-dapr/values.yaml（HA off / 1 replica）。
+
+global:
+  ha:
+    enabled: true
+  mtls:
+    enabled: true
+    workloadCertTTL: "24h"
+    allowedClockSkew: "15m"
+  prometheus:
+    enabled: true
+  logAsJson: true
+
+# operator HA 3 replica
+dapr_operator:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# placement service HA 3 replica（Raft consensus）
+dapr_placement:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# sentry（trust bundle CA）HA 3 replica
+dapr_sentry:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# sidecar injector HA 3 replica
+dapr_sidecar_injector:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# scheduler service HA 3 replica
+dapr_scheduler:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+# Dapr dashboard は prod では無効（Backstage に統合）
+dapr_dashboard:
+  enabled: false

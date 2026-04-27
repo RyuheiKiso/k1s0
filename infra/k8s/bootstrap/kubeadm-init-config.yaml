@@ -1,0 +1,42 @@
+# 代替: CAPI を使わない場合の kubeadm init configuration。
+# kubeadm init --config infra/k8s/bootstrap/kubeadm-init-config.yaml
+#
+# 適用前に SPIFFE trust domain / OIDC issuer 等を環境別 overlay で書換る前提。
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.31.4
+controlPlaneEndpoint: "k1s0-cp.k1s0.example.com:6443"
+networking:
+  serviceSubnet: 10.96.0.0/12
+  podSubnet: 192.168.0.0/16
+apiServer:
+  certSANs:
+    - k1s0-cp.k1s0.example.com
+    - 127.0.0.1
+  extraArgs:
+    # 監査ログを kube-audit 規約パスに出力
+    audit-log-path: /var/log/kube-audit/audit.log
+    audit-log-maxage: "30"
+    audit-log-maxbackup: "10"
+    audit-log-maxsize: "100"
+    # OIDC（Keycloak）連携で kubectl の認証を OIDC token に
+    oidc-issuer-url: "https://keycloak.k1s0.example.com/realms/k1s0"
+    oidc-client-id: "kubernetes"
+    oidc-username-claim: "preferred_username"
+    oidc-groups-claim: "groups"
+controllerManager:
+  extraArgs:
+    bind-address: 0.0.0.0
+scheduler:
+  extraArgs:
+    bind-address: 0.0.0.0
+etcd:
+  local:
+    extraArgs:
+      metrics: extensive
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock

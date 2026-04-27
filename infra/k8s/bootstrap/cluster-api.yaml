@@ -1,0 +1,77 @@
+# Cluster API（CAPI）ベースの k1s0 production クラスタ定義。
+# infrastructure provider は環境別 overlay（infra/environments/<env>/k8s-overlay/）で差し替える。
+#
+# CAPI install:
+#   clusterctl init --bootstrap kubeadm --control-plane kubeadm
+#
+# 参考: https://cluster-api.sigs.k8s.io/
+---
+# Cluster: トップレベル定義
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: k1s0-prod
+  namespace: capi-system
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: k1s0-prod-control-plane
+  # infrastructureRef は環境別 overlay で差し替え（vSphere / AWS / GCP / 等）
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: PLACEHOLDER_InfrastructureCluster
+    name: k1s0-prod-infra
+---
+# KubeadmControlPlane: 3 node HA control-plane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: k1s0-prod-control-plane
+  namespace: capi-system
+spec:
+  replicas: 3
+  version: v1.31.4
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: PLACEHOLDER_MachineTemplate
+      name: k1s0-prod-control-plane-template
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          audit-log-path: /var/log/kube-audit/audit.log
+          audit-log-maxage: "30"
+          audit-log-maxbackup: "10"
+          audit-log-maxsize: "100"
+        extraVolumes:
+          - name: audit-log
+            hostPath: /var/log/kube-audit
+            mountPath: /var/log/kube-audit
+            pathType: DirectoryOrCreate
+      controllerManager:
+        extraArgs:
+          # bind-address all interfaces で metrics-server pickup
+          bind-address: 0.0.0.0
+      scheduler:
+        extraArgs:
+          bind-address: 0.0.0.0
+      etcd:
+        local:
+          extraArgs:
+            # etcd metrics endpoint をスケジューラから参照可能に
+            metrics: extensive
+    initConfiguration:
+      nodeRegistration:
+        criSocket: unix:///run/containerd/containerd.sock
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: unix:///run/containerd/containerd.sock

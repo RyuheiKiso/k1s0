@@ -1,0 +1,34 @@
+# flagd（ADR-FM-001、OpenFeature provider）の production-grade Helm values（自作 HelmRelease 想定）。
+# 公式 chart が比較的薄いため、本ファイルは Deployment / Service / ConfigMap を Argo CD で
+# 直接 apply する想定の補助 values。実 manifest は flagd-deployment.yaml に配置。
+#
+# dev は tools/local-stack/manifests/50-flagd/manifest.yaml（1 replica）。
+#
+# tier1 t1-state Pod の Feature handler が gRPC で本 flagd Service を呼び出す。
+image:
+  repository: ghcr.io/open-feature/flagd
+  tag: v0.11.6
+
+replicaCount: 3
+
+service:
+  type: ClusterIP
+  port: 8013
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# anti-affinity（3 replica 分散）
+podAntiAffinity:
+  enabled: true
+
+# 監視
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  port: metrics

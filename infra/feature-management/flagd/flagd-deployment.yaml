@@ -1,0 +1,111 @@
+# flagd の Deployment / Service / ConfigMap（ADR-FM-001）。
+# flag 定義は本 ConfigMap に直接埋める運用（dev）と、外部 Git ソースから pull する運用（prod）の
+# 2 パターンがある。本ファイルは ConfigMap ベース（Argo CD の Application で flag.json を sync）。
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flagd-config
+  namespace: flagd
+data:
+  flags.json: |
+    {
+      "$schema": "https://flagd.dev/schema/v0/flags.json",
+      "flags": {
+        "k1s0-canary-rollout": {
+          "state": "ENABLED",
+          "variants": { "on": true, "off": false },
+          "defaultVariant": "off",
+          "targeting": {}
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagd
+  namespace: flagd
+  labels:
+    app: flagd
+    k1s0.io/component: flagd
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flagd
+  template:
+    metadata:
+      labels:
+        app: flagd
+        k1s0.io/component: flagd
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: flagd
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+      containers:
+        - name: flagd
+          image: ghcr.io/open-feature/flagd:v0.11.6
+          args:
+            - "start"
+            - "--uri"
+            - "file:/etc/flagd/flags.json"
+            - "--port"
+            - "8013"
+            - "--metrics-port"
+            - "8014"
+          ports:
+            - containerPort: 8013
+              name: flagd
+            - containerPort: 8014
+              name: metrics
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8014
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8014
+          volumeMounts:
+            - name: config
+              mountPath: /etc/flagd
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: flagd-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagd
+  namespace: flagd
+  labels:
+    app: flagd
+    k1s0.io/component: flagd
+spec:
+  type: ClusterIP
+  selector:
+    app: flagd
+  ports:
+    - name: flagd
+      port: 8013
+      targetPort: 8013
+    - name: metrics
+      port: 8014
+      targetPort: 8014
