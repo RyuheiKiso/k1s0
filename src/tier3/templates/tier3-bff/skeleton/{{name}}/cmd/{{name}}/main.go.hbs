@@ -1,0 +1,90 @@
+// 本ファイルは {{name}}（tier3 BFF）のエントリポイント。
+// {{description}}
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"flag"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/k1s0/sdk-go/k1s0"
+)
+
+// graphqlRequest は GraphQL リクエストの JSON 形式。
+type graphqlRequest struct {
+	Query         string         `json:"query"`
+	Variables     map[string]any `json:"variables,omitempty"`
+	OperationName string         `json:"operationName,omitempty"`
+}
+
+// graphqlResponse は GraphQL 応答の JSON 形式。
+type graphqlResponse struct {
+	Data   any              `json:"data,omitempty"`
+	Errors []map[string]any `json:"errors,omitempty"`
+}
+
+func main() {
+	addr := flag.String("listen", ":8080", "HTTP server listen address")
+	tier1Target := flag.String("tier1-target", "localhost:50001", "tier1 facade gRPC target")
+	tenantID := flag.String("tenant-id", "tenant-{{name}}", "Tenant ID")
+	subject := flag.String("subject", "{{name}}", "Subject")
+	flag.Parse()
+
+	client, err := k1s0.New(context.Background(), k1s0.Config{
+		Target:   *tier1Target,
+		TenantID: *tenantID,
+		Subject:  *subject,
+		UseTLS:   false,
+	})
+	if err != nil {
+		log.Fatalf("k1s0 sdk init: %v", err)
+	}
+	defer client.Close()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	mux.HandleFunc("/graphql", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "POST only", http.StatusMethodNotAllowed)
+			return
+		}
+		var req graphqlRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+		// 採用初期 で gqlgen 等の本格 GraphQL ライブラリに移行。
+		// リリース時点 では echo するだけの placeholder。
+		resp := graphqlResponse{Data: map[string]any{"echo": req.Query}}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+
+	srv := &http.Server{Addr: *addr, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	go func() {
+		log.Printf("{{name}} listening on %s", *addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %v", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("shutdown: %v", err)
+	}
+}

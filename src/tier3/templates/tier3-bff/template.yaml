@@ -1,0 +1,59 @@
+# =============================================================================
+# tier3 BFF（Backend-for-Frontend）の Backstage Software Template v1beta3 定義。
+# IMP-CODEGEN-SCF-033。
+# =============================================================================
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: tier3-bff
+  title: Tier3 BFF (Go GraphQL)
+  description: tier3 SPA から呼ばれる BFF（Go + GraphQL minimal）の雛形
+  tags:
+    - go
+    - tier3
+    - bff
+    - k1s0
+  annotations:
+    k1s0.io/template-version: "0.1.0"
+spec:
+  owner: k1s0/platform-team
+  type: service
+  parameters:
+    - title: 基本情報
+      required:
+        - name
+        - owner
+        - system
+      properties:
+        name:
+          title: BFF 名（kebab-case）
+          type: string
+          pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+          default: portal-bff
+        owner:
+          title: 所有チーム
+          type: string
+        system:
+          title: 所属サブシステム
+          type: string
+          default: k1s0
+        description:
+          title: 概要説明
+          type: string
+          default: tier3 BFF (GraphQL)
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          description: ${{ parameters.description }}
+          tier: tier3
+          language: go-bff
+    - id: publish
+      name: Publish to Git
+      action: publish:github

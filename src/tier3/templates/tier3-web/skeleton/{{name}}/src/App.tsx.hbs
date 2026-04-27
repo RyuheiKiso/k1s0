@@ -1,0 +1,31 @@
+// 本ファイルは {{name}}（tier3 Web SPA）のルートコンポーネント。
+// {{description}}
+//
+// リリース時点 段階では tier1 への実通信を行わず、placeholder の health 値を表示する。
+// 採用初期 で `@k1s0/sdk-rpc` の HealthService.Check 呼び出しに置換する。
+import { useState, type CSSProperties } from "react";
+
+const containerStyle: CSSProperties = {
+  fontFamily: "system-ui, sans-serif",
+  padding: "2rem",
+  maxWidth: 720,
+};
+
+export function App(): JSX.Element {
+  const [health] = useState<string>(
+    "placeholder (採用初期 で @k1s0/sdk-rpc 経由の実 check に置換)"
+  );
+
+  return (
+    <main style={containerStyle}>
+      <h1>{{name}}</h1>
+      <p>{{description}}</p>
+      <section>
+        <h2>tier1 health</h2>
+        <p>
+          <code>{health}</code>
+        </p>
+      </section>
+    </main>
+  );
+}

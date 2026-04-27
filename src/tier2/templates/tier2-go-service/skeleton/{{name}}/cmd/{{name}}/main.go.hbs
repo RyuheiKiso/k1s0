@@ -1,0 +1,91 @@
+// 本ファイルは {{name}}（tier2 Go サービス）のエントリポイント。
+// k1s0-scaffold が生成した雛形。{{description}}
+//
+// 設計参考: examples/tier2-go-service/cmd/example-service/main.go
+package main
+
+// 標準 / 内部 import。
+import (
+	// context 伝搬。
+	"context"
+	// CLI flag 取得。
+	"flag"
+	// HTTP server 実装。
+	"net/http"
+	// 標準ログ出力。
+	"log"
+	// シグナル受信。
+	"os"
+	"os/signal"
+	"syscall"
+	// graceful shutdown のタイムアウト。
+	"time"
+
+	// k1s0 高水準 SDK facade。
+	"github.com/k1s0/sdk-go/k1s0"
+)
+
+// プロセスエントリポイント。
+func main() {
+	// listen address の上書き flag。
+	addr := flag.String("listen", ":8080", "HTTP server listen address")
+	// k1s0 tier1 facade の gRPC 接続先（dev 既定: localhost:50001）。
+	tier1Target := flag.String("tier1-target", "localhost:50001", "tier1 facade gRPC target")
+	// テナント識別。
+	tenantID := flag.String("tenant-id", "tenant-{{name}}", "Tenant ID")
+	subject := flag.String("subject", "{{name}}", "Subject")
+	flag.Parse()
+
+	// k1s0 SDK Client を生成する。
+	client, err := k1s0.New(context.Background(), k1s0.Config{
+		Target:   *tier1Target,
+		TenantID: *tenantID,
+		Subject:  *subject,
+		// dev は平文（prod は UseTLS=true 必須）。
+		UseTLS: false,
+	})
+	if err != nil {
+		log.Fatalf("k1s0 sdk init: %v", err)
+	}
+	defer client.Close()
+
+	// HTTP handler を組み立てる。
+	mux := http.NewServeMux()
+
+	// /healthz: 単純な疎通確認（liveness）。
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	// /readyz: tier1 facade との疎通含めた健全性確認（readiness）。
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		// 採用初期 で tier1 health gRPC 呼び出しに置換予定。
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ready"))
+	})
+
+	// HTTP server を起動する。
+	srv := &http.Server{
+		Addr:              *addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		log.Printf("{{name}} listening on %s", *addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %v", err)
+		}
+	}()
+
+	// SIGINT / SIGTERM で graceful shutdown する。
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("shutdown: %v", err)
+	}
+}

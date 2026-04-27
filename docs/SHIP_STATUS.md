@@ -60,7 +60,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
-| `src/tier2/templates/{dotnet,go}-service` | scaffold が参照する型付きテンプレート | **設計のみ** | ディレクトリ存在のみ |
+| `src/tier2/templates/` + `src/tier3/templates/` | k1s0-scaffold が参照する型付き Backstage Software Template v1beta3（IMP-CODEGEN-SCF-031〜034） | **同梱済** | 4 テンプレート配置: `tier2-go-service`（Go SDK + HTTP /healthz /readyz、distroless multi-stage Dockerfile）/ `tier2-dotnet-service`（ASP.NET Core minimal API + K1s0.Sdk.Grpc、`{{namespace}}` PascalCase 必須）/ `tier3-bff`（Go GraphQL minimal /graphql endpoint）/ `tier3-web`（React 18 + Vite + TS strict、`pnpm dev` 起動）。各テンプレ配下は `template.yaml`（Backstage v1beta3）+ `skeleton/{{name}}/...`（Handlebars `*.hbs`）+ `README.md` 構成。`catalog-info.yaml.hbs` を全テンプレで必須化（IMP-CODEGEN-POL-006、`backstage.io/techdocs-ref: dir:.` 自動付与）。`tier` / `language` は `template.yaml` の固定 values で設定 |
 | `src/tier2/dotnet/services/{ApprovalFlow, InvoiceGenerator, TaxCalculator}` | tier2 完動例 | **設計のみ** | ディレクトリ存在のみ |
 | `src/tier2/go/services/{notification-hub, stock-reconciler}` | tier2 Go 完動例 | **設計のみ** | ディレクトリ存在のみ |
 
@@ -78,8 +78,8 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
-| `src/platform/cli/` | k1s0-scaffold 雛形 CLI | **設計のみ** | ディレクトリ存在のみ |
-| `src/platform/analyzer/` | 内製依存方向 analyzer（`tier3 → tier2 → tier1 → infra` 一方向強制） | **設計のみ** | ディレクトリ存在のみ |
+| `src/platform/scaffold/` | k1s0-scaffold CLI（Rust 実装、IMP-CODEGEN-SCF-030） | **同梱済** | Rust crate（edition 2024）として実装。`Cargo.toml`（clap 4 / handlebars 5 / serde_yaml / walkdir / thiserror）+ 5 ソース（`main.rs` CLI / `lib.rs` engine 公開 API / `template.rs` Backstage Software Template v1beta3 パース / `engine.rs` Handlebars + walkdir 展開 / `error.rs`）+ README + .gitignore。3 サブコマンド（`list` / `new <template>` / `new --input <json> --dry-run`）固定（運用 30_Scaffold_CLI運用.md）。CLI と Backstage UI 経路（custom action `k1s0:scaffold-engine`）が同一 engine を呼びバイト一致を保証する設計。`cargo metadata` 通過確認（フル build は cc 未配置のため未実施）。旧 `src/platform/cli/` は ADR-DEV-001 / IMP-CODEGEN-SCF-030 の正典 path への移行で削除 |
+| `src/platform/analyzer/` | .NET 依存方向 Roslyn Analyzer（IMP-DIR-ROOT-002 / docs/05_実装/00_ディレクトリ設計/10_ルートレイアウト/05_依存方向ルール.md）| **同梱済** | `tier3 → tier2 → sdk → tier1` 一方向ルールを `using` 文レベルで強制する Roslyn DiagnosticAnalyzer を実装。診断 ID 4 件（`K1S0DEPDIR0001` SDK→Tier2 / `K1S0DEPDIR0002` SDK→Tier3 / `K1S0DEPDIR0003` Tier2→Tier3 / `K1S0DEPDIR0004` Tier1→上位層）すべて Severity=Error。`netstandard2.0` で build、`Microsoft.CodeAnalysis.CSharp` 4.11 + `Microsoft.CodeAnalysis.Analyzers` 3.11 依存。3 csproj（Analyzer 本体 / NuGet Package（analyzers/dotnet/cs/ 配置）/ xUnit Tests with `Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit`）+ ソリューション（K1s0.DependencyDirection.Analyzer.sln）+ Directory.Build.props（共通 LangVersion / Nullable / TreatWarningsAsErrors）+ README。**dotnet 未配置のため build 検証は CI 側で実施**、XML 構文（csproj / props）は ElementTree 検証通過。`<ProjectReference>` レベルの違反は別途 NetArchTest（各 .sln 配下 tests/ で xUnit 化）が捕捉する設計分離 |
 | `src/platform/backstage-plugins/` | Backstage 開発者ポータル plugin（ADR-DEVEX-002） | **雛形あり** | 2 plugin の skeleton を配置: `k1s0-catalog/`（k1s0 拡張 annotation prefix `k1s0.io/` と 4 キー定数 Tier/Component/Lang/Env、`getPluginManifest()`）と `k1s0-scaffolder/`（`k1s0-scaffold` CLI を Backstage Scaffolder の Custom Action として公開する input schema、4 ServiceType `tier2-go` / `tier2-dotnet` / `tier3-bff` / `tier3-web` 対応）。各 plugin に `package.json`（`@k1s0/backstage-plugin-{catalog,scaffolder}`、Backstage 4.x peerDependencies）+ `src/{plugin,index}.ts` + `tsconfig.json`（target ES2022 / strict / noEmit）+ README を配置。実 Backstage SDK 連携は採用組織が `@backstage/core-plugin-api` 等を import して `createPlugin` / `createTemplateAction` で接続する想定（採用組織の Backstage バージョンへの強い依存を避けるため OSS 側は skeleton のみ提供） |
 
 ### infra（k8s / mesh / data / observability / security）

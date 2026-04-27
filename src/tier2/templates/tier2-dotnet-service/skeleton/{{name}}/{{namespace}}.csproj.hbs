@@ -1,0 +1,21 @@
+<!--
+  k1s0-scaffold が生成した {{name}} の csproj。
+  ASP.NET Core minimal API + K1s0.Sdk.Grpc 利用。
+-->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>{{namespace}}</RootNamespace>
+    <AssemblyName>{{namespace}}</AssemblyName>
+    <UserSecretsId>{{name}}</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- リリース時点 SDK は NuGet 未公開のため、リポジトリ内 ProjectReference を path で利用する。
+         NuGet 公開後は PackageReference に切替（IMP-BUILD-GM-026 と整合）。 -->
+    <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Grpc/K1s0.Sdk.Grpc.csproj" />
+    <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,73 @@
+# =============================================================================
+# Backstage Software Template v1beta3 互換 テンプレート定義
+#
+# tier2 Go ドメインサービスの新規雛形（IMP-CODEGEN-SCF-031）。
+#
+# 設計正典:
+#   docs/05_実装/20_コード生成設計/30_Scaffold_CLI/01_Scaffold_CLI設計.md
+#   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md
+#   docs/02_構想設計/adr/ADR-DEV-001-paved-road.md
+#
+# 本テンプレートは k1s0-scaffold CLI（Rust 実装、src/platform/scaffold/）と
+# Backstage Software Template の両経路から呼び出され、`fetch:template` アクションで
+# `skeleton/` 配下の Handlebars テンプレートが展開される。
+# =============================================================================
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: tier2-go-service
+  title: Tier2 Go Service
+  description: tier2 ドメイン共通業務ロジックを提供する Go サービスの雛形（k1s0 SDK + ASP/HTTP）
+  tags:
+    - go
+    - tier2
+    - k1s0
+    - paved-road
+  annotations:
+    # k1s0-scaffold 向けテンプレートバージョン（semver）
+    k1s0.io/template-version: "0.1.0"
+spec:
+  owner: k1s0/platform-team
+  type: service
+  parameters:
+    - title: 基本情報
+      required:
+        - name
+        - owner
+        - system
+      properties:
+        name:
+          title: サービス名（kebab-case）
+          type: string
+          pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+          description: 3〜30 文字、英小文字 + 数字 + ハイフンのみ
+        owner:
+          title: 所有チーム
+          type: string
+          description: "@k1s0/<team> 形式（CODEOWNERS と一致すること）"
+        system:
+          title: 所属サブシステム
+          type: string
+          default: k1s0
+        description:
+          title: 概要説明（任意）
+          type: string
+          default: tier2 Go ドメインサービス
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        # k1s0-scaffold engine がこの values を Handlebars 変数として展開する
+        values:
+          name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          description: ${{ parameters.description }}
+          # 固定値（テンプレート種別が tier / language を確定する）
+          tier: tier2
+          language: go
+    - id: publish
+      name: Publish to Git
+      action: publish:github

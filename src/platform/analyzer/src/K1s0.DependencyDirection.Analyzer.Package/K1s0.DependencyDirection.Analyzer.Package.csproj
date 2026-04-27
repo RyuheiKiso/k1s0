@@ -1,0 +1,31 @@
+<!--
+  k1s0 依存方向 Analyzer の NuGet パッケージング csproj。
+  K1s0.DependencyDirection.Analyzer.dll を analyzers/dotnet/cs/ に配置する形で
+  pack する。各 .sln からは <PackageReference Include="K1s0.DependencyDirection.Analyzer"
+  PrivateAssets="all" /> として参照する。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>K1s0.DependencyDirection.Analyzer</PackageId>
+    <Description>k1s0 tier3→tier2→sdk→tier1 一方向依存ルールを強制する Roslyn Analyzer</Description>
+    <PackageTags>roslyn;analyzer;k1s0;architecture</PackageTags>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\K1s0.DependencyDirection.Analyzer\K1s0.DependencyDirection.Analyzer.csproj" />
+  </ItemGroup>
+
+  <!-- analyzer DLL を NuGet パッケージの analyzers/dotnet/cs/ にコピーする -->
+  <Target Name="CopyAnalyzerDll" BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <None Include="$(OutputPath)\K1s0.DependencyDirection.Analyzer.dll"
+            Pack="true"
+            PackagePath="analyzers/dotnet/cs/" />
+    </ItemGroup>
+  </Target>
+</Project>

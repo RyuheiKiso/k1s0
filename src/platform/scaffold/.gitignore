@@ -1,0 +1,4 @@
+# k1s0-scaffold crate（独立 single-crate）の .gitignore。
+# Cargo.lock は CLI バイナリとして配布するため commit する方針（典型的 Rust application
+# のベストプラクティス、SDK / library と異なる）。
+target/

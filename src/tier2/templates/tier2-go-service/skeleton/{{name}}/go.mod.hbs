@@ -1,0 +1,13 @@
+// 本ファイルは k1s0-scaffold が生成する {{name}} の go.mod。
+// module path は GitHub org / user の owner を反映する（CI で書き換え可能）。
+module github.com/k1s0/{{name}}
+
+go 1.22
+
+require (
+	github.com/k1s0/sdk-go v0.0.0
+)
+
+// リリース時点 SDK は未公開のため、採用組織のリポジトリ内 SDK を path で参照する想定。
+// SDK が外部 registry に publish されたら `replace` を削除する運用（IMP-BUILD-GM-026）。
+replace github.com/k1s0/sdk-go => ../sdk/go

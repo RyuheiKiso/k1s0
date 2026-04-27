@@ -1,0 +1,13 @@
+// 本ファイルは {{name}} のドメインロジック placeholder。
+// 採用組織が実装する業務ロジックの本体。Clean Architecture を採用する場合は
+// internal を domain / application / infrastructure に分割する想定。
+package internal
+
+// Service は {{name}} のビジネスロジックを集約する型。
+// 採用組織が DI（k1s0 Client / DB / 外部 API）をフィールドに加えて拡張する。
+type Service struct{}
+
+// NewService は Service の初期化を行う。
+func NewService() *Service {
+	return &Service{}
+}
