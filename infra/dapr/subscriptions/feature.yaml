@@ -1,0 +1,28 @@
+# =============================================================================
+# tier1 Feature API が PubSub 経由で Feature Flag 更新通知を受信する Subscription
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+#   docs/02_構想設計/adr/ADR-FM-001-flagd.md
+#
+# Feature Flag の更新は通常 flagd Pod が ConfigMap 監視で反映するが、即時通知が
+# 必要なケース（緊急 kill switch 等）は PubSub 経由で tier1-feature が受信する。
+# =============================================================================
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: feature-flag-subscription
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-subscription
+spec:
+  # Feature Flag 更新通知 topic
+  topic: feature-flag-updates
+  pubsubname: kafka-pubsub
+  routes:
+    default: /v1/feature/refresh
+  deadLetterTopic: feature-flag-updates-dlq
+scopes:
+  # 受信対象 app（tier1-feature、t1-state Pod の Feature handler が含む）
+  - tier1-feature

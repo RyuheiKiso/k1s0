@@ -1,0 +1,51 @@
+# =============================================================================
+# tier1 PubSub API の backing store（pubsub.kafka / Strimzi Kafka）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md（kafka.yaml 例示）
+#   docs/02_構想設計/adr/ADR-DATA-002-kafka.md
+# =============================================================================
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-component
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Strimzi Kafka cluster bootstrap service（infra/data/kafka/kafka-cluster.yaml）
+    - name: brokers
+      value: kafka-kafka-bootstrap.k1s0-data.svc.cluster.local:9092
+    # mTLS 認証（Strimzi の TLS listener と整合、cert は SPIRE 発行）
+    - name: authType
+      value: mtls
+    - name: caCert
+      secretKeyRef:
+        name: kafka-mtls-ca
+        key: ca.crt
+    - name: clientCert
+      secretKeyRef:
+        name: kafka-mtls-client
+        key: tls.crt
+    - name: clientKey
+      secretKeyRef:
+        name: kafka-mtls-client
+        key: tls.key
+    # consumer ID は app 単位で自動展開（同一トピックの並行消費を可能にする）
+    - name: consumerID
+      value: "k1s0-{{.appId}}"
+    # メッセージ消費済 offset を Kafka 側に commit させる（at-least-once）
+    - name: consumeRetryEnabled
+      value: "true"
+    - name: maxMessageBytes
+      value: "1048576"
+auth:
+  secretStore: vault
+scopes:
+  - tier1-facade-state
+  - tier1-audit-pii
+  - tier1-feature

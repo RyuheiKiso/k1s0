@@ -1,0 +1,41 @@
+# =============================================================================
+# tier1 State API のキャッシュ用 backing store（state.valkey）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+#   docs/02_構想設計/adr/ADR-DATA-004-valkey.md
+#
+# 短時間 TTL データ（セッション / レート制限カウンタ等）向け。
+# アプリは metadata.stateStore: redis-cache を指定して使い分ける。
+# =============================================================================
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-cache
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-component
+spec:
+  # state.valkey は Valkey（Redis fork）専用の state store（Dapr 1.14+）
+  type: state.valkey
+  version: v1
+  metadata:
+    # Valkey replication primary（infra/data/valkey/values.yaml の Service 名）
+    - name: valkeyHost
+      value: valkey-primary.k1s0-data.svc.cluster.local:6379
+    # 認証情報（OpenBao 経由）
+    - name: valkeyPassword
+      secretKeyRef:
+        name: valkey-auth
+        key: password
+    # TTL 既定値（5 分、業務側 metadata で上書き可能）
+    - name: ttlInSeconds
+      value: "300"
+    # actor 状態保管としては使わない（postgres.yaml が actor 用）
+    - name: actorStateStore
+      value: "false"
+auth:
+  secretStore: vault
+scopes:
+  - tier1-facade-state

@@ -1,0 +1,27 @@
+# =============================================================================
+# tier1 AuditPii API が PubSub（kafka-pubsub）経由で監査イベントを受信する Subscription
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md（subscriptions/audit-pii.yaml 例示）
+# =============================================================================
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: audit-pii-subscription
+  namespace: k1s0-tier1
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    app.kubernetes.io/component: dapr-subscription
+spec:
+  # 監査イベント topic（tier2/tier3 が k1s0 SDK 経由で publish）
+  topic: audit-events
+  # PubSub Component 名（infra/dapr/components/pubsub/kafka.yaml）
+  pubsubname: kafka-pubsub
+  # ルーティング: 既定で /v1/audit/ingest endpoint へ
+  routes:
+    default: /v1/audit/ingest
+  # dead letter topic（再試行限度超過時）
+  deadLetterTopic: audit-events-dlq
+scopes:
+  # 受信対象 app（COMP-T1-AUDIT、appId は Dapr Pod の app-id annotation と整合）
+  - tier1-audit-pii
