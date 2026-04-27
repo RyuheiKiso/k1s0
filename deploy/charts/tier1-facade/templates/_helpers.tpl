@@ -67,6 +67,17 @@ k1s0.io/tier1-pod: {{ .podName }}
 {{- end -}}
 
 {{/*
+Pod 別 metadata.labels（Recommended Labels + Pod 識別 labels）。
+selectorLabels を二重に出さないため、`tier1-facade.labels` の出力に
+Pod 識別キー `k1s0.io/tier1-pod` のみを追加する。
+引数: dict "Release" .Release "Chart" .Chart "Values" .Values "podName" "state"
+*/}}
+{{- define "tier1-facade.podLabels" -}}
+{{ include "tier1-facade.labels" . }}
+k1s0.io/tier1-pod: {{ .podName }}
+{{- end -}}
+
+{{/*
 ServiceAccount 名の導出（serviceAccount.create=true なら fullname、false なら明示 name）。
 */}}
 {{- define "tier1-facade.serviceAccountName" -}}

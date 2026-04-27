@@ -13,33 +13,40 @@
 # 利用:
 #   kubectl apply -k infra/environments/dev/
 #   または tools/local-stack/up.sh から呼出（推奨）
+#
+# 注: kustomize の load-restriction（外部ファイル直接参照禁止）に対応するため、
+#     `resources:` は **ディレクトリ参照** で記述する（各 base に kustomization.yaml
+#     を配置済）。直接 `*.yaml` パスを書かないこと。
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # 共通 namespace ラベル（Pod Security Standards / Istio Ambient 連携用）
-commonLabels:
-  app.kubernetes.io/part-of: k1s0
-  k1s0.io/env: dev
+# kustomize v5 で `commonLabels` は deprecated。後継の `labels` を使う。
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: k1s0
+      k1s0.io/env: dev
+    includeSelectors: true
 
-# infra base から直接 YAML 適用可能なリソースのみ参照する。
-# Helm chart 系の values.yaml は本 kustomization では扱わず values/ で env 別管理。
+# infra base から「ディレクトリ参照」でリソースを継承する。
+# 各 base には kustomization.yaml が配置されている。
 resources:
   # k8s 基盤（namespace / storage class）
-  - ../../k8s/namespaces/namespaces.yaml
-  - ../../k8s/storage/storage-classes.yaml
+  - ../../k8s/namespaces
+  - ../../k8s/storage
   # mTLS 強制（PeerAuthentication）
-  - ../../mesh/istio-ambient/peer-authentication.yaml
+  - ../../mesh/istio-ambient
   # admission policy（Kyverno baseline）
-  - ../../security/kyverno/baseline-policies.yaml
+  - ../../security/kyverno
   # cert-manager ClusterIssuer（dev は letsencrypt-staging を patches/ で primary 化）
-  - ../../security/cert-manager/cluster-issuer.yaml
+  - ../../security/cert-manager
   # CNPG クラスタ（Postgres 16）
-  - ../../data/cloudnativepg/cluster.yaml
+  - ../../data/cloudnativepg
   # Kafka クラスタ（KRaft）
-  - ../../data/kafka/kafka-cluster.yaml
+  - ../../data/kafka
   # flagd（Feature Flag）
-  - ../../feature-management/flagd/flagd-deployment.yaml
+  - ../../feature-management/flagd
 
 # dev 用 patch（リソース規模を最小化）
 patches:

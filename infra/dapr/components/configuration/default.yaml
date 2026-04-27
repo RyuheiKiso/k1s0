@@ -30,6 +30,11 @@ spec:
     enabled: true
     workloadCertTTL: 24h
     allowedClockSkew: 15m
+    # Dapr 1.14+ の Configuration CRD で mTLS の必須フィールド。
+    # Sentry サービスは infra/dapr/control-plane/ により dapr-system に展開される。
+    sentryAddress: dapr-sentry.dapr-system.svc.cluster.local:443
+    # SPIFFE TrustDomain。accessControl と一致させて k1s0.local を採用する。
+    controlPlaneTrustDomain: k1s0.local
   # API access control（tier1 facade のみが呼び出せる）
   accessControl:
     defaultAction: deny

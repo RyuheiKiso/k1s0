@@ -10,23 +10,30 @@
 #   docs/04_概要設計/55_運用ライフサイクル方式設計/03_環境構成管理方式.md
 #
 # 利用: Argo CD ApplicationSet が target として Sync（手動承認必須、DS-OPS-ENV-007）。
+#
+# 注: kustomize の load-restriction（外部ファイル直接参照禁止）に対応するため、
+#     `resources:` は **ディレクトリ参照** で記述する（各 base に kustomization.yaml
+#     を配置済）。
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-commonLabels:
-  app.kubernetes.io/part-of: k1s0
-  k1s0.io/env: prod
+# kustomize v5 で `commonLabels` は deprecated。後継の `labels` を使う。
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: k1s0
+      k1s0.io/env: prod
+    includeSelectors: true
 
 resources:
-  - ../../k8s/namespaces/namespaces.yaml
-  - ../../k8s/storage/storage-classes.yaml
-  - ../../mesh/istio-ambient/peer-authentication.yaml
-  - ../../security/kyverno/baseline-policies.yaml
-  - ../../security/cert-manager/cluster-issuer.yaml
-  - ../../data/cloudnativepg/cluster.yaml
-  - ../../data/kafka/kafka-cluster.yaml
-  - ../../feature-management/flagd/flagd-deployment.yaml
+  - ../../k8s/namespaces
+  - ../../k8s/storage
+  - ../../mesh/istio-ambient
+  - ../../security/kyverno
+  - ../../security/cert-manager
+  - ../../data/cloudnativepg
+  - ../../data/kafka
+  - ../../feature-management/flagd
 
 # prod は base がそのまま表現するため patches は空（必要時のみ追加）。
 # patches: []

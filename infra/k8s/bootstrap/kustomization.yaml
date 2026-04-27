@@ -1,0 +1,15 @@
+# =============================================================================
+# infra/k8s/bootstrap/kustomization.yaml
+#
+# Cluster API + KubeadmControlPlane（HA 3）等のブートストラップリソース。
+# kubeadm-init-config.yaml は ClusterConfiguration（kubeadm 用設定）であり
+# 通常 `kubectl apply` では適用しないため、適用可能なものは cluster-api.yaml のみ。
+#
+# 関連設計:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cluster-api.yaml
