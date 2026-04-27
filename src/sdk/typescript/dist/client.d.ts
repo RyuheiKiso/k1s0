@@ -12,6 +12,8 @@ import { FeatureFacade } from "./feature.js";
 import { BindingFacade } from "./binding.js";
 import { InvokeFacade } from "./invoke.js";
 import { TelemetryFacade } from "./telemetry.js";
+import { DecisionAdminFacade } from "./decisionAdmin.js";
+import { FeatureAdminFacade } from "./featureAdmin.js";
 export interface K1s0Config {
     baseUrl: string;
     tenantId: string;
@@ -33,6 +35,8 @@ export declare class K1s0Client {
     readonly binding: BindingFacade;
     readonly invoke: InvokeFacade;
     readonly telemetry: TelemetryFacade;
+    readonly decisionAdmin: DecisionAdminFacade;
+    readonly featureAdmin: FeatureAdminFacade;
     constructor(config: K1s0Config);
     tenantContext(): TenantContext;
     rawState(): import("@connectrpc/connect").Client<{

@@ -54,7 +54,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `src/sdk/dotnet/generated/` | .NET stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル） |
 | `src/sdk/rust/generated/` | Rust prost / tonic stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: prost + tonic の 14 proto 分） |
 | `src/sdk/typescript/generated/` | TS protobuf-es / connect-es stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: pb.ts + connect.ts の 14 proto 分） |
-| 高水準 SDK（`k1s0.State.Save(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **同梱済**（12 service 全件） | 4 言語すべてに Client + 動詞統一 facade を 12 service 全件で実装。Go: `c.State().Save()` / `c.Log().Info()` / `c.Workflow().Start()` / `c.Decision().Evaluate()` / `c.Audit().Record()` / `c.Pii().Mask()` / `c.Feature().EvaluateBoolean()` / `c.Binding().Invoke()` / `c.Invoke().Call()` / `c.Telemetry().EmitMetric()` 等。Rust / TypeScript / .NET も同等の動詞統一 API。Go `go build ./...` / Rust `cargo verify-project` / TypeScript `pnpm build` / .NET `dotnet build Sdk.sln` 全通過。Admin service（DecisionAdminService / FeatureAdminService）と stream RPC（InvokeStream / Subscribe）は raw client 経由でアクセス可能 |
+| 高水準 SDK（`k1s0.State.Save(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **同梱済**（14 service 全件） | 4 言語すべてに Client + 動詞統一 facade を 14 service 全件（公開 12 + Admin 2）で実装。公開: State / PubSub / Secrets / Log / Workflow / Decision / Audit / Pii / Feature / Binding / ServiceInvoke / Telemetry。Admin: DecisionAdmin（RegisterRule / ListVersions / GetRule）/ FeatureAdmin（RegisterFlag / GetFlag / ListFlags）。Go `c.DecisionAdmin().RegisterRule()` / `c.FeatureAdmin().GetFlag()`、Rust `client.decision_admin().register_rule()`、TypeScript `client.decisionAdmin.registerRule()`、.NET `client.DecisionAdmin.RegisterRuleAsync()`。Go `go build ./...` / Rust `cargo verify-project` / TypeScript `pnpm build` / .NET `dotnet build Sdk.sln` 全通過。Stream RPC（InvokeStream / PubSub.Subscribe）は raw 経由 |
 
 ### tier2（C# / Go ドメイン共通）
 
@@ -316,8 +316,8 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - Decision: Evaluate / BatchEvaluate
   - Pii: Classify / Mask          Feature: EvaluateBoolean/String/Number/Object
   - Binding: Invoke               ServiceInvoke: Call
+- ✅ Admin service facade（DecisionAdmin / FeatureAdmin）も 4 言語で同梱（14 service 全件）
 - 🔲 残り（plan 06-XX 以降）:
-  - Admin service（DecisionAdminService / FeatureAdminService）の facade（本リリース時点 は raw 経由）
   - Stream RPC（InvokeStream / PubSub.Subscribe）の facade（本リリース時点 は raw 経由）
   - netstandard2.1 多重 TFM 再導入（OSS 配布の互換性向上）
   - 各 facade の単体テスト雛形

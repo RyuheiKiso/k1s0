@@ -29,6 +29,8 @@ pub mod feature;
 pub mod binding;
 pub mod invoke;
 pub mod telemetry;
+pub mod decision_admin;
+pub mod feature_admin;
 
 // 主要型を crate ルートで再 export する（`use k1s0_sdk::Client;` で使えるように）。
 pub use client::{Client, Config};
@@ -44,3 +46,5 @@ pub use feature::FeatureFacade;
 pub use binding::BindingFacade;
 pub use invoke::InvokeFacade;
 pub use telemetry::TelemetryFacade;
+pub use decision_admin::DecisionAdminFacade;
+pub use feature_admin::FeatureAdminFacade;

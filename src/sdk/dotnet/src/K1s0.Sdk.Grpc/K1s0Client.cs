@@ -60,8 +60,10 @@ public sealed class K1s0Client : IDisposable
     public BindingFacade Binding { get; }
     public InvokeFacade Invoke { get; }
     public TelemetryFacade Telemetry { get; }
+    public DecisionAdminFacade DecisionAdmin { get; }
+    public FeatureAdminFacade FeatureAdmin { get; }
 
-    // 12 service の生成 stub client への直接アクセス（FeatureAdmin / DecisionAdmin はここから）。
+    // 14 service の生成 stub client への直接アクセス。
     public RawClients Raw { get; }
 
     public K1s0Client(K1s0Config config)
@@ -85,6 +87,8 @@ public sealed class K1s0Client : IDisposable
         Binding = new BindingFacade(this);
         Invoke = new InvokeFacade(this);
         Telemetry = new TelemetryFacade(this);
+        DecisionAdmin = new DecisionAdminFacade(this);
+        FeatureAdmin = new FeatureAdminFacade(this);
     }
 
     // 内部用: TenantContext proto を生成する。

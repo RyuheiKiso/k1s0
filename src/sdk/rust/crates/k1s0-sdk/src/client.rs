@@ -111,6 +111,16 @@ impl Client {
         crate::telemetry::TelemetryFacade::new(self.clone())
     }
 
+    /// DecisionAdmin 動詞統一 facade（JDM 文書登録 / バージョン一覧 / 取得）。
+    pub fn decision_admin(&self) -> crate::decision_admin::DecisionAdminFacade {
+        crate::decision_admin::DecisionAdminFacade::new(self.clone())
+    }
+
+    /// FeatureAdmin 動詞統一 facade（Flag 定義の登録 / 取得 / 一覧）。
+    pub fn feature_admin(&self) -> crate::feature_admin::FeatureAdminFacade {
+        crate::feature_admin::FeatureAdminFacade::new(self.clone())
+    }
+
     /// 動詞統一 facade が未実装の service にアクセスする際の生成 stub クライアント。
     /// 例: client.raw_state() で StateServiceClient<Channel> を直接取得。
     pub fn raw_state(&self) -> StateServiceClient<Channel> {

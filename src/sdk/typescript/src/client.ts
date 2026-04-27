@@ -26,6 +26,8 @@ import { FeatureFacade } from "./feature.js";
 import { BindingFacade } from "./binding.js";
 import { InvokeFacade } from "./invoke.js";
 import { TelemetryFacade } from "./telemetry.js";
+import { DecisionAdminFacade } from "./decisionAdmin.js";
+import { FeatureAdminFacade } from "./featureAdmin.js";
 
 // K1s0Config は Client 初期化時に渡す設定。
 export interface K1s0Config {
@@ -58,6 +60,8 @@ export class K1s0Client {
   readonly binding: BindingFacade;
   readonly invoke: InvokeFacade;
   readonly telemetry: TelemetryFacade;
+  readonly decisionAdmin: DecisionAdminFacade;
+  readonly featureAdmin: FeatureAdminFacade;
 
   // Config から Client を生成する。transport が省略されたら gRPC-Web を使う。
   constructor(config: K1s0Config) {
@@ -79,6 +83,8 @@ export class K1s0Client {
     this.binding = new BindingFacade(this);
     this.invoke = new InvokeFacade(this);
     this.telemetry = new TelemetryFacade(this);
+    this.decisionAdmin = new DecisionAdminFacade(this);
+    this.featureAdmin = new FeatureAdminFacade(this);
   }
 
   // 内部用: TenantContext proto を生成する。

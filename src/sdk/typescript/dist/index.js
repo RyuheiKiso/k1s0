@@ -25,4 +25,6 @@ export { FeatureFacade } from "./feature.js";
 export { BindingFacade } from "./binding.js";
 export { InvokeFacade } from "./invoke.js";
 export { TelemetryFacade } from "./telemetry.js";
+export { DecisionAdminFacade } from "./decisionAdmin.js";
+export { FeatureAdminFacade } from "./featureAdmin.js";
 //# sourceMappingURL=index.js.map

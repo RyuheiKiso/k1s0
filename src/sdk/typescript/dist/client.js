@@ -25,6 +25,8 @@ import { FeatureFacade } from "./feature.js";
 import { BindingFacade } from "./binding.js";
 import { InvokeFacade } from "./invoke.js";
 import { TelemetryFacade } from "./telemetry.js";
+import { DecisionAdminFacade } from "./decisionAdmin.js";
+import { FeatureAdminFacade } from "./featureAdmin.js";
 // K1s0Client は 12 service へのアクセス起点。
 export class K1s0Client {
     // Connect transport（HTTP/1.1 ベースの gRPC-Web 互換）。
@@ -44,6 +46,8 @@ export class K1s0Client {
     binding;
     invoke;
     telemetry;
+    decisionAdmin;
+    featureAdmin;
     // Config から Client を生成する。transport が省略されたら gRPC-Web を使う。
     constructor(config) {
         // baseUrl から transport を構築する（外部注入があればそれを優先）。
@@ -64,6 +68,8 @@ export class K1s0Client {
         this.binding = new BindingFacade(this);
         this.invoke = new InvokeFacade(this);
         this.telemetry = new TelemetryFacade(this);
+        this.decisionAdmin = new DecisionAdminFacade(this);
+        this.featureAdmin = new FeatureAdminFacade(this);
     }
     // 内部用: TenantContext proto を生成する。
     tenantContext() {
