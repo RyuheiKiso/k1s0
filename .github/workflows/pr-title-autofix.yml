@@ -1,0 +1,105 @@
+# =============================================================================
+# .github/workflows/pr-title-autofix.yml
+#
+# PR title が Conventional Commits 形式でない場合に、branch 名から type/scope を
+# 導出して自動で書き換える。これにより `commitlint-pr-title` の事故を予防する。
+#
+# 設計方針:
+#   - pull_request_target で書き込み権限を確保（PR 本体のコードは checkout しない）
+#   - opened のみ発火（edited / synchronize での無限ループ・上書きを避ける）
+#   - 自動書き換えは branch が `<type>/...` または `<type>/<scope>/...` の時のみ
+#     （誤推測を避け、それ以外はコメントで案内する）
+#   - scope は commitlint.config.js の scope-enum と整合する許可リストでバリデート
+#
+# 関連:
+#   - commitlint.config.js（type/scope の正典）
+#   - .github/workflows/pr.yml の commitlint-pr-title job（CI 側のゲート）
+#   - .github/PULL_REQUEST_TEMPLATE.md
+# =============================================================================
+name: pr-title-autofix
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+concurrency:
+  group: pr-title-autofix-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    # bot 由来の PR（renovate / dependabot / github-actions 等）は独自命名規則を持つので触らない
+    if: >-
+      github.event.pull_request.user.type != 'Bot' &&
+      !startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+      !startsWith(github.event.pull_request.head.ref, 'dependabot/')
+    steps:
+      - name: derive and apply title
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # commitlint.config.js の type-enum と一致
+          types_re='feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert'
+          # commitlint.config.js の scope-enum と一致
+          scopes_re='contracts|sdk-dotnet|sdk-go|sdk-rust|sdk-typescript'
+          scopes_re+='|tier1-go|tier1-rust|tier2|tier3-web|tier3-native|tier3-bff|tier3-legacy'
+          scopes_re+='|platform|infra|deploy|ops|tools|docs|tests|security|deps|release'
+
+          # Conventional Commits 形式（scope 任意 / breaking ! 任意 / subject 1 文字以上）
+          # 内側 (...) で alternation を閉じ込め、外側 \(...\) を literal paren に保つ
+          title_re="^(${types_re})(\\((${scopes_re})\\))?!?: .+"
+          if [[ "$PR_TITLE" =~ $title_re ]]; then
+            echo "title already conformant: $PR_TITLE"
+            exit 0
+          fi
+
+          # branch 名から type / scope / subject を導出
+          new_title=""
+          if [[ "$BRANCH" =~ ^(${types_re})/(.+)$ ]]; then
+            t="${BASH_REMATCH[1]}"
+            rest="${BASH_REMATCH[2]}"
+            # <type>/<scope>/<subject> パターン（scope は許可リストに合致する時のみ採用）
+            if [[ "$rest" =~ ^(${scopes_re})/(.+)$ ]]; then
+              s="${BASH_REMATCH[1]}"
+              sub="${BASH_REMATCH[2]//-/ }"
+              sub="${sub//\// }"
+              new_title="${t}(${s}): ${sub}"
+            else
+              # <type>/<subject> パターン
+              sub="${rest//-/ }"
+              sub="${sub//\// }"
+              new_title="${t}: ${sub}"
+            fi
+          fi
+
+          if [[ -z "$new_title" ]]; then
+            # 導出不能 → 形式を案内するコメントのみ残す
+            body=$(printf '%s\n' \
+              "⚠️ PR title \`${PR_TITLE}\` が Conventional Commits 形式ではありません。" \
+              "" \
+              "**形式**: \`<type>(<scope>): <subject>\`" \
+              "" \
+              "- type: \`feat\` / \`fix\` / \`docs\` / \`style\` / \`refactor\` / \`perf\` / \`test\` / \`build\` / \`ci\` / \`chore\` / \`revert\`" \
+              "- scope: \`contracts\` / \`sdk-{dotnet,go,rust,typescript}\` / \`tier1-{go,rust}\` / \`tier2\` / \`tier3-{web,native,bff,legacy}\` / \`platform\` / \`infra\` / \`deploy\` / \`ops\` / \`tools\` / \`docs\` / \`tests\` / \`security\` / \`deps\` / \`release\`" \
+              "" \
+              "次回からは branch 名を \`<type>/<scope>/<subject>\`（例: \`feat/tools/add-verify-target\`）にすると自動補正されます。")
+            gh pr comment "$PR_NUM" --body "$body"
+            exit 0
+          fi
+
+          echo "rewriting title: '$PR_TITLE' -> '$new_title'"
+          gh pr edit "$PR_NUM" --title "$new_title"
+          gh pr comment "$PR_NUM" --body "ℹ️ branch 名 \`${BRANCH}\` から PR title を \`${new_title}\` に自動補正しました。意図と違う場合は手動で編集してください（commitlint は再実行されます）。"
