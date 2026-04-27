@@ -25,6 +25,8 @@ public sealed class Invoice
     // 行リストから Invoice を生成する。
     public static Invoice Create(string customer, IReadOnlyList<InvoiceLine> lines, DateTimeOffset issuedAt)
     {
+        // CA1062: 公開 API では参照型引数の null を必ず明示検証する。
+        ArgumentNullException.ThrowIfNull(lines);
         if (string.IsNullOrWhiteSpace(customer))
         {
             throw new ArgumentException("customer is required", nameof(customer));

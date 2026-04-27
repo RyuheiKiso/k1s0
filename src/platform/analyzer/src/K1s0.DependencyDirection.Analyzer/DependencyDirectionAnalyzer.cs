@@ -43,13 +43,13 @@ public sealed class DependencyDirectionAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            // SimpleName（識別子参照）/ QualifiedName（A.B.C）/ MemberAccess を網羅して
-            // 参照シンボルの ContainingAssembly を tier 判定する。
+            // IdentifierName のみを解析対象とする。QualifiedName / MemberAccess も
+            // 登録すると同じ型参照に対して複数 diagnostic が発火し、IDE / テスト側の
+            // expected count と食い違うため、末端の identifier だけに絞る。
+            // namespace 識別子は Analyze 内で skip する。
             startCtx.RegisterSyntaxNodeAction(
                 ctx => Analyze(ctx, currentTier),
-                SyntaxKind.IdentifierName,
-                SyntaxKind.QualifiedName,
-                SyntaxKind.SimpleMemberAccessExpression);
+                SyntaxKind.IdentifierName);
         });
     }
 
@@ -62,14 +62,34 @@ public sealed class DependencyDirectionAnalyzer : DiagnosticAnalyzer
         {
             return;
         }
-
-        // 参照先の ContainingAssembly が解析対象 tier かを判定する。
-        var referencedAssembly = referenced.ContainingAssembly?.Name;
-        var referencedTier = AssemblyTierResolver.ResolveFromAssemblyName(referencedAssembly);
-        if (referencedTier == Tier.Unknown)
+        // namespace 識別子は tier 判定の対象外。型 / メンバの末端 identifier のみで
+        // 違反を判定し、同一参照に対する重複 diagnostic を防ぐ。
+        if (referenced.Kind == SymbolKind.Namespace)
         {
             return;
         }
+
+        // 参照先の tier 判定。**namespace を最優先**で見て、namespace 不明時のみ
+        // assembly 名で fallback する。namespace 優先の理由は次のとおり:
+        //   - 同一 assembly に複数 tier の namespace を含む配置（テスト・mono-repo 単一
+        //     プロジェクト等）でも、namespace prefix で論理 tier を識別できる。
+        //   - 別 assembly 配置（K1s0.Tier2.* 等）でも namespace = assembly 名と一致する
+        //     のが通常で、namespace fallback と assembly 解決の結果は一致する。
+        var referencedNamespace = referenced.ContainingNamespace?.ToDisplayString();
+        var referencedTier = AssemblyTierResolver.ResolveFromNamespace(referencedNamespace);
+        if (referencedTier == Tier.Unknown)
+        {
+            var referencedAssembly = referenced.ContainingAssembly?.Name;
+            referencedTier = AssemblyTierResolver.ResolveFromAssemblyName(referencedAssembly);
+            if (referencedTier == Tier.Unknown)
+            {
+                return;
+            }
+        }
+        // 違反 message の参照先表示は namespace を優先（より具体的）。
+        var referencedDisplay = !string.IsNullOrEmpty(referencedNamespace)
+            ? referencedNamespace!
+            : (referenced.ContainingAssembly?.Name ?? "(unknown)");
 
         // 許容方向であれば warning なし。
         if (AssemblyTierResolver.IsAllowed(currentTier, referencedTier))
@@ -88,7 +108,7 @@ public sealed class DependencyDirectionAnalyzer : DiagnosticAnalyzer
             Diagnostic.Create(
                 descriptor,
                 context.Node.GetLocation(),
-                referencedAssembly ?? "(unknown)"));
+                referencedDisplay));
     }
 
     // current/referenced の tier 組合せから対応する Descriptor を選ぶ。

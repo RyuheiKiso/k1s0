@@ -34,7 +34,7 @@ case "$mode" in
 esac
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-cd "$repo_root"
+cd "$repo_root" || { echo "fatal: cd to repo root '$repo_root' が失敗" >&2; exit 1; }
 
 # -----------------------------------------------------------------------------
 # 共通ユーティリティ

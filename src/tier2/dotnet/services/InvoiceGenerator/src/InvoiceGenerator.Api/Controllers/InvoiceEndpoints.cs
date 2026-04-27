@@ -1,5 +1,6 @@
 // InvoiceGenerator API エンドポイント定義。
 
+using System.Collections.ObjectModel;
 using K1s0.Tier2.InvoiceGenerator.Application.UseCases;
 
 namespace K1s0.Tier2.InvoiceGenerator.Api.Controllers;
@@ -8,7 +9,8 @@ public static class InvoiceEndpoints
 {
     // POST /api/invoices 入力。
     public sealed record CreateLineBody(string Description, int Quantity, string Currency, long UnitMinorAmount);
-    public sealed record CreateInvoiceBody(string Customer, List<CreateLineBody> Lines);
+    // CA1002: 公開 record の collection は List<T> ではなく Collection<T> を使う。
+    public sealed record CreateInvoiceBody(string Customer, Collection<CreateLineBody> Lines);
 
     public static void MapInvoiceEndpoints(this WebApplication app)
     {

@@ -34,6 +34,8 @@ public sealed class SubmitApprovalUseCase
     // 1 件の承認申請を作成する。
     public async Task<Output> ExecuteAsync(Input input, CancellationToken ct)
     {
+        // CA1062: 公開 API では引数 null を必ず明示検証する。
+        ArgumentNullException.ThrowIfNull(input);
         // Money 値オブジェクトを組み立てる（バリデーション含む）。
         var money = new Money(input.Currency, input.MinorAmount);
         // ApprovalRequest を新規生成する。

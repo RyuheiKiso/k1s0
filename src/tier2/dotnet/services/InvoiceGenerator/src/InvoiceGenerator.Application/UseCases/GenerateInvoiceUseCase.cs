@@ -30,6 +30,8 @@ public sealed class GenerateInvoiceUseCase
     // 1 件の請求書を生成して保存する。
     public async Task<Output> ExecuteAsync(Input input, CancellationToken ct)
     {
+        // CA1062: 公開 API では引数 null を必ず明示検証する。
+        ArgumentNullException.ThrowIfNull(input);
         if (input.Lines.Count == 0)
         {
             throw new ArgumentException("lines is required", nameof(input));

@@ -19,6 +19,8 @@ public sealed class InMemoryInvoiceRepository : IInvoiceRepository
 
     public Task SaveAsync(Invoice invoice, CancellationToken ct)
     {
+        // CA1062: 公開 API では引数 null を必ず明示検証する。
+        ArgumentNullException.ThrowIfNull(invoice);
         _store.AddOrUpdate(invoice.Id, invoice, (_, _) => invoice);
         return Task.CompletedTask;
     }

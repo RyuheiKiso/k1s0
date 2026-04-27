@@ -22,7 +22,7 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "tier3 → tier2 → sdk → tier1 の一方向ルール（IMP-DIR-ROOT-002）に違反。",
+        description: "tier3 → tier2 → sdk → tier1 の一方向ルール（IMP-DIR-ROOT-002）に違反.",
         helpLinkUri: HelpLinkBase);
 
     // K1S0DEPDIR0002: SDK → tier3 違反
@@ -33,7 +33,7 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "tier3 → tier2 → sdk → tier1 の一方向ルール（IMP-DIR-ROOT-002）に違反。",
+        description: "tier3 → tier2 → sdk → tier1 の一方向ルール（IMP-DIR-ROOT-002）に違反.",
         helpLinkUri: HelpLinkBase);
 
     // K1S0DEPDIR0003: tier2 → tier3 違反
@@ -44,7 +44,7 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "tier3 → tier2 → sdk → tier1 の一方向ルール（IMP-DIR-ROOT-002）に違反。",
+        description: "tier3 → tier2 → sdk → tier1 の一方向ルール（IMP-DIR-ROOT-002）に違反.",
         helpLinkUri: HelpLinkBase);
 
     // K1S0DEPDIR0004: tier1 → tier2 / tier3 / sdk 違反
@@ -55,6 +55,6 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "tier1 は contracts のみに依存し、sdk / tier2 / tier3 を参照しない（IMP-DIR-ROOT-002）。",
+        description: "tier1 は contracts のみに依存し、sdk / tier2 / tier3 を参照しない（IMP-DIR-ROOT-002）.",
         helpLinkUri: HelpLinkBase);
 }
