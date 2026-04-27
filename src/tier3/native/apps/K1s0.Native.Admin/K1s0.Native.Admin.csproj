@@ -1,0 +1,32 @@
+<!-- K1s0.Native.Admin: 管理者向け MAUI アプリ（採用初期 で本格運用）。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-android;net8.0-ios</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>K1s0.Native.Admin</RootNamespace>
+    <AssemblyName>K1s0.Native.Admin</AssemblyName>
+    <ApplicationTitle>k1s0 Admin</ApplicationTitle>
+    <ApplicationId>io.k1s0.native.admin</ApplicationId>
+    <ApplicationIdGuid>2e5f8a14-0001-0000-0000-000000000002</ApplicationIdGuid>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net8.0-ios'">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net8.0-android'">21.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Maui.Controls" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+    <PackageReference Include="CommunityToolkit.Maui" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\K1s0.Native.Shared\K1s0.Native.Shared.csproj" />
+  </ItemGroup>
+</Project>

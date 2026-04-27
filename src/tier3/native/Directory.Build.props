@@ -1,0 +1,29 @@
+<!--
+  tier3 native（.NET MAUI）共通プロパティ。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/03_maui_native配置.md
+
+  scope:
+    Native.sln 配下の全 MAUI csproj に共通設定を波及させる。
+    multi-target は各 app csproj 側で <TargetFrameworks> を明示する。
+-->
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <RootNamespace Condition="'$(RootNamespace)' == ''">K1s0.Native</RootNamespace>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Authors>k1s0 contributors</Authors>
+    <Company>k1s0</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/k1s0/k1s0</RepositoryUrl>
+  </PropertyGroup>
+</Project>

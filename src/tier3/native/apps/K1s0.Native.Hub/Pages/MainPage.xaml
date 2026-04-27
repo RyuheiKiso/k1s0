@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:K1s0.Native.Hub.ViewModels"
+             x:DataType="vm:MainViewModel"
+             x:Class="K1s0.Native.Hub.Pages.MainPage">
+  <VerticalStackLayout Padding="20" Spacing="16">
+    <Label Text="k1s0 Hub" FontSize="28" FontAttributes="Bold" />
+    <Label Text="{Binding StatusMessage}" />
+    <Entry Text="{Binding StateKey}" Placeholder="State key" />
+    <Button Text="Fetch from k1s0 State" Command="{Binding FetchStateCommand}" IsEnabled="{Binding IsNotBusy}" />
+    <Label Text="{Binding FetchedValue}" LineBreakMode="WordWrap" />
+  </VerticalStackLayout>
+</ContentPage>

@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: k1s0-native-hub
+  description: tier3 native MAUI 配信ハブ（iOS / Android）
+  tags:
+    - tier3
+    - native
+    - maui
+    - csharp
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/tier: tier3
+    k1s0.io/component: k1s0-native-hub
+    k1s0.io/lang: csharp
+    k1s0.io/env: dev
+spec:
+  type: mobile
+  lifecycle: experimental
+  owner: tier3-native
+  providesApis: []
+  consumesApis:
+    - portal-bff
+  dependsOn:
+    - component:portal-bff

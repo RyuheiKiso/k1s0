@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="K1s0.Native.Hub.App">
+  <Application.Resources>
+    <ResourceDictionary>
+      <!-- リリース時点 では既定スタイル無し（リリース時点 で K1s0.Native.Shared から取り込む）。 -->
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>
