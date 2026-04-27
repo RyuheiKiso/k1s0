@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: admin-bff
+  description: tier3 admin Web 向け BFF（Go REST、role=admin）
+  tags:
+    - tier3
+    - go
+    - bff
+    - admin
+  annotations:
+    backstage.io/techdocs-ref: dir:../..
+    k1s0.io/tier: tier3
+    k1s0.io/component: admin-bff
+    k1s0.io/lang: go
+    k1s0.io/env: dev
+spec:
+  type: service
+  lifecycle: experimental
+  owner: tier3-web
+  providesApis: []
+  consumesApis:
+    - k1s0-tier1-state
+  dependsOn: []

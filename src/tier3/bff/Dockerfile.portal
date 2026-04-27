@@ -1,0 +1,23 @@
+# portal-bff Dockerfile（multi-stage）。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/04_bff配置.md
+#
+# build context: docker build -f src/tier3/bff/Dockerfile.portal src/tier3/bff/
+
+FROM golang:1.22 AS builder
+WORKDIR /workspace
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build \
+    -ldflags="-s -w" \
+    -trimpath \
+    -o bin/portal-bff \
+    ./cmd/portal-bff/
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=builder /workspace/bin/portal-bff /usr/local/bin/portal-bff
+USER nonroot
+EXPOSE 8080 9090
+ENTRYPOINT ["/usr/local/bin/portal-bff"]
