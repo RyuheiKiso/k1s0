@@ -36,11 +36,13 @@ jobs:
           # pre-commit の差分検出には base 側履歴が必要
           fetch-depth: 0
 
+      # cache: pip は requirements.txt / pyproject.toml が必要だが本リポジトリは
+      # Python 依存を pre-commit のみに留めるため設けない（pre-commit 自体のキャッシュは
+      # 後段の actions/cache@v4 で取得）。
       - name: setup python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: install pre-commit
         run: pip install pre-commit
