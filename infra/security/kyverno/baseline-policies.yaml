@@ -1,0 +1,119 @@
+# k1s0 baseline ClusterPolicy 群（ADR-POL-001、二重オーナー設計の Kyverno 側）。
+#
+# 全 namespace に適用される最小限の baseline policy。
+# 個別 namespace 固有 policy は plan 06-XX で追加予定。
+---
+# 1. すべての Pod に runAsNonRoot を強制
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-run-as-non-root
+  annotations:
+    policies.kyverno.io/title: Require Non-Root User
+    policies.kyverno.io/category: Pod Security Standards (Restricted)
+    policies.kyverno.io/severity: medium
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: check-non-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: "Pod は runAsNonRoot: true を指定すること（ADR-POL-001 baseline）"
+        pattern:
+          spec:
+            =(securityContext):
+              =(runAsNonRoot): true
+            containers:
+              - =(securityContext):
+                  =(runAsNonRoot): true
+---
+# 2. 特権コンテナを禁止
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged-containers
+  annotations:
+    policies.kyverno.io/category: Pod Security Standards (Baseline)
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: disallow-privileged
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: "Privileged container は禁止（ADR-POL-001 baseline）"
+        pattern:
+          spec:
+            =(initContainers):
+              - =(securityContext):
+                  =(privileged): "false"
+            containers:
+              - =(securityContext):
+                  =(privileged): "false"
+---
+# 3. すべての Pod / Service に k1s0.io/component label を要求
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-k1s0-component-label
+  annotations:
+    policies.kyverno.io/category: k1s0 Tagging Convention
+    policies.kyverno.io/severity: low
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: require-component-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+                - Service
+              namespaces:
+                - "k1s0-*"
+                - "tier*"
+      validate:
+        message: "k1s0.io/component label を付与すること（k1s0 Tagging Convention）"
+        pattern:
+          metadata:
+            labels:
+              k1s0.io/component: "?*"
+---
+# 4. すべての Pod に resources.requests.cpu / memory を要求
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-requests
+  annotations:
+    policies.kyverno.io/category: Resource Management
+    policies.kyverno.io/severity: medium
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-cpu-memory-requests
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: "Pod の全 container に resources.requests.cpu と resources.requests.memory を指定すること"
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"

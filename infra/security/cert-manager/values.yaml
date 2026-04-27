@@ -1,0 +1,60 @@
+# cert-manager（ADR-SEC-001）の production-grade Helm values。
+# helm repo add jetstack https://charts.jetstack.io
+# helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager -f values.yaml --version v1.20.2
+#
+# dev は tools/local-stack/manifests/20-cert-manager/values.yaml（self-signed ClusterIssuer のみ）。
+
+crds:
+  enabled: true
+  # 既存 CRD を保持（chart upgrade 時に CRD 削除を防ぐ）
+  keep: true
+
+# operator HA 構成
+replicaCount: 3
+webhook:
+  replicaCount: 3
+cainjector:
+  replicaCount: 3
+
+# Prometheus 監視を有効化
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+
+# Gateway API 統合（Istio Ambient Gateway / Envoy Gateway 連携）
+extraArgs:
+  - --enable-gateway-api
+  - --feature-gates=ServerSideApply=true,ExperimentalGatewayAPISupport=true
+
+# resource sizing
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+
+webhook:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+cainjector:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Pod の anti-affinity（HA）
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: cert-manager
+        topologyKey: kubernetes.io/hostname

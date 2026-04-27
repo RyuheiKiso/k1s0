@@ -1,0 +1,75 @@
+# SPIRE umbrella chart（ADR-SEC-003）の production-grade values。
+# helm repo add spiffe https://spiffe.github.io/helm-charts-hardened/
+# helm upgrade --install spire-crds spiffe/spire-crds -n spire-system --version 0.5.0
+# helm upgrade --install spire spiffe/spire -n spire-system -f values.yaml --version 0.28.4
+#
+# dev は tools/local-stack/manifests/40-spire/values.yaml（sqlite + 1 replica）。
+
+global:
+  spire:
+    clusterName: k1s0-prod
+    trustDomain: k1s0.example.com
+    caSubject:
+      commonName: SPIFFE k1s0 prod CA
+      country: JP
+      organization: k1s0
+    recommendations:
+      enabled: true
+
+# spire-server: HA 3 replica + 外部 PostgreSQL（CNPG）
+spire-server:
+  replicaCount: 3
+  service:
+    type: ClusterIP
+  controllerManager:
+    enabled: true
+  # データストアは PostgreSQL（CNPG の k1s0-postgres-rw を共有）
+  dataStore:
+    sql:
+      databaseType: postgres
+      host: k1s0-postgres-rw.cnpg-system.svc.cluster.local
+      port: 5432
+      databaseName: spire
+      username: spire
+      passwordKey: db-password
+      passwordSecretRef: k1s0-spire-db-credentials
+  # CA は upstream（cert-manager の k1s0-internal-ca）から委譲
+  upstreamAuthority:
+    certManager:
+      enabled: true
+      issuer:
+        name: k1s0-internal-ca
+        kind: ClusterIssuer
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  podAntiAffinityPreset: hard
+
+# spire-agent: DaemonSet（全 Node、tier1/2/3 Pod の workload identity attestation）
+spire-agent:
+  workloadAttestors:
+    k8s:
+      enabled: true
+      disableContainerSelectors: false
+      verification: hostCert
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# CSI driver: Pod 起動時に SVID を mount（sidecar 不要）
+spiffe-csi-driver:
+  enabled: true
+
+# OIDC Discovery Provider: tier1 facade が JWT-SVID を OIDC として受ける
+spiffe-oidc-discovery-provider:
+  enabled: true
+  replicaCount: 2
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false

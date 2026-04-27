@@ -1,0 +1,76 @@
+# Kyverno（ADR-POL-001、Policy as Code）の production-grade Helm values。
+# helm repo add kyverno https://kyverno.github.io/kyverno/
+# helm upgrade --install kyverno kyverno/kyverno -n kyverno -f values.yaml --version 3.5.1
+#
+# dev は tools/local-stack/manifests/35-kyverno/values.yaml（各 controller 1 replica）。
+
+crds:
+  install: true
+  groups:
+    kyverno:
+      clusterpolicies: true
+      policies: true
+      policyexceptions: true
+      updaterequests: true
+    wgpolicyk8sv1alpha2:
+      policyreports: true
+      clusterpolicyreports: true
+    reports:
+      clusterephemeralreports: true
+      ephemeralreports: true
+
+# admission controller HA 3 replica（webhook の高可用性）
+admissionController:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  metricsService:
+    create: true
+    type: ClusterIP
+  serviceMonitor:
+    enabled: true
+  # 同一 node に集中させない（node 分散配置）
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/component: admission-controller
+
+# background controller（既存リソース監査 / mutation）2 replica
+backgroundController:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+  serviceMonitor:
+    enabled: true
+
+# cleanup controller（古い ephemeral report 削除）2 replica
+cleanupController:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# reports controller 2 replica
+reportsController:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+features:
+  policyExceptions:
+    enabled: true
+  generateValidatingAdmissionPolicy:
+    enabled: true

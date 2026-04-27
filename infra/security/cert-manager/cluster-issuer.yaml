@@ -1,0 +1,53 @@
+# 本番用 ClusterIssuer 群（ADR-SEC-001）。
+# 用途別に 3 種を配置: Let's Encrypt prod / Let's Encrypt staging / 内部 CA（SPIRE と整合）。
+---
+# Let's Encrypt prod（外部公開証明書、DNS-01 challenge を Cloudflare provider で）
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ops@k1s0.example.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - dns01:
+          # DNS provider は環境に応じて Cloudflare / Route53 / GCP DNS を切替
+          cloudflare:
+            email: ops@k1s0.example.com
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+        selector:
+          dnsZones:
+            - k1s0.example.com
+---
+# Let's Encrypt staging（ステージング環境用、rate limit 緩和）
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: ops@k1s0.example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - dns01:
+          cloudflare:
+            email: ops@k1s0.example.com
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+---
+# 内部 CA（SPIRE trust domain と独立、cluster 内通信用）
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: k1s0-internal-ca
+spec:
+  ca:
+    secretName: k1s0-internal-ca-key-pair

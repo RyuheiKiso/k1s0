@@ -87,10 +87,10 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | 領域 | docs 規定（リリース必須） | 実装ランク | 備考 |
 |---|---|---|---|
 | `infra/k8s/{bootstrap, namespaces, networking, storage}` | kubeadm HA + Calico/MetalLB | **設計のみ** | `.gitkeep` のみ |
-| `infra/mesh/{istio-ambient, envoy-gateway}` | ADR-0001 / ADR-MIG-002 | **設計のみ** | `.gitkeep` のみ |
+| `infra/mesh/{istio-ambient, envoy-gateway}` | ADR-0001 / ADR-MIG-002 | **雛形あり**（istio-ambient のみ） | istio-ambient: profile ambient + istiod HA 3 replica + HPA + OTel tracing 連携 + ztunnel 設定 + mTLS STRICT 強制 PeerAuthentication。envoy-gateway は本リリース時点 未着手 |
 | `infra/dapr/control-plane/` | Dapr operator | **設計のみ** | `.gitkeep` のみ |
 | `infra/data/{cloudnativepg, kafka, minio, valkey}` | ADR-DATA-001/002/003/004 | **雛形あり** | 4 backend を production-grade defaults（HA / 監視 / バックアップ）で正規化済。CNPG: 3 instance HA + WAL アーカイブ + PodMonitor。Kafka: Strimzi KRaft 3 broker + TLS mTLS + Cruise Control。MinIO: distributed mode 4 replica + erasure coding + ServiceMonitor。Valkey: replication + Sentinel + 認証有効。各ディレクトリに `values.yaml` + `<backend>-cluster.yaml` + `README.md`（dev 差分表 / ADR リンク）を配置 |
-| `infra/security/{cert-manager, keycloak, openbao, spire, kyverno}` | ADR-SEC-001/002/003 / ADR-POL-001 | **雛形あり** | `infra/security/openbao/policies/{tier1-facade, tier2-service, tier3-bff}.hcl` のみ実体 |
+| `infra/security/{cert-manager, keycloak, openbao, spire, kyverno}` | ADR-SEC-001/002/003 / ADR-POL-001 | **雛形あり** | cert-manager: HA 3 + Let's Encrypt prod/staging + 内部 CA ClusterIssuer。Keycloak: HA 3 + Infinispan + 外部 CNPG + production mode + ServiceMonitor。SPIRE: server HA 3 + 外部 CNPG + cert-manager upstream + CSI driver + OIDC Discovery。Kyverno: admission HA 3 + 4 baseline ClusterPolicy（runAsNonRoot / privileged 禁止 / k1s0.io/component label / resource requests）。OpenBao は既存の HCL policy 3 種のみ |
 | `infra/observability/{loki, tempo, mimir, grafana, otel-collector, pyroscope}` | ADR-OBS-001/002 | **雛形あり** | LGTM 6 component を production-grade defaults で正規化済。Loki SimpleScalable + S3、Tempo distributed + S3、Mimir distributed + S3、Pyroscope micro-services + S3、Grafana HA + Keycloak OIDC、OTel Collector agent DaemonSet + gateway Deployment 2 段（tail_sampling + 4 backend ファンアウト）。各ディレクトリに `values.yaml` + 説明、`infra/observability/README.md` に信号フロー図と dev 差分表 |
 | `infra/scaling/keda/` | KEDA | **設計のみ** | `.gitkeep` のみ |
 | `infra/feature-management/flagd/` | ADR-FM-001 | **設計のみ** | `.gitkeep` のみ |
@@ -240,11 +240,18 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - Pyroscope: micro-services + S3
   - Grafana: HA 2 replica + 外部 PG（CNPG）+ Keycloak OIDC + sidecar dashboard / datasource pickup
   - OTel Collector: agent DaemonSet（hostmetrics / filelog / OTLP receive）+ gateway Deployment 3 replica（tail_sampling + 4 backend ファンアウト）
+- ✅ `infra/mesh/istio-ambient/` を Ambient Mesh production-grade で正規化
+  - istiod HA 3 replica + HPA（CPU 70%、3〜10）+ OTel tracing 連携 + ztunnel sizing
+  - mTLS STRICT 強制 PeerAuthentication
+- ✅ `infra/security/{cert-manager,keycloak,spire,kyverno}/` を正規化
+  - cert-manager: HA 3 + Let's Encrypt prod/staging + 内部 CA ClusterIssuer + Gateway API integration
+  - Keycloak: HA 3 + Infinispan + 外部 CNPG + production mode + realm import + ServiceMonitor
+  - SPIRE: server HA 3 + 外部 CNPG dataStore + cert-manager upstream CA + CSI driver + OIDC Discovery
+  - Kyverno: admission HA 3 + 4 baseline ClusterPolicy（runAsNonRoot / privileged 禁止 / k1s0.io/component label / resource requests）
 - 🔲 残り（plan 05-XX 以降）:
   - `infra/k8s/bootstrap/`（kubeadm Cluster API ベース）
-  - `infra/mesh/istio-ambient/`（Istio Helm values）
-  - `infra/security/`（cert-manager / keycloak / spire / kyverno）
-  - `infra/scaling/keda/`、`infra/feature-management/flagd/`
+  - `infra/scaling/keda/`、`infra/feature-management/flagd/`、`infra/dapr/control-plane/`
+  - `infra/security/openbao/`（HCL policy のみ既存、Helm values 未配置）
   - 多くは `tools/local-stack/manifests/` の values.yaml を `infra/` 側に正規化する形
 
 ### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）

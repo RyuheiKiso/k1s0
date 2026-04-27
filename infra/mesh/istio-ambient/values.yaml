@@ -1,0 +1,85 @@
+# Istio Ambient Mesh（ADR-MIG-002 / ADR-SEC-002）の production-grade values。
+# istioctl install -f values.yaml -y
+#
+# Ambient mode は sidecar 不要の dataplane（CNI + ztunnel）+ optional waypoint proxy で
+# L4 mTLS と L7 policy を両立する。dev は profile: ambient のみ、prod は components リソース sizing と
+# meshConfig（DNS capture / tracing exporter）を本格化。
+#
+# dev は tools/local-stack/manifests/30-istio-ambient/values-ambient.yaml を参照。
+
+profile: ambient
+
+# istiod（control plane）の prod sizing
+components:
+  pilot:
+    k8s:
+      replicaCount: 3
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 4Gi
+      hpaSpec:
+        minReplicas: 3
+        maxReplicas: 10
+        metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 70
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: istiod
+              topologyKey: kubernetes.io/hostname
+  ingressGateways: []
+  egressGateways: []
+
+# meshConfig（メッシュ全体の挙動）
+meshConfig:
+  defaultConfig:
+    proxyMetadata:
+      ISTIO_META_DNS_CAPTURE: "true"
+    # OTel tracing を有効化（OTel Collector gateway へ送信）
+    tracing:
+      sampling: 1.0
+      custom_tags:
+        cluster:
+          literal:
+            value: k1s0-prod
+  enableTracing: true
+  # tracing は OTel exporter を default provider に
+  defaultProviders:
+    tracing:
+      - otel-tracing
+  extensionProviders:
+    - name: otel-tracing
+      opentelemetry:
+        service: otel-collector-gateway.observability.svc.cluster.local
+        port: 4317
+  # access log 有効化（L7 policy 適用時の audit）
+  accessLogFile: /dev/stdout
+  accessLogEncoding: JSON
+
+values:
+  global:
+    # mTLS 強制（STRICT）
+    proxy:
+      autoInject: disabled
+    # ztunnel リソース要求
+    ztunnel:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1
+          memory: 1Gi
+  pilot:
+    autoscaleEnabled: true
