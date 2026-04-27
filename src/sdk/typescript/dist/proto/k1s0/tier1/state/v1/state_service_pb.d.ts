@@ -45,7 +45,7 @@ export declare class GetResponse extends Message<GetResponse> {
      *
      * @generated from field: bytes data = 1;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * 楽観的排他のための ETag（Set / Delete 時に expected_etag に再送する）
      *
@@ -90,7 +90,7 @@ export declare class SetRequest extends Message<SetRequest> {
      *
      * @generated from field: bytes data = 3;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * 期待 ETag（空は未存在前提、新規作成時は空文字列）
      *

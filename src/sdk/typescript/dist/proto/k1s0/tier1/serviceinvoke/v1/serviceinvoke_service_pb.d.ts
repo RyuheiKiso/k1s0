@@ -24,7 +24,7 @@ export declare class InvokeRequest extends Message<InvokeRequest> {
      *
      * @generated from field: bytes data = 3;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * Content-Type（application/json / application/grpc / application/protobuf 等）
      *
@@ -63,7 +63,7 @@ export declare class InvokeResponse extends Message<InvokeResponse> {
      *
      * @generated from field: bytes data = 1;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * Content-Type（呼出先が決定）
      *
@@ -96,7 +96,7 @@ export declare class InvokeChunk extends Message<InvokeChunk> {
      *
      * @generated from field: bytes data = 1;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * ストリーム終端フラグ（true の場合は本チャンクが最終）
      *

@@ -24,7 +24,7 @@ export declare class EvaluateRequest extends Message<EvaluateRequest> {
      *
      * @generated from field: bytes input_json = 3;
      */
-    inputJson: Uint8Array<ArrayBuffer>;
+    inputJson: Uint8Array;
     /**
      * trace 情報を返すか（デバッグ用、PII を含む可能性あり）
      *
@@ -57,13 +57,13 @@ export declare class EvaluateResponse extends Message<EvaluateResponse> {
      *
      * @generated from field: bytes output_json = 1;
      */
-    outputJson: Uint8Array<ArrayBuffer>;
+    outputJson: Uint8Array;
     /**
      * 評価されたノードのトレース（include_trace=true の時のみ、空 bytes）
      *
      * @generated from field: bytes trace_json = 2;
      */
-    traceJson: Uint8Array<ArrayBuffer>;
+    traceJson: Uint8Array;
     /**
      * 評価にかかった時間（マイクロ秒）
      *
@@ -156,13 +156,13 @@ export declare class RegisterRuleRequest extends Message<RegisterRuleRequest> {
      *
      * @generated from field: bytes jdm_document = 2;
      */
-    jdmDocument: Uint8Array<ArrayBuffer>;
+    jdmDocument: Uint8Array;
     /**
      * Sigstore 署名（ADR-RULE-001、registry に登録する署名）
      *
      * @generated from field: bytes sigstore_signature = 3;
      */
-    sigstoreSignature: Uint8Array<ArrayBuffer>;
+    sigstoreSignature: Uint8Array;
     /**
      * コミット ID（Git commit hash、JDM バージョン追跡用）
      *
@@ -348,7 +348,7 @@ export declare class GetRuleResponse extends Message<GetRuleResponse> {
      *
      * @generated from field: bytes jdm_document = 1;
      */
-    jdmDocument: Uint8Array<ArrayBuffer>;
+    jdmDocument: Uint8Array;
     /**
      * メタ情報
      *

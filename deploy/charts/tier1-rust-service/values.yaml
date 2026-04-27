@@ -1,0 +1,94 @@
+# =============================================================================
+# k1s0 tier1-rust-service Helm chart values（リリース時点最小骨格）
+#
+# 設計: docs/05_実装/70_リリース設計/
+# 関連 ID: ADR-CICD-001 / ADR-CICD-002
+# =============================================================================
+
+image:
+  registry: ghcr.io
+  repositoryPrefix: k1s0/k1s0
+  tag: latest
+  pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podSecurityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+  runAsNonRoot: true
+  fsGroup: 65532
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+# Rust 3 Pod（decision / audit / pii）。各 Pod は独立した Deployment / Service。
+pods:
+  decision:
+    enabled: true
+    repositorySuffix: tier1-decision
+    args: []
+    replicas: 1
+    grpcPort: 50001
+    metricsPort: 9090
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1000m
+        memory: 512Mi
+  audit:
+    enabled: true
+    repositorySuffix: tier1-audit
+    args: []
+    # audit は WORM ストア書込で堅牢性が必要、リリース時点 1 / 採用初期 3 推奨
+    replicas: 1
+    grpcPort: 50001
+    metricsPort: 9090
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+  pii:
+    enabled: true
+    repositorySuffix: tier1-pii
+    args: []
+    # 純関数ステートレスのため HPA で容易に拡張可
+    replicas: 1
+    grpcPort: 50001
+    metricsPort: 9090
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+config:
+  otelExporterEndpoint: "otel-collector.observability.svc.cluster.local:4317"
+  logLevel: "info"
+
+service:
+  type: ClusterIP
+  annotations: {}
+
+podLabels: {}
+podAnnotations: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tier3-portal-bff
+  description: tier3 Portal BFF（GraphQL 経由で tier1 State API を集約）の Golden Path 完動例
+  annotations:
+    github.com/project-slug: k1s0/k1s0
+    backstage.io/source-location: url:https://github.com/k1s0/k1s0/tree/main/examples/tier3-bff-graphql
+  tags:
+    - tier3
+    - bff
+    - graphql
+    - go
+    - example
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:k1s0-platform
+  system: k1s0
+  dependsOn:
+    - component:tier1-facade
+  providesApis: []
+  consumesApis:
+    - api:k1s0-tier1-state

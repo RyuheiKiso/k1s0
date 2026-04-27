@@ -1,0 +1,23 @@
+# Backstage カタログ登録（ADR-DEVEX-002 / ADR-DEVEX-004）。
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tier2-example-service
+  description: tier2 Go サービスの Golden Path 完動例（k1s0 SDK State.Save サンプル）
+  annotations:
+    github.com/project-slug: k1s0/k1s0
+    backstage.io/source-location: url:https://github.com/k1s0/k1s0/tree/main/examples/tier2-go-service
+  tags:
+    - tier2
+    - go
+    - example
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:k1s0-platform
+  system: k1s0
+  dependsOn:
+    - component:tier1-facade
+  providesApis: []
+  consumesApis:
+    - api:k1s0-tier1-state

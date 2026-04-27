@@ -1,0 +1,12 @@
+# Go ビルド成果物
+example-service
+portal-bff
+*.exe
+
+# .NET ビルド成果物
+bin/
+obj/
+
+# Vite / Node.js
+node_modules/
+dist/

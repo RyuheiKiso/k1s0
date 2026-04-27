@@ -1,0 +1,19 @@
+apiVersion: v2
+name: tier3-bff
+description: |
+  k1s0 tier3 BFF（Backend-for-Frontend、portal-bff / admin-bff 等）の汎用 Helm chart。
+  Go 製 GraphQL / REST BFF に対応、tier1 / tier2 の gRPC を集約して frontend に
+  HTTP/GraphQL で公開する。
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/k1s0/k1s0
+maintainers:
+  - name: k1s0 maintainers
+    url: https://github.com/k1s0/k1s0
+keywords:
+  - k1s0
+  - tier3
+  - bff
+  - graphql
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/01_企画/img/logo.svg

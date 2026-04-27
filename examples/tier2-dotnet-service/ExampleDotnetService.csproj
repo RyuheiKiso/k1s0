@@ -1,0 +1,28 @@
+<!--
+  k1s0 examples/tier2-dotnet-service — Golden Path tier2 .NET サービス完動例。
+
+  設計: docs/05_実装/00_ディレクトリ設計/70_共通資産/03_examples配置.md
+        docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_dotnet_services配置.md
+  関連 ID: ADR-DEV-001 / ADR-TIER1-002
+
+  本 csproj は ASP.NET Core minimal API + K1s0.Sdk.Grpc 利用のデモ。
+  本物の業務サービスは src/tier2/dotnet/services/ 配下に Domain / Application / Infrastructure を
+  分離して実装する想定（CleanArchitecture）。
+-->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>K1s0.Examples.Tier2DotnetService</RootNamespace>
+    <AssemblyName>K1s0.Examples.Tier2DotnetService</AssemblyName>
+    <UserSecretsId>k1s0-example-tier2-dotnet</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 同一リポジトリ内の K1s0.Sdk.Grpc を ProjectReference で利用（Sdk.sln 跨ぎは禁止だが
+         本 example は別 sln のためあくまで POC、リリース時点 NuGet Package に切替予定）。 -->
+    <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Grpc/K1s0.Sdk.Grpc.csproj" />
+    <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
+  </ItemGroup>
+</Project>

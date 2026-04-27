@@ -1,0 +1,37 @@
+# Argo Rollouts AnalysisTemplate: HTTP 5xx error rate（ADR-CICD-002）。
+# Mimir（Prometheus 互換）に対して 1 分間の 5xx 比率を問い合わせ、5% を上限とする。
+# 5% を超えたら canary を fail させて自動ロールバック。
+#
+# Rollout から `templates: [{templateName: error-rate}]` で参照する。
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate
+  namespace: argocd
+  labels:
+    k1s0.io/component: analysis-template
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: error-rate
+      interval: 30s
+      count: 4
+      successCondition: result[0] <= 0.05
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://mimir-nginx.observability.svc.cluster.local:80/prometheus
+          query: |
+            sum(rate(
+              http_requests_total{
+                k1s0_io_component="{{args.service-name}}",
+                code=~"5.."
+              }[1m]
+            ))
+            /
+            sum(rate(
+              http_requests_total{
+                k1s0_io_component="{{args.service-name}}"
+              }[1m]
+            ))

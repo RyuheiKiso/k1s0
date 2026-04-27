@@ -264,7 +264,7 @@ export declare class ObjectResponse extends Message<ObjectResponse> {
      *
      * @generated from field: bytes value_json = 1;
      */
-    valueJson: Uint8Array<ArrayBuffer>;
+    valueJson: Uint8Array;
     /**
      * メタ情報
      *
@@ -363,7 +363,7 @@ export declare class TargetingRule extends Message<TargetingRule> {
      *
      * @generated from field: bytes json_logic_expr = 2;
      */
-    jsonLogicExpr: Uint8Array<ArrayBuffer>;
+    jsonLogicExpr: Uint8Array;
     /**
      * 評価成立時に返す variant 名
      *

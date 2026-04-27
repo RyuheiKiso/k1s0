@@ -71,7 +71,7 @@ export declare class StartRequest extends Message<StartRequest> {
      *
      * @generated from field: bytes input = 3;
      */
-    input: Uint8Array<ArrayBuffer>;
+    input: Uint8Array;
     /**
      * 冪等性（同一 workflow_id の重複開始は既存実行を返す）
      *
@@ -143,7 +143,7 @@ export declare class SignalRequest extends Message<SignalRequest> {
      *
      * @generated from field: bytes payload = 3;
      */
-    payload: Uint8Array<ArrayBuffer>;
+    payload: Uint8Array;
     /**
      * 呼出元コンテキスト
      *
@@ -197,7 +197,7 @@ export declare class QueryRequest extends Message<QueryRequest> {
      *
      * @generated from field: bytes payload = 3;
      */
-    payload: Uint8Array<ArrayBuffer>;
+    payload: Uint8Array;
     /**
      * 呼出元コンテキスト
      *
@@ -224,7 +224,7 @@ export declare class QueryResponse extends Message<QueryResponse> {
      *
      * @generated from field: bytes result = 1;
      */
-    result: Uint8Array<ArrayBuffer>;
+    result: Uint8Array;
     constructor(data?: PartialMessage<QueryResponse>);
     static readonly runtime: typeof proto3;
     static readonly typeName = "k1s0.tier1.workflow.v1.QueryResponse";
@@ -380,7 +380,7 @@ export declare class GetStatusResponse extends Message<GetStatusResponse> {
      *
      * @generated from field: bytes output = 3;
      */
-    output: Uint8Array<ArrayBuffer>;
+    output: Uint8Array;
     /**
      * 失敗時のエラー詳細（status = FAILED の時のみ）
      *

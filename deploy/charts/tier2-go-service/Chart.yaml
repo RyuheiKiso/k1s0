@@ -1,0 +1,27 @@
+# =============================================================================
+# k1s0 tier2-go-service Helm chart（汎用テンプレート）
+#
+# 設計: docs/05_実装/70_リリース設計/、docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/
+# 関連 ID: ADR-CICD-001 / ADR-CICD-002 / ADR-TIER1-003（言語不可視原則）
+#
+# 役割:
+#   tier2 Go service（notification-hub / stock-reconciler 等）共通の Helm chart テンプレート。
+#   各 service は本 chart を「helm template の依存」または kustomize の base として参照する。
+# =============================================================================
+apiVersion: v2
+name: tier2-go-service
+description: |
+  k1s0 tier2 Go service の汎用 Helm chart。
+  service ごとに values.yaml で image / replicas / env を上書きする。
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/k1s0/k1s0
+maintainers:
+  - name: k1s0 maintainers
+    url: https://github.com/k1s0/k1s0
+keywords:
+  - k1s0
+  - tier2
+  - go
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/01_企画/img/logo.svg

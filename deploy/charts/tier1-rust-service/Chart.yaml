@@ -1,0 +1,33 @@
+# =============================================================================
+# k1s0 tier1-rust-service Helm chart（リリース時点最小骨格）
+#
+# 設計: docs/05_実装/70_リリース設計/、docs/04_概要設計/.../01_tier1全体コンポーネント俯瞰.md
+#       DS-SW-COMP-008（t1-decision）/ 007（t1-audit）/ 009（t1-pii）
+# 関連 ID: ADR-CICD-001 / ADR-CICD-002 / ADR-TIER1-001
+#
+# 役割:
+#   tier1 Rust core の 3 Pod（decision / audit / pii）を 1 chart 内のループ生成で
+#   配備する。tier1-facade（Go）と同じ pattern だが Rust 固有の差分（distroless/cc-debian12）を持つ。
+# =============================================================================
+apiVersion: v2
+name: tier1-rust-service
+description: |
+  k1s0 tier1 Rust core（decision / audit / pii の 3 Pod）を Kubernetes に
+  配備する Helm chart。3 Pod は同一 chart 内のサブテンプレートでループ生成する。
+  docs DS-SW-COMP-008/007/009 正典に準拠。
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/k1s0/k1s0
+sources:
+  - https://github.com/k1s0/k1s0
+maintainers:
+  - name: k1s0 maintainers
+    url: https://github.com/k1s0/k1s0
+keywords:
+  - k1s0
+  - tier1
+  - rust
+  - tonic
+  - grpc
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/01_企画/img/logo.svg

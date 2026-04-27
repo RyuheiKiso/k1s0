@@ -1,0 +1,92 @@
+# tier3-bff values（汎用テンプレート、portal-bff / admin-bff 等が overlay で上書き）
+
+service:
+  name: example-tier3-bff
+
+image:
+  registry: ghcr.io
+  repository: k1s0/k1s0/tier3-example-bff
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+ports:
+  http: 8080
+  metrics: 9090
+
+# tier3 BFF は Dapr sidecar 経由で tier1/2 を呼び出す
+dapr:
+  enabled: true
+  appId: "example-tier3-bff"
+  appPort: 8080
+  appProtocol: "http"
+
+podSecurityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+  runAsNonRoot: true
+  fsGroup: 65532
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1
+    memory: 512Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 5
+
+env: []
+envFrom: []
+
+# OIDC（Keycloak）連携設定（BFF が frontend のセッションを保持）
+oidc:
+  enabled: true
+  issuerUrl: "https://keycloak.k1s0.example.com/realms/k1s0"
+  clientId: "tier3-bff"
+  # client secret は OpenBao 動的シークレット経由で env に注入予定（plan 04-06）
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podLabels: {}
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# BFF は frontend からの直接アクセスを受けるため Istio Ambient Gateway 経由で公開
+ingress:
+  enabled: false
+  host: "bff.k1s0.example.com"
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70

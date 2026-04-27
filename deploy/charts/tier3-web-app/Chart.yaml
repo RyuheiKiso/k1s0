@@ -1,0 +1,19 @@
+apiVersion: v2
+name: tier3-web-app
+description: |
+  k1s0 tier3 web-app（React + Vite SPA）の汎用 Helm chart。
+  ビルド済 SPA を nginx-distroless で配信し、tier3-bff へのリバースプロキシで API 接続。
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/k1s0/k1s0
+maintainers:
+  - name: k1s0 maintainers
+    url: https://github.com/k1s0/k1s0
+keywords:
+  - k1s0
+  - tier3
+  - web
+  - react
+  - spa
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/01_企画/img/logo.svg

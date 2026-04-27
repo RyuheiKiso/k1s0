@@ -1,0 +1,31 @@
+<!--
+  k1s0 examples/tier3-native-maui — Golden Path .NET MAUI 最小例。
+
+  設計: docs/05_実装/00_ディレクトリ設計/70_共通資産/03_examples配置.md
+        docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/04_native配置.md
+  関連 ID: ADR-DEV-001 / ADR-TIER3-003
+
+  本 csproj は MAUI cross-platform（Android / iOS / macOS / Windows）アプリの最小骨格。
+  K1s0.Sdk.Grpc を ProjectReference して tier1 facade の HTTPS endpoint を呼ぶ前提。
+
+  注: MAUI workload が必要（dotnet workload install maui）。CI / dev container では
+       maui-android / maui-ios / maui-windows 等の platform 別 workload も別途必要。
+       本 example の build 検証はリリース時点 では platform 個別ではなく net8.0 単体で行う。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- リリース時点 はクロスプラットフォーム個別ターゲットを外し、共通ライブラリとして net8.0 単独で配置。
+         採用初期で TargetFrameworks を `net8.0-android;net8.0-ios;net8.0-maccatalyst;net8.0-windows10.0.19041.0` に拡張。 -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>K1s0.Examples.NativeMaui</RootNamespace>
+    <AssemblyName>K1s0.Examples.NativeMaui</AssemblyName>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Grpc/K1s0.Sdk.Grpc.csproj" />
+    <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
+  </ItemGroup>
+</Project>

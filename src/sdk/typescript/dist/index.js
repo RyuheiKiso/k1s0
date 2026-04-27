@@ -1,15 +1,30 @@
 // 本ファイルは k1s0 TypeScript SDK のエントリポイント。
-// proto 生成物（src/proto/ 配下）を再 export する薄いラッパ。
+// 動詞統一 facade（k1s0.state.save 等）を提供する。
 //
 // docs 正典:
 //   docs/05_実装/10_ビルド設計/30_TypeScript_pnpm_workspace/01_TypeScript_pnpm_workspace.md
-//   docs/05_実装/20_コード生成設計/10_buf_Protobuf/01_buf_Protobuf生成パイプライン.md
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/
 //
-// 利用例:
-//   import { StateServiceClient } from "@k1s0/sdk-rpc/proto/k1s0/tier1/state/v1/state_service_connect.js";
-//   import * as common from "@k1s0/sdk-rpc/proto/k1s0/tier1/common/v1/common_pb.js";
-//
-// 高水準ファサード（k1s0.State.save 等の動詞統一）はロードマップ #8 で追加予定。
-// 共通型（TenantContext / ErrorDetail / K1s0ErrorCategory）の再 export
+// scope（リリース時点 最小、3 代表 service）:
+//   - K1s0Client.state.{get|save|delete}
+//   - K1s0Client.pubsub.publish
+//   - K1s0Client.secrets.{get|rotate}
+//   - その他 9 service は raw 経由で利用可能（Connect transport を返す）
+// 共通型 / 12 service facade を再 export
 export * as Common from "./proto/k1s0/tier1/common/v1/common_pb.js";
+export { K1s0Client } from "./client.js";
+export { StateFacade } from "./state.js";
+export { PubSubFacade } from "./pubsub.js";
+export { SecretsFacade } from "./secrets.js";
+export { LogFacade } from "./log.js";
+export { WorkflowFacade } from "./workflow.js";
+export { DecisionFacade } from "./decision.js";
+export { AuditFacade } from "./audit.js";
+export { PiiFacade } from "./pii.js";
+export { FeatureFacade } from "./feature.js";
+export { BindingFacade } from "./binding.js";
+export { InvokeFacade } from "./invoke.js";
+export { TelemetryFacade } from "./telemetry.js";
+export { DecisionAdminFacade } from "./decisionAdmin.js";
+export { FeatureAdminFacade } from "./featureAdmin.js";
 //# sourceMappingURL=index.js.map

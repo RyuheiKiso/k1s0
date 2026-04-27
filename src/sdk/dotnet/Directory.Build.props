@@ -12,8 +12,11 @@
 <Project>
 
   <PropertyGroup>
-    <!-- リリース時点 多重 TFM（OSS 配布用、netstandard2.1 で .NET Framework 4.6.2+ にも届く） -->
-    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+    <!-- リリース時点は net8.0 LTS のみを対象とする。
+         netstandard2.1 多重 TFM は .NET Framework / Mono 互換性が必要になった時に再導入する。
+         理由: required member / init accessor / file-scoped namespace 等の C# 11+ 機能を活用するため。-->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>

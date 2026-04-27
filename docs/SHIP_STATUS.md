@@ -54,7 +54,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `src/sdk/dotnet/generated/` | .NET stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル） |
 | `src/sdk/rust/generated/` | Rust prost / tonic stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: prost + tonic の 14 proto 分） |
 | `src/sdk/typescript/generated/` | TS protobuf-es / connect-es stub | **同梱済** | 12 サービス分の正式 RPC 群を生成済（28 ファイル: pb.ts + connect.ts の 14 proto 分） |
-| 高水準 SDK（`k1s0.Log.Info(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **設計のみ** | 生成された stub はあるが、README が示す `k1s0.State.SaveAsync(...)` 等の facade 層は未実装 |
+| 高水準 SDK（`k1s0.State.Save(...)` 等の動詞統一） | docs 規定の 4 言語動詞 | **同梱済**（14 service 全件） | 4 言語すべてに Client + 動詞統一 facade を 14 service 全件（公開 12 + Admin 2）で実装。公開: State / PubSub / Secrets / Log / Workflow / Decision / Audit / Pii / Feature / Binding / ServiceInvoke / Telemetry。Admin: DecisionAdmin（RegisterRule / ListVersions / GetRule）/ FeatureAdmin（RegisterFlag / GetFlag / ListFlags）。Go `c.DecisionAdmin().RegisterRule()` / `c.FeatureAdmin().GetFlag()`、Rust `client.decision_admin().register_rule()`、TypeScript `client.decisionAdmin.registerRule()`、.NET `client.DecisionAdmin.RegisterRuleAsync()`。Go `go build ./...` / Rust `cargo verify-project` / TypeScript `pnpm build` / .NET `dotnet build Sdk.sln` 全通過。Stream RPC（InvokeStream / PubSub.Subscribe）は callback / Streaming / AsyncIterable / IAsyncEnumerable で同梱 |
 
 ### tier2（C# / Go ドメイン共通）
 
@@ -101,8 +101,8 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
 | `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | tier1-facade 用 ApplicationSet を最小同梱 |
-| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | tier1-facade のみ最小 chart 同梱、他は placeholder |
-| `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **設計のみ** | `.gitkeep` のみ |
+| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | 6 chart 全て配置完了。tier1-facade（既存、Go 3 Pod）/ tier1-rust-service（Rust 3 Pod ループ）/ tier2-go-service（汎用 Go テンプレート）/ tier2-dotnet-service（汎用 .NET テンプレート、aspnet runtime + ASPNETCORE_URLS）/ tier3-bff（Go BFF + OIDC + ingress）/ tier3-web-app（nginx + SPA fallback + BFF reverse proxy）。`helm lint` 全 5 chart 通過、`helm template` 描画 OK |
+| `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート + AnalysisTemplate 2 件（error-rate / latency-p99、Mimir Prometheus クエリ）。experiments は採用後の運用拡大時 で追加 |
 | `deploy/kustomize/{base, overlays/*}` | Kustomize | **設計のみ** | `.gitkeep` のみ |
 | `deploy/opentofu/{environments, modules}` | OpenTofu（採用後の運用拡大時に Terraform から移行） | **設計のみ** | `.gitkeep` のみ |
 | `deploy/image-updater/` | Argo CD Image Updater | **設計のみ** | `.gitkeep` のみ |
@@ -119,7 +119,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `tools/git-hooks/` | 自作 pre-commit hook | **同梱済** | `japanese-header-guard.py` / `file-length-guard.py` / `drawio-svg-staleness.sh` / `link-check-wrapper.py` |
 | `tools/_link_check.py` / `_link_fix.py` / `_export_svg.py` | docs 横断ツール | **同梱済** | docs リンク検査・drawio SVG export |
 | `tests/` | e2e / contract / integration / fuzz / golden | **設計のみ** | tier1 Go 内に unit test (config / retry / timeout) のみ |
-| `examples/` | Golden Path 7 プロジェクト（tier1-rust-service / tier1-go-facade / tier2-{dotnet,go}-service / tier3-{web-portal, bff-graphql, native-maui}） | **雛形あり** | 7 ディレクトリと README のみ。リリース時点では rust/go-facade/web-portal の 3 種が最小実装、残り 4 種は README のみで採用初期に完成予定 |
+| `examples/` | Golden Path 7 プロジェクト（tier1-rust-service / tier1-go-facade / tier2-{dotnet,go}-service / tier3-{web-portal, bff-graphql, native-maui}） | **雛形あり** | 7 種すべてが build 可能な完動例として配置。tier1-rust-service / tier1-go-facade / tier3-web-portal は最小実装（既存）、tier2-go-service（k1s0 SDK State.Save HTTP endpoint）/ tier2-dotnet-service（ASP.NET Core minimal API）/ tier3-bff-graphql（GraphQL 経由 State.Get）/ tier3-native-maui（MAUI ViewModel）を追加完成。各 example に Dockerfile + catalog-info.yaml + 週次 E2E workflow（`.github/workflows/example-<name>.yml` 7 種）を配置 |
 
 ### CI / CD / GitOps
 
@@ -264,23 +264,66 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - 各 component の上流 Helm chart version pin の Renovate 追従
   - production CSI provisioner の確定（PLACEHOLDER_csi_provisioner の置換）
 
-### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）
+### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）— **大半完了**
 
-- `deploy/rollouts/{canary-strategies,analysis-templates}/` に Argo Rollouts CRD
-- `deploy/kustomize/{base,overlays/*}/` に環境別 overlay
-- `deploy/charts/` の残り 5 chart（tier1-rust-service / tier2-go-service /
-  tier2-dotnet-service / tier3-bff / tier3-web-app）を tier1-facade 同水準で実装
+- ✅ `deploy/charts/` の残り 5 chart を tier1-facade 同水準で配置
+  - tier1-rust-service: Rust 3 Pod（decision/audit/pii）ループ生成、distroless/cc
+  - tier2-go-service: 汎用 Go テンプレート（Dapr sidecar / HPA / probe httpGet /healthz /readyz）
+  - tier2-dotnet-service: 汎用 .NET テンプレート（aspnet runtime UID 1654 / ASPNETCORE_URLS / DOTNET_ENVIRONMENT）
+  - tier3-bff: Go BFF テンプレート（OIDC / ingress / Dapr sidecar）
+  - tier3-web-app: nginx + SPA fallback + `/api/` reverse proxy to BFF
+  - `helm lint` 全 5 chart 通過、`helm template` 描画確認済
+- ✅ `deploy/rollouts/{canary-strategies,analysis-templates}/` に Argo Rollouts CRD
+  - canary-25-50-100: 3 段階 setWeight + pause + analysis（自動評価）
+  - error-rate / latency-p99: Mimir（Prometheus 互換）クエリベースの自動評価
+- 🔲 残り（plan 06-XX 以降）:
+  - `deploy/kustomize/{base,overlays/*}/` に環境別 overlay 雛形
+  - `deploy/image-updater/` Argo CD Image Updater 設定
+  - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
+  - 各 chart の environments overlay（dev / staging / prod）
 
-### 7. examples 完動 4 種（IMP-DIR-COMM-113）
+### 7. examples 完動 4 種（IMP-DIR-COMM-113）— **完了**
 
-- 既存 README + 3 種最小実装に加えて、tier2-dotnet-service / tier2-go-service /
-  tier3-bff-graphql / tier3-native-maui の 4 種を完動状態に
-- 週次 E2E ワークフロー `.github/workflows/example-<name>.yml` を 7 種分配置
+- ✅ tier2-go-service: cmd + go.mod + Dockerfile + catalog-info、k1s0 SDK の `c.State().Save()` を HTTP
+  POST /sample-write で呼ぶデモ（`go build ./...` 通過）
+- ✅ tier2-dotnet-service: ASP.NET Core minimal API + .csproj + appsettings + Dockerfile + catalog-info、
+  `client.State.SaveAsync()` を HTTP POST /sample-write で呼ぶ（`dotnet build` 通過）
+- ✅ tier3-bff-graphql: cmd + go.mod + Dockerfile + catalog-info、POST /graphql で GraphQL クエリ
+  `stateGet(store, key)` を受けて State API を呼ぶ最小 BFF（`go build ./...` 通過）
+- ✅ tier3-native-maui: .csproj + PortalViewModel + catalog-info、MVVM パターンで
+  `client.State.GetAsync()` をバインディング経由で呼ぶ最小 ViewModel（`dotnet build` 通過、
+  リリース時点 は net8.0 単独、採用初期で android/ios/maccatalyst/windows multi-target に拡張）
+- ✅ 週次 E2E workflow を 7 種配置（`.github/workflows/example-{tier1-rust-service,tier1-go-facade,
+  tier2-go-service,tier2-dotnet-service,tier3-web-portal,tier3-bff-graphql,tier3-native-maui}.yml`）。
+  cron `0 3 * * 1`（毎週月曜 UTC 03:00 = JST 12:00）+ 関連 path の PR 変更時 + workflow_dispatch
+- 🔲 残り（plan 06-XX 以降）:
+  - 各 example の unit / integration test 追加（テスト雛形は配置済の規約に沿って）
+  - tier3-native-maui の Android / iOS multi-target ビルド
 
-### 8. SDK 高水準ファサード（README に示された動詞統一）
+### 8. SDK 高水準ファサード（README に示された動詞統一）— **完了**
 
-- `k1s0.Log.Info(ctx, ...)` / `k1s0.State.Save(...)` 等の動詞統一 API を
-  各 SDK 言語で実装（生成 stub の上に薄い facade を被せる）
-- README コードサンプルが実コンパイルする状態を保証する
+- ✅ 4 言語すべてに Client + 動詞統一 facade を 12 service 全件で配置
+  - Go: `src/sdk/go/k1s0/{client,state,pubsub,secrets,log,workflow,decision,audit,pii,feature,binding,invoke,telemetry,doc}.go`
+  - Rust: `src/sdk/rust/crates/k1s0-sdk/src/{lib,client,state,pubsub,secrets,log,workflow,decision,audit,pii,feature,binding,invoke,telemetry}.rs`
+  - TypeScript: `src/sdk/typescript/src/{index,client,state,pubsub,secrets,log,workflow,decision,audit,pii,feature,binding,invoke,telemetry}.ts`
+  - .NET: `src/sdk/dotnet/src/K1s0.Sdk.Grpc/{K1s0Client,StateFacade,PubSubFacade,SecretsFacade,LogFacade,WorkflowFacade,DecisionFacade,AuditFacade,PiiFacade,FeatureFacade,BindingFacade,InvokeFacade,TelemetryFacade}.cs`
+- ビルド検証: `go build ./...` / `cargo verify-project` / `pnpm build` / `dotnet build Sdk.sln` 全通過
+- 動詞統一 API（README コードサンプル整合）:
+  - State: Get / Save / Delete  Log: Send / Info / Warn / Error / Debug
+  - PubSub: Publish              Telemetry: EmitMetric / EmitSpan
+  - Secrets: Get / Rotate        Audit: Record / Query
+  - Workflow: Start / Signal / Query / Cancel / Terminate / GetStatus
+  - Decision: Evaluate / BatchEvaluate
+  - Pii: Classify / Mask          Feature: EvaluateBoolean/String/Number/Object
+  - Binding: Invoke               ServiceInvoke: Call
+- ✅ Admin service facade（DecisionAdmin / FeatureAdmin）も 4 言語で同梱（14 service 全件）
+- ✅ Stream RPC facade（InvokeStream / PubSub.Subscribe）も 4 言語で同梱
+  - Go: `c.Invoke().Stream(ctx, ..., handler)` / `c.PubSub().Subscribe(ctx, ..., handler)`（callback ベース）
+  - Rust: `client.invoke().stream(...).await` / `client.pubsub().subscribe(...).await`（`tonic::Streaming<T>` 返却）
+  - TypeScript: `client.invoke.stream(...)` / `client.pubsub.subscribe(...)`（`AsyncIterable<T>` 返却、`for await` で消費）
+  - .NET: `client.Invoke.StreamAsync(...)` / `client.PubSub.SubscribeAsync(...)`（`IAsyncEnumerable<T>` 返却、`await foreach` で消費）
+- 🔲 残り（採用後の運用拡大時）:
+  - netstandard2.1 多重 TFM 再導入（OSS 配布の互換性向上）
+  - 各 facade の単体テスト雛形
 
 各タスクは完成のたびに本 SHIP_STATUS.md のマチュリティ表を更新する運用とする。

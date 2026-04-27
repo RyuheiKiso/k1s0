@@ -1,0 +1,35 @@
+# 週次 E2E（examples/tier3-web-portal の build 検証）。
+name: example-tier3-web-portal
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  pull_request:
+    paths:
+      - "examples/tier3-web-portal/**"
+      - "src/sdk/typescript/**"
+      - ".github/workflows/example-tier3-web-portal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: examples/tier3-web-portal/pnpm-lock.yaml
+      - name: pnpm install
+        working-directory: examples/tier3-web-portal
+        run: pnpm install --frozen-lockfile
+      - name: pnpm build
+        working-directory: examples/tier3-web-portal
+        run: pnpm build
