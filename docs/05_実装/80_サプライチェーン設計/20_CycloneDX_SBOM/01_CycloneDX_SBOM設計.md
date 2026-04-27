@@ -121,7 +121,7 @@ CVE 通知（Trivy / GitHub Security Advisory）受信時は `ops/scripts/forens
 
 ## 対応 ADR / DS-SW-COMP / NFR
 
-- ADR: [ADR-CICD-003](../../../02_構想設計/adr/ADR-CICD-003-kyverno.md)（Kyverno）/ [ADR-DEP-001](../../../02_構想設計/adr/ADR-DEP-001-renovate.md)（Renovate）/ [ADR-0003](../../../02_構想設計/adr/ADR-0003-agpl-isolation-architecture.md)（AGPL 分離）/ [ADR-SUP-001](../../../02_構想設計/adr/ADR-SUP-001-slsa-l2-l3.md)（SLSA L2→L3、起票予定）
+- ADR: [ADR-CICD-003](../../../02_構想設計/adr/ADR-CICD-003-kyverno.md)（Kyverno）/ [ADR-DEP-001](../../../02_構想設計/adr/ADR-DEP-001-renovate-central.md)（Renovate）/ [ADR-0003](../../../02_構想設計/adr/ADR-0003-agpl-isolation-architecture.md)（AGPL 分離）/ [ADR-SUP-001](../../../02_構想設計/adr/ADR-SUP-001-slsa-staged-adoption.md)（SLSA L2→L3、起票予定）
 - DS-SW-COMP: DS-SW-COMP-135（配信系）/ DS-SW-COMP-141（Observability + Security 統合監査）
 - NFR: NFR-H-INT-002（SBOM 添付）/ NFR-C-MGMT-003（SBOM 100%）/ NFR-E-SIR-002（脆弱性検知）/ NFR-E-NW-003（AGPL 分離維持）
 

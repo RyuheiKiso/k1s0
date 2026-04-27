@@ -7,7 +7,7 @@
 - [ADR-SEC-001（Keycloak）](../../02_構想設計/adr/ADR-SEC-001-keycloak.md)
 - [ADR-SEC-002（OpenBao）](../../02_構想設計/adr/ADR-SEC-002-openbao.md)
 - [ADR-SEC-003（SPIRE / SPIFFE）](../../02_構想設計/adr/ADR-SEC-003-spiffe-spire.md)
-- [plan/02_開発環境整備/08_secret_management.md](../../../plan/02_開発環境整備/08_secret_management.md)
+- plan/02_開発環境整備/08_secret_management.md
 - [.env.example](../../../.env.example) — 開発者ローカル用雛形
 
 ## 設計原則

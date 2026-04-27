@@ -150,7 +150,7 @@ spec:
 
 ## 対応 ADR / DS-SW-COMP / NFR
 
-- ADR: [ADR-CICD-003](../../../02_構想設計/adr/ADR-CICD-003-kyverno.md)（Kyverno）/ [ADR-BS-001](../../../02_構想設計/adr/ADR-BS-001-backstage.md)（Backstage TechInsights）/ [ADR-SUP-001](../../../02_構想設計/adr/ADR-SUP-001-slsa-l2-l3.md)（SLSA L2→L3、起票予定）
+- ADR: [ADR-CICD-003](../../../02_構想設計/adr/ADR-CICD-003-kyverno.md)（Kyverno）/ [ADR-BS-001](../../../02_構想設計/adr/ADR-BS-001-backstage.md)（Backstage TechInsights）/ [ADR-SUP-001](../../../02_構想設計/adr/ADR-SUP-001-slsa-staged-adoption.md)（SLSA L2→L3、起票予定）
 - DS-SW-COMP: DS-SW-COMP-135（配信系）/ DS-SW-COMP-141（多層防御統括）
 - NFR: NFR-H-INT-003（SLSA Provenance）/ NFR-H-INT-001（cosign 署名）/ NFR-G-AC-002（CI/CD アクセス制御）
 

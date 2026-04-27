@@ -8,7 +8,7 @@
 - [ADR-DEV-001（Paved Road）](../../../02_構想設計/adr/ADR-DEV-001-paved-road.md)
 - [01_WindowsWSL2環境構成.md](01_WindowsWSL2環境構成.md)
 - [10_DevContainer_10役/01_DevContainer_10役設計.md](../10_DevContainer_10役/01_DevContainer_10役設計.md)
-- [plan/02_開発環境整備/10_採用側プラットフォーム_matrix.md](../../../../plan/02_開発環境整備/10_採用側プラットフォーム_matrix.md)
+- plan/02_開発環境整備/10_採用側プラットフォーム_matrix.md
 - [tools/devcontainer/README.md](../../../../tools/devcontainer/README.md)
 
 ## サポートマトリクス（OS × 役割）
