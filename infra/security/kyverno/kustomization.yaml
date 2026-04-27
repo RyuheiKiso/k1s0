@@ -1,0 +1,16 @@
+# =============================================================================
+# infra/security/kyverno/kustomization.yaml
+#
+# Kyverno baseline ClusterPolicy（PSS baseline / restricted の admission ガード）を
+# 上位 overlay から「ディレクトリ参照」可能にするための kustomize base。
+#
+# Kyverno 本体は Helm values（同階層 `values.yaml`）で別途デプロイされる前提。
+#
+# 関連設計:
+#   docs/02_構想設計/adr/ADR-POL-001-kyverno-dual-owner.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - baseline-policies.yaml

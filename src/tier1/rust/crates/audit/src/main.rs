@@ -17,15 +17,18 @@
 
 // SDK 公開 API の AuditService の Service trait / Server 型 / Request / Response 型を import。
 use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
+    // Request / Response 型。
+    QueryAuditRequest,
+    QueryAuditResponse,
+    RecordAuditRequest,
+    RecordAuditResponse,
     // AuditService の trait と Server 型。
     audit_service_server::{AuditService, AuditServiceServer},
-    // Request / Response 型。
-    QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse,
 };
 // tonic ランタイム。
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 // SIGTERM / SIGINT 受信。
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 
 // EXPOSE 50001 規約。
 const DEFAULT_LISTEN: &str = "[::]:50001";
@@ -88,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tonic Server に AuditService を登録して起動する。
     Server::builder()
         // AuditService を登録。
-        .add_service(AuditServiceServer::new(AuditServer::default()))
+        .add_service(AuditServiceServer::new(AuditServer))
         // SIGINT / SIGTERM で graceful shutdown。
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;

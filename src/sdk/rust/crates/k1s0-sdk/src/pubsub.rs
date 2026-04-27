@@ -3,10 +3,10 @@
 
 use crate::client::Client;
 use crate::proto::k1s0::tier1::pubsub::v1::{
-    pub_sub_service_client::PubSubServiceClient, Event, PublishRequest, SubscribeRequest,
+    Event, PublishRequest, SubscribeRequest, pub_sub_service_client::PubSubServiceClient,
 };
 use std::collections::HashMap;
-use tonic::{transport::Channel, Status, Streaming};
+use tonic::{Status, Streaming, transport::Channel};
 
 /// PubSubFacade は PubSubService の動詞統一 facade。
 pub struct PubSubFacade {
@@ -52,11 +52,14 @@ impl PubSubFacade {
         topic: &str,
         consumer_group: &str,
     ) -> Result<Streaming<Event>, Status> {
-        let resp = self.raw.subscribe(SubscribeRequest {
-            topic: topic.to_string(),
-            consumer_group: consumer_group.to_string(),
-            context: Some(self.client.tenant_context()),
-        }).await?;
+        let resp = self
+            .raw
+            .subscribe(SubscribeRequest {
+                topic: topic.to_string(),
+                consumer_group: consumer_group.to_string(),
+                context: Some(self.client.tenant_context()),
+            })
+            .await?;
         Ok(resp.into_inner())
     }
 }

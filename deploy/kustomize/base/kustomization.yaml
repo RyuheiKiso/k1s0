@@ -3,15 +3,22 @@
 # Helm chart 自体は deploy/charts/<chart>/ に配置済で、本 base は chart に含まれない
 # 「環境横断で常に必要」なリソースのみを集約する（Namespace 宣言 / 共通 RBAC / etc）。
 #
-# overlays/<env>/kustomization.yaml は本 base を bases として参照し、環境別の patches
-# を加えていく前提。
+# overlays/<env>/kustomization.yaml は本 base を `resources:` で参照し、環境別の
+# patches を加えていく前提。
+#
+# 注: kustomize の load-restriction（外部ファイル直接参照禁止）に対応するため、
+#     infra 配下リソースは **ディレクトリ参照** で記述する（infra/k8s/namespaces/
+#     には kustomization.yaml が配置済）。
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  # 全環境共通の Namespace 宣言を infra/k8s/namespaces/namespaces.yaml から取り込む。
-  - ../../../infra/k8s/namespaces/namespaces.yaml
+  # 全環境共通の Namespace 宣言を infra/k8s/namespaces/ から取り込む。
+  - ../../../infra/k8s/namespaces
 
 # 共通 label を全リソースに付与する（k1s0 タギング規約）。
-commonLabels:
-  k1s0.io/managed-by: argo-cd
+# kustomize v5 で `commonLabels` は deprecated。後継の `labels` を使う。
+labels:
+  - pairs:
+      k1s0.io/managed-by: argo-cd
+    includeSelectors: false

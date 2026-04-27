@@ -8,6 +8,13 @@
     <AssemblyName>K1s0.DependencyDirection.Analyzer.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!--
+      Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit (1.1.2) が
+      Microsoft.CodeAnalysis 1.0.1 等の旧 .NETFramework 限定パッケージを
+      transitive で引くため NU1701 が出る。本テストは Roslyn host を
+      net8.0 で動かしても api 互換層で安全に動作するため、本警告は無視する。
+    -->
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +22,16 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit" Version="1.1.2" />
+    <!--
+      Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit (1.1.2) は古い
+      Microsoft.CodeAnalysis.Common 1.0.1 を transitive で引き、Analyzer 本体が
+      参照する 4.11.0 と衝突して CS1705 が出る。本テスト project では
+      明示的に 4.x へ統一する。
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.11.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.11.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />
   </ItemGroup>
 
   <ItemGroup>

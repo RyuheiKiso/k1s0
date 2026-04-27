@@ -1,0 +1,18 @@
+# =============================================================================
+# infra/mesh/istio-ambient/kustomization.yaml
+#
+# Istio Ambient mesh の PeerAuthentication（mTLS STRICT）等を上位 overlay から
+# 「ディレクトリ参照」可能にするための kustomize base。
+#
+# Istio 本体（istiod / ztunnel）は Helm values（同階層 `values.yaml` 系）で
+# 別途デプロイされる前提。本 base は YAML 直適用可能なリソースのみを束ねる。
+#
+# 関連設計:
+#   docs/02_構想設計/adr/ADR-0001-istio-ambient.md
+#   docs/02_構想設計/adr/ADR-MIG-002-api-gateway-shift.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - peer-authentication.yaml

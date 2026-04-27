@@ -9,14 +9,20 @@ using K1s0.Tier2.TaxCalculator.Domain.ValueObjects;
 
 namespace K1s0.Tier2.TaxCalculator.Domain.Services;
 
+// 計算結果（税抜・税額・税込・適用税率）。
+// CA1034 を満たすため、`TaxCalculation` クラスにネストせず namespace 直下に置く。
+// 既存呼出部は `TaxCalculation.Result` 表記を `TaxCalculationResult` に書き換える。
+public readonly record struct TaxCalculationResult(
+    Money TaxableAmount,
+    Money TaxAmount,
+    Money TotalAmount,
+    TaxRate AppliedRate);
+
 // TaxCalculation は税抜金額 / 税率 → 税額 + 税込金額の計算を提供する。
 public static class TaxCalculation
 {
-    // 計算結果。
-    public readonly record struct Result(Money TaxableAmount, Money TaxAmount, Money TotalAmount, TaxRate AppliedRate);
-
     // exclusive（税抜）金額と税率から税額・税込金額を計算する。
-    public static Result CalculateExclusive(Money taxable, TaxRate rate)
+    public static TaxCalculationResult CalculateExclusive(Money taxable, TaxRate rate)
     {
         // 税額 = taxable * basisPoints / 10000。
         // long での乗算後に整数除算する。half-to-even（銀行家丸め）相当の挙動を Math.DivRem で実装する。
@@ -39,11 +45,11 @@ public static class TaxCalculation
         // remainder * 2 < 10000 はそのまま切り捨て。
         var taxAmount = new Money(taxable.Currency, quotient);
         var totalAmount = new Money(taxable.Currency, taxable.MinorAmount + taxAmount.MinorAmount);
-        return new Result(taxable, taxAmount, totalAmount, rate);
+        return new TaxCalculationResult(taxable, taxAmount, totalAmount, rate);
     }
 
     // inclusive（税込）金額と税率から税抜・税額を逆算する。
-    public static Result CalculateInclusive(Money inclusive, TaxRate rate)
+    public static TaxCalculationResult CalculateInclusive(Money inclusive, TaxRate rate)
     {
         // 税抜 = inclusive * 10000 / (10000 + basisPoints)。
         var denom = 10000L + rate.BasisPoints;
@@ -63,6 +69,6 @@ public static class TaxCalculation
         }
         var taxableAmount = new Money(inclusive.Currency, taxableMinor);
         var taxAmount = new Money(inclusive.Currency, inclusive.MinorAmount - taxableMinor);
-        return new Result(taxableAmount, taxAmount, inclusive, rate);
+        return new TaxCalculationResult(taxableAmount, taxAmount, inclusive, rate);
     }
 }

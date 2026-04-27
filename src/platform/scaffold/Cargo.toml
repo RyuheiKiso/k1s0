@@ -39,8 +39,8 @@ name = "k1s0_scaffold"
 path = "src/lib.rs"
 
 [dependencies]
-# CLI 引数解析
-clap = { version = "4.5", features = ["derive"] }
+# CLI 引数解析（`#[arg(env = "...")]` を使うため env feature が必須）
+clap = { version = "4.5", features = ["derive", "env"] }
 # template.yaml 読込
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"

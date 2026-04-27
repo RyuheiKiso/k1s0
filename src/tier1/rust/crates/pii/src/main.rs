@@ -19,15 +19,18 @@
 
 // SDK 公開 API の PiiService の Service trait / Server 型 / Request / Response 型を import。
 use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
+    // Request / Response 型。
+    ClassifyRequest,
+    ClassifyResponse,
+    MaskRequest,
+    MaskResponse,
     // PiiService の trait と Server 型。
     pii_service_server::{PiiService, PiiServiceServer},
-    // Request / Response 型。
-    ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse,
 };
 // tonic ランタイム。
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 // SIGTERM / SIGINT 受信。
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 
 // EXPOSE 50001 規約。
 const DEFAULT_LISTEN: &str = "[::]:50001";
@@ -50,10 +53,7 @@ impl PiiService for PiiServer {
     }
 
     // マスキング
-    async fn mask(
-        &self,
-        _req: Request<MaskRequest>,
-    ) -> Result<Response<MaskResponse>, Status> {
+    async fn mask(&self, _req: Request<MaskRequest>) -> Result<Response<MaskResponse>, Status> {
         // 実 PII 検出ロジック実装は plan 04-10。
         Err(Status::unimplemented(
             "tier1/pii: Mask not yet implemented (plan 04-10)",
@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tonic Server に PiiService を登録して起動する。
     Server::builder()
         // PiiService を登録。
-        .add_service(PiiServiceServer::new(PiiServer::default()))
+        .add_service(PiiServiceServer::new(PiiServer))
         // SIGINT / SIGTERM で graceful shutdown。
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;

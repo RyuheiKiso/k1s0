@@ -1,0 +1,15 @@
+# =============================================================================
+# infra/k8s/storage/kustomization.yaml
+#
+# 4 種 StorageClass（Longhorn block / file / 高速 SSD / archive 等）を上位
+# overlay から「ディレクトリ参照」可能にするための kustomize base。
+#
+# 関連設計:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+#     - `kubectl apply -k infra/k8s/storage/` で StorageClass を一括投入
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - storage-classes.yaml

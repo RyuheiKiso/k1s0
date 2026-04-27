@@ -17,19 +17,26 @@
 
 // SDK 公開 API の DecisionService / DecisionAdminService の Service trait と Server 型を import。
 use k1s0_sdk_proto::k1s0::tier1::decision::v1::{
-    // DecisionService（Evaluate / BatchEvaluate）の trait と Server 型。
-    decision_service_server::{DecisionService, DecisionServiceServer},
+    // Request / Response 型。
+    BatchEvaluateRequest,
+    BatchEvaluateResponse,
+    EvaluateRequest,
+    EvaluateResponse,
+    GetRuleRequest,
+    GetRuleResponse,
+    ListVersionsRequest,
+    ListVersionsResponse,
+    RegisterRuleRequest,
+    RegisterRuleResponse,
     // DecisionAdminService（RegisterRule / ListVersions / GetRule）の trait と Server 型。
     decision_admin_service_server::{DecisionAdminService, DecisionAdminServiceServer},
-    // Request / Response 型。
-    BatchEvaluateRequest, BatchEvaluateResponse, EvaluateRequest, EvaluateResponse,
-    GetRuleRequest, GetRuleResponse, ListVersionsRequest, ListVersionsResponse,
-    RegisterRuleRequest, RegisterRuleResponse,
+    // DecisionService（Evaluate / BatchEvaluate）の trait と Server 型。
+    decision_service_server::{DecisionService, DecisionServiceServer},
 };
 // tonic ランタイム / 型。
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 // SIGTERM / SIGINT 受信用。
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 
 // EXPOSE 50001 は docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md と整合。
 // Rust 側も同じポート規約を採用する。
@@ -130,13 +137,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // listen address（CLI 引数で上書き可、本リリース時点 は固定既定値）。
     let addr = DEFAULT_LISTEN.parse()?;
     // 起動ログ。
-    eprintln!("tier1/decision: gRPC server listening on {}", DEFAULT_LISTEN);
+    eprintln!(
+        "tier1/decision: gRPC server listening on {}",
+        DEFAULT_LISTEN
+    );
     // tonic Server に DecisionService と DecisionAdminService を登録して起動する。
     Server::builder()
         // DecisionService を登録。
-        .add_service(DecisionServiceServer::new(DecisionServer::default()))
+        .add_service(DecisionServiceServer::new(DecisionServer))
         // DecisionAdminService を登録。
-        .add_service(DecisionAdminServiceServer::new(DecisionAdminServer::default()))
+        .add_service(DecisionAdminServiceServer::new(DecisionAdminServer))
         // SIGINT / SIGTERM で graceful shutdown する。
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;

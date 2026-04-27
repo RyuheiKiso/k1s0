@@ -15,10 +15,26 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <DevelopmentDependency>true</DevelopmentDependency>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <!--
+      NuGet パッケージング自体は K1s0.DependencyDirection.Analyzer.Package が担当する。
+      本 csproj は内部 assembly 提供のみで、Package 側と PackageId が衝突しないよう
+      明示的に別 ID（.AssemblyOnly）を割り当て、IsPackable=false で pack 自体を抑止する。
+      これにより NuGet restore の "Ambiguous project name" を回避する。
+    -->
+    <PackageId>K1s0.DependencyDirection.Analyzer.AssemblyOnly</PackageId>
+    <IsPackable>false</IsPackable>
+    <!-- Roslyn analyzer プロジェクト用の拡張ルール（RS1036 等）を有効化 -->
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Analyzer Release Tracking 必須ファイル（RS2008 / RS2009） -->
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
   </ItemGroup>
 </Project>

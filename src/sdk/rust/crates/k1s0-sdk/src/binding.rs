@@ -1,10 +1,10 @@
 // 本ファイルは k1s0-sdk の Binding 動詞統一 facade。
 use crate::client::Client;
 use crate::proto::k1s0::tier1::binding::v1::{
-    binding_service_client::BindingServiceClient, InvokeBindingRequest,
+    InvokeBindingRequest, binding_service_client::BindingServiceClient,
 };
 use std::collections::HashMap;
-use tonic::{transport::Channel, Status};
+use tonic::{Status, transport::Channel};
 
 /// BindingFacade は BindingService の動詞統一 facade。
 pub struct BindingFacade {
@@ -26,13 +26,17 @@ impl BindingFacade {
         data: Vec<u8>,
         metadata: HashMap<String, String>,
     ) -> Result<(Vec<u8>, HashMap<String, String>), Status> {
-        let resp = self.raw.invoke(InvokeBindingRequest {
-            name: name.to_string(),
-            operation: operation.to_string(),
-            data,
-            metadata,
-            context: Some(self.client.tenant_context()),
-        }).await?.into_inner();
+        let resp = self
+            .raw
+            .invoke(InvokeBindingRequest {
+                name: name.to_string(),
+                operation: operation.to_string(),
+                data,
+                metadata,
+                context: Some(self.client.tenant_context()),
+            })
+            .await?
+            .into_inner();
         Ok((resp.data, resp.metadata))
     }
 }

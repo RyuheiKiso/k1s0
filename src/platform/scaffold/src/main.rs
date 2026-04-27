@@ -100,12 +100,8 @@ fn main() -> anyhow::Result<()> {
                 k1s0_scaffold::load_values_from_json(&input_path)?
             } else {
                 k1s0_scaffold::ScaffoldValues {
-                    name: name.ok_or_else(|| {
-                        anyhow::anyhow!("--name か --input が必須")
-                    })?,
-                    owner: owner.ok_or_else(|| {
-                        anyhow::anyhow!("--owner か --input が必須")
-                    })?,
+                    name: name.ok_or_else(|| anyhow::anyhow!("--name か --input が必須"))?,
+                    owner: owner.ok_or_else(|| anyhow::anyhow!("--owner か --input が必須"))?,
                     system,
                     namespace,
                     description,

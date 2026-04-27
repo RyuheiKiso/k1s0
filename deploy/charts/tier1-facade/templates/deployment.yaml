@@ -15,8 +15,7 @@ metadata:
   name: {{ include "tier1-facade.podFullname" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) }}
   namespace: {{ $.Release.Namespace }}
   labels:
-    {{- include "tier1-facade.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
-    {{- include "tier1-facade.labels" $ | nindent 4 }}
+    {{- include "tier1-facade.podLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
 spec:
   replicas: {{ $podCfg.replicas }}
   selector:

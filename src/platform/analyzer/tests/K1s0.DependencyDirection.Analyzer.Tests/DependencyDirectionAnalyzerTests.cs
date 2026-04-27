@@ -57,9 +57,13 @@ public class DependencyDirectionAnalyzerTests
             """,
             SolutionTransforms = { (sol, projId) => sol.WithProjectAssemblyName(projId, "K1s0.Sdk.Smoke") },
         };
-        // current=Sdk, referenced=Tier2 で K1S0DEPDIR0001 が必ず 1 件以上出る期待。
+        // current=Sdk, referenced=Tier2 で K1S0DEPDIR0001 が defaultSeverity=Error
+        // で 1 件出る期待。span は型参照 `B` の identifier 位置（5 行目 49〜50 列）、
+        // メッセージ引数は参照先 namespace（K1s0.Tier2.ApprovalFlow）。
         test.ExpectedDiagnostics.Add(
-            DiagnosticResult.CompilerWarning("K1S0DEPDIR0001").WithDefaultPath("/0/Test0.cs"));
+            DiagnosticResult.CompilerError("K1S0DEPDIR0001")
+                .WithSpan(5, 49, 5, 50)
+                .WithArguments("K1s0.Tier2.ApprovalFlow"));
         await test.RunAsync();
     }
 }

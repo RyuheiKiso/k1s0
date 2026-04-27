@@ -1,0 +1,15 @@
+# =============================================================================
+# infra/feature-management/flagd/kustomization.yaml
+#
+# flagd（OpenFeature 準拠 feature flag daemon）の Deployment / Service /
+# ServiceMonitor / ConfigMap を上位 overlay から「ディレクトリ参照」可能にする
+# ための kustomize base。
+#
+# 関連設計:
+#   docs/02_構想設計/adr/ADR-FM-001-flagd-openfeature.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - flagd-deployment.yaml

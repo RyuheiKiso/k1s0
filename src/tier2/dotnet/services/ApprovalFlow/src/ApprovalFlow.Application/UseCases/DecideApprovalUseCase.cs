@@ -32,6 +32,8 @@ public sealed class DecideApprovalUseCase
     // 承認 / 却下を実行する。
     public async Task<Output> ExecuteAsync(Input input, CancellationToken ct)
     {
+        // CA1062: 公開 API では引数 null を必ず明示検証する。
+        ArgumentNullException.ThrowIfNull(input);
         // 既存の承認を取得する。
         var req = await _repo.FindByIdAsync(input.Id, ct).ConfigureAwait(false)
             ?? throw new KeyNotFoundException($"approval not found: {input.Id}");

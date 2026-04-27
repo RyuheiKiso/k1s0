@@ -1,12 +1,12 @@
 // 本ファイルは k1s0-sdk の Log 動詞統一 facade。
 use crate::client::Client;
 use crate::proto::k1s0::tier1::log::v1::{
-    log_service_client::LogServiceClient, LogEntry, SendLogRequest, Severity,
+    LogEntry, SendLogRequest, Severity, log_service_client::LogServiceClient,
 };
 use prost_types::Timestamp;
 use std::collections::HashMap;
 use std::time::SystemTime;
-use tonic::{transport::Channel, Status};
+use tonic::{Status, transport::Channel};
 
 /// LogFacade は LogService の動詞統一 facade。
 pub struct LogFacade {
@@ -31,7 +31,10 @@ impl LogFacade {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default();
-        let ts = Timestamp { seconds: now.as_secs() as i64, nanos: now.subsec_nanos() as i32 };
+        let ts = Timestamp {
+            seconds: now.as_secs() as i64,
+            nanos: now.subsec_nanos() as i32,
+        };
 
         let req = SendLogRequest {
             entry: Some(LogEntry {

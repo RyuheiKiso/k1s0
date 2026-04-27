@@ -3,9 +3,9 @@
 
 use crate::client::Client;
 use crate::proto::k1s0::tier1::state::v1::{
-    state_service_client::StateServiceClient, DeleteRequest, GetRequest, SetRequest,
+    DeleteRequest, GetRequest, SetRequest, state_service_client::StateServiceClient,
 };
-use tonic::{transport::Channel, Status};
+use tonic::{Status, transport::Channel};
 
 /// StateFacade は StateService の動詞統一 facade。
 pub struct StateFacade {

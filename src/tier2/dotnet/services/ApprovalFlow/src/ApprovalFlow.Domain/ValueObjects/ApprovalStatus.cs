@@ -18,7 +18,9 @@ public readonly record struct ApprovalStatus
     public static readonly ApprovalStatus Cancelled = new("CANCELLED");
 
     // 全 4 状態の集合。
-    private static readonly IReadOnlyDictionary<string, ApprovalStatus> Known = new Dictionary<string, ApprovalStatus>(StringComparer.OrdinalIgnoreCase)
+    // CA1859: 内部利用フィールドはインタフェース型ではなく具象 Dictionary で保持し、
+    // インタフェース dispatch のオーバーヘッドを避ける。
+    private static readonly Dictionary<string, ApprovalStatus> Known = new(StringComparer.OrdinalIgnoreCase)
     {
         [Pending._value] = Pending,
         [Approved._value] = Approved,

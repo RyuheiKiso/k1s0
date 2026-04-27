@@ -61,8 +61,9 @@ pub struct TemplateStep {
 pub fn load(path: &Path) -> Result<TemplateManifest, ScaffoldError> {
     let raw = std::fs::read_to_string(path)
         .map_err(|e| ScaffoldError::Io(format!("read {}: {}", path.display(), e)))?;
-    let manifest: TemplateManifest = serde_yaml::from_str(&raw)
-        .map_err(|e| ScaffoldError::Parse(format!("invalid template.yaml {}: {}", path.display(), e)))?;
+    let manifest: TemplateManifest = serde_yaml::from_str(&raw).map_err(|e| {
+        ScaffoldError::Parse(format!("invalid template.yaml {}: {}", path.display(), e))
+    })?;
     Ok(manifest)
 }
 
@@ -80,7 +81,7 @@ impl TemplateManifest {
         };
         let values = fetch
             .input
-            .get(&serde_yaml::Value::String("values".to_owned()));
+            .get(serde_yaml::Value::String("values".to_owned()));
         let Some(serde_yaml::Value::Mapping(values)) = values else {
             return (None, None);
         };
@@ -114,7 +115,7 @@ impl TemplateManifest {
         };
         let Some(serde_yaml::Value::Mapping(values)) = fetch
             .input
-            .get(&serde_yaml::Value::String("values".to_owned()))
+            .get(serde_yaml::Value::String("values".to_owned()))
         else {
             return out;
         };

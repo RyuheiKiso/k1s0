@@ -6,8 +6,32 @@
 # ------------------------------------------------------------
 # Rust ビルド成果物
 # ------------------------------------------------------------
-# Cargoのビルド出力ディレクトリ（ワークスペース共有）
+# Cargoのビルド出力ディレクトリ（全 workspace 共通）
+target/
+# Cargo のロックファイル（lib のみの crate では .gitignore する慣習だが、本リポジトリは
+# モノレポで bin / lib 両方を含むため、各 workspace の Cargo.lock はそれぞれの
+# 既存方針に従う。新規生成は examples/ 配下のみ）
+examples/tier1-rust-service/Cargo.lock
+src/platform/scaffold/Cargo.lock
+# レガシーで残されたパス（互換のため重複記載）
 setup/target/
+
+# ------------------------------------------------------------
+# .NET ビルド成果物
+# ------------------------------------------------------------
+# csproj 配下の bin / obj
+**/bin/
+**/obj/
+# Visual Studio ローカル設定
+.vs/
+
+# ------------------------------------------------------------
+# Go ビルド成果物
+# ------------------------------------------------------------
+# 例 main package を `go build` で生成した実行ファイル
+examples/tier1-go-facade/example-facade
+examples/tier3-bff-graphql/example-bff
+examples/tier2-go-service/example-service
 
 # ------------------------------------------------------------
 # Node.js / npm
@@ -26,10 +50,14 @@ pnpm-debug.log*
 # ------------------------------------------------------------
 # フロントエンド ビルド成果物
 # ------------------------------------------------------------
-# Viteのプロダクションビルド出力
+# Viteのプロダクションビルド出力（setup gui / tier3 web 全般）
 setup/gui/dist/
+src/tier3/web/apps/*/dist/
+src/tier3/web/packages/*/dist/
+# 例外: src/sdk/typescript/dist/ は npm 配布物として意図的にコミットする
 # Vitestのカバレッジレポート
 setup/gui/coverage/
+**/coverage/
 
 # ------------------------------------------------------------
 # Tauri 固有

@@ -32,6 +32,8 @@ public sealed class InMemoryApprovalRepository : IApprovalRepository
     // 集約を保存する（新規 / 更新両対応）。
     public Task SaveAsync(ApprovalRequest request, CancellationToken ct)
     {
+        // CA1062: 公開 API では引数 null を必ず明示検証する。
+        ArgumentNullException.ThrowIfNull(request);
         // ConcurrentDictionary の AddOrUpdate で冪等。
         _store.AddOrUpdate(request.Id, request, (_, _) => request);
         return Task.CompletedTask;

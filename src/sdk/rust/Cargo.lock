@@ -357,6 +357,7 @@ name = "k1s0-sdk"
 version = "0.1.0"
 dependencies = [
  "k1s0-sdk-proto",
+ "prost-types",
  "serde",
  "thiserror",
  "tokio",

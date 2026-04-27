@@ -1,0 +1,18 @@
+# =============================================================================
+# infra/k8s/namespaces/kustomization.yaml
+#
+# 環境共通の Namespace 宣言（17 layer / Pod Security Standards / Istio Ambient
+# label 付与）を上位 overlay から「ディレクトリ参照」可能にするための kustomize
+# base。overlay 側は `- ../../k8s/namespaces` のようにディレクトリを resources で
+# 参照することで、kustomize の load-restriction（外部ファイル直接参照禁止）を
+# 回避する。
+#
+# 関連設計:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+#     - bootstrap 工程の `kubectl apply -k infra/k8s/namespaces/` を成立させる
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespaces.yaml

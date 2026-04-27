@@ -16,5 +16,5 @@
 .DS_Store
 
 # ヘルパスクリプト
-**/*.tgz
+*.tgz
 README.md.bak

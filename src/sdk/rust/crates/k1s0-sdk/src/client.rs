@@ -7,9 +7,9 @@
 //   let resp = client.state().get("valkey-default", "user/123").await?;
 
 use crate::proto::k1s0::tier1::common::v1::TenantContext;
-use crate::proto::k1s0::tier1::state::v1::state_service_client::StateServiceClient;
 use crate::proto::k1s0::tier1::pubsub::v1::pub_sub_service_client::PubSubServiceClient;
 use crate::proto::k1s0::tier1::secrets::v1::secrets_service_client::SecretsServiceClient;
+use crate::proto::k1s0::tier1::state::v1::state_service_client::StateServiceClient;
 use tonic::transport::{Channel, Endpoint};
 
 // Config は Client 初期化時に渡す設定。

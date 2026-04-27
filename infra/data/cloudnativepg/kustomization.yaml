@@ -1,0 +1,17 @@
+# =============================================================================
+# infra/data/cloudnativepg/kustomization.yaml
+#
+# CloudNativePG の Cluster CR（Postgres 16、3 instance HA）を上位 overlay から
+# 「ディレクトリ参照」可能にするための kustomize base。
+#
+# CNPG operator 本体は Helm values（同階層 `values.yaml`）で別途デプロイされる
+# 前提。dev overlay は `patches/cloudnativepg-instances-1.yaml` で 1 instance に縮退。
+#
+# 関連設計:
+#   docs/02_構想設計/adr/ADR-DATA-001-cnpg.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cluster.yaml

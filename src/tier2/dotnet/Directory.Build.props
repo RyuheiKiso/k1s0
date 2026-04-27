@@ -16,8 +16,19 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- XML doc 警告 CS1591 はリリース時点 では除外（採用初期 で公開 API のみ強制化） -->
+    <!--
+      WarningsNotAsErrors: error 化せず warning に格下げするルール。
+        CS1591 — XML doc 不在（採用初期で公開 API のみ強制化、リリース時点除外）
+      NoWarn: 完全に抑止するルール。意図的なパターンに対する誤検知。
+        CA1034 — UseCase の Input / Output レコードを nested で持つ Clean Architecture
+                 慣用パターン。外部公開 API 設計上意図的に nested。
+        CA1724 — Input という型名が System.Windows.Input namespace と部分一致する
+                 警告。本リポジトリは WinUI 非利用のため衝突は実害なし。
+        CA1707 — テストメソッド名 `Method_Scenario_Expected` は xUnit / NUnit
+                 業界慣行（Microsoft 自身のサンプルでも採用）。
+    -->
     <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+    <NoWarn>$(NoWarn);CA1034;CA1724;CA1707</NoWarn>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>All</AnalysisMode>
