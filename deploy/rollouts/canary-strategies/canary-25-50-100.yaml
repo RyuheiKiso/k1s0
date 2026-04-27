@@ -1,0 +1,47 @@
+# Argo Rollouts canary 戦略テンプレート（ADR-CICD-002）。
+# 25% → 50% → 100% の 3 段階で、各段階で AnalysisTemplate（error rate / latency p99）を
+# Run して合格すれば次段に進む。失敗時は自動ロールバック。
+#
+# tier1-facade / tier2-go-service / tier2-dotnet-service / tier3-bff / tier3-web-app の
+# Deployment を Rollout に置換える際に spec.strategy として参照する。
+#
+# 利用イメージ:
+#   apiVersion: argoproj.io/v1alpha1
+#   kind: Rollout
+#   spec:
+#     strategy:
+#       canary:
+#         steps: <本ファイルの steps をコピー>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollout-canary-25-50-100
+  namespace: argocd
+  labels:
+    k1s0.io/component: rollout-strategy
+data:
+  steps.yaml: |
+    # 25% を canary に分配し、5 分待機してから AnalysisTemplate で評価
+    - setWeight: 25
+    - pause: { duration: 5m }
+    - analysis:
+        templates:
+          - templateName: error-rate
+          - templateName: latency-p99
+        args:
+          - name: service-name
+            valueFrom:
+              podTemplateHashValue: Latest
+    # 評価合格 → 50% に拡大、再度 5 分待機 + AnalysisTemplate
+    - setWeight: 50
+    - pause: { duration: 5m }
+    - analysis:
+        templates:
+          - templateName: error-rate
+          - templateName: latency-p99
+        args:
+          - name: service-name
+            valueFrom:
+              podTemplateHashValue: Latest
+    # 評価合格 → 100% に切替
+    - setWeight: 100

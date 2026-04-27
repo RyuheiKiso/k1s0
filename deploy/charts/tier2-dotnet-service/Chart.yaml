@@ -1,0 +1,18 @@
+apiVersion: v2
+name: tier2-dotnet-service
+description: |
+  k1s0 tier2 .NET service 用の汎用 Helm chart（ApprovalFlow / InvoiceGenerator /
+  TaxCalculator 等）。values.yaml で各 service の image / replicas / env を上書きする。
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/k1s0/k1s0
+maintainers:
+  - name: k1s0 maintainers
+    url: https://github.com/k1s0/k1s0
+keywords:
+  - k1s0
+  - tier2
+  - dotnet
+  - aspnetcore
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/01_企画/img/logo.svg

@@ -101,8 +101,8 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
 | `deploy/apps/{application-sets, projects}` | Argo CD ApplicationSet（リリース必須、ADR-CICD-001） | **雛形あり** | tier1-facade 用 ApplicationSet を最小同梱 |
-| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | tier1-facade のみ最小 chart 同梱、他は placeholder |
-| `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **設計のみ** | `.gitkeep` のみ |
+| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart（リリース必須） | **雛形あり** | 6 chart 全て配置完了。tier1-facade（既存、Go 3 Pod）/ tier1-rust-service（Rust 3 Pod ループ）/ tier2-go-service（汎用 Go テンプレート）/ tier2-dotnet-service（汎用 .NET テンプレート、aspnet runtime + ASPNETCORE_URLS）/ tier3-bff（Go BFF + OIDC + ingress）/ tier3-web-app（nginx + SPA fallback + BFF reverse proxy）。`helm lint` 全 5 chart 通過、`helm template` 描画 OK |
+| `deploy/rollouts/{canary-strategies, analysis-templates, experiments}` | Argo Rollouts（リリース必須、ADR-CICD-002） | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート + AnalysisTemplate 2 件（error-rate / latency-p99、Mimir Prometheus クエリ）。experiments は採用後の運用拡大時 で追加 |
 | `deploy/kustomize/{base, overlays/*}` | Kustomize | **設計のみ** | `.gitkeep` のみ |
 | `deploy/opentofu/{environments, modules}` | OpenTofu（採用後の運用拡大時に Terraform から移行） | **設計のみ** | `.gitkeep` のみ |
 | `deploy/image-updater/` | Argo CD Image Updater | **設計のみ** | `.gitkeep` のみ |
@@ -264,12 +264,23 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - 各 component の上流 Helm chart version pin の Renovate 追従
   - production CSI provisioner の確定（PLACEHOLDER_csi_provisioner の置換）
 
-### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）
+### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）— **大半完了**
 
-- `deploy/rollouts/{canary-strategies,analysis-templates}/` に Argo Rollouts CRD
-- `deploy/kustomize/{base,overlays/*}/` に環境別 overlay
-- `deploy/charts/` の残り 5 chart（tier1-rust-service / tier2-go-service /
-  tier2-dotnet-service / tier3-bff / tier3-web-app）を tier1-facade 同水準で実装
+- ✅ `deploy/charts/` の残り 5 chart を tier1-facade 同水準で配置
+  - tier1-rust-service: Rust 3 Pod（decision/audit/pii）ループ生成、distroless/cc
+  - tier2-go-service: 汎用 Go テンプレート（Dapr sidecar / HPA / probe httpGet /healthz /readyz）
+  - tier2-dotnet-service: 汎用 .NET テンプレート（aspnet runtime UID 1654 / ASPNETCORE_URLS / DOTNET_ENVIRONMENT）
+  - tier3-bff: Go BFF テンプレート（OIDC / ingress / Dapr sidecar）
+  - tier3-web-app: nginx + SPA fallback + `/api/` reverse proxy to BFF
+  - `helm lint` 全 5 chart 通過、`helm template` 描画確認済
+- ✅ `deploy/rollouts/{canary-strategies,analysis-templates}/` に Argo Rollouts CRD
+  - canary-25-50-100: 3 段階 setWeight + pause + analysis（自動評価）
+  - error-rate / latency-p99: Mimir（Prometheus 互換）クエリベースの自動評価
+- 🔲 残り（plan 06-XX 以降）:
+  - `deploy/kustomize/{base,overlays/*}/` に環境別 overlay 雛形
+  - `deploy/image-updater/` Argo CD Image Updater 設定
+  - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
+  - 各 chart の environments overlay（dev / staging / prod）
 
 ### 7. examples 完動 4 種（IMP-DIR-COMM-113）
 

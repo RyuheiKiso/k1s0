@@ -1,0 +1,30 @@
+# Argo Rollouts AnalysisTemplate: HTTP p99 latency（ADR-CICD-002）。
+# Mimir に対して histogram_quantile で p99 を計算し、SLO（500ms）以下を canary 通過条件とする。
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-p99
+  namespace: argocd
+  labels:
+    k1s0.io/component: analysis-template
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: latency-p99-ms
+      interval: 30s
+      count: 4
+      successCondition: result[0] <= 500
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://mimir-nginx.observability.svc.cluster.local:80/prometheus
+          query: |
+            histogram_quantile(
+              0.99,
+              sum(rate(
+                http_request_duration_seconds_bucket{
+                  k1s0_io_component="{{args.service-name}}"
+                }[1m]
+              )) by (le)
+            ) * 1000

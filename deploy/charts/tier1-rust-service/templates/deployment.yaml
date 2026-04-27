@@ -1,0 +1,100 @@
+{{/*
+tier1-rust-service の Deployment テンプレート。3 Pod を range で展開する。
+*/}}
+{{- range $podName, $podCfg := .Values.pods }}
+{{- if $podCfg.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tier1-rust-service.podFullname" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "tier1-rust-service.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
+    {{- include "tier1-rust-service.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $podCfg.replicas }}
+  selector:
+    matchLabels:
+      {{- include "tier1-rust-service.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tier1-rust-service.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 8 }}
+        {{- with $.Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $podCfg.metricsPort | quote }}
+        prometheus.io/path: "/metrics"
+        {{- with $.Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "tier1-rust-service.serviceAccountName" $ }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ printf "tier1-%s" $podName }}
+          image: "{{ $.Values.image.registry }}/{{ $.Values.image.repositoryPrefix }}/{{ $podCfg.repositorySuffix }}:{{ $.Values.image.tag }}"
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- with $podCfg.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: grpc
+              containerPort: {{ $podCfg.grpcPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ $podCfg.metricsPort }}
+              protocol: TCP
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: {{ printf "k1s0-tier1-%s" $podName | quote }}
+            - name: K1S0_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: RUST_LOG
+              value: {{ $.Values.config.logLevel | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "tier1-rust-service.fullname" $ }}-config
+          livenessProbe:
+            grpc:
+              port: {{ $podCfg.grpcPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            grpc:
+              port: {{ $podCfg.grpcPort }}
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            {{- toYaml $podCfg.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+{{- end }}
+{{- end }}

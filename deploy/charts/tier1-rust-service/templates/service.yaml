@@ -1,0 +1,34 @@
+{{/*
+tier1-rust-service の Service テンプレート。3 Pod それぞれに ClusterIP Service を生成する。
+*/}}
+{{- range $podName, $podCfg := .Values.pods }}
+{{- if $podCfg.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tier1-rust-service.podFullname" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "tier1-rust-service.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
+    {{- include "tier1-rust-service.labels" $ | nindent 4 }}
+  {{- with $.Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $.Values.service.type }}
+  ports:
+    - name: grpc
+      port: {{ $podCfg.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      appProtocol: grpc
+    - name: metrics
+      port: {{ $podCfg.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    {{- include "tier1-rust-service.podSelectorLabels" (dict "Release" $.Release "Chart" $.Chart "Values" $.Values "podName" $podName) | nindent 4 }}
+{{- end }}
+{{- end }}

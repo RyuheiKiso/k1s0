@@ -1,0 +1,86 @@
+# tier2-go-service の values。各 service は overlay でこれを上書きする。
+
+# service 識別子（chart を流用する各 service が上書き）
+service:
+  name: example-tier2-service
+
+image:
+  registry: ghcr.io
+  repository: k1s0/k1s0/tier2-example
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+# tier2 は HTTP API を露出（Dapr sidecar 経由で tier1 facade を呼び出す）
+ports:
+  http: 8080
+  metrics: 9090
+
+# Dapr sidecar 設定
+dapr:
+  enabled: true
+  appId: "example-tier2-service"
+  appPort: 8080
+  appProtocol: "http"
+
+# 全 Pod 共通の securityContext
+podSecurityContext:
+  runAsUser: 65532
+  runAsGroup: 65532
+  runAsNonRoot: true
+  fsGroup: 65532
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# 環境変数（envFrom + env 個別の併用）
+env: []
+envFrom: []
+
+# probe path（gin / echo / chi 等の Go HTTP framework に合わせる）
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 2
+  periodSeconds: 5
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podLabels: {}
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# HPA を有効化（KEDA 移行時はこれを disable）
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
