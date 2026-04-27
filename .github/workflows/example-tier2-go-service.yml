@@ -1,0 +1,34 @@
+# 週次 E2E（examples/tier2-go-service の build / test 検証）。
+name: example-tier2-go-service
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  pull_request:
+    paths:
+      - "examples/tier2-go-service/**"
+      - "src/contracts/**"
+      - "src/sdk/go/**"
+      - ".github/workflows/example-tier2-go-service.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: go build
+        working-directory: examples/tier2-go-service
+        run: go build ./...
+      - name: go vet
+        working-directory: examples/tier2-go-service
+        run: go vet ./...
+      - name: go test
+        working-directory: examples/tier2-go-service
+        run: go test ./...

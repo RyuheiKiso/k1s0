@@ -119,7 +119,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `tools/git-hooks/` | 自作 pre-commit hook | **同梱済** | `japanese-header-guard.py` / `file-length-guard.py` / `drawio-svg-staleness.sh` / `link-check-wrapper.py` |
 | `tools/_link_check.py` / `_link_fix.py` / `_export_svg.py` | docs 横断ツール | **同梱済** | docs リンク検査・drawio SVG export |
 | `tests/` | e2e / contract / integration / fuzz / golden | **設計のみ** | tier1 Go 内に unit test (config / retry / timeout) のみ |
-| `examples/` | Golden Path 7 プロジェクト（tier1-rust-service / tier1-go-facade / tier2-{dotnet,go}-service / tier3-{web-portal, bff-graphql, native-maui}） | **雛形あり** | 7 ディレクトリと README のみ。リリース時点では rust/go-facade/web-portal の 3 種が最小実装、残り 4 種は README のみで採用初期に完成予定 |
+| `examples/` | Golden Path 7 プロジェクト（tier1-rust-service / tier1-go-facade / tier2-{dotnet,go}-service / tier3-{web-portal, bff-graphql, native-maui}） | **雛形あり** | 7 種すべてが build 可能な完動例として配置。tier1-rust-service / tier1-go-facade / tier3-web-portal は最小実装（既存）、tier2-go-service（k1s0 SDK State.Save HTTP endpoint）/ tier2-dotnet-service（ASP.NET Core minimal API）/ tier3-bff-graphql（GraphQL 経由 State.Get）/ tier3-native-maui（MAUI ViewModel）を追加完成。各 example に Dockerfile + catalog-info.yaml + 週次 E2E workflow（`.github/workflows/example-<name>.yml` 7 種）を配置 |
 
 ### CI / CD / GitOps
 
@@ -282,11 +282,23 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - 各 chart の Deployment → Rollout への置換（Argo Rollouts CRD 適用）
   - 各 chart の environments overlay（dev / staging / prod）
 
-### 7. examples 完動 4 種（IMP-DIR-COMM-113）
+### 7. examples 完動 4 種（IMP-DIR-COMM-113）— **完了**
 
-- 既存 README + 3 種最小実装に加えて、tier2-dotnet-service / tier2-go-service /
-  tier3-bff-graphql / tier3-native-maui の 4 種を完動状態に
-- 週次 E2E ワークフロー `.github/workflows/example-<name>.yml` を 7 種分配置
+- ✅ tier2-go-service: cmd + go.mod + Dockerfile + catalog-info、k1s0 SDK の `c.State().Save()` を HTTP
+  POST /sample-write で呼ぶデモ（`go build ./...` 通過）
+- ✅ tier2-dotnet-service: ASP.NET Core minimal API + .csproj + appsettings + Dockerfile + catalog-info、
+  `client.State.SaveAsync()` を HTTP POST /sample-write で呼ぶ（`dotnet build` 通過）
+- ✅ tier3-bff-graphql: cmd + go.mod + Dockerfile + catalog-info、POST /graphql で GraphQL クエリ
+  `stateGet(store, key)` を受けて State API を呼ぶ最小 BFF（`go build ./...` 通過）
+- ✅ tier3-native-maui: .csproj + PortalViewModel + catalog-info、MVVM パターンで
+  `client.State.GetAsync()` をバインディング経由で呼ぶ最小 ViewModel（`dotnet build` 通過、
+  リリース時点 は net8.0 単独、採用初期で android/ios/maccatalyst/windows multi-target に拡張）
+- ✅ 週次 E2E workflow を 7 種配置（`.github/workflows/example-{tier1-rust-service,tier1-go-facade,
+  tier2-go-service,tier2-dotnet-service,tier3-web-portal,tier3-bff-graphql,tier3-native-maui}.yml`）。
+  cron `0 3 * * 1`（毎週月曜 UTC 03:00 = JST 12:00）+ 関連 path の PR 変更時 + workflow_dispatch
+- 🔲 残り（plan 06-XX 以降）:
+  - 各 example の unit / integration test 追加（テスト雛形は配置済の規約に沿って）
+  - tier3-native-maui の Android / iOS multi-target ビルド
 
 ### 8. SDK 高水準ファサード（README に示された動詞統一）— **代表 3 service 完了**
 

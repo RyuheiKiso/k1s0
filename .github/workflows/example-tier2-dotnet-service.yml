@@ -1,0 +1,36 @@
+# 週次 E2E（examples/tier2-dotnet-service の build 検証）。
+name: example-tier2-dotnet-service
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  pull_request:
+    paths:
+      - "examples/tier2-dotnet-service/**"
+      - "src/contracts/**"
+      - "src/sdk/dotnet/**"
+      - ".github/workflows/example-tier2-dotnet-service.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: dotnet restore
+        run: dotnet restore examples/tier2-dotnet-service/ExampleDotnetService.csproj
+      - name: dotnet build
+        run: dotnet build examples/tier2-dotnet-service/ExampleDotnetService.csproj --no-restore -c Release
+      - name: dotnet test
+        run: |
+          if [ -d examples/tier2-dotnet-service/tests ]; then
+            dotnet test examples/tier2-dotnet-service/ExampleDotnetService.csproj --no-build -c Release
+          else
+            echo "no tests yet (リリース時点 では unit test 未配置)"
+          fi

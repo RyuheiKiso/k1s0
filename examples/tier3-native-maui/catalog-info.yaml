@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tier3-example-native-maui
+  description: tier3 .NET MAUI Golden Path 最小例（クロスプラットフォーム native アプリ + K1s0.Sdk.Grpc）
+  annotations:
+    github.com/project-slug: k1s0/k1s0
+    backstage.io/source-location: url:https://github.com/k1s0/k1s0/tree/main/examples/tier3-native-maui
+  tags:
+    - tier3
+    - dotnet
+    - maui
+    - native
+    - mobile
+    - example
+spec:
+  type: application
+  lifecycle: experimental
+  owner: group:k1s0-platform
+  system: k1s0
+  dependsOn:
+    - component:tier1-facade
+  consumesApis:
+    - api:k1s0-tier1-state

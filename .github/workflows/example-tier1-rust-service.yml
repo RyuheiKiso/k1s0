@@ -1,0 +1,34 @@
+# 週次 E2E（examples/tier1-rust-service の build / test 検証）。
+# 設計: docs/05_実装/00_ディレクトリ設計/70_共通資産/03_examples配置.md（IMP-DIR-COMM-113）
+name: example-tier1-rust-service
+
+on:
+  # 毎週月曜 UTC 03:00 = JST 12:00
+  schedule:
+    - cron: "0 3 * * 1"
+  # PR で当該 example が変更された場合も実行
+  pull_request:
+    paths:
+      - "examples/tier1-rust-service/**"
+      - "src/contracts/**"
+      - "src/sdk/rust/**"
+      - ".github/workflows/example-tier1-rust-service.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.0
+      - name: cargo check
+        working-directory: examples/tier1-rust-service
+        run: cargo check --all-targets
+      - name: cargo test
+        working-directory: examples/tier1-rust-service
+        run: cargo test --all-targets

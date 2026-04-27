@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tier2-example-dotnet-service
+  description: tier2 .NET サービス Golden Path 完動例（K1s0.Sdk.Grpc 経由 State API デモ）
+  annotations:
+    github.com/project-slug: k1s0/k1s0
+    backstage.io/source-location: url:https://github.com/k1s0/k1s0/tree/main/examples/tier2-dotnet-service
+  tags:
+    - tier2
+    - dotnet
+    - aspnetcore
+    - example
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:k1s0-platform
+  system: k1s0
+  dependsOn:
+    - component:tier1-facade
+  consumesApis:
+    - api:k1s0-tier1-state
