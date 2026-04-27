@@ -56,7 +56,7 @@ tier2 の各サービスは独立にビルド・デプロイ可能。
 | 適用段階 | 追加内容 |
 |---|---|
 | リリース時点 | 構造のみ（`services/` 空ディレクトリ + README） |
-| リリース時点 | `templates/dotnet-service/` と `templates/go-service/` を整備。雛形 CLI（src/platform/cli/）が参照する |
+| リリース時点 | `templates/dotnet-service/` と `templates/go-service/` を整備。k1s0-scaffold CLI（src/platform/scaffold/）が参照する |
 | リリース時点 | 採用側組織の業務サービス 2-3 個を実装（承認フロー・帳票生成・在庫同期など） |
 | リリース時点 | 品質確保（unit / integration / contract テスト拡充） |
 | 採用後の運用拡大時 | 追加サービスや外部連携の拡張 |

@@ -1,0 +1,65 @@
+# =============================================================================
+# tier2 .NET ドメインサービスの Backstage Software Template v1beta3 定義。
+# IMP-CODEGEN-SCF-032。
+# =============================================================================
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: tier2-dotnet-service
+  title: Tier2 .NET Service
+  description: tier2 ドメイン共通業務ロジックを提供する .NET (ASP.NET Core minimal API) サービスの雛形
+  tags:
+    - dotnet
+    - tier2
+    - k1s0
+    - paved-road
+  annotations:
+    k1s0.io/template-version: "0.1.0"
+spec:
+  owner: k1s0/platform-team
+  type: service
+  parameters:
+    - title: 基本情報
+      required:
+        - name
+        - namespace
+        - owner
+        - system
+      properties:
+        name:
+          title: サービス名（kebab-case）
+          type: string
+          pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+        namespace:
+          title: .NET ルート名前空間（PascalCase）
+          type: string
+          pattern: "^[A-Z][A-Za-z0-9.]*$"
+          description: 例 `K1s0.Payment.Approval`
+        owner:
+          title: 所有チーム
+          type: string
+        system:
+          title: 所属サブシステム
+          type: string
+          default: k1s0
+        description:
+          title: 概要説明
+          type: string
+          default: tier2 .NET ドメインサービス
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          namespace: ${{ parameters.namespace }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          description: ${{ parameters.description }}
+          tier: tier2
+          language: dotnet
+    - id: publish
+      name: Publish to Git
+      action: publish:github

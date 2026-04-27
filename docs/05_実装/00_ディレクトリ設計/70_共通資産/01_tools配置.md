@@ -4,7 +4,7 @@
 
 ## tools/ の役割
 
-`src/platform/cli/` にある Rust 実装の k1s0 CLI と、`ops/scripts/` の運用スクリプトの中間に位置し、「開発時に使うが、運用本番では実行されないスクリプト」を置く。
+`src/platform/scaffold/` にある Rust 実装の k1s0-scaffold CLI と、`ops/scripts/` の運用スクリプトの中間に位置し、「開発時に使うが、運用本番では実行されないスクリプト」を置く。
 
 - Dev Container 設定
 - Local-stack（kind / k3d のブートストラップ）
@@ -123,7 +123,7 @@ BFF の REST endpoint から OpenAPI schema を抽出し、tier3 Web 向け Type
 
 ### scaffold/
 
-新サービスの雛形生成。handlebars template で Service 名・Owner team 等を差し込む。`src/platform/cli/` の Rust CLI から呼ばれる低レベル実装。
+新サービスの雛形生成。handlebars template で Service 名・Owner team 等を差し込む。`src/platform/scaffold/` の Rust CLI から呼ばれる低レベル実装。
 
 ## sparse/ の CLI
 

@@ -137,7 +137,7 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ```text
 /src/platform/                                  @k1s0/platform-team
-/src/platform/cli/                              @k1s0/platform-team @k1s0/tier1-rust
+/src/platform/scaffold/                         @k1s0/platform-team @k1s0/tier1-rust
 /src/platform/analyzer/                         @k1s0/platform-team
 /src/platform/backstage-plugins/                @k1s0/platform-team
 ```

@@ -1,0 +1,20 @@
+# {{name}}
+
+{{description}}
+
+## 概要
+
+`k1s0-scaffold tier2-go-service` から生成された tier2 Go ドメインサービス。`{{tier}}` 階層に位置し、`{{language}}` で実装される。
+
+## 開発
+
+```bash
+go build ./cmd/{{name}}
+./{{name}} --listen :8080 --tier1-target localhost:50001
+```
+
+## 関連
+
+- 所有チーム: {{owner}}
+- 所属システム: {{system}}
+- テンプレート: [`src/tier2/templates/go-service/`](https://github.com/k1s0/k1s0/tree/main/src/tier2/templates/go-service)（metadata.name: `tier2-go-service`）

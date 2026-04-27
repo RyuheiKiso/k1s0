@@ -1,0 +1,30 @@
+// k1s0-scaffold が生成した {{name}} のエントリポイント。
+// {{description}}
+using K1s0.Sdk;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// k1s0 Client を Singleton として登録（DI 経由で各 endpoint で参照）。
+builder.Services.AddSingleton(_ => new K1s0Client(new K1s0Config
+{
+    Target = builder.Configuration.GetValue<string>("K1s0:Target") ?? "http://localhost:50001",
+    TenantId = builder.Configuration.GetValue<string>("K1s0:TenantId") ?? "tenant-{{name}}",
+    Subject = builder.Configuration.GetValue<string>("K1s0:Subject") ?? "{{name}}",
+}));
+
+var app = builder.Build();
+
+// /healthz: liveness。
+app.MapGet("/healthz", () => Results.Ok("ok"));
+// /readyz: readiness。採用初期 で tier1 facade health check に置換予定。
+app.MapGet("/readyz", () => Results.Ok("ready"));
+
+// /sample-write: 採用組織のドメインロジックに置換するサンプル endpoint。
+app.MapPost("/sample-write", async (K1s0Client client, CancellationToken ct) =>
+{
+    var data = System.Text.Encoding.UTF8.GetBytes(DateTime.UtcNow.ToString("O"));
+    var etag = await client.State.SaveAsync("valkey-default", "{{name}}/last-call", data, ct: ct);
+    return Results.Ok(new { saved = true, etag });
+});
+
+app.Run();

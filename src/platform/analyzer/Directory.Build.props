@@ -1,0 +1,17 @@
+<!--
+  k1s0 DependencyDirection Roslyn Analyzer 共通プロパティ。
+  langversion / nullable / TreatWarningsAsErrors 等を全 csproj に適用する。
+-->
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Authors>k1s0 platform-team</Authors>
+    <Company>k1s0</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/k1s0/k1s0</RepositoryUrl>
+  </PropertyGroup>
+</Project>

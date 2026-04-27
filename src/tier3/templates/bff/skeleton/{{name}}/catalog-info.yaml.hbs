@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: {{name}}
+  description: {{description}}
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    github.com/project-slug: k1s0/{{name}}
+    k1s0.io/tier: {{tier}}
+    k1s0.io/language: {{language}}
+  tags:
+    - {{tier}}
+    - bff
+spec:
+  type: service
+  lifecycle: experimental
+  owner: {{owner}}
+  system: {{system}}
+  dependsOn:
+    - component:default/k1s0-sdk-go
+  consumesApis:
+    - api:k1s0-tier1-state

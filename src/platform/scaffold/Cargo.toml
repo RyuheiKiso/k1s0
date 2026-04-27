@@ -1,0 +1,64 @@
+# =============================================================================
+# k1s0-scaffold: Backstage Software Template 互換 Scaffold CLI
+#
+# 設計正典:
+#   docs/05_実装/20_コード生成設計/30_Scaffold_CLI/01_Scaffold_CLI設計.md（IMP-CODEGEN-SCF-030〜037）
+#   docs/05_実装/50_開発者体験設計/30_Scaffold_CLI運用/01_Scaffold_CLI運用.md
+#   docs/02_構想設計/adr/ADR-DEV-001-paved-road.md
+#   docs/02_構想設計/adr/ADR-BS-001（Backstage 採用）
+#
+# 役割:
+#   - tier2 / tier3 の新規サービス雛形展開（Backstage Software Template v1beta3 互換）
+#   - 4 テンプレート対応: tier2-go-service / tier2-dotnet-service / tier3-bff / tier3-web
+#   - CLI 経路（`scaffold list` / `scaffold new`）と Backstage UI 経路（custom action）の
+#     両方が同一エンジン（src/lib.rs）を呼び、生成結果のバイト一致を保証する
+#
+# 配布:
+#   GitHub Releases で multi-arch（linux-x64 / linux-arm64 / darwin-arm64 / windows-x64）
+#   `cargo build --release` で単一静的バイナリが得られる
+# =============================================================================
+
+[package]
+name = "k1s0-scaffold"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+description = "k1s0 Backstage Software Template 互換 Scaffold CLI"
+repository = "https://github.com/k1s0/k1s0"
+publish = false
+
+# CLI binary（bin）と engine library（lib）の 2 ターゲット。
+# Backstage UI 経路は lib を直接呼ぶ（custom action k1s0:scaffold-engine）。
+[[bin]]
+name = "k1s0-scaffold"
+path = "src/main.rs"
+
+[lib]
+name = "k1s0_scaffold"
+path = "src/lib.rs"
+
+[dependencies]
+# CLI 引数解析
+clap = { version = "4.5", features = ["derive"] }
+# template.yaml 読込
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+# Handlebars テンプレートエンジン
+handlebars = "5.1"
+# skeleton ディレクトリ走査
+walkdir = "2.5"
+# エラーハンドリング
+anyhow = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
+# 一時ディレクトリ生成（テスト用）
+tempfile = "3.10"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"

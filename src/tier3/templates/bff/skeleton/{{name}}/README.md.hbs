@@ -1,0 +1,14 @@
+# {{name}}
+
+{{description}}
+
+## 開発
+
+```bash
+go run ./cmd/{{name}} --listen :8080 --tier1-target localhost:50001
+```
+
+`POST http://localhost:8080/graphql` で GraphQL クエリを受ける。
+
+- 所有チーム: {{owner}}
+- 所属システム: {{system}}

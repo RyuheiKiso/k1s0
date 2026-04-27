@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-# 引数チェック（ServiceType 名は src/platform/cli の SupportedTypes と整合する 4 種）
+# 引数チェック（テンプレ名は src/platform/scaffold/ engine が走査する template.yaml metadata.name と整合する 4 種）
 if [[ $# -ne 1 ]]; then
     echo "usage: $0 <tier2-go-service|tier2-dotnet-service|tier3-bff|tier3-web>" >&2
     exit 2
@@ -38,9 +38,9 @@ trap 'rm -rf "${WORK}"' EXIT
 
 mkdir -p "${WORK}/actual" "${WORK}/expected"
 
-# k1s0-scaffold は src/platform/cli/cmd/k1s0-scaffold で go run できる前提（採用初期 で binary 化）
-cd "${REPO_ROOT}/src/platform/cli"
-go run ./cmd/k1s0-scaffold "${SCAFFOLD_NAME}" --name golden-fixture --owner k1s0-test --out "${WORK}/actual"
+# k1s0-scaffold は src/platform/scaffold/ で cargo run できる前提（採用初期 で multi-arch binary を GitHub Releases 配布）
+cd "${REPO_ROOT}/src/platform/scaffold"
+cargo run --release -- new "${SCAFFOLD_NAME}" --name golden-fixture --owner @k1s0/test --out "${WORK}/actual"
 
 # 期待値を展開
 tar -xzf "${EXPECTED_TGZ}" -C "${WORK}/expected/"

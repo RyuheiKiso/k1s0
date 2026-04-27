@@ -1,0 +1,59 @@
+# =============================================================================
+# tier3 Web SPA の Backstage Software Template v1beta3 定義（React + Vite + TS）。
+# IMP-CODEGEN-SCF-034。
+# =============================================================================
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: tier3-web
+  title: Tier3 Web SPA (React + Vite + TS)
+  description: tier3 ユーザ向け Web フロントエンド（React 18 + Vite + TypeScript strict）の雛形
+  tags:
+    - typescript
+    - react
+    - tier3
+    - web
+    - k1s0
+  annotations:
+    k1s0.io/template-version: "0.1.0"
+spec:
+  owner: k1s0/platform-team
+  type: website
+  parameters:
+    - title: 基本情報
+      required:
+        - name
+        - owner
+        - system
+      properties:
+        name:
+          title: アプリ名（kebab-case）
+          type: string
+          pattern: "^[a-z][a-z0-9-]*[a-z0-9]$"
+        owner:
+          title: 所有チーム
+          type: string
+        system:
+          title: 所属サブシステム
+          type: string
+          default: k1s0
+        description:
+          title: 概要説明
+          type: string
+          default: tier3 React Web SPA
+  steps:
+    - id: fetch
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          system: ${{ parameters.system }}
+          description: ${{ parameters.description }}
+          tier: tier3
+          language: typescript
+    - id: publish
+      name: Publish to Git
+      action: publish:github
