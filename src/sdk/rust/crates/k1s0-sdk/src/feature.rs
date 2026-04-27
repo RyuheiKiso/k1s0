@@ -1,10 +1,10 @@
 // 本ファイルは k1s0-sdk の Feature 動詞統一 facade（評価部のみ）。
 use crate::client::Client;
 use crate::proto::k1s0::tier1::feature::v1::{
-    feature_service_client::FeatureServiceClient, EvaluateRequest, FlagMetadata,
+    EvaluateRequest, FlagMetadata, feature_service_client::FeatureServiceClient,
 };
 use std::collections::HashMap;
-use tonic::{transport::Channel, Status};
+use tonic::{Status, transport::Channel};
 
 /// FeatureFacade は FeatureService の動詞統一 facade。
 pub struct FeatureFacade {
@@ -18,7 +18,11 @@ impl FeatureFacade {
         Self { client, raw }
     }
 
-    fn make_req(&self, flag_key: &str, evaluation_context: HashMap<String, String>) -> EvaluateRequest {
+    fn make_req(
+        &self,
+        flag_key: &str,
+        evaluation_context: HashMap<String, String>,
+    ) -> EvaluateRequest {
         EvaluateRequest {
             flag_key: flag_key.to_string(),
             evaluation_context,
@@ -32,7 +36,11 @@ impl FeatureFacade {
         flag_key: &str,
         eval_ctx: HashMap<String, String>,
     ) -> Result<(bool, Option<FlagMetadata>), Status> {
-        let resp = self.raw.evaluate_boolean(self.make_req(flag_key, eval_ctx)).await?.into_inner();
+        let resp = self
+            .raw
+            .evaluate_boolean(self.make_req(flag_key, eval_ctx))
+            .await?
+            .into_inner();
         Ok((resp.value, resp.metadata))
     }
 
@@ -42,7 +50,11 @@ impl FeatureFacade {
         flag_key: &str,
         eval_ctx: HashMap<String, String>,
     ) -> Result<(String, Option<FlagMetadata>), Status> {
-        let resp = self.raw.evaluate_string(self.make_req(flag_key, eval_ctx)).await?.into_inner();
+        let resp = self
+            .raw
+            .evaluate_string(self.make_req(flag_key, eval_ctx))
+            .await?
+            .into_inner();
         Ok((resp.value, resp.metadata))
     }
 
@@ -52,7 +64,11 @@ impl FeatureFacade {
         flag_key: &str,
         eval_ctx: HashMap<String, String>,
     ) -> Result<(f64, Option<FlagMetadata>), Status> {
-        let resp = self.raw.evaluate_number(self.make_req(flag_key, eval_ctx)).await?.into_inner();
+        let resp = self
+            .raw
+            .evaluate_number(self.make_req(flag_key, eval_ctx))
+            .await?
+            .into_inner();
         Ok((resp.value, resp.metadata))
     }
 
@@ -62,7 +78,11 @@ impl FeatureFacade {
         flag_key: &str,
         eval_ctx: HashMap<String, String>,
     ) -> Result<(Vec<u8>, Option<FlagMetadata>), Status> {
-        let resp = self.raw.evaluate_object(self.make_req(flag_key, eval_ctx)).await?.into_inner();
+        let resp = self
+            .raw
+            .evaluate_object(self.make_req(flag_key, eval_ctx))
+            .await?
+            .into_inner();
         Ok((resp.value_json, resp.metadata))
     }
 }

@@ -7,9 +7,9 @@
 //   4. 各 path / file content を Handlebars でレンダリング、`.hbs` 拡張子を取り除いて出力
 //   5. dry_run=true なら ファイル出力せず stdout に diff のみ出力
 
+use crate::ScaffoldValues;
 use crate::error::ScaffoldError;
 use crate::template;
-use crate::ScaffoldValues;
 use handlebars::Handlebars;
 use serde_json::{Map, Value};
 use std::fs;
@@ -53,8 +53,7 @@ fn locate_template(templates_root: &Path, template_name: &str) -> Result<PathBuf
         for entry in std::fs::read_dir(&dir)
             .map_err(|e| ScaffoldError::Io(format!("read_dir {}: {}", dir.display(), e)))?
         {
-            let entry = entry
-                .map_err(|e| ScaffoldError::Io(format!("read_dir entry: {}", e)))?;
+            let entry = entry.map_err(|e| ScaffoldError::Io(format!("read_dir entry: {}", e)))?;
             let template_yaml = entry.path().join("template.yaml");
             if !template_yaml.is_file() {
                 continue;
@@ -166,14 +165,16 @@ pub fn render_skeleton(
         // 通常ファイルは内容を Handlebars でレンダリングして書き出す。
         let raw = fs::read_to_string(path)
             .map_err(|e| ScaffoldError::Io(format!("read {}: {}", path.display(), e)))?;
-        let rendered = hb
-            .render_template(&raw, context)
-            .map_err(|e| {
-                ScaffoldError::Render(format!("content render '{}': {}", rel.display(), e))
-            })?;
+        let rendered = hb.render_template(&raw, context).map_err(|e| {
+            ScaffoldError::Render(format!("content render '{}': {}", rel.display(), e))
+        })?;
 
         if dry_run {
-            println!("[dry-run] write   {} ({} bytes)", dest.display(), rendered.len());
+            println!(
+                "[dry-run] write   {} ({} bytes)",
+                dest.display(),
+                rendered.len()
+            );
         } else {
             if let Some(parent) = dest.parent() {
                 fs::create_dir_all(parent)

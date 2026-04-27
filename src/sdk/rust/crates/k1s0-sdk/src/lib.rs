@@ -16,35 +16,35 @@
 pub use k1s0_sdk_proto as proto;
 
 // 公開 sub module（12 service すべて）。
+pub mod audit;
+pub mod binding;
 pub mod client;
-pub mod state;
+pub mod decision;
+pub mod decision_admin;
+pub mod feature;
+pub mod feature_admin;
+pub mod invoke;
+pub mod log;
+pub mod pii;
 pub mod pubsub;
 pub mod secrets;
-pub mod log;
-pub mod workflow;
-pub mod decision;
-pub mod audit;
-pub mod pii;
-pub mod feature;
-pub mod binding;
-pub mod invoke;
+pub mod state;
 pub mod telemetry;
-pub mod decision_admin;
-pub mod feature_admin;
+pub mod workflow;
 
 // 主要型を crate ルートで再 export する（`use k1s0_sdk::Client;` で使えるように）。
+pub use audit::AuditFacade;
+pub use binding::BindingFacade;
 pub use client::{Client, Config};
-pub use state::StateFacade;
+pub use decision::DecisionFacade;
+pub use decision_admin::DecisionAdminFacade;
+pub use feature::FeatureFacade;
+pub use feature_admin::FeatureAdminFacade;
+pub use invoke::InvokeFacade;
+pub use log::LogFacade;
+pub use pii::PiiFacade;
 pub use pubsub::PubSubFacade;
 pub use secrets::SecretsFacade;
-pub use log::LogFacade;
-pub use workflow::WorkflowFacade;
-pub use decision::DecisionFacade;
-pub use audit::AuditFacade;
-pub use pii::PiiFacade;
-pub use feature::FeatureFacade;
-pub use binding::BindingFacade;
-pub use invoke::InvokeFacade;
+pub use state::StateFacade;
 pub use telemetry::TelemetryFacade;
-pub use decision_admin::DecisionAdminFacade;
-pub use feature_admin::FeatureAdminFacade;
+pub use workflow::WorkflowFacade;

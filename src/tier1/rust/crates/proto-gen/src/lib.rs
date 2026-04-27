@@ -7,6 +7,11 @@
 //   docs/04_概要設計/20_ソフトウェア方式設計/03_内部インタフェース方式設計/01_内部gRPC契約方式.md
 //     - DS-SW-IIF-004（命名 k1s0.internal.<comp>.v<version>.<ServiceName>）
 //
+// 注: neoeinstein-prost の生成物（.rs）は末尾で対応する .tonic.rs を `include!` で
+//     自動取り込みするため、本 lib.rs では .rs だけを include すれば tonic 生成も
+//     一緒に取り込まれる。.tonic.rs を別途 include すると `pub mod *_service_client`
+//     等が二重定義され E0428 で fail する。
+//
 // crate 全体で警告を error にしない（生成物の deprecated アトリビュート許容）
 #![allow(clippy::all, rustdoc::all)]
 
@@ -24,21 +29,18 @@ pub mod k1s0 {
         pub mod audit {
             pub mod v1 {
                 include!("./k1s0.internal.audit.v1.rs");
-                include!("./k1s0.internal.audit.v1.tonic.rs");
             }
         }
         // Decision core service v1（COMP-T1-DECISION、EvaluateDecision）
         pub mod decision {
             pub mod v1 {
                 include!("./k1s0.internal.decision.v1.rs");
-                include!("./k1s0.internal.decision.v1.tonic.rs");
             }
         }
         // PII Mask core service v1（COMP-T1-PII、MaskPii / MaskPiiBatch）
         pub mod pii {
             pub mod v1 {
                 include!("./k1s0.internal.pii.v1.rs");
-                include!("./k1s0.internal.pii.v1.tonic.rs");
             }
         }
     }

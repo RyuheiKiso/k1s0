@@ -4,6 +4,11 @@
 use thiserror::Error;
 
 // scaffold engine が返すエラーの統一表現。
+//
+// `anyhow::Error` への変換は anyhow の blanket `impl<E: std::error::Error + Send +
+// Sync + 'static> From<E> for anyhow::Error` が自動的に提供するため、
+// 明示的な `impl From<ScaffoldError> for anyhow::Error` は **書かない**こと
+// （E0119 で blanket と衝突する）。
 #[derive(Debug, Error)]
 pub enum ScaffoldError {
     // I/O 関連（read / write / mkdir / git）
@@ -18,10 +23,4 @@ pub enum ScaffoldError {
     // Handlebars テンプレ展開失敗
     #[error("render: {0}")]
     Render(String),
-}
-
-impl From<ScaffoldError> for anyhow::Error {
-    fn from(e: ScaffoldError) -> Self {
-        anyhow::anyhow!(e)
-    }
 }

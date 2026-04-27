@@ -3,10 +3,10 @@
 
 use crate::client::Client;
 use crate::proto::k1s0::tier1::secrets::v1::{
-    secrets_service_client::SecretsServiceClient, GetSecretRequest, RotateSecretRequest,
+    GetSecretRequest, RotateSecretRequest, secrets_service_client::SecretsServiceClient,
 };
 use std::collections::HashMap;
-use tonic::{transport::Channel, Status};
+use tonic::{Status, transport::Channel};
 
 /// SecretsFacade は SecretsService の動詞統一 facade。
 pub struct SecretsFacade {

@@ -1,10 +1,10 @@
 // 本ファイルは k1s0-sdk の FeatureAdmin 動詞統一 facade。
 use crate::client::Client;
 use crate::proto::k1s0::tier1::feature::v1::{
-    feature_admin_service_client::FeatureAdminServiceClient, FlagDefinition, FlagKind, FlagState,
-    GetFlagRequest, ListFlagsRequest, RegisterFlagRequest,
+    FlagDefinition, FlagKind, FlagState, GetFlagRequest, ListFlagsRequest, RegisterFlagRequest,
+    feature_admin_service_client::FeatureAdminServiceClient,
 };
-use tonic::{transport::Channel, Status};
+use tonic::{Status, transport::Channel};
 
 pub struct FeatureAdminFacade {
     client: Client,
@@ -24,12 +24,16 @@ impl FeatureAdminFacade {
         change_reason: &str,
         approval_id: &str,
     ) -> Result<i64, Status> {
-        let resp = self.raw.register_flag(RegisterFlagRequest {
-            flag: Some(flag),
-            change_reason: change_reason.to_string(),
-            approval_id: approval_id.to_string(),
-            context: Some(self.client.tenant_context()),
-        }).await?.into_inner();
+        let resp = self
+            .raw
+            .register_flag(RegisterFlagRequest {
+                flag: Some(flag),
+                change_reason: change_reason.to_string(),
+                approval_id: approval_id.to_string(),
+                context: Some(self.client.tenant_context()),
+            })
+            .await?
+            .into_inner();
         Ok(resp.version)
     }
 
@@ -39,11 +43,15 @@ impl FeatureAdminFacade {
         flag_key: &str,
         version: Option<i64>,
     ) -> Result<(Option<FlagDefinition>, i64), Status> {
-        let resp = self.raw.get_flag(GetFlagRequest {
-            flag_key: flag_key.to_string(),
-            version,
-            context: Some(self.client.tenant_context()),
-        }).await?.into_inner();
+        let resp = self
+            .raw
+            .get_flag(GetFlagRequest {
+                flag_key: flag_key.to_string(),
+                version,
+                context: Some(self.client.tenant_context()),
+            })
+            .await?
+            .into_inner();
         Ok((resp.flag, resp.version))
     }
 
@@ -53,11 +61,15 @@ impl FeatureAdminFacade {
         kind: Option<FlagKind>,
         state: Option<FlagState>,
     ) -> Result<Vec<FlagDefinition>, Status> {
-        let resp = self.raw.list_flags(ListFlagsRequest {
-            kind: kind.map(|k| k as i32),
-            state: state.map(|s| s as i32),
-            context: Some(self.client.tenant_context()),
-        }).await?.into_inner();
+        let resp = self
+            .raw
+            .list_flags(ListFlagsRequest {
+                kind: kind.map(|k| k as i32),
+                state: state.map(|s| s as i32),
+                context: Some(self.client.tenant_context()),
+            })
+            .await?
+            .into_inner();
         Ok(resp.flags)
     }
 }

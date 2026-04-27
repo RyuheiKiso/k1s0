@@ -7,14 +7,14 @@
 #![deny(unsafe_code)]
 
 // 公開モジュール（外部から呼ばれる API）。
-pub mod template;
 pub mod engine;
 pub mod error;
+pub mod template;
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-pub use engine::{scaffold, render_skeleton};
+pub use engine::{render_skeleton, scaffold};
 pub use error::ScaffoldError;
 pub use template::{TemplateManifest, TemplateMetadata};
 
@@ -65,8 +65,7 @@ pub fn list_templates(templates_root: &Path) -> Result<Vec<TemplateSummary>, Sca
         for entry in std::fs::read_dir(&dir)
             .map_err(|e| ScaffoldError::Io(format!("read_dir {}: {}", dir.display(), e)))?
         {
-            let entry = entry
-                .map_err(|e| ScaffoldError::Io(format!("read_dir entry: {}", e)))?;
+            let entry = entry.map_err(|e| ScaffoldError::Io(format!("read_dir entry: {}", e)))?;
             let template_yaml = entry.path().join("template.yaml");
             if !template_yaml.is_file() {
                 continue;

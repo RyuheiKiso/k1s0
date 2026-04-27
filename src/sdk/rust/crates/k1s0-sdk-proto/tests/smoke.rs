@@ -31,7 +31,10 @@ fn common_types_accessible() {
     let _ = TenantContext::default();
     let _ = ErrorDetail::default();
     // K1s0ErrorCategory の数値が IDL 正典と整合すること。
-    assert_eq!(K1s0ErrorCategory::Unspecified as i32, 0);
-    assert_eq!(K1s0ErrorCategory::InvalidArgument as i32, 1);
-    assert_eq!(K1s0ErrorCategory::DeadlineExceeded as i32, 9);
+    // proto enum 値は K1S0_ERROR_<NAME>。buf lint で ENUM_VALUE_PREFIX を除外している
+    // ため prost 標準の prefix 削除が効かず、生成 Rust 側は `K1s0Error<Name>` の
+    // PascalCase 全文を保持する。
+    assert_eq!(K1s0ErrorCategory::K1s0ErrorUnspecified as i32, 0);
+    assert_eq!(K1s0ErrorCategory::K1s0ErrorInvalidArgument as i32, 1);
+    assert_eq!(K1s0ErrorCategory::K1s0ErrorDeadlineExceeded as i32, 9);
 }
