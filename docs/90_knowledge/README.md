@@ -13,6 +13,7 @@
 長期的に保守可能なシステム構造の前提となる設計思想を扱う。k1s0 の tier1/tier2/tier3 階層構造や Dapr ファサード方針の正当化根拠を追跡する際に参照する。
 
 - [clean-architecture_basics.md](architecture/clean-architecture_basics.md)
+- [vertical-slice-architecture_basics.md](architecture/vertical-slice-architecture_basics.md)
 
 ### framework — フレームワーク
 
@@ -104,7 +105,10 @@ k1s0 の自作領域 (Rust) と Dapr ファサード層 (Go) の言語仕様。R
 
 - [rust_basics.md](language/rust_basics.md)
 - [rust_ownership.md](language/rust_ownership.md)
+- [rust_crates.md](language/rust_crates.md)
+- [rust_zero-cost-abstractions.md](language/rust_zero-cost-abstractions.md)
 - [go_basics.md](language/go_basics.md)
+- [go_goroutines.md](language/go_goroutines.md)
 
 ### library — ライブラリ
 
@@ -138,6 +142,10 @@ ADR・MVP・E2E テスト・OSS ライセンスなど、開発プロセスとガ
 
 - [apache-license_basics.md](methodology/apache-license_basics.md)
 - [mit-license_basics.md](methodology/mit-license_basics.md)
+
+#### AI エージェント開発
+
+- [harness-engineering_basics.md](methodology/harness-engineering_basics.md)
 
 ### protocol — 通信プロトコル
 

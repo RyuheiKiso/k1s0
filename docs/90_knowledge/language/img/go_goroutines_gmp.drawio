@@ -1,0 +1,162 @@
+<mxfile>
+  <diagram name="GMP scheduler" id="gmp">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Go ランタイム: GMP スケジューラ" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="240" y="10" width="420" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lblG" value="Goroutine (G)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="80" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="G1" value="G1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="G2" value="G2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="G3" value="G3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="G4" value="G4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="G5" value="G5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="G6" value="G6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Gdots" value="..." style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Gnote" value="数千〜数万個生成可能（初期スタック 2KB、必要に応じ動的に拡縮）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="180" y="125" width="500" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrGP" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="155" as="sourcePoint" />
+            <mxPoint x="435" y="195" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lblGP" value="Go runtime が G を P のローカルキューへ割当" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#666666;labelBackgroundColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="455" y="160" width="320" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lblP" value="Logical Processor (P)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="195" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="P0" value="P0&#10;(local run queue)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="195" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="P1" value="P1&#10;(local run queue)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="195" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="P2" value="P2&#10;(local run queue)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="195" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Pnote" value="GOMAXPROCS 個（既定では論理 CPU 数）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="180" y="260" width="500" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrP0M0" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="245" y="290" as="sourcePoint" />
+            <mxPoint x="245" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrP1M1" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="290" as="sourcePoint" />
+            <mxPoint x="435" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrP2M2" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="625" y="290" as="sourcePoint" />
+            <mxPoint x="625" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="lblM" value="OS Thread (M)" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="320" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="M0" value="M0&#10;(OS thread)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="320" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="M1" value="M1&#10;(OS thread)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="320" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="M2" value="M2&#10;(OS thread)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="320" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Mnote" value="P と 1:1 で対応。syscall ブロック中の M は P を解放し、ランタイムが別 M を確保する" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="180" y="385" width="510" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrM0OS" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="245" y="415" as="sourcePoint" />
+            <mxPoint x="245" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrM1OS" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="435" y="415" as="sourcePoint" />
+            <mxPoint x="435" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrM2OS" value="" style="endArrow=block;endFill=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="625" y="415" as="sourcePoint" />
+            <mxPoint x="625" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="lblOS" value="OS / CPU" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="445" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="OS" value="OS Kernel / CPU Cores" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="445" width="510" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legendBox" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="720" y="195" width="160" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legendTitle" value="凡例" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="720" y="200" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legGcolor" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="730" y="230" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legG" value="G: 軽量スレッド" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="755" y="225" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legPcolor" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="730" y="270" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legP" value="P: 論理プロセッサ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="755" y="265" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legMcolor" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="730" y="310" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legM" value="M: OS スレッド" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="755" y="305" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legOScolor" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="730" y="350" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legOS" value="OS Kernel / CPU" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="755" y="345" width="120" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

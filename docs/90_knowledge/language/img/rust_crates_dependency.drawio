@@ -1,0 +1,67 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="rust_crates_dependency" id="rust_crates_dependency">
+    <mxGraphModel dx="900" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="クレートの依存解決フロー（cargo がやること）" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="820" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="toml" value="Cargo.toml&#10;[dependencies]&#10;serde = &quot;1.0&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="cargo" value="cargo build / cargo check&#10;（resolver）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="200" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="srcbox" value="依存ソース（取得元）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="60" width="320" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="src1" value="crates.io（公式レジストリ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="100" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src2" value="git URL（GitHub 等のリポジトリ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="160" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src3" value="path = &quot;../local-crate&quot;（ローカル）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="220" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="src4" value="社内別レジストリ（registry-name）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="280" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lock" value="Cargo.lock&#10;（依存ツリー全体の確定バージョンを記録）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="280" y="380" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="deps" value="target/deps&#10;（DL 済み &amp; コンパイル成果物）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="380" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;edgeStyle=none;rounded=0;strokeColor=#333333;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="toml" target="cargo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;edgeStyle=none;rounded=0;strokeColor=#333333;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="cargo" target="srcbox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;edgeStyle=none;rounded=0;strokeColor=#333333;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="cargo" target="lock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" style="endArrow=classic;html=1;edgeStyle=none;rounded=0;strokeColor=#333333;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="srcbox" target="deps">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="依存指定" style="text;html=1;align=center;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="232" y="170" width="68" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="解決" style="text;html=1;align=center;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="490" y="160" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="lock 生成" style="text;html=1;align=center;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="180" y="320" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="DL/ビルド" style="text;html=1;align=center;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="750" y="350" width="100" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
