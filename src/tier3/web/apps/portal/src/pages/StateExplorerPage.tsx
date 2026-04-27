@@ -2,16 +2,21 @@
 //
 // 使い方: store / key を入力して BFF 経由で State.Get を呼び、結果を表示する。
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, Card, Spinner } from '@k1s0/ui';
 import { createApiClient } from '@k1s0/api-client';
 import { loadConfig } from '@k1s0/config';
 
-// グローバル ApiClient（リリース時点 minimum、リリース時点 で React Context に移行）。
-const config = loadConfig(import.meta.env);
-const apiClient = createApiClient({ config });
-
 export function StateExplorerPage() {
+  // ApiClient はコンポーネント初回 render 時に lazy 構築する。
+  // 旧実装は module top-level で `loadConfig(import.meta.env)` を呼んでいたため
+  // VITE_BFF_URL 未設定の vitest 環境で App をロードした瞬間に throw し、
+  // 単純な smoke test も走らなかった（リリース時点 で React Context に移行する
+  // までの暫定的な分離措置）。
+  const apiClient = useMemo(() => {
+    const config = loadConfig(import.meta.env);
+    return createApiClient({ config });
+  }, []);
   const [store, setStore] = useState('postgres');
   const [key, setKey] = useState('user/123');
   const [loading, setLoading] = useState(false);
