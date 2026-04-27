@@ -325,8 +325,12 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
   - Rust: `client.invoke().stream(...).await` / `client.pubsub().subscribe(...).await`（`tonic::Streaming<T>` 返却）
   - TypeScript: `client.invoke.stream(...)` / `client.pubsub.subscribe(...)`（`AsyncIterable<T>` 返却、`for await` で消費）
   - .NET: `client.Invoke.StreamAsync(...)` / `client.PubSub.SubscribeAsync(...)`（`IAsyncEnumerable<T>` 返却、`await foreach` で消費）
+- ✅ 各 facade の単体テスト雛形を 4 言語に配置
+  - Go: `src/sdk/go/k1s0/client_test.go`（bufconn ベース、4 tests）
+  - Rust: `src/sdk/rust/crates/{k1s0-sdk,k1s0-sdk-proto}/tests/smoke.rs`（Config / proto 型 / Severity / K1s0ErrorCategory 整合）
+  - TypeScript: `src/sdk/typescript/src/__tests__/client.test.ts` + `vitest.config.ts`（5 tests / vitest）
+  - .NET: `src/sdk/dotnet/tests/K1s0.Sdk.Grpc.Tests/`（xunit + coverlet、5 tests）
 - 🔲 残り（採用後の運用拡大時）:
   - netstandard2.1 多重 TFM 再導入（OSS 配布の互換性向上）
-  - 各 facade の単体テスト雛形
 
 各タスクは完成のたびに本 SHIP_STATUS.md のマチュリティ表を更新する運用とする。
