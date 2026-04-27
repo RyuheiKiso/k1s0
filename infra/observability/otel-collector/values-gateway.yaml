@@ -1,0 +1,105 @@
+# OpenTelemetry Collector "gateway"（Deployment、agent からの集約 + 各 backend へファンアウト）。
+# helm upgrade --install otel-collector-gateway open-telemetry/opentelemetry-collector -n observability -f values-gateway.yaml
+
+mode: deployment
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: 0.115.0
+
+# HA 構成
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2
+    memory: 2Gi
+
+# 配信先別 exporter を設定（loki / tempo / mimir / pyroscope に分配）
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    batch:
+      timeout: 10s
+      send_batch_size: 4096
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+    tail_sampling:
+      decision_wait: 10s
+      num_traces: 100000
+      expected_new_traces_per_sec: 1000
+      policies:
+        - name: errors
+          type: status_code
+          status_code:
+            status_codes: [ERROR]
+        - name: slow-requests
+          type: latency
+          latency:
+            threshold_ms: 1000
+        - name: probabilistic
+          type: probabilistic
+          probabilistic:
+            sampling_percentage: 5
+
+  exporters:
+    # Tempo へ traces 転送
+    otlp/tempo:
+      endpoint: tempo-distributor.observability.svc.cluster.local:4317
+      tls:
+        insecure: true
+    # Loki へ logs 転送
+    loki:
+      endpoint: http://loki-gateway.observability.svc.cluster.local:80/loki/api/v1/push
+    # Mimir へ metrics 転送（Prometheus remote write 互換）
+    prometheusremotewrite:
+      endpoint: http://mimir-nginx.observability.svc.cluster.local:80/api/v1/push
+    # Pyroscope へ profiles 転送
+    otlp/pyroscope:
+      endpoint: pyroscope-distributor.observability.svc.cluster.local:4040
+      tls:
+        insecure: true
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, tail_sampling, batch]
+        exporters: [otlp/tempo]
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [prometheusremotewrite]
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [loki]
+
+# Service: ClusterIP（同 namespace の agent からのみ受信）
+service:
+  type: ClusterIP
+
+# 監視
+serviceMonitor:
+  enabled: true
+
+# anti-affinity（3 replica が分散）
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: opentelemetry-collector
+        topologyKey: kubernetes.io/hostname

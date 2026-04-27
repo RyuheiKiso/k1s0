@@ -1,0 +1,71 @@
+# Valkey（ADR-DATA-004、Redis 互換 OSS）の production-grade Helm values。
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm upgrade --install valkey bitnami/valkey -n valkey -f values.yaml --version 5.5.1
+#
+# dev 用最小構成は tools/local-stack/manifests/75-valkey/values.yaml を参照（standalone）。
+
+# replication モード（primary 1 + replica 2、Sentinel で自動フェイルオーバ）。
+architecture: replication
+
+# 認証を有効化。!! placeholder !! prod では OpenBao 動的パスワード（plan 04-06）。
+auth:
+  enabled: true
+  # password は existingSecret 経由で注入する。
+  existingSecret: k1s0-valkey-credentials
+  existingSecretPasswordKey: password
+
+# primary 設定（書き込み node、prod 1 台）。
+primary:
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  # podAntiAffinity で primary / replica が同一 node に乗らない。
+  podAntiAffinityPreset: hard
+
+# replica 設定（読み取り node、prod 2 台）。
+replica:
+  replicaCount: 2
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  # 各 replica が別 node に分散。
+  podAntiAffinityPreset: hard
+
+# Sentinel を有効化（自動フェイルオーバ）。
+sentinel:
+  enabled: true
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Prometheus 監視（ServiceMonitor 自動生成）。
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+# Pod Disruption Budget（k8s upgrade 時に quorum を保つ）。
+pdb:
+  create: true
+  minAvailable: 2
+
+# TLS は cert-manager 連携で plan 05-XX に有効化。
+tls:
+  enabled: false

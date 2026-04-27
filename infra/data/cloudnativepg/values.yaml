@@ -1,0 +1,55 @@
+# CloudNativePG operator（ADR-DATA-001）の production-grade Helm values。
+# helm repo add cnpg https://cloudnative-pg.github.io/charts
+# helm upgrade --install cnpg cnpg/cloudnative-pg -n cnpg-system -f values.yaml --version 0.28.0
+#
+# dev 用最小構成は tools/local-stack/manifests/60-cnpg/values.yaml を参照。
+
+# operator 自体を HA 構成（3 leader election）にする。
+replicaCount: 3
+
+# operator の podDisruptionBudget を有効化（k8s upgrade 時に最低 2 残す）。
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# operator の resource sizing（prod、20+ Cluster を捌ける程度）。
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+
+# 監視を有効化（Prometheus PodMonitor 経由で operator メトリクス収集）。
+monitoring:
+  podMonitorEnabled: true
+  # Grafana ダッシュボードを ConfigMap で配信（infra/observability/grafana 側が pickup）。
+  grafanaDashboard:
+    create: true
+    # ダッシュボードを置く ConfigMap の label（Grafana sidecar が拾う label）。
+    labels:
+      grafana_dashboard: "1"
+
+# operator namespace に紐づける ServiceAccount を Workload Identity 連携可能にする
+# （plan 04-XX で SPIRE / GCP / IRSA いずれかへ切替）。
+serviceAccount:
+  create: true
+  annotations: {}
+
+# operator Pod の anti-affinity（同一 node に 3 leader が乗らないよう分散）。
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: cloudnative-pg
+        topologyKey: kubernetes.io/hostname
+
+# RBAC を有効化（k1s0 では Kyverno で追加制限を強制、ADR-POL-001）。
+rbac:
+  create: true
+
+# webhook の TLS は cert-manager 連携（既定）。
+webhook:
+  enabled: true

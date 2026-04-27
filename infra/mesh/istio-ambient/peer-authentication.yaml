@@ -1,0 +1,11 @@
+# mesh 全体で mTLS を STRICT 強制（ADR-SEC-002）。
+# Ambient mode では ztunnel が L4 mTLS を自動付与するが、明示的に STRICT を宣言して
+# plaintext 通信を全 namespace で禁止する。
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT

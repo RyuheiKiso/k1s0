@@ -1,0 +1,33 @@
+# MetalLB（オンプレ環境の type=LoadBalancer 実装）の Helm values。
+# helm repo add metallb https://metallb.github.io/metallb
+# helm upgrade --install metallb metallb/metallb -n metallb-system -f metallb-values.yaml
+#
+# IPAddressPool は環境別 overlay（infra/environments/<env>/k8s-overlay/metallb-pool.yaml）で
+# 実 IP 範囲を上書きする。
+#
+# kind dev は tools/local-stack/manifests/25-metallb/config.yaml（172.18.255.200-250）。
+
+# operator resource sizing
+controller:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+speaker:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Prometheus 監視
+prometheus:
+  serviceMonitor:
+    enabled: true
+  podMonitor:
+    enabled: true
+
+# CRD は MetalLB 公式 chart が install
+crds:
+  enabled: true

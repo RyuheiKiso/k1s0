@@ -1,0 +1,116 @@
+# Grafana（ADR-OBS-001、LGTM スタックの統合 UI）の production-grade Helm values。
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm upgrade --install grafana grafana/grafana -n observability -f values.yaml
+#
+# dev は tools/local-stack/manifests/90-observability/values-grafana.yaml（NodePort + 平文）。
+
+# 認証情報。!! placeholder !! prod では OpenBao / OIDC（Keycloak 連携）に切替（plan 04-06）。
+admin:
+  existingSecret: k1s0-grafana-credentials
+  userKey: admin-user
+  passwordKey: admin-password
+
+# HA 構成（共有データベース必須、prod は外部 PG を Cluster で参照）。
+replicas: 2
+
+# Service: ClusterIP（外部公開は Istio Ambient Gateway 経由、Keycloak OIDC で認証）。
+service:
+  type: ClusterIP
+  port: 80
+
+# Ingress は無効、Istio Gateway / VirtualService で公開する。
+ingress:
+  enabled: false
+
+# resource sizing（prod、ダッシュボード 100+ で datasource バックエンドに大量クエリ可能）。
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+# Persistence は HA 時には外部 DB を使うため不要。
+persistence:
+  enabled: false
+
+# 外部 PostgreSQL（CNPG）を grafana のセッション / dashboard 永続化に使う。
+grafana.ini:
+  server:
+    root_url: https://grafana.k1s0.example.com
+  database:
+    type: postgres
+    host: k1s0-postgres-rw.cnpg-system.svc.cluster.local:5432
+    name: grafana
+    user: grafana
+    password: $__file{/etc/secrets/grafana/db-password}
+    ssl_mode: require
+  auth.generic_oauth:
+    enabled: true
+    name: Keycloak
+    allow_sign_up: true
+    client_id: grafana
+    client_secret: $__file{/etc/secrets/grafana/oauth-client-secret}
+    scopes: openid profile email groups
+    auth_url: https://keycloak.k1s0.example.com/realms/k1s0/protocol/openid-connect/auth
+    token_url: https://keycloak.k1s0.example.com/realms/k1s0/protocol/openid-connect/token
+    api_url: https://keycloak.k1s0.example.com/realms/k1s0/protocol/openid-connect/userinfo
+    role_attribute_path: contains(groups[*], 'grafana-admin') && 'Admin' || 'Viewer'
+  users:
+    auto_assign_org_role: Viewer
+
+# 外部秘匿情報を file mount で参照（OpenBao 動的シークレットを Pod に inject、plan 04-06）。
+extraSecretMounts:
+  - name: grafana-secrets
+    secretName: k1s0-grafana-credentials
+    defaultMode: 0440
+    mountPath: /etc/secrets/grafana
+    readOnly: true
+
+# datasource 自動構成（4 component 接続）。
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-gateway.observability.svc:80
+        isDefault: false
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo-query-frontend.observability.svc:3100
+        isDefault: false
+      - name: Mimir
+        type: prometheus
+        access: proxy
+        url: http://mimir-nginx.observability.svc:80/prometheus
+        isDefault: true
+      - name: Pyroscope
+        type: phlare
+        access: proxy
+        url: http://pyroscope.observability.svc:4040
+
+# Grafana sidecar が ConfigMap label を pickup してダッシュボードを動的読込。
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    labelValue: "1"
+    folder: /tmp/dashboards
+    searchNamespace: ALL
+  datasources:
+    enabled: true
+    label: grafana_datasource
+    labelValue: "1"
+
+# anti-affinity（HA 時に同一 node に集中させない）。
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: grafana
+        topologyKey: kubernetes.io/hostname

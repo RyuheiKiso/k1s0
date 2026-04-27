@@ -1,0 +1,90 @@
+# OpenBao（ADR-SEC-002 系の secrets manager）の production-grade Helm values。
+# helm repo add openbao https://openbao.github.io/openbao-helm
+# helm upgrade --install openbao openbao/openbao -n openbao -f values.yaml --version 0.27.2
+#
+# dev は tools/local-stack/manifests/80-openbao/values.yaml（dev mode + 揮発）。
+
+global:
+  enabled: true
+
+server:
+  # HA + Raft integrated storage
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+        listener "tcp" {
+          tls_disable = 0
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          tls_cert_file = "/vault/userconfig/openbao-tls/tls.crt"
+          tls_key_file = "/vault/userconfig/openbao-tls/tls.key"
+        }
+        storage "raft" {
+          path = "/vault/data"
+        }
+        service_registration "kubernetes" {}
+        seal "transit" {
+          # 自動 unseal は plan 04-06 で外部 KMS / Cloud KMS に切替
+          address = "PLACEHOLDER_kms_endpoint"
+          token = "PLACEHOLDER_kms_token"
+        }
+
+  # dev mode は無効（HA mode）
+  dev:
+    enabled: false
+  standalone:
+    enabled: false
+
+  # PVC（Raft storage）
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+  # cert-manager 連携（k1s0-internal-ca から TLS 証明書発行）
+  extraVolumes:
+    - type: secret
+      name: openbao-tls
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+  service:
+    type: ClusterIP
+
+  # anti-affinity（HA で分散配置）
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: openbao
+          topologyKey: kubernetes.io/hostname
+
+  # 起動時のロール定義 / policy 設定は infra/security/openbao/policies/*.hcl と
+  # plan 04-06 の Init Job で適用する。
+
+# UI（Istio Ambient Gateway 経由で公開）
+ui:
+  enabled: true
+  serviceType: ClusterIP
+
+# Vault Agent Injector（K8s Pod に動的 secret を inject）
+injector:
+  enabled: true
+  replicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  metrics:
+    enabled: true

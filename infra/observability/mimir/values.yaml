@@ -1,0 +1,121 @@
+# Mimir（ADR-OBS-001、LGTM の M = Metrics、Prometheus 互換スケーラブル）の Helm values。
+# helm repo add grafana https://grafana.github.io/helm-charts
+# helm upgrade --install mimir grafana/mimir-distributed -n observability -f values.yaml
+
+# storage backend は MinIO（S3 互換）
+mimir:
+  structuredConfig:
+    common:
+      storage:
+        backend: s3
+        s3:
+          endpoint: minio.minio.svc.cluster.local:9000
+          bucket_name: k1s0-events
+          insecure: true
+          access_key_id: ${ACCESS_KEY_ID}
+          secret_access_key: ${SECRET_ACCESS_KEY}
+    blocks_storage:
+      backend: s3
+      s3:
+        bucket_name: k1s0-events
+    alertmanager_storage:
+      backend: s3
+      s3:
+        bucket_name: k1s0-events
+    ruler_storage:
+      backend: s3
+      s3:
+        bucket_name: k1s0-events
+    limits:
+      compactor_blocks_retention_period: 90d
+
+# distributed 構成
+alertmanager:
+  replicas: 2
+  persistentVolume:
+    enabled: true
+    size: 5Gi
+
+compactor:
+  replicas: 2
+  persistentVolume:
+    enabled: true
+    size: 50Gi
+
+distributor:
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+
+ingester:
+  replicas: 3
+  zoneAwareReplication:
+    enabled: true
+  persistentVolume:
+    enabled: true
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+
+querier:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+query_frontend:
+  replicas: 2
+
+query_scheduler:
+  replicas: 2
+
+ruler:
+  replicas: 2
+
+store_gateway:
+  replicas: 3
+  zoneAwareReplication:
+    enabled: true
+  persistentVolume:
+    enabled: true
+    size: 10Gi
+
+# nginx Gateway（write / read を 1 endpoint）
+nginx:
+  enabled: true
+  replicas: 2
+
+# memcached キャッシュ群（chunks / index / metadata / results）
+chunks-cache:
+  enabled: true
+  replicas: 2
+index-cache:
+  enabled: true
+  replicas: 2
+metadata-cache:
+  enabled: true
+  replicas: 2
+results-cache:
+  enabled: true
+  replicas: 2
+
+# 監視
+serviceMonitor:
+  enabled: true
+
+# 環境変数で S3 認証情報を注入
+global:
+  extraEnvFrom:
+    - secretRef:
+        name: k1s0-mimir-s3-credentials

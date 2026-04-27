@@ -86,14 +86,14 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 
 | 領域 | docs 規定（リリース必須） | 実装ランク | 備考 |
 |---|---|---|---|
-| `infra/k8s/{bootstrap, namespaces, networking, storage}` | kubeadm HA + Calico/MetalLB | **設計のみ** | `.gitkeep` のみ |
-| `infra/mesh/{istio-ambient, envoy-gateway}` | ADR-0001 / ADR-MIG-002 | **設計のみ** | `.gitkeep` のみ |
-| `infra/dapr/control-plane/` | Dapr operator | **設計のみ** | `.gitkeep` のみ |
-| `infra/data/{cloudnativepg, kafka, minio, valkey}` | ADR-DATA-001/002/003/004 | **設計のみ** | `.gitkeep` のみ |
-| `infra/security/{cert-manager, keycloak, openbao, spire, kyverno}` | ADR-SEC-001/002/003 / ADR-POL-001 | **雛形あり** | `infra/security/openbao/policies/{tier1-facade, tier2-service, tier3-bff}.hcl` のみ実体 |
-| `infra/observability/{loki, tempo, mimir, grafana, otel-collector, pyroscope}` | ADR-OBS-001/002 | **設計のみ** | `.gitkeep` のみ |
-| `infra/scaling/keda/` | KEDA | **設計のみ** | `.gitkeep` のみ |
-| `infra/feature-management/flagd/` | ADR-FM-001 | **設計のみ** | `.gitkeep` のみ |
+| `infra/k8s/{bootstrap, namespaces, networking, storage}` | kubeadm HA + Calico/MetalLB | **雛形あり** | bootstrap: Cluster API（CAPI）+ KubeadmControlPlane（HA 3 + audit log + OIDC issuer）と kubeadm-init 代替。namespaces: 17 layer 全 namespace に Pod Security Standards label（restricted/baseline/privileged）+ istio Ambient ラベル。networking: Calico VXLAN（Pod CIDR 192.168.0.0/16）+ MetalLB（IPAddressPool は環境別 overlay）。storage: 4 種 StorageClass（default / high-iops / shared / backup） |
+| `infra/mesh/{istio-ambient, envoy-gateway}` | ADR-0001 / ADR-MIG-002 | **雛形あり**（istio-ambient のみ） | istio-ambient: profile ambient + istiod HA 3 replica + HPA + OTel tracing 連携 + ztunnel 設定 + mTLS STRICT 強制 PeerAuthentication。envoy-gateway は本リリース時点 未着手 |
+| `infra/dapr/control-plane/` | Dapr operator | **雛形あり** | HA 全 control-plane component（operator/placement/sentry/sidecar-injector/scheduler）3 replica + mTLS + Prometheus + Raft consensus（placement）|
+| `infra/data/{cloudnativepg, kafka, minio, valkey}` | ADR-DATA-001/002/003/004 | **雛形あり** | 4 backend を production-grade defaults（HA / 監視 / バックアップ）で正規化済。CNPG: 3 instance HA + WAL アーカイブ + PodMonitor。Kafka: Strimzi KRaft 3 broker + TLS mTLS + Cruise Control。MinIO: distributed mode 4 replica + erasure coding + ServiceMonitor。Valkey: replication + Sentinel + 認証有効。各ディレクトリに `values.yaml` + `<backend>-cluster.yaml` + `README.md`（dev 差分表 / ADR リンク）を配置 |
+| `infra/security/{cert-manager, keycloak, openbao, spire, kyverno}` | ADR-SEC-001/002/003 / ADR-POL-001 | **雛形あり** | cert-manager: HA 3 + Let's Encrypt prod/staging + 内部 CA ClusterIssuer。Keycloak: HA 3 + Infinispan + 外部 CNPG + production mode + ServiceMonitor。SPIRE: server HA 3 + 外部 CNPG + cert-manager upstream + CSI driver + OIDC Discovery。Kyverno: admission HA 3 + 4 baseline ClusterPolicy。OpenBao: HA 3 + Raft integrated storage + cert-manager TLS + Vault Agent Injector + UI、HCL policy 4 種既存 |
+| `infra/observability/{loki, tempo, mimir, grafana, otel-collector, pyroscope}` | ADR-OBS-001/002 | **雛形あり** | LGTM 6 component を production-grade defaults で正規化済。Loki SimpleScalable + S3、Tempo distributed + S3、Mimir distributed + S3、Pyroscope micro-services + S3、Grafana HA + Keycloak OIDC、OTel Collector agent DaemonSet + gateway Deployment 2 段（tail_sampling + 4 backend ファンアウト）。各ディレクトリに `values.yaml` + 説明、`infra/observability/README.md` に信号フロー図と dev 差分表 |
+| `infra/scaling/keda/` | KEDA | **雛形あり** | operator HA 2 + metrics-apiserver 2 + admission webhook + ServiceMonitor、Kafka topic lag / Postgres queue / per-tenant RPS でオートスケール想定 |
+| `infra/feature-management/flagd/` | ADR-FM-001 | **雛形あり** | flagd HA 3 replica Deployment + ConfigMap baseline flag + Service + ServiceMonitor。tier1 t1-state Pod の Feature handler が gRPC で参照 |
 | `infra/environments/{dev, staging, prod}` | 環境別 overlay | **設計のみ** | `.gitkeep` のみ |
 
 ### deploy（GitOps / Helm / Kustomize / OpenTofu）
@@ -226,13 +226,43 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 - `cargo metadata` / `cargo verify-project` 通過（フル `cargo check` は C リンカが必要なため CI 任せ）
 - 補助 crate（common / otel-util / policy / proto）は内容実装まで `workspace.exclude` に置き、plan 04-02 / 04-08 で順次合流
 
-### 5. infra マニフェストの実体化（IMP-DEV-POL-006）
+### 5. infra マニフェストの実体化（IMP-DEV-POL-006）— **ほぼ完了**
 
-- `infra/k8s/bootstrap/`（kubeadm Cluster API ベース）
-- `infra/mesh/istio-ambient/`（Istio Helm values）
-- `infra/data/{cloudnativepg,kafka,minio,valkey}/`（各 CRD と manifest）
-- `infra/observability/`（LGTM スタック Helm values）
-- 多くは `tools/local-stack/manifests/` の values.yaml を `infra/` 側に正規化する形
+- ✅ `infra/data/{cloudnativepg,kafka,minio,valkey}/` を production-grade defaults で正規化
+  - CNPG: operator 3 replica + Cluster CRD（3 instance HA + WAL アーカイブ to MinIO + PodMonitor）
+  - Kafka: Strimzi operator + Kafka Cluster（KRaft 3 broker + TLS mTLS + Cruise Control + JMX Exporter）
+  - MinIO: distributed mode 4 replica + erasure coding + ServiceMonitor
+  - Valkey: replication + Sentinel + 認証有効 + ServiceMonitor
+- ✅ `infra/observability/{grafana,loki,tempo,mimir,pyroscope,otel-collector}/` を LGTM スタック production-grade で正規化
+  - Loki: SimpleScalable（read/write/backend HA）+ S3（MinIO）+ ServiceMonitor + chunks/results キャッシュ
+  - Tempo: distributed（compactor / distributor / ingester / querier）+ S3 + memcached
+  - Mimir: distributed + S3 + zoneAwareReplication + 4 種 memcached
+  - Pyroscope: micro-services + S3
+  - Grafana: HA 2 replica + 外部 PG（CNPG）+ Keycloak OIDC + sidecar dashboard / datasource pickup
+  - OTel Collector: agent DaemonSet（hostmetrics / filelog / OTLP receive）+ gateway Deployment 3 replica（tail_sampling + 4 backend ファンアウト）
+- ✅ `infra/mesh/istio-ambient/` を Ambient Mesh production-grade で正規化
+  - istiod HA 3 replica + HPA（CPU 70%、3〜10）+ OTel tracing 連携 + ztunnel sizing
+  - mTLS STRICT 強制 PeerAuthentication
+- ✅ `infra/security/{cert-manager,keycloak,spire,kyverno}/` を正規化
+  - cert-manager: HA 3 + Let's Encrypt prod/staging + 内部 CA ClusterIssuer + Gateway API integration
+  - Keycloak: HA 3 + Infinispan + 外部 CNPG + production mode + realm import + ServiceMonitor
+  - SPIRE: server HA 3 + 外部 CNPG dataStore + cert-manager upstream CA + CSI driver + OIDC Discovery
+  - Kyverno: admission HA 3 + 4 baseline ClusterPolicy（runAsNonRoot / privileged 禁止 / k1s0.io/component label / resource requests）
+- ✅ `infra/k8s/{bootstrap,namespaces,networking,storage}/` を正規化
+  - bootstrap: Cluster API + KubeadmControlPlane HA 3 / kubeadm-init 代替
+  - namespaces: 17 layer Pod Security Standards label + Istio Ambient mode label
+  - networking: Calico VXLAN + MetalLB（IPAddressPool は環境別 overlay）
+  - storage: 4 種 StorageClass（default / high-iops / shared / backup）
+- ✅ `infra/scaling/keda/`、`infra/feature-management/flagd/`、`infra/dapr/control-plane/`、`infra/security/openbao/` を正規化
+  - KEDA: operator HA 2 + metrics-apiserver 2 + admission webhook + ServiceMonitor
+  - flagd: HA 3 + ConfigMap baseline flag + ServiceMonitor
+  - Dapr control-plane: 全 component HA 3 + mTLS + Raft（placement）
+  - OpenBao: HA 3 + Raft integrated storage + cert-manager TLS + Vault Agent Injector
+- 🔲 残り（plan 05-XX 以降）:
+  - `infra/environments/{dev,staging,prod}/` overlay 雛形（環境別パラメータ上書き）
+  - `infra/mesh/envoy-gateway/`（Istio Ambient と相補、特定 use case のみ）
+  - 各 component の上流 Helm chart version pin の Renovate 追従
+  - production CSI provisioner の確定（PLACEHOLDER_csi_provisioner の置換）
 
 ### 6. deploy 拡充（IMP-REL-* / ADR-CICD-*）
 

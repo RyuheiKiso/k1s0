@@ -1,0 +1,69 @@
+# Keycloak（ADR-SEC-001 / IdP）の production-grade Helm values。
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm upgrade --install keycloak bitnami/keycloak -n keycloak -f values.yaml --version 25.2.0
+#
+# dev は tools/local-stack/manifests/95-keycloak/values.yaml（1 replica + 平文 password）。
+
+# 認証情報。!! placeholder !! prod では OpenBao 動的シークレットに切替（plan 04-06）。
+auth:
+  existingSecret: k1s0-keycloak-credentials
+  passwordSecretKey: admin-password
+
+# HA 構成（3 replica + Infinispan distributed cache）
+replicaCount: 3
+clustering:
+  enabled: true
+
+# resource sizing
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2
+    memory: 4Gi
+
+service:
+  type: ClusterIP
+
+# 外部公開は Istio Ambient Gateway 経由（cert-manager 連携 TLS）
+ingress:
+  enabled: false
+
+# 外部 PostgreSQL（CNPG）を使う
+postgresql:
+  enabled: false
+externalDatabase:
+  host: k1s0-postgres-rw.cnpg-system.svc.cluster.local
+  port: 5432
+  user: keycloak
+  database: keycloak
+  existingSecret: k1s0-keycloak-db-credentials
+  existingSecretPasswordKey: db-password
+
+# production モード（HTTPS 必須、health/metrics 有効）
+production: true
+# 接続元（Istio Ambient Gateway）から TLS 終端済 HTTP を受ける
+proxy: edge
+
+# 監視（Prometheus メトリクス）
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+# anti-affinity（HA で同一 node に集中させない）
+podAntiAffinityPreset: hard
+
+# realm 初期化（k1s0 realm を起動時に import、grafana / argocd / backstage / portal 用 client 含む）
+extraEnvVars:
+  - name: KEYCLOAK_EXTRA_ARGS
+    value: "--import-realm"
+extraVolumes:
+  - name: realm-config
+    configMap:
+      name: k1s0-keycloak-realm
+extraVolumeMounts:
+  - name: realm-config
+    mountPath: /opt/bitnami/keycloak/data/import
+    readOnly: true
