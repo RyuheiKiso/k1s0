@@ -1,0 +1,107 @@
+// 本ファイルは tier1 Audit core service（Rust 実装、COMP-T1-AUDIT）の
+// 内部 gRPC 契約を定義する。Go ファサード（StateFacade / Log Adapter）からのみ
+// 可視で、tier2/tier3 の SDK には含めない（ADR-TIER1-003）。
+//
+// docs 正典:
+//   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/03_自作Rust領域コンポーネント.md
+//     - DS-SW-COMP-007（t1-audit Pod、WORM ストア）
+//     - VerifyChain 仕様（hash chain 検証、Server Streaming）
+//   docs/04_概要設計/30_共通機能方式設計/04_監査証跡方式.md
+//     - hash chain（previous_hash / entry_hash / sequence_no）の正規化
+//   docs/04_概要設計/20_ソフトウェア方式設計/02_外部インタフェース方式設計/06_API別詳細方式/10_Audit_Pii_API方式.md
+//     - 公開 API（k1s0.public.audit.v1.Audit）と内部 RPC の責任分界
+//   docs/04_概要設計/20_ソフトウェア方式設計/03_内部インタフェース方式設計/01_内部gRPC契約方式.md
+//     - DS-SW-IIF-004（命名 k1s0.internal.<comp>.v<version>.<ServiceName>）
+//     - DS-SW-IIF-006（Server Streaming は VerifyChain で使用）
+//
+// 呼出経路: StateFacade（Go）→ AuditService.AppendHash（Rust）の高頻度経路、
+//          Runbook 起動 → AuditService.VerifyChain（Rust）の運用経路。
+syntax = "proto3";
+
+// k1s0 tier1 内部 Audit パッケージ。
+package k1s0.internal.audit.v1;
+
+// 時刻型を BSR 経由で参照（DS-SW-IIF-007）。
+import "google/protobuf/timestamp.proto";
+
+// tier1 Audit core service（Rust + WORM Postgres、Go ファサードからのみ可視）。
+service AuditService {
+  // 監査イベントを WORM チェーンに append し、計算済み entry_hash を返却する。
+  // 同期書込（DS-CF-AUD-002）。冪等性は (tenant_id, request_id) で担保する。
+  rpc AppendHash(AppendHashRequest) returns (AppendHashResponse);
+
+  // 指定期間の hash chain 整合性を Server Streaming で検証する（DS-SW-IIF-006）。
+  // 大規模期間は内部で 100 event/batch で進捗を返す（VerifyChainProgress）。
+  rpc VerifyChain(VerifyChainRequest) returns (stream VerifyChainProgress);
+}
+
+// AppendHash の Request。
+message AppendHashRequest {
+  // テナント識別子（DS-SW-IIF-017、metadata でも伝搬されるが冪等性鍵にも使う）
+  string tenant_id = 1;
+  // リクエスト追跡 ID（UUID v4、冪等性鍵）
+  string request_id = 2;
+  // 分散トレース ID（W3C traceparent の trace-id 部）
+  string trace_id = 3;
+  // 監査イベントの正規化済み payload（Canonical JSON、ハッシュ計算の入力）
+  bytes canonical_payload = 4;
+  // 直前のチェーン hash（チェーン継続性検査用、初回は空）
+  bytes previous_hash = 5;
+  // イベント発生時刻（caller 側で確定、TSA 認定外）
+  google.protobuf.Timestamp occurred_at = 6;
+  // イベントタイプ（例: "k1s0.tier1.state.save"、tier2/tier3 監査用）
+  string event_type = 7;
+}
+
+// AppendHash の Response。
+message AppendHashResponse {
+  // チェーン上のシーケンス番号（テナント単位で単調増加）
+  int64 sequence_no = 1;
+  // 計算済み entry_hash（次回 append の previous_hash に渡される）
+  bytes entry_hash = 2;
+  // ストレージ確定時刻（Rust 側で TSA 認定可能な確定時刻）
+  google.protobuf.Timestamp committed_at = 3;
+}
+
+// VerifyChain の Request。
+message VerifyChainRequest {
+  // テナント識別子
+  string tenant_id = 1;
+  // 検証期間 開始時刻
+  google.protobuf.Timestamp from_ts = 2;
+  // 検証期間 終了時刻
+  google.protobuf.Timestamp to_ts = 3;
+  // インクリメンタル検証モード（前回検証完了の sequence_no、0 ならフル検証）
+  int64 from_sequence_no = 4;
+  // batch 単位（既定 100、過大な値は server 側で clamp）
+  int32 batch_size = 5;
+}
+
+// VerifyChain の Streaming Progress。
+// 検証中は current_sequence_no を進捗として返し、最終 frame で result を確定する。
+message VerifyChainProgress {
+  // 現在検証中の sequence_no
+  int64 current_sequence_no = 1;
+  // 期間内の総レコード数（最初の event で確定）
+  int64 total_records = 2;
+  // 検証結果（最終 event で VERIFY_RESULT_OK / BROKEN / PARTIAL を確定）
+  VerifyResult result = 3;
+  // 不整合を検知した event_id（result=BROKEN 時のみ）
+  string broken_event_id = 4;
+  // 不整合の詳細（result=BROKEN 時のみ、例: "previous_hash mismatch"）
+  string broken_reason = 5;
+  // 検証経過時刻（caller のタイムアウト判断用）
+  google.protobuf.Timestamp progress_at = 6;
+}
+
+// VerifyChain の最終結果区分。
+enum VerifyResult {
+  // 未指定（streaming 途中の進捗 frame）
+  VERIFY_RESULT_UNSPECIFIED = 0;
+  // 期間内すべて整合
+  VERIFY_RESULT_OK = 1;
+  // hash chain に不整合検出
+  VERIFY_RESULT_BROKEN = 2;
+  // 期間途中までは OK、後半は未検証（caller が分割再開すべき）
+  VERIFY_RESULT_PARTIAL = 3;
+}

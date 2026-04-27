@@ -1,0 +1,5 @@
+# dev overlay: cert-manager の既定 ClusterIssuer を letsencrypt-staging に切替。
+# rate limit 緩和、本番証明書を浪費しない（DS-OPS-ENV-007）。
+ingressShim:
+  defaultIssuerName: letsencrypt-staging
+  defaultIssuerKind: ClusterIssuer

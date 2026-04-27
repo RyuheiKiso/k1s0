@@ -1,0 +1,54 @@
+// 本ファイルは tier1 内部 gRPC（Go ⇄ Rust）の構造化エラー型を定義する。
+//
+// docs 正典:
+//   docs/04_概要設計/20_ソフトウェア方式設計/03_内部インタフェース方式設計/01_内部gRPC契約方式.md
+//     - DS-SW-IIF-011（google.rpc.Status によるエラー返却）
+//     - DS-SW-IIF-012（ErrorDetail の構造化）
+//     - DS-SW-IIF-013（エラーコードタクソノミ 6 区分）
+//   docs/02_構想設計/adr/ADR-TIER1-002-protobuf-grpc.md（Protobuf gRPC 必須）
+//   docs/02_構想設計/adr/ADR-TIER1-003-language-opacity.md（tier2/tier3 不可視）
+//
+// 役割: gRPC 標準の status.Status.details に詰めて返却する追加情報。tier2/tier3
+// に公開する SDK レベルでは k1s0.tier1.common.v1.ErrorDetail に再写像する設計。
+syntax = "proto3";
+
+// k1s0 tier1 内部 gRPC のエラー詳細パッケージ。
+package k1s0.internal.errors.v1;
+
+// 内部 gRPC の構造化エラー詳細（DS-SW-IIF-012）。
+// status.Status.details[]（Any）にこの型を詰めて返却する。
+message ErrorDetail {
+  // ドキュメント参照用の error code（T1.<comp>.<category> 形式、tier1 全体で unique）
+  string error_code = 1;
+  // 分散トレース ID（W3C traceparent の trace-id 部、デバッグ用）
+  string trace_id = 2;
+  // 再試行可能か（DS-SW-IIF-013 の 6 カテゴリの判定結果）
+  bool retryable = 3;
+  // 再試行までの待機時間（retryable=true 時のみ意味あり）
+  int32 retry_after_seconds = 4;
+  // エラー詳細ドキュメント URL（runbook / トラブルシュート）
+  string docs_url = 5;
+  // 追加情報（key=value、例: tenant_id, rule_id）
+  map<string, string> context = 6;
+  // エラーカテゴリ（client が機械的に分類するため）
+  ErrorCategory category = 7;
+}
+
+// エラーカテゴリ（DS-SW-IIF-013、6 区分）。
+// gRPC code への写像はクライアント側で実施（VALIDATION→INVALID_ARGUMENT 等）。
+enum ErrorCategory {
+  // 未指定（proto3 既定値）
+  ERROR_CATEGORY_UNSPECIFIED = 0;
+  // 入力不正（INVALID_ARGUMENT に写像）
+  ERROR_CATEGORY_VALIDATION = 1;
+  // 認証・認可失敗（UNAUTHENTICATED / PERMISSION_DENIED に写像）
+  ERROR_CATEGORY_AUTH = 2;
+  // バックエンド OSS 障害（UNAVAILABLE に写像）
+  ERROR_CATEGORY_BACKEND = 3;
+  // deadline 超過（DEADLINE_EXCEEDED に写像）
+  ERROR_CATEGORY_TIMEOUT = 4;
+  // etag 衝突 / リース衝突（ABORTED / FAILED_PRECONDITION に写像）
+  ERROR_CATEGORY_CONFLICT = 5;
+  // 予期しないエラー（INTERNAL に写像）
+  ERROR_CATEGORY_INTERNAL = 6;
+}

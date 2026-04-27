@@ -1,0 +1,29 @@
+# cargo-fuzz の crate（k1s0 fuzz/rust、独立 workspace）。
+# 雛形のため fuzz_targets は最小、採用初期 で proto_fuzz / crypto_fuzz を実装する。
+
+[package]
+name = "k1s0-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+# 採用初期 で k1s0-tier1-proto-gen / sha2 / aes-gcm 等を依存に追加
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "proto_fuzz"
+path = "fuzz_targets/proto_fuzz.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "crypto_fuzz"
+path = "fuzz_targets/crypto_fuzz.rs"
+test = false
+doc = false
+bench = false

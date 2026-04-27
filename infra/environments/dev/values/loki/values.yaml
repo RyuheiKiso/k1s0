@@ -1,0 +1,7 @@
+# dev overlay: Loki 保持期間を 7 日に短縮（prod 30 日）。
+# Helmfile / Argo CD が infra/observability/loki/values.yaml の上に merge する想定。
+loki:
+  limits_config:
+    retention_period: 168h  # 7 days
+  table_manager:
+    retention_period: 168h

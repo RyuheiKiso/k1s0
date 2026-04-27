@@ -1,0 +1,13 @@
+# staging 用 CNPG Cluster patch: 3 instance HA → 2 instance（HA 維持しつつコスト圧縮）。
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: k1s0-postgres
+  namespace: cnpg-system
+spec:
+  # primary 1 + standby 1（HA 維持、failover 検証可能）
+  instances: 2
+  storage:
+    size: 50Gi
+  walStorage:
+    size: 25Gi

@@ -1,0 +1,3 @@
+# dev overlay: Tempo Trace 保持期間を 3 日に短縮（prod 7 日）。
+tempo:
+  retention: 72h  # 3 days

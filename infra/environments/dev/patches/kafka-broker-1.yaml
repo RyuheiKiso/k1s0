@@ -1,0 +1,22 @@
+# dev 用 Kafka KafkaNodePool patch: 3 broker HA → 1 broker（単一ノード起動可能化）。
+# 設計: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: kafka
+spec:
+  # controller + broker の単一 replica（KRaft で min 1 を許容、quorum は無効化）
+  replicas: 1
+  storage:
+    type: persistent-claim
+    size: 5Gi
+    deleteClaim: true
+    class: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi

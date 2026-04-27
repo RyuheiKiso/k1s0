@@ -1,0 +1,47 @@
+# =============================================================================
+# infra/environments/dev/kustomization.yaml
+#
+# 開発者ローカル kind / k3d クラスタ向けの最小構成 overlay。
+# CNPG 1 instance / Kafka 1 broker / Valkey standalone の単一ノード起動可能規模。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md
+#     - dev は「リソース最小化、Let's Encrypt staging、保持期間短縮」
+#   docs/04_概要設計/55_運用ライフサイクル方式設計/03_環境構成管理方式.md
+#     - DS-OPS-ENV-007（本番同等性、staging→prod は同構成・規模差のみ）
+#
+# 利用:
+#   kubectl apply -k infra/environments/dev/
+#   または tools/local-stack/up.sh から呼出（推奨）
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 共通 namespace ラベル（Pod Security Standards / Istio Ambient 連携用）
+commonLabels:
+  app.kubernetes.io/part-of: k1s0
+  k1s0.io/env: dev
+
+# infra base から直接 YAML 適用可能なリソースのみ参照する。
+# Helm chart 系の values.yaml は本 kustomization では扱わず values/ で env 別管理。
+resources:
+  # k8s 基盤（namespace / storage class）
+  - ../../k8s/namespaces/namespaces.yaml
+  - ../../k8s/storage/storage-classes.yaml
+  # mTLS 強制（PeerAuthentication）
+  - ../../mesh/istio-ambient/peer-authentication.yaml
+  # admission policy（Kyverno baseline）
+  - ../../security/kyverno/baseline-policies.yaml
+  # cert-manager ClusterIssuer（dev は letsencrypt-staging を patches/ で primary 化）
+  - ../../security/cert-manager/cluster-issuer.yaml
+  # CNPG クラスタ（Postgres 16）
+  - ../../data/cloudnativepg/cluster.yaml
+  # Kafka クラスタ（KRaft）
+  - ../../data/kafka/kafka-cluster.yaml
+  # flagd（Feature Flag）
+  - ../../feature-management/flagd/flagd-deployment.yaml
+
+# dev 用 patch（リソース規模を最小化）
+patches:
+  - path: patches/cloudnativepg-instances-1.yaml
+  - path: patches/kafka-broker-1.yaml

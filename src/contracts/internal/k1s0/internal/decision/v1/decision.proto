@@ -1,0 +1,78 @@
+// 本ファイルは tier1 Decision core service（Rust + ZEN Engine、COMP-T1-DECISION）の
+// 内部 gRPC 契約を定義する。Go ファサード（State / Workflow Adapter 経由）からのみ
+// 可視で、tier2/tier3 の SDK には含めない（ADR-TIER1-003）。
+//
+// docs 正典:
+//   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/03_自作Rust領域コンポーネント.md
+//     - DS-SW-COMP-008（t1-decision Pod、ZEN Engine + LRU cache）
+//     - rule_loader / zen_engine / cache / api_server の 4 module 構成
+//   docs/02_構想設計/adr/ADR-RULE-001-zen-engine.md（ZEN Engine 採用根拠）
+//   docs/04_概要設計/20_ソフトウェア方式設計/03_内部インタフェース方式設計/01_内部gRPC契約方式.md
+//     - DS-SW-IIF-005（メソッド命名: 動詞形 + <Method>Request/Response）
+//     - DS-SW-IIF-007（google.protobuf.Struct を任意 JSON 構造に使用）
+//
+// 呼出経路: TemporalWorker（Go）→ DecisionService.EvaluateDecision（Rust）の高頻度経路、
+//          StateFacade（Go）→ DecisionService.EvaluateDecision（Rust）の同期評価経路。
+//
+// **本 service は in-process のみで完結する**（外部ストアなし、cache は in-memory LRU）。
+// Admin 系（RegisterRule / ListVersions）は公開 API k1s0.tier1.decisionadmin.v1 で提供する。
+syntax = "proto3";
+
+// k1s0 tier1 内部 Decision パッケージ。
+package k1s0.internal.decision.v1;
+
+// 任意 JSON 互換構造（DS-SW-IIF-007）を BSR 経由で参照。
+import "google/protobuf/struct.proto";
+
+// tier1 Decision core service（Rust + ZEN Engine）。
+service DecisionService {
+  // ZEN Engine JDM ルールを評価する。
+  // cache hit 時は p99 < 1ms、miss 時は p99 < 50ms（NFR-B-PERF-006 充足）。
+  rpc EvaluateDecision(EvaluateDecisionRequest) returns (EvaluateDecisionResponse);
+}
+
+// EvaluateDecision の Request。
+message EvaluateDecisionRequest {
+  // テナント識別子（DS-SW-IIF-017、ルールセット参照のキー）
+  string tenant_id = 1;
+  // リクエスト追跡 ID（UUID v4）
+  string request_id = 2;
+  // 分散トレース ID（W3C traceparent の trace-id 部）
+  string trace_id = 3;
+  // 評価する rule_id（rule_loader が cache 済みのもの）
+  string rule_id = 4;
+  // ルールセットのバージョン（空なら latest を採用）
+  string rule_version = 5;
+  // 評価入力（JSON 互換、ZEN Engine の入力フォーマット）
+  google.protobuf.Struct input = 6;
+  // トレース取得を要求するか（true 時に DecisionTraceEntry を返却、デバッグ用）
+  bool collect_trace = 7;
+}
+
+// EvaluateDecision の Response。
+message EvaluateDecisionResponse {
+  // 評価結果（JSON 互換、ZEN Engine の出力フォーマット）
+  google.protobuf.Struct output = 1;
+  // 実際に使われた rule_version（リクエストで unspecified だった場合に確定）
+  string rule_version = 2;
+  // 評価トレース（collect_trace=true 時のみ非空）
+  repeated DecisionTraceEntry trace = 3;
+  // cache hit だったかどうか（観測 / 性能チューニング用）
+  bool cache_hit = 4;
+  // 評価所要時間（マイクロ秒、cache hit/miss 計測用）
+  int64 elapsed_micros = 5;
+}
+
+// 評価トレース 1 ステップ（ZEN Engine の中間ノード単位）。
+message DecisionTraceEntry {
+  // ノード ID（JDM 上の一意識別子）
+  string node_id = 1;
+  // ノードタイプ（"decision_table" / "expression" / "function" 等）
+  string node_type = 2;
+  // 当該ノードの入力（JSON 互換）
+  google.protobuf.Struct input = 3;
+  // 当該ノードの出力（JSON 互換）
+  google.protobuf.Struct output = 4;
+  // 当該ノードの所要時間（マイクロ秒）
+  int64 elapsed_micros = 5;
+}

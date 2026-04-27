@@ -1,0 +1,14 @@
+# staging 用 Kafka KafkaNodePool patch: replica 3 維持、storage 100Gi → 50Gi。
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: kafka
+spec:
+  # broker 数は HA 維持（KRaft quorum を保つ）
+  replicas: 3
+  storage:
+    type: persistent-claim
+    size: 50Gi
+    deleteClaim: false
+    class: ""

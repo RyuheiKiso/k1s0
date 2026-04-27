@@ -1,0 +1,92 @@
+// 本ファイルは tier1 PII Mask core service（Rust 実装、COMP-T1-PII）の
+// 内部 gRPC 契約を定義する。Go ファサード（特に Log Adapter）からのみ可視で、
+// tier2/tier3 の SDK には含めない（ADR-TIER1-003）。
+//
+// docs 正典:
+//   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/03_自作Rust領域コンポーネント.md
+//     - DS-SW-COMP-009（t1-pii Pod、純関数ステートレス）
+//     - parser / masker / rule_fetcher / api_server の 4 module 構成
+//     - 性能目標 p99 < 3ms（NFR-B-PERF-006 の 30%）
+//     - batch API MaskPIIBatch（最大 100 件、高スループット）
+//   docs/04_概要設計/20_ソフトウェア方式設計/02_外部インタフェース方式設計/06_API別詳細方式/10_Audit_Pii_API方式.md
+//     - PII マスキング ルールセットのバージョニング
+//
+// 呼出経路: StateFacade Log Adapter（Go）→ PIIMaskService.MaskPII（Rust）の超高頻度経路。
+//
+// **本 service は in-memory only**（永続ストアなし、regex コンパイル済みインスタンスのみ使用）。
+// テナント別ルールは rule_fetcher が DecisionService から動的取得する内部経路を使う。
+syntax = "proto3";
+
+// k1s0 tier1 内部 PII Mask パッケージ。
+package k1s0.internal.pii.v1;
+
+// tier1 PII Mask core service（Rust、純関数ステートレス）。
+service PiiMaskService {
+  // 単一テキストの PII マスキング（p99 < 3ms 目標）。
+  rpc MaskPii(MaskPiiRequest) returns (MaskPiiResponse);
+  // 100 件までの batch マスキング（高スループット用、超過時は INVALID_ARGUMENT）。
+  rpc MaskPiiBatch(MaskPiiBatchRequest) returns (MaskPiiBatchResponse);
+}
+
+// MaskPii の Request。
+message MaskPiiRequest {
+  // テナント識別子（DS-SW-IIF-017、ルール選択キー）
+  string tenant_id = 1;
+  // リクエスト追跡 ID（UUID v4）
+  string request_id = 2;
+  // 分散トレース ID（W3C traceparent の trace-id 部）
+  string trace_id = 3;
+  // マスキング対象テキスト（UTF-8、上限 64 KiB）
+  string text = 4;
+  // 検出 context（"log" / "state" / etc.、テナントルールの context 絞り込み用）
+  repeated string contexts = 5;
+  // ルールセットのバージョン（空なら latest を採用）
+  string rule_version = 6;
+}
+
+// MaskPii の Response。
+message MaskPiiResponse {
+  // マスキング後テキスト（検出件数 0 なら入力と同一）
+  string masked_text = 1;
+  // 検出された PII の件数（key: 種別 ID、例: "email" / "credit_card" / "myNumber"）
+  map<string, int32> detection_counts = 2;
+  // 実際に使われた rule_version
+  string rule_version = 3;
+  // 評価所要時間（マイクロ秒、性能監視用）
+  int64 elapsed_micros = 4;
+}
+
+// MaskPiiBatch の Request。
+// texts と contexts は同 index 対応、または contexts が空なら texts 全件に同一適用。
+message MaskPiiBatchRequest {
+  string tenant_id = 1;
+  string request_id = 2;
+  string trace_id = 3;
+  // batch 対象（最大 100 件、超過時は INVALID_ARGUMENT）
+  repeated string texts = 4;
+  // 各 texts[i] に対応する contexts、または空（全件共通）
+  repeated PiiContext contexts = 5;
+  string rule_version = 6;
+}
+
+// 1 batch 要素の context 配列を保持する wrapper（repeated repeated は使えないため）。
+message PiiContext {
+  repeated string values = 1;
+}
+
+// MaskPiiBatch の Response。
+message MaskPiiBatchResponse {
+  // 各 texts[i] に対応する masked_text[i]
+  repeated string masked_texts = 1;
+  // 各 texts[i] の detection_counts[i]
+  repeated PiiBatchDetection detections = 2;
+  // 実際に使われた rule_version
+  string rule_version = 3;
+  // 評価所要時間（マイクロ秒、batch 全体）
+  int64 elapsed_micros = 4;
+}
+
+// 1 batch 要素の detection_counts（map の repeated 化用 wrapper）。
+message PiiBatchDetection {
+  map<string, int32> counts = 1;
+}

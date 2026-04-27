@@ -1,0 +1,5 @@
+# tier1 Rust workspace 用 .gitignore
+# cargo build / cargo check の生成物と lock ファイルを除外する。
+# 公開 SDK でないため Cargo.lock は commit しない方針（採用組織が再生成）。
+target/
+Cargo.lock

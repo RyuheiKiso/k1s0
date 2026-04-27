@@ -1,0 +1,42 @@
+# =============================================================================
+# tests/integration/compose/dapr-compose.yaml
+#
+# Dapr sidecar + tier1 facade（最小）を docker-compose で起動するための雛形。
+# testcontainers の compose.NewDockerCompose("./compose/dapr-compose.yaml") から
+# 参照される。
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/70_共通資産/02_tests配置.md
+# =============================================================================
+services:
+  # Dapr placement service（state store consistency 用）
+  placement:
+    image: daprio/dapr:1.14.0
+    command: ["./placement", "--port", "50006"]
+    ports:
+      - "50006:50006"
+
+  # tier1 facade Pod 相当（state Pod の bare bin で代替）
+  tier1-facade:
+    build:
+      context: ../../../src/tier1/go
+      dockerfile: Dockerfile.state
+    environment:
+      DAPR_HTTP_PORT: "3500"
+      DAPR_GRPC_PORT: "50001"
+    depends_on:
+      - placement
+      - dapr-sidecar
+    ports:
+      - "8081:8081"
+
+  # Dapr sidecar（tier1-facade に attach）
+  dapr-sidecar:
+    image: daprio/daprd:1.14.0
+    command:
+      - "./daprd"
+      - "--app-id=tier1-facade"
+      - "--app-port=8081"
+      - "--placement-host-address=placement:50006"
+    network_mode: "service:tier1-facade"
+    depends_on:
+      - placement

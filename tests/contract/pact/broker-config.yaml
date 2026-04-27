@@ -1,0 +1,35 @@
+# =============================================================================
+# Pact Broker 接続設定（リリース時点 雛形）。
+#
+# Consumer / Provider の Pact ファイル交換に使う Broker のエンドポイントと
+# 認証情報を宣言的に管理する。
+#
+# CI では PACT_BROKER_TOKEN 環境変数を GitHub Secrets から渡す。
+# =============================================================================
+broker:
+  # 採用組織が運用する Pact Broker（採用初期 段階で配置）
+  base_url: https://k1s0-pact-broker.example.com
+  # 認証は Bearer Token（CI 環境変数経由で注入）
+  auth:
+    token_env: PACT_BROKER_TOKEN
+
+# Consumer / Provider の登録（採用初期 で本番実体を埋める）
+consumers:
+  - name: portal-bff
+    tags:
+      - tier3
+      - bff
+  - name: admin-bff
+    tags:
+      - tier3
+      - bff
+
+providers:
+  - name: tier1-state
+    tags:
+      - tier1
+      - public-api
+  - name: tier2-payroll
+    tags:
+      - tier2
+      - example

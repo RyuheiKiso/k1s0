@@ -1,0 +1,4 @@
+# staging overlay: 既定 ClusterIssuer を letsencrypt-staging に切替（rate limit 回避）。
+ingressShim:
+  defaultIssuerName: letsencrypt-staging
+  defaultIssuerKind: ClusterIssuer
