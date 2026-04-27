@@ -28,7 +28,7 @@
 /docs/
 /src/contracts/
 /src/tier1/rust/
-/src/platform/cli/
+/src/platform/scaffold/
 /tools/codegen/buf/
 /tools/sparse/
 /tools/devcontainer/profiles/tier1-rust-dev/

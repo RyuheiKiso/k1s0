@@ -60,4 +60,4 @@ export const k1s0ScaffoldAction = createTemplateAction({
 ## 関連
 
 - ADR-DEVEX-002（Backstage 採用）/ ADR-DEVEX-004（Golden Path）
-- src/platform/cli/（k1s0-scaffold 本体）
+- src/platform/scaffold/（k1s0-scaffold 本体、Rust crate、IMP-CODEGEN-SCF-030）

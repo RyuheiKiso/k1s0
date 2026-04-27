@@ -9,7 +9,7 @@ export const K1S0_SCAFFOLDER_PLUGIN_ID = "k1s0-scaffolder";
 // plugin バージョン。
 export const K1S0_SCAFFOLDER_PLUGIN_VERSION = "0.1.0";
 
-// k1s0-scaffold が受け付ける ServiceType（src/platform/cli の SupportedTypes と整合）。
+// k1s0-scaffold が受け付ける ServiceType（src/platform/scaffold/ engine が走査する template.yaml metadata.name と整合）。
 export type K1s0ScaffoldServiceType =
   | "tier2-go"
   | "tier2-dotnet"

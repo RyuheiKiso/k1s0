@@ -83,7 +83,7 @@ git gc --prune=now --aggressive
 | Role | 主用途 | 主な include パス | include 数 | サイズ概算\* |
 |---|---|---|---:|---:|
 | `docs-writer` | docs / ADR / Knowledge 編集（リポジトリ既定） | `docs/`, `tools/sparse/`, `tools/devcontainer/profiles/docs-writer/`, `CLAUDE.md`, `.github/`, `.devcontainer/` | 6 | ≈255 MB |
-| `tier1-rust-dev` | tier1 Rust コア（ZEN / 暗号 / Audit / scaffold CLI） | + `src/contracts/`, `src/tier1/rust/`, `src/platform/cli/`, `tools/codegen/buf/`, `tests/fuzz/rust/`, `tests/contract/`, `examples/tier1-rust-service/` | 13 | ≈255 MB |
+| `tier1-rust-dev` | tier1 Rust コア（ZEN / 暗号 / Audit / scaffold CLI） | + `src/contracts/`, `src/tier1/rust/`, `src/platform/scaffold/`, `tools/codegen/buf/`, `tests/fuzz/rust/`, `tests/contract/`, `examples/tier1-rust-service/` | 13 | ≈255 MB |
 | `tier1-go-dev` | tier1 Go ファサード（Dapr 統合） | + `src/contracts/`, `src/tier1/go/`, `src/sdk/go/`, `tools/codegen/buf/`, `tests/contract/`, `tests/integration/go/`, `examples/tier1-go-facade/` | 13 | ≈255 MB |
 | `tier2-dev` | tier2 ドメイン共通（C# / Go） | + `src/contracts/`, `src/tier2/`, `src/sdk/go/`, `src/sdk/dotnet/`, `tools/codegen/`, `tests/contract/`, `tests/integration/`, `examples/tier2-{dotnet,go}-service/` | 15 | ≈255 MB |
 | `tier3-web-dev` | tier3 Web (React + TS + Vite) / BFF (Go) | + `src/sdk/typescript/`, `src/sdk/go/`, `src/tier3/web/`, `src/tier3/bff/`, `tools/codegen/{openapi,buf}/`, `tests/e2e/`, `examples/tier3-{web-portal,bff-graphql}/` | 15 | ≈255 MB |

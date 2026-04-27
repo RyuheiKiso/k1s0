@@ -41,16 +41,32 @@ pub fn scaffold(
     render_skeleton(&skeleton, &context, out_dir, dry_run)
 }
 
-// 指定された template_name が tier2 / tier3 のどちらにあるかを探す。
+// 指定された template_name（template.yaml の metadata.name）を tier2 / tier3 配下から
+// 走査して探す。ディレクトリ名と metadata.name は別物（IMP-CODEGEN-SCF-031〜034 で
+// 例えばディレクトリ go-service / metadata.name tier2-go-service の組合せ）。
 fn locate_template(templates_root: &Path, template_name: &str) -> Result<PathBuf, ScaffoldError> {
     for tier_dir in ["tier2/templates", "tier3/templates"] {
-        let candidate = templates_root.join(tier_dir).join(template_name);
-        if candidate.join("template.yaml").is_file() {
-            return Ok(candidate);
+        let dir = templates_root.join(tier_dir);
+        if !dir.is_dir() {
+            continue;
+        }
+        for entry in std::fs::read_dir(&dir)
+            .map_err(|e| ScaffoldError::Io(format!("read_dir {}: {}", dir.display(), e)))?
+        {
+            let entry = entry
+                .map_err(|e| ScaffoldError::Io(format!("read_dir entry: {}", e)))?;
+            let template_yaml = entry.path().join("template.yaml");
+            if !template_yaml.is_file() {
+                continue;
+            }
+            let manifest = crate::template::load(&template_yaml)?;
+            if manifest.metadata.name == template_name {
+                return Ok(entry.path());
+            }
         }
     }
     Err(ScaffoldError::Validation(format!(
-        "テンプレート '{}' が見つからない（{}/tier{{2,3}}/templates/ 配下を探索）",
+        "テンプレート '{}' が見つからない（{}/tier{{2,3}}/templates/ 配下の template.yaml metadata.name を走査）",
         template_name,
         templates_root.display(),
     )))

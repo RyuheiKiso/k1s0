@@ -13,10 +13,10 @@ Backstage Software Template v1beta3 互換の Scaffold CLI（Rust）。tier2 / t
 - 採用組織の開発者が `k1s0-scaffold new tier2-go-service --name foo --owner @k1s0/payment` を実行すると、tier2 Go ドメインサービスの最小セット（go.mod / cmd / internal / Dockerfile / catalog-info.yaml）が一式生成される
 - CLI 経路と Backstage UI 経路（custom action `k1s0:scaffold-engine`）が同一の engine（`src/lib.rs`）を呼び、生成結果のバイト一致を保証する
 - 4 テンプレート対応:
-  - [`src/tier2/templates/tier2-go-service/`](../../tier2/templates/tier2-go-service/)
-  - [`src/tier2/templates/tier2-dotnet-service/`](../../tier2/templates/tier2-dotnet-service/)
-  - [`src/tier3/templates/tier3-bff/`](../../tier3/templates/tier3-bff/)
-  - [`src/tier3/templates/tier3-web/`](../../tier3/templates/tier3-web/)
+  - [`src/tier2/templates/go-service/`](../../tier2/templates/go-service/)（metadata.name: `tier2-go-service`）
+  - [`src/tier2/templates/dotnet-service/`](../../tier2/templates/dotnet-service/)（metadata.name: `tier2-dotnet-service`）
+  - [`src/tier3/templates/bff/`](../../tier3/templates/bff/)（metadata.name: `tier3-bff`）
+  - [`src/tier3/templates/web/`](../../tier3/templates/web/)（metadata.name: `tier3-web`）
 
 ## サブコマンド契約
 
