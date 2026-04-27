@@ -23,6 +23,7 @@
 | `HAR` | Harbor + Trivy + push | [`40_Harbor_Trivy_push/01_Harbor_Trivy_push設計.md`](../40_Harbor_Trivy_push/01_Harbor_Trivy_push設計.md) | 040 〜 059 |
 | `QG` | Quality Gate | [`30_quality_gate/01_quality_gate.md`](../30_quality_gate/01_quality_gate.md) | 060 〜 069 |
 | `BP` | Branch Protection | [`50_branch_protection/01_branch_protection.md`](../50_branch_protection/01_branch_protection.md) | 070 〜 079 |
+| `LCDT` | Local Dev Tooling | [`60_ローカル開発ツール/01_ローカル検査と自動修正設計.md`](../60_ローカル開発ツール/01_ローカル検査と自動修正設計.md) | 080 〜 089 |
 
 QG が章番号 30 でありながら ID レンジが 060 始まりなのは、HAR（章番号 40）の初期採番が 040〜051 まで広がり 040〜049 のレンジを超過したためレンジを 040〜059 に拡張した結果である。本章全体で「番号は本章全体を通じて重複しない」原則を守るため、QG は HAR レンジの直後 060 から開始した。章番号と ID レンジの不一致は採番時の混乱を招くため、本索引で必ず両者の対応表を確認して採番すること。
 
@@ -113,6 +114,14 @@ QG が章番号 30 でありながら ID レンジが 060 始まりなのは、H
 | `IMP-CI-BP-076` | terraform-provider-github による rule の Git 管理（IaC 化） |
 | `IMP-CI-BP-077` | `release/*` ブランチに main と同一 rule を適用 |
 
+### LCDT: Local Dev Tooling（3 件）
+
+| ID | 概要 |
+|---|---|
+| `IMP-CI-LCDT-080` | ローカル検査 orchestrator（`make verify` / `verify-quick` / `tools/ci/verify-local.sh`） |
+| `IMP-CI-LCDT-081` | PR title 自動補正 workflow（`.github/workflows/pr-title-autofix.yml`） |
+| `IMP-CI-LCDT-082` | branch 命名規約（`<type>/<scope>/<subject>` 形式を入力源にする） |
+
 ## 採番済み件数まとめ
 
 | 接頭辞 | 件数 | 残レンジ | 次番 |
@@ -123,7 +132,8 @@ QG が章番号 30 でありながら ID レンジが 060 始まりなのは、H
 | `HAR` | 12 | 008 件（052-059） | `IMP-CI-HAR-052` |
 | `QG` | 8 | 002 件（068-069） | `IMP-CI-QG-068` |
 | `BP` | 8 | 002 件（078-079） | `IMP-CI-BP-078` |
-| **合計** | **55** | **24** | — |
+| `LCDT` | 3 | 007 件（083-089） | `IMP-CI-LCDT-083` |
+| **合計** | **58** | **31** | — |
 
 POL は OSS 公開時点の確定 7 原則で採番が一段落しており、新規原則の追加はリリース戦略の節目（採用拡大期 / メジャーバージョン）でしか発生しない見通し。RWF / HAR は 8 件残っており、運用観測（60 章）や リリース（70 章）からの参照増加に耐える余裕がある。
 
