@@ -18,7 +18,7 @@ export declare class PublishRequest extends Message<PublishRequest> {
      *
      * @generated from field: bytes data = 2;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * Content-Type（application/json / application/protobuf 等）
      *
@@ -206,7 +206,7 @@ export declare class Event extends Message<Event> {
      *
      * @generated from field: bytes data = 2;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * Content-Type
      *

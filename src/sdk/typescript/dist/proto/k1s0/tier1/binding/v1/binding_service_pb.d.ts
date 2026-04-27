@@ -24,7 +24,7 @@ export declare class InvokeBindingRequest extends Message<InvokeBindingRequest> 
      *
      * @generated from field: bytes data = 3;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * メタデータ（content-type / to / subject 等、バインディング型依存）
      *
@@ -59,7 +59,7 @@ export declare class InvokeBindingResponse extends Message<InvokeBindingResponse
      *
      * @generated from field: bytes data = 1;
      */
-    data: Uint8Array<ArrayBuffer>;
+    data: Uint8Array;
     /**
      * メタデータ（外部システムから返るヘッダ等）
      *
