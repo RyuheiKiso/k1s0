@@ -1,0 +1,19 @@
+<!--
+  ApprovalFlow Application 層。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+
+  scope:
+    UseCase 実装と DTO。Domain のみを参照する（Infrastructure 直接参照禁止）。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.ApprovalFlow.Application</RootNamespace>
+    <AssemblyName>K1s0.Tier2.ApprovalFlow.Application</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApprovalFlow.Domain\ApprovalFlow.Domain.csproj" />
+  </ItemGroup>
+</Project>

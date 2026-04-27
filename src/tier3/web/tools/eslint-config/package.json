@@ -1,0 +1,14 @@
+{
+  "name": "@k1s0/eslint-config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "tier3 web 共通 ESLint 設定",
+  "license": "Apache-2.0",
+  "main": "index.cjs",
+  "files": ["index.cjs", "README.md"],
+  "peerDependencies": {
+    "eslint": "^8 || ^9",
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8"
+  }
+}

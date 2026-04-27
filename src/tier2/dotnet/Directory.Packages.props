@@ -1,0 +1,42 @@
+<!--
+  tier2 .NET 全 csproj 共通の Central Package Management（CPM）。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/02_dotnet_solution配置.md
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/06_依存管理.md
+
+  ポリシー:
+    - 各 csproj では <PackageReference Include="..." /> のみ書く（バージョンは本ファイル）
+    - バージョンは厳密指定（* / [1.0,) は禁止）
+    - Major バージョン UP は ADR 起票相当
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ASP.NET Core OpenAPI -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.10" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+
+    <!-- Dapr / k1s0 SDK（本リポジトリ内 ProjectReference は CPM 対象外） -->
+    <PackageVersion Include="Dapr.Client" Version="1.14.0" />
+
+    <!-- OpenTelemetry -->
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
+
+    <!-- Testing -->
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="NSubstitute" Version="5.1.0" />
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+
+    <!-- Integration testing（採用初期 で testcontainers 接続を有効化、リリース時点 は依存のみ pin） -->
+    <PackageVersion Include="Testcontainers" Version="3.10.0" />
+  </ItemGroup>
+</Project>

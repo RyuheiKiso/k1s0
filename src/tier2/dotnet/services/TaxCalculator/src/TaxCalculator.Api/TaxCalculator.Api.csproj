@@ -1,0 +1,14 @@
+<!-- TaxCalculator Api 層。 -->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.TaxCalculator.Api</RootNamespace>
+    <AssemblyName>K1s0.Tier2.TaxCalculator.Api</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>k1s0-tier2-tax-calculator</UserSecretsId>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TaxCalculator.Application\TaxCalculator.Application.csproj" />
+    <ProjectReference Include="..\TaxCalculator.Infrastructure\TaxCalculator.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

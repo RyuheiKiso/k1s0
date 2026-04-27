@@ -1,0 +1,23 @@
+<!-- TaxCalculator Architecture テスト。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.TaxCalculator.ArchitectureTests</RootNamespace>
+    <AssemblyName>K1s0.Tier2.TaxCalculator.ArchitectureTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TaxCalculator.Domain\TaxCalculator.Domain.csproj" />
+    <ProjectReference Include="..\..\src\TaxCalculator.Application\TaxCalculator.Application.csproj" />
+    <ProjectReference Include="..\..\src\TaxCalculator.Infrastructure\TaxCalculator.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+</Project>

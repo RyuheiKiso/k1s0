@@ -1,0 +1,31 @@
+# tier2 .NET 用 dotnet-format 設定。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/02_dotnet_solution配置.md
+#
+# scope:
+#   全 csproj 共通の整形ルール。Visual Studio / Rider / dotnet-format がここを参照する。
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+# C# 固有のスタイル。
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = false:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+[*.{json,yml,yaml,xml,csproj,sln,props,targets}]
+indent_size = 2

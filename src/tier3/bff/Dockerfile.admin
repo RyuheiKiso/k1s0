@@ -1,0 +1,20 @@
+# admin-bff Dockerfile（multi-stage）。
+#
+# build context: docker build -f src/tier3/bff/Dockerfile.admin src/tier3/bff/
+
+FROM golang:1.22 AS builder
+WORKDIR /workspace
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build \
+    -ldflags="-s -w" \
+    -trimpath \
+    -o bin/admin-bff \
+    ./cmd/admin-bff/
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=builder /workspace/bin/admin-bff /usr/local/bin/admin-bff
+USER nonroot
+EXPOSE 8080 9090
+ENTRYPOINT ["/usr/local/bin/admin-bff"]

@@ -1,0 +1,20 @@
+{
+  "name": "@k1s0/web-root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "k1s0 tier3 web pnpm workspace ルート",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "build": "pnpm --filter './packages/**' --filter './apps/**' build",
+    "test": "pnpm --filter './packages/**' --filter './apps/**' test",
+    "lint": "pnpm --filter './packages/**' --filter './apps/**' lint",
+    "typecheck": "pnpm --filter './packages/**' --filter './apps/**' typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

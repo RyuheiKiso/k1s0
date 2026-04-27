@@ -1,0 +1,23 @@
+"""
+portal-bff GraphQL スキーマ（リリース時点 最小、リリース時点 で gqlgen に同期）。
+
+docs 正典:
+  docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/04_bff配置.md
+"""
+type Query {
+  """現在認証済のユーザを返す。未認証なら anonymous。"""
+  currentUser: User
+  """k1s0 State からキー単位で値を取得する。"""
+  stateGet(store: String!, key: String!): StateValue
+}
+
+type User {
+  id: ID!
+  email: String
+  roles: [String!]!
+}
+
+type StateValue {
+  data: String!
+  etag: String
+}

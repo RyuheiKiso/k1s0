@@ -1,0 +1,23 @@
+<!-- InvoiceGenerator Architecture テスト（NetArchTest）。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.InvoiceGenerator.ArchitectureTests</RootNamespace>
+    <AssemblyName>K1s0.Tier2.InvoiceGenerator.ArchitectureTests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\InvoiceGenerator.Domain\InvoiceGenerator.Domain.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceGenerator.Application\InvoiceGenerator.Application.csproj" />
+    <ProjectReference Include="..\..\src\InvoiceGenerator.Infrastructure\InvoiceGenerator.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+</Project>

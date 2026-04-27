@@ -1,0 +1,37 @@
+<!--
+  tier3 native（.NET MAUI）共通の Central Package Management。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/03_maui_native配置.md
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MAUI 本体 -->
+    <PackageVersion Include="Microsoft.Maui.Controls" Version="8.0.91" />
+    <PackageVersion Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.91" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+
+    <!-- MVVM -->
+    <PackageVersion Include="CommunityToolkit.Maui" Version="9.0.3" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+
+    <!-- 認証 / gRPC -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.66.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.28.3" />
+
+    <!-- ローカルキャッシュ -->
+    <PackageVersion Include="sqlite-net-pcl" Version="1.9.172" />
+
+    <!-- Testing -->
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="NSubstitute" Version="5.1.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+  </ItemGroup>
+</Project>

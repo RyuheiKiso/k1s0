@@ -1,0 +1,29 @@
+<!--
+  ApprovalFlow Application 単体テスト。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.ApprovalFlow.Application.Tests</RootNamespace>
+    <AssemblyName>K1s0.Tier2.ApprovalFlow.Application.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ApprovalFlow.Application\ApprovalFlow.Application.csproj" />
+    <ProjectReference Include="..\..\src\ApprovalFlow.Domain\ApprovalFlow.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ApprovalFlow.Infrastructure\ApprovalFlow.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+</Project>

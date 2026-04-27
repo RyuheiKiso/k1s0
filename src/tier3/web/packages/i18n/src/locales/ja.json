@@ -1,0 +1,21 @@
+{
+  "common.appName": "k1s0",
+  "common.welcome": "ようこそ",
+  "common.loading": "読み込み中…",
+  "common.error": "エラーが発生しました",
+  "common.retry": "再試行",
+  "common.cancel": "キャンセル",
+  "common.save": "保存",
+  "common.delete": "削除",
+  "auth.signIn": "サインイン",
+  "auth.signOut": "サインアウト",
+  "approval.title": "承認管理",
+  "approval.submit": "申請",
+  "approval.approve": "承認",
+  "approval.reject": "却下",
+  "approval.cancel": "取り消し",
+  "approval.status.pending": "申請中",
+  "approval.status.approved": "承認済",
+  "approval.status.rejected": "却下",
+  "approval.status.cancelled": "取り消し済"
+}

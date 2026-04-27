@@ -1,0 +1,11 @@
+<!-- InvoiceGenerator Infrastructure 層（→ Domain）。 -->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.InvoiceGenerator.Infrastructure</RootNamespace>
+    <AssemblyName>K1s0.Tier2.InvoiceGenerator.Infrastructure</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\InvoiceGenerator.Domain\InvoiceGenerator.Domain.csproj" />
+  </ItemGroup>
+</Project>

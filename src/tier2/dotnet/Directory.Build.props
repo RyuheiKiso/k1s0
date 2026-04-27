@@ -1,0 +1,36 @@
+<!--
+  tier2 .NET ソリューション共通プロパティ。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/02_dotnet_solution配置.md
+
+  scope:
+    Tier2.sln 配下の全 csproj に langversion / nullable / TFM / analyzer 設定を波及させる。
+    Central Package Management（CPM）を有効にし、PackageVersion は Directory.Packages.props で集中管理する。
+-->
+<Project>
+  <PropertyGroup>
+    <!-- リリース時点 標準 TFM。net8.0-android 等の MAUI 派生は tier3/native 側で多重 TFM 化 -->
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- XML doc 警告 CS1591 はリリース時点 では除外（採用初期 で公開 API のみ強制化） -->
+    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    <!-- ID 体系の起点プレフィックス。各 service csproj は <RootNamespace> を上書きする -->
+    <RootNamespace Condition="'$(RootNamespace)' == ''">K1s0.Tier2</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Authors>k1s0 contributors</Authors>
+    <Company>k1s0</Company>
+    <Copyright>Copyright (c) k1s0</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/k1s0/k1s0</RepositoryUrl>
+  </PropertyGroup>
+</Project>

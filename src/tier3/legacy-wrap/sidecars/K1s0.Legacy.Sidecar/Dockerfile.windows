@@ -1,0 +1,24 @@
+# K1s0.Legacy.Sidecar の Windows container 用 Dockerfile。
+#
+# docs 正典:
+#   docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/05_レガシーラップ配置.md
+#
+# 注意:
+#   - Windows container は Kubernetes Windows Node で動作する（Linux Node 不可）。
+#   - tag は LTSC 2022 を固定（host との Windows Server build number 整合）。
+
+# stage 1: build。
+FROM mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2022 AS builder
+WORKDIR /workspace
+COPY . .
+RUN nuget restore LegacyWrap.sln
+RUN msbuild sidecars\K1s0.Legacy.Sidecar\K1s0.Legacy.Sidecar.csproj `
+    /p:Configuration=Release `
+    /p:OutDir=C:\publish\ `
+    /p:WebPublishMethod=FileSystem
+
+# stage 2: runtime。
+FROM mcr.microsoft.com/dotnet/framework/aspnet:4.8-windowsservercore-ltsc2022
+WORKDIR /inetpub/wwwroot
+COPY --from=builder C:/publish/_PublishedWebsites/K1s0.Legacy.Sidecar/ ./
+EXPOSE 80

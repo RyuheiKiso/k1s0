@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tax-calculator
+  description: tier2 税計算サービス（.NET 8、stateless 計算）
+  tags:
+    - tier2
+    - dotnet
+    - tax
+    - calculation
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    k1s0.io/tier: tier2
+    k1s0.io/component: tax-calculator
+    k1s0.io/lang: csharp
+    k1s0.io/env: dev
+spec:
+  type: service
+  lifecycle: experimental
+  owner: tier2-dev
+  providesApis: []
+  consumesApis: []
+  dependsOn: []
