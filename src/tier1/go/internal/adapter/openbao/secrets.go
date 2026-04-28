@@ -60,6 +60,9 @@ type SecretsAdapter interface {
 	Get(ctx context.Context, req SecretGetRequest) (SecretGetResponse, error)
 	// 複数 secret 取得（呼出側が name リストを渡す）。
 	BulkGet(ctx context.Context, names []string, tenantID string) (map[string]SecretGetResponse, error)
+	// テナント配下の全 secret を列挙して取得する（FR-T1-SECRETS-002 の BulkGet 経路）。
+	// 内部で Lister.List + Get の N 回呼出を行う。
+	ListAndGet(ctx context.Context, tenantID string) (map[string]SecretGetResponse, error)
 	// Rotate（KVv2 ではバージョン bump のみを担当、値生成は呼出側責務）。
 	Rotate(ctx context.Context, req SecretRotateRequest) (SecretGetResponse, error)
 }
@@ -155,6 +158,69 @@ func (a *openbaoSecretsAdapter) BulkGet(ctx context.Context, names []string, _ s
 	}
 	return out, nil
 }
+
+// ListAndGet はテナント prefix `tenant/<tenantID>/` 配下の secret を列挙し、
+// 各 secret の最新値を Get で取得して map にまとめる。Lister 未注入時は ErrNotWired。
+// proto BulkGet（FR-T1-SECRETS-002 の「テナントに割当された全シークレット」）の実装経路。
+func (a *openbaoSecretsAdapter) ListAndGet(ctx context.Context, tenantID string) (map[string]SecretGetResponse, error) {
+	// tenantID 必須。
+	if tenantID == "" {
+		// 不正引数として透過（handler 側で InvalidArgument に翻訳）。
+		return nil, errEmptyTenant
+	}
+	// Lister 未注入時は未結線扱い。
+	lister := a.client.listerFor()
+	if lister == nil {
+		// ErrNotWired を返却（handler 側で Unimplemented に翻訳）。
+		return nil, ErrNotWired
+	}
+	// テナント prefix（"tenant/<tenantID>/"）を構築する。
+	prefix := "tenant/" + tenantID + "/"
+	// Lister で path 配下の name 一覧を取得する。
+	names, err := lister.List(ctx, prefix)
+	// SDK エラーは透過する。
+	if err != nil {
+		// error をそのまま返却する。
+		return nil, err
+	}
+	// 各 name の Get を並べる map を準備する。
+	out := make(map[string]SecretGetResponse, len(names))
+	// 1 件ずつ取得する。
+	for _, name := range names {
+		// Get で最新値を取得する。
+		resp, gerr := a.Get(ctx, SecretGetRequest{Name: name, TenantID: tenantID})
+		// NotFound（直前 List 後に削除など）は skip する。
+		if gerr != nil {
+			// 部分結果性を担保するため continue する。
+			continue
+		}
+		// prefix を取り除いた相対 name を key にする（呼出側 UX 配慮）。
+		short := name
+		// 先頭が prefix と一致するなら除去する。
+		if hasInMemoryPrefix(name, prefix) {
+			// prefix 長分だけ trim する。
+			short = name[len(prefix):]
+		}
+		// 結果 map に詰める。
+		out[short] = resp
+	}
+	// 結果を返す。
+	return out, nil
+}
+
+// hasInMemoryPrefix は inmemory.go の hasPrefix 同等処理。secrets.go 内で完結させるため別名で定義。
+func hasInMemoryPrefix(s, prefix string) bool {
+	// 長さ不足は即 false。
+	if len(s) < len(prefix) {
+		// false を返す。
+		return false
+	}
+	// 先頭比較で判定する。
+	return s[:len(prefix)] == prefix
+}
+
+// errEmptyTenant は ListAndGet 呼出時に tenantID が空である旨を表す内部 sentinel。
+var errEmptyTenant = errors.New("tier1/secrets: tenant_id required for BulkGet")
 
 // Rotate は KVv2 の現在値を読み、同じ値で新規バージョンを書き込む。
 // これでバージョン番号が bump され、監査ログ・version 履歴に「rotate イベント」として

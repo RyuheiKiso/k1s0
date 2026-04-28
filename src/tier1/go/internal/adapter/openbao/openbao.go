@@ -54,6 +54,8 @@ type Client struct {
 	address string
 	// KVv2 narrow client（production: SDK の KVv2、test: fake）。
 	kv kvClient
+	// path 配下の secret 名列挙用 narrow client（BulkGet 用、production: Logical().List() 経由 shim）。
+	lister Lister
 	// SDK Client インスタンス（Close 用、fake 注入時は nil）。
 	closer interface{ Close() }
 }
@@ -93,6 +95,8 @@ func New(_ context.Context, cfg Config) (*Client, error) {
 	return &Client{
 		address: baoConfig.Address,
 		kv:      sdkClient.KVv2(mount),
+		// production の Lister は Logical().List() を mount 配下の metadata path で呼ぶ shim。
+		lister: newProductionLister(sdkClient, mount),
 		// SDK Client は Close() を持たない（HTTP client は GC 任せ）ため closer は nil。
 	}, nil
 }
@@ -120,4 +124,10 @@ func (c *Client) Close() error {
 // kvClientFor は内部 narrow client を返す。adapter 実装からのみ使う。
 func (c *Client) kvClientFor() kvClient {
 	return c.kv
+}
+
+// listerFor は内部 Lister narrow client を返す。BulkGet 等 List が必要な adapter から呼ぶ。
+// 注入されていない場合は nil を返す（adapter 側で空一覧扱いにする）。
+func (c *Client) listerFor() Lister {
+	return c.lister
 }

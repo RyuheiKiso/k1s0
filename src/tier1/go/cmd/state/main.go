@@ -38,11 +38,15 @@ import (
 	"flag"
 	// 起動 / shutdown / エラーログを stderr に出す（OTel logger は plan 04-02 で導入）。
 	"log"
+	// stdout への OTel JSON Lines 出力先。
+	"os"
 
 	// Dapr adapter（State / PubSub / Binding / Invoke / Feature の 5 building block 共通 Client）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// 共通 OTel emitter（Log / Metric / Trace）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/otel"
 	// t1-state Pod の handler（5 公開 API のオーケストレータ）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/state"
 )
@@ -55,18 +59,19 @@ const defaultListen = ":50001"
 func main() {
 	// listen address の上書き flag を定義（既定 :50001、後で ConfigMap → envvar → flag の優先順で読む）。
 	addr := flag.String("listen", defaultListen, "gRPC server listen address")
-	// Dapr sidecar address の flag（既定は dapr.go 側 defaultDaprAddress、空文字で adapter 既定値を使う）。
-	daprAddr := flag.String("dapr-address", "", "Dapr sidecar gRPC address (empty = use adapter default)")
+	// Dapr sidecar address の flag（空文字なら DAPR_GRPC_ENDPOINT 環境変数を参照）。
+	daprAddr := flag.String("dapr-address", "", "Dapr sidecar gRPC address (empty = use DAPR_GRPC_ENDPOINT env or in-memory backend)")
 	// flag 解析を起動直後に確定させる。
 	flag.Parse()
 
-	// Dapr Client を起動時に初期化する（lazy 不可、health check 開始時点で初期化済が docs 正典）。
-	daprClient, err := dapr.New(context.Background(), dapr.Config{SidecarAddress: *daprAddr})
+	// Dapr Client を環境変数 / flag / in-memory backend から構築する。
+	// production: DAPR_GRPC_ENDPOINT=localhost:50001 を設定すると実 sidecar に接続する。
+	// dev / CI: 環境変数 / flag 未設定なら in-memory backend で fallback（外部依存なしで起動可）。
+	daprClient, err := newDaprClient(context.Background(), *daprAddr)
 	// 初期化失敗は即時 exit(1)。
 	if err != nil {
 		// 失敗ログを stderr に書く。
 		log.Fatalf("t1-state: dapr client init: %v", err)
-		// if 分岐を閉じる。
 	}
 	// Pod 終了時に Client を解放する。
 	defer func() {
@@ -81,6 +86,15 @@ func main() {
 
 	// 5 公開 API の handler が依存する adapter 集合を構築する。
 	deps := state.NewDepsFromClient(daprClient)
+	// OTel Log / Metric / Trace の 3 emitter を stdout JSON Lines として構築する。
+	// docs 正典 DS-SW-COMP-037（"stdout JSON Lines / OTel Collector / Loki 集約"）の
+	// 第 1 段（stdout JSON Lines）を満たす実値出力経路。OTel Collector 経由切替は
+	// plan 04-13 で OTLP gRPC exporter を import する形で行う（emitter interface 不変）。
+	bundle := otel.NewStdoutBundle(os.Stdout)
+	// deps に 3 emitter を注入する（同名フィールド代入）。
+	deps.LogEmitter = bundle.LogEmitter
+	deps.MetricEmitter = bundle.MetricEmitter
+	deps.TraceEmitter = bundle.TraceEmitter
 
 	// Pod メタデータを構築する（5 API すべて Register hook で登録）。
 	pod := common.Pod{
@@ -97,7 +111,33 @@ func main() {
 	if err := common.Run(pod, *addr); err != nil {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-state: %v", err)
-		// if 分岐を閉じる。
 	}
-	// main 関数を閉じる。
+}
+
+// newDaprClient は flag / DAPR_GRPC_ENDPOINT / in-memory の優先順で Dapr Client を構築する。
+//
+// 優先順位:
+//   1. -dapr-address flag が指定されている → 実 Dapr sidecar に接続する
+//   2. DAPR_GRPC_ENDPOINT 環境変数が設定されている → 実 Dapr sidecar に接続する
+//   3. いずれも未設定 → in-memory backend で起動する（dev / CI 用途）
+//
+// production の Pod では Dapr sidecar が injection されているため、env を必ず設定する。
+// dev / CI で外部依存なしに `go run cmd/state` できるよう、未設定時は in-memory に fallback する。
+func newDaprClient(ctx context.Context, flagAddr string) (*dapr.Client, error) {
+	// flag が最優先（明示指定）。
+	addr := flagAddr
+	// flag 未指定なら環境変数を参照する。
+	if addr == "" {
+		// 環境変数を取得する。
+		addr = os.Getenv("DAPR_GRPC_ENDPOINT")
+	}
+	// addr 未設定時は in-memory backend を返す。
+	if addr == "" {
+		// stderr に fallback モードを 1 行ログする。
+		log.Printf("t1-state: DAPR_GRPC_ENDPOINT not set, using in-memory Dapr backend (dev/CI mode)")
+		// in-memory backend を返却する。
+		return dapr.NewClientWithInMemoryBackends(), nil
+	}
+	// 実 Dapr sidecar に接続する。
+	return dapr.New(ctx, dapr.Config{SidecarAddress: addr})
 }
