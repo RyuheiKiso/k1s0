@@ -60,6 +60,13 @@ type daprStateClient interface {
 	DeleteStateWithETag(ctx context.Context, storeName, key string, etag *daprclient.ETag, meta map[string]string, opts *daprclient.StateOptions) error
 }
 
+// daprPubSubClient は本パッケージが Dapr SDK から **実際に使う pubsub 関連メソッド**
+// だけを集めた narrow interface。State と同様、テスタビリティのため必要 method 限定で抽象化する。
+type daprPubSubClient interface {
+	// 単発 Publish。SDK は Kafka offset を返さない（fire-and-forget at gRPC level）。
+	PublishEvent(ctx context.Context, pubsubName, topicName string, data interface{}, opts ...daprclient.PublishEventOption) error
+}
+
 // Client は tier1 Go ファサードから見た Dapr SDK のアダプタ。
 // 本リリース時点では State 系のみ narrow interface として保持し、PubSub / Binding /
 // Invoke / Feature は ErrNotWired を返す placeholder のまま（plan 04-05 〜 04-13 で同様に
@@ -69,6 +76,8 @@ type Client struct {
 	sidecarAddress string
 	// 実 Dapr SDK の State 用 client（試験では fake を差し替え可能）。
 	state daprStateClient
+	// 実 Dapr SDK の PubSub 用 client。state と同じ SDK インスタンスを別 interface で保持。
+	pubsub daprPubSubClient
 	// SDK Client インスタンス（Close 時に SDK の Close を呼ぶ必要があるため保持）。
 	// fake 注入時は nil。
 	closer interface{ Close() }
@@ -94,10 +103,11 @@ func New(_ context.Context, cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Client インスタンスを返却（state は SDK の同一 Client を narrow interface 越しに保持）。
+	// Client インスタンスを返却（state / pubsub は SDK の同一 Client を別 interface で保持）。
 	return &Client{
 		sidecarAddress: addr,
 		state:          sdkClient,
+		pubsub:         sdkClient,
 		closer:         sdkClient,
 	}, nil
 }
@@ -105,8 +115,12 @@ func New(_ context.Context, cfg Config) (*Client, error) {
 // NewWithStateClient は test 用コンストラクタ。任意の daprStateClient 実装を
 // 受け取って Client を構築する。production の New と異なり SDK 接続は行わない。
 func NewWithStateClient(addr string, sc daprStateClient) *Client {
-	// addr は SidecarAddress() のために保持する。
 	return &Client{sidecarAddress: addr, state: sc, closer: nil}
+}
+
+// NewWithPubSubClient は test 用コンストラクタ（pubsub 単独）。
+func NewWithPubSubClient(addr string, pc daprPubSubClient) *Client {
+	return &Client{sidecarAddress: addr, pubsub: pc, closer: nil}
 }
 
 // Close は Client が保持する Dapr SDK Client の gRPC 接続を解放する。
@@ -130,6 +144,12 @@ func (c *Client) SidecarAddress() string {
 // adapter 実装（state.go）からのみ使う。
 func (c *Client) stateClient() daprStateClient {
 	return c.state
+}
+
+// pubsubClient は内部の pubsub-用 narrow client を返す。
+// adapter 実装（pubsub.go）からのみ使う。
+func (c *Client) pubsubClient() daprPubSubClient {
+	return c.pubsub
 }
 
 // defaultDaprAddress は Dapr sidecar の既定 gRPC ポート。

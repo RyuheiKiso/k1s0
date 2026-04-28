@@ -5,15 +5,29 @@
 //     - PubSub API → Kafka（Dapr Pub/Sub）
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/03_PubSub_API.md
 //
-// リリース時点 placeholder。実 Dapr SDK 接続は plan 04-05 で実装。
+// 役割（plan 04-05 結線済）:
+//   handler.go が呼び出す Publish I/O を封じ込め、Dapr Go SDK の PublishEvent を
+//   narrow interface（dapr.go の daprPubSubClient）越しに呼び出す。
+//   テナント識別子と冪等性キーは metadata 経由で sidecar に伝搬する。
+//
+// Kafka offset の扱い:
+//   Dapr SDK の PublishEvent は fire-and-forget で Kafka offset を返さないため、
+//   PublishResponse.Offset は常に 0 を返す。proto 側の offset フィールドは
+//   将来 Dapr が exposing をサポートした際の予約。
 
 package dapr
 
-// 標準 Go ライブラリ。
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
+
+	// Dapr SDK の PublishEvent オプション関数を参照する。
+	daprclient "github.com/dapr/go-sdk/client"
 )
+
+// metadataKeyIdempotency は Dapr metadata に詰める冪等性キー。
+// pubsub component 側で重複検出に使う運用想定（component 設定依存）。
+const metadataKeyIdempotency = "idempotencyKey"
 
 // PublishRequest は Publish / BulkPublish 共通の入力。
 type PublishRequest struct {
@@ -35,7 +49,7 @@ type PublishRequest struct {
 
 // PublishResponse は Publish の応答。
 type PublishResponse struct {
-	// Kafka offset。
+	// Kafka offset。Dapr SDK は exposing しないため常に 0。
 	Offset int64
 }
 
@@ -45,20 +59,56 @@ type PubSubAdapter interface {
 	Publish(ctx context.Context, req PublishRequest) (PublishResponse, error)
 }
 
-// daprPubSubAdapter は実装（リリース時点 placeholder）。
+// daprPubSubAdapter は Client（narrow interface）越しに SDK を呼ぶ実装。
 type daprPubSubAdapter struct {
-	// Dapr Client への参照。
+	// Dapr Client への参照。pubsub-用 narrow interface（daprPubSubClient）を持つ。
 	client *Client
 }
 
 // NewPubSubAdapter は PubSubAdapter を生成する。
 func NewPubSubAdapter(client *Client) PubSubAdapter {
-	// 実装インスタンスを構築する。
 	return &daprPubSubAdapter{client: client}
 }
 
-// Publish は plan 04-05 で実装。
-func (a *daprPubSubAdapter) Publish(_ context.Context, _ PublishRequest) (PublishResponse, error) {
-	// placeholder
-	return PublishResponse{}, ErrNotWired
+// buildPubSubMeta はテナント識別子・冪等性キー・追加 metadata を合成する。
+// 呼び出し側で渡された Metadata map を破壊しないよう、新規 map を返す。
+func buildPubSubMeta(tenantID, idempotencyKey string, extra map[string]string) map[string]string {
+	if tenantID == "" && idempotencyKey == "" && len(extra) == 0 {
+		return nil
+	}
+	// 上書き優先順位: tenantID / idempotencyKey は extra より優先する（adapter 規約）。
+	meta := make(map[string]string, len(extra)+2)
+	for k, v := range extra {
+		meta[k] = v
+	}
+	if tenantID != "" {
+		meta[metadataKeyTenant] = tenantID
+	}
+	if idempotencyKey != "" {
+		meta[metadataKeyIdempotency] = idempotencyKey
+	}
+	return meta
+}
+
+// Publish はトピックへ event を発行する。
+func (a *daprPubSubAdapter) Publish(ctx context.Context, req PublishRequest) (PublishResponse, error) {
+	// metadata 構築（テナント + 冪等性 + 利用側追加）。
+	meta := buildPubSubMeta(req.TenantID, req.IdempotencyKey, req.Metadata)
+
+	// SDK の PublishEvent オプションを組み立てる。
+	// content-type が空でも SDK は default を使うので無条件指定はしない。
+	opts := make([]daprclient.PublishEventOption, 0, 2)
+	if req.ContentType != "" {
+		opts = append(opts, daprclient.PublishEventWithContentType(req.ContentType))
+	}
+	if len(meta) > 0 {
+		opts = append(opts, daprclient.PublishEventWithMetadata(meta))
+	}
+
+	// Dapr SDK 呼び出し。data は []byte で渡し、SDK 側で適切に serialize される。
+	if err := a.client.pubsubClient().PublishEvent(ctx, req.Component, req.Topic, req.Data, opts...); err != nil {
+		return PublishResponse{}, err
+	}
+	// SDK は Kafka offset を返さないため 0 を返却する（proto field は予約）。
+	return PublishResponse{Offset: 0}, nil
 }
