@@ -120,6 +120,7 @@ k1s0 の自作領域 (Rust) と Dapr ファサード層 (Go) の言語仕様。R
 
 - [sqlx-migrate_basics.md](library/sqlx-migrate_basics.md)
 - [testcontainers_basics.md](library/testcontainers_basics.md)
+- [tokio_basics.md](library/tokio_basics.md)
 
 ### methodology — 手法・方針
 
