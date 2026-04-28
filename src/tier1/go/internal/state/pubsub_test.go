@@ -92,6 +92,7 @@ func TestPubSubHandler_Publish_OK(t *testing.T) {
 		Topic:       "k1s0.events.user-created",
 		Data:        []byte(`{"user_id":"42"}`),
 		ContentType: "application/json",
+		Context:     makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Publish error: %v", err)
@@ -118,7 +119,7 @@ func TestPubSubHandler_Publish_NotWired(t *testing.T) {
 		},
 	}
 	h := newPubSubHandler(a)
-	_, err := h.Publish(context.Background(), &pubsubv1.PublishRequest{Topic: "t", Data: []byte("d")})
+	_, err := h.Publish(context.Background(), &pubsubv1.PublishRequest{Topic: "t", Data: []byte("d"), Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status code: got %v want Unimplemented", got)
 	}
@@ -132,9 +133,18 @@ func TestPubSubHandler_Publish_AdapterError(t *testing.T) {
 		},
 	}
 	h := newPubSubHandler(a)
-	_, err := h.Publish(context.Background(), &pubsubv1.PublishRequest{Topic: "t", Data: []byte("d")})
+	_, err := h.Publish(context.Background(), &pubsubv1.PublishRequest{Topic: "t", Data: []byte("d"), Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status code: got %v want Internal", got)
+	}
+}
+
+// NFR-E-AC-003: tenant_id 未設定時に InvalidArgument を返すことを検証する。
+func TestPubSubHandler_Publish_RequiresTenant(t *testing.T) {
+	h := newPubSubHandler(&fakePubSubAdapter{})
+	_, err := h.Publish(context.Background(), &pubsubv1.PublishRequest{Topic: "t", Data: []byte("d")})
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for missing tenant, got %v", got)
 	}
 }
 
@@ -154,9 +164,9 @@ func TestPubSubHandler_BulkPublish_OK(t *testing.T) {
 	_, err := h.BulkPublish(context.Background(), &pubsubv1.BulkPublishRequest{
 		Topic: "k1s0.events.audit",
 		Entries: []*pubsubv1.PublishRequest{
-			{Data: []byte("a")},
-			{Data: []byte("b")},
-			{Data: []byte("c")},
+			{Data: []byte("a"), Context: makeTenantCtx("T")},
+			{Data: []byte("b"), Context: makeTenantCtx("T")},
+			{Data: []byte("c"), Context: makeTenantCtx("T")},
 		},
 	})
 	if err != nil {
@@ -208,7 +218,7 @@ func TestPubSubService_Subscribe_OverGRPC(t *testing.T) {
 	defer conn.Close()
 	client := pubsubv1.NewPubSubServiceClient(conn)
 	stream, err := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{
-		Topic: "t", ConsumerGroup: "g",
+		Topic: "t", ConsumerGroup: "g", Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Subscribe: %v", err)
@@ -245,7 +255,7 @@ func TestPubSubService_Subscribe_NotWired(t *testing.T) {
 	)
 	defer conn.Close()
 	client := pubsubv1.NewPubSubServiceClient(conn)
-	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t"})
+	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t", Context: makeTenantCtx("T")})
 	_, err := stream.Recv()
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status: got %v want Unimplemented", got)
@@ -291,6 +301,7 @@ func TestPubSubService_Publish_OverGRPC(t *testing.T) {
 		Topic:       "k1s0.events.test",
 		Data:        []byte("hello"),
 		ContentType: "text/plain",
+		Context:     makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Publish over gRPC failed: %v", err)

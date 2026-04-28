@@ -3,7 +3,8 @@
 
 use crate::client::Client;
 use crate::proto::k1s0::tier1::secrets::v1::{
-    GetSecretRequest, RotateSecretRequest, secrets_service_client::SecretsServiceClient,
+    GetDynamicSecretRequest, GetSecretRequest, RotateSecretRequest,
+    secrets_service_client::SecretsServiceClient,
 };
 use std::collections::HashMap;
 use tonic::{Status, transport::Channel};
@@ -12,6 +13,19 @@ use tonic::{Status, transport::Channel};
 pub struct SecretsFacade {
     client: Client,
     raw: SecretsServiceClient<Channel>,
+}
+
+/// 動的 Secret 発行（FR-T1-SECRETS-002）の応答を SDK 利用者向けに整理した型。
+#[derive(Debug, Clone)]
+pub struct DynamicSecret {
+    /// credential 一式（"username" / "password" など、engine 別の field）。
+    pub values: HashMap<String, String>,
+    /// OpenBao の lease ID（renewal / revoke 用）。
+    pub lease_id: String,
+    /// 実際に付与された TTL 秒（要求値から ceiling までクランプされる）。
+    pub ttl_sec: i32,
+    /// 発効時刻（Unix epoch ミリ秒）。
+    pub issued_at_ms: i64,
 }
 
 impl SecretsFacade {
@@ -32,6 +46,33 @@ impl SecretsFacade {
         let resp = self.raw.get(req).await?.into_inner();
         // (values, version) を返却する。
         Ok((resp.values, resp.version))
+    }
+
+    /// 動的 Secret 発行（FR-T1-SECRETS-002）の応答 SDK 型。
+    /// engine 別の credential（OpenBao Database Engine の標準では username / password）
+    /// と OpenBao lease ID を返す。
+    pub async fn get_dynamic(
+        &mut self,
+        engine: &str,
+        role: &str,
+        ttl_sec: i32,
+    ) -> Result<DynamicSecret, Status> {
+        // proto Request を構築する。
+        let req = GetDynamicSecretRequest {
+            engine: engine.to_string(),
+            role: role.to_string(),
+            ttl_sec,
+            context: Some(self.client.tenant_context()),
+        };
+        // RPC 呼出。
+        let resp = self.raw.get_dynamic(req).await?.into_inner();
+        // SDK 型に詰め替える。
+        Ok(DynamicSecret {
+            values: resp.values,
+            lease_id: resp.lease_id,
+            ttl_sec: resp.ttl_sec,
+            issued_at_ms: resp.issued_at_ms,
+        })
     }
 
     /// Rotate はシークレットのローテーション。新バージョンと旧バージョンを返す。

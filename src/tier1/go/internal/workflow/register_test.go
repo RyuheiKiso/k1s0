@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/temporal"
+	commonv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/common/v1"
 	workflowv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/workflow/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -18,6 +19,12 @@ import (
 )
 
 const bufSize = 1024 * 1024
+
+// makeTenantCtx は WorkflowService テストで TenantContext を組み立てる helper。
+// NFR-E-AC-003 で tenant_id 必須化されたためすべての RPC で渡す。
+func makeTenantCtx(tenantID string) *commonv1.TenantContext {
+	return &commonv1.TenantContext{TenantId: tenantID}
+}
 
 // fakeWorkflowAdapter は temporal.WorkflowAdapter の最小 fake 実装。
 type fakeWorkflowAdapter struct {
@@ -63,6 +70,7 @@ func TestWorkflowHandler_Start_OK(t *testing.T) {
 		WorkflowType: "ProcessOrder",
 		WorkflowId:   "wf-1",
 		Input:        []byte("payload"),
+		Context:      makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Start error: %v", err)
@@ -75,9 +83,18 @@ func TestWorkflowHandler_Start_OK(t *testing.T) {
 // Start: adapter 未注入で Unimplemented。
 func TestWorkflowHandler_Start_NoAdapter(t *testing.T) {
 	h := &workflowHandler{deps: Deps{}}
-	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X"})
+	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X", Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status: got %v want Unimplemented", got)
+	}
+}
+
+// NFR-E-AC-003: tenant_id 未設定時に InvalidArgument を返す。
+func TestWorkflowHandler_Start_RequiresTenant(t *testing.T) {
+	h := &workflowHandler{deps: Deps{}}
+	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X"})
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for missing tenant, got %v", got)
 	}
 }
 
@@ -95,6 +112,7 @@ func TestWorkflowHandler_Signal_OK(t *testing.T) {
 	if _, err := h.Signal(context.Background(), &workflowv1.SignalRequest{
 		WorkflowId: "wf-1",
 		SignalName: "approve",
+		Context:    makeTenantCtx("T"),
 	}); err != nil {
 		t.Fatalf("Signal error: %v", err)
 	}
@@ -108,7 +126,7 @@ func TestWorkflowHandler_Query_OK(t *testing.T) {
 		},
 	}
 	h := &workflowHandler{deps: Deps{WorkflowAdapter: a}}
-	resp, err := h.Query(context.Background(), &workflowv1.QueryRequest{WorkflowId: "x", QueryName: "status"})
+	resp, err := h.Query(context.Background(), &workflowv1.QueryRequest{WorkflowId: "x", QueryName: "status", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("Query error: %v", err)
 	}
@@ -123,7 +141,7 @@ func TestWorkflowHandler_Cancel_OK(t *testing.T) {
 		cancelFn: func(_ context.Context, _ temporal.CancelRequest) error { return nil },
 	}
 	h := &workflowHandler{deps: Deps{WorkflowAdapter: a}}
-	if _, err := h.Cancel(context.Background(), &workflowv1.CancelRequest{WorkflowId: "x"}); err != nil {
+	if _, err := h.Cancel(context.Background(), &workflowv1.CancelRequest{WorkflowId: "x", Context: makeTenantCtx("T")}); err != nil {
 		t.Fatalf("Cancel error: %v", err)
 	}
 }
@@ -142,6 +160,7 @@ func TestWorkflowHandler_Terminate_OK(t *testing.T) {
 	if _, err := h.Terminate(context.Background(), &workflowv1.TerminateRequest{
 		WorkflowId: "x",
 		Reason:     "fraud-detected",
+		Context:    makeTenantCtx("T"),
 	}); err != nil {
 		t.Fatalf("Terminate error: %v", err)
 	}
@@ -155,7 +174,7 @@ func TestWorkflowHandler_GetStatus_OK(t *testing.T) {
 		},
 	}
 	h := &workflowHandler{deps: Deps{WorkflowAdapter: a}}
-	resp, err := h.GetStatus(context.Background(), &workflowv1.GetStatusRequest{WorkflowId: "x"})
+	resp, err := h.GetStatus(context.Background(), &workflowv1.GetStatusRequest{WorkflowId: "x", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("GetStatus error: %v", err)
 	}
@@ -175,7 +194,7 @@ func TestWorkflowHandler_Start_AdapterError(t *testing.T) {
 		},
 	}
 	h := &workflowHandler{deps: Deps{WorkflowAdapter: a}}
-	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X"})
+	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X", Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status: got %v want Internal", got)
 	}
@@ -210,6 +229,7 @@ func TestWorkflowService_Start_OverGRPC(t *testing.T) {
 	resp, err := client.Start(context.Background(), &workflowv1.StartRequest{
 		WorkflowType: "Test",
 		WorkflowId:   "wf-test",
+		Context:      makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Start over gRPC: %v", err)

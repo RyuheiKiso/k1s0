@@ -37,6 +37,11 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/serviceinvoke: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "Invoke.Invoke")
+	if err != nil {
+		return nil, err
+	}
 	// adapter 入力に変換。
 	areq := dapr.InvokeRequest{
 		// 呼出先アプリ識別子。
@@ -48,7 +53,7 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 		// Content-Type。
 		ContentType: req.GetContentType(),
 		// テナント。
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 		// タイムアウト。
 		TimeoutMs: req.GetTimeoutMs(),
 	}
@@ -86,12 +91,17 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 	if h.deps.InvokeAdapter == nil {
 		return status.Error(codes.Unimplemented, "tier1/serviceinvoke: InvokeStream not yet wired to Dapr backend")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, terr := requireTenantID(req.GetContext(), "Invoke.InvokeStream")
+	if terr != nil {
+		return terr
+	}
 	areq := dapr.InvokeRequest{
 		AppID:       req.GetAppId(),
 		Method:      req.GetMethod(),
 		Data:        req.GetData(),
 		ContentType: req.GetContentType(),
-		TenantID:    tenantIDOf(req.GetContext()),
+		TenantID:    tid,
 		TimeoutMs:   req.GetTimeoutMs(),
 	}
 	aresp, err := h.deps.InvokeAdapter.Invoke(stream.Context(), areq)

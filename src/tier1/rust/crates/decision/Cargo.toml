@@ -6,10 +6,11 @@
 #   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/09_Decision_API.md
 #   docs/02_構想設計/adr/ADR-RULE-001-zen-engine.md
 #
-# 役割（リリース時点 最小骨格）:
-#   tonic server を :50001 で起動し DecisionService（Evaluate / BatchEvaluate）と
-#   DecisionAdminService（RegisterRule / ListVersions / GetRule）を登録する。
-#   全 RPC は Status::unimplemented を返却。実 ZEN Engine 結線は plan 04-08 で実装。
+# 役割:
+#   tonic server を :50001（LISTEN_ADDR で上書き可）で起動し、DecisionService
+#   （Evaluate / BatchEvaluate）と DecisionAdminService（RegisterRule / ListVersions /
+#   GetRule）を ZEN Engine ベースの実装で登録する。JDM 評価は zen-engine の DecisionEngine
+#   に委譲し、include_trace=true でノード単位の評価トレースを返す。
 
 [package]
 name = "k1s0-tier1-decision"
@@ -28,16 +29,20 @@ path = "src/main.rs"
 [dependencies]
 # 公開 API（DecisionService / DecisionAdminService）の Service trait。
 k1s0-sdk-proto = { workspace = true }
+# 共通 HealthService 実装（Liveness / Readiness 2 RPC）。
+k1s0-tier1-health = { workspace = true }
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
-# 純 Rust 算術 / 論理 expression evaluator（rquickjs / C++ 依存を避けるため zen-engine 直接統合は採らない）
-# JDM 互換の expression-list 形式を本 crate 内 evaluator で評価する。本格 JDM を要する
-# 場面（loaderNode / decisionTable 等）は plan 04-08 後段で zen-engine 直結に置換予定。
-evalexpr = "11"
 # 評価入出力の JSON ペイロード。
 serde_json = "1"
+# ADR-RULE-001 の決定に従い、ZEN Engine + JDM フォーマットを採用。
+# zen-engine は内部で rquickjs（QuickJS の Rust binding、C ソース埋込）を依存に持つため、
+# ビルド環境に C/C++ コンパイラが必要。production イメージはマルチステージビルドで builder
+# ステージにのみ cc を入れる運用。
+zen-engine = "0.55.0"
+tonic-reflection = "0.12"
 
 [lib]
 name = "k1s0_tier1_decision"

@@ -100,12 +100,21 @@ func TestStateHandler_Get_NotFound(t *testing.T) {
 		},
 	}
 	h := newHandler(a)
-	resp, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "x"})
+	resp, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "x", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
 	}
 	if !resp.GetNotFound() {
 		t.Fatalf("expected NotFound=true")
+	}
+}
+
+// NFR-E-AC-003: tenant_id が空のリクエストは InvalidArgument で弾かれることを検証する。
+func TestStateHandler_Get_RequiresTenant(t *testing.T) {
+	h := newHandler(&fakeStateAdapter{})
+	_, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "k"})
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for missing tenant, got %v", got)
 	}
 }
 
@@ -126,7 +135,7 @@ func TestStateHandler_Get_NotWired(t *testing.T) {
 		},
 	}
 	h := newHandler(a)
-	_, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "k"})
+	_, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "k", Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status code: got %v want Unimplemented", got)
 	}
@@ -140,7 +149,7 @@ func TestStateHandler_Get_AdapterError(t *testing.T) {
 		},
 	}
 	h := newHandler(a)
-	_, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "k"})
+	_, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "k", Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status code: got %v want Internal", got)
 	}
@@ -169,6 +178,7 @@ func TestStateHandler_Set_OK(t *testing.T) {
 		Data:         []byte("v"),
 		ExpectedEtag: "v3",
 		TtlSec:       60,
+		Context:      makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Set error: %v", err)
@@ -191,7 +201,7 @@ func TestStateHandler_Delete_OK(t *testing.T) {
 		},
 	}
 	h := newHandler(a)
-	resp, err := h.Delete(context.Background(), &statev1.DeleteRequest{Store: "s", Key: "k"})
+	resp, err := h.Delete(context.Background(), &statev1.DeleteRequest{Store: "s", Key: "k", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("Delete error: %v", err)
 	}
@@ -218,8 +228,9 @@ func TestStateHandler_BulkGet_OK(t *testing.T) {
 	}
 	h := newHandler(a)
 	resp, err := h.BulkGet(context.Background(), &statev1.BulkGetRequest{
-		Store: "valkey",
-		Keys:  []string{"k1", "k2"},
+		Store:   "valkey",
+		Keys:    []string{"k1", "k2"},
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("BulkGet error: %v", err)
@@ -251,6 +262,7 @@ func TestStateHandler_Transact_OK(t *testing.T) {
 			{Op: &statev1.TransactOp_Set{Set: &statev1.SetRequest{Key: "a", Data: []byte("v")}}},
 			{Op: &statev1.TransactOp_Delete{Delete: &statev1.DeleteRequest{Key: "b"}}},
 		},
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Transact error: %v", err)

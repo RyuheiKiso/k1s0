@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="components" name="3要素">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="メタ認知の構成要素 (Flavell 1979 / Brown 1987 を統合)" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="outer" value="メタ認知 (Metacognition)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="820" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="col1" value="メタ認知的知識&#10;(Metacognitive Knowledge)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="70" y="90" width="240" height="450" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_intro" value="認知主体・課題・方略についての&#10;静的・宣言的な知識" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_a" value="人変数&#10;自分・他者の認知特性&#10;(例: 自分は朝に集中できる)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="90" y="190" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_b" value="課題変数&#10;課題の難度・性質&#10;(例: 抽象問題は時間がかかる)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="90" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c1_c" value="方略変数&#10;有効な手段の知識&#10;(例: 暗記には反復が有効)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="90" y="390" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="col2" value="メタ認知的経験&#10;(Metacognitive Experience)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="330" y="90" width="240" height="450" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_intro" value="課題遂行中に湧く&#10;認知的・情動的な気づき" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="340" y="130" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_a" value="認知的経験&#10;「分かった / 分からない」&#10;の感覚" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="200" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c2_b" value="情動的経験&#10;「不安・自信・退屈」&#10;など課題に伴う情動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="350" y="320" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="col3" value="メタ認知的活動&#10;(Metacognitive Regulation)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="590" y="90" width="240" height="450" as="geometry" />
+        </mxCell>
+        <mxCell id="c3_intro" value="認知活動を制御する&#10;動的・手続き的なプロセス" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3_a" value="計画 (Planning)&#10;手順・配分・方略を決める" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="190" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c3_b" value="モニタリング (Monitoring)&#10;進捗・理解度を点検する" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="290" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c3_c" value="評価・修正 (Evaluation)&#10;結果を振り返り方略を更新する" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="610" y="390" width="200" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

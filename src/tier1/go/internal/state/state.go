@@ -43,6 +43,11 @@ func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*state
 		// gRPC 慣用のエラー返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "State.Get")
+	if err != nil {
+		return nil, err
+	}
 	// adapter 入力に変換する。
 	areq := dapr.StateGetRequest{
 		// proto の store フィールドをそのまま渡す。
@@ -50,7 +55,7 @@ func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*state
 		// proto の key フィールドをそのまま渡す。
 		Key: req.GetKey(),
 		// TenantContext.tenant_id を adapter に渡す。
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	// adapter 呼出。
 	aresp, err := h.deps.StateAdapter.Get(ctx, areq)
@@ -77,6 +82,11 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 		// 不正引数として返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "State.Set")
+	if err != nil {
+		return nil, err
+	}
 	// adapter 入力に変換する。
 	areq := dapr.StateSetRequest{
 		// store。
@@ -90,7 +100,7 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 		// TTL 秒。
 		TTLSeconds: req.GetTtlSec(),
 		// テナント。
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	// adapter 呼出。
 	aresp, err := h.deps.StateAdapter.Set(ctx, areq)
@@ -110,6 +120,11 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 		// 不正引数として返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "State.Delete")
+	if err != nil {
+		return nil, err
+	}
 	// adapter 入力に変換する（StateSetRequest を流用）。
 	areq := dapr.StateSetRequest{
 		// store。
@@ -119,7 +134,7 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 		// 期待 ETag。
 		ExpectedEtag: req.GetExpectedEtag(),
 		// テナント。
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	// adapter 呼出。
 	if err := h.deps.StateAdapter.Delete(ctx, areq); err != nil {
@@ -135,10 +150,15 @@ func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "State.BulkGet")
+	if err != nil {
+		return nil, err
+	}
 	areq := dapr.StateBulkGetRequest{
 		Store:    req.GetStore(),
 		Keys:     req.GetKeys(),
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	items, err := h.deps.StateAdapter.BulkGet(ctx, areq)
 	if err != nil {
@@ -159,6 +179,11 @@ func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest)
 func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactRequest) (*statev1.TransactResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
+	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "State.Transact")
+	if err != nil {
+		return nil, err
 	}
 	ops := make([]dapr.TransactOp, 0, len(req.GetOperations()))
 	for _, op := range req.GetOperations() {
@@ -186,7 +211,7 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 	areq := dapr.StateTransactRequest{
 		Store:    req.GetStore(),
 		Ops:      ops,
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	if err := h.deps.StateAdapter.Transact(ctx, areq); err != nil {
 		return &statev1.TransactResponse{Committed: false}, translateErr(err, "Transact", "plan 04-04")

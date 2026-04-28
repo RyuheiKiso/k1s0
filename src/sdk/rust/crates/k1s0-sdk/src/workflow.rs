@@ -2,7 +2,7 @@
 use crate::client::Client;
 use crate::proto::k1s0::tier1::workflow::v1::{
     CancelRequest, GetStatusRequest, GetStatusResponse, QueryRequest, SignalRequest, StartRequest,
-    TerminateRequest, workflow_service_client::WorkflowServiceClient,
+    TerminateRequest, WorkflowBackend, workflow_service_client::WorkflowServiceClient,
 };
 use tonic::{Status, transport::Channel};
 
@@ -18,13 +18,72 @@ impl WorkflowFacade {
         Self { client, raw }
     }
 
-    /// start はワークフロー開始。返り値は (workflow_id, run_id)。
+    /// start はワークフロー開始。backend hint は BACKEND_AUTO（tier1 が振り分け）。
+    /// 返り値は (workflow_id, run_id)。
+    /// 短期 / 長期で意図的に振り分けたい時は run_short / run_long を使う。
     pub async fn start(
         &mut self,
         workflow_type: &str,
         workflow_id: &str,
         input: Vec<u8>,
         idempotent: bool,
+    ) -> Result<(String, String), Status> {
+        self.start_with_backend(
+            workflow_type,
+            workflow_id,
+            input,
+            idempotent,
+            WorkflowBackend::BackendAuto,
+        )
+        .await
+    }
+
+    /// run_short は短期ワークフロー（≤7 日、BACKEND_DAPR）として開始する（FR-T1-WORKFLOW-001）。
+    /// 短期ワークフローは Dapr Workflow building block で実行され、Pod 再起動でも履歴が保持される。
+    pub async fn run_short(
+        &mut self,
+        workflow_type: &str,
+        workflow_id: &str,
+        input: Vec<u8>,
+        idempotent: bool,
+    ) -> Result<(String, String), Status> {
+        self.start_with_backend(
+            workflow_type,
+            workflow_id,
+            input,
+            idempotent,
+            WorkflowBackend::BackendDapr,
+        )
+        .await
+    }
+
+    /// run_long は長期ワークフロー（上限なし、BACKEND_TEMPORAL）として開始する（FR-T1-WORKFLOW-002）。
+    /// Continue-as-New / cron / 高度な signal 機能が必要な場合に使う。
+    pub async fn run_long(
+        &mut self,
+        workflow_type: &str,
+        workflow_id: &str,
+        input: Vec<u8>,
+        idempotent: bool,
+    ) -> Result<(String, String), Status> {
+        self.start_with_backend(
+            workflow_type,
+            workflow_id,
+            input,
+            idempotent,
+            WorkflowBackend::BackendTemporal,
+        )
+        .await
+    }
+
+    /// start_with_backend は start / run_short / run_long の共通実装。
+    async fn start_with_backend(
+        &mut self,
+        workflow_type: &str,
+        workflow_id: &str,
+        input: Vec<u8>,
+        idempotent: bool,
+        backend: WorkflowBackend,
     ) -> Result<(String, String), Status> {
         let resp = self
             .raw
@@ -34,6 +93,7 @@ impl WorkflowFacade {
                 input,
                 idempotent,
                 context: Some(self.client.tenant_context()),
+                backend: backend as i32,
             })
             .await?
             .into_inner();

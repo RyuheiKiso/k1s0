@@ -17,6 +17,12 @@
 // crate 全体で警告を error にしない（生成物の deprecated アトリビュート許容）
 #![allow(clippy::all, rustdoc::all)]
 
+/// `buf build src/contracts/tier1 -o ...` で生成した tier1 の FileDescriptorSet（バイナリ proto）。
+/// tonic-reflection の `Builder::register_encoded_file_descriptor_set` に渡すと、
+/// gRPC reflection 経由で grpcurl 等のクライアントから service / method / message
+/// メタを参照可能になる。Rust Pod（t1-decision / audit / pii）の main.rs で利用する。
+pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("./gen/tier1.descriptor.binpb");
+
 // k1s0 名前空間（最上位）
 pub mod k1s0 {
     // tier1 名前空間（公開 12 API + 共通型 + health）

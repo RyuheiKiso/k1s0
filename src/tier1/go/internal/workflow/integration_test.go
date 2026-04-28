@@ -132,6 +132,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 		SignalName: "approve",
 		// payload。
 		Payload: []byte("approved"),
+		// テナント（NFR-E-AC-003 で必須）。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Signal failed: %v", err)
@@ -143,6 +145,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 		WorkflowId: "order-001",
 		// query 名。
 		QueryName: "status",
+		// テナント。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	})
 	// Query 失敗は test 失敗。
 	if err != nil {
@@ -159,6 +163,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 	statusResp, err := c.GetStatus(ctx, &workflowv1.GetStatusRequest{
 		// workflow ID。
 		WorkflowId: "order-001",
+		// テナント。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	})
 	// GetStatus 失敗は test 失敗。
 	if err != nil {
@@ -177,6 +183,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 		WorkflowId: "order-001",
 		// cancel 理由。
 		Reason: "user-aborted",
+		// テナント。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Cancel failed: %v", err)
@@ -186,6 +194,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 	statusAfter, err := c.GetStatus(ctx, &workflowv1.GetStatusRequest{
 		// workflow ID。
 		WorkflowId: "order-001",
+		// テナント。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	})
 	// GetStatus 失敗は test 失敗。
 	if err != nil {
@@ -216,6 +226,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 		WorkflowId: "order-002",
 		// terminate 理由。
 		Reason: "operator-action",
+		// テナント。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Terminate failed: %v", err)
@@ -224,6 +236,8 @@ func TestWorkflowService_RoundTrip_OverGRPC(t *testing.T) {
 	terminatedStatus, err := c.GetStatus(ctx, &workflowv1.GetStatusRequest{
 		// workflow ID。
 		WorkflowId: "order-002",
+		// テナント。
+		Context: &commonv1.TenantContext{TenantId: "T1"},
 	})
 	// GetStatus 失敗は test 失敗。
 	if err != nil {

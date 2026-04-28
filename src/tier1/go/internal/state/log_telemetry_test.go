@@ -69,6 +69,7 @@ func TestLogHandler_Send_OK(t *testing.T) {
 			Attributes: map[string]string{"service.name": "tier1"},
 			StackTrace: "main.go:42",
 		},
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Send error: %v", err)
@@ -94,7 +95,7 @@ func TestLogHandler_Send_OK(t *testing.T) {
 // emitter 未注入時に Unimplemented を返す。
 func TestLogHandler_Send_NoEmitter(t *testing.T) {
 	h := &logHandler{deps: Deps{}}
-	_, err := h.Send(context.Background(), &logv1.SendLogRequest{Entry: &logv1.LogEntry{Body: "x"}})
+	_, err := h.Send(context.Background(), &logv1.SendLogRequest{Entry: &logv1.LogEntry{Body: "x"}, Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status: got %v want Unimplemented", got)
 	}
@@ -104,9 +105,19 @@ func TestLogHandler_Send_NoEmitter(t *testing.T) {
 func TestLogHandler_Send_EmitterError(t *testing.T) {
 	emitter := &fakeLogEmitter{err: errors.New("loki down")}
 	h := &logHandler{deps: Deps{LogEmitter: emitter}}
-	_, err := h.Send(context.Background(), &logv1.SendLogRequest{Entry: &logv1.LogEntry{Body: "x"}})
+	_, err := h.Send(context.Background(), &logv1.SendLogRequest{Entry: &logv1.LogEntry{Body: "x"}, Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status: got %v want Internal", got)
+	}
+}
+
+// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id 未設定時に InvalidArgument を返す。
+func TestLogHandler_Send_RequiresTenant(t *testing.T) {
+	emitter := &fakeLogEmitter{}
+	h := &logHandler{deps: Deps{LogEmitter: emitter}}
+	_, err := h.Send(context.Background(), &logv1.SendLogRequest{Entry: &logv1.LogEntry{Body: "x"}})
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for missing tenant, got %v", got)
 	}
 }
 
@@ -120,6 +131,7 @@ func TestLogHandler_BulkSend_OK(t *testing.T) {
 			{Body: "e2"},
 			{Body: "e3"},
 		},
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("BulkSend error: %v", err)
@@ -144,6 +156,7 @@ func TestTelemetryHandler_EmitMetric_OK(t *testing.T) {
 			{Name: "k1s0.invoke.duration_ms", Kind: telemetryv1.MetricKind_HISTOGRAM, Value: 12.5, Labels: map[string]string{"status": "ok"}},
 			{Name: "k1s0.error.count", Kind: telemetryv1.MetricKind_COUNTER, Value: 1},
 		},
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("EmitMetric error: %v", err)
@@ -166,6 +179,7 @@ func TestTelemetryHandler_EmitMetric_NoEmitter(t *testing.T) {
 	h := &telemetryHandler{deps: Deps{}}
 	_, err := h.EmitMetric(context.Background(), &telemetryv1.EmitMetricRequest{
 		Metrics: []*telemetryv1.Metric{{Name: "x"}},
+		Context: makeTenantCtx("T"),
 	})
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status: got %v want Unimplemented", got)
@@ -188,6 +202,7 @@ func TestTelemetryHandler_EmitSpan_OK(t *testing.T) {
 				Attributes:   map[string]string{"http.method": "GET"},
 			},
 		},
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("EmitSpan error: %v", err)

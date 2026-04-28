@@ -33,11 +33,15 @@ import (
 	"log"
 	// 環境変数読出。
 	"os"
+	// HealthService.Readiness の probe ごと timeout 制御。
+	"time"
 
 	// OpenBao adapter（本 Pod 専用）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/openbao"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// HealthService.Readiness 用 DependencyProbe 型。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/health"
 	// t1-secret Pod の handler（SecretsService 単独）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/secret"
 )
@@ -69,10 +73,36 @@ func main() {
 	}()
 
 	// SecretsService が依存する adapter を構築する。
+	// FR-T1-SECRETS-001 の "30 秒インメモリキャッシュ" を満たすため、
+	// SecretsAdapter は CachedSecretsAdapter で wrap する。Rotate 成功時の
+	// 同 secret latest invalidate も同 wrapper で担保。
+	baseSecrets := openbao.NewSecretsAdapter(openBaoClient)
+	// 動的 Secret 発行 adapter（FR-T1-SECRETS-002）。
+	// production（OPENBAO_ADDR が設定された経路）では Logical().Read を呼ぶ
+	// productionDynamic、dev / CI モードでは in-memory backend を使う。
+	dynamicAdapter := newDynamicAdapter(openBaoClient)
+	// 30 秒 TTL の cache 付き secrets adapter（FR-T1-SECRETS-001）。
+	cachedSecrets := openbao.NewCachedSecretsAdapter(baseSecrets, 0)
 	deps := secret.Deps{
-		// OpenBao Client から SecretsAdapter を生成する。
-		SecretsAdapter: openbao.NewSecretsAdapter(openBaoClient),
+		SecretsAdapter: cachedSecrets,
+		// 動的 Secret adapter。
+		DynamicAdapter: dynamicAdapter,
 	}
+
+	// Secret 自動ローテーション（FR-T1-SECRETS-004）を起動する。
+	// ROTATION_SCHEDULE 環境変数で per-secret cadence を指定する。
+	rotator, err := secret.NewRotatorFromEnv(cachedSecrets, os.Getenv("ROTATION_SCHEDULE"))
+	if err != nil {
+		// 形式不正は fatal（誤設定を見逃さない）。
+		log.Fatalf("t1-secret: invalid ROTATION_SCHEDULE: %v", err)
+	}
+	// rotator は context cancel で停止する。Pod 起動と同期させる context を渡す。
+	rotatorCtx, rotatorCancel := context.WithCancel(context.Background())
+	rotator.Start(rotatorCtx)
+	defer func() {
+		rotatorCancel()
+		rotator.Stop()
+	}()
 
 	// Pod メタデータを構築する（SecretsService 登録）。
 	pod := common.Pod{
@@ -82,6 +112,25 @@ func main() {
 		DefaultListen: defaultListen,
 		// service 登録 hook。SecretsService を登録する。
 		Register: secret.Register(deps),
+		// HealthService 用 Pod バージョン。release ビルドでは ldflags で上書きする想定。
+		Version: common.DefaultVersion,
+		// HealthService.Readiness で並列実行する依存先 probe。
+		// secret Pod は OpenBao（KVv2 + Database Engine）に依存する。
+		Probes: []health.DependencyProbe{
+			{
+				// dependencies map のキーは "openbao" を採用する。
+				Name: "openbao",
+				// OpenBao Client の到達性を 2 秒以内で確認する。
+				Check: func(ctx context.Context) error {
+					// 過剰な待機を避けるため probe ごとに timeout を 2 秒に絞る。
+					checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+					// 関数末尾で必ず cancel する。
+					defer cancel()
+					// in-memory backend は常に nil、production は KVv2 mount 直下のセンチネル Get で到達性確認。
+					return openBaoClient.Ping(checkCtx)
+				},
+			},
+		},
 	}
 
 	// 共通 runtime に委譲する。エラー時は log.Fatalf で非ゼロ終了する。
@@ -89,6 +138,25 @@ func main() {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-secret: %v", err)
 	}
+}
+
+// newDynamicAdapter は OPENBAO_ADDR の有無で production / in-memory backend を切り替えて
+// 動的 Secret adapter（FR-T1-SECRETS-002）を返す。
+//
+// production: OpenBao の `<engine>/creds/<tenant>/<role>` を Logical().Read で叩き、
+//             SDK が Database Engine 配下の動的 credential を都度発行する。
+// dev / CI:   process 内 in-memory で username / password を crypto/rand から生成する。
+func newDynamicAdapter(client *openbao.Client) openbao.DynamicAdapter {
+	// OPENBAO_ADDR が設定されていれば production 経路を使う。
+	if os.Getenv("OPENBAO_ADDR") != "" {
+		// stderr に経路選択を 1 行ログする。
+		log.Printf("t1-secret: dynamic secrets backend = OpenBao Database Engine (production)")
+		// SDK Logical() narrow を持った adapter を返す。
+		return openbao.NewProductionDynamic(client)
+	}
+	// 未設定時は in-memory backend に fallback する。
+	log.Printf("t1-secret: dynamic secrets backend = in-memory (dev/CI mode)")
+	return openbao.NewInMemoryDynamic()
 }
 
 // newOpenBaoClient は環境変数 OPENBAO_ADDR の有無で実 / in-memory を切替えて Client を生成する。

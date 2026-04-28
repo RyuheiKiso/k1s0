@@ -32,8 +32,10 @@ import (
 
 // Deps は SecretsService handler が依存する adapter 集合。
 type Deps struct {
-	// OpenBao adapter（nil 時は全 RPC で Unimplemented を返す）。
+	// 静的 secret 用 adapter（nil 時は Get / BulkGet / Rotate が Unimplemented）。
 	SecretsAdapter openbao.SecretsAdapter
+	// 動的 secret 用 adapter（FR-T1-SECRETS-002、nil 時は GetDynamic が Unimplemented）。
+	DynamicAdapter openbao.DynamicAdapter
 }
 
 // secretHandler は SecretsService の handler 実装。
@@ -66,12 +68,24 @@ func (h *secretHandler) Get(ctx context.Context, req *secretsv1.GetSecretRequest
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tenantID := req.GetContext().GetTenantId()
+	// tenantID 未設定はテナント境界違反として弾く（adapter の path 構築前で短絡）。
+	if tenantID == "" {
+		// InvalidArgument で返却する（BulkGet / GetDynamic / Rotate と一貫）。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	}
+	// secret 名も必須（空名はテナント prefix のみで lookup → 誤動作の元）。
+	if req.GetName() == "" {
+		// InvalidArgument で返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: name required")
+	}
 	if h.deps.SecretsAdapter == nil {
 		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Get not yet wired to OpenBao")
 	}
 	ar := openbao.SecretGetRequest{
 		Name:     req.GetName(),
-		TenantID: req.GetContext().GetTenantId(),
+		TenantID: tenantID,
 	}
 	if req.Version != nil {
 		ar.Version = int(*req.Version)
@@ -145,6 +159,18 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		// 不正引数として返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tenantID := req.GetContext().GetTenantId()
+	// tenantID 未設定はテナント境界違反として弾く（rotate 対象の誤同定を防止）。
+	if tenantID == "" {
+		// InvalidArgument で返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	}
+	// secret 名も必須（空名は rotate 対象が確定しないため不正）。
+	if req.GetName() == "" {
+		// InvalidArgument で返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: name required")
+	}
 	// adapter 未注入時は未結線扱い。
 	if h.deps.SecretsAdapter == nil {
 		// Unimplemented を返却する。
@@ -155,7 +181,7 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		// 対象 secret 名。
 		Name: req.GetName(),
 		// テナント識別子（境界検証用）。
-		TenantID: req.GetContext().GetTenantId(),
+		TenantID: tenantID,
 	}
 	// adapter で bump を実行する。
 	resp, err := h.deps.SecretsAdapter.Rotate(ctx, ar)
@@ -181,8 +207,52 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		PreviousVersion: prev,
 		// 実行時刻（ミリ秒）。
 		RotatedAtMs: rotatedAtMs,
-		// 静的 secret は TTL 0、動的 secret はリリース時点 未対応。
+		// 静的 secret は TTL 0、動的 secret は GetDynamic 経路で発行する。
 		TtlSec: 0,
+	}, nil
+}
+
+// GetDynamic は動的 Secret 発行（FR-T1-SECRETS-002）。
+// engine="postgres" 等の OpenBao Database Engine が TTL 付き credential を都度発行する。
+func (h *secretHandler) GetDynamic(ctx context.Context, req *secretsv1.GetDynamicSecretRequest) (*secretsv1.GetDynamicSecretResponse, error) {
+	// 入力 nil 防御。
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
+	}
+	// テナント未指定はテナント境界違反として弾く（NFR-E-AC-003）。
+	tenantID := req.GetContext().GetTenantId()
+	if tenantID == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	}
+	// engine / role 必須。
+	if req.GetEngine() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: engine required (e.g. \"postgres\")")
+	}
+	if req.GetRole() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: role required")
+	}
+	// adapter 未注入時は未結線扱い（Unimplemented）。
+	if h.deps.DynamicAdapter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/secrets: GetDynamic not yet wired to OpenBao Database Engine")
+	}
+	// adapter 入力に変換する。
+	ar := openbao.DynamicSecretRequest{
+		Engine:     req.GetEngine(),
+		Role:       req.GetRole(),
+		TenantID:   tenantID,
+		TTLSeconds: req.GetTtlSec(),
+	}
+	// adapter で発行する。
+	resp, err := h.deps.DynamicAdapter.GetDynamic(ctx, ar)
+	if err != nil {
+		return nil, translateErr(err, "GetDynamic")
+	}
+	// 応答を proto に詰め替える。
+	return &secretsv1.GetDynamicSecretResponse{
+		Values:     resp.Values,
+		LeaseId:    resp.LeaseID,
+		TtlSec:     resp.TTLSeconds,
+		IssuedAtMs: resp.IssuedAtMs,
 	}, nil
 }
 

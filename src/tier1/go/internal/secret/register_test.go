@@ -88,7 +88,8 @@ func TestSecretHandler_Get_NotFound(t *testing.T) {
 		},
 	}
 	h := &secretHandler{deps: Deps{SecretsAdapter: a}}
-	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x"})
+	// NFR-E-AC-003: TenantContext は必須。
+	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x", Context: &commonv1.TenantContext{TenantId: "tenant-A"}})
 	if got := status.Code(err); got != codes.NotFound {
 		t.Fatalf("status: got %v want NotFound", got)
 	}
@@ -102,7 +103,8 @@ func TestSecretHandler_Get_AdapterError(t *testing.T) {
 		},
 	}
 	h := &secretHandler{deps: Deps{SecretsAdapter: a}}
-	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x"})
+	// NFR-E-AC-003: TenantContext は必須。
+	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x", Context: &commonv1.TenantContext{TenantId: "tenant-A"}})
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status: got %v want Internal", got)
 	}
@@ -111,7 +113,8 @@ func TestSecretHandler_Get_AdapterError(t *testing.T) {
 // adapter 未注入時は Unimplemented。
 func TestSecretHandler_Get_NoAdapter(t *testing.T) {
 	h := &secretHandler{deps: Deps{}}
-	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x"})
+	// NFR-E-AC-003: TenantContext は必須。
+	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x", Context: &commonv1.TenantContext{TenantId: "tenant-A"}})
 	if got := status.Code(err); got != codes.Unimplemented {
 		t.Fatalf("status: got %v want Unimplemented", got)
 	}
@@ -128,9 +131,11 @@ func TestSecretHandler_Get_WithVersion(t *testing.T) {
 	}
 	h := &secretHandler{deps: Deps{SecretsAdapter: a}}
 	v := int32(3)
+	// NFR-E-AC-003: TenantContext は必須。
 	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{
 		Name:    "x",
 		Version: &v,
+		Context: &commonv1.TenantContext{TenantId: "tenant-A"},
 	})
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
@@ -140,7 +145,7 @@ func TestSecretHandler_Get_WithVersion(t *testing.T) {
 	}
 }
 
-// Rotate の正常系: 新バージョンが返る。
+// Rotate の正常系: 新バージョンが返る（NFR-E-AC-003 で TenantContext 必須）。
 func TestSecretHandler_Rotate_OK(t *testing.T) {
 	a := &fakeSecretsAdapter{
 		rotateFn: func(_ context.Context, _ openbao.SecretRotateRequest) (openbao.SecretGetResponse, error) {
@@ -148,7 +153,11 @@ func TestSecretHandler_Rotate_OK(t *testing.T) {
 		},
 	}
 	h := &secretHandler{deps: Deps{SecretsAdapter: a}}
-	resp, err := h.Rotate(context.Background(), &secretsv1.RotateSecretRequest{Name: "db/master"})
+	// TenantContext は NFR-E-AC-003 のため必須。
+	resp, err := h.Rotate(context.Background(), &secretsv1.RotateSecretRequest{
+		Name:    "db/master",
+		Context: &commonv1.TenantContext{TenantId: "tenant-A"},
+	})
 	if err != nil {
 		t.Fatalf("Rotate error: %v", err)
 	}
@@ -183,11 +192,57 @@ func TestSecretsService_Get_OverGRPC(t *testing.T) {
 	}
 	defer conn.Close()
 	client := secretsv1.NewSecretsServiceClient(conn)
-	resp, err := client.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "k"})
+	// NFR-E-AC-003: TenantContext は必須。
+	resp, err := client.Get(context.Background(), &secretsv1.GetSecretRequest{
+		Name:    "k",
+		Context: &commonv1.TenantContext{TenantId: "tenant-A"},
+	})
 	if err != nil {
 		t.Fatalf("Get over gRPC: %v", err)
 	}
 	if resp.GetValues()["k"] != "v" {
 		t.Fatalf("value mismatch: %v", resp.GetValues())
+	}
+}
+
+// NFR-E-AC-003: tenant_id 空 / nil context は InvalidArgument で弾かれる。
+// Get / Rotate のテナント検証回帰テスト。
+func TestSecretHandler_TenantValidation(t *testing.T) {
+	// adapter は呼ばれない想定（handler 側で短絡）。
+	a := &fakeSecretsAdapter{
+		getFn: func(_ context.Context, _ openbao.SecretGetRequest) (openbao.SecretGetResponse, error) {
+			t.Fatalf("adapter should not be called when tenant_id is empty")
+			return openbao.SecretGetResponse{}, nil
+		},
+		rotateFn: func(_ context.Context, _ openbao.SecretRotateRequest) (openbao.SecretGetResponse, error) {
+			t.Fatalf("adapter should not be called when tenant_id is empty")
+			return openbao.SecretGetResponse{}, nil
+		},
+	}
+	h := &secretHandler{deps: Deps{SecretsAdapter: a}}
+
+	// Get: nil context で InvalidArgument。
+	if _, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x"}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("Get nil context: want InvalidArgument got %v", err)
+	}
+	// Get: 空 tenant_id で InvalidArgument。
+	if _, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x", Context: &commonv1.TenantContext{}}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("Get empty tenant: want InvalidArgument got %v", err)
+	}
+	// Get: 空 name で InvalidArgument（tenant 有効でも name 空は不正）。
+	if _, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Context: &commonv1.TenantContext{TenantId: "tenant-A"}}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("Get empty name: want InvalidArgument got %v", err)
+	}
+	// Rotate: nil context で InvalidArgument。
+	if _, err := h.Rotate(context.Background(), &secretsv1.RotateSecretRequest{Name: "x"}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("Rotate nil context: want InvalidArgument got %v", err)
+	}
+	// Rotate: 空 tenant_id で InvalidArgument。
+	if _, err := h.Rotate(context.Background(), &secretsv1.RotateSecretRequest{Name: "x", Context: &commonv1.TenantContext{}}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("Rotate empty tenant: want InvalidArgument got %v", err)
+	}
+	// Rotate: 空 name で InvalidArgument。
+	if _, err := h.Rotate(context.Background(), &secretsv1.RotateSecretRequest{Context: &commonv1.TenantContext{TenantId: "tenant-A"}}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("Rotate empty name: want InvalidArgument got %v", err)
 	}
 }

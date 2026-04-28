@@ -1,0 +1,39 @@
+# t1 Rust 3 Pod（decision / audit / pii）共通の HealthService 実装 crate。
+#
+# docs 正典:
+#   src/contracts/tier1/k1s0/tier1/health/v1/health_service.proto
+#   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/01_tier1全体コンポーネント俯瞰.md
+#     - DS-SW-COMP-007 / 008 / 009（3 Pod すべてが Liveness / Readiness を提供する想定）
+#   docs/02_構想設計/02_tier1設計/grpc-reference/v1/k1s0-tier1-grpc.md（HealthService 定義）
+#
+# 役割:
+#   tonic server に組み込み可能な `HealthService` 実装を提供する。Liveness は version
+#   と uptime_seconds を返し、Readiness は依存先 probe を並列実行して全体 ready 判定を
+#   返す。tier1 Go の `internal/health/` と同じセマンティクス。
+
+[package]
+name = "k1s0-tier1-health"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 Rust Pod 共通の HealthService 実装"
+
+[lib]
+name = "k1s0_tier1_health"
+path = "src/lib.rs"
+
+[dependencies]
+# HealthServiceServer trait と LivenessRequest / Readiness の proto 型。
+k1s0-sdk-proto = { workspace = true }
+# gRPC ランタイム（HealthService 実装は tonic::Status を返す）。
+tonic = { workspace = true }
+# Pod 起動時刻 → uptime 秒の算出。
+tokio = { workspace = true }
+# 依存先 probe を並列実行する future 結合。
+async-trait = "0.1"
+
+[dev-dependencies]
+# 並列実行を multi-thread runtime で確認する。
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }

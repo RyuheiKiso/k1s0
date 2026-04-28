@@ -5,9 +5,10 @@
 #     - DS-SW-COMP-007（t1-audit Pod）
 #   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（AuditService 部）
 #
-# 役割（リリース時点 最小骨格）:
-#   tonic server を :50001 で起動し AuditService（Record / Query）を登録する。
-#   全 RPC は Status::unimplemented を返却。実 Postgres WORM 結線は plan 04-09 で実装。
+# 役割（plan 04-09 結線済 / in-memory backend で本番経路と同 interface 通過）:
+#   tonic server を :50001 で起動し AuditService（Record / Query / Export / VerifyChain）を
+#   hash-chain backed in-memory store で実装する。SHA-256 ハッシュチェーンで NFR-H-INT-001
+#   の改竄検知を満たす。Postgres 永続化は同 trait の別実装で post-MVP に追加する。
 
 [package]
 name = "k1s0-tier1-audit"
@@ -26,6 +27,8 @@ path = "src/main.rs"
 [dependencies]
 # 公開 API（AuditService）の Service trait。
 k1s0-sdk-proto = { workspace = true }
+# 共通 HealthService 実装（Liveness / Readiness 2 RPC）。
+k1s0-tier1-health = { workspace = true }
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
 tokio = { workspace = true }
@@ -38,6 +41,9 @@ serde_json = "1"
 # Timestamp 変換 / hex エンコード。
 hex = "0.4"
 prost-types.workspace = true
+tonic-reflection = "0.12"
+# Export RPC の server-streaming で mpsc::Receiver を Stream に変換するため。
+tokio-stream = "0.1"
 # 並行 in-memory store の RwLock 用（std::sync::RwLock で十分なため async-aware は不要）。
 
 [lib]

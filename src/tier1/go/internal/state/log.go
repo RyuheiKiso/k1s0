@@ -58,6 +58,10 @@ func (h *logHandler) Send(ctx context.Context, req *logv1.SendLogRequest) (*logv
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/log: nil request")
 	}
+	// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id 必須強制。
+	if _, err := requireTenantID(req.GetContext(), "Log.Send"); err != nil {
+		return nil, err
+	}
 	if h.deps.LogEmitter == nil {
 		// emitter 未注入 → 未結線扱い。
 		return nil, status.Error(codes.Unimplemented, "tier1/log: Send not yet wired to OTel Collector")
@@ -72,6 +76,10 @@ func (h *logHandler) Send(ctx context.Context, req *logv1.SendLogRequest) (*logv
 func (h *logHandler) BulkSend(ctx context.Context, req *logv1.BulkSendLogRequest) (*logv1.BulkSendLogResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/log: nil request")
+	}
+	// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id 必須強制。
+	if _, err := requireTenantID(req.GetContext(), "Log.BulkSend"); err != nil {
+		return nil, err
 	}
 	if h.deps.LogEmitter == nil {
 		return nil, status.Error(codes.Unimplemented, "tier1/log: BulkSend not yet wired to OTel Collector")

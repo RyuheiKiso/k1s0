@@ -11,7 +11,9 @@
 //
 // 提供する機能（リリース時点最小骨格）:
 //   - :50001 で listen（flag で上書き可、docs 正典 EXPOSE 50001）
-//   - 標準 gRPC health protocol（grpc.health.v1.Health/Check）応答
+//   - 標準 gRPC health protocol（grpc.health.v1.Health/Check）応答 — Kubernetes probe 経路
+//   - k1s0 独自 HealthService（k1s0.tier1.health.v1.HealthService.Liveness / Readiness）応答
+//     — tier2 / tier3 から version / uptime / 依存先到達性の照会経路
 //   - gRPC reflection（dev / staging で grpcurl 疎通用、production は config で無効化予定）
 //   - SIGINT / SIGTERM で graceful shutdown（25s timeout）
 //
@@ -52,6 +54,9 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	// 開発・運用補助のための gRPC reflection（grpcurl 等で proto ファイル不要のサービス探索を可能にする）。
 	"google.golang.org/grpc/reflection"
+
+	// k1s0 独自 HealthService（k1s0.tier1.health.v1）の Pod 共通実装。
+	k1s0health "github.com/k1s0/k1s0/src/tier1/go/internal/health"
 )
 
 // graceful shutdown の上限。Kubernetes terminationGracePeriodSeconds（既定 30s）より短く設定する。
@@ -66,8 +71,19 @@ type Pod struct {
 	DefaultListen string
 	// gRPC server に Pod 固有の service を登録する hook。最小骨格では nil でも可。
 	Register func(*grpc.Server)
+	// Pod のビルドバージョン（SemVer）。HealthService.Liveness response の version に入る。
+	// 空文字なら既定値 DefaultVersion を使う（runtime 内で補完）。
+	Version string
+	// 依存先到達性 probe（HealthService.Readiness で並列実行する）。
+	// 例: state Pod → "dapr"、secret Pod → "openbao"、workflow Pod → "temporal" + "dapr"。
+	// 空スライスなら ready=true / 依存なし扱い。
+	Probes []k1s0health.DependencyProbe
 	// 構造体定義を閉じる。
 }
+
+// DefaultVersion は Pod.Version 未指定時に HealthService.Liveness が返す既定値。
+// 実バイナリでは ldflags で `-X` 注入する想定（IMP-BUILD 系の Go ビルドフラグ）。
+const DefaultVersion = "0.1.0-dev"
 
 // Run は引数 Pod の gRPC server を起動し、SIGINT / SIGTERM を受けて graceful shutdown まで完了させる。
 func Run(p Pod, listen string) error {
@@ -89,6 +105,19 @@ func Run(p Pod, listen string) error {
 	hs.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
 	// gRPC server に health service を実装として登録する。
 	healthpb.RegisterHealthServer(srv, hs)
+
+	// k1s0 独自 HealthService（k1s0.tier1.health.v1）を登録する。
+	// version 未指定時は DefaultVersion で補完する（ldflags で上書き想定）。
+	version := p.Version
+	// 補完ロジック。空文字のときのみ DefaultVersion を採用する。
+	if version == "" {
+		// DefaultVersion は本ファイル冒頭で宣言済。
+		version = DefaultVersion
+	}
+	// HealthService 実装を生成する（起動時刻を内部で確定）。
+	k1s0HealthService := k1s0health.New(version, p.Probes)
+	// gRPC server に登録する。
+	k1s0HealthService.Register(srv)
 
 	// gRPC reflection を有効化する。
 	// dev / staging では grpcurl 等での疎通確認に有用。production では config で無効化する設計（plan 04-02）。

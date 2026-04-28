@@ -13,13 +13,17 @@
 //   - SIGINT / SIGTERM で graceful shutdown
 //
 // rule engine:
-//   現状は evalexpr backed simple expression evaluator（純 Rust、C 依存なし）。
-//   完全な JDM 互換（loaderNode / decisionTable / function 等）は plan 04-08 後段で
-//   zen-engine 直結に切り替える。registry interface は不変。
+//   ZEN Engine 0.55+（gorules/zen）と JDM フォーマットを直接統合する（ADR-RULE-001 採用）。
+//   登録された JDM は DecisionContent に parse + opcode キャッシュコンパイルされ、
+//   評価時は DecisionEngine.evaluate_with_opts に委譲する。include_trace=true で
+//   nodes 単位の評価トレースが返る（ADR-RULE-001 必須要件）。
 
 use std::sync::Arc;
 
 // SDK 公開 API の DecisionService / DecisionAdminService の Service trait と Server 型を import。
+use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
+// HealthServiceServer: 共通 HealthService 実装を gRPC server に登録するための型。
+use k1s0_sdk_proto::k1s0::tier1::health::v1::health_service_server::HealthServiceServer;
 use k1s0_sdk_proto::k1s0::tier1::decision::v1::{
     BatchEvaluateRequest, BatchEvaluateResponse, EvaluateRequest, EvaluateResponse, GetRuleRequest,
     GetRuleResponse, ListVersionsRequest, ListVersionsResponse, RegisterRuleRequest,
@@ -27,6 +31,8 @@ use k1s0_sdk_proto::k1s0::tier1::decision::v1::{
     decision_admin_service_server::{DecisionAdminService, DecisionAdminServiceServer},
     decision_service_server::{DecisionService, DecisionServiceServer},
 };
+// 共通 HealthService 実装。
+use k1s0_tier1_health::Service as HealthSvc;
 // 内部 registry。
 use k1s0_tier1_decision::registry::{RegisterInput, RegistryError, RuleMeta, RuleRegistry};
 
@@ -45,7 +51,14 @@ use tokio::signal::unix::{SignalKind, signal};
 // tonic ランタイム / 型。
 use tonic::{Request, Response, Status, transport::Server};
 
+// EXPOSE 50001 規約。production の K8s Pod は単一 NetNS なので 50001 でぶつからないが、
+// dev / 同一ホスト内で複数 Rust Pod を同時起動する場面は `LISTEN_ADDR` 環境変数で上書きする。
 const DEFAULT_LISTEN: &str = "[::]:50001";
+
+/// 環境変数 `LISTEN_ADDR` が設定されていればそれを使い、未設定なら DEFAULT_LISTEN を返す。
+fn listen_addr() -> String {
+    std::env::var("LISTEN_ADDR").unwrap_or_else(|_| DEFAULT_LISTEN.to_string())
+}
 
 // 共有 registry を保持する Server。
 struct DecisionServer {
@@ -85,6 +98,7 @@ impl DecisionService for DecisionServer {
         let outcome = self
             .registry
             .evaluate(&r.rule_id, &r.rule_version, &r.input_json, r.include_trace)
+            .await
             .map_err(|e| registry_err_to_status(e, "Evaluate"))?;
         Ok(Response::new(EvaluateResponse {
             output_json: outcome.output_json,
@@ -103,6 +117,7 @@ impl DecisionService for DecisionServer {
             let outcome = self
                 .registry
                 .evaluate(&r.rule_id, &r.rule_version, input, false)
+                .await
                 .map_err(|e| registry_err_to_status(e, "BatchEvaluate"))?;
             outputs.push(outcome.output_json);
         }
@@ -181,19 +196,27 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = DEFAULT_LISTEN.parse()?;
-    eprintln!(
-        "tier1/decision: gRPC server listening on {}",
-        DEFAULT_LISTEN
-    );
+    let listen = listen_addr();
+    let addr = listen.parse()?;
+    eprintln!("tier1/decision: gRPC server listening on {}", listen);
     let registry = Arc::new(RuleRegistry::new());
     let dec = DecisionServer {
         registry: registry.clone(),
     };
     let admin = DecisionAdminServer { registry };
+    // gRPC Server Reflection を有効化する（grpcurl の `list` / `describe` 対応、
+    // Go Pod 側の reflection.Register と機能等価）。
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
+    // 共通 HealthService を構築する。decision Pod 自体は ZEN engine in-memory のため
+    // 依存先 probe は空（リリース時点）。Postgres backed registry に切替時は probe 追加予定。
+    let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
     Server::builder()
         .add_service(DecisionServiceServer::new(dec))
         .add_service(DecisionAdminServiceServer::new(admin))
+        .add_service(HealthServiceServer::new(health))
+        .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())
@@ -213,14 +236,34 @@ mod tests {
         )
     }
 
+    /// 最小 JDM: input → expression(key = expr) → output。
+    /// 業務担当者が gorules Editor で生成する 3 ノード 2 エッジの構造。
+    fn jdm_with_one_expression(key: &str, expr: &str) -> Vec<u8> {
+        serde_json::json!({
+            "nodes": [
+                {"id": "n_in", "name": "in", "type": "inputNode", "content": {}},
+                {"id": "n_ex", "name": "calc", "type": "expressionNode", "content": {
+                    "expressions": [
+                        {"id": "e1", "key": key, "value": expr}
+                    ]
+                }},
+                {"id": "n_out", "name": "out", "type": "outputNode", "content": {}}
+            ],
+            "edges": [
+                {"id": "ed1", "sourceId": "n_in",  "targetId": "n_ex", "type": "edge"},
+                {"id": "ed2", "sourceId": "n_ex", "targetId": "n_out", "type": "edge"}
+            ]
+        }).to_string().into_bytes()
+    }
+
     #[tokio::test]
     async fn register_then_evaluate_roundtrip() {
         let (dec, admin) = make_servers();
-        let rule = br#"{"expressions":[{"key":"tax","value":"amount * 0.10"}]}"#;
+        let rule = jdm_with_one_expression("tax", "amount * 0.10");
         admin
             .register_rule(Request::new(RegisterRuleRequest {
                 rule_id: "tax-calc".into(),
-                jdm_document: rule.to_vec(),
+                jdm_document: rule,
                 ..Default::default()
             }))
             .await
@@ -237,7 +280,7 @@ mod tests {
             .unwrap()
             .into_inner();
         let out: serde_json::Value = serde_json::from_slice(&resp.output_json).unwrap();
-        assert_eq!(out["tax"], serde_json::json!(10.0));
+        assert_eq!(out["tax"], serde_json::json!(10));
     }
 
     #[tokio::test]
@@ -246,7 +289,7 @@ mod tests {
         admin
             .register_rule(Request::new(RegisterRuleRequest {
                 rule_id: "rid".into(),
-                jdm_document: br#"{"expressions":[{"key":"y","value":"x * 2"}]}"#.to_vec(),
+                jdm_document: jdm_with_one_expression("y", "x * 2"),
                 ..Default::default()
             }))
             .await
@@ -295,7 +338,7 @@ mod tests {
             admin
                 .register_rule(Request::new(RegisterRuleRequest {
                     rule_id: "rid".into(),
-                    jdm_document: br#"{"expressions":[]}"#.to_vec(),
+                    jdm_document: jdm_with_one_expression("y", "1"),
                     ..Default::default()
                 }))
                 .await

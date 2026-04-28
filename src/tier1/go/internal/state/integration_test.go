@@ -90,11 +90,12 @@ func TestStateService_RoundTrip_OverGRPC(t *testing.T) {
 
 	ctx := context.Background()
 
-	// 1. Set: 新規キー。
+	// 1. Set: 新規キー（NFR-E-AC-003 で tenant_id 必須）。
 	_, err := client.Set(ctx, &statev1.SetRequest{
-		Store: "valkey-default",
-		Key:   "session:abc",
-		Data:  []byte("user-123"),
+		Store:   "valkey-default",
+		Key:     "session:abc",
+		Data:    []byte("user-123"),
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Set failed: %v", err)
@@ -105,8 +106,9 @@ func TestStateService_RoundTrip_OverGRPC(t *testing.T) {
 
 	// 2. Get: 直前に Set した値が読めるか。
 	getResp, err := client.Get(ctx, &statev1.GetRequest{
-		Store: "valkey-default",
-		Key:   "session:abc",
+		Store:   "valkey-default",
+		Key:     "session:abc",
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -123,8 +125,9 @@ func TestStateService_RoundTrip_OverGRPC(t *testing.T) {
 
 	// 3. Delete: キー削除が成功するか。
 	delResp, err := client.Delete(ctx, &statev1.DeleteRequest{
-		Store: "valkey-default",
-		Key:   "session:abc",
+		Store:   "valkey-default",
+		Key:     "session:abc",
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
@@ -138,8 +141,9 @@ func TestStateService_RoundTrip_OverGRPC(t *testing.T) {
 
 	// 4. Get 再実行: 削除後は NotFound=true が返るか。
 	getResp2, err := client.Get(ctx, &statev1.GetRequest{
-		Store: "valkey-default",
-		Key:   "session:abc",
+		Store:   "valkey-default",
+		Key:     "session:abc",
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Get after Delete failed: %v", err)

@@ -18,21 +18,40 @@
 use std::sync::Arc;
 
 // SDK 公開 API の AuditService の Service trait / Server 型 / Request / Response 型を import。
+use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
+// HealthServiceServer: 共通 HealthService 実装を gRPC server に登録するための型。
+use k1s0_sdk_proto::k1s0::tier1::health::v1::health_service_server::HealthServiceServer;
 use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
     // AuditEvent / Request / Response 型。
-    AuditEvent, QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse,
+    AuditEvent, ExportAuditChunk, ExportAuditRequest, ExportFormat, QueryAuditRequest,
+    QueryAuditResponse, RecordAuditRequest, RecordAuditResponse, VerifyChainRequest,
+    VerifyChainResponse,
     // AuditService の trait と Server 型。
     audit_service_server::{AuditService, AuditServiceServer},
 };
+// 共通 HealthService 実装。
+use k1s0_tier1_health::Service as HealthSvc;
 // store 層（lib.rs 経由）。
 use k1s0_tier1_audit::store::{AppendInput, AuditEntry, AuditStore, InMemoryAuditStore, QueryInput};
+// Export RPC の chunk 整形ループ（lib.rs 経由、フォーマッタ実装は export.rs）。
+use k1s0_tier1_audit::export::send_export_chunks;
 // SIGTERM / SIGINT 受信。
 use tokio::signal::unix::{SignalKind, signal};
+// 非同期 channel（server streaming で chunk を receiver 側に push する）。
+use tokio::sync::mpsc;
+// tokio_stream::wrappers で mpsc::Receiver を Stream に変換する。
+use tokio_stream::wrappers::ReceiverStream;
 // tonic ランタイム。
 use tonic::{Request, Response, Status, transport::Server};
 
-// EXPOSE 50001 規約。
+// EXPOSE 50001 規約。production の K8s Pod は単一 NetNS なので 50001 でぶつからないが、
+// dev / 同一ホスト内で複数 Rust Pod を同時起動する場面は `LISTEN_ADDR` 環境変数で上書きする。
 const DEFAULT_LISTEN: &str = "[::]:50001";
+
+/// 環境変数 `LISTEN_ADDR` が設定されていればそれを使い、未設定なら DEFAULT_LISTEN を返す。
+fn listen_addr() -> String {
+    std::env::var("LISTEN_ADDR").unwrap_or_else(|_| DEFAULT_LISTEN.to_string())
+}
 
 // AuditServer は AuditService の trait 実装。
 struct AuditServer {
@@ -159,6 +178,117 @@ impl AuditService for AuditServer {
         let events: Vec<AuditEvent> = entries.iter().map(entry_to_proto).collect();
         Ok(Response::new(QueryAuditResponse { events }))
     }
+
+    /// 監査ログ Export の server-streaming 実装で利用する関連型。
+    /// tonic は trait 上で「Self::<Rpc>Stream」型を要求するため、ReceiverStream を
+    /// associated type として宣言する。Send + 'static を満たすので multi-thread
+    /// runtime からそのまま return できる。
+    type ExportStream = ReceiverStream<Result<ExportAuditChunk, Status>>;
+
+    /// FR-T1-AUDIT-002 疑似 IF "Audit.Export"。テナント単位の監査ログを CSV /
+    /// NDJSON / JSON 配列のいずれかで chunk に分けて配信する。chunk は呼出元の
+    /// 受信ペースに合わせて backpressure される（mpsc::channel 16 件 buffer）。
+    async fn export(
+        &self,
+        req: Request<ExportAuditRequest>,
+    ) -> Result<Response<Self::ExportStream>, Status> {
+        let r = req.into_inner();
+        // テナント必須（テナント越境エクスポートを弾く）。
+        let tenant_id = r
+            .context
+            .as_ref()
+            .map(|c| c.tenant_id.clone())
+            .unwrap_or_default();
+        if tenant_id.is_empty() {
+            return Err(Status::invalid_argument(
+                "tier1/audit: tenant_id required in TenantContext",
+            ));
+        }
+        // 範囲を ms に正規化（None は store 側で「未指定」扱い）。
+        let from_ms = r
+            .from
+            .as_ref()
+            .map(|t| t.seconds * 1000 + i64::from(t.nanos / 1_000_000));
+        let to_ms = r
+            .to
+            .as_ref()
+            .map(|t| t.seconds * 1000 + i64::from(t.nanos / 1_000_000));
+        // フォーマット解決（UNSPECIFIED は NDJSON にフォールバック）。
+        let format = match ExportFormat::try_from(r.format) {
+            Ok(ExportFormat::Csv) => ExportFormat::Csv,
+            Ok(ExportFormat::JsonArray) => ExportFormat::JsonArray,
+            // UNSPECIFIED / Unknown / NDJSON はすべて NDJSON 扱い。
+            _ => ExportFormat::Ndjson,
+        };
+        // chunk_bytes の上下限を仕様通りクランプする。
+        let chunk_bytes: usize = match r.chunk_bytes {
+            n if n <= 0 => 65_536,
+            n if n > 1_048_576 => 1_048_576,
+            n => n as usize,
+        };
+
+        // 一括取得（in-memory backend 前提。Postgres 実装に切り替わったら
+        // ストリーム読込に変える）。limit=0 は store 側 default の取得件数になる
+        // ため、十分大きな値で「全件」相当に近づける。
+        let q = QueryInput {
+            from_ms,
+            to_ms,
+            filters: std::collections::BTreeMap::new(),
+            limit: usize::MAX,
+            tenant_id,
+        };
+        let entries = self
+            .store
+            .query(q)
+            .map_err(|e| Status::internal(format!("tier1/audit: store error: {}", e)))?;
+
+        // 受信側に陽水平してチャンクを送り出す。buffer 16 で軽い backpressure。
+        let (tx, rx) = mpsc::channel::<Result<ExportAuditChunk, Status>>(16);
+        // 別 task でフォーマットしながら送信する。
+        tokio::spawn(async move {
+            send_export_chunks(tx, entries, format, chunk_bytes).await;
+        });
+        // ReceiverStream に変換して return する。
+        Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    /// FR-T1-AUDIT-002: ハッシュチェーン整合性検証。
+    /// store.verify_chain_detail に委譲し、proto VerifyChainResponse に詰め替える。
+    async fn verify_chain(
+        &self,
+        req: Request<VerifyChainRequest>,
+    ) -> Result<Response<VerifyChainResponse>, Status> {
+        let r = req.into_inner();
+        let tenant_id = r
+            .context
+            .as_ref()
+            .map(|c| c.tenant_id.clone())
+            .unwrap_or_default();
+        // tenant_id 必須（テナント境界違反を弾く）。
+        if tenant_id.is_empty() {
+            return Err(Status::invalid_argument(
+                "tier1/audit: tenant_id required in TenantContext",
+            ));
+        }
+        let from_ms = r
+            .from
+            .as_ref()
+            .map(|t| t.seconds * 1000 + i64::from(t.nanos / 1_000_000));
+        let to_ms = r
+            .to
+            .as_ref()
+            .map(|t| t.seconds * 1000 + i64::from(t.nanos / 1_000_000));
+        let outcome = self
+            .store
+            .verify_chain_detail(&tenant_id, from_ms, to_ms)
+            .map_err(|e| Status::internal(format!("tier1/audit: store error: {}", e)))?;
+        Ok(Response::new(VerifyChainResponse {
+            valid: outcome.valid,
+            checked_count: outcome.checked_count,
+            first_bad_sequence: outcome.first_bad_sequence,
+            reason: outcome.reason,
+        }))
+    }
 }
 
 async fn shutdown_signal() {
@@ -176,12 +306,22 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = DEFAULT_LISTEN.parse()?;
-    eprintln!("tier1/audit: gRPC server listening on {}", DEFAULT_LISTEN);
+    let listen = listen_addr();
+    let addr = listen.parse()?;
+    eprintln!("tier1/audit: gRPC server listening on {}", listen);
     let store: Arc<dyn AuditStore> = Arc::new(InMemoryAuditStore::new());
     let server = AuditServer { store };
+    // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
+    // 共通 HealthService を構築する。in-memory store のみのためリリース時点は probe 空。
+    // Postgres backed store に切替時は WAL / replication 状態 probe を追加予定。
+    let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
     Server::builder()
         .add_service(AuditServiceServer::new(server))
+        .add_service(HealthServiceServer::new(health))
+        .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())
@@ -274,6 +414,46 @@ mod tests {
         for w in resp.events.windows(2) {
             assert!(w[0].timestamp.as_ref().unwrap().seconds <= w[1].timestamp.as_ref().unwrap().seconds);
         }
+    }
+
+    #[tokio::test]
+    async fn verify_chain_returns_valid_after_appends() {
+        let s = make_server();
+        for i in 1..=3 {
+            s.record(Request::new(RecordAuditRequest {
+                event: Some(make_event(i, "u", "R")),
+                context: make_ctx("T"),
+            }))
+            .await
+            .unwrap();
+        }
+        let resp = s
+            .verify_chain(Request::new(VerifyChainRequest {
+                from: None,
+                to: None,
+                context: make_ctx("T"),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(resp.valid);
+        assert_eq!(resp.checked_count, 3);
+        assert_eq!(resp.first_bad_sequence, 0);
+        assert!(resp.reason.is_empty());
+    }
+
+    #[tokio::test]
+    async fn verify_chain_requires_tenant() {
+        let s = make_server();
+        let r = s
+            .verify_chain(Request::new(VerifyChainRequest {
+                from: None,
+                to: None,
+                context: None,
+            }))
+            .await;
+        assert!(r.is_err());
+        assert_eq!(r.err().unwrap().code(), tonic::Code::InvalidArgument);
     }
 
     #[tokio::test]

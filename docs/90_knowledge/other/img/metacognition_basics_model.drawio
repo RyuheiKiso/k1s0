@@ -1,0 +1,34 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="model" name="二層モデル">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="520" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="メタ認知の二層モデル (Nelson &amp; Narens 1990)" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="meta" value="メタレベル (Meta-Level)&#10;対象レベルの状態を表象するモデル&#10;（自分の理解・記憶・思考の像）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="80" width="400" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="object" value="対象レベル (Object-Level)&#10;実際の認知活動&#10;（読む・解く・覚える・推論する）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="380" width="400" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="mon_label" value="モニタリング&#10;(monitoring)&#10;対象レベルの&#10;状態を上に伝える" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="220" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl_label" value="コントロール&#10;(control)&#10;対象レベルの活動を&#10;選択・変更・終了する" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="220" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mon_arrow" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366;strokeWidth=2;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="object" target="meta">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl_arrow" style="endArrow=classic;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="meta" target="object">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

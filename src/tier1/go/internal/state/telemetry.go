@@ -82,6 +82,10 @@ func (h *telemetryHandler) EmitMetric(ctx context.Context, req *telemetryv1.Emit
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/telemetry: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if _, err := requireTenantID(req.GetContext(), "Telemetry.EmitMetric"); err != nil {
+		return nil, err
+	}
 	if h.deps.MetricEmitter == nil {
 		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitMetric not yet wired to OTel Collector")
 	}
@@ -97,6 +101,10 @@ func (h *telemetryHandler) EmitMetric(ctx context.Context, req *telemetryv1.Emit
 func (h *telemetryHandler) EmitSpan(ctx context.Context, req *telemetryv1.EmitSpanRequest) (*telemetryv1.EmitSpanResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/telemetry: nil request")
+	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if _, err := requireTenantID(req.GetContext(), "Telemetry.EmitSpan"); err != nil {
+		return nil, err
 	}
 	if h.deps.TraceEmitter == nil {
 		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitSpan not yet wired to OTel Collector")

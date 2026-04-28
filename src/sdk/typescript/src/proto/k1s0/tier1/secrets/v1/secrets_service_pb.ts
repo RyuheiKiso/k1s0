@@ -346,3 +346,133 @@ export class RotateSecretResponse extends Message<RotateSecretResponse> {
   }
 }
 
+/**
+ * GetDynamic リクエスト（FR-T1-SECRETS-002）
+ *
+ * @generated from message k1s0.tier1.secrets.v1.GetDynamicSecretRequest
+ */
+export class GetDynamicSecretRequest extends Message<GetDynamicSecretRequest> {
+  /**
+   * 呼出元コンテキスト（テナント境界の検証に必須）
+   *
+   * @generated from field: k1s0.tier1.common.v1.TenantContext context = 1;
+   */
+  context?: TenantContext;
+
+  /**
+   * 発行エンジン名（"postgres" / "mysql" / "kafka" 等、OpenBao の database engine 種別）
+   *
+   * @generated from field: string engine = 2;
+   */
+  engine = "";
+
+  /**
+   * OpenBao 側で予め定義されたロール名（tenant_id でスコープされた role）
+   *
+   * @generated from field: string role = 3;
+   */
+  role = "";
+
+  /**
+   * TTL 秒数（0 = 既定 3600 秒 = 1 時間、最大 86400 秒 = 24 時間）
+   *
+   * @generated from field: int32 ttl_sec = 4;
+   */
+  ttlSec = 0;
+
+  constructor(data?: PartialMessage<GetDynamicSecretRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.GetDynamicSecretRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "context", kind: "message", T: TenantContext },
+    { no: 2, name: "engine", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "role", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "ttl_sec", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDynamicSecretRequest {
+    return new GetDynamicSecretRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDynamicSecretRequest {
+    return new GetDynamicSecretRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDynamicSecretRequest {
+    return new GetDynamicSecretRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetDynamicSecretRequest | PlainMessage<GetDynamicSecretRequest> | undefined, b: GetDynamicSecretRequest | PlainMessage<GetDynamicSecretRequest> | undefined): boolean {
+    return proto3.util.equals(GetDynamicSecretRequest, a, b);
+  }
+}
+
+/**
+ * GetDynamic 応答
+ *
+ * @generated from message k1s0.tier1.secrets.v1.GetDynamicSecretResponse
+ */
+export class GetDynamicSecretResponse extends Message<GetDynamicSecretResponse> {
+  /**
+   * 発行された credential 一式（"username" / "password" 等の key=value）
+   *
+   * @generated from field: map<string, string> values = 1;
+   */
+  values: { [key: string]: string } = {};
+
+  /**
+   * OpenBao 側 lease ID（renewal / revoke 用、削除時に呼び返す）
+   *
+   * @generated from field: string lease_id = 2;
+   */
+  leaseId = "";
+
+  /**
+   * 実際に付与された TTL 秒数（要求値が ceiling を超えたら短縮される）
+   *
+   * @generated from field: int32 ttl_sec = 3;
+   */
+  ttlSec = 0;
+
+  /**
+   * 発効時刻（Unix epoch ミリ秒）
+   *
+   * @generated from field: int64 issued_at_ms = 4;
+   */
+  issuedAtMs = protoInt64.zero;
+
+  constructor(data?: PartialMessage<GetDynamicSecretResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.GetDynamicSecretResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "values", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
+    { no: 2, name: "lease_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "ttl_sec", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "issued_at_ms", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDynamicSecretResponse {
+    return new GetDynamicSecretResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDynamicSecretResponse {
+    return new GetDynamicSecretResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDynamicSecretResponse {
+    return new GetDynamicSecretResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetDynamicSecretResponse | PlainMessage<GetDynamicSecretResponse> | undefined, b: GetDynamicSecretResponse | PlainMessage<GetDynamicSecretResponse> | undefined): boolean {
+    return proto3.util.equals(GetDynamicSecretResponse, a, b);
+  }
+}
+

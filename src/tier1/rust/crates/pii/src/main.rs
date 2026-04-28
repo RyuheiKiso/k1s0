@@ -15,12 +15,17 @@
 //   HPA で水平スケール可能（DS-SW-COMP-009 の方針通り）。
 
 // SDK 公開 API の PiiService の Service trait / Server 型 / Request / Response 型を import。
+use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
+// HealthServiceServer: 共通 HealthService 実装を gRPC server に登録するための型。
+use k1s0_sdk_proto::k1s0::tier1::health::v1::health_service_server::HealthServiceServer;
 use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
     // Request / Response 型。
     ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse, PiiFinding,
     // PiiService の trait と Server 型。
     pii_service_server::{PiiService, PiiServiceServer},
 };
+// 共通 HealthService 実装。
+use k1s0_tier1_health::Service as HealthSvc;
 // PII 検出 logic の library 部。
 use k1s0_tier1_pii::masker::{Finding, Masker};
 // SIGTERM / SIGINT 受信。
@@ -28,8 +33,14 @@ use tokio::signal::unix::{SignalKind, signal};
 // tonic ランタイム。
 use tonic::{Request, Response, Status, transport::Server};
 
-// EXPOSE 50001 規約。
+// EXPOSE 50001 規約。production の K8s Pod は単一 NetNS なので 50001 でぶつからないが、
+// dev / 同一ホスト内で複数 Rust Pod を同時起動する場面は `LISTEN_ADDR` 環境変数で上書きする。
 const DEFAULT_LISTEN: &str = "[::]:50001";
+
+/// 環境変数 `LISTEN_ADDR` が設定されていればそれを使い、未設定なら DEFAULT_LISTEN を返す。
+fn listen_addr() -> String {
+    std::env::var("LISTEN_ADDR").unwrap_or_else(|_| DEFAULT_LISTEN.to_string())
+}
 
 // PiiServer は PiiService の trait 実装。masker への薄いラッパ。
 #[derive(Default)]
@@ -99,10 +110,19 @@ async fn shutdown_signal() {
 // プロセスエントリポイント。
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = DEFAULT_LISTEN.parse()?;
-    eprintln!("tier1/pii: gRPC server listening on {}", DEFAULT_LISTEN);
+    let listen = listen_addr();
+    let addr = listen.parse()?;
+    eprintln!("tier1/pii: gRPC server listening on {}", listen);
+    // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
+    // 共通 HealthService を構築する。pii Pod は純関数 / ステートレスのため probe 空。
+    let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
     Server::builder()
         .add_service(PiiServiceServer::new(PiiServer::default()))
+        .add_service(HealthServiceServer::new(health))
+        .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())

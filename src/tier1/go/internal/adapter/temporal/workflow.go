@@ -106,6 +106,10 @@ type SignalRequest struct {
 	RunID      string // 空なら最新 run へ送信
 	SignalName string
 	Payload    []byte
+	// テナント識別子（NFR-E-AC-003、in-memory backend で run.tenantID 突合に使う）。
+	// production では Temporal SDK の SignalWorkflow 呼出時に search attribute / memo で
+	// 制限する設計（plan 04-14）。
+	TenantID string
 }
 
 // QueryRequest は Query の入力。
@@ -114,6 +118,8 @@ type QueryRequest struct {
 	RunID      string
 	QueryName  string
 	Payload    []byte
+	// テナント識別子（NFR-E-AC-003）。
+	TenantID string
 }
 
 // QueryResponse は Query の応答。
@@ -126,6 +132,8 @@ type CancelRequest struct {
 	WorkflowID string
 	RunID      string
 	Reason     string
+	// テナント識別子（NFR-E-AC-003）。
+	TenantID string
 }
 
 // TerminateRequest は Terminate の入力。
@@ -133,12 +141,16 @@ type TerminateRequest struct {
 	WorkflowID string
 	RunID      string
 	Reason     string
+	// テナント識別子（NFR-E-AC-003）。
+	TenantID string
 }
 
 // GetStatusRequest は GetStatus の入力。
 type GetStatusRequest struct {
 	WorkflowID string
 	RunID      string
+	// テナント識別子（NFR-E-AC-003）。
+	TenantID string
 }
 
 // GetStatusResponse は GetStatus の応答。
@@ -167,17 +179,57 @@ func NewWorkflowAdapter(client *Client) WorkflowAdapter {
 	return &temporalWorkflowAdapter{client: client}
 }
 
+// scopedWorkflowID はテナント識別子を WorkflowID の prefix として埋め込む（NFR-E-AC-003）。
+// SDK / production の Temporal は WorkflowID にどんな文字列を入れても受理するため、
+// "<tenant>::<workflow_id>" を実 ID として永続化することで、別テナントの ID と
+// 物理的に衝突しない。in-memory backend も同じ prefix で map 上の隔離を実現する。
+//
+// tenantID が空の場合（dev / 試験 fake）は prefix を付けず生 ID を使う。これは
+// handler 上位 requireTenantID で空テナントを弾く前提下の defensive default。
+func scopedWorkflowID(tenantID, workflowID string) string {
+	// 空 tenantID は prefix 不要（test fake の経路）。
+	if tenantID == "" {
+		// 生 ID で透過する。
+		return workflowID
+	}
+	// "<tenant>::<workflow_id>" 形式で連結する。
+	return tenantID + "::" + workflowID
+}
+
+// unscopeWorkflowID は scopedWorkflowID で prefix を付けた ID から生 ID を復元する。
+// caller には生 ID を返したいので、StartResponse / GetStatusResponse の WorkflowID で使う。
+func unscopeWorkflowID(tenantID, scoped string) string {
+	// 空 tenantID は prefix 無しなのでそのまま返す。
+	if tenantID == "" {
+		// 生 ID で透過する。
+		return scoped
+	}
+	// prefix 文字列を計算する。
+	prefix := tenantID + "::"
+	// prefix を持つなら除去して返す。
+	if len(scoped) >= len(prefix) && scoped[:len(prefix)] == prefix {
+		// prefix 除去後を返す。
+		return scoped[len(prefix):]
+	}
+	// prefix 不在は元の ID をそのまま返す（衝突 / 互換のための fallback）。
+	return scoped
+}
+
 // Start は ExecuteWorkflow で新規ワークフローを起動する。
 // idempotent=true なら DuplicateRequestPolicy_REJECT_DUPLICATE は使わず、
 // SDK の WorkflowIDReusePolicy / WorkflowIDConflictPolicy を AllowDuplicate で
 // 既存実行を返すように設定する（同じ workflow_id で複数 run を許容）。
+//
+// テナント分離（NFR-E-AC-003）: 実 WorkflowID には scopedWorkflowID で
+// "<tenant>::<workflow_id>" を渡す。response の WorkflowID は元の生 ID に戻して返す。
 func (a *temporalWorkflowAdapter) Start(ctx context.Context, req StartRequest) (StartResponse, error) {
 	tq := req.TaskQueue
 	if tq == "" {
 		tq = defaultTaskQueue
 	}
 	opts := tclient.StartWorkflowOptions{
-		ID:        req.WorkflowID,
+		// テナント prefix 付きの ID で SDK / Temporal に永続化する。
+		ID:        scopedWorkflowID(req.TenantID, req.WorkflowID),
 		TaskQueue: tq,
 	}
 	// Temporal の WorkflowIDReusePolicy: 既定（AllowDuplicate）= 完了済の同 ID は新 run 採番
@@ -187,19 +239,27 @@ func (a *temporalWorkflowAdapter) Start(ctx context.Context, req StartRequest) (
 		return StartResponse{}, err
 	}
 	return StartResponse{
-		WorkflowID: run.GetID(),
+		// caller には prefix を取り除いた生 ID を返す。
+		WorkflowID: unscopeWorkflowID(req.TenantID, run.GetID()),
 		RunID:      run.GetRunID(),
 	}, nil
 }
 
 // Signal は SignalWorkflow を呼ぶ。RunID が空なら SDK は最新 run に送る。
+// テナント分離（NFR-E-AC-003）: WorkflowID に tenant prefix を付与して呼び出す。
 func (a *temporalWorkflowAdapter) Signal(ctx context.Context, req SignalRequest) error {
-	return a.client.temporalClientFor().SignalWorkflow(ctx, req.WorkflowID, req.RunID, req.SignalName, req.Payload)
+	// scopedWorkflowID で tenant prefix を付ける。
+	scoped := scopedWorkflowID(req.TenantID, req.WorkflowID)
+	// SDK 呼出。other-tenant の WorkflowID とは prefix 違いで衝突しないため越境は物理的に不可能。
+	return a.client.temporalClientFor().SignalWorkflow(ctx, scoped, req.RunID, req.SignalName, req.Payload)
 }
 
 // Query は QueryWorkflow を呼び、EncodedValue を []byte に変換して返す。
+// テナント分離（NFR-E-AC-003）: WorkflowID に tenant prefix を付与する。
 func (a *temporalWorkflowAdapter) Query(ctx context.Context, req QueryRequest) (QueryResponse, error) {
-	enc, err := a.client.temporalClientFor().QueryWorkflow(ctx, req.WorkflowID, req.RunID, req.QueryName, req.Payload)
+	// scopedWorkflowID で tenant prefix を付ける。
+	scoped := scopedWorkflowID(req.TenantID, req.WorkflowID)
+	enc, err := a.client.temporalClientFor().QueryWorkflow(ctx, scoped, req.RunID, req.QueryName, req.Payload)
 	if err != nil {
 		return QueryResponse{}, err
 	}
@@ -215,18 +275,27 @@ func (a *temporalWorkflowAdapter) Query(ctx context.Context, req QueryRequest) (
 }
 
 // Cancel は CancelWorkflow を呼ぶ。Reason はワークフロー内 catch でハンドリングされる。
+// テナント分離（NFR-E-AC-003）: WorkflowID に tenant prefix を付与する。
 func (a *temporalWorkflowAdapter) Cancel(ctx context.Context, req CancelRequest) error {
-	return a.client.temporalClientFor().CancelWorkflow(ctx, req.WorkflowID, req.RunID)
+	// scopedWorkflowID で tenant prefix を付ける。
+	scoped := scopedWorkflowID(req.TenantID, req.WorkflowID)
+	return a.client.temporalClientFor().CancelWorkflow(ctx, scoped, req.RunID)
 }
 
 // Terminate は TerminateWorkflow を呼ぶ。Reason は監査ログに残る。
+// テナント分離（NFR-E-AC-003）: WorkflowID に tenant prefix を付与する。
 func (a *temporalWorkflowAdapter) Terminate(ctx context.Context, req TerminateRequest) error {
-	return a.client.temporalClientFor().TerminateWorkflow(ctx, req.WorkflowID, req.RunID, req.Reason)
+	// scopedWorkflowID で tenant prefix を付ける。
+	scoped := scopedWorkflowID(req.TenantID, req.WorkflowID)
+	return a.client.temporalClientFor().TerminateWorkflow(ctx, scoped, req.RunID, req.Reason)
 }
 
 // GetStatus は DescribeWorkflowExecution を呼んで Status を取得する。
+// テナント分離（NFR-E-AC-003）: WorkflowID に tenant prefix を付与する。
 func (a *temporalWorkflowAdapter) GetStatus(ctx context.Context, req GetStatusRequest) (GetStatusResponse, error) {
-	desc, err := a.client.temporalClientFor().DescribeWorkflowExecution(ctx, req.WorkflowID, req.RunID)
+	// scopedWorkflowID で tenant prefix を付ける。
+	scoped := scopedWorkflowID(req.TenantID, req.WorkflowID)
+	desc, err := a.client.temporalClientFor().DescribeWorkflowExecution(ctx, scoped, req.RunID)
 	if err != nil {
 		return GetStatusResponse{}, err
 	}

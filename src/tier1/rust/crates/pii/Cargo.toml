@@ -26,6 +26,8 @@ path = "src/main.rs"
 [dependencies]
 # 公開 API（PiiService）の Service trait。
 k1s0-sdk-proto = { workspace = true }
+# 共通 HealthService 実装（Liveness / Readiness 2 RPC）。
+k1s0-tier1-health = { workspace = true }
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
 tokio = { workspace = true }
@@ -34,6 +36,7 @@ prost = { workspace = true }
 regex = "1"
 # 静的コンパイル regex の遅延初期化（lazy_static の後継、Rust 標準 LazyLock の代替）。
 once_cell = "1"
+tonic-reflection = "0.12"
 
 # crate にライブラリも公開する（main.rs から masker module を参照、
 # 単体テストで bin だけだと test ファイル分離が難しいため lib にしておく）。

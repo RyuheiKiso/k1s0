@@ -21,6 +21,7 @@ package temporal
 import (
 	"context"
 	"errors"
+	"strings"
 
 	tclient "go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
@@ -116,4 +117,42 @@ func (c *Client) HostPort() string {
 // temporalClientFor は内部 narrow client を返す。adapter 実装からのみ使う。
 func (c *Client) temporalClientFor() temporalClient {
 	return c.tc
+}
+
+// Ping は Temporal frontend への到達性を軽量 RPC で確認する。
+// HealthService.Readiness の dependency probe 経路で呼ばれる。
+//
+// production: 存在しない workflow に対して DescribeWorkflowExecution を呼ぶ。
+// Temporal frontend が応答すれば NotFound を返す（gRPC: codes.NotFound）— これは
+// 「frontend は到達可能だが対象 workflow が存在しない」ことを示すため、reachable=true 扱い。
+// network / TLS / 認証障害は別 error として伝搬し、reachable=false を意味する。
+//
+// in-memory（tc が nil または fake）: 即時 nil（process 内 backend は常に到達可能）。
+func (c *Client) Ping(ctx context.Context) error {
+	// tc 未注入は到達性常時 OK。
+	if c.tc == nil {
+		// nil で reachable=true。
+		return nil
+	}
+	// センチネル workflow ID。実 workflow と衝突しないよう k1s0 名前空間を予約。
+	const probeWorkflowID = "_k1s0_health_probe"
+	// runID 空文字は SDK が "latest run" として解決する（→ 該当なしで NotFound）。
+	_, err := c.tc.DescribeWorkflowExecution(ctx, probeWorkflowID, "")
+	// SDK は workflow 未存在時に ErrWorkflowNotFound か "not found" を含む error を返す。
+	if err == nil {
+		// 偶然 probeWorkflowID が存在した場合も到達 OK。
+		return nil
+	}
+	// センチネル error 比較で NotFound を到達 OK 扱い。
+	if errors.Is(err, ErrWorkflowNotFound) {
+		// nil で reachable=true。
+		return nil
+	}
+	// 文字列 fallback で gRPC NotFound 相当を到達 OK 扱い（SDK バージョン差異への耐性）。
+	if msg := err.Error(); strings.Contains(msg, "NotFound") || strings.Contains(msg, "not found") {
+		// nil で reachable=true。
+		return nil
+	}
+	// それ以外（network / auth / TLS など）は reachable=false 扱いで error_message に詰める。
+	return err
 }

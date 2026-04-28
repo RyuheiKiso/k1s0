@@ -70,5 +70,112 @@ pub struct QueryAuditResponse {
     #[prost(message, repeated, tag="1")]
     pub events: ::prost::alloc::vec::Vec<AuditEvent>,
 }
+/// VerifyChain リクエスト（FR-T1-AUDIT-002）
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerifyChainRequest {
+    /// 範囲開始（任意）。未指定（zero）はテナント配下の全履歴を対象。
+    #[prost(message, optional, tag="1")]
+    pub from: ::core::option::Option<::prost_types::Timestamp>,
+    /// 範囲終了（任意）。未指定（zero）は最新まで。
+    #[prost(message, optional, tag="2")]
+    pub to: ::core::option::Option<::prost_types::Timestamp>,
+    /// 呼出元コンテキスト（テナント境界の検証に必須）
+    #[prost(message, optional, tag="3")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+}
+/// VerifyChain 応答
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerifyChainResponse {
+    /// チェーン全体の整合性が取れていれば true。
+    #[prost(bool, tag="1")]
+    pub valid: bool,
+    /// 検証対象だったイベント件数（valid に関わらず set される）。
+    #[prost(int64, tag="2")]
+    pub checked_count: i64,
+    /// valid=false 時のみ意味あり。最初に不整合を検出した sequence_number。
+    /// valid=true 時は 0。
+    #[prost(int64, tag="3")]
+    pub first_bad_sequence: i64,
+    /// 不整合の理由（"prev_hash mismatch" / "event_hash mismatch" / "tenant boundary" 等）。
+    /// valid=true 時は空文字。
+    #[prost(string, tag="4")]
+    pub reason: ::prost::alloc::string::String,
+}
+/// Export リクエスト（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExportAuditRequest {
+    /// 範囲開始（任意）。未指定（zero）は全履歴の先頭。
+    #[prost(message, optional, tag="1")]
+    pub from: ::core::option::Option<::prost_types::Timestamp>,
+    /// 範囲終了（任意）。未指定（zero）は最新まで。
+    #[prost(message, optional, tag="2")]
+    pub to: ::core::option::Option<::prost_types::Timestamp>,
+    /// 出力フォーマット。EXPORT_FORMAT_UNSPECIFIED は NDJSON 扱い。
+    #[prost(enumeration="ExportFormat", tag="3")]
+    pub format: i32,
+    /// 1 chunk あたりの最大バイト数（既定 65536、上限 1048576）。
+    #[prost(int32, tag="4")]
+    pub chunk_bytes: i32,
+    /// 呼出元コンテキスト（テナント境界の検証に必須）。
+    #[prost(message, optional, tag="5")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+}
+/// Export 応答（server-streaming）の 1 チャンク
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExportAuditChunk {
+    /// フォーマット済みデータの 1 部分（バイナリ透過、UTF-8 を想定）。
+    #[prost(bytes="vec", tag="1")]
+    pub data: ::prost::alloc::vec::Vec<u8>,
+    /// 0 起点のチャンク連番（再構成 / 監査時の参照用）。
+    #[prost(int64, tag="2")]
+    pub sequence: i64,
+    /// この chunk に含まれる event 数（chunk_bytes ベースの場合は variable）。
+    #[prost(int64, tag="3")]
+    pub event_count: i64,
+    /// ストリーム末尾の chunk なら true。最後の "]" や EOF newline を含む。
+    #[prost(bool, tag="4")]
+    pub is_last: bool,
+}
+/// Export のフォーマット種別。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ExportFormat {
+    /// 既定（指定なし）。サーバが NDJSON にフォールバックする。
+    Unspecified = 0,
+    /// CSV（RFC 4180、ヘッダ行を最初の chunk に出力）。
+    Csv = 1,
+    /// 改行区切り JSON（1 行 = 1 event）。Splunk / fluentd 取り込み向け。
+    Ndjson = 2,
+    /// 単一 JSON 配列（小規模向け、最後の chunk で `]` を閉じる）。
+    JsonArray = 3,
+}
+impl ExportFormat {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ExportFormat::Unspecified => "EXPORT_FORMAT_UNSPECIFIED",
+            ExportFormat::Csv => "EXPORT_FORMAT_CSV",
+            ExportFormat::Ndjson => "EXPORT_FORMAT_NDJSON",
+            ExportFormat::JsonArray => "EXPORT_FORMAT_JSON_ARRAY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EXPORT_FORMAT_UNSPECIFIED" => Some(Self::Unspecified),
+            "EXPORT_FORMAT_CSV" => Some(Self::Csv),
+            "EXPORT_FORMAT_NDJSON" => Some(Self::Ndjson),
+            "EXPORT_FORMAT_JSON_ARRAY" => Some(Self::JsonArray),
+            _ => None,
+        }
+    }
+}
 include!("k1s0.tier1.audit.v1.tonic.rs");
 // @@protoc_insertion_point(module)

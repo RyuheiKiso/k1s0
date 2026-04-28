@@ -31,6 +31,19 @@ service WorkflowService {
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
 }
 
+// バックエンド種別（FR-T1-WORKFLOW-001 の "短期は Dapr Workflow、長期実行は Temporal" 対応）。
+// SDK の RunShort / RunLong は本 enum を BACKEND_DAPR / BACKEND_TEMPORAL に固定する。
+// 注: zero 値は AUTO（明示指定なし、tier1 が workflow_type / 期待実行時間で振り分け）。
+// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+enum WorkflowBackend {
+  // 既定値: tier1 が workflow_type / 期待実行時間に基づいて自動選択する。
+  BACKEND_AUTO = 0;
+  // 短期ワークフロー向け（Dapr Workflow building block、上限 7 日）。
+  BACKEND_DAPR = 1;
+  // 長期ワークフロー向け（Temporal、上限なし）。
+  BACKEND_TEMPORAL = 2;
+}
+
 // Start リクエスト
 message StartRequest {
   // ワークフロー種別（tier2 で登録されたコード名）
@@ -43,6 +56,8 @@ message StartRequest {
   bool idempotent = 4;
   // 呼出元コンテキスト
   k1s0.tier1.common.v1.TenantContext context = 5;
+  // バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
+  WorkflowBackend backend = 6;
 }
 
 // Start 応答
@@ -51,6 +66,8 @@ message StartResponse {
   string workflow_id = 1;
   // 実行 ID（リトライや継続実行時に新しい値が割当）
   string run_id = 2;
+  // 実際に選択された backend（AUTO で起動された場合の解決結果が入る）。
+  WorkflowBackend backend = 3;
 }
 
 // Signal リクエスト

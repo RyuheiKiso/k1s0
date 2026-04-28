@@ -42,4 +42,35 @@ public sealed class AuditFacade
         var resp = await _client.Raw.Audit.QueryAsync(req, cancellationToken: ct);
         return resp.Events.ToList();
     }
+
+    /// VerifyChainAsync: ハッシュチェーンの整合性検証（FR-T1-AUDIT-002）。
+    /// from / to を null にすると全範囲を対象にする。
+    public async Task<VerifyChainResult> VerifyChainAsync(
+        DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    {
+        var req = new VerifyChainRequest { Context = _client.TenantContext() };
+        if (from.HasValue) req.From = Timestamp.FromDateTime(from.Value.ToUniversalTime());
+        if (to.HasValue) req.To = Timestamp.FromDateTime(to.Value.ToUniversalTime());
+        var resp = await _client.Raw.Audit.VerifyChainAsync(req, cancellationToken: ct);
+        return new VerifyChainResult
+        {
+            Valid = resp.Valid,
+            CheckedCount = resp.CheckedCount,
+            FirstBadSequence = resp.FirstBadSequence,
+            Reason = resp.Reason,
+        };
+    }
+}
+
+/// VerifyChain（FR-T1-AUDIT-002）の応答を SDK 利用者向けに整理した型。
+public sealed class VerifyChainResult
+{
+    /// チェーン整合性が取れていれば true。
+    public bool Valid { get; init; }
+    /// 検証対象だったイベント件数。
+    public long CheckedCount { get; init; }
+    /// 不整合検出時、最初に失敗した sequence_number（1-based）。Valid 時は 0。
+    public long FirstBadSequence { get; init; }
+    /// 不整合の理由。Valid 時は空文字。
+    public string Reason { get; init; } = string.Empty;
 }

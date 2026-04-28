@@ -15,7 +15,7 @@
 
 // パッケージ命名規約: k1s0.tier1.<api>.v<n>
 
-import { BulkGetSecretRequest, BulkGetSecretResponse, GetSecretRequest, GetSecretResponse, RotateSecretRequest, RotateSecretResponse } from "./secrets_service_pb.js";
+import { BulkGetSecretRequest, BulkGetSecretResponse, GetDynamicSecretRequest, GetDynamicSecretResponse, GetSecretRequest, GetSecretResponse, RotateSecretRequest, RotateSecretResponse } from "./secrets_service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -27,7 +27,7 @@ export const SecretsService = {
   typeName: "k1s0.tier1.secrets.v1.SecretsService",
   methods: {
     /**
-     * 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+     * 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
      *
      * @generated from rpc k1s0.tier1.secrets.v1.SecretsService.Get
      */
@@ -46,6 +46,19 @@ export const SecretsService = {
       name: "BulkGet",
       I: BulkGetSecretRequest,
       O: BulkGetSecretResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * 動的シークレット発行（FR-T1-SECRETS-002）。
+     * engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+     * TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+     *
+     * @generated from rpc k1s0.tier1.secrets.v1.SecretsService.GetDynamic
+     */
+    getDynamic: {
+      name: "GetDynamic",
+      I: GetDynamicSecretRequest,
+      O: GetDynamicSecretResponse,
       kind: MethodKind.Unary,
     },
     /**
