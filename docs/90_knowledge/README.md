@@ -154,6 +154,7 @@ ADR・MVP・E2E テスト・OSS ライセンスなど、開発プロセスとガ
 
 tier1 内部の gRPC、tier2/tier3 への公開 API、IoT 系の MQTT など、k1s0 が扱う通信プロトコルの仕様と選定根拠。要件定義の機能要件 (`20_機能要件/`) で API 形式を決定する際の前提となる。
 
+- [api_basics.md](protocol/api_basics.md)
 - [gRPC_basics.md](protocol/gRPC_basics.md)
 - [protobuf_basics.md](protocol/protobuf_basics.md)
 - [proto3_basics.md](protocol/proto3_basics.md)
