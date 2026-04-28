@@ -97,11 +97,17 @@ func Run(p Pod, listen string) error {
 	}
 
 	// gRPC server インスタンスを生成する。
-	// ObservabilityInterceptor は OTel global TracerProvider / MeterProvider 経由で
-	// 1 span 発行 + RED メトリクス記録を行う（共通規約 §「通信プロトコルと可観測性」）。
-	// Provider 未設定の dev / test では no-op として動作するため、cmd 側の setup を強制しない。
+	// 共通 interceptor チェイン:
+	//   - AuthInterceptor: JWT 検証 + L1 テナント上書き（共通規約 §「認証と認可」/§「マルチテナント分離」L1）。
+	//     env TIER1_AUTH_MODE で off / hmac / jwks を切替。off は test / 早期 dev で pass-through。
+	//   - ObservabilityInterceptor: OTel 1 span + RED メトリクス（共通規約 §「通信プロトコルと可観測性」）。
+	// Provider / 認証鍵が未設定の dev / test では各 interceptor が no-op として動作するため、
+	// cmd 側の setup を強制しない（既存テスト互換）。
 	srv := grpc.NewServer(
-		grpc.UnaryInterceptor(ObservabilityInterceptor()),
+		grpc.ChainUnaryInterceptor(
+			AuthInterceptor(LoadAuthConfigFromEnv()),
+			ObservabilityInterceptor(),
+		),
 	)
 
 	// 標準 gRPC health protocol を登録する。
