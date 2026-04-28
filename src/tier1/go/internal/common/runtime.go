@@ -9,16 +9,16 @@
 //   各 Pod の main.go を最小化するため、共通する gRPC server bootstrap を本パッケージに集約する。
 //   cmd 配下からは internal/ のみ import 可能（他 Pod 内部参照禁止）の規約に整合。
 //
-// 提供する機能（リリース時点最小骨格）:
+// 提供する機能:
 //   - :50001 で listen（flag で上書き可、docs 正典 EXPOSE 50001）
 //   - 標準 gRPC health protocol（grpc.health.v1.Health/Check）応答 — Kubernetes probe 経路
 //   - k1s0 独自 HealthService（k1s0.tier1.health.v1.HealthService.Liveness / Readiness）応答
 //     — tier2 / tier3 から version / uptime / 依存先到達性の照会経路
 //   - gRPC reflection（dev / staging で grpcurl 疎通用、production は config で無効化予定）
+//   - ObservabilityInterceptor（OTel trace 1 span 発行 + RED メトリクス、共通規約 §可観測性）
 //   - SIGINT / SIGTERM で graceful shutdown（25s timeout）
 //
 // 未実装（plan 04-02 以降で追加）:
-//   - OTel trace / metrics / logger interceptor
 //   - retry / circuit-breaker / timeout
 //   - TLS / mTLS（SPIRE 連携）
 //   - 設定読込（YAML + envvar、internal/config/）
@@ -96,8 +96,13 @@ func Run(p Pod, listen string) error {
 		// if 分岐を閉じる。
 	}
 
-	// gRPC server インスタンスを生成する（interceptor / TLS は plan 04-02 で追加）。
-	srv := grpc.NewServer()
+	// gRPC server インスタンスを生成する。
+	// ObservabilityInterceptor は OTel global TracerProvider / MeterProvider 経由で
+	// 1 span 発行 + RED メトリクス記録を行う（共通規約 §「通信プロトコルと可観測性」）。
+	// Provider 未設定の dev / test では no-op として動作するため、cmd 側の setup を強制しない。
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(ObservabilityInterceptor()),
+	)
 
 	// 標準 gRPC health protocol を登録する。
 	hs := health.NewServer()
