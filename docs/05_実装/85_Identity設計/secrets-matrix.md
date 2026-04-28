@@ -89,6 +89,7 @@
 | `deploy/opentofu/environments/*/secrets.auto.tfvars` | 全フィールド |
 
 `age` 鍵の管理:
+
 - 個人 OSS の dev: `~/.config/sops/age/keys.txt`（リポジトリ外）
 - CI: encrypted secret（`SOPS_AGE_KEY`）
 - 採用側 prod: 採用側組織が管理、k1s0 リポジトリには含めない

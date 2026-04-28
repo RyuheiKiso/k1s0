@@ -125,7 +125,7 @@
 
 ## 13. 参考資料
 
-- Stanford Encyclopedia of Philosophy: "Ludwig Wittgenstein" (https://plato.stanford.edu/entries/wittgenstein/)
-- Stanford Encyclopedia of Philosophy: "Wittgenstein's Logical Atomism" (https://plato.stanford.edu/entries/wittgenstein-atomism/)
-- Internet Encyclopedia of Philosophy: "Ludwig Wittgenstein: Early Philosophy" (https://iep.utm.edu/wittgens/)
+- Stanford Encyclopedia of Philosophy: "Ludwig Wittgenstein" (<https://plato.stanford.edu/entries/wittgenstein/>)
+- Stanford Encyclopedia of Philosophy: "Wittgenstein's Logical Atomism" (<https://plato.stanford.edu/entries/wittgenstein-atomism/>)
+- Internet Encyclopedia of Philosophy: "Ludwig Wittgenstein: Early Philosophy" (<https://iep.utm.edu/wittgens/>)
 - L. Wittgenstein, *Tractatus Logico-Philosophicus* (Ogden translation), Project Gutenberg EBook #5740

@@ -15,6 +15,10 @@
     "typecheck": "pnpm --filter './packages/**' --filter './apps/**' typecheck"
   },
   "devDependencies": {
-    "typescript": "^5.6.3"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.59.1"
   }
 }

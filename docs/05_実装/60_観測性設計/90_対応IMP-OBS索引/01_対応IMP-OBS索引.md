@@ -116,7 +116,7 @@ INC が 060-071 の 12 件まで使用しているため、Runbook 用 RB は 08
 | IMP-OBS-INC-061 | CVSS 9.0+ → SEV1（48h SLO） / 7.0+ → SEV2（7 日 SLO）の機械対応表 |
 | IMP-OBS-INC-062 | Incident Tag タクソノミー（root_cause / impact_domain / detection_path） |
 | IMP-OBS-INC-063 | post-mortem template と Incident Tag の必須付与 |
-| IMP-OBS-INC-064 | Slack incident channel 自動作成と命名規則（#inc-YYYYMMDD-<id>） |
+| IMP-OBS-INC-064 | Slack incident channel 自動作成と命名規則（`#inc-YYYYMMDD-<id>`） |
 | IMP-OBS-INC-065 | PagerDuty escalation policy（5 分 → SRE / 15 分 → SRE Lead） |
 | IMP-OBS-INC-066 | SEV1 / SEV2 の Incident Commander 任命と役割分担 |
 | IMP-OBS-INC-067 | Incident timeline の機械記録（Slack thread → post-mortem 自動取込） |

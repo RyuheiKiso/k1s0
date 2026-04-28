@@ -4,7 +4,7 @@
 
 ## ファイル一覧
 
-```
+```text
 .sparse-checkout/
 ├── README.md           # 本ファイル
 └── roles/

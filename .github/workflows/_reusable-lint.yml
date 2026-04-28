@@ -164,22 +164,31 @@ jobs:
         with:
           version: latest
 
+      # buf v2 workspace は src/contracts/buf.yaml に配置されているため、
+      # buf lint / breaking / format には常にワークスペース path を明示する。
+      # 省略するとリポジトリ root を v1beta1 単一モジュールとして扱い、
+      # 各モジュール root（src/contracts/tier1, src/contracts/internal）からの
+      # import path（例: k1s0/tier1/common/v1/common.proto）が解決できず
+      # "file does not exist" で fail する。
       - name: buf lint
         id: buf-lint
         if: inputs.language == 'proto'
-        run: buf lint
+        run: buf lint src/contracts
 
       - name: buf breaking
         id: buf-breaking
         if: inputs.language == 'proto' && github.event_name == 'pull_request'
-        run: buf breaking --against ".git#branch=${{ github.base_ref }}"
+        # against 側にも subdir=src/contracts が必要。省略すると against 側が
+        # リポジトリ root を単一モジュール扱いし、モジュール内 import を
+        # 解決できず fail する。
+        run: buf breaking src/contracts --against ".git#branch=${{ github.base_ref }},subdir=src/contracts"
 
       # buf format で proto のフォーマット崩れを検出（plan 03-05 主作業 4）。
       # `-d` で diff、`--exit-code` で diff があれば exit 1 → CI fail。
       - name: buf format check
         id: buf-format
         if: inputs.language == 'proto'
-        run: buf format -d --exit-code
+        run: buf format -d --exit-code src/contracts
 
       # ----- docs / yaml -----
       - name: setup node for markdownlint
@@ -191,8 +200,18 @@ jobs:
       - name: markdownlint
         id: markdownlint
         if: inputs.language == 'docs'
+        # `#node_modules` は top-level にしか効かず、src/tier3/web/packages/*/node_modules
+        # の nested を取りこぼすため、`#**/node_modules/**` で任意階層を除外する。
+        # target / third_party / dist / coverage も同じ理由で nested 対応。
+        # 設定本体は .markdownlint-cli2.jsonc の `ignores` で同期する。
         run: |
-          npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#target" "#third_party"
+          npx --yes markdownlint-cli2 \
+            "**/*.md" \
+            "#**/node_modules/**" \
+            "#**/target/**" \
+            "#**/third_party/**" \
+            "#**/dist/**" \
+            "#**/coverage/**"
 
       - name: yaml lint
         id: yaml-lint

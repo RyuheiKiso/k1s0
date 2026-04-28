@@ -36,24 +36,29 @@
 **検出**: 漏洩 incident 報告 / 90 日 SLA 超過の Mimir alert
 
 **初動（〜30 分）**:
+
 1. OpenBao で新パスワードを生成 (`bao write -force database/rotate-role/k1s0-tier1`)
 2. CNPG cluster にも反映 (`kubectl edit cluster k1s0-pg -n k1s0-data`)
 
 **復旧（〜2 時間）**:
+
 1. tier1 facade を rolling restart で新値を取得 (`kubectl rollout restart deployment/tier1-facade`)
 2. `tools/local-stack/status.sh` 相当で接続確認
 
 **原因調査**:
+
 - 漏洩経路の特定（gitleaks ログ / アクセス log）
 - 横展開の可能性検討
 
 **事後処理**:
+
 - postmortem を `ops/runbooks/postmortems/` に
 - secret-matrix への追記（影響範囲拡張時）
 
 ### 2. Kafka SASL credentials
 
 **初動**: KafkaUser の Secret 削除 → User Operator が再払出
+
 ```bash
 kubectl delete secret <user>-secret -n k1s0-data
 # Strimzi User Operator が自動再生成
@@ -66,6 +71,7 @@ kubectl delete secret <user>-secret -n k1s0-data
 ### 4. TLS 証明書
 
 cert-manager の自動更新（`renewBefore: 720h`）に任せる。手動更新が必要な緊急時:
+
 ```bash
 kubectl delete certificate <name> -n <ns>
 # cert-manager が即時再発行
@@ -74,6 +80,7 @@ kubectl delete certificate <name> -n <ns>
 ### 5. OIDC keyless（cosign）
 
 鍵 rotation 不要（Sigstore Fulcio が毎回新証明書発行）。万一 Sigstore Rekor に偽 sign が記録された場合の対応:
+
 1. 該当 image を GHCR から削除
 2. 採用側に advisory 通知
 3. `cosign verify` で真正な sign のみ通すよう Kyverno policy で署名 issuer を限定
@@ -85,6 +92,7 @@ kubectl delete certificate <name> -n <ns>
 ### 7. OpenBao unseal share
 
 **最重要 / 最頻度低**:
+
 - Shamir 5/3 構成、過半数で unseal 可能
 - 紛失時はその share の保有者を変更 → 全 share を再分散
 - 詳細: `ops/runbooks/forensics/04_key-compromise.md`（plan 13-09）で詳述

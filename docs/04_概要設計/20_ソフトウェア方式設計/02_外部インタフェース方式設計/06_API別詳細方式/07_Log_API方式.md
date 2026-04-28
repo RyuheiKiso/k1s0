@@ -116,6 +116,7 @@ Log API 固有のエラーコードは 3 種に限定する。`VALIDATION_FAILED
 | NFR-H-COMP-004 | 監査ログ WORM 保持 | DS-SW-EIF-354, DS-NFR-COMP-004 | 完全 |
 
 表に載せた要件数は FR-T1-LOG-* 4 件 + NFR 5 件 = 計 9 件。リリース時点 採用初期 スコープでは本表 9 件のうち Log 本線（FR-T1-LOG-001 / 003 / 004 + NFR-B-PERF-006）の 4 件を満たし、PII / WORM 関連の 5 件は リリース時点〜採用後の運用拡大時 で段階解放する。
+
 - ADR 参照: ADR-TIER1-001（Go+Rust 分担、custom-log は Rust）/ ADR-TIER1-002（Protobuf gRPC 必須）
 - 連携設計: [08_Telemetry_API方式.md](08_Telemetry_API方式.md)（観測性パイプライン共有）/ [10_Audit_Pii_API方式.md](10_Audit_Pii_API方式.md)（PII マスキング辞書共有）
 - 本ファイルで採番: DS-SW-EIF-340 〜 DS-SW-EIF-353

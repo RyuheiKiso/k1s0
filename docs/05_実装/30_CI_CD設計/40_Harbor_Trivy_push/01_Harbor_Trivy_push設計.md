@@ -108,7 +108,7 @@ Harbor / Trivy が停止すると CI の push 段が詰まり、結果として 
 人間が手で `docker push` / `crane push` を Harbor に対して実行することを禁止し、すべての push は CI 経由に限定する（IMP-CI-HAR-050）。これは原則 1（CI の責務は Harbor push まで）の反対側の保証であり、「Harbor にイメージがあることと、そのイメージが CI を通過したこと」を同値にする。
 
 - Harbor 側の project RBAC で人間アカウント（Keycloak SSO）には `push` 権限を付与しない
-- push 権限を持つのは robot$<project>-ci のみ
+- push 権限を持つのは `robot$<project>-ci` のみ
 - 緊急時の手動 push は Security チーム承認で一時的に人間アカウントへ push 権限を付与、作業完了後に revoke（手順は `ops/runbooks/incidents/harbor-emergency-push.md`）
 - 一時付与の記録は Audit ログ（tier1 `t1-audit` Pod）に 7 年保管、四半期レビューで棚卸し
 

@@ -131,31 +131,31 @@ migrate -source file://db/migrations -database "postgres://user:pass@localhost:5
 package main
 
 import (
-	// ログ出力用パッケージをインポートする
-	"log"
+ // ログ出力用パッケージをインポートする
+ "log"
 
-	// migrate 本体をインポートする
-	"github.com/golang-migrate/migrate/v4"
-	// PostgreSQL ドライバを副作用インポートで登録する
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	// ファイルソースドライバを副作用インポートで登録する
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+ // migrate 本体をインポートする
+ "github.com/golang-migrate/migrate/v4"
+ // PostgreSQL ドライバを副作用インポートで登録する
+ _ "github.com/golang-migrate/migrate/v4/database/postgres"
+ // ファイルソースドライバを副作用インポートで登録する
+ _ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {
-	// マイグレーションインスタンスを生成する（ソースとデータベースURLを指定する）
-	m, err := migrate.New(
-		"file://db/migrations",
-		"postgres://user:pass@localhost:5432/mydb?sslmode=disable")
-	if err != nil {
-		// 初期化エラー時はログ出力して終了する
-		log.Fatal(err)
-	}
-	// すべての未適用マイグレーションを実行する
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		// 実行エラー時はログ出力して終了する
-		log.Fatal(err)
-	}
+ // マイグレーションインスタンスを生成する（ソースとデータベースURLを指定する）
+ m, err := migrate.New(
+  "file://db/migrations",
+  "postgres://user:pass@localhost:5432/mydb?sslmode=disable")
+ if err != nil {
+  // 初期化エラー時はログ出力して終了する
+  log.Fatal(err)
+ }
+ // すべての未適用マイグレーションを実行する
+ if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+  // 実行エラー時はログ出力して終了する
+  log.Fatal(err)
+ }
 }
 ```
 

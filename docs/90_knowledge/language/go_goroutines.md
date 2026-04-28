@@ -93,30 +93,30 @@ package main
 
 // 標準出力と sync を使う
 import (
-	"fmt"
-	"sync"
+ "fmt"
+ "sync"
 )
 
 // メイン関数: 3 個のゴルーチンを起動して全部の終了を待つ
 func main() {
-	// 終了同期用の WaitGroup を初期化する
-	var wg sync.WaitGroup
+ // 終了同期用の WaitGroup を初期化する
+ var wg sync.WaitGroup
 
-	// 3 回ループしてゴルーチンを起動する
-	for i := 0; i < 3; i++ {
-		// 起動前にカウンタを 1 増やす（必ず go の前で行う）
-		wg.Add(1)
-		// クロージャに i をコピーで渡してデータ競合を回避する
-		go func(id int) {
-			// 関数終了時に WaitGroup を 1 デクリメントする
-			defer wg.Done()
-			// 自身の ID を出力する
-			fmt.Printf("goroutine %d 実行\n", id)
-		}(i)
-	}
+ // 3 回ループしてゴルーチンを起動する
+ for i := 0; i < 3; i++ {
+  // 起動前にカウンタを 1 増やす（必ず go の前で行う）
+  wg.Add(1)
+  // クロージャに i をコピーで渡してデータ競合を回避する
+  go func(id int) {
+   // 関数終了時に WaitGroup を 1 デクリメントする
+   defer wg.Done()
+   // 自身の ID を出力する
+   fmt.Printf("goroutine %d 実行\n", id)
+  }(i)
+ }
 
-	// 全ゴルーチンの完了を待つ
-	wg.Wait()
+ // 全ゴルーチンの完了を待つ
+ wg.Wait()
 }
 ```text
 ### 解説
@@ -135,39 +135,39 @@ package main
 
 // fmt と time を使う
 import (
-	"fmt"
-	"time"
+ "fmt"
+ "time"
 )
 
 // 指定時間後に文字列を送るゴルーチンを起動して channel を返す
 func after(d time.Duration, msg string) <-chan string {
-	// バッファなし channel を作る
-	ch := make(chan string)
-	// 別ゴルーチンで sleep 後に送信する
-	go func() {
-		// 指定時間スリープする
-		time.Sleep(d)
-		// 結果を送信する
-		ch <- msg
-	}()
-	// 受信専用 channel として返す
-	return ch
+ // バッファなし channel を作る
+ ch := make(chan string)
+ // 別ゴルーチンで sleep 後に送信する
+ go func() {
+  // 指定時間スリープする
+  time.Sleep(d)
+  // 結果を送信する
+  ch <- msg
+ }()
+ // 受信専用 channel として返す
+ return ch
 }
 
 // メイン関数: 2 つの結果を select で同時待ちする
 func main() {
-	// 100ms 後に "fast" を送るゴルーチンを起動する
-	a := after(100*time.Millisecond, "fast")
-	// 200ms 後に "slow" を送るゴルーチンを起動する
-	b := after(200*time.Millisecond, "slow")
+ // 100ms 後に "fast" を送るゴルーチンを起動する
+ a := after(100*time.Millisecond, "fast")
+ // 200ms 後に "slow" を送るゴルーチンを起動する
+ b := after(200*time.Millisecond, "slow")
 
-	// どちらか先に到着した方を 1 件だけ拾う
-	select {
-	case v := <-a:
-		fmt.Println("a:", v)
-	case v := <-b:
-		fmt.Println("b:", v)
-	}
+ // どちらか先に到着した方を 1 件だけ拾う
+ select {
+ case v := <-a:
+  fmt.Println("a:", v)
+ case v := <-b:
+  fmt.Println("b:", v)
+ }
 }
 ```text
 `select` は複数 channel の準備完了を待ち、到着したケースをランダムに 1 件だけ実行する。タイムアウトは `time.After(d)` を 1 ケースとして混ぜることで実装できる。なお、本例では遅い方のゴルーチンは送信先を誰も受信せず残ったままになる。実コードでは「全ケースに対する受信側を保証する」「`context` で打ち切る」のいずれかでリーク対策を行う必要がある。
@@ -182,44 +182,44 @@ package main
 
 // context, fmt, time を使う
 import (
-	"context"
-	"fmt"
-	"time"
+ "context"
+ "fmt"
+ "time"
 )
 
 // 定期的にメッセージを出力するワーカ。ctx 経由で停止する
 func worker(ctx context.Context) {
-	// 100ms 周期の Ticker を作る
-	t := time.NewTicker(100 * time.Millisecond)
-	// 関数終了時に必ず停止する（リーク防止）
-	defer t.Stop()
-	// メインループ
-	for {
-		// 先に発火した方を処理する
-		select {
-		case <-ctx.Done():
-			// キャンセル伝播を受けたら帰投する
-			fmt.Println("worker stop:", ctx.Err())
-			return
-		case now := <-t.C:
-			// チック毎に現在時刻を出力する
-			fmt.Println("tick", now.Format("15:04:05.000"))
-		}
-	}
+ // 100ms 周期の Ticker を作る
+ t := time.NewTicker(100 * time.Millisecond)
+ // 関数終了時に必ず停止する（リーク防止）
+ defer t.Stop()
+ // メインループ
+ for {
+  // 先に発火した方を処理する
+  select {
+  case <-ctx.Done():
+   // キャンセル伝播を受けたら帰投する
+   fmt.Println("worker stop:", ctx.Err())
+   return
+  case now := <-t.C:
+   // チック毎に現在時刻を出力する
+   fmt.Println("tick", now.Format("15:04:05.000"))
+  }
+ }
 }
 
 // メイン関数: 350ms 後にキャンセルする
 func main() {
-	// キャンセル可能な context を生成する
-	ctx, cancel := context.WithCancel(context.Background())
-	// ワーカを別ゴルーチンで起動する
-	go worker(ctx)
-	// 350ms 待機する
-	time.Sleep(350 * time.Millisecond)
-	// キャンセル信号を送る
-	cancel()
-	// ワーカが帰投する余地を与える
-	time.Sleep(50 * time.Millisecond)
+ // キャンセル可能な context を生成する
+ ctx, cancel := context.WithCancel(context.Background())
+ // ワーカを別ゴルーチンで起動する
+ go worker(ctx)
+ // 350ms 待機する
+ time.Sleep(350 * time.Millisecond)
+ // キャンセル信号を送る
+ cancel()
+ // ワーカが帰投する余地を与える
+ time.Sleep(50 * time.Millisecond)
 }
 ```text
 `context.WithTimeout` / `context.WithDeadline` を使うと、明示的な `cancel()` なしに期限切れで自動キャンセルされる。実運用では HTTP サーバや gRPC サーバが受け取った `ctx` を下流に「素通し」していくのが典型形で、リクエスト中断時に DB クエリや外部 API 呼び出しまで一斉に打ち切れる。

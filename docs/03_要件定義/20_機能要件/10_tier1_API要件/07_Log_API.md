@@ -21,12 +21,14 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 **崩れた時**: ログ検索で言語別の差異を意識する羽目になり、障害調査の時間が数倍に膨らむ。Loki の全文検索で同じクエリが言語別に別ヒットする。重大障害発生時の初動遅延は SLA 違反リスクに直結し、NFR-A-CONT-001 の 99% 稼働率から逸脱する可能性が生じる。
 
 **動作要件**:
+
 - Go / C# / Rust / Python SDK で同一のフィールド名で JSON 出力
 - ログレベルは `debug / info / warn / error / fatal` の 5 段階
 - timestamp は RFC3339 ナノ秒精度
 - 必須フィールド（timestamp、level、message、service、tenant_id、trace_id）は SDK が自動付与
 
 **品質基準**:
+
 - ログ出力レイテンシは NFR-B-PERF-006（tier2 業務処理への影響 5ms 以内）に従う
 - 標準フィールド逸脱は CI の Loki Schema チェックで検出（`grep` による static analysis）
 
@@ -39,6 +41,7 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 **崩れた時**: ログと分散トレースの相関が切れ、障害調査で「このログはどのリクエストのものか」を推測する羽目になる。
 
 **受け入れ基準**:
+
 - tier1 の他 API（Service Invoke、State、PubSub 等）を呼ぶと、その呼び出しから生成された span の trace_id / span_id がログに付与される
 - HTTP / gRPC サーバ側では traceparent ヘッダから自動継承
 - tier2 開発者が明示的に context を引き回さなくても動作
@@ -52,6 +55,7 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 **崩れた時**: テナント越境ログの抽出コストが高止まりし、監査対応で数人日の工数がかかる。
 
 **受け入れ基準**:
+
 - tenant_id 未設定で Log 呼び出しすると警告が出力される（fatal でなく継続可能）
 - Loki のラベルに tenant_id が含まれ、テナント別クエリが高速
 - Kyverno ポリシーで tenant_id 無しのログパイプライン設定を拒否
@@ -65,6 +69,7 @@ tier2/tier3 の各言語（Go / C# / Rust / Python）で統一されたログフ
 **崩れた時**: 障害調査で debug レベル有効化に Pod 再起動を伴い、再現頻度の低いバグの追跡が困難になる。
 
 **受け入れ基準**:
+
 - ログレベル変更は REST API または CLI で実行可能
 - 変更は即時反映（最大 30 秒以内）
 - 変更者と変更時刻が Audit API に記録される
@@ -85,6 +90,7 @@ k1s0.Log.With(fields: map<string, any>) -> Logger  // scoped Logger
 ```
 
 出力 JSON の例:
+
 ```json
 {
   "timestamp": "2026-04-19T12:34:56.123456789Z",

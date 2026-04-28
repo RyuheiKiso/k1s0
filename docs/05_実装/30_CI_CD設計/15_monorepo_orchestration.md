@@ -69,6 +69,7 @@ matrix の組合せ爆発を避けるため、**段階別に matrix の幅を変
 | **release**（tag push） | nightly と同等 + `arm64`（リリース時点+） | 全 LTS | 最大 |
 
 **禁止**:
+
 - PR で OS matrix を回す（例: macos / windows を PR で回さない、コスト超過）
 - nightly で `arm64` × 全言語の cross-matrix（リリース時点+ 3 ヶ月で導入予定、現状は warning 段階）
 
@@ -78,7 +79,7 @@ matrix の組合せ爆発を避けるため、**段階別に matrix の幅を変
 
 `<artifact-type>-<image-or-pkg-name>-<github.sha>` の 3 セクションで衝突回避。例:
 
-- `build-k1s0-tier1-facade-abcdef1` — _reusable-build から _reusable-push への中間
+- `build-k1s0-tier1-facade-abcdef1` — _reusable-build から_reusable-push への中間
 - `coverage-tier1-rust-abcdef1` — _reusable-test から集約 job への coverage report
 - `sbom-k1s0-tier1-facade-abcdef1` — SBOM 単独保管
 

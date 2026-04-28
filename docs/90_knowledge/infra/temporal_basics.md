@@ -92,67 +92,67 @@ Web UI（`http://localhost:8233`）にアクセスし、ダッシュボードが
 package main
 
 import (
-	// コンテキストパッケージをインポートする
-	"context"
-	// フォーマットパッケージをインポートする
-	"fmt"
-	// ログパッケージをインポートする
-	"log"
-	// 時間パッケージをインポートする
-	"time"
+ // コンテキストパッケージをインポートする
+ "context"
+ // フォーマットパッケージをインポートする
+ "fmt"
+ // ログパッケージをインポートする
+ "log"
+ // 時間パッケージをインポートする
+ "time"
 
-	// Temporal クライアントをインポートする
-	"go.temporal.io/sdk/client"
-	// Temporal Worker をインポートする
-	"go.temporal.io/sdk/worker"
-	// Temporal Workflow をインポートする
-	"go.temporal.io/sdk/workflow"
+ // Temporal クライアントをインポートする
+ "go.temporal.io/sdk/client"
+ // Temporal Worker をインポートする
+ "go.temporal.io/sdk/worker"
+ // Temporal Workflow をインポートする
+ "go.temporal.io/sdk/workflow"
 )
 
 // Greet は名前を受け取り挨拶メッセージを返す Activity である
 func Greet(ctx context.Context, name string) (string, error) {
-	// 挨拶メッセージを生成して返す
-	return fmt.Sprintf("Hello, %s!", name), nil
+ // 挨拶メッセージを生成して返す
+ return fmt.Sprintf("Hello, %s!", name), nil
 }
 
 // GreetWorkflow は Greet Activity を呼び出す Workflow である
 func GreetWorkflow(ctx workflow.Context, name string) (string, error) {
-	// Activity のタイムアウトを設定する
-	opts := workflow.ActivityOptions{
-		// Activity の実行制限時間を 10 秒に設定する
-		StartToCloseTimeout: 10 * time.Second,
-	}
-	// コンテキストに Activity オプションを適用する
-	ctx = workflow.WithActivityOptions(ctx, opts)
-	// Activity の実行結果を格納する変数を宣言する
-	var result string
-	// Greet Activity を実行して結果を取得する
-	err := workflow.ExecuteActivity(ctx, Greet, name).Get(ctx, &result)
-	// 結果を返す
-	return result, err
+ // Activity のタイムアウトを設定する
+ opts := workflow.ActivityOptions{
+  // Activity の実行制限時間を 10 秒に設定する
+  StartToCloseTimeout: 10 * time.Second,
+ }
+ // コンテキストに Activity オプションを適用する
+ ctx = workflow.WithActivityOptions(ctx, opts)
+ // Activity の実行結果を格納する変数を宣言する
+ var result string
+ // Greet Activity を実行して結果を取得する
+ err := workflow.ExecuteActivity(ctx, Greet, name).Get(ctx, &result)
+ // 結果を返す
+ return result, err
 }
 
 func main() {
-	// Temporal Service に接続する
-	c, err := client.Dial(client.Options{})
-	if err != nil {
-		// 接続失敗時にログ出力して終了する
-		log.Fatalln("接続に失敗した:", err)
-	}
-	// main 関数終了時にクライアントを閉じる
-	defer c.Close()
-	// Task Queue を指定して Worker を作成する
-	w := worker.New(c, "greeting-queue", worker.Options{})
-	// Workflow を Worker に登録する
-	w.RegisterWorkflow(GreetWorkflow)
-	// Activity を Worker に登録する
-	w.RegisterActivity(Greet)
-	// Worker を起動する
-	err = w.Run(worker.InterruptCh())
-	if err != nil {
-		// Worker 起動失敗時にログ出力して終了する
-		log.Fatalln("Worker の起動に失敗した:", err)
-	}
+ // Temporal Service に接続する
+ c, err := client.Dial(client.Options{})
+ if err != nil {
+  // 接続失敗時にログ出力して終了する
+  log.Fatalln("接続に失敗した:", err)
+ }
+ // main 関数終了時にクライアントを閉じる
+ defer c.Close()
+ // Task Queue を指定して Worker を作成する
+ w := worker.New(c, "greeting-queue", worker.Options{})
+ // Workflow を Worker に登録する
+ w.RegisterWorkflow(GreetWorkflow)
+ // Activity を Worker に登録する
+ w.RegisterActivity(Greet)
+ // Worker を起動する
+ err = w.Run(worker.InterruptCh())
+ if err != nil {
+  // Worker 起動失敗時にログ出力して終了する
+  log.Fatalln("Worker の起動に失敗した:", err)
+ }
 }
 ```
 

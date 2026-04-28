@@ -1,20 +1,16 @@
 {
-  "//": "k1s0-catalog: Backstage Catalog plugin（k1s0 拡張 entity の取込）。",
-  "//doc": "実 Backstage 統合は採用組織側で @backstage/core-plugin-api 等を依存追加して実装する。本パッケージは skeleton。",
   "name": "@k1s0/backstage-plugin-catalog",
   "version": "0.1.0",
-  "description": "Backstage plugin: ingest k1s0 catalog-info.yaml entities (tier1/2/3 components)",
+  "description": "Backstage plugin: ingest k1s0 catalog-info.yaml entities (tier1/2/3 components). Skeleton — actual integration installs @backstage/core-plugin-api etc. on the host Backstage app side.",
   "license": "Apache-2.0",
   "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "//build": "Backstage 統合時に @backstage/cli の build-plugin に置換",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "//": "Backstage 4.x。採用組織の Backstage バージョンに合わせて固定する。",
     "@backstage/core-plugin-api": "^1.10.0",
     "@backstage/plugin-catalog-react": "^1.16.0"
   },

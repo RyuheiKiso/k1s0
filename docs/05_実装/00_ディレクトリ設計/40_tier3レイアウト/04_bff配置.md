@@ -174,7 +174,7 @@ ENTRYPOINT ["/usr/local/bin/portal-bff"]
 
 ## スケーリングと HPA
 
-portal と admin はトラフィック特性が異なるため、独立した HPA 設定を持つ。`deploy/charts/tier3-bff/values-<env>.yaml` で以下を指定する。CPU だけでなくメモリも target に含める理由は、GraphQL レスポンスの一時バッファ・Redis キャッシュの client-side LRU・Apollo Federation のクエリプランキャッシュなど BFF 特有のメモリ偏在ワークロードがあり、CPU 単独では先にメモリ枯渇で OOMKilled する事故が起きやすいため（NFR-B-PERF-* の応答性能要件と NFR-A-AVL-* の可用性要件の両立を狙う）。
+portal と admin はトラフィック特性が異なるため、独立した HPA 設定を持つ。`deploy/charts/tier3-bff/values-<env>.yaml` で以下を指定する。CPU だけでなくメモリも target に含める理由は、GraphQL レスポンスの一時バッファ・Redis キャッシュの client-side LRU・Apollo Federation のクエリプランキャッシュなど BFF 特有のメモリ偏在ワークロードがあり、CPU 単独では先にメモリ枯渇で OOMKilled する事故が起きやすいため（NFR-B-PERF-*の応答性能要件と NFR-A-AVL-* の可用性要件の両立を狙う）。
 
 | 対象 | minReplicas | maxReplicas | CPU target | Memory target | 備考 |
 |---|---|---|---|---|---|
