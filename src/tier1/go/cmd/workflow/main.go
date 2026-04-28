@@ -12,11 +12,14 @@
 //   - 標準 gRPC health protocol 応答 + reflection
 //   - SIGINT / SIGTERM で graceful shutdown
 //   - Temporal adapter を環境変数で結線（TEMPORAL_HOSTPORT / TEMPORAL_NAMESPACE）
+//   - Dapr Workflow adapter を環境変数で結線（DAPR_GRPC_ENDPOINT / DAPR_WORKFLOW_COMPONENT）
 //   - 環境変数未設定時は in-memory backend で fallback（dev / CI 用途）
 //
 // production / dev / CI の挙動分岐:
 //   - TEMPORAL_HOSTPORT が設定されている → 実 Temporal frontend に gRPC 接続して Workflow を扱う
 //   - TEMPORAL_HOSTPORT が未設定           → InMemoryTemporal で起動（process 内 永続のみ）
+//   - DAPR_GRPC_ENDPOINT が設定されている  → 実 Dapr sidecar の Workflow Beta1 API を叩く
+//   - DAPR_GRPC_ENDPOINT が未設定          → InMemoryWorkflow で起動（process 内 永続のみ）
 
 // パッケージ宣言。`go build ./cmd/workflow` で t1-workflow Pod 用バイナリを生成する。
 package main
@@ -32,6 +35,8 @@ import (
 	// 環境変数読出。
 	"os"
 
+	// Dapr SDK Client（Workflow Beta1 API へ接続するために必要）。
+	daprclient "github.com/dapr/go-sdk/client"
 	// Dapr Workflow adapter（FR-T1-WORKFLOW-001 短期向け）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/daprwf"
 	// Temporal adapter（長期向け）。
@@ -68,15 +73,23 @@ func main() {
 		}
 	}()
 
+	// 短期 Workflow 用 Dapr Client を構築する（DAPR_GRPC_ENDPOINT 設定で production 経路）。
+	daprWorkflowClient, daprWorkflowCloser, err := newDaprWorkflowAdapter()
+	if err != nil {
+		// Dapr SDK 初期化失敗は即時 exit(1)。
+		log.Fatalf("t1-workflow: dapr workflow client init: %v", err)
+	}
+	// Pod 終了時に Client を解放する（in-memory backend なら no-op）。
+	defer daprWorkflowCloser()
+
 	// WorkflowService が依存する adapter を構築する。
-	// 短期 = Dapr Workflow（in-memory backend、production は plan 04-14 で SDK 結線）、
+	// 短期 = Dapr Workflow Beta1（DAPR_GRPC_ENDPOINT 経由 production / 未設定なら in-memory）、
 	// 長期 = Temporal の 2 系統を並行注入し、Start handler が backend hint で振り分ける。
 	deps := workflow.Deps{
 		// Temporal（長期）。
 		WorkflowAdapter: temporal.NewWorkflowAdapter(temporalClient),
-		// Dapr Workflow（短期）。in-memory backend は production の Dapr 結線と
-		// 同じ interface（daprwf.WorkflowAdapter）を満たすため handler 側に変更不要。
-		DaprAdapter: daprwf.NewInMemoryWorkflow(),
+		// Dapr Workflow（短期）。production / in-memory のどちらでも handler 側変更不要。
+		DaprAdapter: daprWorkflowClient,
 	}
 
 	// Pod メタデータを構築する（WorkflowService 登録）。
@@ -94,6 +107,36 @@ func main() {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-workflow: %v", err)
 	}
+}
+
+// newDaprWorkflowAdapter は環境変数 DAPR_GRPC_ENDPOINT の有無で
+// 実 Dapr sidecar 結線 / in-memory backend を切替えて WorkflowAdapter を返す。
+//
+// 環境変数:
+//   DAPR_GRPC_ENDPOINT      — Dapr sidecar gRPC アドレス（例: "localhost:50001"）
+//   DAPR_WORKFLOW_COMPONENT — 使用する Workflow Component 名（既定: "dapr"）
+//
+// 戻り値の closer は Pod 終了時に必ず呼ぶ（in-memory backend では no-op）。
+func newDaprWorkflowAdapter() (daprwf.WorkflowAdapter, func(), error) {
+	// DAPR_GRPC_ENDPOINT が未設定なら in-memory backend を返す。
+	addr := os.Getenv("DAPR_GRPC_ENDPOINT")
+	if addr == "" {
+		// stderr に fallback モードを 1 行ログする。
+		log.Printf("t1-workflow: DAPR_GRPC_ENDPOINT not set, using in-memory Dapr Workflow backend (dev/CI mode)")
+		// in-memory backend を返却する（closer は no-op）。
+		return daprwf.NewInMemoryWorkflow(), func() {}, nil
+	}
+	// 実 Dapr sidecar に接続する。
+	sdk, err := daprclient.NewClientWithAddress(addr)
+	if err != nil {
+		return nil, func() {}, err
+	}
+	// production 経路のログ。
+	log.Printf("t1-workflow: dapr workflow backend = sidecar at %s", addr)
+	// Component 名は環境変数で上書き可能（既定 "dapr"）。
+	component := os.Getenv("DAPR_WORKFLOW_COMPONENT")
+	// SDK の GRPCClient は daprWorkflowClient narrow interface を満たす。
+	return daprwf.NewProduction(sdk, component), func() { sdk.Close() }, nil
 }
 
 // newTemporalClient は環境変数 TEMPORAL_HOSTPORT の有無で実 / in-memory を切替えて Client を生成する。
