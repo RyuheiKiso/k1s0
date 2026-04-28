@@ -1,0 +1,80 @@
+<mxfile>
+  <diagram name="Blazor Hosting Models" id="hosting-models">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="640" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Blazor ホスティングモデル比較" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="15" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="srv-frame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=0;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="320" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="srv-title" value="&lt;b&gt;Blazor Server&lt;/b&gt;&lt;br&gt;&lt;i&gt;サーバー実行 + SignalR&lt;/i&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontColor=#7f6000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="srv-browser" value="ブラウザ&lt;br&gt;（DOM + 薄い JS）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="srv-aspnet" value="ASP.NET Core サーバー&lt;br&gt;&lt;b&gt;.NET ランタイム&lt;/b&gt;&lt;br&gt;Razor コンポーネント実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="srv-pros" value="&lt;b&gt;◯&lt;/b&gt; 初回ロード高速 / 小さい配信&lt;br&gt;&lt;b&gt;◯&lt;/b&gt; サーバー資源を直接利用&lt;br&gt;&lt;b&gt;×&lt;/b&gt; 接続必須・レイテンシに敏感" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="490" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="srv-edge" value="SignalR&lt;br&gt;(WebSocket)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7f6000;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;fontColor=#7f6000;startArrow=classic;startFill=1;endArrow=classic;endFill=1;" edge="1" source="srv-browser" target="srv-aspnet" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wasm-frame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;dashed=0;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="390" y="80" width="320" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="wasm-title" value="&lt;b&gt;Blazor WebAssembly&lt;/b&gt;&lt;br&gt;&lt;i&gt;ブラウザ内 .NET 実行&lt;/i&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontColor=#3f6f23;" vertex="1" parent="1">
+          <mxGeometry x="390" y="90" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wasm-browser" value="ブラウザ&lt;br&gt;&lt;b&gt;.NET WASM ランタイム&lt;/b&gt;&lt;br&gt;Razor コンポーネント実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="430" y="160" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wasm-static" value="静的ホスト&lt;br&gt;（CDN / 静的サーバー）&lt;br&gt;DLL + WASM 配信" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="430" y="380" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wasm-pros" value="&lt;b&gt;◯&lt;/b&gt; オフライン動作 / クライアント完結&lt;br&gt;&lt;b&gt;◯&lt;/b&gt; サーバー負荷軽減&lt;br&gt;&lt;b&gt;×&lt;/b&gt; 初回ロードが大きい" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="430" y="490" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wasm-edge" value="HTTP&lt;br&gt;(初回のみ)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#3f6f23;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;fontColor=#3f6f23;dashed=1;" edge="1" source="wasm-browser" target="wasm-static" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hyb-frame" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=0;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="320" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="hyb-title" value="&lt;b&gt;Blazor Hybrid&lt;/b&gt;&lt;br&gt;&lt;i&gt;ネイティブアプリ + WebView&lt;/i&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontColor=#5f3973;" vertex="1" parent="1">
+          <mxGeometry x="740" y="90" width="320" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hyb-webview" value="WebView コントロール&lt;br&gt;（HTML / CSS 描画）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="780" y="160" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="hyb-native" value="ネイティブアプリ&lt;br&gt;(.NET MAUI / WPF / WinForms)&lt;br&gt;&lt;b&gt;.NET ランタイム&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="780" y="380" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hyb-pros" value="&lt;b&gt;◯&lt;/b&gt; OS API へ直接アクセス&lt;br&gt;&lt;b&gt;◯&lt;/b&gt; Web/モバイルで UI 共有&lt;br&gt;&lt;b&gt;×&lt;/b&gt; ストア配布が必要" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="780" y="490" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hyb-edge" value="ローカル&lt;br&gt;インターロップ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#5f3973;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;fontColor=#5f3973;startArrow=classic;startFill=1;endArrow=classic;endFill=1;" edge="1" source="hyb-webview" target="hyb-native" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-line1" value="&lt;b&gt;━&lt;/b&gt; 双方向通信（実線）  &lt;b&gt;┄&lt;/b&gt; 一方向ダウンロード（点線）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="500" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
