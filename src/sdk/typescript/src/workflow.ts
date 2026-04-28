@@ -2,7 +2,10 @@
 import { createPromiseClient, type PromiseClient } from "@connectrpc/connect";
 import type { K1s0Client } from "./client.js";
 import { WorkflowService } from "./proto/k1s0/tier1/workflow/v1/workflow_service_connect.js";
-import type { GetStatusResponse } from "./proto/k1s0/tier1/workflow/v1/workflow_service_pb.js";
+import {
+  WorkflowBackend,
+  type GetStatusResponse,
+} from "./proto/k1s0/tier1/workflow/v1/workflow_service_pb.js";
 
 /** WorkflowFacade は WorkflowService の動詞統一 facade。 */
 export class WorkflowFacade {
@@ -16,12 +19,65 @@ export class WorkflowFacade {
     return createPromiseClient(WorkflowService, this.client.transport);
   }
 
-  /** start はワークフロー開始。返り値は { workflowId, runId }。 */
+  /** start はワークフロー開始。backend hint は BACKEND_AUTO（tier1 が振り分け）。
+   * 返り値は { workflowId, runId }。
+   * 短期 / 長期で意図的に振り分けたい時は runShort / runLong を使う。 */
   async start(
     workflowType: string,
     workflowId: string,
     input: Uint8Array,
     idempotent = false,
+  ): Promise<{ workflowId: string; runId: string }> {
+    return this.startWithBackend(
+      workflowType,
+      workflowId,
+      input,
+      idempotent,
+      WorkflowBackend.BACKEND_AUTO,
+    );
+  }
+
+  /** runShort は短期ワークフロー（≤7 日、BACKEND_DAPR）として開始する（FR-T1-WORKFLOW-001）。
+   * 短期ワークフローは Dapr Workflow building block で実行され、Pod 再起動でも履歴が保持される。 */
+  async runShort(
+    workflowType: string,
+    workflowId: string,
+    input: Uint8Array,
+    idempotent = false,
+  ): Promise<{ workflowId: string; runId: string }> {
+    return this.startWithBackend(
+      workflowType,
+      workflowId,
+      input,
+      idempotent,
+      WorkflowBackend.BACKEND_DAPR,
+    );
+  }
+
+  /** runLong は長期ワークフロー（上限なし、BACKEND_TEMPORAL）として開始する（FR-T1-WORKFLOW-002）。
+   * Continue-as-New / cron / 高度な signal 機能が必要な場合に使う。 */
+  async runLong(
+    workflowType: string,
+    workflowId: string,
+    input: Uint8Array,
+    idempotent = false,
+  ): Promise<{ workflowId: string; runId: string }> {
+    return this.startWithBackend(
+      workflowType,
+      workflowId,
+      input,
+      idempotent,
+      WorkflowBackend.BACKEND_TEMPORAL,
+    );
+  }
+
+  /** startWithBackend は start / runShort / runLong の共通実装。 */
+  private async startWithBackend(
+    workflowType: string,
+    workflowId: string,
+    input: Uint8Array,
+    idempotent: boolean,
+    backend: WorkflowBackend,
   ): Promise<{ workflowId: string; runId: string }> {
     const resp = await this.raw().start({
       workflowType,
@@ -29,6 +85,7 @@ export class WorkflowFacade {
       input,
       idempotent,
       context: this.client.tenantContext(),
+      backend,
     });
     return { workflowId: resp.workflowId, runId: resp.runId };
   }

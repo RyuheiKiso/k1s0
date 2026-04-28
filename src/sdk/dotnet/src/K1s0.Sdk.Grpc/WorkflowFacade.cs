@@ -9,8 +9,23 @@ public sealed class WorkflowFacade
     private readonly K1s0Client _client;
     internal WorkflowFacade(K1s0Client client) { _client = client; }
 
-    /// StartAsync: ワークフロー開始。返り値は (workflowId, runId)。
-    public async Task<(string WorkflowId, string RunId)> StartAsync(string workflowType, string workflowId, byte[] input, bool idempotent = false, CancellationToken ct = default)
+    /// StartAsync: ワークフロー開始。backend hint は BACKEND_AUTO（tier1 が振り分け）。
+    /// 返り値は (workflowId, runId)。短期 / 長期で意図的に振り分けたい時は RunShortAsync / RunLongAsync を使う。
+    public Task<(string WorkflowId, string RunId)> StartAsync(string workflowType, string workflowId, byte[] input, bool idempotent = false, CancellationToken ct = default)
+        => StartWithBackendAsync(workflowType, workflowId, input, idempotent, WorkflowBackend.BackendAuto, ct);
+
+    /// RunShortAsync: 短期ワークフロー（≤7 日、BACKEND_DAPR）として開始する（FR-T1-WORKFLOW-001）。
+    /// 短期ワークフローは Dapr Workflow building block で実行され、Pod 再起動でも履歴が保持される。
+    public Task<(string WorkflowId, string RunId)> RunShortAsync(string workflowType, string workflowId, byte[] input, bool idempotent = false, CancellationToken ct = default)
+        => StartWithBackendAsync(workflowType, workflowId, input, idempotent, WorkflowBackend.BackendDapr, ct);
+
+    /// RunLongAsync: 長期ワークフロー（上限なし、BACKEND_TEMPORAL）として開始する（FR-T1-WORKFLOW-002）。
+    /// Continue-as-New / cron / 高度な signal 機能が必要な場合に使う。
+    public Task<(string WorkflowId, string RunId)> RunLongAsync(string workflowType, string workflowId, byte[] input, bool idempotent = false, CancellationToken ct = default)
+        => StartWithBackendAsync(workflowType, workflowId, input, idempotent, WorkflowBackend.BackendTemporal, ct);
+
+    /// StartWithBackendAsync は StartAsync / RunShortAsync / RunLongAsync の共通実装。
+    private async Task<(string WorkflowId, string RunId)> StartWithBackendAsync(string workflowType, string workflowId, byte[] input, bool idempotent, WorkflowBackend backend, CancellationToken ct)
     {
         var resp = await _client.Raw.Workflow.StartAsync(new StartRequest
         {
@@ -19,6 +34,7 @@ public sealed class WorkflowFacade
             Input = ByteString.CopyFrom(input),
             Idempotent = idempotent,
             Context = _client.TenantContext(),
+            Backend = backend,
         }, cancellationToken: ct);
         return (resp.WorkflowId, resp.RunId);
     }
