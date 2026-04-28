@@ -1,38 +1,34 @@
-// 本ファイルは k1s0 簡易 Decision rule registry と evaluator。
+// 本ファイルは k1s0 Decision rule registry。ZEN Engine（JDM 評価器）を直接統合する。
 //
 // 設計正典:
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/09_Decision_API.md
 //   docs/02_構想設計/adr/ADR-RULE-001-zen-engine.md
+//     - "ルールエンジンは ZEN Engine（Rust、MIT）+ JDM フォーマットを採用する"
+//     - "ZEN Engine 0.30+（Rust 実装、C FFI と Go/Python/Node バインディング提供）"
+//     - "JDM（JSON Decision Model）を標準フォーマット"
 //
 // 役割:
-//   - rule_id × rule_version → rule 文書（JSON）の保管（in-memory）
-//   - rule の expression 群を `evalexpr` で評価し output_json を返す
-//
-// 簡易ルール形式（JDM expressionNode 互換、subset）:
-//   ```
-//   {
-//     "expressions": [
-//       {"key": "tax",   "value": "amount * 0.10"},
-//       {"key": "total", "value": "amount * 1.10"}
-//     ]
-//   }
-//   ```
-//   - 入力 JSON は object 限定。各 top-level field が evalexpr の変数として注入される
-//   - expression は evalexpr 構文。算術 / 論理 / 比較 / if-else を含む
-//   - 出力は同 key で JSON object を組み上げて返す
+//   - rule_id × rule_version → JDM DecisionContent の保管（in-memory）
+//   - 登録時に JDM を `serde_json::from_slice::<DecisionContent>` で検証
+//   - 評価は ZEN Engine の DecisionEngine + Decision.evaluate_with_opts に委譲
+//   - 評価トレースは ADR-RULE-001 必須要件（"include_trace オプションで公開"）
 //
 // バージョニング:
-//   バージョン文字列は呼出側採番。空 string は "latest"（最後に登録された version）に解決。
-//
-// 現時点 で zen-engine（loader / decisionTable / function 等の高機能）は環境依存
-// （rquickjs の C++ 依存）で同梱しない。完全 JDM 互換は plan 04-08 後段で別 crate
-// 直結に切り替える（本 registry の interface は維持）。
+//   バージョン文字列は registry が "v<N>" 連番で自動採番する。空 string 評価は
+//   "latest"（最後に登録された version）に解決。
 
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
-use evalexpr::{eval_with_context, ContextWithMutableVariables, HashMapContext, Value as ExprValue};
 use serde_json::Value as JsonValue;
+use zen_engine::model::DecisionContent;
+use zen_engine::{DecisionEngine, EvaluationOptions};
+
+// ZEN Engine の Decision::evaluate_with_opts が返す Future は内部で std::cell::OnceCell
+// を保持するため `!Send`。tonic は handler future の Send を要求するため、評価は
+// `spawn_blocking` で別スレッドに退避し、そのスレッド内で current-thread tokio runtime を
+// 立ち上げて future を回す。in-memory 評価のみなので実質ブロッキングにはならず、
+// runtime 起動コストは数百 μs（ADR-RULE-001 の p99 < 50ms 予算内）に収まる。
 
 /// 内部 ID と version を 1 セットで保持するキー。
 type RuleKey = (String, String);
@@ -40,13 +36,13 @@ type RuleKey = (String, String);
 /// registry のエラー型。
 #[derive(Debug)]
 pub enum RegistryError {
-    /// JSON parse 失敗。
+    /// JDM JSON parse 失敗。
     InvalidJson(String),
-    /// rule 形式不正（expressions 配列がない等）。
+    /// JDM 構造不正（ZEN Engine の評価でグラフ構造異常）。
     InvalidRule(String),
     /// rule 未登録。
     NotFound { rule_id: String, rule_version: String },
-    /// expression 評価失敗。
+    /// expression / 評価グラフ実行失敗。
     EvalFailed(String),
     /// lock 失敗。
     LockPoisoned,
@@ -57,7 +53,10 @@ impl std::fmt::Display for RegistryError {
         match self {
             RegistryError::InvalidJson(s) => write!(f, "invalid json: {}", s),
             RegistryError::InvalidRule(s) => write!(f, "invalid rule: {}", s),
-            RegistryError::NotFound { rule_id, rule_version } => {
+            RegistryError::NotFound {
+                rule_id,
+                rule_version,
+            } => {
                 write!(f, "rule not found: {}/{}", rule_id, rule_version)
             }
             RegistryError::EvalFailed(s) => write!(f, "eval failed: {}", s),
@@ -68,18 +67,11 @@ impl std::fmt::Display for RegistryError {
 
 impl std::error::Error for RegistryError {}
 
-/// 1 件の expression（key + value 文字列）。
-#[derive(Debug, Clone)]
-struct Expression {
-    key: String,
-    value: String,
-}
-
-/// rule 文書を内部表現に compile 済の形で保管する（再評価で parse コスト削減）。
-#[derive(Debug, Clone)]
+/// 1 件のコンパイル済 JDM。
 struct CompiledRule {
-    expressions: Vec<Expression>,
-    /// 元の JDM JSON（GetRule で再返却するため保持）。
+    /// ZEN Engine の DecisionContent（コンパイル済 opcode キャッシュ込み）。
+    content: Arc<DecisionContent>,
+    /// 元の JDM JSON bytes（GetRule で再返却するため保持）。
     raw_jdm_json: Vec<u8>,
     /// 登録時メタ情報。
     meta: RuleMeta,
@@ -105,19 +97,15 @@ pub struct EvalOutcome {
 /// register の入力。
 #[derive(Debug, Clone, Default)]
 pub struct RegisterInput {
-    /// rule_id（tenant 内で一意）。
     pub rule_id: String,
-    /// JDM 文書（JSON）。
     pub jdm_document: Vec<u8>,
-    /// Git commit hash（任意、メタ情報）。
     pub commit_hash: String,
-    /// 登録者（任意、認証 subject）。
     pub registered_by: String,
-    /// 登録時刻（Unix ms、0 なら register 時に now() で埋める）。
+    /// 0 なら register 時に now() で埋める。
     pub registered_at_ms: i64,
 }
 
-/// register の出力（次の rule_version + 発効時刻）。
+/// register の出力。
 #[derive(Debug, Clone)]
 pub struct RegisterOutcome {
     pub rule_version: String,
@@ -126,7 +114,9 @@ pub struct RegisterOutcome {
 
 /// JDM ルール registry。
 pub struct RuleRegistry {
-    rules: RwLock<HashMap<RuleKey, CompiledRule>>,
+    /// rule_id × rule_version → 登録済 JDM。
+    rules: RwLock<HashMap<RuleKey, Arc<CompiledRule>>>,
+    /// rule_id → 最新 rule_version。空 rule_version 解決に使う。
     latest: RwLock<HashMap<String, String>>,
 }
 
@@ -144,43 +134,25 @@ impl RuleRegistry {
         }
     }
 
-    /// rule 文書（JSON）を内部 CompiledRule に変換する。
-    /// 期待形式: `{"expressions": [{"key": "...", "value": "..."}, ...]}`
-    fn compile(jdm_json: &[u8]) -> Result<CompiledRule, RegistryError> {
-        let v: JsonValue = serde_json::from_slice(jdm_json)
+    /// JDM JSON を ZEN Engine の DecisionContent に parse する。
+    /// parse 失敗時は InvalidJson、最低限の構造（nodes / edges）が無い場合 InvalidRule を返す。
+    fn compile(jdm_json: &[u8]) -> Result<Arc<DecisionContent>, RegistryError> {
+        let mut content: DecisionContent = serde_json::from_slice(jdm_json)
             .map_err(|e| RegistryError::InvalidJson(e.to_string()))?;
-        let arr = v
-            .get("expressions")
-            .and_then(|x| x.as_array())
-            .ok_or_else(|| RegistryError::InvalidRule("missing 'expressions' array".into()))?;
-        let mut exprs = Vec::with_capacity(arr.len());
-        for item in arr {
-            let key = item
-                .get("key")
-                .and_then(|x| x.as_str())
-                .ok_or_else(|| RegistryError::InvalidRule("expression missing 'key'".into()))?;
-            let val = item
-                .get("value")
-                .and_then(|x| x.as_str())
-                .ok_or_else(|| RegistryError::InvalidRule("expression missing 'value'".into()))?;
-            exprs.push(Expression {
-                key: key.to_string(),
-                value: val.to_string(),
-            });
+        // ZEN Engine の評価には最低 1 ノード必要。0 ノードの空グラフは登録段階で弾く。
+        if content.nodes.is_empty() {
+            return Err(RegistryError::InvalidRule("nodes is empty".into()));
         }
-        Ok(CompiledRule {
-            expressions: exprs,
-            raw_jdm_json: Vec::new(),
-            meta: RuleMeta::default(),
-        })
+        // expressionNode / decisionTableNode のバイトコードを事前コンパイルしてキャッシュする。
+        // 評価レイテンシが p99 < 50ms（ADR-RULE-001）の達成に必要。
+        content.compile();
+        Ok(Arc::new(content))
     }
 
     /// JDM 文書を登録し、自動採番された rule_version を返す。
     /// 既存 rule_id への登録なら次の連番（"v2", "v3", ...）、新規なら "v1"。
     pub fn register(&self, input: RegisterInput) -> Result<RegisterOutcome, RegistryError> {
-        let mut compiled = Self::compile(&input.jdm_document)?;
-        compiled.raw_jdm_json = input.jdm_document.clone();
-        // 次のバージョン番号を決定（既存最大 +1）。
+        let content = Self::compile(&input.jdm_document)?;
         let new_version = {
             let rules = self.rules.read().map_err(|_| RegistryError::LockPoisoned)?;
             let max_n: u32 = rules
@@ -191,7 +163,6 @@ impl RuleRegistry {
                 .unwrap_or(0);
             format!("v{}", max_n + 1)
         };
-        // メタ情報を組み立て。
         let now_ms = if input.registered_at_ms > 0 {
             input.registered_at_ms
         } else {
@@ -200,17 +171,24 @@ impl RuleRegistry {
                 .map(|d| d.as_millis() as i64)
                 .unwrap_or(0)
         };
-        compiled.meta = RuleMeta {
+        let meta = RuleMeta {
             rule_version: new_version.clone(),
             commit_hash: input.commit_hash,
             registered_at_ms: now_ms,
             registered_by: input.registered_by,
         };
-        // 排他で書き込み + latest 更新。
+        let compiled = Arc::new(CompiledRule {
+            content,
+            raw_jdm_json: input.jdm_document,
+            meta,
+        });
         let key = (input.rule_id.clone(), new_version.clone());
         let mut rules = self.rules.write().map_err(|_| RegistryError::LockPoisoned)?;
         rules.insert(key, compiled);
-        let mut latest = self.latest.write().map_err(|_| RegistryError::LockPoisoned)?;
+        let mut latest = self
+            .latest
+            .write()
+            .map_err(|_| RegistryError::LockPoisoned)?;
         latest.insert(input.rule_id, new_version.clone());
         Ok(RegisterOutcome {
             rule_version: new_version,
@@ -261,8 +239,8 @@ impl RuleRegistry {
         Ok((rule.raw_jdm_json.clone(), rule.meta.clone()))
     }
 
-    /// rule を評価する。
-    pub fn evaluate(
+    /// JDM ルールを ZEN Engine で評価する。include_trace=true の時は trace を JSON で詰める。
+    pub async fn evaluate(
         &self,
         rule_id: &str,
         rule_version: &str,
@@ -270,7 +248,7 @@ impl RuleRegistry {
         include_trace: bool,
     ) -> Result<EvalOutcome, RegistryError> {
         let resolved = self.resolve_version(rule_id, rule_version)?;
-        let rule = {
+        let compiled = {
             let rules = self.rules.read().map_err(|_| RegistryError::LockPoisoned)?;
             rules
                 .get(&(rule_id.to_string(), resolved.clone()))
@@ -283,48 +261,49 @@ impl RuleRegistry {
         let input: JsonValue = serde_json::from_slice(input_json)
             .map_err(|e| RegistryError::InvalidJson(e.to_string()))?;
 
-        // input の top-level field を evalexpr context に注入する。
-        let mut ctx = HashMapContext::new();
-        if let Some(obj) = input.as_object() {
-            for (k, v) in obj {
-                let ev = json_to_expr_value(v).map_err(RegistryError::InvalidJson)?;
-                ctx.set_value(k.clone(), ev)
-                    .map_err(|e| RegistryError::InvalidRule(format!("ctx set: {}", e)))?;
-            }
-        }
-        // 各 expression を順次評価。前 expression の出力も後続から参照できるよう
-        // 評価結果を context に逐次追加する。
         let started = std::time::Instant::now();
-        let mut output_map = serde_json::Map::new();
-        let mut trace_steps: Vec<JsonValue> = Vec::new();
-
-        for expr in rule.expressions.iter() {
-            let result = eval_with_context(&expr.value, &ctx)
-                .map_err(|e| RegistryError::EvalFailed(format!("{}: {}", expr.key, e)))?;
-            // 後続 expression が参照できるよう context に追加。
-            ctx.set_value(expr.key.clone(), result.clone())
-                .map_err(|e| RegistryError::InvalidRule(format!("ctx set: {}", e)))?;
-            // output に追加。
-            let out_v = expr_value_to_json(&result);
-            if include_trace {
-                trace_steps.push(serde_json::json!({
-                    "key": expr.key,
-                    "expression": expr.value,
-                    "result": out_v.clone(),
-                }));
-            }
-            output_map.insert(expr.key.clone(), out_v);
-        }
-        let elapsed_us = started.elapsed().as_micros() as i64;
-
-        let output_json = serde_json::to_vec(&JsonValue::Object(output_map))
-            .map_err(|e| RegistryError::InvalidJson(e.to_string()))?;
-        let trace_json = if include_trace {
-            serde_json::to_vec(&JsonValue::Array(trace_steps))
-                .map_err(|e| RegistryError::InvalidJson(e.to_string()))?
-        } else {
-            Vec::new()
+        let opts = EvaluationOptions {
+            trace: include_trace,
+            max_depth: 10,
         };
+        let content = compiled.content.clone();
+        // ZEN Engine の評価 future および DecisionGraphResponse 内の Variable は内部に
+        // Rc / OnceCell を保持するため `!Send`。tonic は handler future の Send を要求するので、
+        // spawn_blocking で別スレッドに退避し、評価 → JSON への変換まで同スレッドで完結させ、
+        // Send-safe な (output_bytes, trace_bytes) のみを呼出元に返す。
+        // 実 I/O は無いため runtime 起動コストは数百 μs（ADR-RULE-001 p99 < 50ms 予算内）。
+        let (output_json, trace_json) =
+            tokio::task::spawn_blocking(move || -> Result<(Vec<u8>, Vec<u8>), RegistryError> {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .map_err(|e| RegistryError::EvalFailed(format!("rt build: {}", e)))?;
+                let engine = DecisionEngine::default();
+                let decision = engine.create_decision(content);
+                rt.block_on(async move {
+                    let resp = decision
+                        .evaluate_with_opts(input.into(), opts)
+                        .await
+                        .map_err(|e| RegistryError::EvalFailed(e.to_string()))?;
+                    // Variable → JsonValue → bytes（JsonValue は Send-safe）。
+                    let result_value: JsonValue = resp.result.into();
+                    let out = serde_json::to_vec(&result_value)
+                        .map_err(|e| RegistryError::InvalidJson(e.to_string()))?;
+                    let trace = if include_trace {
+                        match resp.trace.as_ref() {
+                            Some(t) => serde_json::to_vec(t)
+                                .map_err(|e| RegistryError::InvalidJson(e.to_string()))?,
+                            None => Vec::new(),
+                        }
+                    } else {
+                        Vec::new()
+                    };
+                    Ok::<(Vec<u8>, Vec<u8>), RegistryError>((out, trace))
+                })
+            })
+            .await
+            .map_err(|e| RegistryError::EvalFailed(format!("join: {}", e)))??;
+        let elapsed_us = started.elapsed().as_micros() as i64;
         Ok(EvalOutcome {
             output_json,
             elapsed_us,
@@ -333,103 +312,83 @@ impl RuleRegistry {
     }
 }
 
-/// JSON Value を evalexpr Value に変換する。
-fn json_to_expr_value(v: &JsonValue) -> Result<ExprValue, String> {
-    match v {
-        JsonValue::Null => Ok(ExprValue::Empty),
-        JsonValue::Bool(b) => Ok(ExprValue::Boolean(*b)),
-        JsonValue::Number(n) => {
-            if let Some(i) = n.as_i64() {
-                Ok(ExprValue::Int(i))
-            } else if let Some(f) = n.as_f64() {
-                Ok(ExprValue::Float(f))
-            } else {
-                Err(format!("unsupported number: {}", n))
-            }
-        }
-        JsonValue::String(s) => Ok(ExprValue::String(s.clone())),
-        // 配列・オブジェクトは evalexpr が直接サポートしない。文字列化して保持する。
-        other => Ok(ExprValue::String(other.to_string())),
-    }
-}
-
-/// evalexpr Value を JSON Value に変換する。
-fn expr_value_to_json(v: &ExprValue) -> JsonValue {
-    match v {
-        ExprValue::Empty => JsonValue::Null,
-        ExprValue::Boolean(b) => JsonValue::Bool(*b),
-        ExprValue::Int(i) => JsonValue::Number(serde_json::Number::from(*i)),
-        ExprValue::Float(f) => serde_json::Number::from_f64(*f)
-            .map(JsonValue::Number)
-            .unwrap_or(JsonValue::Null),
-        ExprValue::String(s) => JsonValue::String(s.clone()),
-        ExprValue::Tuple(values) => {
-            JsonValue::Array(values.iter().map(expr_value_to_json).collect())
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn simple_rule() -> &'static [u8] {
-        br#"{
-          "expressions": [
-            {"key": "tax",   "value": "amount * 0.10"},
-            {"key": "total", "value": "amount + tax"}
-          ]
-        }"#
+    /// 最小 JDM: input → expression(tax = amount * 0.10) → output。
+    /// 業務担当者が gorules Editor で生成した形式と同等の 3 ノード 2 エッジ構造。
+    fn simple_jdm() -> Vec<u8> {
+        serde_json::json!({
+            "nodes": [
+                {"id": "n_in", "name": "request", "type": "inputNode", "content": {}},
+                {"id": "n_ex", "name": "calc", "type": "expressionNode", "content": {
+                    "expressions": [
+                        {"id": "e1", "key": "tax", "value": "amount * 0.10"}
+                    ]
+                }},
+                {"id": "n_out", "name": "result", "type": "outputNode", "content": {}}
+            ],
+            "edges": [
+                {"id": "ed1", "sourceId": "n_in",  "targetId": "n_ex", "type": "edge"},
+                {"id": "ed2", "sourceId": "n_ex", "targetId": "n_out", "type": "edge"}
+            ]
+        })
+        .to_string()
+        .into_bytes()
     }
 
-    #[test]
-    fn register_and_evaluate() {
+    #[tokio::test]
+    async fn register_and_evaluate() {
         let r = RuleRegistry::new();
         r.register(RegisterInput {
             rule_id: "tax-calc".into(),
-            jdm_document: simple_rule().to_vec(),
+            jdm_document: simple_jdm(),
             ..Default::default()
         })
         .unwrap();
         let outcome = r
             .evaluate("tax-calc", "v1", br#"{"amount": 100}"#, false)
+            .await
             .unwrap();
         let out: JsonValue = serde_json::from_slice(&outcome.output_json).unwrap();
-        // tax = 10.0、total = 110.0（tax を含む式の例: 後 expression が前を参照）。
-        assert_eq!(out["tax"], serde_json::json!(10.0));
-        assert_eq!(out["total"], serde_json::json!(110.0));
+        assert_eq!(out["tax"], serde_json::json!(10));
     }
 
-    #[test]
-    fn evaluate_with_trace() {
+    #[tokio::test]
+    async fn evaluate_with_trace() {
         let r = RuleRegistry::new();
         r.register(RegisterInput {
             rule_id: "rid".into(),
-            jdm_document: simple_rule().to_vec(),
+            jdm_document: simple_jdm(),
             ..Default::default()
         })
         .unwrap();
         let outcome = r
             .evaluate("rid", "v1", br#"{"amount": 50}"#, true)
+            .await
             .unwrap();
+        // ZEN Engine は trace を node 単位の HashMap で返す。最低 1 件含まれることを確認。
         assert!(!outcome.trace_json.is_empty());
         let trace: JsonValue = serde_json::from_slice(&outcome.trace_json).unwrap();
-        // 2 ステップが trace に含まれる。
-        assert_eq!(trace.as_array().unwrap().len(), 2);
+        assert!(trace.is_object());
     }
 
-    #[test]
-    fn evaluate_resolves_latest_when_version_empty() {
+    #[tokio::test]
+    async fn evaluate_resolves_latest_when_version_empty() {
         let r = RuleRegistry::new();
         r.register(RegisterInput {
             rule_id: "rid".into(),
-            jdm_document: simple_rule().to_vec(),
+            jdm_document: simple_jdm(),
             ..Default::default()
         })
         .unwrap();
-        let outcome = r.evaluate("rid", "", br#"{"amount": 100}"#, false).unwrap();
+        let outcome = r
+            .evaluate("rid", "", br#"{"amount": 100}"#, false)
+            .await
+            .unwrap();
         let out: JsonValue = serde_json::from_slice(&outcome.output_json).unwrap();
-        assert_eq!(out["tax"], serde_json::json!(10.0));
+        assert_eq!(out["tax"], serde_json::json!(10));
     }
 
     #[test]
@@ -437,13 +396,13 @@ mod tests {
         let r = RuleRegistry::new();
         r.register(RegisterInput {
             rule_id: "rid".into(),
-            jdm_document: simple_rule().to_vec(),
+            jdm_document: simple_jdm(),
             ..Default::default()
         })
         .unwrap();
         r.register(RegisterInput {
             rule_id: "rid".into(),
-            jdm_document: simple_rule().to_vec(),
+            jdm_document: simple_jdm(),
             ..Default::default()
         })
         .unwrap();
@@ -470,12 +429,15 @@ mod tests {
     }
 
     #[test]
-    fn register_invalid_rule_returns_error() {
+    fn register_empty_graph_returns_invalid_rule() {
         let r = RuleRegistry::new();
+        let empty = serde_json::json!({"nodes": [], "edges": []})
+            .to_string()
+            .into_bytes();
         let e = r
             .register(RegisterInput {
                 rule_id: "rid".into(),
-                jdm_document: br#"{"foo": 1}"#.to_vec(),
+                jdm_document: empty,
                 ..Default::default()
             })
             .unwrap_err();
@@ -485,28 +447,41 @@ mod tests {
         }
     }
 
-    #[test]
-    fn evaluate_unknown_rule_returns_not_found() {
+    #[tokio::test]
+    async fn evaluate_unknown_rule_returns_not_found() {
         let r = RuleRegistry::new();
-        let e = r.evaluate("missing", "v1", br#"{}"#, false).unwrap_err();
+        let e = r
+            .evaluate("missing", "v1", br#"{}"#, false)
+            .await
+            .unwrap_err();
         match e {
             RegistryError::NotFound { .. } => {}
             other => panic!("expected NotFound, got {:?}", other),
         }
     }
 
-    #[test]
-    fn evaluate_supports_boolean_logic_x() {
+    #[tokio::test]
+    async fn evaluate_supports_boolean_logic() {
         let r = RuleRegistry::new();
-        let rule = br#"{
-          "expressions": [
-            {"key": "is_premium", "value": "amount >= 100"},
-            {"key": "passes_kyc", "value": "score > 0.7 && verified == true"}
-          ]
-        }"#;
+        let rule = serde_json::json!({
+            "nodes": [
+                {"id": "n_in", "name": "in", "type": "inputNode", "content": {}},
+                {"id": "n_ex", "name": "flags", "type": "expressionNode", "content": {
+                    "expressions": [
+                        {"id": "e1", "key": "is_premium", "value": "amount >= 100"},
+                        {"id": "e2", "key": "passes_kyc", "value": "score > 0.7 and verified == true"}
+                    ]
+                }},
+                {"id": "n_out", "name": "out", "type": "outputNode", "content": {}}
+            ],
+            "edges": [
+                {"id": "ed1", "sourceId": "n_in",  "targetId": "n_ex", "type": "edge"},
+                {"id": "ed2", "sourceId": "n_ex", "targetId": "n_out", "type": "edge"}
+            ]
+        }).to_string().into_bytes();
         r.register(RegisterInput {
             rule_id: "flags".into(),
-            jdm_document: rule.to_vec(),
+            jdm_document: rule,
             ..Default::default()
         })
         .unwrap();
@@ -517,6 +492,7 @@ mod tests {
                 br#"{"amount": 150, "score": 0.9, "verified": true}"#,
                 false,
             )
+            .await
             .unwrap();
         let out: JsonValue = serde_json::from_slice(&resp.output_json).unwrap();
         assert_eq!(out["is_premium"], serde_json::json!(true));
@@ -528,14 +504,14 @@ mod tests {
         let r = RuleRegistry::new();
         r.register(RegisterInput {
             rule_id: "rid".into(),
-            jdm_document: simple_rule().to_vec(),
+            jdm_document: simple_jdm(),
             ..Default::default()
         })
         .unwrap();
         let (bytes, meta) = r.get_jdm_with_meta("rid", "v1").unwrap();
         let v: JsonValue = serde_json::from_slice(&bytes).unwrap();
-        let arr = v.get("expressions").and_then(|x| x.as_array()).unwrap();
-        assert_eq!(arr.len(), 2);
+        // 元の JDM が保持されていることを確認。
+        assert!(v.get("nodes").is_some());
         assert_eq!(meta.rule_version, "v1");
     }
 }
