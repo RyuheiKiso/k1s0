@@ -31,8 +31,14 @@ use tokio::signal::unix::{SignalKind, signal};
 // tonic ランタイム。
 use tonic::{Request, Response, Status, transport::Server};
 
-// EXPOSE 50001 規約。
+// EXPOSE 50001 規約。production の K8s Pod は単一 NetNS なので 50001 でぶつからないが、
+// dev / 同一ホスト内で複数 Rust Pod を同時起動する場面は `LISTEN_ADDR` 環境変数で上書きする。
 const DEFAULT_LISTEN: &str = "[::]:50001";
+
+/// 環境変数 `LISTEN_ADDR` が設定されていればそれを使い、未設定なら DEFAULT_LISTEN を返す。
+fn listen_addr() -> String {
+    std::env::var("LISTEN_ADDR").unwrap_or_else(|_| DEFAULT_LISTEN.to_string())
+}
 
 // AuditServer は AuditService の trait 実装。
 struct AuditServer {
@@ -176,8 +182,9 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = DEFAULT_LISTEN.parse()?;
-    eprintln!("tier1/audit: gRPC server listening on {}", DEFAULT_LISTEN);
+    let listen = listen_addr();
+    let addr = listen.parse()?;
+    eprintln!("tier1/audit: gRPC server listening on {}", listen);
     let store: Arc<dyn AuditStore> = Arc::new(InMemoryAuditStore::new());
     let server = AuditServer { store };
     Server::builder()
