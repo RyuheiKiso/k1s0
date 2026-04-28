@@ -68,6 +68,7 @@ func newAdapterWithFake(t *testing.T, fake *fakeStateClient) StateAdapter {
 }
 
 // Get がキー存在時に StateItem.Value と Etag を返却することを検証する。
+// L2 テナント分離（NFR-E-AC-003）: 物理キーは "<tenant_id>/<key>" で SDK に渡されることも検証する。
 func TestStateAdapter_Get_Found(t *testing.T) {
 	want := []byte("hello")
 	fake := &fakeStateClient{
@@ -75,8 +76,9 @@ func TestStateAdapter_Get_Found(t *testing.T) {
 			if store != "valkey-default" {
 				t.Fatalf("store mismatch: got %q want valkey-default", store)
 			}
-			if key != "user:42" {
-				t.Fatalf("key mismatch: got %q", key)
+			// L2 テナント分離: 物理キーは "tenant-A/user:42" になる。
+			if key != "tenant-A/user:42" {
+				t.Fatalf("physical key mismatch: got %q want tenant-A/user:42", key)
 			}
 			if got := meta["tenantId"]; got != "tenant-A" {
 				t.Fatalf("tenantId metadata mismatch: got %q", got)
@@ -212,11 +214,21 @@ func TestStateAdapter_Delete_NoEtagThenWithEtag(t *testing.T) {
 }
 
 // BulkGet は SDK GetBulkState に keys/parallelism を伝搬し、Item.Error/Value から NotFound を判定する。
+// L2 テナント分離（NFR-E-AC-003）:
+//   - 物理キーは "<tenant_id>/<key>" で SDK に渡される
+//   - 応答 item の Key は strip され "<key>" だけ tier2/tier3 に見える
 func TestStateAdapter_BulkGet(t *testing.T) {
 	fake := &fakeStateClient{
 		bulkGetFn: func(_ context.Context, store string, keys []string, meta map[string]string, parallelism int32) ([]*daprclient.BulkStateItem, error) {
 			if store != "valkey" || len(keys) != 3 {
 				t.Fatalf("args mismatch: %s / %v", store, keys)
+			}
+			// L2 テナント分離: 物理キーは ["T/k1", "T/k2", "T/k3"] になる。
+			wantKeys := []string{"T/k1", "T/k2", "T/k3"}
+			for i, k := range keys {
+				if k != wantKeys[i] {
+					t.Fatalf("physical key[%d] mismatch: got %q want %q", i, k, wantKeys[i])
+				}
 			}
 			if parallelism != 5 {
 				t.Fatalf("parallelism mismatch: %d", parallelism)
@@ -224,10 +236,11 @@ func TestStateAdapter_BulkGet(t *testing.T) {
 			if meta["tenantId"] != "T" {
 				t.Fatalf("tenant metadata not propagated: %v", meta)
 			}
+			// Dapr の応答も物理キー（prefix 付き）で返るのが普通。adapter が strip することを検証する。
 			return []*daprclient.BulkStateItem{
-				{Key: "k1", Value: []byte("v1"), Etag: "e1"},
-				{Key: "k2", Value: nil}, // NotFound
-				{Key: "k3", Error: "permission denied"},
+				{Key: "T/k1", Value: []byte("v1"), Etag: "e1"},
+				{Key: "T/k2", Value: nil}, // NotFound
+				{Key: "T/k3", Error: "permission denied"},
 			}, nil
 		},
 	}
@@ -241,14 +254,15 @@ func TestStateAdapter_BulkGet(t *testing.T) {
 	if len(out) != 3 {
 		t.Fatalf("len: %d", len(out))
 	}
+	// 応答 Key は strip 済（tier2/tier3 視点）の "k1" / "k2" / "k3"。
 	if out[0].Key != "k1" || string(out[0].Data) != "v1" || out[0].NotFound {
 		t.Fatalf("item[0] mismatch: %+v", out[0])
 	}
-	if !out[1].NotFound {
-		t.Fatalf("item[1] expected NotFound=true")
+	if out[1].Key != "k2" || !out[1].NotFound {
+		t.Fatalf("item[1] expected key=k2 NotFound=true: %+v", out[1])
 	}
-	if out[2].Error != "permission denied" {
-		t.Fatalf("item[2] error not propagated: %q", out[2].Error)
+	if out[2].Key != "k3" || out[2].Error != "permission denied" {
+		t.Fatalf("item[2] mismatch: %+v", out[2])
 	}
 }
 

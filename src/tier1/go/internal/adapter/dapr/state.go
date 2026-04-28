@@ -10,11 +10,14 @@
 //   narrow interface（dapr.go の daprStateClient）越しに呼び出す。
 //   テナント prefix / TTL / 楽観的排他（ETag）の翻訳もここで担う。
 //
-// テナント prefix:
-//   ABAC（NFR-E-AC-003）に従い、Dapr metadata `tenantId` でテナント識別子を
-//   sidecar 側に伝搬する。component 側で metadata.partitionKey として使うか、
-//   key 自体に prefix を付与するかは Dapr Component 設定に委ねる（k1s0 既定は
-//   metadata 伝搬のみ、prefix 付与は handler 上位の TenantContext で実施済前提）。
+// テナント prefix（L2 物理分離、NFR-E-AC-003 / 共通規約 §「マルチテナント分離」）:
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/00_tier1_API共通規約.md の
+//   "L2（ルーティング）: バックエンドのキー / トピック / バケット / パーティションに
+//    `<tenant_id>/` を自動付与" 要件を adapter 層で強制する（tenant_prefix.go）。
+//   handler から渡された Key を物理 SDK 呼出前に `<tenant_id>/` で wrap し、
+//   GetBulkState 等の応答キーは strip して tier2/tier3 に透過させる。
+//   metadata.tenantId は Dapr Component 側の partition / ACL 連携用に併送する
+//   （Kafka ACL / OpenBao Policy など Component 固有の経路で利用）。
 //
 // 楽観的排他（ETag）:
 //   ExpectedEtag が空のリクエスト → SaveState / DeleteState（無条件）
@@ -174,9 +177,12 @@ func buildMeta(tenantID string, ttlSeconds int32) map[string]string {
 
 // Get は単一キーを Dapr State から取得する。
 // SDK が StateItem.Value == nil を返した場合は NotFound=true で応答する。
+// 物理キーは prefixKey で `<tenant_id>/` を付与する（L2 テナント分離）。
 func (a *daprStateAdapter) Get(ctx context.Context, req StateGetRequest) (StateGetResponse, error) {
+	// L2 テナント分離: 物理キーに `<tenant_id>/` を付与する。
+	physKey := prefixKey(req.TenantID, req.Key)
 	// Dapr SDK 呼び出し。Component 側 store 名が空の場合は SDK が即時 InvalidArgument を返す。
-	item, err := a.client.stateClient().GetState(ctx, req.Store, req.Key, buildMeta(req.TenantID, 0))
+	item, err := a.client.stateClient().GetState(ctx, req.Store, physKey, buildMeta(req.TenantID, 0))
 	if err != nil {
 		// 接続不可 / Component 未定義 等を上位へ透過する。
 		return StateGetResponse{}, err
@@ -195,16 +201,19 @@ func (a *daprStateAdapter) Get(ctx context.Context, req StateGetRequest) (StateG
 
 // Set は単一キーを Dapr State に保存する。
 // ExpectedEtag が空なら SaveState、非空なら SaveStateWithETag を選択する。
+// 物理キーは prefixKey で `<tenant_id>/` を付与する（L2 テナント分離）。
 func (a *daprStateAdapter) Set(ctx context.Context, req StateSetRequest) (StateSetResponse, error) {
+	// L2 テナント分離: 物理キーに `<tenant_id>/` を付与する。
+	physKey := prefixKey(req.TenantID, req.Key)
 	// metadata 構築（テナント + TTL）。
 	meta := buildMeta(req.TenantID, req.TTLSeconds)
 	// 楽観的排他の有無で SDK メソッドを切り替える。
 	if req.ExpectedEtag == "" {
-		if err := a.client.stateClient().SaveState(ctx, req.Store, req.Key, req.Data, meta); err != nil {
+		if err := a.client.stateClient().SaveState(ctx, req.Store, physKey, req.Data, meta); err != nil {
 			return StateSetResponse{}, err
 		}
 	} else {
-		if err := a.client.stateClient().SaveStateWithETag(ctx, req.Store, req.Key, req.Data, req.ExpectedEtag, meta); err != nil {
+		if err := a.client.stateClient().SaveStateWithETag(ctx, req.Store, physKey, req.Data, req.ExpectedEtag, meta); err != nil {
 			return StateSetResponse{}, err
 		}
 	}
@@ -214,12 +223,15 @@ func (a *daprStateAdapter) Set(ctx context.Context, req StateSetRequest) (StateS
 
 // BulkGet は複数キーを Dapr GetBulkState で一括取得する。
 // parallelism が 0 なら SDK の既定値を使う（実装は内部で min(len(keys), 100)）。
+// 物理キーは prefixKeys で `<tenant_id>/` を付与し、応答は stripKey で剥がして tier2/tier3 に透過させる。
 func (a *daprStateAdapter) BulkGet(ctx context.Context, req StateBulkGetRequest) ([]StateBulkGetItem, error) {
 	parallelism := req.Parallelism
 	if parallelism <= 0 {
 		parallelism = 10
 	}
-	items, err := a.client.stateClient().GetBulkState(ctx, req.Store, req.Keys, buildMeta(req.TenantID, 0), parallelism)
+	// L2 テナント分離: 物理キー列を `<tenant_id>/` で wrap する。
+	physKeys := prefixKeys(req.TenantID, req.Keys)
+	items, err := a.client.stateClient().GetBulkState(ctx, req.Store, physKeys, buildMeta(req.TenantID, 0), parallelism)
 	if err != nil {
 		return nil, err
 	}
@@ -227,8 +239,9 @@ func (a *daprStateAdapter) BulkGet(ctx context.Context, req StateBulkGetRequest)
 	for _, it := range items {
 		// Dapr は未存在 / エラーを Item.Error フィールドで表現する。
 		not_found := it.Error == "" && len(it.Value) == 0
+		// 応答キーから `<tenant_id>/` を剥がして tier2/tier3 視点のキーに戻す。
 		out = append(out, StateBulkGetItem{
-			Key:      it.Key,
+			Key:      stripKey(req.TenantID, it.Key),
 			Data:     it.Value,
 			Etag:     it.Etag,
 			NotFound: not_found,
@@ -240,15 +253,18 @@ func (a *daprStateAdapter) BulkGet(ctx context.Context, req StateBulkGetRequest)
 
 // Transact は複数 ops を 1 トランザクションで実行する。
 // Dapr SDK の ExecuteStateTransaction を呼び、ops を SDK の StateOperation 列に変換する。
+// 各 op の Key は prefixKey で `<tenant_id>/` を付与する（L2 テナント分離）。
 func (a *daprStateAdapter) Transact(ctx context.Context, req StateTransactRequest) error {
 	dops := make([]*daprclient.StateOperation, 0, len(req.Ops))
 	for _, op := range req.Ops {
+		// L2 テナント分離: 物理キーに `<tenant_id>/` を付与する。
+		physKey := prefixKey(req.TenantID, op.Key)
 		switch op.Kind {
 		case TransactOpSet:
 			dops = append(dops, &daprclient.StateOperation{
 				Type: daprclient.StateOperationTypeUpsert,
 				Item: &daprclient.SetStateItem{
-					Key:   op.Key,
+					Key:   physKey,
 					Value: op.Data,
 					Etag:  &daprclient.ETag{Value: op.ExpectedEtag},
 				},
@@ -257,7 +273,7 @@ func (a *daprStateAdapter) Transact(ctx context.Context, req StateTransactReques
 			dops = append(dops, &daprclient.StateOperation{
 				Type: daprclient.StateOperationTypeDelete,
 				Item: &daprclient.SetStateItem{
-					Key:  op.Key,
+					Key:  physKey,
 					Etag: &daprclient.ETag{Value: op.ExpectedEtag},
 				},
 			})
@@ -270,15 +286,18 @@ func (a *daprStateAdapter) Transact(ctx context.Context, req StateTransactReques
 
 // Delete は単一キーを Dapr State から削除する。
 // ExpectedEtag が空なら DeleteState、非空なら DeleteStateWithETag を呼ぶ。
+// 物理キーは prefixKey で `<tenant_id>/` を付与する（L2 テナント分離）。
 func (a *daprStateAdapter) Delete(ctx context.Context, req StateSetRequest) error {
+	// L2 テナント分離: 物理キーに `<tenant_id>/` を付与する。
+	physKey := prefixKey(req.TenantID, req.Key)
 	// metadata 構築（テナント識別子のみ。TTL は Delete に無関係）。
 	meta := buildMeta(req.TenantID, 0)
 	// 楽観的排他なし。
 	if req.ExpectedEtag == "" {
-		return a.client.stateClient().DeleteState(ctx, req.Store, req.Key, meta)
+		return a.client.stateClient().DeleteState(ctx, req.Store, physKey, meta)
 	}
 	// 楽観的排他あり: SDK の ETag struct に詰める。
 	etag := &daprclient.ETag{Value: req.ExpectedEtag}
 	// opts は nil（Concurrency / Consistency は Dapr SDK 既定に委ねる）。
-	return a.client.stateClient().DeleteStateWithETag(ctx, req.Store, req.Key, etag, meta, nil)
+	return a.client.stateClient().DeleteStateWithETag(ctx, req.Store, physKey, etag, meta, nil)
 }
