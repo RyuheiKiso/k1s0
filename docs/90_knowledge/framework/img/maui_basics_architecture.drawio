@@ -1,0 +1,91 @@
+<mxfile>
+  <diagram name="MAUI Architecture" id="maui-architecture">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="640" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value=".NET MAUI アーキテクチャ" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="280" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="layer1-label" value="① 開発者が書くコード" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#6c8ebf;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="75" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="xaml" value="&lt;b&gt;XAML&lt;/b&gt;&lt;br&gt;UI を宣言的に記述" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="csharp" value="&lt;b&gt;C# コードビハインド&lt;/b&gt;&lt;br&gt;イベント処理 / ロジック / MVVM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="290" y="100" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="hybrid" value="&lt;b&gt;Blazor Hybrid（任意）&lt;/b&gt;&lt;br&gt;Razor コンポーネントを&lt;br&gt;BlazorWebView 経由で利用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="520" y="100" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="layer2-label" value="② MAUI が提供する抽象（共通）" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#82b366;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="680" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="abstractions" value="&lt;b&gt;MAUI コントロール抽象&lt;/b&gt;&lt;br&gt;Page / Layout / View（Button・Label・Entry・CollectionView 等）&lt;br&gt;Resources / Bindings / Navigation / Lifecycle" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="225" width="680" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="layer3-label" value="③ Handler 層（プラットフォーム差分の橋渡し）" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#d6b656;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="335" width="680" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="handler" value="&lt;b&gt;Handler&lt;/b&gt;&lt;br&gt;ButtonHandler / LabelHandler / EntryHandler ...&lt;br&gt;抽象コントロールを各プラットフォームのネイティブビューに対応付ける" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="680" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="layer4-label" value="④ プラットフォームネイティブ（OS ごとの実装）" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#b85450;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="470" width="680" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="android" value="&lt;b&gt;Android&lt;/b&gt;&lt;br&gt;AndroidX Views" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="495" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ios" value="&lt;b&gt;iOS&lt;/b&gt;&lt;br&gt;UIKit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="230" y="495" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mac" value="&lt;b&gt;macOS&lt;/b&gt;&lt;br&gt;Mac Catalyst（UIKit）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="495" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="win" value="&lt;b&gt;Windows&lt;/b&gt;&lt;br&gt;WinUI 3 / WinAppSDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="580" y="495" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" source="xaml" target="abstractions" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="csharp" target="abstractions" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" source="hybrid" target="abstractions" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="abstractions" target="handler" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="handler" target="android" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.38;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="handler" target="ios" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.62;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="handler" target="mac" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="handler" target="win" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="580" width="680" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="585" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="青＝開発者コード／緑＝MAUI 抽象／黄＝Handler／赤＝OS ネイティブ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="605" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="実線太矢印＝呼び出し方向（上位 → 下位）" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="430" y="605" width="300" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
