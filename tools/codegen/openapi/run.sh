@@ -41,8 +41,32 @@ fi
 # 出力ディレクトリ準備
 mkdir -p docs/02_構想設計/02_tier1設計/openapi/v1
 
+# BSR remote plugin の rate limit に対する retry。詳細は tools/codegen/buf/run.sh
+# の buf_generate_with_retry と同じ方針（30s, 60s, 90s で 3 回まで）。
+buf_generate_with_retry() {
+    local label="$1"; shift
+    local attempt=1
+    local max_attempt=3
+    while :; do
+        local out
+        if out="$(buf generate "$@" 2>&1)"; then
+            [[ -n "$out" ]] && echo "$out"
+            return 0
+        fi
+        if [[ "$attempt" -lt "$max_attempt" ]] && grep -qiE 'too many requests|rate limit|429' <<< "$out"; then
+            local sleep_sec=$((attempt * 30))
+            echo "[warn] ${label}: BSR rate limit 検出。${sleep_sec}s 後に retry (${attempt}/${max_attempt})" >&2
+            sleep "${sleep_sec}"
+            attempt=$((attempt + 1))
+            continue
+        fi
+        echo "$out" >&2
+        return 1
+    done
+}
+
 echo "[info] buf generate (OpenAPI v2)"
-buf generate --template buf.gen.openapi.yaml
+buf_generate_with_retry "openapi" --template buf.gen.openapi.yaml
 
 # 出力ファイルの確認
 out_file="docs/02_構想設計/02_tier1設計/openapi/v1/k1s0-tier1.swagger.yaml"
