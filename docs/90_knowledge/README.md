@@ -211,6 +211,7 @@ CI/CD・パッケージング・ビルド関連の周辺ツール。実装時よ
 #### 情報・データ概念
 
 - [metadata_basics.md](other/metadata_basics.md)
+- [generative-ai_token.md](other/generative-ai_token.md)
 
 #### キャリア観
 
