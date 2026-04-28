@@ -38,7 +38,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 |---|---|---|---|
 | `src/contracts/tier1/` proto 12 サービス | 12 API（state / pubsub / serviceinvoke / secrets / binding / workflow / log / telemetry / decision / audit / feature / pii） | **同梱済** | 14 proto / 47 RPC（公開 43 + health 2 + admin 2）配置済。`buf lint` / `buf format` 通過、4 SDK 再生成済。共通型は `common/v1/common.proto`（TenantContext / ErrorDetail / K1s0ErrorCategory）に集約 |
 | `src/contracts/internal/` proto | tier1 内部 gRPC（Go ↔ Rust core、ADR-TIER1-002 / ADR-TIER1-003） | **同梱済** | 4 proto / 3 service / 8 RPC 配置済（DS-SW-IIF-004〜029）。`buf generate --template buf.gen.internal.yaml` で Go と Rust に再生成 |
-| `src/tier1/go/cmd/{state,secret,workflow}/` | Go 側 3 Pod（DS-SW-COMP-005/006/010） | **雛形あり** | gRPC server bootstrap + 全 7 公開 API handler 登録完了（t1-state: 5 / t1-secret: 1 / t1-workflow: 1）。各 RPC は `internal/adapter/dapr/` 経由で `codes.Unimplemented` を返す |
+| `src/tier1/go/cmd/{state,secret,workflow}/` | Go 側 3 Pod（DS-SW-COMP-005/006/010） | **雛形あり** | gRPC server bootstrap + 全 9 公開 API handler 登録完了（t1-state: 7 = State / PubSub / ServiceInvoke / Binding / Feature / Log / Telemetry、t1-secret: 1、t1-workflow: 1）。Dapr 系 5 handler は `internal/adapter/dapr/` 経由で `codes.Unimplemented` を返す（plan 04-04〜04-13 で実 backend 結線）。Log / Telemetry handler は OTel Collector 結線（plan 04-13）まで `Unimplemented` を直接返す。FeatureAdminService は本リリース時点 未登録（採用初期で追加） |
 | `src/tier1/go/internal/common/` | 共通 runtime（gRPC bootstrap / config / retry / timeout） | **同梱済** | runtime / config / retry / timeout の 4 ユーティリティとテストが存在 |
 | `src/tier1/go/internal/otel/` | OTel 初期化 | **雛形あり** | 1 ファイルの最小骨格 |
 | `src/tier1/rust/crates/{decision, audit, pii}` | Rust 側 3 Pod（DS-SW-COMP-008/007/009） | **雛形あり** | 3 crate を配置。tonic server を :50001 で起動し公開 Service trait を登録、graceful shutdown 対応。全 RPC は Status::unimplemented |
@@ -174,7 +174,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 本リポジトリの実装作業は、以下のメカニズムで docs 正典との整合性を保つ。
 
 1. **ADR が先行**: 構造を変える PR は `docs/02_構想設計/adr/` に新 ADR を起票してから着手する（CONTRIBUTING.md 規定）
-2. **ID 体系**: 要件 ID（FR-T1-* / NFR-* / BR-* / etc.）と設計 ID（DS-* / IMP-*）は実装側コミットメッセージにも追跡される（IMP-TRACE-*）
+2. **ID 体系**: 要件 ID（FR-T1-*/ NFR-* / BR-*/ etc.）と設計 ID（DS-* / IMP-*）は実装側コミットメッセージにも追跡される（IMP-TRACE-*）
 3. **トレーサビリティ索引**: `docs/03_要件定義/80_トレーサビリティ/` と `docs/04_概要設計/80_トレーサビリティ/` で要件 → 設計 → ADR の対応が網羅される
 4. **CI ゲート**: `buf lint` / `buf breaking` / 内製 analyzer / pre-commit が逸脱を物理的に遮断する
 
