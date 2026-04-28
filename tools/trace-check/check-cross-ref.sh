@@ -56,16 +56,41 @@ if [[ ! -f "${LEDGER_FILE}" ]]; then
 fi
 
 # ──────────────────────────────────────────────────────────
-# 台帳から全 ID を抽出（詳細行のみ）
+# 台帳から全 ID を抽出（詳細行 + 範囲記法を展開）
+#
+# 台帳は採番効率のため `IMP-XXX-YYY-NNN〜MMM` 形式の範囲記法を多用する。
+# 単純な regex 抽出だと範囲の開始 ID しか拾えないため、Python で範囲展開する。
 # ──────────────────────────────────────────────────────────
 LEDGER_IDS_FILE="$(mktemp)"
 trap 'rm -f "${LEDGER_IDS_FILE}"' EXIT
 
-grep -oE 'IMP-[A-Z]+-[A-Z]+-[0-9]{3}' "${LEDGER_FILE}" \
-  | sort -u > "${LEDGER_IDS_FILE}"
+python3 - "${LEDGER_FILE}" >"${LEDGER_IDS_FILE}" <<'PYEOF'
+import re
+import sys
+
+ledger_path = sys.argv[1]
+range_re = re.compile(r"(IMP-[A-Z]+-[A-Z]+)-(\d{3})\s*[〜~-]\s*(\d{3})")
+single_re = re.compile(r"\b(IMP-[A-Z]+-[A-Z]+-\d{3})\b")
+ids = set()
+
+with open(ledger_path, encoding="utf-8") as f:
+    for line in f:
+        # 範囲記法を先に展開（先に消費しないと single_re が範囲先頭だけ拾う）
+        for m in range_re.finditer(line):
+            prefix, start, end = m.group(1), int(m.group(2)), int(m.group(3))
+            for i in range(start, end + 1):
+                ids.add(f"{prefix}-{i:03d}")
+            # 範囲の表記自体は line 内から削除（残り検出のため）
+            line = line.replace(m.group(0), "")
+        for m in single_re.finditer(line):
+            ids.add(m.group(1))
+
+for i in sorted(ids):
+    print(i)
+PYEOF
 
 ledger_count="$(wc -l < "${LEDGER_IDS_FILE}" | tr -d ' ')"
-echo "[info] 台帳 ID 総数: ${ledger_count}"
+echo "[info] 台帳 ID 総数（範囲展開後）: ${ledger_count}"
 
 # ──────────────────────────────────────────────────────────
 # 90_対応索引ファイルを全探索して ID を抽出

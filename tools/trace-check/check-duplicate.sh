@@ -56,19 +56,24 @@ if [[ ! -f "${LEDGER_FILE}" ]]; then
 fi
 
 # ──────────────────────────────────────────────────────────
-# 台帳内の重複 ID を検出
+# 台帳内の「定義行」重複 ID を検出
+#
+# 範囲記法（IMP-XXX-YYY-NNN〜MMM）や本文中での参照（prose）は除外し、
+# `^| IMP-XXX-YYY-NNN ... |` 形式の定義行（または範囲記法 `^| IMP-XXX-YYY-NNN〜MMM`）
+# が同じ単一 ID で 2 回以上書かれているケースのみ FAIL とする。
 # ──────────────────────────────────────────────────────────
-echo "=== 台帳内の重複 IMP-* ID 検出 ==="
+echo "=== 台帳内の「定義行」重複 IMP-* ID 検出 ==="
 LEDGER_DUPS="$(
-  grep -oE 'IMP-[A-Z]+-[A-Z]+-[0-9]{3}' "${LEDGER_FILE}" \
+  grep -oE '^\|[[:space:]]*IMP-[A-Z]+-[A-Z]+-[0-9]{3}[[:space:]]*\|' "${LEDGER_FILE}" \
+    | sed -E 's|^\|[[:space:]]*||; s|[[:space:]]*\|.*$||' \
     | sort \
     | uniq -d
 )"
 
 if [[ -n "${LEDGER_DUPS}" ]]; then
   echo "${LEDGER_DUPS}" | while read -r id; do
-    count="$(grep -oE "${id}" "${LEDGER_FILE}" | wc -l | tr -d ' ')"
-    echo "  [FAIL] ${id}: 台帳内に ${count} 回出現（重複）"
+    count="$(grep -cE "^\\|[[:space:]]*${id}[[:space:]]*\\|" "${LEDGER_FILE}")"
+    echo "  [FAIL] ${id}: 台帳内に ${count} 回定義行で出現（重複）"
   done
   FAIL=1
 else
@@ -76,24 +81,30 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────
-# 全 docs/05_実装/ 配下の重複 ID を検出
-# （90_対応索引も含め、IMP-* が複数箇所で別定義されていないか）
+# 全 docs/05_実装/ 配下の重複 *定義* ID を検出
+#
+# 「定義行」とは Markdown テーブルの先頭セル `| IMP-XXX-YYY-NNN |` の形式に
+# 限定する（左マージン後に `|` で囲まれた ID 単独セル）。これにより本文中の
+# 言及・引用は除外し、別ファイル間で同じ ID を別の意味で **定義** している
+# ケースのみを FAIL とする。台帳と 90_対応索引は同 ID を別箇所で定義する
+# ことが正常運用なので、ここでは敢えて広く拾わない。
 # ──────────────────────────────────────────────────────────
 echo ""
-echo "=== 全 05_実装/ 配下（台帳含む）の重複 IMP-* ID 検出 ==="
+echo "=== 05_実装/ 配下の「定義行」重複 IMP-* ID 検出 ==="
 ALL_DUPS="$(
   find "${DOCS_IMPL}" -type f -name "*.md" \
-    | xargs grep -ohE 'IMP-[A-Z]+-[A-Z]+-[0-9]{3}' 2>/dev/null \
+    -exec grep -oHE '^\|[[:space:]]*IMP-[A-Z]+-[A-Z]+-[0-9]{3}[[:space:]]*\|' {} + 2>/dev/null \
+    | sed -E 's|^.*:\|[[:space:]]*||; s|[[:space:]]*\|.*$||' \
     | sort \
     | uniq -d
 )"
 
 if [[ -n "${ALL_DUPS}" ]]; then
   echo "${ALL_DUPS}" | while read -r id; do
-    echo "  [FAIL] ${id}: docs/05_実装/ 配下の複数ファイルで重複定義"
-    # どのファイルで定義されているか表示
+    echo "  [FAIL] ${id}: docs/05_実装/ 配下の複数ファイルで重複「定義」"
+    # 定義箇所のみを表示（参照箇所は除外）
     find "${DOCS_IMPL}" -type f -name "*.md" \
-      | xargs grep -l "${id}" 2>/dev/null \
+      -exec grep -l -E "^\\|[[:space:]]*${id}[[:space:]]*\\|" {} + 2>/dev/null \
       | sed 's|'"${REPO_ROOT}"'/||' \
       | while read -r f; do
           echo "         → ${f}"
