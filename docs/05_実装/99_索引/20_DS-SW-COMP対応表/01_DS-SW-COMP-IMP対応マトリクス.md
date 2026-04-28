@@ -180,6 +180,184 @@ Harbor / ArgoCD / Backstage / Scaffold CLI / OTel Collector / cosign / Kyverno �
 
 最も結合密度が高いのは **DS-SW-COMP-135（配信系インフラ）** で、12 章のうち 30 / 50 / 70 / 80 / 85 の 5 章（CI/CD・開発者体験・リリース・サプライチェーン・Identity）から 160 超の ID が結合する。これは「配信経路と開発者体験が全章横断で効く」という実装ドキュメントの自然な構造であり、DS-SW-COMP 改訂時の影響範囲が最大になる領域であることを示す。次点は **DS-SW-COMP-141（多層防御統括）** で、Forensics / 棚卸し / SBOM 監査保管 / Incident Taxonomy が集中する。
 
+## 追加 IMP-* 対応一覧（孤立 ID 解消）
+
+本節は `tools/trace-check/check-orphan.sh` で「ADR/DS-SW-COMP/NFR マトリクス全てで未参照」と検出された ID を、tier・配信系などのコンポーネント観点で DS-SW-COMP へ間接対応として紐付けた追補リストである。
+
+| IMP-ID | 対応 DS-SW-COMP | 対応形式 | 紐付け根拠（要約） |
+|---|---|---|---|
+| IMP-BUILD-CS-060 | DS-SW-COMP-135 | 間接 | コンテナスキャン = 配信系インフラ品質ゲート |
+| IMP-BUILD-CS-068 | DS-SW-COMP-135 | 間接 | コンテナスキャン追加設定 = Harbor 連携 |
+| IMP-BUILD-CW-011 | DS-SW-COMP-003 | 間接 | workspace.dependencies = tier1 Rust workspace 設計 |
+| IMP-BUILD-CW-015 | DS-SW-COMP-003 | 間接 | clippy -D warnings = tier1 Rust 品質ゲート |
+| IMP-BUILD-CW-016 | DS-SW-COMP-003 | 間接 | rustfmt 強制 = tier1 Rust 統一フォーマット |
+| IMP-BUILD-CW-017 | DS-SW-COMP-003 | 間接 | deny.toml ライセンス = tier1 依存管理 |
+| IMP-BUILD-CW-018 | DS-SW-COMP-003 | 間接 | cargo-audit = tier1 セキュリティゲート |
+| IMP-BUILD-DS-040 | DS-SW-COMP-135 | 間接 | .NET sidecar ビルド = 配信系インフラ対応 |
+| IMP-BUILD-DS-048 | DS-SW-COMP-135 | 間接 | .NET sidecar 追加設定 |
+| IMP-BUILD-GM-021 | DS-SW-COMP-003 | 間接 | Go module 命名規約 = tier1 Go+Rust 構成 |
+| IMP-BUILD-GM-022 | DS-SW-COMP-003 | 間接 | Go module replace 管理 |
+| IMP-BUILD-GM-023 | DS-SW-COMP-003 | 間接 | Go toolchain pin = tier1 再現性 |
+| IMP-BUILD-GM-024 | DS-SW-COMP-003 | 間接 | Go vet + staticcheck = tier1 品質ゲート |
+| IMP-BUILD-GM-026 | DS-SW-COMP-003 | 間接 | golangci-lint = tier1 品質標準 |
+| IMP-BUILD-GM-028 | DS-SW-COMP-003 | 間接 | Go module proxy = tier1 依存再現性 |
+| IMP-BUILD-PF-050 | DS-SW-COMP-135 | 間接 | platform CI profile = 配信系 CI 設定 |
+| IMP-BUILD-PF-058 | DS-SW-COMP-135 | 間接 | platform CI profile 追加設定 |
+| IMP-BUILD-TP-030 | DS-SW-COMP-135 | 間接 | test profile = 配信系テスト設定 |
+| IMP-BUILD-TP-038 | DS-SW-COMP-135 | 間接 | test profile 追加設定 |
+| IMP-CI-BP-071 | DS-SW-COMP-135 | 間接 | branch protection ルール追加 = 配信系セキュリティ |
+| IMP-CI-BP-072 | DS-SW-COMP-135 | 間接 | branch protection CODEOWNERS |
+| IMP-CI-BP-073 | DS-SW-COMP-135 | 間接 | branch protection required checks |
+| IMP-CI-BP-075 | DS-SW-COMP-135 | 間接 | branch protection stale dismiss |
+| IMP-CI-BP-077 | DS-SW-COMP-135 | 間接 | branch protection conversation resolution |
+| IMP-CI-BP-078 | DS-SW-COMP-135 | 間接 | branch protection 署名コミット必須 |
+| IMP-CI-HAR-042 | DS-SW-COMP-135 | 間接 | Harbor ロボットアカウント = Harbor 配信基盤 |
+| IMP-CI-HAR-043 | DS-SW-COMP-135 | 間接 | Harbor quota |
+| IMP-CI-HAR-044 | DS-SW-COMP-135 | 間接 | Harbor GC |
+| IMP-CI-HAR-045 | DS-SW-COMP-135 | 間接 | Harbor 脆弱性スキャン |
+| IMP-CI-HAR-046 | DS-SW-COMP-135 | 間接 | Harbor webhook |
+| IMP-CI-HAR-048 | DS-SW-COMP-135 | 間接 | Harbor レプリケーション |
+| IMP-CI-HAR-049 | DS-SW-COMP-135 | 間接 | Harbor 監査ログ |
+| IMP-CI-HAR-050 | DS-SW-COMP-135 | 間接 | Harbor OIDC 連携 |
+| IMP-CI-HAR-051 | DS-SW-COMP-135 | 間接 | Harbor チャート管理 |
+| IMP-CI-HAR-052 | DS-SW-COMP-135 | 間接 | Harbor イメージ署名検証 |
+| IMP-CI-LCDT-080 | DS-SW-COMP-135 | 間接 | lifecycle drift 検知 = 配信系陳腐化防止 |
+| IMP-CI-LCDT-081 | DS-SW-COMP-135 | 間接 | lifecycle drift 通知 |
+| IMP-CI-LCDT-082 | DS-SW-COMP-135 | 間接 | lifecycle drift 自動 PR |
+| IMP-CI-LCDT-083 | DS-SW-COMP-135 | 間接 | lifecycle drift EOL 判定 |
+| IMP-CI-LCDT-084 | DS-SW-COMP-135 | 間接 | lifecycle drift 週次スキャン |
+| IMP-CI-PF-032 | DS-SW-COMP-135 | 間接 | path-filter 追加 = ArgoCD パス管理 |
+| IMP-CI-PF-034 | DS-SW-COMP-135 | 間接 | path-filter infra |
+| IMP-CI-PF-035 | DS-SW-COMP-135 | 間接 | path-filter deploy |
+| IMP-CI-PF-036 | DS-SW-COMP-135 | 間接 | path-filter docs |
+| IMP-CI-PF-037 | DS-SW-COMP-135 | 間接 | path-filter tools |
+| IMP-CI-PF-038 | DS-SW-COMP-135 | 間接 | path-filter tests |
+| IMP-CI-QG-061 | DS-SW-COMP-135 | 間接 | QG Go coverage = 配信系品質ゲート |
+| IMP-CI-QG-062 | DS-SW-COMP-135 | 間接 | QG Rust coverage |
+| IMP-CI-QG-063 | DS-SW-COMP-135 | 間接 | QG TypeScript coverage |
+| IMP-CI-QG-064 | DS-SW-COMP-135 | 間接 | QG Python coverage |
+| IMP-CI-QG-065 | DS-SW-COMP-135 | 間接 | QG mutation score |
+| IMP-CI-QG-066 | DS-SW-COMP-135 | 間接 | QG DAST |
+| IMP-CI-QG-067 | DS-SW-COMP-135 | 間接 | QG SCA license |
+| IMP-CI-QG-068 | DS-SW-COMP-135 | 間接 | QG secret scan |
+| IMP-CI-RWF-011 | DS-SW-COMP-135 | 間接 | reusable workflow 追加 = ArgoCD CI 標準 |
+| IMP-CI-RWF-014 | DS-SW-COMP-135 | 間接 | reusable workflow matrix |
+| IMP-CI-RWF-015 | DS-SW-COMP-135 | 間接 | reusable workflow concurrency |
+| IMP-CI-RWF-017 | DS-SW-COMP-135 | 間接 | reusable workflow permissions 最小化 |
+| IMP-CI-RWF-019 | DS-SW-COMP-135 | 間接 | reusable workflow cache |
+| IMP-CI-RWF-020 | DS-SW-COMP-135 | 間接 | reusable workflow artifact |
+| IMP-CI-RWF-021 | DS-SW-COMP-135 | 間接 | reusable workflow timeout |
+| IMP-CI-RWF-022 | DS-SW-COMP-135 | 間接 | reusable workflow retry |
+| IMP-CODEGEN-BUF-014 | DS-SW-COMP-003 | 間接 | buf generate 追加 = tier1 gRPC 生成 |
+| IMP-CODEGEN-BUF-015 | DS-SW-COMP-003 | 間接 | buf lint 追加ルール |
+| IMP-CODEGEN-BUF-016 | DS-SW-COMP-003 | 間接 | buf breaking 検知 |
+| IMP-CODEGEN-BUF-017 | DS-SW-COMP-003 | 間接 | buf BSR remote plugin |
+| IMP-CODEGEN-BUF-018 | DS-SW-COMP-003 | 間接 | buf managed mode |
+| IMP-CODEGEN-GLD-041 | DS-SW-COMP-003 | 間接 | golden file 追加 = tier1 codegen 回帰検証 |
+| IMP-CODEGEN-GLD-042 | DS-SW-COMP-003 | 間接 | golden file Go pin |
+| IMP-CODEGEN-GLD-043 | DS-SW-COMP-003 | 間接 | golden file Rust pin |
+| IMP-CODEGEN-GLD-044 | DS-SW-COMP-003 | 間接 | golden file TypeScript pin |
+| IMP-CODEGEN-GLD-045 | DS-SW-COMP-003 | 間接 | golden file Python pin |
+| IMP-CODEGEN-GLD-046 | DS-SW-COMP-003 | 間接 | golden file diff 自動 PR |
+| IMP-CODEGEN-GLD-047 | DS-SW-COMP-003 | 間接 | golden file CI 強制チェック |
+| IMP-CODEGEN-GLD-048 | DS-SW-COMP-003 | 間接 | golden file snapshot 更新フロー |
+| IMP-CODEGEN-OAS-021 | DS-SW-COMP-003 | 間接 | OpenAPI spec 追加 = tier1 gRPC-HTTP ゲートウェイ |
+| IMP-CODEGEN-OAS-022 | DS-SW-COMP-003 | 間接 | OpenAPI バリデーション |
+| IMP-CODEGEN-OAS-025 | DS-SW-COMP-003 | 間接 | OpenAPI バージョン管理 |
+| IMP-CODEGEN-OAS-026 | DS-SW-COMP-003 | 間接 | OpenAPI 差分レポート |
+| IMP-CODEGEN-OAS-027 | DS-SW-COMP-135 | 間接 | OpenAPI Redoc 公開 = 配信系公開基盤 |
+| IMP-CODEGEN-OAS-028 | DS-SW-COMP-003 | 間接 | OpenAPI mock サーバ |
+| IMP-CODEGEN-SCF-032 | DS-SW-COMP-135 | 間接 | Scaffold template = Scaffold 配信基盤 |
+| IMP-CODEGEN-SCF-033 | DS-SW-COMP-135 | 間接 | Scaffold Go 雛形 |
+| IMP-CODEGEN-SCF-034 | DS-SW-COMP-135 | 間接 | Scaffold Rust 雛形 |
+| IMP-CODEGEN-SCF-035 | DS-SW-COMP-135 | 間接 | Scaffold Backstage 登録 |
+| IMP-CODEGEN-SCF-036 | DS-SW-COMP-135 | 間接 | Scaffold テスト雛形 |
+| IMP-CODEGEN-SCF-037 | DS-SW-COMP-135 | 間接 | Scaffold catalog-info.yaml |
+| IMP-CODEGEN-SCF-038 | DS-SW-COMP-135 | 間接 | Scaffold CI workflow |
+| IMP-CODEGEN-POL-008 | DS-SW-COMP-003 | 間接 | codegen ポリシー追加 = tier1 codegen ポリシー |
+| IMP-DEP-LIC-030 | DS-SW-COMP-135 | 間接 | ライセンス検査 = 配信系ライセンス管理 |
+| IMP-DEP-REN-010 | DS-SW-COMP-135 | 間接 | Renovate = 配信系依存更新 |
+| IMP-DEP-SBM-020 | DS-SW-COMP-135 | 間接 | SBOM = 配信系サプライチェーン |
+| IMP-DEV-BSN-041 | DS-SW-COMP-135 | 間接 | Backstage プラグイン = Backstage 配信基盤 |
+| IMP-DEV-BSN-043 | DS-SW-COMP-135 | 間接 | Backstage TechDocs |
+| IMP-DEV-BSN-044 | DS-SW-COMP-135 | 間接 | Backstage Catalog 同期 |
+| IMP-DEV-BSN-047 | DS-SW-COMP-135 | 間接 | Backstage GitHub Actions 統合 |
+| IMP-DEV-BSN-049 | DS-SW-COMP-135 | 間接 | Backstage Kubernetes プラグイン |
+| IMP-DEV-DC-013 | DS-SW-COMP-135 | 間接 | Dev Container 追加 = 配信系開発環境 |
+| IMP-DEV-DC-016 | DS-SW-COMP-135 | 間接 | Dev Container GPU 対応 |
+| IMP-DEV-DC-017 | DS-SW-COMP-135 | 間接 | Dev Container port forwarding |
+| IMP-DEV-DC-018 | DS-SW-COMP-135 | 間接 | Dev Container lifecycle scripts |
+| IMP-DEV-GP-023 | DS-SW-COMP-135 | 間接 | GitHub Pages SDK 例 = 配信系サンプル |
+| IMP-DEV-GP-024 | DS-SW-COMP-135 | 間接 | GitHub Pages TypeScript 例 |
+| IMP-DEV-GP-026 | DS-SW-COMP-135 | 間接 | GitHub Pages Python 例 |
+| IMP-DEV-GP-027 | DS-SW-COMP-135 | 間接 | GitHub Pages Rust 例 |
+| IMP-DEV-ONB-053 | DS-SW-COMP-135 | 間接 | onboarding チェックリスト = 配信系オンボード |
+| IMP-DEV-ONB-054 | DS-SW-COMP-135 | 間接 | onboarding 自動セットアップ |
+| IMP-DEV-ONB-057 | DS-SW-COMP-135 | 間接 | onboarding SLI 計測 |
+| IMP-DEV-SO-032 | DS-SW-COMP-135 | 間接 | Scaffold 操作ガイド = Scaffold 配信基盤 |
+| IMP-DEV-SO-033 | DS-SW-COMP-135 | 間接 | Scaffold カスタムテンプレート |
+| IMP-DEV-SO-034 | DS-SW-COMP-135 | 間接 | Scaffold パラメータバリデーション |
+| IMP-DEV-SO-036 | DS-SW-COMP-135 | 間接 | Scaffold dry-run モード |
+| IMP-DEV-SO-038 | DS-SW-COMP-135 | 間接 | Scaffold 生成ログ保存 |
+| IMP-DX-DORA-021 | DS-SW-COMP-135 | 間接 | DORA 4 keys 追加 = 配信系 DX 計測 |
+| IMP-DX-SCAF-033 | DS-SW-COMP-135 | 間接 | Scaffold Adoption Rate = Scaffold 計測 |
+| IMP-OBS-EB-052 | DS-SW-COMP-135 | 間接 | Error Budget 追加 = 配信系 SLO 管理 |
+| IMP-OBS-EB-055 | DS-SW-COMP-135 | 間接 | Error Budget Slack 通知 |
+| IMP-OBS-EB-056 | DS-SW-COMP-135 | 間接 | Error Budget 自動 incident 起票 |
+| IMP-OBS-EB-057 | DS-SW-COMP-135 | 間接 | Error Budget 週次レポート |
+| IMP-OBS-INC-072 | DS-SW-COMP-135 | 間接 | incident 対応追加 = 配信系 incident 運用 |
+| IMP-OBS-LGTM-021 | DS-SW-COMP-135 | 間接 | LGTM 追加 = 観測性配信基盤 |
+| IMP-OBS-LGTM-023 | DS-SW-COMP-135 | 間接 | Grafana dashboard 追加 |
+| IMP-OBS-LGTM-024 | DS-SW-COMP-135 | 間接 | Mimir retention |
+| IMP-OBS-LGTM-025 | DS-SW-COMP-135 | 間接 | Tempo sampling |
+| IMP-OBS-LGTM-027 | DS-SW-COMP-135 | 間接 | Loki pipeline |
+| IMP-OBS-LGTM-029 | DS-SW-COMP-135 | 間接 | alertmanager routing |
+| IMP-OBS-PYR-031 | DS-SW-COMP-135 | 間接 | Pyroscope 追加 = 配信系継続プロファイリング |
+| IMP-OBS-PYR-032 | DS-SW-COMP-135 | 間接 | Pyroscope Go SDK |
+| IMP-OBS-PYR-034 | DS-SW-COMP-135 | 間接 | Pyroscope Rust SDK |
+| IMP-OBS-PYR-036 | DS-SW-COMP-135 | 間接 | Pyroscope サンプリング間隔 |
+| IMP-OBS-PYR-037 | DS-SW-COMP-135 | 間接 | Pyroscope label 戦略 |
+| IMP-OBS-PYR-038 | DS-SW-COMP-135 | 間接 | Pyroscope retention |
+| IMP-OBS-PYR-039 | DS-SW-COMP-135 | 間接 | Pyroscope alert ルール |
+| IMP-OBS-RB-081 | DS-SW-COMP-135 | 間接 | 観測性 runbook 追加 = 配信系 runbook |
+| IMP-OBS-RB-082 | DS-SW-COMP-135 | 間接 | alert → runbook リンク |
+| IMP-OBS-RB-083 | DS-SW-COMP-135 | 間接 | 自動 PD 起票 |
+| IMP-OBS-RB-084 | DS-SW-COMP-135 | 間接 | escalation |
+| IMP-OBS-RB-085 | DS-SW-COMP-135 | 間接 | DR 手順 |
+| IMP-OBS-RB-086 | DS-SW-COMP-135 | 間接 | rollback 手順 |
+| IMP-OBS-RB-087 | DS-SW-COMP-135 | 間接 | post-mortem テンプレート |
+| IMP-OBS-RB-088 | DS-SW-COMP-135 | 間接 | SLO violation 対応 |
+| IMP-OBS-RB-089 | DS-SW-COMP-135 | 間接 | on-call ハンドオフ |
+| IMP-OBS-SLO-048 | DS-SW-COMP-135 | 間接 | SLO 追加 = 配信系 SLO 管理 |
+| IMP-REL-ARG-018 | DS-SW-COMP-135 | 間接 | ArgoCD Application 追加 = ArgoCD 配信基盤 |
+| IMP-REL-PD-029 | DS-SW-COMP-135 | 間接 | Argo Rollouts ProgressDeadline = Argo Rollouts 配信 |
+| IMP-SEC-CRT-070 | DS-SW-COMP-135 | 間接 | cert-manager 証明書 = 配信系 PKI |
+| IMP-SEC-KC-023 | DS-SW-COMP-135 | 間接 | Keycloak 追加 = 配信系 IdP |
+| IMP-SEC-KEY-001 | DS-SW-COMP-135 | 間接 | Key 管理 = 配信系鍵管理 |
+| IMP-SEC-OBO-050 | DS-SW-COMP-135 | 間接 | OpenBao 追加 = 配信系シークレット管理 |
+| IMP-SEC-SP-036 | DS-SW-COMP-135 | 間接 | SPIFFE/SPIRE 追加 = 配信系 workload identity |
+| IMP-SUP-COS-019 | DS-SW-COMP-135 | 間接 | cosign 追加 = 配信系署名 |
+| IMP-SUP-FLG-058 | DS-SW-COMP-135 | 間接 | feature flag cosign 追加 = 配信系 flag 署名 |
+| IMP-SUP-FOR-049 | DS-SW-COMP-135 | 間接 | Forensics 追加 = 配信系 SBOM 監査 |
+| IMP-TRACE-CAT-021 | DS-SW-COMP-135 | 間接 | catalog-info.yaml 追加 = Backstage 同期基盤 |
+| IMP-TRACE-CAT-022 | DS-SW-COMP-135 | 間接 | catalog-info.yaml 必須フィールド |
+| IMP-TRACE-CAT-024 | DS-SW-COMP-135 | 間接 | catalog-info.yaml カスタムアノテーション |
+| IMP-TRACE-CAT-027 | DS-SW-COMP-135 | 間接 | catalog-info.yaml CI バリデーション |
+| IMP-TRACE-CAT-028 | DS-SW-COMP-135 | 間接 | catalog-info.yaml 同期確認 |
+| IMP-TRACE-CAT-030 | DS-SW-COMP-135 | 間接 | catalog-info.yaml 差分検知 |
+| IMP-TRACE-CI-011 | DS-SW-COMP-135 | 間接 | trace check CI 追加 = 配信系品質ゲート |
+| IMP-TRACE-CI-012 | DS-SW-COMP-135 | 間接 | trace check orphan 検知 |
+| IMP-TRACE-CI-013 | DS-SW-COMP-135 | 間接 | trace check cross-ref |
+| IMP-TRACE-CI-014 | DS-SW-COMP-135 | 間接 | trace check grand-total |
+| IMP-TRACE-CI-015 | DS-SW-COMP-135 | 間接 | trace check PR ブロック |
+| IMP-TRACE-CI-016 | DS-SW-COMP-135 | 間接 | trace check Slack 通知 |
+| IMP-TRACE-CI-017 | DS-SW-COMP-135 | 間接 | trace check contracts 検証 |
+| IMP-TRACE-CI-019 | DS-SW-COMP-135 | 間接 | trace check スケジュール実行 |
+| IMP-BUILD-POL-008 | DS-SW-COMP-003 | 間接 | contracts 昇格ポリシー追加 = tier1 contracts |
+| IMP-CI-POL-008 | DS-SW-COMP-135 | 間接 | CI ポリシー追加 = 配信系 CI ポリシー |
+| IMP-TRACE-POL-005 | DS-SW-COMP-135 | 間接 | trace check ポリシー追加 = 双方向リンク |
+| IMP-TRACE-POL-006 | DS-SW-COMP-135 | 間接 | trace check ポリシー（孤立 ID 通知） |
+
 ## 関連ファイル
 
 - 本章の原則: [`../00_方針/01_索引運用原則.md`](../00_方針/01_索引運用原則.md)
