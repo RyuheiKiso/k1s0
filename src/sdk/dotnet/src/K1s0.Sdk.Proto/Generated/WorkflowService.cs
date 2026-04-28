@@ -26,13 +26,16 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
           string.Concat(
             "Ci1rMXMwL3RpZXIxL3dvcmtmbG93L3YxL3dvcmtmbG93X3NlcnZpY2UucHJv",
             "dG8SFmsxczAudGllcjEud29ya2Zsb3cudjEaIWsxczAvdGllcjEvY29tbW9u",
-            "L3YxL2NvbW1vbi5wcm90byLJAQoMU3RhcnRSZXF1ZXN0EiMKDXdvcmtmbG93",
+            "L3YxL2NvbW1vbi5wcm90byKMAgoMU3RhcnRSZXF1ZXN0EiMKDXdvcmtmbG93",
             "X3R5cGUYASABKAlSDHdvcmtmbG93VHlwZRIfCgt3b3JrZmxvd19pZBgCIAEo",
             "CVIKd29ya2Zsb3dJZBIUCgVpbnB1dBgDIAEoDFIFaW5wdXQSHgoKaWRlbXBv",
             "dGVudBgEIAEoCFIKaWRlbXBvdGVudBI9Cgdjb250ZXh0GAUgASgLMiMuazFz",
-            "MC50aWVyMS5jb21tb24udjEuVGVuYW50Q29udGV4dFIHY29udGV4dCJHCg1T",
-            "dGFydFJlc3BvbnNlEh8KC3dvcmtmbG93X2lkGAEgASgJUgp3b3JrZmxvd0lk",
-            "EhUKBnJ1bl9pZBgCIAEoCVIFcnVuSWQiqgEKDVNpZ25hbFJlcXVlc3QSHwoL",
+            "MC50aWVyMS5jb21tb24udjEuVGVuYW50Q29udGV4dFIHY29udGV4dBJBCgdi",
+            "YWNrZW5kGAYgASgOMicuazFzMC50aWVyMS53b3JrZmxvdy52MS5Xb3JrZmxv",
+            "d0JhY2tlbmRSB2JhY2tlbmQiigEKDVN0YXJ0UmVzcG9uc2USHwoLd29ya2Zs",
+            "b3dfaWQYASABKAlSCndvcmtmbG93SWQSFQoGcnVuX2lkGAIgASgJUgVydW5J",
+            "ZBJBCgdiYWNrZW5kGAMgASgOMicuazFzMC50aWVyMS53b3JrZmxvdy52MS5X",
+            "b3JrZmxvd0JhY2tlbmRSB2JhY2tlbmQiqgEKDVNpZ25hbFJlcXVlc3QSHwoL",
             "d29ya2Zsb3dfaWQYASABKAlSCndvcmtmbG93SWQSHwoLc2lnbmFsX25hbWUY",
             "AiABKAlSCnNpZ25hbE5hbWUSGAoHcGF5bG9hZBgDIAEoDFIHcGF5bG9hZBI9",
             "Cgdjb250ZXh0GAQgASgLMiMuazFzMC50aWVyMS5jb21tb24udjEuVGVuYW50",
@@ -55,33 +58,35 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
             "azFzMC50aWVyMS53b3JrZmxvdy52MS5Xb3JrZmxvd1N0YXR1c1IGc3RhdHVz",
             "EhUKBnJ1bl9pZBgCIAEoCVIFcnVuSWQSFgoGb3V0cHV0GAMgASgMUgZvdXRw",
             "dXQSNwoFZXJyb3IYBCABKAsyIS5rMXMwLnRpZXIxLmNvbW1vbi52MS5FcnJv",
-            "ckRldGFpbFIFZXJyb3IqbAoOV29ya2Zsb3dTdGF0dXMSCwoHUlVOTklORxAA",
-            "Eg0KCUNPTVBMRVRFRBABEgoKBkZBSUxFRBACEgwKCENBTkNFTEVEEAMSDgoK",
-            "VEVSTUlOQVRFRBAEEhQKEENPTlRJTlVFRF9BU19ORVcQBTKzBAoPV29ya2Zs",
-            "b3dTZXJ2aWNlElQKBVN0YXJ0EiQuazFzMC50aWVyMS53b3JrZmxvdy52MS5T",
-            "dGFydFJlcXVlc3QaJS5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlN0YXJ0UmVz",
-            "cG9uc2USVwoGU2lnbmFsEiUuazFzMC50aWVyMS53b3JrZmxvdy52MS5TaWdu",
-            "YWxSZXF1ZXN0GiYuazFzMC50aWVyMS53b3JrZmxvdy52MS5TaWduYWxSZXNw",
-            "b25zZRJUCgVRdWVyeRIkLmsxczAudGllcjEud29ya2Zsb3cudjEuUXVlcnlS",
-            "ZXF1ZXN0GiUuazFzMC50aWVyMS53b3JrZmxvdy52MS5RdWVyeVJlc3BvbnNl",
-            "ElcKBkNhbmNlbBIlLmsxczAudGllcjEud29ya2Zsb3cudjEuQ2FuY2VsUmVx",
-            "dWVzdBomLmsxczAudGllcjEud29ya2Zsb3cudjEuQ2FuY2VsUmVzcG9uc2US",
-            "YAoJVGVybWluYXRlEiguazFzMC50aWVyMS53b3JrZmxvdy52MS5UZXJtaW5h",
-            "dGVSZXF1ZXN0GikuazFzMC50aWVyMS53b3JrZmxvdy52MS5UZXJtaW5hdGVS",
-            "ZXNwb25zZRJgCglHZXRTdGF0dXMSKC5rMXMwLnRpZXIxLndvcmtmbG93LnYx",
-            "LkdldFN0YXR1c1JlcXVlc3QaKS5rMXMwLnRpZXIxLndvcmtmbG93LnYxLkdl",
-            "dFN0YXR1c1Jlc3BvbnNlQoMCChpjb20uazFzMC50aWVyMS53b3JrZmxvdy52",
-            "MUIUV29ya2Zsb3dTZXJ2aWNlUHJvdG9QAVpBZ2l0aHViLmNvbS9rMXMwL3Nk",
-            "ay1nby9wcm90by92MS9rMXMwL3RpZXIxL3dvcmtmbG93L3YxO3dvcmtmbG93",
-            "djGiAgNLVFeqAilLMXMwLlNkay5HZW5lcmF0ZWQuSzFzMC5UaWVyMS5Xb3Jr",
-            "Zmxvdy5WMcoCFksxczBcVGllcjFcV29ya2Zsb3dcVjHiAiJLMXMwXFRpZXIx",
-            "XFdvcmtmbG93XFYxXEdQQk1ldGFkYXRh6gIZSzFzMDo6VGllcjE6Oldvcmtm",
-            "bG93OjpWMWIGcHJvdG8z"));
+            "ckRldGFpbFIFZXJyb3IqSwoPV29ya2Zsb3dCYWNrZW5kEhAKDEJBQ0tFTkRf",
+            "QVVUTxAAEhAKDEJBQ0tFTkRfREFQUhABEhQKEEJBQ0tFTkRfVEVNUE9SQUwQ",
+            "AipsCg5Xb3JrZmxvd1N0YXR1cxILCgdSVU5OSU5HEAASDQoJQ09NUExFVEVE",
+            "EAESCgoGRkFJTEVEEAISDAoIQ0FOQ0VMRUQQAxIOCgpURVJNSU5BVEVEEAQS",
+            "FAoQQ09OVElOVUVEX0FTX05FVxAFMrMECg9Xb3JrZmxvd1NlcnZpY2USVAoF",
+            "U3RhcnQSJC5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlN0YXJ0UmVxdWVzdBol",
+            "LmsxczAudGllcjEud29ya2Zsb3cudjEuU3RhcnRSZXNwb25zZRJXCgZTaWdu",
+            "YWwSJS5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlNpZ25hbFJlcXVlc3QaJi5r",
+            "MXMwLnRpZXIxLndvcmtmbG93LnYxLlNpZ25hbFJlc3BvbnNlElQKBVF1ZXJ5",
+            "EiQuazFzMC50aWVyMS53b3JrZmxvdy52MS5RdWVyeVJlcXVlc3QaJS5rMXMw",
+            "LnRpZXIxLndvcmtmbG93LnYxLlF1ZXJ5UmVzcG9uc2USVwoGQ2FuY2VsEiUu",
+            "azFzMC50aWVyMS53b3JrZmxvdy52MS5DYW5jZWxSZXF1ZXN0GiYuazFzMC50",
+            "aWVyMS53b3JrZmxvdy52MS5DYW5jZWxSZXNwb25zZRJgCglUZXJtaW5hdGUS",
+            "KC5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlRlcm1pbmF0ZVJlcXVlc3QaKS5r",
+            "MXMwLnRpZXIxLndvcmtmbG93LnYxLlRlcm1pbmF0ZVJlc3BvbnNlEmAKCUdl",
+            "dFN0YXR1cxIoLmsxczAudGllcjEud29ya2Zsb3cudjEuR2V0U3RhdHVzUmVx",
+            "dWVzdBopLmsxczAudGllcjEud29ya2Zsb3cudjEuR2V0U3RhdHVzUmVzcG9u",
+            "c2VCgwIKGmNvbS5rMXMwLnRpZXIxLndvcmtmbG93LnYxQhRXb3JrZmxvd1Nl",
+            "cnZpY2VQcm90b1ABWkFnaXRodWIuY29tL2sxczAvc2RrLWdvL3Byb3RvL3Yx",
+            "L2sxczAvdGllcjEvd29ya2Zsb3cvdjE7d29ya2Zsb3d2MaICA0tUV6oCKUsx",
+            "czAuU2RrLkdlbmVyYXRlZC5LMXMwLlRpZXIxLldvcmtmbG93LlYxygIWSzFz",
+            "MFxUaWVyMVxXb3JrZmxvd1xWMeICIksxczBcVGllcjFcV29ya2Zsb3dcVjFc",
+            "R1BCTWV0YWRhdGHqAhlLMXMwOjpUaWVyMTo6V29ya2Zsb3c6OlYxYgZwcm90",
+            "bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.CommonReflection.Descriptor, },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowStatus), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest.Parser, new[]{ "WorkflowType", "WorkflowId", "Input", "Idempotent", "Context" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartResponse.Parser, new[]{ "WorkflowId", "RunId" }, null, null, null, null),
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend), typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowStatus), }, null, new pbr::GeneratedClrTypeInfo[] {
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest.Parser, new[]{ "WorkflowType", "WorkflowId", "Input", "Idempotent", "Context", "Backend" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartResponse.Parser, new[]{ "WorkflowId", "RunId", "Backend" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalRequest.Parser, new[]{ "WorkflowId", "SignalName", "Payload", "Context" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalResponse.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.QueryRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.QueryRequest.Parser, new[]{ "WorkflowId", "QueryName", "Payload", "Context" }, null, null, null, null),
@@ -98,6 +103,27 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
 
   }
   #region Enums
+  /// <summary>
+  /// バックエンド種別（FR-T1-WORKFLOW-001 の "短期は Dapr Workflow、長期実行は Temporal" 対応）。
+  /// SDK の RunShort / RunLong は本 enum を BACKEND_DAPR / BACKEND_TEMPORAL に固定する。
+  /// 注: zero 値は AUTO（明示指定なし、tier1 が workflow_type / 期待実行時間で振り分け）。
+  /// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  /// </summary>
+  public enum WorkflowBackend {
+    /// <summary>
+    /// 既定値: tier1 が workflow_type / 期待実行時間に基づいて自動選択する。
+    /// </summary>
+    [pbr::OriginalName("BACKEND_AUTO")] BackendAuto = 0,
+    /// <summary>
+    /// 短期ワークフロー向け（Dapr Workflow building block、上限 7 日）。
+    /// </summary>
+    [pbr::OriginalName("BACKEND_DAPR")] BackendDapr = 1,
+    /// <summary>
+    /// 長期ワークフロー向け（Temporal、上限なし）。
+    /// </summary>
+    [pbr::OriginalName("BACKEND_TEMPORAL")] BackendTemporal = 2,
+  }
+
   /// <summary>
   /// 実行状態の列挙。
   /// 注: 正典 IDL は本 enum の zero value を `RUNNING = 0` と定義しているため、
@@ -178,6 +204,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       input_ = other.input_;
       idempotent_ = other.idempotent_;
       context_ = other.context_ != null ? other.context_.Clone() : null;
+      backend_ = other.backend_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -262,6 +289,21 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
     }
 
+    /// <summary>Field number for the "backend" field.</summary>
+    public const int BackendFieldNumber = 6;
+    private global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend backend_ = global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto;
+    /// <summary>
+    /// バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend Backend {
+      get { return backend_; }
+      set {
+        backend_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -282,6 +324,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       if (Input != other.Input) return false;
       if (Idempotent != other.Idempotent) return false;
       if (!object.Equals(Context, other.Context)) return false;
+      if (Backend != other.Backend) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -294,6 +337,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       if (Input.Length != 0) hash ^= Input.GetHashCode();
       if (Idempotent != false) hash ^= Idempotent.GetHashCode();
       if (context_ != null) hash ^= Context.GetHashCode();
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) hash ^= Backend.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -332,6 +376,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(Context);
       }
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Backend);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -362,6 +410,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(Context);
       }
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        output.WriteRawTag(48);
+        output.WriteEnum((int) Backend);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -386,6 +438,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
       if (context_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
+      }
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Backend);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -416,6 +471,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
           Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
         }
         Context.MergeFrom(other.Context);
+      }
+      if (other.Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        Backend = other.Backend;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -459,6 +517,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
             input.ReadMessage(Context);
             break;
           }
+          case 48: {
+            Backend = (global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend) input.ReadEnum();
+            break;
+          }
         }
       }
     #endif
@@ -499,6 +561,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
               Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
             }
             input.ReadMessage(Context);
+            break;
+          }
+          case 48: {
+            Backend = (global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend) input.ReadEnum();
             break;
           }
         }
@@ -548,6 +614,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
     public StartResponse(StartResponse other) : this() {
       workflowId_ = other.workflowId_;
       runId_ = other.runId_;
+      backend_ = other.backend_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -587,6 +654,21 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
     }
 
+    /// <summary>Field number for the "backend" field.</summary>
+    public const int BackendFieldNumber = 3;
+    private global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend backend_ = global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto;
+    /// <summary>
+    /// 実際に選択された backend（AUTO で起動された場合の解決結果が入る）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend Backend {
+      get { return backend_; }
+      set {
+        backend_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -604,6 +686,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
       if (WorkflowId != other.WorkflowId) return false;
       if (RunId != other.RunId) return false;
+      if (Backend != other.Backend) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -613,6 +696,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       int hash = 1;
       if (WorkflowId.Length != 0) hash ^= WorkflowId.GetHashCode();
       if (RunId.Length != 0) hash ^= RunId.GetHashCode();
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) hash ^= Backend.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -639,6 +723,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
         output.WriteRawTag(18);
         output.WriteString(RunId);
       }
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        output.WriteRawTag(24);
+        output.WriteEnum((int) Backend);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -657,6 +745,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
         output.WriteRawTag(18);
         output.WriteString(RunId);
       }
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        output.WriteRawTag(24);
+        output.WriteEnum((int) Backend);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -672,6 +764,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
       if (RunId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(RunId);
+      }
+      if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Backend);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -690,6 +785,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
       if (other.RunId.Length != 0) {
         RunId = other.RunId;
+      }
+      if (other.Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
+        Backend = other.Backend;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -718,6 +816,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
             RunId = input.ReadString();
             break;
           }
+          case 24: {
+            Backend = (global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend) input.ReadEnum();
+            break;
+          }
         }
       }
     #endif
@@ -743,6 +845,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
           }
           case 18: {
             RunId = input.ReadString();
+            break;
+          }
+          case 24: {
+            Backend = (global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend) input.ReadEnum();
             break;
           }
         }

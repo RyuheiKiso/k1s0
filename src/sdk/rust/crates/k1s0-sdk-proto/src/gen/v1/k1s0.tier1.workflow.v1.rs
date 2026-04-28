@@ -19,6 +19,9 @@ pub struct StartRequest {
     /// 呼出元コンテキスト
     #[prost(message, optional, tag="5")]
     pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
+    #[prost(enumeration="WorkflowBackend", tag="6")]
+    pub backend: i32,
 }
 /// Start 応答
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -30,6 +33,9 @@ pub struct StartResponse {
     /// 実行 ID（リトライや継続実行時に新しい値が割当）
     #[prost(string, tag="2")]
     pub run_id: ::prost::alloc::string::String,
+    /// 実際に選択された backend（AUTO で起動された場合の解決結果が入る）。
+    #[prost(enumeration="WorkflowBackend", tag="3")]
+    pub backend: i32,
 }
 /// Signal リクエスト
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -143,6 +149,42 @@ pub struct GetStatusResponse {
     /// 失敗時のエラー詳細（status = FAILED の時のみ）
     #[prost(message, optional, tag="4")]
     pub error: ::core::option::Option<super::super::common::v1::ErrorDetail>,
+}
+/// バックエンド種別（FR-T1-WORKFLOW-001 の "短期は Dapr Workflow、長期実行は Temporal" 対応）。
+/// SDK の RunShort / RunLong は本 enum を BACKEND_DAPR / BACKEND_TEMPORAL に固定する。
+/// 注: zero 値は AUTO（明示指定なし、tier1 が workflow_type / 期待実行時間で振り分け）。
+/// buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkflowBackend {
+    /// 既定値: tier1 が workflow_type / 期待実行時間に基づいて自動選択する。
+    BackendAuto = 0,
+    /// 短期ワークフロー向け（Dapr Workflow building block、上限 7 日）。
+    BackendDapr = 1,
+    /// 長期ワークフロー向け（Temporal、上限なし）。
+    BackendTemporal = 2,
+}
+impl WorkflowBackend {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            WorkflowBackend::BackendAuto => "BACKEND_AUTO",
+            WorkflowBackend::BackendDapr => "BACKEND_DAPR",
+            WorkflowBackend::BackendTemporal => "BACKEND_TEMPORAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "BACKEND_AUTO" => Some(Self::BackendAuto),
+            "BACKEND_DAPR" => Some(Self::BackendDapr),
+            "BACKEND_TEMPORAL" => Some(Self::BackendTemporal),
+            _ => None,
+        }
+    }
 }
 /// 実行状態の列挙。
 /// 注: 正典 IDL は本 enum の zero value を `RUNNING = 0` と定義しているため、

@@ -13,13 +13,33 @@ type WorkflowClient struct{ client *Client }
 // Workflow は親 Client から WorkflowClient を返す。
 func (c *Client) Workflow() *WorkflowClient { return c.workflow }
 
-// Start はワークフロー開始。idempotent=true なら同 workflow_id の重複は既存実行を返す。
+// Start はワークフロー開始。backend hint は BACKEND_AUTO（tier1 が振り分け）。
+// idempotent=true なら同 workflow_id の重複は既存実行を返す。
+// 短期 / 長期で意図的に振り分けたい時は RunShort / RunLong を使う。
 func (w *WorkflowClient) Start(ctx context.Context, workflowType, workflowID string, input []byte, idempotent bool) (returnedID, runID string, err error) {
+	return w.startWithBackend(ctx, workflowType, workflowID, input, idempotent, workflowv1.WorkflowBackend_BACKEND_AUTO)
+}
+
+// RunShort は短期ワークフロー（≤7 日、BACKEND_DAPR）として開始する（FR-T1-WORKFLOW-001）。
+// 短期ワークフローは Dapr Workflow building block で実行され、Pod 再起動でも履歴が保持される。
+func (w *WorkflowClient) RunShort(ctx context.Context, workflowType, workflowID string, input []byte, idempotent bool) (returnedID, runID string, err error) {
+	return w.startWithBackend(ctx, workflowType, workflowID, input, idempotent, workflowv1.WorkflowBackend_BACKEND_DAPR)
+}
+
+// RunLong は長期ワークフロー（上限なし、BACKEND_TEMPORAL）として開始する（FR-T1-WORKFLOW-001）。
+// Continue-as-New / cron / 高度な signal 機能が必要な場合に使う。
+func (w *WorkflowClient) RunLong(ctx context.Context, workflowType, workflowID string, input []byte, idempotent bool) (returnedID, runID string, err error) {
+	return w.startWithBackend(ctx, workflowType, workflowID, input, idempotent, workflowv1.WorkflowBackend_BACKEND_TEMPORAL)
+}
+
+// startWithBackend は Start / RunShort / RunLong の共通実装。
+func (w *WorkflowClient) startWithBackend(ctx context.Context, workflowType, workflowID string, input []byte, idempotent bool, backend workflowv1.WorkflowBackend) (string, string, error) {
 	resp, e := w.client.raw.Workflow.Start(ctx, &workflowv1.StartRequest{
 		WorkflowType: workflowType,
 		WorkflowId:   workflowID,
 		Input:        input,
 		Idempotent:   idempotent,
+		Backend:      backend,
 		Context:      w.client.tenantContext(),
 	})
 	if e != nil {

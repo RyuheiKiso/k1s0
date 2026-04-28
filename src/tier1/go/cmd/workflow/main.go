@@ -32,7 +32,9 @@ import (
 	// 環境変数読出。
 	"os"
 
-	// Temporal adapter（本 Pod 専用）。
+	// Dapr Workflow adapter（FR-T1-WORKFLOW-001 短期向け）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/daprwf"
+	// Temporal adapter（長期向け）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/temporal"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
@@ -67,9 +69,14 @@ func main() {
 	}()
 
 	// WorkflowService が依存する adapter を構築する。
+	// 短期 = Dapr Workflow（in-memory backend、production は plan 04-14 で SDK 結線）、
+	// 長期 = Temporal の 2 系統を並行注入し、Start handler が backend hint で振り分ける。
 	deps := workflow.Deps{
-		// Temporal Client から WorkflowAdapter を生成する。
+		// Temporal（長期）。
 		WorkflowAdapter: temporal.NewWorkflowAdapter(temporalClient),
+		// Dapr Workflow（短期）。in-memory backend は production の Dapr 結線と
+		// 同じ interface（daprwf.WorkflowAdapter）を満たすため handler 側に変更不要。
+		DaprAdapter: daprwf.NewInMemoryWorkflow(),
 	}
 
 	// Pod メタデータを構築する（WorkflowService 登録）。
