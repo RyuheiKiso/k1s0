@@ -209,7 +209,7 @@ CI/CD・パッケージング・ビルド関連の周辺ツール。実装時よ
 
 ### other — その他
 
-技術カテゴリには収まらないが、プロジェクトの言語化・思考様式・キャリア観の共通認識として保持する資料。`tractatus`（論理哲学論考）や `language-games`（言語ゲーム）は、生成 AI とプロンプトエンジニアリングを哲学的基盤から捉え直すための参照点として置いている。`metadata` のような技術スタック非依存の概念フレームワークもここに収める。
+技術カテゴリには収まらないが、プロジェクトの言語化・思考様式・キャリア観の共通認識として保持する資料。`tractatus`（論理哲学論考）や `language-games`（言語ゲーム）は、生成 AI とプロンプトエンジニアリングを哲学的基盤から捉え直すための参照点として置いている。`metadata` のような技術スタック非依存の概念フレームワークや、`metacognition` のような認知・学習のメタ理論もここに収める。
 
 #### 哲学・言語論
 
@@ -222,6 +222,10 @@ CI/CD・パッケージング・ビルド関連の周辺ツール。実装時よ
 
 - [metadata_basics.md](other/metadata_basics.md)
 - [generative-ai_token.md](other/generative-ai_token.md)
+
+#### 認知・学習
+
+- [metacognition_basics.md](other/metacognition_basics.md)
 
 #### キャリア観
 
