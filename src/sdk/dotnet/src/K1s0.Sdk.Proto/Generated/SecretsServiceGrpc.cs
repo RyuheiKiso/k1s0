@@ -67,6 +67,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_BulkGetSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest> __Marshaller_k1s0_tier1_secrets_v1_GetDynamicSecretRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_GetDynamicSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest> __Marshaller_k1s0_tier1_secrets_v1_RotateSecretRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_RotateSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse.Parser));
@@ -88,6 +92,14 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
         __Marshaller_k1s0_tier1_secrets_v1_BulkGetSecretResponse);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse> __Method_GetDynamic = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "GetDynamic",
+        __Marshaller_k1s0_tier1_secrets_v1_GetDynamicSecretRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_GetDynamicSecretResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> __Method_Rotate = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse>(
         grpc::MethodType.Unary,
         __ServiceName,
@@ -106,7 +118,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     public abstract partial class SecretsServiceBase
     {
       /// <summary>
-      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="context">The context of the server-side call handler being invoked.</param>
@@ -125,6 +137,20 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> BulkGet(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// 動的シークレット発行（FR-T1-SECRETS-002）。
+      /// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+      /// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse> GetDynamic(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -173,7 +199,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       }
 
       /// <summary>
-      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -186,7 +212,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
         return Get(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -197,7 +223,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
         return CallInvoker.BlockingUnaryCall(__Method_Get, null, options, request);
       }
       /// <summary>
-      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -210,7 +236,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
         return GetAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
       }
       /// <summary>
-      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+      /// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>
@@ -267,6 +293,62 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse> BulkGetAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest request, grpc::CallOptions options)
       {
         return CallInvoker.AsyncUnaryCall(__Method_BulkGet, null, options, request);
+      }
+      /// <summary>
+      /// 動的シークレット発行（FR-T1-SECRETS-002）。
+      /// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+      /// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse GetDynamic(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetDynamic(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 動的シークレット発行（FR-T1-SECRETS-002）。
+      /// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+      /// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse GetDynamic(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_GetDynamic, null, options, request);
+      }
+      /// <summary>
+      /// 動的シークレット発行（FR-T1-SECRETS-002）。
+      /// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+      /// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse> GetDynamicAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return GetDynamicAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 動的シークレット発行（FR-T1-SECRETS-002）。
+      /// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+      /// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse> GetDynamicAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_GetDynamic, null, options, request);
       }
       /// <summary>
       /// ローテーション実行（FR-T1-SECRETS-004）
@@ -340,6 +422,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_Get, serviceImpl.Get)
           .AddMethod(__Method_BulkGet, serviceImpl.BulkGet)
+          .AddMethod(__Method_GetDynamic, serviceImpl.GetDynamic)
           .AddMethod(__Method_Rotate, serviceImpl.Rotate).Build();
     }
 
@@ -352,6 +435,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     {
       serviceBinder.AddMethod(__Method_Get, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse>(serviceImpl.Get));
       serviceBinder.AddMethod(__Method_BulkGet, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse>(serviceImpl.BulkGet));
+      serviceBinder.AddMethod(__Method_GetDynamic, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse>(serviceImpl.GetDynamic));
       serviceBinder.AddMethod(__Method_Rotate, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse>(serviceImpl.Rotate));
     }
 

@@ -79,5 +79,39 @@ pub struct RotateSecretResponse {
     #[prost(int32, tag="4")]
     pub ttl_sec: i32,
 }
+/// GetDynamic リクエスト（FR-T1-SECRETS-002）
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDynamicSecretRequest {
+    /// 呼出元コンテキスト（テナント境界の検証に必須）
+    #[prost(message, optional, tag="1")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 発行エンジン名（"postgres" / "mysql" / "kafka" 等、OpenBao の database engine 種別）
+    #[prost(string, tag="2")]
+    pub engine: ::prost::alloc::string::String,
+    /// OpenBao 側で予め定義されたロール名（tenant_id でスコープされた role）
+    #[prost(string, tag="3")]
+    pub role: ::prost::alloc::string::String,
+    /// TTL 秒数（0 = 既定 3600 秒 = 1 時間、最大 86400 秒 = 24 時間）
+    #[prost(int32, tag="4")]
+    pub ttl_sec: i32,
+}
+/// GetDynamic 応答
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetDynamicSecretResponse {
+    /// 発行された credential 一式（"username" / "password" 等の key=value）
+    #[prost(map="string, string", tag="1")]
+    pub values: ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
+    /// OpenBao 側 lease ID（renewal / revoke 用、削除時に呼び返す）
+    #[prost(string, tag="2")]
+    pub lease_id: ::prost::alloc::string::String,
+    /// 実際に付与された TTL 秒数（要求値が ceiling を超えたら短縮される）
+    #[prost(int32, tag="3")]
+    pub ttl_sec: i32,
+    /// 発効時刻（Unix epoch ミリ秒）
+    #[prost(int64, tag="4")]
+    pub issued_at_ms: i64,
+}
 include!("k1s0.tier1.secrets.v1.tonic.rs");
 // @@protoc_insertion_point(module)

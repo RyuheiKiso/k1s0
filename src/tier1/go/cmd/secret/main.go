@@ -72,6 +72,11 @@ func main() {
 	deps := secret.Deps{
 		// OpenBao Client から SecretsAdapter を生成する。
 		SecretsAdapter: openbao.NewSecretsAdapter(openBaoClient),
+		// 動的 Secret 発行 adapter（FR-T1-SECRETS-002）。
+		// dev / CI モードでは in-memory backend で credential を都度生成する。
+		// production では plan 04-06 後段で OpenBao Database Engine 直結 adapter に
+		// 切替予定。interface（DynamicAdapter）は不変のため handler 側に変更なし。
+		DynamicAdapter: openbao.NewInMemoryDynamic(),
 	}
 
 	// Pod メタデータを構築する（SecretsService 登録）。

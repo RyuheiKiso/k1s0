@@ -31,9 +31,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SecretsService_Get_FullMethodName     = "/k1s0.tier1.secrets.v1.SecretsService/Get"
-	SecretsService_BulkGet_FullMethodName = "/k1s0.tier1.secrets.v1.SecretsService/BulkGet"
-	SecretsService_Rotate_FullMethodName  = "/k1s0.tier1.secrets.v1.SecretsService/Rotate"
+	SecretsService_Get_FullMethodName        = "/k1s0.tier1.secrets.v1.SecretsService/Get"
+	SecretsService_BulkGet_FullMethodName    = "/k1s0.tier1.secrets.v1.SecretsService/BulkGet"
+	SecretsService_GetDynamic_FullMethodName = "/k1s0.tier1.secrets.v1.SecretsService/GetDynamic"
+	SecretsService_Rotate_FullMethodName     = "/k1s0.tier1.secrets.v1.SecretsService/Rotate"
 )
 
 // SecretsServiceClient is the client API for SecretsService service.
@@ -42,10 +43,14 @@ const (
 //
 // Secrets API。OpenBao をバックエンドとし、tier1 が PII / アクセス制御を強制する。
 type SecretsServiceClient interface {
-	// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+	// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
 	Get(ctx context.Context, in *GetSecretRequest, opts ...grpc.CallOption) (*GetSecretResponse, error)
 	// 一括取得（テナントに割当された全シークレット）
 	BulkGet(ctx context.Context, in *BulkGetSecretRequest, opts ...grpc.CallOption) (*BulkGetSecretResponse, error)
+	// 動的シークレット発行（FR-T1-SECRETS-002）。
+	// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+	// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+	GetDynamic(ctx context.Context, in *GetDynamicSecretRequest, opts ...grpc.CallOption) (*GetDynamicSecretResponse, error)
 	// ローテーション実行（FR-T1-SECRETS-004）
 	// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
 	// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
@@ -80,6 +85,16 @@ func (c *secretsServiceClient) BulkGet(ctx context.Context, in *BulkGetSecretReq
 	return out, nil
 }
 
+func (c *secretsServiceClient) GetDynamic(ctx context.Context, in *GetDynamicSecretRequest, opts ...grpc.CallOption) (*GetDynamicSecretResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDynamicSecretResponse)
+	err := c.cc.Invoke(ctx, SecretsService_GetDynamic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *secretsServiceClient) Rotate(ctx context.Context, in *RotateSecretRequest, opts ...grpc.CallOption) (*RotateSecretResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RotateSecretResponse)
@@ -96,10 +111,14 @@ func (c *secretsServiceClient) Rotate(ctx context.Context, in *RotateSecretReque
 //
 // Secrets API。OpenBao をバックエンドとし、tier1 が PII / アクセス制御を強制する。
 type SecretsServiceServer interface {
-	// 単一シークレット取得（テナント越境参照は即 PermissionDenied）
+	// 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
 	Get(context.Context, *GetSecretRequest) (*GetSecretResponse, error)
 	// 一括取得（テナントに割当された全シークレット）
 	BulkGet(context.Context, *BulkGetSecretRequest) (*BulkGetSecretResponse, error)
+	// 動的シークレット発行（FR-T1-SECRETS-002）。
+	// engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+	// TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+	GetDynamic(context.Context, *GetDynamicSecretRequest) (*GetDynamicSecretResponse, error)
 	// ローテーション実行（FR-T1-SECRETS-004）
 	// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
 	// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
@@ -118,6 +137,9 @@ func (UnimplementedSecretsServiceServer) Get(context.Context, *GetSecretRequest)
 }
 func (UnimplementedSecretsServiceServer) BulkGet(context.Context, *BulkGetSecretRequest) (*BulkGetSecretResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BulkGet not implemented")
+}
+func (UnimplementedSecretsServiceServer) GetDynamic(context.Context, *GetDynamicSecretRequest) (*GetDynamicSecretResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDynamic not implemented")
 }
 func (UnimplementedSecretsServiceServer) Rotate(context.Context, *RotateSecretRequest) (*RotateSecretResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rotate not implemented")
@@ -178,6 +200,24 @@ func _SecretsService_BulkGet_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SecretsService_GetDynamic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDynamicSecretRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretsServiceServer).GetDynamic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretsService_GetDynamic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretsServiceServer).GetDynamic(ctx, req.(*GetDynamicSecretRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SecretsService_Rotate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RotateSecretRequest)
 	if err := dec(in); err != nil {
@@ -210,6 +250,10 @@ var SecretsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BulkGet",
 			Handler:    _SecretsService_BulkGet_Handler,
+		},
+		{
+			MethodName: "GetDynamic",
+			Handler:    _SecretsService_GetDynamic_Handler,
 		},
 		{
 			MethodName: "Rotate",
