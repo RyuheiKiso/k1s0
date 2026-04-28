@@ -1,0 +1,100 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="token-pipeline" name="token-pipeline">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1120" pageHeight="420" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1120" height="420" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title" value="トークン化パイプライン（テキスト → トークン ID 列 → モデル入力）" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="15" width="800" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step1" value="入力テキスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="170" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step2" value="正規化&#10;Unicode NFC / 大小文字" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="240" y="80" width="170" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step3" value="サブワード分割&#10;BPE / WordPiece / SentencePiece" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step4" value="ID 変換&#10;語彙表 (vocab) を引く" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="80" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step5" value="モデル入力&#10;Embedding 層へ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="930" y="80" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex1" value="&quot;Tokens are units.&quot;" style="text;html=1;align=center;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="30" y="160" width="170" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex2" value="&quot;tokens are units.&quot;" style="text;html=1;align=center;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="240" y="160" width="170" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex3" value="[&quot;token&quot;, &quot;s&quot;, &quot;_are&quot;, &quot;_unit&quot;, &quot;s&quot;, &quot;.&quot;]" style="text;html=1;align=center;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="450" y="160" width="220" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex4" value="[3256, 82, 921, 5888, 82, 13]" style="text;html=1;align=center;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="710" y="160" width="180" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ex5" value="ベクトル列 (d 次元)" style="text;html=1;align=center;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="930" y="160" width="160" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note1" value="サブワード分割は文字でも単語でもない中間粒度を採る。語彙サイズ（例: GPT-4o の o200k_base は約 20 万語彙）と入力長の" style="text;html=1;align=center;fontSize=11;fontStyle=2;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="220" width="1060" height="22" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note2" value="バランスで語彙が選ばれる。ID 変換は語彙表（vocab.json）の単純な辞書ルックアップで、モデルごとに固有のため互換性はない。" style="text;html=1;align=center;fontSize=11;fontStyle=2;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="30" y="244" width="1060" height="22" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="step4" target="step5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="380" y="290" width="360" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;fontSize=11;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="390" y="295" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_blue" value="■ 入力（生テキスト）" style="text;html=1;fontSize=10;align=left;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="395" y="318" width="200" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_yellow" value="■ 前処理（正規化）" style="text;html=1;fontSize=10;align=left;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="395" y="338" width="200" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_green" value="■ サブワード分割（語彙独立な単位化）" style="text;html=1;fontSize=10;align=left;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="395" y="358" width="280" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_purple" value="■ ID 変換／■ モデル入力" style="text;html=1;fontSize=10;align=left;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="570" y="318" width="160" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_arrow" value="—— 実線: データ変換の流れ" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="570" y="338" width="200" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
