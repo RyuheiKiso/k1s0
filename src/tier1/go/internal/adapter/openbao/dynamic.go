@@ -22,10 +22,15 @@ import (
 	// in-memory 動的シークレット発行で credential（username/password）を生成するため。
 	"crypto/rand"
 	"encoding/hex"
+	// production 経路の "engine/creds/role" path 構築に使う。
+	"fmt"
 	// 排他制御。
 	"sync"
 	// TTL 制御で時刻と integer 比較を行う。
 	"time"
+
+	// OpenBao Go SDK。production の Logical().ReadWithContext を呼ぶため。
+	bao "github.com/openbao/openbao/api/v2"
 )
 
 // 既定 TTL（FR-T1-SECRETS-002 受け入れ基準: "デフォルト 1 時間"）。
@@ -165,6 +170,92 @@ func (m *inMemoryDynamic) GetDynamic(_ context.Context, req DynamicSecretRequest
 		LeaseID:    leaseID,
 		TTLSeconds: ttl,
 		IssuedAtMs: now,
+	}, nil
+}
+
+// dynamicReader は OpenBao SDK の Logical().ReadWithContext を narrow に切り出した
+// interface。production では `*bao.Client.Logical()` がこれを満たし、test では fake を注入する。
+type dynamicReader interface {
+	ReadWithContext(ctx context.Context, path string) (*bao.Secret, error)
+}
+
+// productionDynamic は OpenBao Database Engine 経路の DynamicAdapter 実装。
+//
+// Path 規約:
+//   "<engine>/creds/<tenant>/<role>" を読むことで、tier 越境を path レベルで防ぐ。
+//   テナント prefix は infra/security/openbao/ で apply する role policy と整合する想定。
+type productionDynamic struct {
+	reader dynamicReader
+}
+
+// NewProductionDynamic は OpenBao Client から DynamicAdapter を生成する。
+// `OPENBAO_ADDR` が設定されている cmd/secret 起動経路から呼ばれる。
+func NewProductionDynamic(c *Client) DynamicAdapter {
+	// `Client` は OpenBao SDK Client を保持しないため、外部 caller が SDK Client から
+	// Logical() を取り出して NewProductionDynamicFromReader に渡す経路もサポートする。
+	if c == nil {
+		// 安全側で in-memory backend を返す（不正な構築時の fallback）。
+		return NewInMemoryDynamic()
+	}
+	// SDK Client が無い構築（fake 注入）のときも nil-safe。
+	return &productionDynamic{reader: c.dynamicReaderFor()}
+}
+
+// NewProductionDynamicFromReader は test 用に narrow interface を直接受け取る。
+func NewProductionDynamicFromReader(r dynamicReader) DynamicAdapter {
+	return &productionDynamic{reader: r}
+}
+
+// GetDynamic は OpenBao Database Engine から動的 credential を発行する。
+// engine="postgres" / role="app-rw" / tenant="t1" の場合、
+// 実際に読む path は "postgres/creds/t1/app-rw"。
+func (p *productionDynamic) GetDynamic(ctx context.Context, req DynamicSecretRequest) (DynamicSecretResponse, error) {
+	// 必須フィールド検証は in-memory backend と揃える。
+	if req.Engine == "" || req.Role == "" || req.TenantID == "" {
+		return DynamicSecretResponse{}, errEmptyTenant
+	}
+	// reader 未注入時は ErrNotWired（handler が Unimplemented に翻訳）。
+	if p.reader == nil {
+		return DynamicSecretResponse{}, ErrNotWired
+	}
+	// path を構築する。
+	path := fmt.Sprintf("%s/creds/%s/%s", req.Engine, req.TenantID, req.Role)
+	// SDK 呼出。OpenBao は credential を新規発行して Secret に詰めて返す。
+	secret, err := p.reader.ReadWithContext(ctx, path)
+	if err != nil {
+		// SDK エラーは透過する（handler 側で Internal に翻訳）。
+		return DynamicSecretResponse{}, err
+	}
+	if secret == nil || len(secret.Data) == 0 {
+		// 該当 role が存在しない / policy 不足等は SDK が *Secret=nil を返す。
+		return DynamicSecretResponse{}, ErrSecretNotFound
+	}
+	// data の各値を string に正規化する（OpenBao は username/password を文字列として返すが、
+	// interface{} 経由なので念のため fmt.Sprintf でフォールバック）。
+	values := make(map[string]string, len(secret.Data))
+	for k, v := range secret.Data {
+		switch typed := v.(type) {
+		case string:
+			values[k] = typed
+		case nil:
+			values[k] = ""
+		default:
+			values[k] = fmt.Sprintf("%v", typed)
+		}
+	}
+	// LeaseDuration（秒）を TTL として使う。要求 TTL は OpenBao 側 role 設定が ceiling
+	// なので、SDK 戻り値を信頼する（要求値 > role ceiling のときは role ceiling が返る）。
+	ttl := int32(secret.LeaseDuration)
+	// 範囲外（マイナス値や桁あふれ）の defensive 補正。
+	if ttl < 0 {
+		ttl = 0
+	}
+	// 応答を組み立てる。
+	return DynamicSecretResponse{
+		Values:     values,
+		LeaseID:    secret.LeaseID,
+		TTLSeconds: ttl,
+		IssuedAtMs: time.Now().UnixMilli(),
 	}, nil
 }
 

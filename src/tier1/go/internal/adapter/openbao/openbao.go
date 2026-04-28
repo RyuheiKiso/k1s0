@@ -56,6 +56,9 @@ type Client struct {
 	kv kvClient
 	// path 配下の secret 名列挙用 narrow client（BulkGet 用、production: Logical().List() 経由 shim）。
 	lister Lister
+	// dynamic credential 取得用 narrow client（production: SDK の Logical()、test: fake）。
+	// 動的 Secret 発行（FR-T1-SECRETS-002）の OpenBao Database Engine 経路で使う。
+	dynamicReader dynamicReader
 	// SDK Client インスタンス（Close 用、fake 注入時は nil）。
 	closer interface{ Close() }
 }
@@ -97,6 +100,8 @@ func New(_ context.Context, cfg Config) (*Client, error) {
 		kv:      sdkClient.KVv2(mount),
 		// production の Lister は Logical().List() を mount 配下の metadata path で呼ぶ shim。
 		lister: newProductionLister(sdkClient, mount),
+		// 動的 Secret（Database Engine）の Read 経路。SDK の Logical() を narrow に切り出す。
+		dynamicReader: sdkClient.Logical(),
 		// SDK Client は Close() を持たない（HTTP client は GC 任せ）ため closer は nil。
 	}, nil
 }
@@ -130,4 +135,11 @@ func (c *Client) kvClientFor() kvClient {
 // 注入されていない場合は nil を返す（adapter 側で空一覧扱いにする）。
 func (c *Client) listerFor() Lister {
 	return c.lister
+}
+
+// dynamicReaderFor は内部 dynamic credential 用 narrow client を返す。
+// 動的 Secret 発行 adapter（productionDynamic）から呼び出される。
+// fake / in-memory 注入時は nil（caller 側で ErrNotWired にフォールバック）。
+func (c *Client) dynamicReaderFor() dynamicReader {
+	return c.dynamicReader
 }

@@ -73,14 +73,15 @@ func main() {
 	// SecretsAdapter は CachedSecretsAdapter で wrap する。Rotate 成功時の
 	// 同 secret latest invalidate も同 wrapper で担保。
 	baseSecrets := openbao.NewSecretsAdapter(openBaoClient)
+	// 動的 Secret 発行 adapter（FR-T1-SECRETS-002）。
+	// production（OPENBAO_ADDR が設定された経路）では Logical().Read を呼ぶ
+	// productionDynamic、dev / CI モードでは in-memory backend を使う。
+	dynamicAdapter := newDynamicAdapter(openBaoClient)
 	deps := secret.Deps{
 		// 30 秒 TTL の cache 付き secrets adapter。
 		SecretsAdapter: openbao.NewCachedSecretsAdapter(baseSecrets, 0),
-		// 動的 Secret 発行 adapter（FR-T1-SECRETS-002）。
-		// dev / CI モードでは in-memory backend で credential を都度生成する。
-		// production では plan 04-06 後段で OpenBao Database Engine 直結 adapter に
-		// 切替予定。interface（DynamicAdapter）は不変のため handler 側に変更なし。
-		DynamicAdapter: openbao.NewInMemoryDynamic(),
+		// 動的 Secret adapter。
+		DynamicAdapter: dynamicAdapter,
 	}
 
 	// Pod メタデータを構築する（SecretsService 登録）。
@@ -98,6 +99,25 @@ func main() {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-secret: %v", err)
 	}
+}
+
+// newDynamicAdapter は OPENBAO_ADDR の有無で production / in-memory backend を切り替えて
+// 動的 Secret adapter（FR-T1-SECRETS-002）を返す。
+//
+// production: OpenBao の `<engine>/creds/<tenant>/<role>` を Logical().Read で叩き、
+//             SDK が Database Engine 配下の動的 credential を都度発行する。
+// dev / CI:   process 内 in-memory で username / password を crypto/rand から生成する。
+func newDynamicAdapter(client *openbao.Client) openbao.DynamicAdapter {
+	// OPENBAO_ADDR が設定されていれば production 経路を使う。
+	if os.Getenv("OPENBAO_ADDR") != "" {
+		// stderr に経路選択を 1 行ログする。
+		log.Printf("t1-secret: dynamic secrets backend = OpenBao Database Engine (production)")
+		// SDK Logical() narrow を持った adapter を返す。
+		return openbao.NewProductionDynamic(client)
+	}
+	// 未設定時は in-memory backend に fallback する。
+	log.Printf("t1-secret: dynamic secrets backend = in-memory (dev/CI mode)")
+	return openbao.NewInMemoryDynamic()
 }
 
 // newOpenBaoClient は環境変数 OPENBAO_ADDR の有無で実 / in-memory を切替えて Client を生成する。

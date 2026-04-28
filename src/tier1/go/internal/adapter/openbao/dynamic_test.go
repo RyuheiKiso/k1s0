@@ -1,16 +1,17 @@
-// 本ファイルは inMemoryDynamic（FR-T1-SECRETS-002）の単体テスト。
+// 本ファイルは inMemoryDynamic / productionDynamic（FR-T1-SECRETS-002）の単体テスト。
 //
 // 検証観点:
-//   - TTL clamp（0 → 3600 / 上限超 → 86400）
-//   - engine / role / tenant_id 必須検証（errEmptyTenant 返却）
-//   - lease ID の重複なし
-//   - credential 値（username / password）の一意性
+//   - in-memory: TTL clamp / 必須検証 / lease ID 一意
+//   - production: path 構築規則 / SDK Secret → 応答変換 / nil-Secret で NotFound
 
 package openbao
 
 import (
 	"context"
+	"errors"
 	"testing"
+
+	bao "github.com/openbao/openbao/api/v2"
 )
 
 // 既定 TTL の clamp 動作を検証する。
@@ -102,5 +103,99 @@ func TestInMemoryDynamic_UniqueLeaseAndCreds(t *testing.T) {
 	// 発行時刻は単調非減少。
 	if a.IssuedAtMs > b.IssuedAtMs || b.IssuedAtMs > c.IssuedAtMs {
 		t.Errorf("issued_at not monotonic: %d %d %d", a.IssuedAtMs, b.IssuedAtMs, c.IssuedAtMs)
+	}
+}
+
+// fakeReader は productionDynamic のテストで dynamicReader interface を満たす。
+type fakeReader struct {
+	// 直前に呼ばれた path（path 構築規則の検証用）。
+	lastPath string
+	// 返却 Secret（nil で NotFound 検証）。
+	resp *bao.Secret
+	// 返却 err。
+	err error
+}
+
+func (f *fakeReader) ReadWithContext(_ context.Context, path string) (*bao.Secret, error) {
+	f.lastPath = path
+	return f.resp, f.err
+}
+
+// production 経路で path が "<engine>/creds/<tenant>/<role>" 形式で組まれることを検証する。
+func TestProductionDynamic_PathConvention(t *testing.T) {
+	fake := &fakeReader{
+		resp: &bao.Secret{
+			LeaseID:       "postgres/creds/t1/app-rw/lease-abc",
+			LeaseDuration: 1800,
+			Data: map[string]interface{}{
+				"username": "v-token-app-rw-XXXX",
+				"password": "secretpw",
+			},
+		},
+	}
+	a := NewProductionDynamicFromReader(fake)
+	resp, err := a.GetDynamic(context.Background(), DynamicSecretRequest{
+		Engine:     "postgres",
+		Role:       "app-rw",
+		TenantID:   "t1",
+		TTLSeconds: 3600,
+	})
+	if err != nil {
+		t.Fatalf("GetDynamic err: %v", err)
+	}
+	if fake.lastPath != "postgres/creds/t1/app-rw" {
+		t.Errorf("path: got %q, want %q", fake.lastPath, "postgres/creds/t1/app-rw")
+	}
+	if resp.LeaseID != "postgres/creds/t1/app-rw/lease-abc" {
+		t.Errorf("lease_id: got %q", resp.LeaseID)
+	}
+	if resp.Values["username"] != "v-token-app-rw-XXXX" {
+		t.Errorf("username: got %q", resp.Values["username"])
+	}
+	if resp.TTLSeconds != 1800 {
+		t.Errorf("ttl: got %d, want 1800 (from LeaseDuration)", resp.TTLSeconds)
+	}
+}
+
+// nil の Secret（role 不在 / policy 不足）を ErrSecretNotFound に翻訳することを検証する。
+func TestProductionDynamic_NilSecretReturnsNotFound(t *testing.T) {
+	fake := &fakeReader{resp: nil, err: nil}
+	a := NewProductionDynamicFromReader(fake)
+	_, err := a.GetDynamic(context.Background(), DynamicSecretRequest{
+		Engine:   "postgres",
+		Role:     "missing",
+		TenantID: "t1",
+	})
+	if !errors.Is(err, ErrSecretNotFound) {
+		t.Errorf("err: got %v, want ErrSecretNotFound", err)
+	}
+}
+
+// reader 未注入は ErrNotWired を返すことを検証する。
+func TestProductionDynamic_NoReaderReturnsNotWired(t *testing.T) {
+	a := NewProductionDynamicFromReader(nil)
+	_, err := a.GetDynamic(context.Background(), DynamicSecretRequest{
+		Engine:   "postgres",
+		Role:     "rw",
+		TenantID: "t",
+	})
+	if !errors.Is(err, ErrNotWired) {
+		t.Errorf("err: got %v, want ErrNotWired", err)
+	}
+}
+
+// 必須フィールド検証は in-memory と同じセマンティクスにする。
+func TestProductionDynamic_RequiredFields(t *testing.T) {
+	fake := &fakeReader{}
+	a := NewProductionDynamicFromReader(fake)
+	cases := []DynamicSecretRequest{
+		{Role: "r", TenantID: "t"},                      // engine 空
+		{Engine: "postgres", TenantID: "t"},             // role 空
+		{Engine: "postgres", Role: "r"},                 // tenant 空
+	}
+	for _, c := range cases {
+		if _, err := a.GetDynamic(context.Background(), c); err == nil {
+			t.Errorf("expected error for %+v, got nil", c)
+		}
 	}
 }
