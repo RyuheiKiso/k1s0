@@ -23,6 +23,8 @@ metadata:
     k1s0.io/component: notification-hub
     k1s0.io/lang: go
     k1s0.io/env: dev
+    # Scaffold CLI 経由生成でない既存ファイルは固定値 (CAT-021)
+    k1s0.io/template-version: legacy-pre-scaffold
 spec:
   # Component の種類。
   type: service

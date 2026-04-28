@@ -14,6 +14,8 @@ metadata:
     k1s0.io/component: docs-site
     k1s0.io/lang: typescript
     k1s0.io/env: dev
+    # Scaffold CLI 経由生成でない既存ファイルは固定値 (CAT-021)
+    k1s0.io/template-version: legacy-pre-scaffold
 spec:
   type: website
   lifecycle: experimental
