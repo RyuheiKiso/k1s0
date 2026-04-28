@@ -19,6 +19,8 @@ use std::sync::Arc;
 
 // SDK 公開 API の AuditService の Service trait / Server 型 / Request / Response 型を import。
 use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
+// HealthServiceServer: 共通 HealthService 実装を gRPC server に登録するための型。
+use k1s0_sdk_proto::k1s0::tier1::health::v1::health_service_server::HealthServiceServer;
 use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
     // AuditEvent / Request / Response 型。
     AuditEvent, ExportAuditChunk, ExportAuditRequest, ExportFormat, QueryAuditRequest,
@@ -27,6 +29,8 @@ use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
     // AuditService の trait と Server 型。
     audit_service_server::{AuditService, AuditServiceServer},
 };
+// 共通 HealthService 実装。
+use k1s0_tier1_health::Service as HealthSvc;
 // store 層（lib.rs 経由）。
 use k1s0_tier1_audit::store::{AppendInput, AuditEntry, AuditStore, InMemoryAuditStore, QueryInput};
 // Export RPC の chunk 整形ループ（lib.rs 経由、フォーマッタ実装は export.rs）。
@@ -311,8 +315,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
         .build_v1()?;
+    // 共通 HealthService を構築する。in-memory store のみのためリリース時点は probe 空。
+    // Postgres backed store に切替時は WAL / replication 状態 probe を追加予定。
+    let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
     Server::builder()
         .add_service(AuditServiceServer::new(server))
+        .add_service(HealthServiceServer::new(health))
         .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;

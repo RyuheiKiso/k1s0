@@ -16,12 +16,16 @@
 
 // SDK 公開 API の PiiService の Service trait / Server 型 / Request / Response 型を import。
 use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
+// HealthServiceServer: 共通 HealthService 実装を gRPC server に登録するための型。
+use k1s0_sdk_proto::k1s0::tier1::health::v1::health_service_server::HealthServiceServer;
 use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
     // Request / Response 型。
     ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse, PiiFinding,
     // PiiService の trait と Server 型。
     pii_service_server::{PiiService, PiiServiceServer},
 };
+// 共通 HealthService 実装。
+use k1s0_tier1_health::Service as HealthSvc;
 // PII 検出 logic の library 部。
 use k1s0_tier1_pii::masker::{Finding, Masker};
 // SIGTERM / SIGINT 受信。
@@ -113,8 +117,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
         .build_v1()?;
+    // 共通 HealthService を構築する。pii Pod は純関数 / ステートレスのため probe 空。
+    let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
     Server::builder()
         .add_service(PiiServiceServer::new(PiiServer::default()))
+        .add_service(HealthServiceServer::new(health))
         .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
