@@ -30,6 +30,8 @@ package state
 import (
 	// Dapr adapter（本リリース時点 placeholder）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// OTel 共通 emitter（Log / Metric / Trace）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/otel"
 	// SDK 生成 stub の各 service registration 関数を import する（公開 12 API のうち 7 件）。
 	bindingv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/binding/v1"
 	featurev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/feature/v1"
@@ -55,6 +57,12 @@ type Deps struct {
 	InvokeAdapter dapr.InvokeAdapter
 	// Feature Flag（flagd 直結）アダプタ。
 	FeatureAdapter dapr.FeatureAdapter
+	// OTel Logs パイプライン（Loki 経由）への emitter。nil 時は LogService が Unimplemented を返す。
+	LogEmitter otel.LogEmitter
+	// OTel Metrics パイプライン（Mimir 経由）への emitter。
+	MetricEmitter otel.MetricEmitter
+	// OTel Traces パイプライン（Tempo 経由）への emitter。
+	TraceEmitter otel.TraceEmitter
 }
 
 // NewDepsFromClient は単一の Dapr Client から 5 つのアダプタを構築する。
