@@ -57,4 +57,43 @@ export class SecretsFacade {
       previousVersion: resp.previousVersion,
     };
   }
+
+  /**
+   * getDynamic は動的 Secret 発行（FR-T1-SECRETS-002）。
+   * engine="postgres" / "mysql" / "kafka" 等の OpenBao Database Engine 種別を指定する。
+   * ttlSec=0 で既定 1 時間（3600）、上限 24 時間（86400）に clamp される。
+   */
+  async getDynamic(
+    engine: string,
+    role: string,
+    ttlSec = 0,
+  ): Promise<DynamicSecret> {
+    const raw = this.client.rawSecrets();
+    const resp = await raw.getDynamic({
+      engine,
+      role,
+      ttlSec,
+      context: this.client.tenantContext(),
+    });
+    return {
+      values: resp.values,
+      leaseId: resp.leaseId,
+      ttlSec: resp.ttlSec,
+      issuedAtMs: Number(resp.issuedAtMs),
+    };
+  }
+}
+
+/**
+ * 動的 Secret 発行（FR-T1-SECRETS-002）の応答を SDK 利用者向けに整理した型。
+ */
+export interface DynamicSecret {
+  /** credential 一式（"username" / "password" など、engine 別の field）。 */
+  values: Record<string, string>;
+  /** OpenBao の lease ID（renewal / revoke 用）。 */
+  leaseId: string;
+  /** 実際に付与された TTL 秒（要求値から ceiling までクランプされる）。 */
+  ttlSec: number;
+  /** 発効時刻（Unix epoch ミリ秒）。 */
+  issuedAtMs: number;
 }
