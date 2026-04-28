@@ -70,5 +70,38 @@ pub struct QueryAuditResponse {
     #[prost(message, repeated, tag="1")]
     pub events: ::prost::alloc::vec::Vec<AuditEvent>,
 }
+/// VerifyChain リクエスト（FR-T1-AUDIT-002）
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerifyChainRequest {
+    /// 範囲開始（任意）。未指定（zero）はテナント配下の全履歴を対象。
+    #[prost(message, optional, tag="1")]
+    pub from: ::core::option::Option<::prost_types::Timestamp>,
+    /// 範囲終了（任意）。未指定（zero）は最新まで。
+    #[prost(message, optional, tag="2")]
+    pub to: ::core::option::Option<::prost_types::Timestamp>,
+    /// 呼出元コンテキスト（テナント境界の検証に必須）
+    #[prost(message, optional, tag="3")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+}
+/// VerifyChain 応答
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerifyChainResponse {
+    /// チェーン全体の整合性が取れていれば true。
+    #[prost(bool, tag="1")]
+    pub valid: bool,
+    /// 検証対象だったイベント件数（valid に関わらず set される）。
+    #[prost(int64, tag="2")]
+    pub checked_count: i64,
+    /// valid=false 時のみ意味あり。最初に不整合を検出した sequence_number。
+    /// valid=true 時は 0。
+    #[prost(int64, tag="3")]
+    pub first_bad_sequence: i64,
+    /// 不整合の理由（"prev_hash mismatch" / "event_hash mismatch" / "tenant boundary" 等）。
+    /// valid=true 時は空文字。
+    #[prost(string, tag="4")]
+    pub reason: ::prost::alloc::string::String,
+}
 include!("k1s0.tier1.audit.v1.tonic.rs");
 // @@protoc_insertion_point(module)

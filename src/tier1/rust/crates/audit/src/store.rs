@@ -79,6 +79,30 @@ pub trait AuditStore: Send + Sync {
     fn query(&self, query: QueryInput) -> Result<Vec<AuditEntry>, StoreError>;
     /// チェーン整合性検証（全 entry の audit_id を再計算して一致確認）。
     fn verify_chain(&self) -> Result<(), StoreError>;
+    /// FR-T1-AUDIT-002 の VerifyChain RPC 用詳細検証。
+    /// 全グローバルチェーンを末尾まで歩き、prev_id / audit_id の整合性を確認する。
+    /// 改ざん検知時は first_bad_sequence（1-based、グローバル順序）と reason を返す。
+    /// `tenant_id` / `from_ms` / `to_ms` は checked_count の範囲絞り込みのみに使う
+    /// （チェーン検証自体はテナント横断のグローバル走査）。
+    fn verify_chain_detail(
+        &self,
+        tenant_id: &str,
+        from_ms: Option<i64>,
+        to_ms: Option<i64>,
+    ) -> Result<VerifyOutcome, StoreError>;
+}
+
+/// VerifyChain の詳細検証結果。proto VerifyChainResponse と意味的対応。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VerifyOutcome {
+    /// チェーン全体が整合していれば true。
+    pub valid: bool,
+    /// テナント / 時刻範囲フィルタ後の検証対象件数。
+    pub checked_count: i64,
+    /// 不整合検出時、最初に失敗した entry の 1-based グローバル順序番号。valid 時は 0。
+    pub first_bad_sequence: i64,
+    /// 不整合検出時の理由。valid 時は空文字。
+    pub reason: String,
 }
 
 /// append() に渡す入力（audit_id / prev_id は内部計算）。
@@ -226,16 +250,40 @@ impl AuditStore for InMemoryAuditStore {
     }
 
     fn verify_chain(&self) -> Result<(), StoreError> {
+        let outcome = self.verify_chain_detail("", None, None)?;
+        if outcome.valid {
+            Ok(())
+        } else {
+            Err(StoreError::Serialize(format!(
+                "verify_chain failed at sequence {}: {}",
+                outcome.first_bad_sequence, outcome.reason
+            )))
+        }
+    }
+
+    fn verify_chain_detail(
+        &self,
+        tenant_id: &str,
+        from_ms: Option<i64>,
+        to_ms: Option<i64>,
+    ) -> Result<VerifyOutcome, StoreError> {
         let entries = self.entries.read().map_err(|_| StoreError::LockPoisoned)?;
         let mut prev = "GENESIS".to_string();
-        for e in entries.iter() {
+        let mut checked: i64 = 0;
+        for (idx, e) in entries.iter().enumerate() {
             if e.prev_id != prev {
-                return Err(StoreError::Serialize(format!(
-                    "prev_id mismatch at {}: expected {}, got {}",
-                    e.audit_id, prev, e.prev_id
-                )));
+                return Ok(VerifyOutcome {
+                    valid: false,
+                    checked_count: checked,
+                    first_bad_sequence: (idx as i64) + 1,
+                    reason: format!(
+                        "prev_id mismatch at sequence {}: expected {}, got {}",
+                        idx + 1,
+                        prev,
+                        e.prev_id
+                    ),
+                });
             }
-            // 再計算する canonical bytes。
             let input = AppendInput {
                 timestamp_ms: e.timestamp_ms,
                 actor: e.actor.clone(),
@@ -248,14 +296,33 @@ impl AuditStore for InMemoryAuditStore {
             let canon = canonical_bytes(&input)?;
             let computed = hash_chain(&prev, &canon);
             if computed != e.audit_id {
-                return Err(StoreError::Serialize(format!(
-                    "audit_id mismatch: expected {}, got {}",
-                    e.audit_id, computed
-                )));
+                return Ok(VerifyOutcome {
+                    valid: false,
+                    checked_count: checked,
+                    first_bad_sequence: (idx as i64) + 1,
+                    reason: format!(
+                        "audit_id mismatch at sequence {}: expected {}, got {}",
+                        idx + 1,
+                        e.audit_id,
+                        computed
+                    ),
+                });
+            }
+            // 範囲内ならカウント。tenant_id="" はテナント無視（全件カウント）。
+            let in_tenant = tenant_id.is_empty() || e.tenant_id == tenant_id;
+            let in_range = from_ms.is_none_or(|f| e.timestamp_ms >= f)
+                && to_ms.is_none_or(|t| e.timestamp_ms <= t);
+            if in_tenant && in_range {
+                checked += 1;
             }
             prev = e.audit_id.clone();
         }
-        Ok(())
+        Ok(VerifyOutcome {
+            valid: true,
+            checked_count: checked,
+            first_bad_sequence: 0,
+            reason: String::new(),
+        })
     }
 }
 

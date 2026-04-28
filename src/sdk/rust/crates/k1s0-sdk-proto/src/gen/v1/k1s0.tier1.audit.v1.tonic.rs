@@ -134,6 +134,33 @@ pub mod audit_service_client {
                 .insert(GrpcMethod::new("k1s0.tier1.audit.v1.AuditService", "Query"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn verify_chain(
+            &mut self,
+            request: impl tonic::IntoRequest<super::VerifyChainRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::VerifyChainResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.audit.v1.AuditService/VerifyChain",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.audit.v1.AuditService", "VerifyChain"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -155,6 +182,13 @@ pub mod audit_service_server {
             request: tonic::Request<super::QueryAuditRequest>,
         ) -> std::result::Result<
             tonic::Response<super::QueryAuditResponse>,
+            tonic::Status,
+        >;
+        async fn verify_chain(
+            &self,
+            request: tonic::Request<super::VerifyChainRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::VerifyChainResponse>,
             tonic::Status,
         >;
     }
@@ -314,6 +348,52 @@ pub mod audit_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = QuerySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.audit.v1.AuditService/VerifyChain" => {
+                    #[allow(non_camel_case_types)]
+                    struct VerifyChainSvc<T: AuditService>(pub Arc<T>);
+                    impl<
+                        T: AuditService,
+                    > tonic::server::UnaryService<super::VerifyChainRequest>
+                    for VerifyChainSvc<T> {
+                        type Response = super::VerifyChainResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::VerifyChainRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AuditService>::verify_chain(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = VerifyChainSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

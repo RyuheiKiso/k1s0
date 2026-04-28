@@ -23,7 +23,7 @@
 // パッケージ命名規約: k1s0.tier1.<api>.v<n>
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3, Timestamp } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 import { TenantContext } from "../../common/v1/common_pb.js";
 
 /**
@@ -308,6 +308,130 @@ export class QueryAuditResponse extends Message<QueryAuditResponse> {
 
   static equals(a: QueryAuditResponse | PlainMessage<QueryAuditResponse> | undefined, b: QueryAuditResponse | PlainMessage<QueryAuditResponse> | undefined): boolean {
     return proto3.util.equals(QueryAuditResponse, a, b);
+  }
+}
+
+/**
+ * VerifyChain リクエスト（FR-T1-AUDIT-002）
+ *
+ * @generated from message k1s0.tier1.audit.v1.VerifyChainRequest
+ */
+export class VerifyChainRequest extends Message<VerifyChainRequest> {
+  /**
+   * 範囲開始（任意）。未指定（zero）はテナント配下の全履歴を対象。
+   *
+   * @generated from field: google.protobuf.Timestamp from = 1;
+   */
+  from?: Timestamp;
+
+  /**
+   * 範囲終了（任意）。未指定（zero）は最新まで。
+   *
+   * @generated from field: google.protobuf.Timestamp to = 2;
+   */
+  to?: Timestamp;
+
+  /**
+   * 呼出元コンテキスト（テナント境界の検証に必須）
+   *
+   * @generated from field: k1s0.tier1.common.v1.TenantContext context = 3;
+   */
+  context?: TenantContext;
+
+  constructor(data?: PartialMessage<VerifyChainRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.audit.v1.VerifyChainRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "from", kind: "message", T: Timestamp },
+    { no: 2, name: "to", kind: "message", T: Timestamp },
+    { no: 3, name: "context", kind: "message", T: TenantContext },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerifyChainRequest {
+    return new VerifyChainRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): VerifyChainRequest {
+    return new VerifyChainRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): VerifyChainRequest {
+    return new VerifyChainRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: VerifyChainRequest | PlainMessage<VerifyChainRequest> | undefined, b: VerifyChainRequest | PlainMessage<VerifyChainRequest> | undefined): boolean {
+    return proto3.util.equals(VerifyChainRequest, a, b);
+  }
+}
+
+/**
+ * VerifyChain 応答
+ *
+ * @generated from message k1s0.tier1.audit.v1.VerifyChainResponse
+ */
+export class VerifyChainResponse extends Message<VerifyChainResponse> {
+  /**
+   * チェーン全体の整合性が取れていれば true。
+   *
+   * @generated from field: bool valid = 1;
+   */
+  valid = false;
+
+  /**
+   * 検証対象だったイベント件数（valid に関わらず set される）。
+   *
+   * @generated from field: int64 checked_count = 2;
+   */
+  checkedCount = protoInt64.zero;
+
+  /**
+   * valid=false 時のみ意味あり。最初に不整合を検出した sequence_number。
+   * valid=true 時は 0。
+   *
+   * @generated from field: int64 first_bad_sequence = 3;
+   */
+  firstBadSequence = protoInt64.zero;
+
+  /**
+   * 不整合の理由（"prev_hash mismatch" / "event_hash mismatch" / "tenant boundary" 等）。
+   * valid=true 時は空文字。
+   *
+   * @generated from field: string reason = 4;
+   */
+  reason = "";
+
+  constructor(data?: PartialMessage<VerifyChainResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.audit.v1.VerifyChainResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "valid", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "checked_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "first_bad_sequence", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): VerifyChainResponse {
+    return new VerifyChainResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): VerifyChainResponse {
+    return new VerifyChainResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): VerifyChainResponse {
+    return new VerifyChainResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: VerifyChainResponse | PlainMessage<VerifyChainResponse> | undefined, b: VerifyChainResponse | PlainMessage<VerifyChainResponse> | undefined): boolean {
+    return proto3.util.equals(VerifyChainResponse, a, b);
   }
 }
 

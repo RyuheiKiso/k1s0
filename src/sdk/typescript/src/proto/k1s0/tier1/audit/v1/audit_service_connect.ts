@@ -22,7 +22,7 @@
 
 // パッケージ命名規約: k1s0.tier1.<api>.v<n>
 
-import { QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse } from "./audit_service_pb.js";
+import { QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse, VerifyChainRequest, VerifyChainResponse } from "./audit_service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -53,6 +53,19 @@ export const AuditService = {
       name: "Query",
       I: QueryAuditRequest,
       O: QueryAuditResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+     * テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+     * 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+     *
+     * @generated from rpc k1s0.tier1.audit.v1.AuditService.VerifyChain
+     */
+    verifyChain: {
+      name: "VerifyChain",
+      I: VerifyChainRequest,
+      O: VerifyChainResponse,
       kind: MethodKind.Unary,
     },
   }

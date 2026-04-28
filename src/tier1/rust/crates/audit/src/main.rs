@@ -21,6 +21,7 @@ use std::sync::Arc;
 use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
     // AuditEvent / Request / Response 型。
     AuditEvent, QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse,
+    VerifyChainRequest, VerifyChainResponse,
     // AuditService の trait と Server 型。
     audit_service_server::{AuditService, AuditServiceServer},
 };
@@ -165,6 +166,44 @@ impl AuditService for AuditServer {
         let events: Vec<AuditEvent> = entries.iter().map(entry_to_proto).collect();
         Ok(Response::new(QueryAuditResponse { events }))
     }
+
+    /// FR-T1-AUDIT-002: ハッシュチェーン整合性検証。
+    /// store.verify_chain_detail に委譲し、proto VerifyChainResponse に詰め替える。
+    async fn verify_chain(
+        &self,
+        req: Request<VerifyChainRequest>,
+    ) -> Result<Response<VerifyChainResponse>, Status> {
+        let r = req.into_inner();
+        let tenant_id = r
+            .context
+            .as_ref()
+            .map(|c| c.tenant_id.clone())
+            .unwrap_or_default();
+        // tenant_id 必須（テナント境界違反を弾く）。
+        if tenant_id.is_empty() {
+            return Err(Status::invalid_argument(
+                "tier1/audit: tenant_id required in TenantContext",
+            ));
+        }
+        let from_ms = r
+            .from
+            .as_ref()
+            .map(|t| t.seconds * 1000 + i64::from(t.nanos / 1_000_000));
+        let to_ms = r
+            .to
+            .as_ref()
+            .map(|t| t.seconds * 1000 + i64::from(t.nanos / 1_000_000));
+        let outcome = self
+            .store
+            .verify_chain_detail(&tenant_id, from_ms, to_ms)
+            .map_err(|e| Status::internal(format!("tier1/audit: store error: {}", e)))?;
+        Ok(Response::new(VerifyChainResponse {
+            valid: outcome.valid,
+            checked_count: outcome.checked_count,
+            first_bad_sequence: outcome.first_bad_sequence,
+            reason: outcome.reason,
+        }))
+    }
 }
 
 async fn shutdown_signal() {
@@ -281,6 +320,46 @@ mod tests {
         for w in resp.events.windows(2) {
             assert!(w[0].timestamp.as_ref().unwrap().seconds <= w[1].timestamp.as_ref().unwrap().seconds);
         }
+    }
+
+    #[tokio::test]
+    async fn verify_chain_returns_valid_after_appends() {
+        let s = make_server();
+        for i in 1..=3 {
+            s.record(Request::new(RecordAuditRequest {
+                event: Some(make_event(i, "u", "R")),
+                context: make_ctx("T"),
+            }))
+            .await
+            .unwrap();
+        }
+        let resp = s
+            .verify_chain(Request::new(VerifyChainRequest {
+                from: None,
+                to: None,
+                context: make_ctx("T"),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(resp.valid);
+        assert_eq!(resp.checked_count, 3);
+        assert_eq!(resp.first_bad_sequence, 0);
+        assert!(resp.reason.is_empty());
+    }
+
+    #[tokio::test]
+    async fn verify_chain_requires_tenant() {
+        let s = make_server();
+        let r = s
+            .verify_chain(Request::new(VerifyChainRequest {
+                from: None,
+                to: None,
+                context: None,
+            }))
+            .await;
+        assert!(r.is_err());
+        assert_eq!(r.err().unwrap().code(), tonic::Code::InvalidArgument);
     }
 
     #[tokio::test]

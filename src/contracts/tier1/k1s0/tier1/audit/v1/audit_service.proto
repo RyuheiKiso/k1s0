@@ -30,6 +30,10 @@ service AuditService {
   rpc Record(RecordAuditRequest) returns (RecordAuditResponse);
   // 監査イベント検索（範囲 + フィルタ、出力には PII Mask が自動適用）
   rpc Query(QueryAuditRequest) returns (QueryAuditResponse);
+  // ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+  // テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+  // 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+  rpc VerifyChain(VerifyChainRequest) returns (VerifyChainResponse);
 }
 
 // 監査イベント
@@ -80,4 +84,28 @@ message QueryAuditRequest {
 message QueryAuditResponse {
   // 検索結果（時刻昇順、出力時に PII Mask 自動適用）
   repeated AuditEvent events = 1;
+}
+
+// VerifyChain リクエスト（FR-T1-AUDIT-002）
+message VerifyChainRequest {
+  // 範囲開始（任意）。未指定（zero）はテナント配下の全履歴を対象。
+  google.protobuf.Timestamp from = 1;
+  // 範囲終了（任意）。未指定（zero）は最新まで。
+  google.protobuf.Timestamp to = 2;
+  // 呼出元コンテキスト（テナント境界の検証に必須）
+  k1s0.tier1.common.v1.TenantContext context = 3;
+}
+
+// VerifyChain 応答
+message VerifyChainResponse {
+  // チェーン全体の整合性が取れていれば true。
+  bool valid = 1;
+  // 検証対象だったイベント件数（valid に関わらず set される）。
+  int64 checked_count = 2;
+  // valid=false 時のみ意味あり。最初に不整合を検出した sequence_number。
+  // valid=true 時は 0。
+  int64 first_bad_sequence = 3;
+  // 不整合の理由（"prev_hash mismatch" / "event_hash mismatch" / "tenant boundary" 等）。
+  // valid=true 時は空文字。
+  string reason = 4;
 }

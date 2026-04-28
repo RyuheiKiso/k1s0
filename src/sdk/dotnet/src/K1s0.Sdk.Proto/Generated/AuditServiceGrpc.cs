@@ -73,6 +73,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditRequest> __Marshaller_k1s0_tier1_audit_v1_QueryAuditRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditResponse> __Marshaller_k1s0_tier1_audit_v1_QueryAuditResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest> __Marshaller_k1s0_tier1_audit_v1_VerifyChainRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse> __Marshaller_k1s0_tier1_audit_v1_VerifyChainResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.RecordAuditRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.RecordAuditResponse> __Method_Record = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.RecordAuditRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.RecordAuditResponse>(
@@ -89,6 +93,14 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
         "Query",
         __Marshaller_k1s0_tier1_audit_v1_QueryAuditRequest,
         __Marshaller_k1s0_tier1_audit_v1_QueryAuditResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse> __Method_VerifyChain = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "VerifyChain",
+        __Marshaller_k1s0_tier1_audit_v1_VerifyChainRequest,
+        __Marshaller_k1s0_tier1_audit_v1_VerifyChainResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -120,6 +132,20 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditResponse> Query(global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+      /// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+      /// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse> VerifyChain(global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -249,6 +275,62 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_Query, null, options, request);
       }
+      /// <summary>
+      /// ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+      /// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+      /// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse VerifyChain(global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return VerifyChain(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+      /// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+      /// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse VerifyChain(global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_VerifyChain, null, options, request);
+      }
+      /// <summary>
+      /// ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+      /// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+      /// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse> VerifyChainAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return VerifyChainAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+      /// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+      /// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse> VerifyChainAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_VerifyChain, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override AuditServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -264,7 +346,8 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_Record, serviceImpl.Record)
-          .AddMethod(__Method_Query, serviceImpl.Query).Build();
+          .AddMethod(__Method_Query, serviceImpl.Query)
+          .AddMethod(__Method_VerifyChain, serviceImpl.VerifyChain).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -276,6 +359,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
     {
       serviceBinder.AddMethod(__Method_Record, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.RecordAuditRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.RecordAuditResponse>(serviceImpl.Record));
       serviceBinder.AddMethod(__Method_Query, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.QueryAuditResponse>(serviceImpl.Query));
+      serviceBinder.AddMethod(__Method_VerifyChain, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1.VerifyChainResponse>(serviceImpl.VerifyChain));
     }
 
   }
