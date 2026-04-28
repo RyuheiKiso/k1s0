@@ -98,12 +98,12 @@ import "context"
 
 // ObjectStore はオブジェクトストレージ操作を抽象化するインターフェースである
 type ObjectStore interface {
-	// オブジェクトを保存する
-	Put(ctx context.Context, key string, data []byte) error
-	// オブジェクトを取得する
-	Get(ctx context.Context, key string) ([]byte, error)
-	// オブジェクトを削除する
-	Delete(ctx context.Context, key string) error
+ // オブジェクトを保存する
+ Put(ctx context.Context, key string, data []byte) error
+ // オブジェクトを取得する
+ Get(ctx context.Context, key string) ([]byte, error)
+ // オブジェクトを削除する
+ Delete(ctx context.Context, key string) error
 }
 ```
 

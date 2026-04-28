@@ -247,6 +247,7 @@ k1s0 dev secrets list my-service
 ```
 
 出力:
+
 ```text
 my-service のシークレット
 ─────────────────────────

@@ -136,9 +136,9 @@ PU §43 の「意味はその使用にある」という立場は、計算言語
 
 ## 13. 参考資料
 
-- STRV Blog, "Language Games and LLMs: What Wittgenstein Can Teach Us" (https://www.strv.com/blog/language-games-and-llms-what-wittgenstein-can-teach-ai-engineers)
+- STRV Blog, "Language Games and LLMs: What Wittgenstein Can Teach Us" (<https://www.strv.com/blog/language-games-and-llms-what-wittgenstein-can-teach-ai-engineers>)
 - AI Inquiry Garden, "AI Meets Philosophy Vol. 5: Understanding LLMs through Wittgenstein's Philosophy" (Medium, 2024)
 - Academia.edu, "LLMs and Language-Game Rules: An Examination of the Ability of Large Language Models to Follow the Rules of Different Language-Games" (2024)
-- Donald Clark, "Language, AI and what we can learn from Wittgenstein" (http://donaldclarkplanb.blogspot.com/2023/06/language-ai-and-what-we-can-learn-from.html)
+- Donald Clark, "Language, AI and what we can learn from Wittgenstein" (<http://donaldclarkplanb.blogspot.com/2023/06/language-ai-and-what-we-can-learn-from.html>)
 - M. Shanahan, "Talking About Large Language Models" (arXiv:2212.03551)
-- Stanford Encyclopedia of Philosophy: "Private Language" (https://plato.stanford.edu/entries/private-language/)
+- Stanford Encyclopedia of Philosophy: "Private Language" (<https://plato.stanford.edu/entries/private-language/>)

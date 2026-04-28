@@ -4,7 +4,7 @@
 
 ## 構成
 
-```
+```text
 settings/
 ├── README.md                          # 本ファイル
 ├── common.settings.json               # 全役割共通設定

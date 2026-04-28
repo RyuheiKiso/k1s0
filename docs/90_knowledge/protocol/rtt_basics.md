@@ -90,9 +90,11 @@ RTO    ← SRTT + max(G, K × RTTVAR)
 ### 6.2 ping で素の RTT を確認
 
 1. 任意のホストへ ICMP Echo を送信する
+
    ```bash
    ping -c 5 1.1.1.1
    ```
+
 2. 出力の `time=XX.X ms` が各パケットの RTT サンプル
 3. 末尾の `rtt min/avg/max/mdev = …` が統計量（mdev は RTTVAR 相当）
 

@@ -99,7 +99,7 @@ Binding API 固有のエラーコードは以下 6 種に限定する。`BINDING
 | NFR-B-PERF-001 | tier1 API p99 500ms 内で Binding Output を実装（固有目標は リリース時点 実測後に追加検討） | DS-SW-EIF-306, DS-NFR-PERF-001 | 部分 |
 | NFR-C-OPS-003 | DLQ 運用と可視化 | DS-SW-EIF-307, DS-NFR-OPS-003 | 完全 |
 
-表に載せた要件数は FR-T1-BINDING-* 4 件 + FR-EXT-* 2 件 + NFR 2 件 = 計 8 件。NFR-B-PERF-001 は `部分` 状態であり、リリース時点 実測値をもとに Binding 固有の性能要件を追加する計画である（Product Council 提示時に差分 PR 予定）。
+表に載せた要件数は FR-T1-BINDING-*4 件 + FR-EXT-* 2 件 + NFR 2 件 = 計 8 件。NFR-B-PERF-001 は `部分` 状態であり、リリース時点 実測値をもとに Binding 固有の性能要件を追加する計画である（Product Council 提示時に差分 PR 予定）。
 
 補助参照は以下のとおり。
 

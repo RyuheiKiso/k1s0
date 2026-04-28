@@ -27,6 +27,7 @@ src/tier1/
 ```
 
 上位参照:
+
 - 契約: `src/contracts/`（ADR-DIR-001、IMP-DIR-T1-022）
 - インフラ素構成: `infra/`（ADR-DIR-002、IMP-DIR-INFRA-071）
 - GitOps 配信: `deploy/`（IMP-DIR-OPS-091）

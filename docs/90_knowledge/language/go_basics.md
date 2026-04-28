@@ -94,28 +94,28 @@ import "fmt"
 
 // メイン関数: プログラムのエントリーポイント
 func main() {
-	// 変数を宣言する（型推論を使用）
-	name := "Go"
-	// フォーマット付きで標準出力に表示する
-	fmt.Printf("Hello, %s!\n", name)
+ // 変数を宣言する（型推論を使用）
+ name := "Go"
+ // フォーマット付きで標準出力に表示する
+ fmt.Printf("Hello, %s!\n", name)
 
-	// 明示的に型を指定して変数を宣言する
-	var count int = 0
-	// 値を変更する
-	count++
-	// 変数の値を表示する
-	fmt.Println("count =", count)
+ // 明示的に型を指定して変数を宣言する
+ var count int = 0
+ // 値を変更する
+ count++
+ // 変数の値を表示する
+ fmt.Println("count =", count)
 
-	// 関数を呼び出して結果を受け取る
-	result := add(3, 5)
-	// 結果を表示する
-	fmt.Printf("3 + 5 = %d\n", result)
+ // 関数を呼び出して結果を受け取る
+ result := add(3, 5)
+ // 結果を表示する
+ fmt.Printf("3 + 5 = %d\n", result)
 }
 
 // 2 つの整数を受け取り、合計を返す関数
 func add(a, b int) int {
-	// 合計を返す
-	return a + b
+ // 合計を返す
+ return a + b
 }
 ```
 
@@ -139,24 +139,24 @@ import "fmt"
 
 // User 構造体を定義する
 type User struct {
-	// 名前フィールド
-	Name string
-	// 年齢フィールド
-	Age int
+ // 名前フィールド
+ Name string
+ // 年齢フィールド
+ Age int
 }
 
 // User の挨拶メソッドを定義する（値レシーバ）
 func (u User) Greet() string {
-	// フォーマットした文字列を返す
-	return fmt.Sprintf("こんにちは、%sです（%d歳）", u.Name, u.Age)
+ // フォーマットした文字列を返す
+ return fmt.Sprintf("こんにちは、%sです（%d歳）", u.Name, u.Age)
 }
 
 // メイン関数
 func main() {
-	// User を生成する
-	user := User{Name: "太郎", Age: 30}
-	// メソッドを呼び出して表示する
-	fmt.Println(user.Greet())
+ // User を生成する
+ user := User{Name: "太郎", Age: 30}
+ // メソッドを呼び出して表示する
+ fmt.Println(user.Greet())
 }
 ```
 
@@ -171,27 +171,27 @@ import "fmt"
 
 // 二乗を計算して channel に送信する関数
 func square(n int, ch chan<- int) {
-	// 計算結果を channel に送信する
-	ch <- n * n
+ // 計算結果を channel に送信する
+ ch <- n * n
 }
 
 // メイン関数
 func main() {
-	// int 型の channel を作成する
-	ch := make(chan int, 3)
+ // int 型の channel を作成する
+ ch := make(chan int, 3)
 
-	// 3 つの goroutine を起動する
-	go square(2, ch)
-	go square(3, ch)
-	go square(4, ch)
+ // 3 つの goroutine を起動する
+ go square(2, ch)
+ go square(3, ch)
+ go square(4, ch)
 
-	// 3 つの結果を channel から受信して表示する
-	for i := 0; i < 3; i++ {
-		// channel からデータを受信する
-		result := <-ch
-		// 結果を表示する
-		fmt.Println(result)
-	}
+ // 3 つの結果を channel から受信して表示する
+ for i := 0; i < 3; i++ {
+  // channel からデータを受信する
+  result := <-ch
+  // 結果を表示する
+  fmt.Println(result)
+ }
 }
 ```
 

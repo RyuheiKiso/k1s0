@@ -14,6 +14,7 @@ k1s0 リポジトリの Rust workspace（`src/tier1/rust/`、`src/sdk/rust/`、`
 | `src/platform/scaffold/` | 同 crate / contracts | tier1〜3 への path |
 
 実装上の判定ロジック:
+
 - `Cargo.toml` の絶対 path → 自身の tier を SourceTierByPath で判定
 - 各 dep の `path = "../../foo"` を絶対 path に解決 → 解決先の tier を判定
 - 自身の tier から解決先 tier への参照が dep direction で許容されるかを `IsAllowed` で検証

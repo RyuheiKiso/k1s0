@@ -18,7 +18,7 @@ Backstage の entity モデルは多数あるが、k1s0 では以下 5 種に絞
 |---|---|---|---|
 | `Component` | `service` | `src/tier{1,2}/<component>/catalog-info.yaml` | Scaffold が tier1 / tier2 サービス作成時に生成 |
 | `Component` | `website` / `native-app` | `src/tier3/<component>/catalog-info.yaml` | Scaffold が tier3 作成時に生成 |
-| `Component` | `library` | `src/sdk/{rust|go|ts|csharp}/catalog-info.yaml` | リリース時点で 4 SDK 分を手動配置（Scaffold 対象外） |
+| `Component` | `library` | `src/sdk/{rust,go,ts,csharp}/catalog-info.yaml` | リリース時点で 4 SDK 分を手動配置（Scaffold 対象外） |
 | `API` | `grpc` / `openapi` | `src/contracts/<name>/catalog-info.yaml` | buf / openapi 生成パイプライン側で同時生成 |
 | `Group` / `System` | — | `catalog/groups.yaml` / `catalog/systems.yaml`（リポジトリ直下） | 組織変更時のみ手動更新 |
 

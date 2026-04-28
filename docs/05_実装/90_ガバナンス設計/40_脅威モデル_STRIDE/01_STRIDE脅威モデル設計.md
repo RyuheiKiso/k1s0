@@ -32,7 +32,7 @@ tier1 公開 11 API 別の粒度にする根拠は、API 種別によって STRI
 - **脅威 ID**: `THR-<API>-<区分>-<連番>`（例: `THR-SECRETS-I-001` = Secrets API の Information Disclosure 1 番）
 - **悪用シナリオ**: 攻撃者視点の具体記述（「攻撃者が ServiceAccount token を漏洩させ、Secrets API で他 tenant の secret を取得する」等）
 - **影響資産**: tier1 API / データ / 認証情報 / 監査ログのいずれか
-- **緩和策**: 対応 IMP-* ID（85 章 IMP-SEC-KC-* / 80 章 IMP-SUP-COS-* / 本章 IMP-POL-KYV-* 等）
+- **緩和策**: 対応 IMP-*ID（85 章 IMP-SEC-KC-* / 80 章 IMP-SUP-COS-*/ 本章 IMP-POL-KYV-* 等）
 - **残余リスクと受容状態**: 緩和後も残る risk の受容レベル（`Accepted` / `Monitored` / `Under mitigation`）
 
 STRIDE 6 区分の定義は Microsoft STRIDE の原典に準拠する（IMP-POL-STR-042）。Spoofing（なりすまし）/ Tampering（改竄）/ Repudiation（否認）/ Information Disclosure（情報漏洩）/ Denial of Service（サービス不能）/ Elevation of Privilege（権限昇格）。各 API で全 6 区分を記述し、該当脅威ゼロの区分は「該当なし / 理由」を明記（空白禁止）する。

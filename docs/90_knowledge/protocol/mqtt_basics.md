@@ -86,14 +86,19 @@ Keep Alive は接続維持のための仕組みで、クライアントは指定
 
 1. Docker Desktop を起動する
 2. 次のコマンドで Mosquitto を起動する
+
    ```bash
    docker run -it --rm -p 1883:1883 eclipse-mosquitto
    ```
+
 3. 別ターミナルで購読を開始する
+
    ```bash
    docker run -it --rm --network host eclipse-mosquitto mosquitto_sub -h localhost -t "home/#" -v
    ```
+
 4. さらに別ターミナルで発行する
+
    ```bash
    docker run -it --rm --network host eclipse-mosquitto mosquitto_pub -h localhost -t "home/temperature" -m "23.5"
    ```

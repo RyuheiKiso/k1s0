@@ -102,36 +102,36 @@ package main
 
 // 必要なパッケージをインポートする
 import (
-	"log"
-	// Pyroscope Go SDK をインポートする
-	"github.com/grafana/pyroscope-go"
+ "log"
+ // Pyroscope Go SDK をインポートする
+ "github.com/grafana/pyroscope-go"
 )
 
 func main() {
-	// Pyroscope プロファイラを起動する
-	profiler, err := pyroscope.Start(pyroscope.Config{
-		// アプリケーション名を指定する
-		ApplicationName: "my-go-service",
-		// Pyroscope サーバのアドレスを指定する
-		ServerAddress: "http://localhost:4040",
-		// 収集するプロファイルタイプを指定する
-		ProfileTypes: []pyroscope.ProfileType{
-			// CPU プロファイルを有効化する
-			pyroscope.ProfileCPU,
-			// ヒープの使用中オブジェクト数を有効化する
-			pyroscope.ProfileInuseObjects,
-			// ヒープの使用中バイト数を有効化する
-			pyroscope.ProfileInuseSpace,
-		},
-	})
-	// エラーが発生した場合はログ出力して終了する
-	if err != nil {
-		log.Fatalf("Pyroscope の起動に失敗: %v", err)
-	}
-	// プログラム終了時にプロファイラを停止する
-	defer profiler.Stop()
+ // Pyroscope プロファイラを起動する
+ profiler, err := pyroscope.Start(pyroscope.Config{
+  // アプリケーション名を指定する
+  ApplicationName: "my-go-service",
+  // Pyroscope サーバのアドレスを指定する
+  ServerAddress: "http://localhost:4040",
+  // 収集するプロファイルタイプを指定する
+  ProfileTypes: []pyroscope.ProfileType{
+   // CPU プロファイルを有効化する
+   pyroscope.ProfileCPU,
+   // ヒープの使用中オブジェクト数を有効化する
+   pyroscope.ProfileInuseObjects,
+   // ヒープの使用中バイト数を有効化する
+   pyroscope.ProfileInuseSpace,
+  },
+ })
+ // エラーが発生した場合はログ出力して終了する
+ if err != nil {
+  log.Fatalf("Pyroscope の起動に失敗: %v", err)
+ }
+ // プログラム終了時にプロファイラを停止する
+ defer profiler.Stop()
 
-	// アプリケーションのメイン処理をここに記述する
+ // アプリケーションのメイン処理をここに記述する
 }
 ```
 

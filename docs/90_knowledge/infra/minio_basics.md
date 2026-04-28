@@ -175,7 +175,7 @@ minio server https://minio{1...4}.example.net/mnt/disk{1...4}
 ## 11. 演習問題
 
 1. Docker で MinIO を起動し、mc CLI でバケット作成とファイルのアップロードを実行せよ
-2. Console UI（http://localhost:9001）にログインし、アップロードしたファイルを確認せよ
+2. Console UI（<http://localhost:9001）にログインし、アップロードしたファイルを確認せよ>
 3. バージョニングを有効にし、同一キーのファイルを 2 回アップロードして両バージョンが保持されることを確認せよ
 
 ## 12. さらに学ぶには
