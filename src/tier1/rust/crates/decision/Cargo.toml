@@ -40,6 +40,7 @@ serde_json = "1"
 # ビルド環境に C/C++ コンパイラが必要。production イメージはマルチステージビルドで builder
 # ステージにのみ cc を入れる運用。
 zen-engine = "0.55.0"
+tonic-reflection = "0.12"
 
 [lib]
 name = "k1s0_tier1_decision"

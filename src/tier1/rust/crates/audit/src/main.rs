@@ -18,6 +18,7 @@
 use std::sync::Arc;
 
 // SDK 公開 API の AuditService の Service trait / Server 型 / Request / Response 型を import。
+use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
 use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
     // AuditEvent / Request / Response 型。
     AuditEvent, QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse,
@@ -226,8 +227,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("tier1/audit: gRPC server listening on {}", listen);
     let store: Arc<dyn AuditStore> = Arc::new(InMemoryAuditStore::new());
     let server = AuditServer { store };
+    // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
     Server::builder()
         .add_service(AuditServiceServer::new(server))
+        .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())

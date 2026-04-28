@@ -21,6 +21,7 @@
 use std::sync::Arc;
 
 // SDK 公開 API の DecisionService / DecisionAdminService の Service trait と Server 型を import。
+use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
 use k1s0_sdk_proto::k1s0::tier1::decision::v1::{
     BatchEvaluateRequest, BatchEvaluateResponse, EvaluateRequest, EvaluateResponse, GetRuleRequest,
     GetRuleResponse, ListVersionsRequest, ListVersionsResponse, RegisterRuleRequest,
@@ -199,9 +200,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         registry: registry.clone(),
     };
     let admin = DecisionAdminServer { registry };
+    // gRPC Server Reflection を有効化する（grpcurl の `list` / `describe` 対応、
+    // Go Pod 側の reflection.Register と機能等価）。
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
     Server::builder()
         .add_service(DecisionServiceServer::new(dec))
         .add_service(DecisionAdminServiceServer::new(admin))
+        .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())

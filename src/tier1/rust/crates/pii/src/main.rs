@@ -15,6 +15,7 @@
 //   HPA で水平スケール可能（DS-SW-COMP-009 の方針通り）。
 
 // SDK 公開 API の PiiService の Service trait / Server 型 / Request / Response 型を import。
+use k1s0_sdk_proto::FILE_DESCRIPTOR_SET;
 use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
     // Request / Response 型。
     ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse, PiiFinding,
@@ -108,8 +109,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listen = listen_addr();
     let addr = listen.parse()?;
     eprintln!("tier1/pii: gRPC server listening on {}", listen);
+    // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
+    let reflection = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()?;
     Server::builder()
         .add_service(PiiServiceServer::new(PiiServer::default()))
+        .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     Ok(())
