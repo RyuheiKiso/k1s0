@@ -52,8 +52,11 @@ func main() {
 		Name: "secret",
 		// 既定 listen address。flag 未指定時に common.Run へ渡される値の参照用。
 		DefaultListen: defaultListen,
-		// service 登録 hook。SecretsService を登録（リリース時点 全 RPC は Unimplemented）。
-		Register: secret.Register(),
+		// service 登録 hook。SecretsService を登録（adapter 未注入時は Unimplemented）。
+		// production 起動時は openbao.New(...) で Client を作り、
+		// `secret.Deps{SecretsAdapter: openbao.NewSecretsAdapter(client)}` を渡す。
+		// 本最小骨格 main では adapter 未注入で動かす（後段の OpenBao bootstrap で結線）。
+		Register: secret.Register(secret.Deps{}),
 		// 構造体リテラルを閉じる。
 	}
 
