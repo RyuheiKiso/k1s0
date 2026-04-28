@@ -1,0 +1,40 @@
+<mxfile host="Electron" modified="2026-04-28T00:00:00.000Z" agent="claude-code" version="24.0.0">
+  <diagram id="api-scopes" name="API の代表的なスコープ">
+    <mxGraphModel dx="1000" dy="520" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="520" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="API の代表的な 3 スコープ" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="200" y="25" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="どれも「呼び出し可能なインターフェース」だが、通信距離・レイテンシ・故障モードが大きく異なる" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="100" y="60" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lib_h" value="Library API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#444444;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="60" y="115" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lib_b" value="呼び出し範囲&#10;同一プロセス内&#10;&#10;通信形態&#10;関数 / メソッドの直接呼び出し&#10;&#10;典型例&#10;std::Vec::push&#10;tokio::spawn&#10;serde_json::to_string&#10;&#10;典型レイテンシ&#10;ナノ秒オーダー&#10;&#10;故障の中心&#10;引数不正・パニック・型違反" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#444444;fontSize=12;align=left;verticalAlign=top;spacingLeft=14;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="155" width="280" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="os_h" value="OS API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#444444;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="115" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="os_b" value="呼び出し範囲&#10;ユーザ空間 → カーネル空間&#10;&#10;通信形態&#10;システムコール (syscall 命令)&#10;&#10;典型例&#10;open() / read() / write()&#10;socket() / mmap()&#10;clock_gettime()&#10;&#10;典型レイテンシ&#10;マイクロ秒オーダー&#10;&#10;故障の中心&#10;権限不足・FD 枯渇・EAGAIN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#444444;fontSize=12;align=left;verticalAlign=top;spacingLeft=14;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="155" width="280" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="web_h" value="Web API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEEEEE;strokeColor=#444444;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="660" y="115" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="web_b" value="呼び出し範囲&#10;マシン → マシン (ネットワーク越し)&#10;&#10;通信形態&#10;HTTP / HTTP/2 / WebSocket 等&#10;&#10;典型例&#10;REST API&#10;gRPC&#10;GraphQL&#10;&#10;典型レイテンシ&#10;ミリ秒〜秒オーダー&#10;&#10;故障の中心&#10;ネットワーク断・タイムアウト・&#10;部分故障・認証失敗" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#444444;fontSize=12;align=left;verticalAlign=top;spacingLeft=14;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="660" y="155" width="280" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="本ドキュメントが扱うのは主に Web API。距離が伸びるほど故障モードが多様化し、契約の明示と互換性管理の重要性が増す。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="465" width="840" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

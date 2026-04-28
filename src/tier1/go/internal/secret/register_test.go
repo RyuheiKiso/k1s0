@@ -23,9 +23,10 @@ const bufSize = 1024 * 1024
 
 // fakeSecretsAdapter は openbao.SecretsAdapter の最小 fake 実装。
 type fakeSecretsAdapter struct {
-	getFn     func(ctx context.Context, req openbao.SecretGetRequest) (openbao.SecretGetResponse, error)
-	bulkGetFn func(ctx context.Context, names []string, tenantID string) (map[string]openbao.SecretGetResponse, error)
-	rotateFn  func(ctx context.Context, req openbao.SecretRotateRequest) (openbao.SecretGetResponse, error)
+	getFn         func(ctx context.Context, req openbao.SecretGetRequest) (openbao.SecretGetResponse, error)
+	bulkGetFn     func(ctx context.Context, names []string, tenantID string) (map[string]openbao.SecretGetResponse, error)
+	listAndGetFn  func(ctx context.Context, tenantID string) (map[string]openbao.SecretGetResponse, error)
+	rotateFn      func(ctx context.Context, req openbao.SecretRotateRequest) (openbao.SecretGetResponse, error)
 }
 
 func (f *fakeSecretsAdapter) Get(ctx context.Context, req openbao.SecretGetRequest) (openbao.SecretGetResponse, error) {
@@ -36,6 +37,15 @@ func (f *fakeSecretsAdapter) BulkGet(ctx context.Context, names []string, tenant
 		return map[string]openbao.SecretGetResponse{}, nil
 	}
 	return f.bulkGetFn(ctx, names, tenantID)
+}
+func (f *fakeSecretsAdapter) ListAndGet(ctx context.Context, tenantID string) (map[string]openbao.SecretGetResponse, error) {
+	// 未注入時は空 map を返す（既存テストでは BulkGet を直接呼ばないため互換維持目的）。
+	if f.listAndGetFn == nil {
+		// 空 map を返す。
+		return map[string]openbao.SecretGetResponse{}, nil
+	}
+	// 注入関数に委譲する。
+	return f.listAndGetFn(ctx, tenantID)
 }
 func (f *fakeSecretsAdapter) Rotate(ctx context.Context, req openbao.SecretRotateRequest) (openbao.SecretGetResponse, error) {
 	return f.rotateFn(ctx, req)

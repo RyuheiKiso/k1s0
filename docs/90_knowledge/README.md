@@ -23,6 +23,9 @@ UI / アプリケーションフレームワークの基礎概念。tier3 のオ
 
 - [react_basics.md](framework/react_basics.md)
 - [react_virtual-dom.md](framework/react_virtual-dom.md)
+- [nextjs_basics.md](framework/nextjs_basics.md)
+- [axum_basics.md](framework/axum_basics.md)
+- [gin_basics.md](framework/gin_basics.md)
 
 ### infra — インフラ・運用基盤
 
@@ -119,6 +122,7 @@ k1s0 の自作領域 (Rust) と Dapr ファサード層 (Go) の言語仕様。R
 
 - [sqlx-migrate_basics.md](library/sqlx-migrate_basics.md)
 - [testcontainers_basics.md](library/testcontainers_basics.md)
+- [tokio_basics.md](library/tokio_basics.md)
 
 ### methodology — 手法・方針
 
@@ -154,6 +158,7 @@ ADR・MVP・E2E テスト・OSS ライセンスなど、開発プロセスとガ
 
 tier1 内部の gRPC、tier2/tier3 への公開 API、IoT 系の MQTT など、k1s0 が扱う通信プロトコルの仕様と選定根拠。要件定義の機能要件 (`20_機能要件/`) で API 形式を決定する際の前提となる。
 
+- [api_basics.md](protocol/api_basics.md)
 - [gRPC_basics.md](protocol/gRPC_basics.md)
 - [protobuf_basics.md](protocol/protobuf_basics.md)
 - [proto3_basics.md](protocol/proto3_basics.md)
@@ -161,6 +166,8 @@ tier1 内部の gRPC、tier2/tier3 への公開 API、IoT 系の MQTT など、k
 - [websocket_basics.md](protocol/websocket_basics.md)
 - [mqtt_basics.md](protocol/mqtt_basics.md)
 - [rtt_basics.md](protocol/rtt_basics.md)
+- [mcp_basics.md](protocol/mcp_basics.md)
+- [jwt_basics.md](protocol/jwt_basics.md)
 - [llms-txt_basics.md](protocol/llms-txt_basics.md)
 - [toml_basics.md](protocol/toml_basics.md)
 

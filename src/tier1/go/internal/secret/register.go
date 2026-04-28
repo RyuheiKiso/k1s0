@@ -15,6 +15,8 @@ package secret
 import (
 	"context"
 	"errors"
+	// 現在時刻を Rotate 応答の rotated_at_ms に詰めるため。
+	"time"
 
 	// OpenBao adapter（本 Pod 専用）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/openbao"
@@ -84,46 +86,103 @@ func (h *secretHandler) Get(ctx context.Context, req *secretsv1.GetSecretRequest
 	}, nil
 }
 
-// BulkGet は複数 secret を一括取得する。
-// proto 上は context のみで取得対象 name を渡す手段が無いため、本実装は
-// "テナント配下の全 secret 名" を呼び出すのではなく、context.tenant_id を
-// adapter に渡して OpenBao 側のテナント別 list 機能（plan 04-06 で追加予定）に
-// 委ねる。リリース時点 では空 map を返す。
-//
-// proto 拡張で名前リストを request body に追加した時点で、本実装を name 列ベース
-// の SecretsAdapter.BulkGet 呼び出しに切替える（破壊的変更を避けるため）。
-func (h *secretHandler) BulkGet(_ context.Context, req *secretsv1.BulkGetSecretRequest) (*secretsv1.BulkGetSecretResponse, error) {
+// BulkGet はテナント配下の全 secret を取得する。
+// proto は context のみを受け、name 列は持たないため、adapter.ListAndGet が
+// `tenant/<tenantID>/` prefix で List → Get を内部実行する。
+// FR-T1-SECRETS-002（テナントに割当された全シークレット）対応。
+func (h *secretHandler) BulkGet(ctx context.Context, req *secretsv1.BulkGetSecretRequest) (*secretsv1.BulkGetSecretResponse, error) {
+	// 入力 nil 防御。
 	if req == nil {
+		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
+	// adapter 未注入時は未結線扱い。
 	if h.deps.SecretsAdapter == nil {
+		// Unimplemented 返却。
 		return nil, status.Error(codes.Unimplemented, "tier1/secrets: BulkGet not yet wired to OpenBao")
 	}
-	// proto に name 列が無いため、tenant 配下の全 secret 列挙は OpenBao の list API
-	// が必要だが現状 narrow interface に List を入れていない。本リリース時点 では
-	// 空応答を返す（FR-T1-SECRETS-002 の「複数取得」の意図は proto 拡張後に満たす）。
-	return &secretsv1.BulkGetSecretResponse{Results: map[string]*secretsv1.GetSecretResponse{}}, nil
+	// テナント識別子を取り出す（必須）。
+	tenantID := req.GetContext().GetTenantId()
+	// tenantID 未設定はテナント境界違反として弾く（NFR-E-AC-003）。
+	if tenantID == "" {
+		// 不正引数として返却。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	}
+	// adapter で list + per-key get を実行する。
+	items, err := h.deps.SecretsAdapter.ListAndGet(ctx, tenantID)
+	// adapter エラーを翻訳して返す。
+	if err != nil {
+		// translateErr で gRPC code に翻訳する。
+		return nil, translateErr(err, "BulkGet")
+	}
+	// proto 応答 map を構築する。
+	results := make(map[string]*secretsv1.GetSecretResponse, len(items))
+	// 取得結果を 1 件ずつ proto 応答に詰める。
+	for name, resp := range items {
+		// 1 件分の proto 応答を構築する。
+		results[name] = &secretsv1.GetSecretResponse{
+			// values map をコピー渡しする。
+			Values: resp.Values,
+			// version を詰める。
+			Version: resp.Version,
+		}
+	}
+	// 応答を返却する。
+	return &secretsv1.BulkGetSecretResponse{Results: results}, nil
 }
 
 // Rotate は OpenBao KVv2 でバージョン bump を行う。
 // 実値生成（DB password 等）は呼出側責務、本 RPC はバージョン管理層と監査記録の hook を担う。
+//
+// proto 応答の全フィールドを埋める:
+//   - new_version: bump 後のバージョン
+//   - previous_version: 直前のバージョン（new_version - 1、初回は 0）
+//   - rotated_at_ms: 実行時刻（UTC Unix epoch ミリ秒）
+//   - ttl_sec: 静的 secret は 0 固定（動的 secret は plan 04-06 後段で算出）
 func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretRequest) (*secretsv1.RotateSecretResponse, error) {
+	// 入力 nil 防御。
 	if req == nil {
+		// 不正引数として返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
+	// adapter 未注入時は未結線扱い。
 	if h.deps.SecretsAdapter == nil {
+		// Unimplemented を返却する。
 		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Rotate not yet wired to OpenBao")
 	}
+	// adapter 入力に変換する。
 	ar := openbao.SecretRotateRequest{
-		Name:     req.GetName(),
+		// 対象 secret 名。
+		Name: req.GetName(),
+		// テナント識別子（境界検証用）。
 		TenantID: req.GetContext().GetTenantId(),
 	}
+	// adapter で bump を実行する。
 	resp, err := h.deps.SecretsAdapter.Rotate(ctx, ar)
+	// adapter エラーを翻訳する。
 	if err != nil {
+		// translateErr で gRPC code に変換する。
 		return nil, translateErr(err, "Rotate")
 	}
+	// 直前バージョン（new_version - 1）を計算する（初回は 0）。
+	prev := resp.Version - 1
+	// 負値補正（理論上 1 未満は来ないが defensive）。
+	if prev < 0 {
+		// 0 にクリップする。
+		prev = 0
+	}
+	// 現在時刻を Unix epoch ミリ秒で取得する。
+	rotatedAtMs := time.Now().UnixMilli()
+	// 全フィールドを埋めて応答する（idempotency_key の二重 bump 抑止は plan 04-06 後段で実装）。
 	return &secretsv1.RotateSecretResponse{
+		// 新バージョン番号。
 		NewVersion: resp.Version,
+		// 直前バージョン。
+		PreviousVersion: prev,
+		// 実行時刻（ミリ秒）。
+		RotatedAtMs: rotatedAtMs,
+		// 静的 secret は TTL 0、動的 secret はリリース時点 未対応。
+		TtlSec: 0,
 	}, nil
 }
 

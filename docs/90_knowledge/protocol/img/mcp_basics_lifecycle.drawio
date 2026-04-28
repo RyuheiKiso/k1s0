@@ -1,0 +1,103 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="MCP Lifecycle" id="mcp-lifecycle">
+    <mxGraphModel dx="800" dy="720" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="MCP のメッセージライフサイクル (JSON-RPC 2.0)" style="text;html=1;align=center;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="15" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ch" value="MCP Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="60" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sh" value="MCP Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="60" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cl" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#6c8ebf;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="100" as="sourcePoint" />
+            <mxPoint x="240" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sl" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#d79b00;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="100" as="sourcePoint" />
+            <mxPoint x="580" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1" value="① 初期化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#5b9d61;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="155" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="initialize (capabilities)" style="endArrow=classic;html=1;rounded=0;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="170" as="sourcePoint" />
+            <mxPoint x="580" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="result (capabilities, serverInfo)" style="endArrow=classic;html=1;rounded=0;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="210" as="sourcePoint" />
+            <mxPoint x="240" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="notifications/initialized" style="endArrow=classic;html=1;rounded=0;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="250" as="sourcePoint" />
+            <mxPoint x="580" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2" value="② 探索" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#5b9d61;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="305" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m4" value="tools/list" style="endArrow=classic;html=1;rounded=0;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="320" as="sourcePoint" />
+            <mxPoint x="580" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="result (tools[] with inputSchema)" style="endArrow=classic;html=1;rounded=0;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="360" as="sourcePoint" />
+            <mxPoint x="240" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p3" value="③ 実行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#5b9d61;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="415" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m6" value="tools/call (name, arguments)" style="endArrow=classic;html=1;rounded=0;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="430" as="sourcePoint" />
+            <mxPoint x="580" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="result (content[])" style="endArrow=classic;html=1;rounded=0;dashed=1;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="470" as="sourcePoint" />
+            <mxPoint x="240" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p4" value="④ 通知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6f4ea;strokeColor=#5b9d61;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="525" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="m8" value="notifications/tools/list_changed" style="endArrow=classic;html=1;rounded=0;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="540" as="sourcePoint" />
+            <mxPoint x="240" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="tools/list (再取得)" style="endArrow=classic;html=1;rounded=0;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="580" as="sourcePoint" />
+            <mxPoint x="580" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg" value="凡例: 実線 = request / notification、破線 = response (result)。notification は id を持たず応答不要。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=center;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="665" width="720" height="35" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
