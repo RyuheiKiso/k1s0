@@ -159,6 +159,7 @@ tier1 内部の gRPC、tier2/tier3 への公開 API、IoT 系の MQTT など、k
 - [mqtt_basics.md](protocol/mqtt_basics.md)
 - [rtt_basics.md](protocol/rtt_basics.md)
 - [llms-txt_basics.md](protocol/llms-txt_basics.md)
+- [toml_basics.md](protocol/toml_basics.md)
 
 ### tool — ツール
 
