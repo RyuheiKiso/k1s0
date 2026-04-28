@@ -67,6 +67,26 @@ type daprPubSubClient interface {
 	PublishEvent(ctx context.Context, pubsubName, topicName string, data interface{}, opts ...daprclient.PublishEventOption) error
 }
 
+// daprInvokeClient は ServiceInvocation 用 narrow interface。
+type daprInvokeClient interface {
+	// 任意の Content-Type で他サービスのメソッド呼出。
+	InvokeMethodWithCustomContent(ctx context.Context, appID, methodName, verb, contentType string, content interface{}) ([]byte, error)
+}
+
+// daprBindingClient は Output Binding 用 narrow interface。
+type daprBindingClient interface {
+	// Output Binding 呼出（応答あり）。
+	InvokeBinding(ctx context.Context, in *daprclient.InvokeBindingRequest) (*daprclient.BindingEvent, error)
+}
+
+// daprConfigClient は Configuration（flagd 経由 Feature Flag）用 narrow interface。
+// 本来は OpenFeature 直結で variant/reason をリッチに返すべきだが、リリース時点 では
+// Dapr Configuration API（GetConfigurationItem）で flagd の値を取り出す簡易実装に留める。
+type daprConfigClient interface {
+	// 単一 key の取得。Value は string、構造化値は JSON encoded で格納される運用。
+	GetConfigurationItem(ctx context.Context, storeName, key string, opts ...daprclient.ConfigurationOpt) (*daprclient.ConfigurationItem, error)
+}
+
 // Client は tier1 Go ファサードから見た Dapr SDK のアダプタ。
 // 本リリース時点では State 系のみ narrow interface として保持し、PubSub / Binding /
 // Invoke / Feature は ErrNotWired を返す placeholder のまま（plan 04-05 〜 04-13 で同様に
@@ -78,6 +98,12 @@ type Client struct {
 	state daprStateClient
 	// 実 Dapr SDK の PubSub 用 client。state と同じ SDK インスタンスを別 interface で保持。
 	pubsub daprPubSubClient
+	// 実 Dapr SDK の ServiceInvocation 用 client。
+	invoke daprInvokeClient
+	// 実 Dapr SDK の Output Binding 用 client。
+	binding daprBindingClient
+	// 実 Dapr SDK の Configuration 用 client（flagd Feature Flag 取得経路）。
+	config daprConfigClient
 	// SDK Client インスタンス（Close 時に SDK の Close を呼ぶ必要があるため保持）。
 	// fake 注入時は nil。
 	closer interface{ Close() }
@@ -103,11 +129,14 @@ func New(_ context.Context, cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Client インスタンスを返却（state / pubsub は SDK の同一 Client を別 interface で保持）。
+	// Client インスタンスを返却（5 building block すべて SDK の同一 Client を別 interface で保持）。
 	return &Client{
 		sidecarAddress: addr,
 		state:          sdkClient,
 		pubsub:         sdkClient,
+		invoke:         sdkClient,
+		binding:        sdkClient,
+		config:         sdkClient,
 		closer:         sdkClient,
 	}, nil
 }
@@ -121,6 +150,21 @@ func NewWithStateClient(addr string, sc daprStateClient) *Client {
 // NewWithPubSubClient は test 用コンストラクタ（pubsub 単独）。
 func NewWithPubSubClient(addr string, pc daprPubSubClient) *Client {
 	return &Client{sidecarAddress: addr, pubsub: pc, closer: nil}
+}
+
+// NewWithInvokeClient は test 用コンストラクタ（invoke 単独）。
+func NewWithInvokeClient(addr string, ic daprInvokeClient) *Client {
+	return &Client{sidecarAddress: addr, invoke: ic, closer: nil}
+}
+
+// NewWithBindingClient は test 用コンストラクタ（binding 単独）。
+func NewWithBindingClient(addr string, bc daprBindingClient) *Client {
+	return &Client{sidecarAddress: addr, binding: bc, closer: nil}
+}
+
+// NewWithConfigClient は test 用コンストラクタ（config / feature 単独）。
+func NewWithConfigClient(addr string, cc daprConfigClient) *Client {
+	return &Client{sidecarAddress: addr, config: cc, closer: nil}
 }
 
 // Close は Client が保持する Dapr SDK Client の gRPC 接続を解放する。
@@ -150,6 +194,21 @@ func (c *Client) stateClient() daprStateClient {
 // adapter 実装（pubsub.go）からのみ使う。
 func (c *Client) pubsubClient() daprPubSubClient {
 	return c.pubsub
+}
+
+// invokeClient は内部の ServiceInvocation 用 narrow client を返す。
+func (c *Client) invokeClient() daprInvokeClient {
+	return c.invoke
+}
+
+// bindingClient は内部の Output Binding 用 narrow client を返す。
+func (c *Client) bindingClient() daprBindingClient {
+	return c.binding
+}
+
+// configClient は内部の Configuration 用 narrow client を返す。
+func (c *Client) configClient() daprConfigClient {
+	return c.config
 }
 
 // defaultDaprAddress は Dapr sidecar の既定 gRPC ポート。

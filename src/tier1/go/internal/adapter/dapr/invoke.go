@@ -5,11 +5,14 @@
 //     - Service Invoke API → Dapr Service Invocation
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/01_Service_Invoke_API.md
 //
-// リリース時点 placeholder。実 Dapr SDK 接続は plan 04-11 で実装。
+// 役割（plan 04-11 結線済）:
+//   handler.go が呼び出す Service Invocation を Dapr SDK の InvokeMethodWithCustomContent
+//   で実行する。verb は POST 固定（gRPC ファサード経由の Dapr Service Invocation 慣用）。
+//   タイムアウト指定は context の Deadline で表現するため、TimeoutMs は handler 側で
+//   context.WithTimeout を作る前提（adapter は context をそのまま SDK に渡す）。
 
 package dapr
 
-// 標準 Go ライブラリ。
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
@@ -25,9 +28,10 @@ type InvokeRequest struct {
 	Data []byte
 	// Content-Type。
 	ContentType string
-	// テナント識別子。
+	// テナント識別子（adapter 上は metadata 利用なし、現状 SDK の InvokeMethod 系は
+	// metadata を直接受けないため、テナント伝搬は handler 側で context value 経由とする）。
 	TenantID string
-	// タイムアウト（ミリ秒、0 で 5000ms 既定）。
+	// タイムアウト（ミリ秒、0 で 5000ms 既定）。handler 側で context.WithTimeout を作る前提。
 	TimeoutMs int32
 }
 
@@ -35,9 +39,11 @@ type InvokeRequest struct {
 type InvokeResponse struct {
 	// 応答本文。
 	Data []byte
-	// Content-Type。
+	// Content-Type。SDK の InvokeMethod 系は応答 ContentType を返さないため、
+	// 呼び出し側 ContentType を echo で返す（厳密に正しくはないが proto 契約を満たすため）。
 	ContentType string
-	// HTTP ステータス相当。
+	// HTTP ステータス相当。SDK は応答ステータスを exposing しないため
+	// 成功時は 200、エラー時は handler 側で gRPC status code に変換される。
 	Status int32
 }
 
@@ -47,20 +53,34 @@ type InvokeAdapter interface {
 	Invoke(ctx context.Context, req InvokeRequest) (InvokeResponse, error)
 }
 
-// daprInvokeAdapter は実装（リリース時点 placeholder）。
+// daprInvokeAdapter は Client（narrow interface）越しに SDK を呼ぶ実装。
 type daprInvokeAdapter struct {
-	// Dapr Client への参照。
 	client *Client
 }
 
 // NewInvokeAdapter は InvokeAdapter を生成する。
 func NewInvokeAdapter(client *Client) InvokeAdapter {
-	// 実装インスタンスを構築する。
 	return &daprInvokeAdapter{client: client}
 }
 
-// Invoke は plan 04-11 で実装。
-func (a *daprInvokeAdapter) Invoke(_ context.Context, _ InvokeRequest) (InvokeResponse, error) {
-	// placeholder
-	return InvokeResponse{}, ErrNotWired
+// Invoke は他サービスの任意メソッドを呼び出す。
+// SDK の InvokeMethodWithCustomContent は verb と contentType と content（任意型）を取る。
+// k1s0 では gRPC ファサード越しの呼び出しを想定し verb は POST 固定とする。
+func (a *daprInvokeAdapter) Invoke(ctx context.Context, req InvokeRequest) (InvokeResponse, error) {
+	// content-type が空ならデフォルト値（octet-stream）を使う。
+	ct := req.ContentType
+	if ct == "" {
+		ct = "application/octet-stream"
+	}
+	// SDK 呼び出し（verb は POST 固定、Dapr ファサード経由の慣用）。
+	out, err := a.client.invokeClient().InvokeMethodWithCustomContent(ctx, req.AppID, req.Method, "POST", ct, req.Data)
+	if err != nil {
+		return InvokeResponse{}, err
+	}
+	// 応答 ContentType / Status は SDK が exposing しないため echo / 200 を返す。
+	return InvokeResponse{
+		Data:        out,
+		ContentType: ct,
+		Status:      200,
+	}, nil
 }
