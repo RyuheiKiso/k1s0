@@ -93,12 +93,14 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 		TenantID: tenantIDOf(req.GetContext()),
 	}
 	// adapter 呼出。
-	if err := h.deps.StateAdapter.Set(ctx, areq); err != nil {
+	aresp, err := h.deps.StateAdapter.Set(ctx, areq)
+	if err != nil {
 		// 翻訳して返却する。
 		return nil, translateErr(err, "Set", "plan 04-04")
 	}
-	// 成功応答（new_etag は plan 04-04 で adapter 戻り値から埋める）。
-	return &statev1.SetResponse{NewEtag: ""}, nil
+	// 成功応答。NewEtag は Dapr SDK が SaveState 時に etag を返さないため
+	// 通常は空文字。Component 側が etag を生成する場合は後続 Get で取得する。
+	return &statev1.SetResponse{NewEtag: aresp.NewEtag}, nil
 }
 
 // Delete は単一キー削除。

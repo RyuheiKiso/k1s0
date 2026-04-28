@@ -12,19 +12,27 @@
 // module path: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md 正典に準拠（monorepo path-style）
 module github.com/k1s0/k1s0/src/tier1/go
 
-go 1.22
+go 1.22.6
+
+toolchain go1.23.4
 
 require (
+	github.com/dapr/go-sdk v1.11.0
 	github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.66.2
 	google.golang.org/protobuf v1.34.2
 )
 
 require (
+	github.com/dapr/dapr v1.14.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	go.opentelemetry.io/otel v1.27.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 // docs 正典: docs/05_実装/10_ビルド設計/20_Go_module分離戦略/01_Go_module分離戦略.md
