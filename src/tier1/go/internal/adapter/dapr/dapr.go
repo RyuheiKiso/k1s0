@@ -69,6 +69,9 @@ type daprStateClient interface {
 type daprPubSubClient interface {
 	// 単発 Publish。SDK は Kafka offset を返さない（fire-and-forget at gRPC level）。
 	PublishEvent(ctx context.Context, pubsubName, topicName string, data interface{}, opts ...daprclient.PublishEventOption) error
+	// Subscribe（server-streaming）: SubscriptionOptions を渡し、`*Subscription` を返す。
+	// 呼出側は subscription.Receive() で逐次イベントを受け取り、msg.Success() / msg.Retry() で ack する。
+	Subscribe(ctx context.Context, opts daprclient.SubscriptionOptions) (*daprclient.Subscription, error)
 }
 
 // daprInvokeClient は ServiceInvocation 用 narrow interface。

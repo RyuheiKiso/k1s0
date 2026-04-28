@@ -70,10 +70,53 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 	}, nil
 }
 
-// InvokeStream はストリーミング呼出。本リリース時点 では Unimplemented。
-func (h *invokeHandler) InvokeStream(_ *serviceinvokev1.InvokeRequest, _ serviceinvokev1.InvokeService_InvokeStreamServer) error {
-	// stream は plan 04-11 で実装。
-	return status.Error(codes.Unimplemented, "tier1/serviceinvoke: InvokeStream not yet wired (plan 04-11)")
+// chunkSize は InvokeStream で応答 bytes を分割するときのデフォルトチャンクサイズ（4 KiB）。
+// gRPC のフレーム上限 (default 4 MiB) よりはるかに小さく、レイテンシよりスループット優先。
+const invokeStreamChunkSize = 4 * 1024
+
+// InvokeStream は server-streaming RPC。Dapr SDK の InvokeMethod は完全な
+// streaming を直接公開しないため、まず adapter.Invoke で全 bytes を取得し、
+// それをチャンク分割して stream.Send する。proto 契約（stream InvokeChunk + eof
+// フラグ）を満たす最小実装。upstream が真の streaming に対応した時点で本実装を
+// 直接 streaming proxy に置き換える（adapter interface 不変）。
+func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream serviceinvokev1.InvokeService_InvokeStreamServer) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "tier1/serviceinvoke: nil request")
+	}
+	if h.deps.InvokeAdapter == nil {
+		return status.Error(codes.Unimplemented, "tier1/serviceinvoke: InvokeStream not yet wired to Dapr backend")
+	}
+	areq := dapr.InvokeRequest{
+		AppID:       req.GetAppId(),
+		Method:      req.GetMethod(),
+		Data:        req.GetData(),
+		ContentType: req.GetContentType(),
+		TenantID:    tenantIDOf(req.GetContext()),
+		TimeoutMs:   req.GetTimeoutMs(),
+	}
+	aresp, err := h.deps.InvokeAdapter.Invoke(stream.Context(), areq)
+	if err != nil {
+		return translateInvokeErr(err, "InvokeStream")
+	}
+	body := aresp.Data
+	// 本文が空なら eof=true の単一チャンクを 1 件だけ送る（proto 契約に沿う）。
+	if len(body) == 0 {
+		return stream.Send(&serviceinvokev1.InvokeChunk{Eof: true})
+	}
+	for offset := 0; offset < len(body); offset += invokeStreamChunkSize {
+		end := offset + invokeStreamChunkSize
+		if end > len(body) {
+			end = len(body)
+		}
+		eof := end == len(body)
+		if err := stream.Send(&serviceinvokev1.InvokeChunk{
+			Data: body[offset:end],
+			Eof:  eof,
+		}); err != nil {
+			return status.Errorf(codes.Internal, "tier1/serviceinvoke: stream.Send: %v", err)
+		}
+	}
+	return nil
 }
 
 // translateInvokeErr は ServiceInvoke 用のエラー翻訳。

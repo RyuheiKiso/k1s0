@@ -18,6 +18,8 @@ import (
 // fakeStateClient は daprStateClient の最小 fake 実装。
 // 試験ごとに各メソッドの fn を差し替え、引数キャプチャと戻り値制御を行う。
 type fakeStateClient struct {
+	bulkGetFn  func(ctx context.Context, store string, keys []string, meta map[string]string, parallelism int32) ([]*daprclient.BulkStateItem, error)
+	transactFn func(ctx context.Context, store string, meta map[string]string, ops []*daprclient.StateOperation) error
 	// GetState の fn。nil なら fail。
 	getFn func(ctx context.Context, store, key string, meta map[string]string) (*daprclient.StateItem, error)
 	// SaveState の fn。
@@ -44,6 +46,18 @@ func (f *fakeStateClient) DeleteState(ctx context.Context, store, key string, me
 }
 func (f *fakeStateClient) DeleteStateWithETag(ctx context.Context, store, key string, etag *daprclient.ETag, meta map[string]string, opts *daprclient.StateOptions) error {
 	return f.deleteETagFn(ctx, store, key, etag, meta, opts)
+}
+func (f *fakeStateClient) GetBulkState(ctx context.Context, store string, keys []string, meta map[string]string, parallelism int32) ([]*daprclient.BulkStateItem, error) {
+	if f.bulkGetFn == nil {
+		return nil, nil
+	}
+	return f.bulkGetFn(ctx, store, keys, meta, parallelism)
+}
+func (f *fakeStateClient) ExecuteStateTransaction(ctx context.Context, store string, meta map[string]string, ops []*daprclient.StateOperation) error {
+	if f.transactFn == nil {
+		return nil
+	}
+	return f.transactFn(ctx, store, meta, ops)
 }
 
 // newAdapterWithFake は test helper。fake から StateAdapter を構築する。
@@ -194,6 +208,84 @@ func TestStateAdapter_Delete_NoEtagThenWithEtag(t *testing.T) {
 	}
 	if observedEtag != "v9" {
 		t.Fatalf("etag mismatch: got %q want v9", observedEtag)
+	}
+}
+
+// BulkGet は SDK GetBulkState に keys/parallelism を伝搬し、Item.Error/Value から NotFound を判定する。
+func TestStateAdapter_BulkGet(t *testing.T) {
+	fake := &fakeStateClient{
+		bulkGetFn: func(_ context.Context, store string, keys []string, meta map[string]string, parallelism int32) ([]*daprclient.BulkStateItem, error) {
+			if store != "valkey" || len(keys) != 3 {
+				t.Fatalf("args mismatch: %s / %v", store, keys)
+			}
+			if parallelism != 5 {
+				t.Fatalf("parallelism mismatch: %d", parallelism)
+			}
+			if meta["tenantId"] != "T" {
+				t.Fatalf("tenant metadata not propagated: %v", meta)
+			}
+			return []*daprclient.BulkStateItem{
+				{Key: "k1", Value: []byte("v1"), Etag: "e1"},
+				{Key: "k2", Value: nil}, // NotFound
+				{Key: "k3", Error: "permission denied"},
+			}, nil
+		},
+	}
+	a := newAdapterWithFake(t, fake)
+	out, err := a.BulkGet(context.Background(), StateBulkGetRequest{
+		Store: "valkey", Keys: []string{"k1", "k2", "k3"}, TenantID: "T", Parallelism: 5,
+	})
+	if err != nil {
+		t.Fatalf("BulkGet error: %v", err)
+	}
+	if len(out) != 3 {
+		t.Fatalf("len: %d", len(out))
+	}
+	if out[0].Key != "k1" || string(out[0].Data) != "v1" || out[0].NotFound {
+		t.Fatalf("item[0] mismatch: %+v", out[0])
+	}
+	if !out[1].NotFound {
+		t.Fatalf("item[1] expected NotFound=true")
+	}
+	if out[2].Error != "permission denied" {
+		t.Fatalf("item[2] error not propagated: %q", out[2].Error)
+	}
+}
+
+// Transact: TransactOpKind を SDK StateOperation の Type に正しく変換する。
+func TestStateAdapter_Transact(t *testing.T) {
+	var observedOps []*daprclient.StateOperation
+	fake := &fakeStateClient{
+		transactFn: func(_ context.Context, _ string, _ map[string]string, ops []*daprclient.StateOperation) error {
+			observedOps = ops
+			return nil
+		},
+	}
+	a := newAdapterWithFake(t, fake)
+	err := a.Transact(context.Background(), StateTransactRequest{
+		Store: "valkey",
+		Ops: []TransactOp{
+			{Kind: TransactOpSet, Key: "a", Data: []byte("v"), ExpectedEtag: "e1"},
+			{Kind: TransactOpDelete, Key: "b"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Transact error: %v", err)
+	}
+	if len(observedOps) != 2 {
+		t.Fatalf("ops len: %d", len(observedOps))
+	}
+	if observedOps[0].Type != daprclient.StateOperationTypeUpsert {
+		t.Fatalf("op[0].Type = %v, want Upsert", observedOps[0].Type)
+	}
+	if observedOps[1].Type != daprclient.StateOperationTypeDelete {
+		t.Fatalf("op[1].Type = %v, want Delete", observedOps[1].Type)
+	}
+	if observedOps[0].Item.Key != "a" || string(observedOps[0].Item.Value) != "v" {
+		t.Fatalf("op[0].Item mismatch: %+v", observedOps[0].Item)
+	}
+	if observedOps[1].Item.Key != "b" {
+		t.Fatalf("op[1].Item.Key mismatch")
 	}
 }
 

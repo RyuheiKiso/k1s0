@@ -217,6 +217,115 @@ func TestFeatureHandler_EvaluateObject_OK(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// In-process gRPC integration: InvokeStream chunking
+// ---------------------------------------------------------------------------
+
+func TestInvokeService_InvokeStream_Chunking(t *testing.T) {
+	lis := bufconn.Listen(bufSize)
+	// 10 KiB の応答を 4 KiB chunk × 3 で送信する想定。
+	body := make([]byte, 10*1024)
+	for i := range body {
+		body[i] = byte(i & 0xFF)
+	}
+	a := &fakeInvokeAdapter{
+		fn: func(_ context.Context, _ dapr.InvokeRequest) (dapr.InvokeResponse, error) {
+			return dapr.InvokeResponse{Data: body, ContentType: "application/octet-stream", Status: 200}, nil
+		},
+	}
+	srv := grpc.NewServer()
+	serviceinvokev1.RegisterInvokeServiceServer(srv, &invokeHandler{deps: Deps{InvokeAdapter: a}})
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	dialer := func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
+	conn, err := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("grpc.NewClient: %v", err)
+	}
+	defer conn.Close()
+	client := serviceinvokev1.NewInvokeServiceClient(conn)
+	stream, err := client.InvokeStream(context.Background(), &serviceinvokev1.InvokeRequest{
+		AppId: "tier2-foo", Method: "stream-bar",
+	})
+	if err != nil {
+		t.Fatalf("InvokeStream: %v", err)
+	}
+	collected := make([]byte, 0, len(body))
+	chunkCount := 0
+	eofSeen := false
+	for {
+		chunk, err := stream.Recv()
+		if err != nil {
+			break
+		}
+		chunkCount++
+		collected = append(collected, chunk.GetData()...)
+		if chunk.GetEof() {
+			eofSeen = true
+			break
+		}
+	}
+	if !eofSeen {
+		t.Fatalf("eof flag not seen on last chunk")
+	}
+	if chunkCount != 3 {
+		t.Fatalf("expected 3 chunks for 10 KiB body with 4 KiB chunk size, got %d", chunkCount)
+	}
+	if len(collected) != len(body) {
+		t.Fatalf("collected size %d != body size %d", len(collected), len(body))
+	}
+	for i := range body {
+		if collected[i] != body[i] {
+			t.Fatalf("byte %d mismatch", i)
+		}
+	}
+}
+
+func TestInvokeService_InvokeStream_EmptyBody(t *testing.T) {
+	lis := bufconn.Listen(bufSize)
+	a := &fakeInvokeAdapter{
+		fn: func(_ context.Context, _ dapr.InvokeRequest) (dapr.InvokeResponse, error) {
+			return dapr.InvokeResponse{Data: nil, Status: 200}, nil
+		},
+	}
+	srv := grpc.NewServer()
+	serviceinvokev1.RegisterInvokeServiceServer(srv, &invokeHandler{deps: Deps{InvokeAdapter: a}})
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	dialer := func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
+	conn, _ := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	defer conn.Close()
+	client := serviceinvokev1.NewInvokeServiceClient(conn)
+	stream, err := client.InvokeStream(context.Background(), &serviceinvokev1.InvokeRequest{AppId: "x", Method: "y"})
+	if err != nil {
+		t.Fatalf("InvokeStream: %v", err)
+	}
+	chunk, err := stream.Recv()
+	if err != nil {
+		t.Fatalf("Recv: %v", err)
+	}
+	if !chunk.GetEof() {
+		t.Fatalf("expected eof=true on empty body")
+	}
+	if len(chunk.GetData()) != 0 {
+		t.Fatalf("expected empty data, got %d bytes", len(chunk.GetData()))
+	}
+}
+
+// ---------------------------------------------------------------------------
 // In-process gRPC integration: Invoke
 // ---------------------------------------------------------------------------
 

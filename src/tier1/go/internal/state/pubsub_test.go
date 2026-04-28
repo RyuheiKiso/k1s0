@@ -24,11 +24,46 @@ import (
 
 // fakePubSubAdapter は dapr.PubSubAdapter の最小 fake 実装。
 type fakePubSubAdapter struct {
-	publishFn func(ctx context.Context, req dapr.PublishRequest) (dapr.PublishResponse, error)
+	publishFn   func(ctx context.Context, req dapr.PublishRequest) (dapr.PublishResponse, error)
+	subscribeFn func(ctx context.Context, req dapr.SubscribeAdapterRequest) (dapr.PubSubSubscription, error)
 }
 
 func (f *fakePubSubAdapter) Publish(ctx context.Context, req dapr.PublishRequest) (dapr.PublishResponse, error) {
 	return f.publishFn(ctx, req)
+}
+func (f *fakePubSubAdapter) Subscribe(ctx context.Context, req dapr.SubscribeAdapterRequest) (dapr.PubSubSubscription, error) {
+	if f.subscribeFn == nil {
+		return nil, dapr.ErrNotWired
+	}
+	return f.subscribeFn(ctx, req)
+}
+
+// fakeSubscription はチャネル経由でイベントを供給する subscription fake。
+// テストごとに events に投入するか、Close() で終了させる。
+type fakeSubscription struct {
+	events chan *dapr.SubscribedEvent
+	closed bool
+	acked  []string
+}
+
+func (s *fakeSubscription) Receive(ctx context.Context) (*dapr.SubscribedEvent, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case ev, ok := <-s.events:
+		if !ok {
+			return nil, errors.New("subscription closed")
+		}
+		return ev, nil
+	}
+}
+
+func (s *fakeSubscription) Close() error {
+	if !s.closed {
+		s.closed = true
+		close(s.events)
+	}
+	return nil
 }
 
 // newPubSubHandler は handler を fake adapter で構築する（state.go の Deps 流用）。
@@ -129,6 +164,91 @@ func TestPubSubHandler_BulkPublish_OK(t *testing.T) {
 	}
 	if count != 3 {
 		t.Fatalf("Publish should be called 3 times, got %d", count)
+	}
+}
+
+// Subscribe: in-process gRPC で 3 イベントが順次届くことを検証する。
+func TestPubSubService_Subscribe_OverGRPC(t *testing.T) {
+	lis := bufconn.Listen(bufSize)
+	sub := &fakeSubscription{events: make(chan *dapr.SubscribedEvent, 3)}
+	// 3 件投入してから close。
+	go func() {
+		ack1Called, ack2Called, ack3Called := false, false, false
+		sub.events <- &dapr.SubscribedEvent{Topic: "t", Data: []byte("e1"), Ack: func() error { ack1Called = true; return nil }}
+		sub.events <- &dapr.SubscribedEvent{Topic: "t", Data: []byte("e2"), Ack: func() error { ack2Called = true; return nil }}
+		sub.events <- &dapr.SubscribedEvent{Topic: "t", Data: []byte("e3"), Ack: func() error { ack3Called = true; return nil }}
+		// 念のため値を抑止する用途で参照（go vet 回避）。
+		_ = ack1Called
+		_ = ack2Called
+		_ = ack3Called
+		close(sub.events)
+		sub.closed = true
+	}()
+	a := &fakePubSubAdapter{
+		subscribeFn: func(_ context.Context, _ dapr.SubscribeAdapterRequest) (dapr.PubSubSubscription, error) {
+			return sub, nil
+		},
+	}
+	srv := grpc.NewServer()
+	pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: Deps{PubSubAdapter: a}})
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	dialer := func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
+	conn, err := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("grpc.NewClient: %v", err)
+	}
+	defer conn.Close()
+	client := pubsubv1.NewPubSubServiceClient(conn)
+	stream, err := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{
+		Topic: "t", ConsumerGroup: "g",
+	})
+	if err != nil {
+		t.Fatalf("Subscribe: %v", err)
+	}
+	collected := []string{}
+	for i := 0; i < 3; i++ {
+		ev, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("Recv (%d): %v", i, err)
+		}
+		collected = append(collected, string(ev.GetData()))
+	}
+	if len(collected) != 3 || collected[0] != "e1" || collected[2] != "e3" {
+		t.Fatalf("collected mismatch: %v", collected)
+	}
+}
+
+// Subscribe: adapter が ErrNotWired を返した時 Unimplemented に翻訳される。
+func TestPubSubService_Subscribe_NotWired(t *testing.T) {
+	lis := bufconn.Listen(bufSize)
+	a := &fakePubSubAdapter{} // subscribeFn nil → ErrNotWired
+	srv := grpc.NewServer()
+	pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: Deps{PubSubAdapter: a}})
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	dialer := func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
+	conn, _ := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	defer conn.Close()
+	client := pubsubv1.NewPubSubServiceClient(conn)
+	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t"})
+	_, err := stream.Recv()
+	if got := status.Code(err); got != codes.Unimplemented {
+		t.Fatalf("status: got %v want Unimplemented", got)
 	}
 }
 

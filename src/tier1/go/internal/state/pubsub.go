@@ -99,10 +99,67 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 	return &pubsubv1.BulkPublishResponse{}, nil
 }
 
-// Subscribe はサブスクリプション stream。本リリース時点 では Unimplemented。
-func (h *pubsubHandler) Subscribe(_ *pubsubv1.SubscribeRequest, _ pubsubv1.PubSubService_SubscribeServer) error {
-	// stream は plan 04-05 で実装。
-	return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired (plan 04-05)")
+// Subscribe は server-streaming RPC。Dapr Subscribe で得た subscription から
+// 逐次イベントを受信し、proto Event として gRPC stream クライアントへ転送する。
+//
+// stream context が cancel されると subscription を Close し関数を戻す。
+// 送信成功後に ev.Ack()、stream.Send 失敗時は ev.Retry() を呼んで Dapr 側で再配信させる。
+func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv1.PubSubService_SubscribeServer) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
+	}
+	if h.deps.PubSubAdapter == nil {
+		return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired")
+	}
+	ctx := stream.Context()
+	sub, err := h.deps.PubSubAdapter.Subscribe(ctx, dapr.SubscribeAdapterRequest{
+		Component:     "pubsub-kafka",
+		Topic:         req.GetTopic(),
+		ConsumerGroup: req.GetConsumerGroup(),
+		TenantID:      tenantIDOf(req.GetContext()),
+	})
+	if err != nil {
+		if isNotWired(err) {
+			return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired to Dapr backend")
+		}
+		return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe failed: %v", err)
+	}
+	defer func() { _ = sub.Close() }()
+
+	for {
+		// stream cancel チェック（Receive が block する前に context 状況を確認）。
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		ev, err := sub.Receive(ctx)
+		if err != nil {
+			// adapter 側で「subscription closed」を通常終了として返す場合は io.EOF など。
+			// 単純化のため、エラーは Internal として返却。
+			return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe receive: %v", err)
+		}
+		if ev == nil {
+			// イベント無しは無視して次へ。
+			continue
+		}
+		out := &pubsubv1.Event{
+			Topic:       ev.Topic,
+			Data:        ev.Data,
+			ContentType: ev.ContentType,
+			Offset:      ev.Offset,
+			Metadata:    ev.Metadata,
+		}
+		if err := stream.Send(out); err != nil {
+			// クライアントへの転送失敗 → Dapr 側で再配信させる。
+			if ev.Retry != nil {
+				_ = ev.Retry()
+			}
+			return status.Errorf(codes.Internal, "tier1/pubsub: stream.Send: %v", err)
+		}
+		// 転送成功 → ack。
+		if ev.Ack != nil {
+			_ = ev.Ack()
+		}
+	}
 }
 
 // translatePubSubErr は PubSub 用エラー翻訳。

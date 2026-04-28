@@ -20,6 +20,11 @@ type fakePubSubClient struct {
 func (f *fakePubSubClient) PublishEvent(ctx context.Context, pubsubName, topicName string, data interface{}, opts ...daprclient.PublishEventOption) error {
 	return f.publishFn(ctx, pubsubName, topicName, data, opts...)
 }
+func (f *fakePubSubClient) Subscribe(_ context.Context, _ daprclient.SubscriptionOptions) (*daprclient.Subscription, error) {
+	// 本 unit テスト群では Publish 経路のみ検証するため Subscribe は未対応で stub。
+	// Subscribe を必要とする統合テストは internal/state/pubsub_test.go の fakeSubscription 経由で行う。
+	return nil, nil
+}
 
 func newPubSubAdapterWithFake(t *testing.T, fake *fakePubSubClient) PubSubAdapter {
 	t.Helper()

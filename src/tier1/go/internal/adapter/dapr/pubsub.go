@@ -57,6 +57,43 @@ type PublishResponse struct {
 type PubSubAdapter interface {
 	// 単発 Publish。
 	Publish(ctx context.Context, req PublishRequest) (PublishResponse, error)
+	// Subscribe（server-streaming）: subscription 開始、Receive で逐次イベント取得、Close で終了。
+	Subscribe(ctx context.Context, req SubscribeAdapterRequest) (PubSubSubscription, error)
+}
+
+// SubscribeAdapterRequest は Subscribe の入力。
+type SubscribeAdapterRequest struct {
+	Component     string
+	Topic         string
+	ConsumerGroup string
+	TenantID      string
+}
+
+// PubSubSubscription は subscription の操作集合。handler は Receive をループし、
+// 受信したイベントを gRPC stream 越しにクライアントへ送る。
+type PubSubSubscription interface {
+	// 次のイベントが届くまで block する。ctx キャンセルで err 返却。
+	Receive(ctx context.Context) (*SubscribedEvent, error)
+	// subscription を解放する。
+	Close() error
+}
+
+// SubscribedEvent は 1 件の受信イベント（adapter 中立な中間表現）。
+type SubscribedEvent struct {
+	// トピック名（テナント prefix 除去済）。
+	Topic string
+	// 本文。
+	Data []byte
+	// Content-Type。
+	ContentType string
+	// メタデータ（ヘッダ）。
+	Metadata map[string]string
+	// Kafka offset（adapter が分かる場合のみ非 0）。
+	Offset int64
+	// SDK の ack 関数（成功 ack）。
+	Ack func() error
+	// SDK の retry 関数（失敗 → DLQ や再配信指示）。
+	Retry func() error
 }
 
 // daprPubSubAdapter は Client（narrow interface）越しに SDK を呼ぶ実装。
@@ -88,6 +125,69 @@ func buildPubSubMeta(tenantID, idempotencyKey string, extra map[string]string) m
 		meta[metadataKeyIdempotency] = idempotencyKey
 	}
 	return meta
+}
+
+// Subscribe は Dapr SDK Subscribe を呼び、PubSubSubscription を返す。
+// ConsumerGroup は Dapr SDK の SubscriptionOptions.Metadata にコンポーネント依存
+// キー（kafka なら "consumerGroup"）として詰める運用。
+func (a *daprPubSubAdapter) Subscribe(ctx context.Context, req SubscribeAdapterRequest) (PubSubSubscription, error) {
+	meta := buildPubSubMeta(req.TenantID, "", nil)
+	if req.ConsumerGroup != "" {
+		if meta == nil {
+			meta = make(map[string]string, 1)
+		}
+		// kafka backend では "consumerGroup" がコンポーネント既定キー。
+		meta["consumerGroup"] = req.ConsumerGroup
+	}
+	sub, err := a.client.pubsubClient().Subscribe(ctx, daprclient.SubscriptionOptions{
+		PubsubName: req.Component,
+		Topic:      req.Topic,
+		Metadata:   meta,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &daprSubscriptionAdapter{sub: sub, topic: req.Topic}, nil
+}
+
+// daprSubscriptionAdapter は Dapr SDK Subscription を PubSubSubscription に適合させる。
+type daprSubscriptionAdapter struct {
+	sub   *daprclient.Subscription
+	topic string
+}
+
+func (s *daprSubscriptionAdapter) Receive(_ context.Context) (*SubscribedEvent, error) {
+	// SDK の Receive() は ctx を取らない。stream 終了 (Close) まで block する。
+	msg, err := s.sub.Receive()
+	if err != nil {
+		return nil, err
+	}
+	if msg == nil || msg.TopicEvent == nil {
+		return nil, nil
+	}
+	// TopicEvent.Data は interface{}（JSON decoded など）。raw bytes を取る場合は
+	// RawData を優先する（CloudEvents の binary 解放経路）。
+	var data []byte
+	if msg.RawData != nil {
+		data = msg.RawData
+	} else if b, ok := msg.Data.([]byte); ok {
+		data = b
+	} else if s, ok := msg.Data.(string); ok {
+		data = []byte(s)
+	}
+	return &SubscribedEvent{
+		Topic:       s.topic,
+		Data:        data,
+		ContentType: msg.DataContentType,
+		Metadata:    nil,    // SDK の TopicEvent には header メタデータ未露出
+		Offset:      0,      // SDK は exposing しない
+		Ack:         msg.Success,
+		Retry:       msg.Retry,
+	}, nil
+}
+
+func (s *daprSubscriptionAdapter) Close() error {
+	return s.sub.Close()
 }
 
 // Publish はトピックへ event を発行する。
