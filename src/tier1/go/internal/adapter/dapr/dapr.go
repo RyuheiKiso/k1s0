@@ -185,6 +185,37 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// daprMetadataPinger は Dapr SDK GRPCClient が満たす narrow interface。
+// HealthService.Readiness の dependency probe 経路で sidecar 到達性を確認する用途。
+type daprMetadataPinger interface {
+	// SDK の GetMetadata は sidecar に対して /v1.0/metadata（gRPC 版）を呼び、
+	// sidecar がレジスタした component 一覧と app metadata を返す軽量 RPC。
+	GetMetadata(ctx context.Context) (*daprclient.GetMetadataResponse, error)
+}
+
+// Ping は Dapr sidecar への到達性を確認する。
+// in-memory backend（closer == nil または closer が GetMetadata を持たない fake）では
+// 即時 nil を返す（process 内 backend は常に到達可能）。production の SDK Client は
+// GetMetadata を呼び、sidecar gRPC 経路の生存を確認する。
+func (c *Client) Ping(ctx context.Context) error {
+	// closer 未設定（test fake / in-memory）は到達性常時 OK。
+	if c.closer == nil {
+		// nil error で reachable=true を返す経路に乗せる。
+		return nil
+	}
+	// SDK GRPCClient は GetMetadata を持つ。型アサーションで narrow interface に絞る。
+	pinger, ok := c.closer.(daprMetadataPinger)
+	// アサーション失敗（fake が Close のみを持つケース等）は到達性確認をスキップする。
+	if !ok {
+		// nil error で reachable=true を返す経路に乗せる。
+		return nil
+	}
+	// 実 sidecar に GetMetadata を投げる。応答 body は使わず、err のみ判定する。
+	_, err := pinger.GetMetadata(ctx)
+	// SDK 側の gRPC error をそのまま返却する（Readiness 側で error_message に詰める）。
+	return err
+}
+
 // SidecarAddress は Client が想定する Dapr sidecar のアドレスを返す。
 // 観測性 / デバッグ用途で main から参照される。
 func (c *Client) SidecarAddress() string {

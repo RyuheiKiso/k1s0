@@ -28,12 +28,18 @@ package main
 import (
 	// adapter 初期化に context を渡す。
 	"context"
+	// 依存先 probe error 比較用の errors.Is。
+	"errors"
 	// listen address を flag で受け取り、ConfigMap での上書きに備える。
 	"flag"
 	// 起動 / shutdown / エラーログを stderr に出す。
 	"log"
 	// 環境変数読出。
 	"os"
+	// SDK error 文字列フォールバック判定。
+	"strings"
+	// HealthService.Readiness の probe ごと timeout 制御。
+	"time"
 
 	// Dapr SDK Client（Workflow Beta1 API へ接続するために必要）。
 	daprclient "github.com/dapr/go-sdk/client"
@@ -43,6 +49,8 @@ import (
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/temporal"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// HealthService.Readiness 用 DependencyProbe 型。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/health"
 	// t1-workflow Pod の handler（WorkflowService 単独）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/workflow"
 )
@@ -100,6 +108,59 @@ func main() {
 		DefaultListen: defaultListen,
 		// service 登録 hook。WorkflowService を登録する。
 		Register: workflow.Register(deps),
+		// HealthService 用 Pod バージョン。release ビルドでは ldflags で上書きする想定。
+		Version: common.DefaultVersion,
+		// HealthService.Readiness で並列実行する依存先 probe。
+		// workflow Pod は Temporal（長期）と Dapr Workflow（短期）の 2 系統に依存する。
+		Probes: []health.DependencyProbe{
+			{
+				// dependencies map のキーは "temporal" を採用する。
+				Name: "temporal",
+				// Temporal Client の到達性を 2 秒以内で確認する。
+				Check: func(ctx context.Context) error {
+					// 過剰な待機を避けるため probe ごとに timeout を 2 秒に絞る。
+					checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+					// 関数末尾で必ず cancel する。
+					defer cancel()
+					// in-memory backend は常に nil、production は frontend に DescribeWorkflowExecution を投げる。
+					return temporalClient.Ping(checkCtx)
+				},
+			},
+			{
+				// dependencies map のキーは "dapr-workflow" を採用する。
+				Name: "dapr-workflow",
+				// Dapr Workflow adapter は Ping を直接持たないため、センチネル workflow への
+				// GetStatus を呼んで NotFound 応答で到達性を判定する。
+				Check: func(ctx context.Context) error {
+					// 過剰な待機を避けるため probe ごとに timeout を 2 秒に絞る。
+					checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+					// 関数末尾で必ず cancel する。
+					defer cancel()
+					// 実 sidecar / in-memory どちらでもセンチネル ID は存在しないため NotFound が返る期待。
+					_, err := daprWorkflowClient.GetStatus(checkCtx, daprwf.GetStatusRequest{
+						// テナント不問のセンチネル workflow ID。
+						WorkflowID: "_k1s0_health_probe",
+					})
+					// nil（偶然存在）は到達 OK として扱う。
+					if err == nil {
+						// nil で reachable=true。
+						return nil
+					}
+					// in-memory / production 双方の NotFound センチネルを到達 OK 扱い。
+					if errors.Is(err, daprwf.ErrNotFound) {
+						// nil で reachable=true。
+						return nil
+					}
+					// 文字列 fallback（gRPC NotFound / "not found" 系）も到達 OK。
+					if msg := err.Error(); strings.Contains(msg, "NotFound") || strings.Contains(msg, "not found") {
+						// nil で reachable=true。
+						return nil
+					}
+					// それ以外は network / 認証 / TLS 系エラー扱いで reachable=false に倒す。
+					return err
+				},
+			},
+		},
 	}
 
 	// 共通 runtime に委譲する。エラー時は log.Fatalf で非ゼロ終了する。

@@ -33,11 +33,15 @@ import (
 	"log"
 	// 環境変数読出。
 	"os"
+	// HealthService.Readiness の probe ごと timeout 制御。
+	"time"
 
 	// OpenBao adapter（本 Pod 専用）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/openbao"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// HealthService.Readiness 用 DependencyProbe 型。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/health"
 	// t1-secret Pod の handler（SecretsService 単独）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/secret"
 )
@@ -108,6 +112,25 @@ func main() {
 		DefaultListen: defaultListen,
 		// service 登録 hook。SecretsService を登録する。
 		Register: secret.Register(deps),
+		// HealthService 用 Pod バージョン。release ビルドでは ldflags で上書きする想定。
+		Version: common.DefaultVersion,
+		// HealthService.Readiness で並列実行する依存先 probe。
+		// secret Pod は OpenBao（KVv2 + Database Engine）に依存する。
+		Probes: []health.DependencyProbe{
+			{
+				// dependencies map のキーは "openbao" を採用する。
+				Name: "openbao",
+				// OpenBao Client の到達性を 2 秒以内で確認する。
+				Check: func(ctx context.Context) error {
+					// 過剰な待機を避けるため probe ごとに timeout を 2 秒に絞る。
+					checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+					// 関数末尾で必ず cancel する。
+					defer cancel()
+					// in-memory backend は常に nil、production は KVv2 mount 直下のセンチネル Get で到達性確認。
+					return openBaoClient.Ping(checkCtx)
+				},
+			},
+		},
 	}
 
 	// 共通 runtime に委譲する。エラー時は log.Fatalf で非ゼロ終了する。

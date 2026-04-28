@@ -40,11 +40,15 @@ import (
 	"log"
 	// stdout への OTel JSON Lines 出力先。
 	"os"
+	// HealthService.Readiness の probe ごと timeout 制御に使う。
+	"time"
 
 	// Dapr adapter（State / PubSub / Binding / Invoke / Feature の 5 building block 共通 Client）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通ランタイム（gRPC bootstrap + health + graceful shutdown）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+	// HealthService.Readiness 用 DependencyProbe 型。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/health"
 	// 共通 OTel emitter（Log / Metric / Trace）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/otel"
 	// t1-state Pod の handler（5 公開 API のオーケストレータ）。
@@ -104,7 +108,28 @@ func main() {
 		DefaultListen: defaultListen,
 		// service 登録 hook。5 公開 API（ServiceInvoke / State / PubSub / Binding / Feature）を登録する。
 		Register: state.Register(deps),
-		// 構造体リテラルを閉じる。
+		// HealthService 用 Pod バージョン。release ビルドでは ldflags で上書きする想定。
+		Version: common.DefaultVersion,
+		// HealthService.Readiness で並列実行する依存先 probe。
+		// dev/CI（in-memory backend）では Dapr Client は process 内 backend に接続済のため
+		// 常に reachable として ping を返す。production の Dapr sidecar 経路でも
+		// daprClient.Ping は SDK 側 grpc.Health.Check に転送されるため一貫した結線。
+		Probes: []health.DependencyProbe{
+			{
+				// dependencies map のキーは "dapr" を採用する。
+				Name: "dapr",
+				// Dapr Client の到達性を 2 秒以内で確認する。
+				Check: func(ctx context.Context) error {
+					// 過剰な待機を避けるため probe ごとに timeout を 2 秒に絞る。
+					checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+					// 関数末尾で必ず cancel する。
+					defer cancel()
+					// dapr.Client.Ping は in-memory backend では即時 nil、production では
+					// sidecar に grpc Ping を投げる薄いラッパ。
+					return daprClient.Ping(checkCtx)
+				},
+			},
+		},
 	}
 
 	// 共通 runtime に委譲する。エラー時は log.Fatalf で非ゼロ終了する。

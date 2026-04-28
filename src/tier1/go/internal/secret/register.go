@@ -68,12 +68,24 @@ func (h *secretHandler) Get(ctx context.Context, req *secretsv1.GetSecretRequest
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tenantID := req.GetContext().GetTenantId()
+	// tenantID 未設定はテナント境界違反として弾く（adapter の path 構築前で短絡）。
+	if tenantID == "" {
+		// InvalidArgument で返却する（BulkGet / GetDynamic / Rotate と一貫）。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	}
+	// secret 名も必須（空名はテナント prefix のみで lookup → 誤動作の元）。
+	if req.GetName() == "" {
+		// InvalidArgument で返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: name required")
+	}
 	if h.deps.SecretsAdapter == nil {
 		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Get not yet wired to OpenBao")
 	}
 	ar := openbao.SecretGetRequest{
 		Name:     req.GetName(),
-		TenantID: req.GetContext().GetTenantId(),
+		TenantID: tenantID,
 	}
 	if req.Version != nil {
 		ar.Version = int(*req.Version)
@@ -147,6 +159,18 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		// 不正引数として返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tenantID := req.GetContext().GetTenantId()
+	// tenantID 未設定はテナント境界違反として弾く（rotate 対象の誤同定を防止）。
+	if tenantID == "" {
+		// InvalidArgument で返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	}
+	// secret 名も必須（空名は rotate 対象が確定しないため不正）。
+	if req.GetName() == "" {
+		// InvalidArgument で返却する。
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: name required")
+	}
 	// adapter 未注入時は未結線扱い。
 	if h.deps.SecretsAdapter == nil {
 		// Unimplemented を返却する。
@@ -157,7 +181,7 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		// 対象 secret 名。
 		Name: req.GetName(),
 		// テナント識別子（境界検証用）。
-		TenantID: req.GetContext().GetTenantId(),
+		TenantID: tenantID,
 	}
 	// adapter で bump を実行する。
 	resp, err := h.deps.SecretsAdapter.Rotate(ctx, ar)

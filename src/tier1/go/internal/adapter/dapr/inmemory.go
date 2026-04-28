@@ -45,26 +45,52 @@ type inMemoryStateValue struct {
 
 // inMemoryDapr は 5 building block を 1 つにまとめた in-memory backend。
 // dev / CI でも production と同じ narrow interface 経路を辿らせる。
+//
+// テナント分離（NFR-E-AC-003）:
+//   実 Dapr Component は metadata.partitionKey で tenant 単位の partition を構成するが、
+//   in-memory backend は SDK の metadata map から "tenantId" を読み取り、storage key を
+//   (tenantId, store, key) に拡張することで同等の隔離を実現する。
+//   tenantId が空（呼出元が未指定）の場合は ""（空テナント）パーティションに集約され、
+//   handler 側の必須検証（requireTenantID）を通過した呼出のみ data plane に到達する。
 type inMemoryDapr struct {
 	// 全状態を保護する RWMutex。
 	mu sync.RWMutex
-	// state KV: store 名 → (key → value)。
-	state map[string]map[string]inMemoryStateValue
+	// state KV: tenantId → (store 名 → (key → value))。
+	// 第一階層を tenantId で分けることで tenant 越境を物理的に遮断する。
+	state map[string]map[string]map[string]inMemoryStateValue
 	// state etag 採番用カウンタ。
 	etagCounter int
-	// configuration KV: store 名 → (key → ConfigurationItem)。
-	config map[string]map[string]*daprclient.ConfigurationItem
+	// configuration KV: tenantId → (store 名 → (key → ConfigurationItem))。
+	// state と同様 tenant 第一階層化する。
+	config map[string]map[string]map[string]*daprclient.ConfigurationItem
 }
 
 // newInMemoryDapr は空の in-memory backend を生成する。
 func newInMemoryDapr() *inMemoryDapr {
 	// 全 map を空で初期化する。
 	return &inMemoryDapr{
-		// state KV を空で初期化する。
-		state: map[string]map[string]inMemoryStateValue{},
-		// configuration KV を空で初期化する。
-		config: map[string]map[string]*daprclient.ConfigurationItem{},
+		// state KV を空で初期化する。tenant 第一階層を採用。
+		state: map[string]map[string]map[string]inMemoryStateValue{},
+		// configuration KV を空で初期化する。tenant 第一階層を採用。
+		config: map[string]map[string]map[string]*daprclient.ConfigurationItem{},
 	}
+}
+
+// metaKeyTenantID は SDK metadata map に詰めるテナント識別子のキー。
+// adapter（state.go の metadataKeyTenant）と一致させる必要があるが、in-memory backend は
+// adapter package private を参照できないため文字列定数で同期する。
+const metaKeyTenantID = "tenantId"
+
+// tenantOf は SDK metadata map からテナント識別子を抜き出す。
+// 不在 / nil map の場合は空文字を返す（呼出元 handler 側で requireTenantID 済前提）。
+func tenantOf(meta map[string]string) string {
+	// nil map は空文字を返す。
+	if meta == nil {
+		// 空文字でフォールバック（handler 側 NFR-E-AC-003 検証通過前提）。
+		return ""
+	}
+	// "tenantId" キーの有無に依らず map の zero 値（空文字）が返る。
+	return meta[metaKeyTenantID]
 }
 
 // nextEtag は etagCounter を進めて新しい etag 文字列を返す。
@@ -109,15 +135,53 @@ func itoa(n int) string {
 	return string(buf)
 }
 
+// stateBucketLocked は (tenantId, store) を解決して bucket map を返す。
+// create=true の時は不在を遅延生成、false の時は不在を nil で返す（読出時）。
+// 呼出側で m.mu を握っている前提（_Locked サフィックスで明示）。
+func (m *inMemoryDapr) stateBucketLocked(tenant, store string, create bool) map[string]inMemoryStateValue {
+	// tenant 階層を取り出す。
+	byStore, ok := m.state[tenant]
+	// tenant 階層が不在の分岐。
+	if !ok {
+		// 読出のみで不在生成不要なら nil を返す。
+		if !create {
+			// nil を返す。
+			return nil
+		}
+		// 書込時は新 map を割当てて保存する。
+		byStore = map[string]map[string]inMemoryStateValue{}
+		// tenant 階層に登録する。
+		m.state[tenant] = byStore
+	}
+	// store 配下を取り出す。
+	bucket, ok := byStore[store]
+	// store 配下不在の分岐。
+	if !ok {
+		// 読出のみで不在生成不要なら nil を返す。
+		if !create {
+			// nil を返す。
+			return nil
+		}
+		// 書込時は新 map を割当てて保存する。
+		bucket = map[string]inMemoryStateValue{}
+		// store 配下に登録する。
+		byStore[store] = bucket
+	}
+	// bucket を返す。
+	return bucket
+}
+
 // GetState は store / key から最新値を取得する。未存在は (nil, nil)。
-func (m *inMemoryDapr) GetState(_ context.Context, storeName, key string, _ map[string]string) (*daprclient.StateItem, error) {
+func (m *inMemoryDapr) GetState(_ context.Context, storeName, key string, meta map[string]string) (*daprclient.StateItem, error) {
 	// 読出 lock を取得する。
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	// store 配下の map を取り出す。
-	bucket, ok := m.state[storeName]
-	// store 未存在は SDK 慣行で空 StateItem を返す（key/Value=nil）。
-	if !ok {
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を読出専用で取得する。
+	bucket := m.stateBucketLocked(tenant, storeName, false)
+	// bucket 不在は SDK 慣行で空 StateItem を返す。
+	if bucket == nil {
 		// 空 StateItem を返す。
 		return &daprclient.StateItem{Key: key}, nil
 	}
@@ -133,19 +197,14 @@ func (m *inMemoryDapr) GetState(_ context.Context, storeName, key string, _ map[
 }
 
 // SaveState は store / key に値を保存する（無条件）。
-func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data []byte, _ map[string]string, _ ...daprclient.StateOption) error {
+func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data []byte, meta map[string]string, _ ...daprclient.StateOption) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// store 配下の map を遅延生成する。
-	bucket, ok := m.state[storeName]
-	// 未存在なら新 map を作る。
-	if !ok {
-		// 空 map を割当てる。
-		bucket = map[string]inMemoryStateValue{}
-		// store 配下に登録する。
-		m.state[storeName] = bucket
-	}
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を書込時生成で取得する。
+	bucket := m.stateBucketLocked(tenant, storeName, true)
 	// 値と新 etag を保存する。
 	bucket[key] = inMemoryStateValue{value: data, etag: m.nextEtag()}
 	// 成功時 nil を返す。
@@ -153,19 +212,14 @@ func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data 
 }
 
 // SaveStateWithETag は楽観的排他付きで保存する（etag 不一致時 error）。
-func (m *inMemoryDapr) SaveStateWithETag(_ context.Context, storeName, key string, data []byte, etag string, _ map[string]string, _ ...daprclient.StateOption) error {
+func (m *inMemoryDapr) SaveStateWithETag(_ context.Context, storeName, key string, data []byte, etag string, meta map[string]string, _ ...daprclient.StateOption) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// store 配下の map を遅延生成する。
-	bucket, ok := m.state[storeName]
-	// 未存在なら新 map を作る。
-	if !ok {
-		// 空 map を割当てる。
-		bucket = map[string]inMemoryStateValue{}
-		// store 配下に登録する。
-		m.state[storeName] = bucket
-	}
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を書込時生成で取得する。
+	bucket := m.stateBucketLocked(tenant, storeName, true)
 	// 既存値の etag を確認する。
 	if existing, ok := bucket[key]; ok && existing.etag != etag {
 		// 楽観的排他の不一致は SDK と同じ semantics で error を返す。
@@ -178,14 +232,16 @@ func (m *inMemoryDapr) SaveStateWithETag(_ context.Context, storeName, key strin
 }
 
 // DeleteState は store / key を削除する（無条件）。
-func (m *inMemoryDapr) DeleteState(_ context.Context, storeName, key string, _ map[string]string) error {
+func (m *inMemoryDapr) DeleteState(_ context.Context, storeName, key string, meta map[string]string) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// store 配下の map を取り出す。
-	bucket, ok := m.state[storeName]
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を読出専用で取得する。
+	bucket := m.stateBucketLocked(tenant, storeName, false)
 	// 未存在は no-op。
-	if !ok {
+	if bucket == nil {
 		// nil を返す。
 		return nil
 	}
@@ -196,14 +252,16 @@ func (m *inMemoryDapr) DeleteState(_ context.Context, storeName, key string, _ m
 }
 
 // DeleteStateWithETag は楽観的排他付きで削除する。
-func (m *inMemoryDapr) DeleteStateWithETag(_ context.Context, storeName, key string, etag *daprclient.ETag, _ map[string]string, _ *daprclient.StateOptions) error {
+func (m *inMemoryDapr) DeleteStateWithETag(_ context.Context, storeName, key string, etag *daprclient.ETag, meta map[string]string, _ *daprclient.StateOptions) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// store 配下の map を取り出す。
-	bucket, ok := m.state[storeName]
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を読出専用で取得する。
+	bucket := m.stateBucketLocked(tenant, storeName, false)
 	// 未存在は no-op。
-	if !ok {
+	if bucket == nil {
 		// nil を返す。
 		return nil
 	}
@@ -222,14 +280,16 @@ func (m *inMemoryDapr) DeleteStateWithETag(_ context.Context, storeName, key str
 }
 
 // GetBulkState は複数 key を一括取得する。
-func (m *inMemoryDapr) GetBulkState(_ context.Context, storeName string, keys []string, _ map[string]string, _ int32) ([]*daprclient.BulkStateItem, error) {
+func (m *inMemoryDapr) GetBulkState(_ context.Context, storeName string, keys []string, meta map[string]string, _ int32) ([]*daprclient.BulkStateItem, error) {
 	// 読出 lock を取得する。
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	// 結果 slice を準備する。
 	out := make([]*daprclient.BulkStateItem, 0, len(keys))
-	// store 配下の map を取り出す。
-	bucket := m.state[storeName]
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を読出専用で取得する（不在は nil で各 key を未存在扱い）。
+	bucket := m.stateBucketLocked(tenant, storeName, false)
 	// 各 key を 1 件ずつ取得する。
 	for _, k := range keys {
 		// bucket 不在 / key 不在は空 Value で返す。
@@ -250,19 +310,14 @@ func (m *inMemoryDapr) GetBulkState(_ context.Context, storeName string, keys []
 
 // ExecuteStateTransaction は ops を 1 トランザクションで実行する。
 // in-memory backend は途中失敗を rollback できないため、書込前に全 op の事前検証を行う。
-func (m *inMemoryDapr) ExecuteStateTransaction(_ context.Context, storeName string, _ map[string]string, ops []*daprclient.StateOperation) error {
+func (m *inMemoryDapr) ExecuteStateTransaction(_ context.Context, storeName string, meta map[string]string, ops []*daprclient.StateOperation) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// store 配下の map を遅延生成する。
-	bucket, ok := m.state[storeName]
-	// 未存在なら新 map を作る。
-	if !ok {
-		// 空 map を割当てる。
-		bucket = map[string]inMemoryStateValue{}
-		// store 配下に登録する。
-		m.state[storeName] = bucket
-	}
+	// metadata からテナントを抽出する。
+	tenant := tenantOf(meta)
+	// (tenant, store) bucket を書込時生成で取得する。
+	bucket := m.stateBucketLocked(tenant, storeName, true)
 	// 全 op を逐次実行する。途中失敗は前段までの書込が残るが in-memory なので許容する。
 	for _, op := range ops {
 		// op が nil の場合は skip する。
@@ -333,15 +388,55 @@ func (m *inMemoryDapr) InvokeBinding(_ context.Context, _ *daprclient.InvokeBind
 	return &daprclient.BindingEvent{}, nil
 }
 
+// configBucketLocked は (tenantId, store) を解決して configuration bucket map を返す。
+// state と同じ partition 戦略でテナント越境を防ぐ。
+func (m *inMemoryDapr) configBucketLocked(tenant, store string, create bool) map[string]*daprclient.ConfigurationItem {
+	// tenant 階層を取り出す。
+	byStore, ok := m.config[tenant]
+	// tenant 階層が不在の分岐。
+	if !ok {
+		// 読出のみで不在生成不要なら nil を返す。
+		if !create {
+			// nil を返す。
+			return nil
+		}
+		// 書込時は新 map を割当てて保存する。
+		byStore = map[string]map[string]*daprclient.ConfigurationItem{}
+		// tenant 階層に登録する。
+		m.config[tenant] = byStore
+	}
+	// store 配下を取り出す。
+	bucket, ok := byStore[store]
+	// store 配下不在の分岐。
+	if !ok {
+		// 読出のみで不在生成不要なら nil を返す。
+		if !create {
+			// nil を返す。
+			return nil
+		}
+		// 書込時は新 map を割当てて保存する。
+		bucket = map[string]*daprclient.ConfigurationItem{}
+		// store 配下に登録する。
+		byStore[store] = bucket
+	}
+	// bucket を返す。
+	return bucket
+}
+
 // GetConfigurationItem は configuration KV から値を取得する。未存在は nil を返す。
+// テナント識別子は SDK の ConfigurationOpt に metadata として埋め込まれるが、
+// in-memory backend ではオプションを直接覗けないため、本実装は tenant="" 階層のみを使う。
+// 実 Dapr 経路では Component 側で metadata.tenantId を partitionKey として扱う。
 func (m *inMemoryDapr) GetConfigurationItem(_ context.Context, storeName, key string, _ ...daprclient.ConfigurationOpt) (*daprclient.ConfigurationItem, error) {
 	// 読出 lock を取得する。
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	// store 配下の map を取り出す。
-	bucket, ok := m.config[storeName]
+	// configuration は SDK ConfigurationOpt 経由で metadata を渡す形だが、
+	// in-memory backend の dev/CI 用途では tenant="" の global namespace のみ参照する。
+	// production の Dapr Configuration API で tenant 隔離する場合は Component 側で実装する。
+	bucket := m.configBucketLocked("", storeName, false)
 	// store 未存在は nil。
-	if !ok {
+	if bucket == nil {
 		// nil を返す。
 		return nil, nil
 	}
@@ -351,19 +446,13 @@ func (m *inMemoryDapr) GetConfigurationItem(_ context.Context, storeName, key st
 
 // PutConfigurationItem は in-memory configuration store に値を保存する（dev / CI 用 helper）。
 // SDK には存在しないが、in-memory backend のための seed API として exposing する。
+// テナント分離は dev / CI では未対応（tenant="" の global namespace に保存）。
 func (m *inMemoryDapr) PutConfigurationItem(storeName, key string, item *daprclient.ConfigurationItem) {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// store 配下の map を遅延生成する。
-	bucket, ok := m.config[storeName]
-	// 未存在なら新 map を作る。
-	if !ok {
-		// 空 map を割当てる。
-		bucket = map[string]*daprclient.ConfigurationItem{}
-		// store 配下に登録する。
-		m.config[storeName] = bucket
-	}
+	// tenant="" の global namespace に保存する（dev/CI seed 用）。
+	bucket := m.configBucketLocked("", storeName, true)
 	// 値を保存する。
 	bucket[key] = item
 }

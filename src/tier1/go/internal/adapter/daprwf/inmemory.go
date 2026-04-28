@@ -86,11 +86,36 @@ func (m *InMemoryWorkflow) Start(_ context.Context, req StartRequest) (StartResp
 	return StartResponse{WorkflowID: wid, RunID: r.runID}, nil
 }
 
-// Signal は履歴追記のみ（in-memory なので副作用なし）。未存在は ErrNotFound。
+// resolveLocked はテナント境界（NFR-E-AC-003）を検査しつつ run を取り出す。
+// run 不在 / tenant_id が run.tenantID と異なる場合は ErrNotFound を返す（other-tenant の
+// 存在を漏らさないため、PermissionDenied ではなく NotFound を採用）。
+// 呼出側で m.mu を握っている前提（_Locked サフィックスで明示）。
+func (m *InMemoryWorkflow) resolveLocked(workflowID, tenantID string) (*inMemoryRun, bool) {
+	// workflow_id で lookup する。
+	r, ok := m.runs[workflowID]
+	// 不在は false（呼出側 ErrNotFound 翻訳）。
+	if !ok {
+		// nil で false を返す。
+		return nil, false
+	}
+	// tenant_id 不一致も false（other-tenant の workflow を漏らさない）。
+	// HealthService probe など tenantID="" の経路は probe workflow が存在しない前提のため、
+	// 通常運用では tenantID 必須（handler 上位 requireTenantID で強制済）。
+	if r.tenantID != tenantID {
+		// nil で false を返す。
+		return nil, false
+	}
+	// 一致時は run を返す。
+	return r, true
+}
+
+// Signal は履歴追記のみ（in-memory なので副作用なし）。未存在 / 越境は ErrNotFound。
 func (m *InMemoryWorkflow) Signal(_ context.Context, req SignalRequest) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.runs[req.WorkflowID]; !ok {
+	// テナント境界検査つき lookup。
+	if _, ok := m.resolveLocked(req.WorkflowID, req.TenantID); !ok {
+		// 不在 or 越境は NotFound 翻訳。
 		return ErrNotFound
 	}
 	// signal 受信は履歴に追記したいが、in-memory backend は履歴を保持しない。no-op。
@@ -101,43 +126,51 @@ func (m *InMemoryWorkflow) Signal(_ context.Context, req SignalRequest) error {
 func (m *InMemoryWorkflow) Query(_ context.Context, req QueryRequest) (QueryResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.runs[req.WorkflowID]; !ok {
+	// テナント境界検査つき lookup。
+	if _, ok := m.resolveLocked(req.WorkflowID, req.TenantID); !ok {
+		// 不在 or 越境は NotFound 翻訳。
 		return QueryResponse{}, ErrNotFound
 	}
 	// 空 bytes（query handler が無いため）。
 	return QueryResponse{Result: nil}, nil
 }
 
-// Cancel は status を Canceled に遷移させる。
+// Cancel は status を Canceled に遷移させる。越境 / 不在は ErrNotFound。
 func (m *InMemoryWorkflow) Cancel(_ context.Context, req CancelRequest) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	r, ok := m.runs[req.WorkflowID]
+	// テナント境界検査つき lookup。
+	r, ok := m.resolveLocked(req.WorkflowID, req.TenantID)
 	if !ok {
+		// 不在 or 越境は NotFound 翻訳。
 		return ErrNotFound
 	}
 	r.status = StatusCanceled
 	return nil
 }
 
-// Terminate は status を Terminated に遷移させる。
+// Terminate は status を Terminated に遷移させる。越境 / 不在は ErrNotFound。
 func (m *InMemoryWorkflow) Terminate(_ context.Context, req TerminateRequest) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	r, ok := m.runs[req.WorkflowID]
+	// テナント境界検査つき lookup。
+	r, ok := m.resolveLocked(req.WorkflowID, req.TenantID)
 	if !ok {
+		// 不在 or 越境は NotFound 翻訳。
 		return ErrNotFound
 	}
 	r.status = StatusTerminated
 	return nil
 }
 
-// GetStatus は現在 status と run_id を返す。
+// GetStatus は現在 status と run_id を返す。越境 / 不在は ErrNotFound。
 func (m *InMemoryWorkflow) GetStatus(_ context.Context, req GetStatusRequest) (GetStatusResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	r, ok := m.runs[req.WorkflowID]
+	// テナント境界検査つき lookup。
+	r, ok := m.resolveLocked(req.WorkflowID, req.TenantID)
 	if !ok {
+		// 不在 or 越境は NotFound 翻訳。
 		return GetStatusResponse{}, ErrNotFound
 	}
 	return GetStatusResponse{Status: r.status, RunID: r.runID}, nil

@@ -22,6 +22,7 @@ package openbao
 import (
 	"context"
 	"errors"
+	"strings"
 
 	// OpenBao Go SDK。
 	bao "github.com/openbao/openbao/api/v2"
@@ -142,4 +143,41 @@ func (c *Client) listerFor() Lister {
 // fake / in-memory 注入時は nil（caller 側で ErrNotWired にフォールバック）。
 func (c *Client) dynamicReaderFor() dynamicReader {
 	return c.dynamicReader
+}
+
+// Ping は OpenBao への到達性を軽量 RPC で確認する。
+// HealthService.Readiness の dependency probe 経路で呼ばれる。
+//
+// production: KVv2 mount 直下のセンチネルパス（"_k1s0_health_probe"）に対する Get を
+// 呼び、404（ErrSecretNotFound）が返れば「OpenBao は応答できる」と判定して nil を返す。
+// 認証 / 証明書 / network 系のエラーは reachable=false を意味するためそのまま返す。
+//
+// in-memory（kv が nil または fake）: 即時 nil を返す（process 内 backend は常に到達可能）。
+func (c *Client) Ping(ctx context.Context) error {
+	// kv 未注入（fake コンストラクタや InMemory 経路）は到達性常時 OK とみなす。
+	if c.kv == nil {
+		// nil error で reachable=true を返す。
+		return nil
+	}
+	// センチネルパス。実 secret を読まないため漏洩リスクなし。
+	const probePath = "_k1s0_health_probe"
+	// Get を呼び、結果は捨てる。err 種別で到達性を判定する。
+	_, err := c.kv.Get(ctx, probePath)
+	// secret 未存在は OpenBao server が応答できている証なので到達 OK 扱い。
+	if errors.Is(err, ErrSecretNotFound) {
+		// nil で reachable=true。
+		return nil
+	}
+	// SDK は 404 を独自 error 型で返す。文字列 fallback で 404 系を到達 OK 扱い。
+	if err != nil {
+		// SDK error 文字列に "404" / "secret not found" が含まれるなら server 応答済 = 到達 OK。
+		if msg := err.Error(); strings.Contains(msg, "404") || strings.Contains(msg, "secret not found") {
+			// nil で reachable=true。
+			return nil
+		}
+		// それ以外（network / auth / TLS など）は reachable=false の error_message に詰める。
+		return err
+	}
+	// secret が偶然存在した（管理者が実 secret を _k1s0_health_probe に置いた）ケースも到達 OK。
+	return nil
 }
