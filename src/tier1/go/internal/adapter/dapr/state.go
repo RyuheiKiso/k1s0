@@ -26,6 +26,8 @@ package dapr
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
+	// 想定外の TransactOpKind に対する error 整形。
+	"fmt"
 	// TTL 秒数を string として metadata に詰めるため。
 	"strconv"
 
@@ -94,6 +96,52 @@ type StateAdapter interface {
 	Set(ctx context.Context, req StateSetRequest) (StateSetResponse, error)
 	// 単一キー削除。
 	Delete(ctx context.Context, req StateSetRequest) error
+	// 複数キーの一括取得（parallelism は呼び出し時の同時実行 worker 数、0 で SDK 既定）。
+	BulkGet(ctx context.Context, req StateBulkGetRequest) ([]StateBulkGetItem, error)
+	// 複数操作（Set / Delete）の transactional 実行。
+	Transact(ctx context.Context, req StateTransactRequest) error
+}
+
+// StateBulkGetRequest は BulkGet の入力。
+type StateBulkGetRequest struct {
+	Store       string
+	Keys        []string
+	TenantID    string
+	Parallelism int32
+}
+
+// StateBulkGetItem は BulkGet の応答 1 件。
+type StateBulkGetItem struct {
+	Key      string
+	Data     []byte
+	Etag     string
+	NotFound bool
+	Error    string
+}
+
+// TransactOpKind は Transact 内の 1 操作の種別。
+type TransactOpKind int
+
+const (
+	TransactOpSet    TransactOpKind = 1
+	TransactOpDelete TransactOpKind = 2
+)
+
+// TransactOp は Transact の 1 操作。
+type TransactOp struct {
+	Kind TransactOpKind
+	// Set 時: Key + Data + ExpectedEtag + TTLSeconds、Delete 時: Key + ExpectedEtag。
+	Key          string
+	Data         []byte
+	ExpectedEtag string
+	TTLSeconds   int32
+}
+
+// StateTransactRequest は Transact の入力（複数 ops を 1 トランザクションで実行）。
+type StateTransactRequest struct {
+	Store    string
+	Ops      []TransactOp
+	TenantID string
 }
 
 // daprStateAdapter は Client（narrow interface）を介して Dapr SDK を呼ぶ実装。
@@ -162,6 +210,62 @@ func (a *daprStateAdapter) Set(ctx context.Context, req StateSetRequest) (StateS
 	}
 	// SDK の SaveState は ETag を返さないため空文字を返す（必要時は handler で Get を再実行）。
 	return StateSetResponse{NewEtag: ""}, nil
+}
+
+// BulkGet は複数キーを Dapr GetBulkState で一括取得する。
+// parallelism が 0 なら SDK の既定値を使う（実装は内部で min(len(keys), 100)）。
+func (a *daprStateAdapter) BulkGet(ctx context.Context, req StateBulkGetRequest) ([]StateBulkGetItem, error) {
+	parallelism := req.Parallelism
+	if parallelism <= 0 {
+		parallelism = 10
+	}
+	items, err := a.client.stateClient().GetBulkState(ctx, req.Store, req.Keys, buildMeta(req.TenantID, 0), parallelism)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]StateBulkGetItem, 0, len(items))
+	for _, it := range items {
+		// Dapr は未存在 / エラーを Item.Error フィールドで表現する。
+		not_found := it.Error == "" && len(it.Value) == 0
+		out = append(out, StateBulkGetItem{
+			Key:      it.Key,
+			Data:     it.Value,
+			Etag:     it.Etag,
+			NotFound: not_found,
+			Error:    it.Error,
+		})
+	}
+	return out, nil
+}
+
+// Transact は複数 ops を 1 トランザクションで実行する。
+// Dapr SDK の ExecuteStateTransaction を呼び、ops を SDK の StateOperation 列に変換する。
+func (a *daprStateAdapter) Transact(ctx context.Context, req StateTransactRequest) error {
+	dops := make([]*daprclient.StateOperation, 0, len(req.Ops))
+	for _, op := range req.Ops {
+		switch op.Kind {
+		case TransactOpSet:
+			dops = append(dops, &daprclient.StateOperation{
+				Type: daprclient.StateOperationTypeUpsert,
+				Item: &daprclient.SetStateItem{
+					Key:   op.Key,
+					Value: op.Data,
+					Etag:  &daprclient.ETag{Value: op.ExpectedEtag},
+				},
+			})
+		case TransactOpDelete:
+			dops = append(dops, &daprclient.StateOperation{
+				Type: daprclient.StateOperationTypeDelete,
+				Item: &daprclient.SetStateItem{
+					Key:  op.Key,
+					Etag: &daprclient.ETag{Value: op.ExpectedEtag},
+				},
+			})
+		default:
+			return fmt.Errorf("tier1/state: unknown TransactOpKind %d", op.Kind)
+		}
+	}
+	return a.client.stateClient().ExecuteStateTransaction(ctx, req.Store, buildMeta(req.TenantID, 0), dops)
 }
 
 // Delete は単一キーを Dapr State から削除する。

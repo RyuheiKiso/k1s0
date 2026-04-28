@@ -58,6 +58,10 @@ type daprStateClient interface {
 	DeleteState(ctx context.Context, storeName, key string, meta map[string]string) error
 	// State 削除（楽観的排他）。
 	DeleteStateWithETag(ctx context.Context, storeName, key string, etag *daprclient.ETag, meta map[string]string, opts *daprclient.StateOptions) error
+	// 複数 key の一括取得（parallelism は SDK 内 worker 数）。
+	GetBulkState(ctx context.Context, storeName string, keys []string, meta map[string]string, parallelism int32) ([]*daprclient.BulkStateItem, error)
+	// 複数操作の transactional 実行（途中失敗で全 rollback）。
+	ExecuteStateTransaction(ctx context.Context, storeName string, meta map[string]string, ops []*daprclient.StateOperation) error
 }
 
 // daprPubSubClient は本パッケージが Dapr SDK から **実際に使う pubsub 関連メソッド**

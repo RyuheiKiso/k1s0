@@ -130,16 +130,68 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 	return &statev1.DeleteResponse{Deleted: true}, nil
 }
 
-// BulkGet は複数キーの一括取得。リリース時点 では Unimplemented。
-func (h *stateHandler) BulkGet(_ context.Context, _ *statev1.BulkGetRequest) (*statev1.BulkGetResponse, error) {
-	// 翻訳 helper を経由せず直接 Unimplemented。
-	return nil, status.Error(codes.Unimplemented, "tier1/state: BulkGet not yet wired (plan 04-04)")
+// BulkGet は複数キーの一括取得（adapter.BulkGet 経由）。
+func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest) (*statev1.BulkGetResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
+	}
+	areq := dapr.StateBulkGetRequest{
+		Store:    req.GetStore(),
+		Keys:     req.GetKeys(),
+		TenantID: tenantIDOf(req.GetContext()),
+	}
+	items, err := h.deps.StateAdapter.BulkGet(ctx, areq)
+	if err != nil {
+		return nil, translateErr(err, "BulkGet", "plan 04-04")
+	}
+	results := make(map[string]*statev1.GetResponse, len(items))
+	for _, item := range items {
+		results[item.Key] = &statev1.GetResponse{
+			Data:     item.Data,
+			Etag:     item.Etag,
+			NotFound: item.NotFound,
+		}
+	}
+	return &statev1.BulkGetResponse{Results: results}, nil
 }
 
-// Transact はトランザクション境界付き複数操作。リリース時点 では Unimplemented。
-func (h *stateHandler) Transact(_ context.Context, _ *statev1.TransactRequest) (*statev1.TransactResponse, error) {
-	// 直接 Unimplemented。
-	return nil, status.Error(codes.Unimplemented, "tier1/state: Transact not yet wired (plan 04-04)")
+// Transact はトランザクション境界付き複数操作（adapter.Transact 経由）。
+func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactRequest) (*statev1.TransactResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
+	}
+	ops := make([]dapr.TransactOp, 0, len(req.GetOperations()))
+	for _, op := range req.GetOperations() {
+		switch x := op.GetOp().(type) {
+		case *statev1.TransactOp_Set:
+			s := x.Set
+			ops = append(ops, dapr.TransactOp{
+				Kind:         dapr.TransactOpSet,
+				Key:          s.GetKey(),
+				Data:         s.GetData(),
+				ExpectedEtag: s.GetExpectedEtag(),
+				TTLSeconds:   s.GetTtlSec(),
+			})
+		case *statev1.TransactOp_Delete:
+			d := x.Delete
+			ops = append(ops, dapr.TransactOp{
+				Kind:         dapr.TransactOpDelete,
+				Key:          d.GetKey(),
+				ExpectedEtag: d.GetExpectedEtag(),
+			})
+		default:
+			return nil, status.Error(codes.InvalidArgument, "tier1/state: unknown TransactOp variant")
+		}
+	}
+	areq := dapr.StateTransactRequest{
+		Store:    req.GetStore(),
+		Ops:      ops,
+		TenantID: tenantIDOf(req.GetContext()),
+	}
+	if err := h.deps.StateAdapter.Transact(ctx, areq); err != nil {
+		return &statev1.TransactResponse{Committed: false}, translateErr(err, "Transact", "plan 04-04")
+	}
+	return &statev1.TransactResponse{Committed: true}, nil
 }
 
 // translateErr は adapter エラーを gRPC ステータスエラーに翻訳する。

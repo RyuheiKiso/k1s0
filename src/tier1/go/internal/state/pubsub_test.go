@@ -103,12 +103,32 @@ func TestPubSubHandler_Publish_AdapterError(t *testing.T) {
 	}
 }
 
-// BulkPublish と Subscribe は plan 04-05 範囲外で Unimplemented のまま。
-func TestPubSubHandler_BulkPublish_StillUnimplemented(t *testing.T) {
-	h := newPubSubHandler(&fakePubSubAdapter{})
-	_, err := h.BulkPublish(context.Background(), &pubsubv1.BulkPublishRequest{})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("BulkPublish: got %v want Unimplemented", got)
+// BulkPublish: 複数 entry を順次発行する。
+func TestPubSubHandler_BulkPublish_OK(t *testing.T) {
+	count := 0
+	a := &fakePubSubAdapter{
+		publishFn: func(_ context.Context, req dapr.PublishRequest) (dapr.PublishResponse, error) {
+			count++
+			if req.Topic != "k1s0.events.audit" {
+				t.Fatalf("topic mismatch on call %d: %s", count, req.Topic)
+			}
+			return dapr.PublishResponse{}, nil
+		},
+	}
+	h := newPubSubHandler(a)
+	_, err := h.BulkPublish(context.Background(), &pubsubv1.BulkPublishRequest{
+		Topic: "k1s0.events.audit",
+		Entries: []*pubsubv1.PublishRequest{
+			{Data: []byte("a")},
+			{Data: []byte("b")},
+			{Data: []byte("c")},
+		},
+	})
+	if err != nil {
+		t.Fatalf("BulkPublish error: %v", err)
+	}
+	if count != 3 {
+		t.Fatalf("Publish should be called 3 times, got %d", count)
 	}
 }
 

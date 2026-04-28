@@ -22,9 +22,11 @@ import (
 // fakeStateAdapter は dapr.StateAdapter の最小 fake 実装。
 // 各メソッドの fn を試験ごとに差し替える。
 type fakeStateAdapter struct {
-	getFn    func(ctx context.Context, req dapr.StateGetRequest) (dapr.StateGetResponse, error)
-	setFn    func(ctx context.Context, req dapr.StateSetRequest) (dapr.StateSetResponse, error)
-	deleteFn func(ctx context.Context, req dapr.StateSetRequest) error
+	getFn      func(ctx context.Context, req dapr.StateGetRequest) (dapr.StateGetResponse, error)
+	setFn      func(ctx context.Context, req dapr.StateSetRequest) (dapr.StateSetResponse, error)
+	deleteFn   func(ctx context.Context, req dapr.StateSetRequest) error
+	bulkGetFn  func(ctx context.Context, req dapr.StateBulkGetRequest) ([]dapr.StateBulkGetItem, error)
+	transactFn func(ctx context.Context, req dapr.StateTransactRequest) error
 }
 
 func (f *fakeStateAdapter) Get(ctx context.Context, req dapr.StateGetRequest) (dapr.StateGetResponse, error) {
@@ -35,6 +37,18 @@ func (f *fakeStateAdapter) Set(ctx context.Context, req dapr.StateSetRequest) (d
 }
 func (f *fakeStateAdapter) Delete(ctx context.Context, req dapr.StateSetRequest) error {
 	return f.deleteFn(ctx, req)
+}
+func (f *fakeStateAdapter) BulkGet(ctx context.Context, req dapr.StateBulkGetRequest) ([]dapr.StateBulkGetItem, error) {
+	if f.bulkGetFn == nil {
+		return nil, nil
+	}
+	return f.bulkGetFn(ctx, req)
+}
+func (f *fakeStateAdapter) Transact(ctx context.Context, req dapr.StateTransactRequest) error {
+	if f.transactFn == nil {
+		return nil
+	}
+	return f.transactFn(ctx, req)
 }
 
 // newHandler は handler を fake adapter で構築する。
@@ -189,19 +203,68 @@ func TestStateHandler_Delete_OK(t *testing.T) {
 	}
 }
 
-// BulkGet / Transact は plan 04-04 範囲外で Unimplemented のまま。
-func TestStateHandler_BulkGet_StillUnimplemented(t *testing.T) {
-	h := newHandler(&fakeStateAdapter{})
-	_, err := h.BulkGet(context.Background(), &statev1.BulkGetRequest{})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("BulkGet: got %v want Unimplemented", got)
+// BulkGet: 複数キー取得が adapter.BulkGet を経由して proto Results に詰まる。
+func TestStateHandler_BulkGet_OK(t *testing.T) {
+	a := &fakeStateAdapter{
+		bulkGetFn: func(_ context.Context, req dapr.StateBulkGetRequest) ([]dapr.StateBulkGetItem, error) {
+			if req.Store != "valkey" || len(req.Keys) != 2 {
+				t.Fatalf("args mismatch: %+v", req)
+			}
+			return []dapr.StateBulkGetItem{
+				{Key: "k1", Data: []byte("v1"), Etag: "e1"},
+				{Key: "k2", NotFound: true},
+			}, nil
+		},
+	}
+	h := newHandler(a)
+	resp, err := h.BulkGet(context.Background(), &statev1.BulkGetRequest{
+		Store: "valkey",
+		Keys:  []string{"k1", "k2"},
+	})
+	if err != nil {
+		t.Fatalf("BulkGet error: %v", err)
+	}
+	if len(resp.GetResults()) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(resp.GetResults()))
+	}
+	if string(resp.GetResults()["k1"].GetData()) != "v1" {
+		t.Fatalf("k1 data mismatch")
+	}
+	if !resp.GetResults()["k2"].GetNotFound() {
+		t.Fatalf("k2 NotFound expected true")
 	}
 }
 
-func TestStateHandler_Transact_StillUnimplemented(t *testing.T) {
-	h := newHandler(&fakeStateAdapter{})
-	_, err := h.Transact(context.Background(), &statev1.TransactRequest{})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("Transact: got %v want Unimplemented", got)
+// Transact: Set / Delete oneof variant が adapter に伝搬し、Committed=true が返る。
+func TestStateHandler_Transact_OK(t *testing.T) {
+	var observedOps []dapr.TransactOp
+	a := &fakeStateAdapter{
+		transactFn: func(_ context.Context, req dapr.StateTransactRequest) error {
+			observedOps = req.Ops
+			return nil
+		},
+	}
+	h := newHandler(a)
+	resp, err := h.Transact(context.Background(), &statev1.TransactRequest{
+		Store: "valkey",
+		Operations: []*statev1.TransactOp{
+			{Op: &statev1.TransactOp_Set{Set: &statev1.SetRequest{Key: "a", Data: []byte("v")}}},
+			{Op: &statev1.TransactOp_Delete{Delete: &statev1.DeleteRequest{Key: "b"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Transact error: %v", err)
+	}
+	if !resp.GetCommitted() {
+		t.Fatalf("expected Committed=true")
+	}
+	if len(observedOps) != 2 {
+		t.Fatalf("expected 2 ops, got %d", len(observedOps))
+	}
+	if observedOps[0].Kind != dapr.TransactOpSet || observedOps[0].Key != "a" {
+		t.Fatalf("op[0] mismatch: %+v", observedOps[0])
+	}
+	if observedOps[1].Kind != dapr.TransactOpDelete || observedOps[1].Key != "b" {
+		t.Fatalf("op[1] mismatch: %+v", observedOps[1])
 	}
 }

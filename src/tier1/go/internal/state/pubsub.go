@@ -67,10 +67,36 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 	}, nil
 }
 
-// BulkPublish はバッチ Publish。本リリース時点 では Unimplemented。
-func (h *pubsubHandler) BulkPublish(_ context.Context, _ *pubsubv1.BulkPublishRequest) (*pubsubv1.BulkPublishResponse, error) {
-	// 直接 Unimplemented 返却。
-	return nil, status.Error(codes.Unimplemented, "tier1/pubsub: BulkPublish not yet wired (plan 04-05)")
+// BulkPublish は複数 message を順次 Publish する。
+// Dapr SDK は単一 PublishEvent しか提供しないため、ループで逐次発行する。
+// 1 件失敗で全体失敗（部分発行済 message のロールバックは pubsub backend
+// 仕様に依存するため、呼出側で冪等性キーによる重複発行検知を前提とする）。
+func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPublishRequest) (*pubsubv1.BulkPublishResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
+	}
+	for i, entry := range req.GetEntries() {
+		// 各 entry は PublishRequest（topic / data / content_type / idempotency_key /
+		// metadata / context）。BulkPublishRequest 側で topic を共通化しているため
+		// entry.topic と齟齬がある場合は entry を優先する。
+		topic := entry.GetTopic()
+		if topic == "" {
+			topic = req.GetTopic()
+		}
+		areq := dapr.PublishRequest{
+			Component:      "pubsub-kafka",
+			Topic:          topic,
+			Data:           entry.GetData(),
+			ContentType:    entry.GetContentType(),
+			IdempotencyKey: entry.GetIdempotencyKey(),
+			Metadata:       entry.GetMetadata(),
+			TenantID:       tenantIDOf(entry.GetContext()),
+		}
+		if _, err := h.deps.PubSubAdapter.Publish(ctx, areq); err != nil {
+			return nil, status.Errorf(codes.Internal, "tier1/pubsub: BulkPublish failed at entry %d: %v", i, err)
+		}
+	}
+	return &pubsubv1.BulkPublishResponse{}, nil
 }
 
 // Subscribe はサブスクリプション stream。本リリース時点 では Unimplemented。
