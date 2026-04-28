@@ -52,9 +52,18 @@ else
 fi
 
 if [[ "${CHECK}" == "1" ]]; then
-    if ! git diff --exit-code -- 'docs/02_構想設計/02_tier1設計/grpc-reference'; then
+    target='docs/02_構想設計/02_tier1設計/grpc-reference'
+    # 1) 既追跡ファイルの変更検出
+    if ! git diff --exit-code -- "${target}"; then
         echo "[error] gRPC reference docs が最新でありません。"
         echo "  対処: tools/codegen/grpc-docs/run.sh を再実行し、git add してください。"
+        exit 1
+    fi
+    # 2) untracked（新規生成）も検出。proto 追加で reference doc が増えた時の取りこぼし防止。
+    untracked=$(git ls-files --others --exclude-standard -- "${target}")
+    if [[ -n "${untracked}" ]]; then
+        echo "[error] gRPC reference docs に未追跡ファイルがあります。git add してください:" >&2
+        echo "${untracked}" >&2
         exit 1
     fi
     echo "[ok] gRPC docs diff なし"

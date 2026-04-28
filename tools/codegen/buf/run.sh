@@ -58,7 +58,10 @@ fi
 
 if [[ "${BREAKING_ONLY}" == "1" ]]; then
     echo "[info] buf breaking --against .git#branch=main"
-    buf breaking src/contracts --against ".git#branch=main"
+    # `subdir=src/contracts` が無いと against 側が repo root を v1beta1 扱いし、
+    # モジュール内 import (k1s0/tier1/common/v1/common.proto 等) を解決できず
+    # "file does not exist" で fail する。
+    buf breaking src/contracts --against ".git#branch=main,subdir=src/contracts"
     exit 0
 fi
 
@@ -84,8 +87,28 @@ buf generate --template buf.gen.internal.yaml src/contracts/internal
 
 if [[ "${CHECK}" == "1" ]]; then
     echo "[info] 生成物の差分を確認"
-    if ! git diff --exit-code -- src/sdk/*/generated; then
+    # buf.gen.yaml / buf.gen.internal.yaml が出力する全 path を網羅監視。
+    # 旧来の `src/sdk/*/generated` は実在せず、check が常に PASS していた。
+    gen_paths=(
+        # tier1 公開 4 言語 SDK（buf.gen.yaml）
+        'src/sdk/go/proto/v1'
+        'src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated'
+        'src/sdk/rust/crates/k1s0-sdk-proto/src/gen/v1'
+        'src/sdk/typescript/src/proto'
+        # tier1 内部 gRPC（buf.gen.internal.yaml、ADR-TIER1-003 で言語不可視）
+        'src/tier1/go/internal/proto/v1'
+        'src/tier1/rust/crates/proto-gen/src'
+    )
+    # 1) 既追跡ファイルの変更検出
+    if ! git diff --exit-code -- "${gen_paths[@]}"; then
         echo "[error] 生成物が最新でありません。本スクリプトを再実行して git add してください。"
+        exit 1
+    fi
+    # 2) untracked（新規生成）も検出。proto 追加で SDK が増えた時に取りこぼしを防ぐ。
+    untracked=$(git ls-files --others --exclude-standard -- "${gen_paths[@]}")
+    if [[ -n "${untracked}" ]]; then
+        echo "[error] 生成物に未追跡ファイルがあります。git add してください:" >&2
+        echo "${untracked}" >&2
         exit 1
     fi
     echo "[ok] 生成物 diff なし"

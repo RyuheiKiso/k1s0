@@ -120,22 +120,32 @@ fi
 
 # -----------------------------------------------------------------------------
 # 2. codegen / openapi / grpc-docs 差分
+#    Makefile 経由ではなく直接スクリプトを呼ぶ。make 未インストールでも動かす
+#    ことを優先する。Makefile の codegen-check は同じスクリプトを呼ぶラッパなので
+#    挙動は等価。
 # -----------------------------------------------------------------------------
 if active codegen; then
-  run "make codegen-check"   codegen make codegen-check
-  run "make openapi-check"   codegen make openapi-check
-  run "make grpc-docs-check" codegen make grpc-docs-check
+  run "codegen check"   codegen ./tools/codegen/buf/run.sh      --check
+  run "openapi check"   codegen ./tools/codegen/openapi/run.sh   --check
+  run "grpc-docs check" codegen ./tools/codegen/grpc-docs/run.sh --check
 fi
 
 # -----------------------------------------------------------------------------
 # 3. proto: buf lint / format / breaking
 # -----------------------------------------------------------------------------
 if active proto && have buf; then
-  run "buf lint"   proto buf lint
-  run "buf format" proto buf format -d --exit-code
+  # buf v2 workspace は src/contracts/buf.yaml に配置されているため、
+  # 全 buf サブコマンドに path を明示する。省略時はリポジトリ root を
+  # v1beta1 単一モジュールとして扱い、モジュール内 import の解決に失敗する。
+  run "buf lint"   proto buf lint   src/contracts
+  run "buf format" proto buf format -d --exit-code src/contracts
   base_ref="${K1S0_VERIFY_BASE:-origin/main}"
   if git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
-    run "buf breaking (vs $base_ref)" proto buf breaking --against ".git#branch=${base_ref##*/}"
+    # against 側にも subdir=src/contracts が必要。省略時はリポジトリ root を
+    # 単一モジュール扱いし、モジュール内 import を解決できず fail する。
+    run "buf breaking (vs $base_ref)" proto \
+      buf breaking src/contracts \
+        --against ".git#branch=${base_ref##*/},subdir=src/contracts"
   fi
 elif active proto; then
   results+=("SKIP  buf (未インストール)")
@@ -170,8 +180,14 @@ if active rust && have cargo; then
     run "cargo clippy ($dir)"      rust \
       bash -c "cd '$dir' && cargo clippy --workspace --all-targets -- -D warnings"
   done < <(
+    # tests/fuzz/rust は cargo-fuzz crate（libfuzzer-sys 依存・nightly 想定）。
+    # 通常 CI の lint 対象外で、cron 週次（tests/fuzz/README.md）で実行する。
+    # ローカル verify から除外し、CI と境界を揃える。
     find "$repo_root" -maxdepth 5 -name Cargo.toml \
-      -not -path "*/target/*" -not -path "*/third_party/*" -not -path "*/node_modules/*"
+      -not -path "*/target/*" \
+      -not -path "*/third_party/*" \
+      -not -path "*/node_modules/*" \
+      -not -path "*/tests/fuzz/*"
   )
 elif active rust; then
   results+=("SKIP  cargo (未インストール)")

@@ -55,9 +55,18 @@ else
 fi
 
 if [[ "${CHECK}" == "1" ]]; then
-    if ! git diff --exit-code -- 'docs/02_構想設計/02_tier1設計/openapi'; then
+    target='docs/02_構想設計/02_tier1設計/openapi'
+    # 1) 既追跡ファイルの変更検出
+    if ! git diff --exit-code -- "${target}"; then
         echo "[error] OpenAPI が最新でありません。"
         echo "  対処: tools/codegen/openapi/run.sh を再実行し、git add してください。"
+        exit 1
+    fi
+    # 2) untracked（新規生成）も検出。proto 追加で OpenAPI が増えた時の取りこぼし防止。
+    untracked=$(git ls-files --others --exclude-standard -- "${target}")
+    if [[ -n "${untracked}" ]]; then
+        echo "[error] OpenAPI に未追跡ファイルがあります。git add してください:" >&2
+        echo "${untracked}" >&2
         exit 1
     fi
     echo "[ok] OpenAPI diff なし"
