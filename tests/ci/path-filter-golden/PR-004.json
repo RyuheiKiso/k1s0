@@ -1,0 +1,7 @@
+{
+  "_description": "tier1 Go 単独変更 — tier1_go のみ true",
+  "files": [
+    "src/tier1/go/cmd/state/main.go",
+    "src/tier1/go/internal/state/handler.go"
+  ]
+}

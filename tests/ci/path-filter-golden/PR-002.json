@@ -1,0 +1,7 @@
+{
+  "_description": "docs 単独変更 — lint-only 経路に分岐すべき",
+  "files": [
+    "docs/05_実装/00_ディレクトリ設計/README.md",
+    "docs/INDEX.md"
+  ]
+}

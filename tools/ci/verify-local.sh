@@ -91,7 +91,7 @@ if [[ "$mode" == "quick" ]]; then
       case "$f" in
         src/contracts/*|tools/codegen/*|buf.gen*.yaml|buf.yaml|buf.work.yaml)
           scope[proto]=1; scope[codegen]=1
-          # 契約変更は全 SDK / tier1 を波及（path-filter.yaml 準拠）
+          # 契約変更は全 SDK / tier1 を波及（path-filter/filters.yaml 準拠）
           scope[rust]=1; scope[go]=1; scope[dotnet]=1; scope[node]=1
           ;;
         *.rs|*/Cargo.toml|*/Cargo.lock) scope[rust]=1 ;;

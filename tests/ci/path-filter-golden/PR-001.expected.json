@@ -1,0 +1,13 @@
+{
+  "tier1_rust": true,
+  "tier1_go": true,
+  "tier2_dotnet": true,
+  "tier2_go": true,
+  "tier3_web": true,
+  "tier3_native": true,
+  "sdk": true,
+  "platform": true,
+  "contracts": true,
+  "infra": false,
+  "docs": false
+}

@@ -1,0 +1,13 @@
+{
+  "tier1_rust": false,
+  "tier1_go": true,
+  "tier2_dotnet": false,
+  "tier2_go": false,
+  "tier3_web": false,
+  "tier3_native": false,
+  "sdk": false,
+  "platform": false,
+  "contracts": false,
+  "infra": false,
+  "docs": false
+}

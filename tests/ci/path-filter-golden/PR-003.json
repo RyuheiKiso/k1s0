@@ -1,0 +1,7 @@
+{
+  "_description": "tier1 Rust 単独変更 — tier1_rust のみ true",
+  "files": [
+    "src/tier1/rust/crates/audit/src/main.rs",
+    "src/tier1/rust/Cargo.toml"
+  ]
+}

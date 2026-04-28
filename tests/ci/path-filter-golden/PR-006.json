@@ -1,0 +1,8 @@
+{
+  "_description": "infra / deploy / ops 単独変更 — infra のみ true",
+  "files": [
+    "infra/data/cloudnativepg/cluster.yaml",
+    "deploy/charts/tier1-facade/Chart.yaml",
+    "ops/runbooks/secret-rotation.md"
+  ]
+}

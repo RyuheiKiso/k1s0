@@ -1,0 +1,7 @@
+{
+  "_description": "tier2 .NET ドメイン単独変更 — tier2_dotnet のみ true",
+  "files": [
+    "src/tier2/dotnet/services/TaxCalculator/src/TaxCalculator.Domain/InvoiceCalculator.cs",
+    "src/tier2/dotnet/services/TaxCalculator/tests/TaxCalculator.Domain.Tests/InvoiceCalculatorTests.cs"
+  ]
+}

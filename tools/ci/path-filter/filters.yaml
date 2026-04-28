@@ -1,9 +1,12 @@
 # =============================================================================
-# tools/ci/path-filter.yaml — dorny/paths-filter@v3 用の path-filter 定義
+# tools/ci/path-filter/filters.yaml — dorny/paths-filter@v3 用の path-filter 定義
 #
 # 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
-#       docs/05_実装/30_CI_CD設計/20_path_filter選択ビルド/
-# 関連 ID: IMP-CI-POL-003（契約軸の強制ビルド）/ IMP-CI-RWF-011（docs 単独 lint-only）
+#       docs/05_実装/30_CI_CD設計/20_path_filter選択ビルド/01_path_filter選択ビルド.md
+# 関連 ID: IMP-CI-PF-031（filters.yaml 単一真実源化）
+#         IMP-CI-PF-035（run-golden-test.sh による filter 変更保護）
+#         IMP-CI-POL-003（契約軸の強制ビルド）
+#         IMP-CI-RWF-011（docs 単独 lint-only）
 #
 # 11 キー出力:
 #   tier1_rust / tier1_go / tier2_dotnet / tier2_go /
@@ -11,11 +14,16 @@
 #
 # 利用:
 #   .github/workflows/pr.yml の先頭 job で uses: dorny/paths-filter@v3
-#   filters: tools/ci/path-filter.yaml
+#   filters: tools/ci/path-filter/filters.yaml
 #
 # 規則:
 #   contracts=true の場合、下流で sdk 全 4 言語 + tier1 サーバを強制ビルド
 #   docs=true の単独変更は lint-only（test/build/push を skip）
+#
+# 変更保護:
+#   本ファイルの変更時は tools/ci/path-filter/run-golden-test.sh が
+#   tests/ci/path-filter-golden/*.json で全 golden ケースを再評価する。
+#   regression があれば PR は block される。
 # =============================================================================
 
 # tier1
