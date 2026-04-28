@@ -77,12 +77,28 @@ func main() {
 	// production（OPENBAO_ADDR が設定された経路）では Logical().Read を呼ぶ
 	// productionDynamic、dev / CI モードでは in-memory backend を使う。
 	dynamicAdapter := newDynamicAdapter(openBaoClient)
+	// 30 秒 TTL の cache 付き secrets adapter（FR-T1-SECRETS-001）。
+	cachedSecrets := openbao.NewCachedSecretsAdapter(baseSecrets, 0)
 	deps := secret.Deps{
-		// 30 秒 TTL の cache 付き secrets adapter。
-		SecretsAdapter: openbao.NewCachedSecretsAdapter(baseSecrets, 0),
+		SecretsAdapter: cachedSecrets,
 		// 動的 Secret adapter。
 		DynamicAdapter: dynamicAdapter,
 	}
+
+	// Secret 自動ローテーション（FR-T1-SECRETS-004）を起動する。
+	// ROTATION_SCHEDULE 環境変数で per-secret cadence を指定する。
+	rotator, err := secret.NewRotatorFromEnv(cachedSecrets, os.Getenv("ROTATION_SCHEDULE"))
+	if err != nil {
+		// 形式不正は fatal（誤設定を見逃さない）。
+		log.Fatalf("t1-secret: invalid ROTATION_SCHEDULE: %v", err)
+	}
+	// rotator は context cancel で停止する。Pod 起動と同期させる context を渡す。
+	rotatorCtx, rotatorCancel := context.WithCancel(context.Background())
+	rotator.Start(rotatorCtx)
+	defer func() {
+		rotatorCancel()
+		rotator.Stop()
+	}()
 
 	// Pod メタデータを構築する（SecretsService 登録）。
 	pod := common.Pod{
