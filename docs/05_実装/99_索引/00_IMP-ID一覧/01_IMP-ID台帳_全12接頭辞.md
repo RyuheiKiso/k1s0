@@ -14,12 +14,12 @@ ID の所属ファイル列は `05_実装/` からの相対パスで表記する
 
 | 接頭辞 | 章 | POL | 実装 ID | 採番済合計 | 予約残 | 主サブ接頭辞 |
 |---|---|---|---|---|---|---|
-| IMP-BUILD | 10 ビルド | 7 | 15 | 22 | 77 | CW（Rust workspace）/ GM（Go module） |
+| IMP-BUILD | 10 ビルド | 7 | 16 | 23 | 76 | CW（Rust workspace）/ GM（Go module） |
 | IMP-CODEGEN | 20 コード生成 | 7 | 32 | 39 | 60 | BUF（buf 生成）/ OAS（OpenAPI）/ SCF（Scaffold CLI）/ GLD（Golden snapshot） |
 | IMP-CI | 30 CI/CD | 7 | 48 | 55 | 44 | RWF（reusable workflow）/ PF（path-filter）/ HAR（Harbor/Trivy）/ QG（quality gate）/ BP（branch protection） |
 | IMP-DEP | 40 依存管理 | 7 | 26 | 33 | 66 | REN（Renovate 中央運用）/ SBM（SBOM 差分監視）/ LIC（ライセンス判定） |
 | IMP-DEV | 50 開発者体験 | 7 | 48 | 55 | 44 | ENV（環境基盤）/ DC（Dev Container）/ GP（Golden Path）/ SO（Scaffold）/ BSN（Backstage）/ ONB（Onboarding） |
-| IMP-OBS | 60 観測性 | 7 | 68 | 75 | 24 | OTEL / LGTM / PYR / SLO / SLI / EB / INC / RB |
+| IMP-OBS | 60 観測性 | 7 | 69 | 76 | 23 | OTEL / LGTM / PYR / SLO / SLI / EB / INC / RB |
 | IMP-REL | 70 リリース | 7 | 47 | 54 | 45 | ARG（ArgoCD）/ PD（Progressive Delivery）/ FFD（flagd）/ AT（AnalysisTemplate）/ RB（Rollback Runbook） |
 | IMP-SUP | 80 サプライチェーン | 7 | 46 | 53 | 46 | COS（cosign）/ SBM（CycloneDX SBOM）/ SLSA（Provenance v1）/ FOR（Forensics）/ FLG（flag 定義署名検証） |
 | IMP-SEC | 85 Identity | 7 | 59 | 66 | 33 | KC（Keycloak）/ SP（SPIRE）/ OBO（OpenBao）/ CRT（cert-manager）/ REV（退職 revoke） |
@@ -27,7 +27,7 @@ ID の所属ファイル列は `05_実装/` からの相対パスで表記する
 | IMP-DX | 95 DX メトリクス | 7 | 50 | 57 | 42 | DORA / SPC（SPACE）/ SCAF（Scaffold 利用率）/ TFC（time-to-first-commit）/ EMR（EM レポート） |
 | IMP-TRACE | 99 索引 | 7 | 20 | 27 | 72 | CI（整合性 CI）/ CAT（catalog-info 検証） |
 
-リリース時点 全体で採番済 ID は計 580 件（POL 84 件 + 実装 496 件）、予約残は 608 件。実装 496 件は リリース時点 段階の「核心節 20 ファイル + 依存管理 3 節 + ガバナンス 4 節 + コード生成 OAS / GLD 2 節 + CI/CD PF / QG / BP 3 節 + 開発者体験 SO / BSN / ONB 3 節 + 観測性 LGTM / PYR / EB / RB 4 節 + リリース FFD / AT / RB 3 節 + サプライチェーン SBM / SLSA / FLG 3 節 + Identity OBO / CRT 2 節 + DX SPC / SCAF / TFC / EMR 4 節 + 索引 整合性 CI / catalog-info 検証 2 節」から抽出した純粋な採番で、POL を除く（核心節 20 = 19 + 開発者体験 ENV 1 節 = 05_ローカル環境基盤/01_WindowsWSL2環境構成.md）。
+リリース時点 全体で採番済 ID は計 582 件（POL 84 件 + 実装 498 件）、予約残は 606 件。実装 498 件は リリース時点 段階の「核心節 20 ファイル + 依存管理 3 節 + ガバナンス 4 節 + コード生成 OAS / GLD 2 節 + CI/CD PF / QG / BP 3 節 + 開発者体験 SO / BSN / ONB 3 節 + 観測性 LGTM / PYR / EB / RB 4 節 + リリース FFD / AT / RB 3 節 + サプライチェーン SBM / SLSA / FLG 3 節 + Identity OBO / CRT 2 節 + DX SPC / SCAF / TFC / EMR 4 節 + 索引 整合性 CI / catalog-info 検証 2 節」から抽出した純粋な採番で、POL を除く（核心節 20 = 19 + 開発者体験 ENV 1 節 = 05_ローカル環境基盤/01_WindowsWSL2環境構成.md）。
 
 ## IMP-BUILD（10 章 ビルド設計）
 
