@@ -69,9 +69,13 @@ func main() {
 	}()
 
 	// SecretsService が依存する adapter を構築する。
+	// FR-T1-SECRETS-001 の "30 秒インメモリキャッシュ" を満たすため、
+	// SecretsAdapter は CachedSecretsAdapter で wrap する。Rotate 成功時の
+	// 同 secret latest invalidate も同 wrapper で担保。
+	baseSecrets := openbao.NewSecretsAdapter(openBaoClient)
 	deps := secret.Deps{
-		// OpenBao Client から SecretsAdapter を生成する。
-		SecretsAdapter: openbao.NewSecretsAdapter(openBaoClient),
+		// 30 秒 TTL の cache 付き secrets adapter。
+		SecretsAdapter: openbao.NewCachedSecretsAdapter(baseSecrets, 0),
 		// 動的 Secret 発行 adapter（FR-T1-SECRETS-002）。
 		// dev / CI モードでは in-memory backend で credential を都度生成する。
 		// production では plan 04-06 後段で OpenBao Database Engine 直結 adapter に
