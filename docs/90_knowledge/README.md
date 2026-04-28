@@ -13,6 +13,7 @@
 長期的に保守可能なシステム構造の前提となる設計思想を扱う。k1s0 の tier1/tier2/tier3 階層構造や Dapr ファサード方針の正当化根拠を追跡する際に参照する。
 
 - [clean-architecture_basics.md](architecture/clean-architecture_basics.md)
+- [onion-architecture_basics.md](architecture/onion-architecture_basics.md)
 - [vertical-slice-architecture_basics.md](architecture/vertical-slice-architecture_basics.md)
 
 ### framework — フレームワーク

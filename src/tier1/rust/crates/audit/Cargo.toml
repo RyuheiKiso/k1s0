@@ -30,3 +30,16 @@ k1s0-sdk-proto = { workspace = true }
 tonic = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
+# WORM 改竄検知用の SHA-256 ハッシュチェーン。
+sha2 = "0.10"
+# event を canonical bytes に直列化（hash 計算のため）。
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Timestamp 変換 / hex エンコード。
+hex = "0.4"
+prost-types.workspace = true
+# 並行 in-memory store の RwLock 用（std::sync::RwLock で十分なため async-aware は不要）。
+
+[lib]
+name = "k1s0_tier1_audit"
+path = "src/lib.rs"

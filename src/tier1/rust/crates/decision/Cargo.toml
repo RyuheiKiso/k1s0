@@ -32,3 +32,13 @@ k1s0-sdk-proto = { workspace = true }
 tonic = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
+# 純 Rust 算術 / 論理 expression evaluator（rquickjs / C++ 依存を避けるため zen-engine 直接統合は採らない）
+# JDM 互換の expression-list 形式を本 crate 内 evaluator で評価する。本格 JDM を要する
+# 場面（loaderNode / decisionTable 等）は plan 04-08 後段で zen-engine 直結に置換予定。
+evalexpr = "11"
+# 評価入出力の JSON ペイロード。
+serde_json = "1"
+
+[lib]
+name = "k1s0_tier1_decision"
+path = "src/lib.rs"
