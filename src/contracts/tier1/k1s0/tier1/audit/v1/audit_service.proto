@@ -34,6 +34,10 @@ service AuditService {
   // テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
   // 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
   rpc VerifyChain(VerifyChainRequest) returns (VerifyChainResponse);
+  // 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
+  // server-streaming で範囲内の events を batch（chunk）に分けて配信し、
+  // 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+  rpc Export(ExportAuditRequest) returns (stream ExportAuditChunk);
 }
 
 // 監査イベント
@@ -108,4 +112,42 @@ message VerifyChainResponse {
   // 不整合の理由（"prev_hash mismatch" / "event_hash mismatch" / "tenant boundary" 等）。
   // valid=true 時は空文字。
   string reason = 4;
+}
+
+// Export のフォーマット種別。
+enum ExportFormat {
+  // 既定（指定なし）。サーバが NDJSON にフォールバックする。
+  EXPORT_FORMAT_UNSPECIFIED = 0;
+  // CSV（RFC 4180、ヘッダ行を最初の chunk に出力）。
+  EXPORT_FORMAT_CSV = 1;
+  // 改行区切り JSON（1 行 = 1 event）。Splunk / fluentd 取り込み向け。
+  EXPORT_FORMAT_NDJSON = 2;
+  // 単一 JSON 配列（小規模向け、最後の chunk で `]` を閉じる）。
+  EXPORT_FORMAT_JSON_ARRAY = 3;
+}
+
+// Export リクエスト（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）
+message ExportAuditRequest {
+  // 範囲開始（任意）。未指定（zero）は全履歴の先頭。
+  google.protobuf.Timestamp from = 1;
+  // 範囲終了（任意）。未指定（zero）は最新まで。
+  google.protobuf.Timestamp to = 2;
+  // 出力フォーマット。EXPORT_FORMAT_UNSPECIFIED は NDJSON 扱い。
+  ExportFormat format = 3;
+  // 1 chunk あたりの最大バイト数（既定 65536、上限 1048576）。
+  int32 chunk_bytes = 4;
+  // 呼出元コンテキスト（テナント境界の検証に必須）。
+  k1s0.tier1.common.v1.TenantContext context = 5;
+}
+
+// Export 応答（server-streaming）の 1 チャンク
+message ExportAuditChunk {
+  // フォーマット済みデータの 1 部分（バイナリ透過、UTF-8 を想定）。
+  bytes data = 1;
+  // 0 起点のチャンク連番（再構成 / 監査時の参照用）。
+  int64 sequence = 2;
+  // この chunk に含まれる event 数（chunk_bytes ベースの場合は variable）。
+  int64 event_count = 3;
+  // ストリーム末尾の chunk なら true。最後の "]" や EOF newline を含む。
+  bool is_last = 4;
 }

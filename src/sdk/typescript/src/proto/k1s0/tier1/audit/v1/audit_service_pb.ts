@@ -27,6 +27,48 @@ import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 import { TenantContext } from "../../common/v1/common_pb.js";
 
 /**
+ * Export のフォーマット種別。
+ *
+ * @generated from enum k1s0.tier1.audit.v1.ExportFormat
+ */
+export enum ExportFormat {
+  /**
+   * 既定（指定なし）。サーバが NDJSON にフォールバックする。
+   *
+   * @generated from enum value: EXPORT_FORMAT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * CSV（RFC 4180、ヘッダ行を最初の chunk に出力）。
+   *
+   * @generated from enum value: EXPORT_FORMAT_CSV = 1;
+   */
+  CSV = 1,
+
+  /**
+   * 改行区切り JSON（1 行 = 1 event）。Splunk / fluentd 取り込み向け。
+   *
+   * @generated from enum value: EXPORT_FORMAT_NDJSON = 2;
+   */
+  NDJSON = 2,
+
+  /**
+   * 単一 JSON 配列（小規模向け、最後の chunk で `]` を閉じる）。
+   *
+   * @generated from enum value: EXPORT_FORMAT_JSON_ARRAY = 3;
+   */
+  JSON_ARRAY = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ExportFormat)
+proto3.util.setEnumType(ExportFormat, "k1s0.tier1.audit.v1.ExportFormat", [
+  { no: 0, name: "EXPORT_FORMAT_UNSPECIFIED" },
+  { no: 1, name: "EXPORT_FORMAT_CSV" },
+  { no: 2, name: "EXPORT_FORMAT_NDJSON" },
+  { no: 3, name: "EXPORT_FORMAT_JSON_ARRAY" },
+]);
+
+/**
  * 監査イベント
  *
  * @generated from message k1s0.tier1.audit.v1.AuditEvent
@@ -432,6 +474,144 @@ export class VerifyChainResponse extends Message<VerifyChainResponse> {
 
   static equals(a: VerifyChainResponse | PlainMessage<VerifyChainResponse> | undefined, b: VerifyChainResponse | PlainMessage<VerifyChainResponse> | undefined): boolean {
     return proto3.util.equals(VerifyChainResponse, a, b);
+  }
+}
+
+/**
+ * Export リクエスト（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）
+ *
+ * @generated from message k1s0.tier1.audit.v1.ExportAuditRequest
+ */
+export class ExportAuditRequest extends Message<ExportAuditRequest> {
+  /**
+   * 範囲開始（任意）。未指定（zero）は全履歴の先頭。
+   *
+   * @generated from field: google.protobuf.Timestamp from = 1;
+   */
+  from?: Timestamp;
+
+  /**
+   * 範囲終了（任意）。未指定（zero）は最新まで。
+   *
+   * @generated from field: google.protobuf.Timestamp to = 2;
+   */
+  to?: Timestamp;
+
+  /**
+   * 出力フォーマット。EXPORT_FORMAT_UNSPECIFIED は NDJSON 扱い。
+   *
+   * @generated from field: k1s0.tier1.audit.v1.ExportFormat format = 3;
+   */
+  format = ExportFormat.UNSPECIFIED;
+
+  /**
+   * 1 chunk あたりの最大バイト数（既定 65536、上限 1048576）。
+   *
+   * @generated from field: int32 chunk_bytes = 4;
+   */
+  chunkBytes = 0;
+
+  /**
+   * 呼出元コンテキスト（テナント境界の検証に必須）。
+   *
+   * @generated from field: k1s0.tier1.common.v1.TenantContext context = 5;
+   */
+  context?: TenantContext;
+
+  constructor(data?: PartialMessage<ExportAuditRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.audit.v1.ExportAuditRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "from", kind: "message", T: Timestamp },
+    { no: 2, name: "to", kind: "message", T: Timestamp },
+    { no: 3, name: "format", kind: "enum", T: proto3.getEnumType(ExportFormat) },
+    { no: 4, name: "chunk_bytes", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: "context", kind: "message", T: TenantContext },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExportAuditRequest {
+    return new ExportAuditRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExportAuditRequest {
+    return new ExportAuditRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExportAuditRequest {
+    return new ExportAuditRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ExportAuditRequest | PlainMessage<ExportAuditRequest> | undefined, b: ExportAuditRequest | PlainMessage<ExportAuditRequest> | undefined): boolean {
+    return proto3.util.equals(ExportAuditRequest, a, b);
+  }
+}
+
+/**
+ * Export 応答（server-streaming）の 1 チャンク
+ *
+ * @generated from message k1s0.tier1.audit.v1.ExportAuditChunk
+ */
+export class ExportAuditChunk extends Message<ExportAuditChunk> {
+  /**
+   * フォーマット済みデータの 1 部分（バイナリ透過、UTF-8 を想定）。
+   *
+   * @generated from field: bytes data = 1;
+   */
+  data = new Uint8Array(0);
+
+  /**
+   * 0 起点のチャンク連番（再構成 / 監査時の参照用）。
+   *
+   * @generated from field: int64 sequence = 2;
+   */
+  sequence = protoInt64.zero;
+
+  /**
+   * この chunk に含まれる event 数（chunk_bytes ベースの場合は variable）。
+   *
+   * @generated from field: int64 event_count = 3;
+   */
+  eventCount = protoInt64.zero;
+
+  /**
+   * ストリーム末尾の chunk なら true。最後の "]" や EOF newline を含む。
+   *
+   * @generated from field: bool is_last = 4;
+   */
+  isLast = false;
+
+  constructor(data?: PartialMessage<ExportAuditChunk>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.audit.v1.ExportAuditChunk";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "sequence", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "event_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "is_last", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExportAuditChunk {
+    return new ExportAuditChunk().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExportAuditChunk {
+    return new ExportAuditChunk().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExportAuditChunk {
+    return new ExportAuditChunk().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ExportAuditChunk | PlainMessage<ExportAuditChunk> | undefined, b: ExportAuditChunk | PlainMessage<ExportAuditChunk> | undefined): boolean {
+    return proto3.util.equals(ExportAuditChunk, a, b);
   }
 }
 

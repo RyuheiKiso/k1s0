@@ -22,7 +22,7 @@
 
 // パッケージ命名規約: k1s0.tier1.<api>.v<n>
 
-import { QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse, VerifyChainRequest, VerifyChainResponse } from "./audit_service_pb.js";
+import { ExportAuditChunk, ExportAuditRequest, QueryAuditRequest, QueryAuditResponse, RecordAuditRequest, RecordAuditResponse, VerifyChainRequest, VerifyChainResponse } from "./audit_service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -67,6 +67,19 @@ export const AuditService = {
       I: VerifyChainRequest,
       O: VerifyChainResponse,
       kind: MethodKind.Unary,
+    },
+    /**
+     * 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
+     * server-streaming で範囲内の events を batch（chunk）に分けて配信し、
+     * 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+     *
+     * @generated from rpc k1s0.tier1.audit.v1.AuditService.Export
+     */
+    export: {
+      name: "Export",
+      I: ExportAuditRequest,
+      O: ExportAuditChunk,
+      kind: MethodKind.ServerStreaming,
     },
   }
 } as const;

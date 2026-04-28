@@ -39,6 +39,8 @@ serde_json = "1"
 hex = "0.4"
 prost-types.workspace = true
 tonic-reflection = "0.12"
+# Export RPC の server-streaming で mpsc::Receiver を Stream に変換するため。
+tokio-stream = "0.1"
 # 並行 in-memory store の RwLock 用（std::sync::RwLock で十分なため async-aware は不要）。
 
 [lib]

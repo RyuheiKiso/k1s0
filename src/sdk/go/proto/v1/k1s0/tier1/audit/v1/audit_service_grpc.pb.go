@@ -41,6 +41,7 @@ const (
 	AuditService_Record_FullMethodName      = "/k1s0.tier1.audit.v1.AuditService/Record"
 	AuditService_Query_FullMethodName       = "/k1s0.tier1.audit.v1.AuditService/Query"
 	AuditService_VerifyChain_FullMethodName = "/k1s0.tier1.audit.v1.AuditService/VerifyChain"
+	AuditService_Export_FullMethodName      = "/k1s0.tier1.audit.v1.AuditService/Export"
 )
 
 // AuditServiceClient is the client API for AuditService service.
@@ -57,6 +58,10 @@ type AuditServiceClient interface {
 	// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
 	// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
 	VerifyChain(ctx context.Context, in *VerifyChainRequest, opts ...grpc.CallOption) (*VerifyChainResponse, error)
+	// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
+	// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
+	// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+	Export(ctx context.Context, in *ExportAuditRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExportAuditChunk], error)
 }
 
 type auditServiceClient struct {
@@ -97,6 +102,25 @@ func (c *auditServiceClient) VerifyChain(ctx context.Context, in *VerifyChainReq
 	return out, nil
 }
 
+func (c *auditServiceClient) Export(ctx context.Context, in *ExportAuditRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExportAuditChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AuditService_ServiceDesc.Streams[0], AuditService_Export_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ExportAuditRequest, ExportAuditChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AuditService_ExportClient = grpc.ServerStreamingClient[ExportAuditChunk]
+
 // AuditServiceServer is the server API for AuditService service.
 // All implementations should embed UnimplementedAuditServiceServer
 // for forward compatibility.
@@ -111,6 +135,10 @@ type AuditServiceServer interface {
 	// テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
 	// 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
 	VerifyChain(context.Context, *VerifyChainRequest) (*VerifyChainResponse, error)
+	// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
+	// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
+	// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+	Export(*ExportAuditRequest, grpc.ServerStreamingServer[ExportAuditChunk]) error
 }
 
 // UnimplementedAuditServiceServer should be embedded to have
@@ -128,6 +156,9 @@ func (UnimplementedAuditServiceServer) Query(context.Context, *QueryAuditRequest
 }
 func (UnimplementedAuditServiceServer) VerifyChain(context.Context, *VerifyChainRequest) (*VerifyChainResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyChain not implemented")
+}
+func (UnimplementedAuditServiceServer) Export(*ExportAuditRequest, grpc.ServerStreamingServer[ExportAuditChunk]) error {
+	return status.Errorf(codes.Unimplemented, "method Export not implemented")
 }
 func (UnimplementedAuditServiceServer) testEmbeddedByValue() {}
 
@@ -203,6 +234,17 @@ func _AuditService_VerifyChain_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuditService_Export_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ExportAuditRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AuditServiceServer).Export(m, &grpc.GenericServerStream[ExportAuditRequest, ExportAuditChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AuditService_ExportServer = grpc.ServerStreamingServer[ExportAuditChunk]
+
 // AuditService_ServiceDesc is the grpc.ServiceDesc for AuditService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -223,6 +265,12 @@ var AuditService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuditService_VerifyChain_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Export",
+			Handler:       _AuditService_Export_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "k1s0/tier1/audit/v1/audit_service.proto",
 }
