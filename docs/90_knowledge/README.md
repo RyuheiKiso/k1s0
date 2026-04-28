@@ -23,6 +23,7 @@ UI / アプリケーションフレームワークの基礎概念。tier3 のオ
 
 - [react_basics.md](framework/react_basics.md)
 - [react_virtual-dom.md](framework/react_virtual-dom.md)
+- [gin_basics.md](framework/gin_basics.md)
 
 ### infra — インフラ・運用基盤
 
