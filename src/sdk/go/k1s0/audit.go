@@ -48,3 +48,40 @@ func (a *AuditClient) Query(ctx context.Context, from, to time.Time, filters map
 	}
 	return resp.GetEvents(), nil
 }
+
+// VerifyChainResult は VerifyChain RPC の応答を SDK 利用者向けに集約した型。
+type VerifyChainResult struct {
+	// チェーン整合性が取れていれば true。
+	Valid bool
+	// 検証対象だったイベント件数。
+	CheckedCount int64
+	// 不整合検出時、最初に失敗したグローバル sequence_number（1-based）。Valid 時は 0。
+	FirstBadSequence int64
+	// 不整合の理由。Valid 時は空文字。
+	Reason string
+}
+
+// VerifyChain は監査ハッシュチェーンの整合性を検証する（FR-T1-AUDIT-002）。
+// from / to が zero 時刻なら全範囲を対象にする（gRPC 側で nil 扱い）。
+func (a *AuditClient) VerifyChain(ctx context.Context, from, to time.Time) (VerifyChainResult, error) {
+	// proto Request を構築する。zero time は nil で渡し、tier1 側が "未指定" として解釈する。
+	req := &auditv1.VerifyChainRequest{Context: a.client.tenantContext()}
+	if !from.IsZero() {
+		req.From = timestamppb.New(from)
+	}
+	if !to.IsZero() {
+		req.To = timestamppb.New(to)
+	}
+	// gRPC 呼出。
+	resp, err := a.client.raw.Audit.VerifyChain(ctx, req)
+	if err != nil {
+		return VerifyChainResult{}, err
+	}
+	// SDK 型に詰め替えて返す。
+	return VerifyChainResult{
+		Valid:            resp.GetValid(),
+		CheckedCount:     resp.GetCheckedCount(),
+		FirstBadSequence: resp.GetFirstBadSequence(),
+		Reason:           resp.GetReason(),
+	}, nil
+}

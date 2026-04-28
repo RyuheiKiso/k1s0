@@ -84,6 +84,43 @@ func (s *SecretsClient) Rotate(ctx context.Context, name string, opts ...RotateO
 	return resp.GetNewVersion(), resp.GetPreviousVersion(), nil
 }
 
+// DynamicSecret は動的 Secret 発行（FR-T1-SECRETS-002）の応答を SDK 利用者向けに整理した型。
+type DynamicSecret struct {
+	// credential 一式（"username" / "password" など、engine 別の field）。
+	Values map[string]string
+	// OpenBao の lease ID（renewal / revoke 用）。
+	LeaseID string
+	// 実際に付与された TTL 秒（要求値から ceiling までクランプされる）。
+	TTLSec int32
+	// 発効時刻（Unix epoch ミリ秒）。
+	IssuedAtMs int64
+}
+
+// GetDynamic は動的 Secret 発行（FR-T1-SECRETS-002）。
+// engine="postgres" / "mysql" / "kafka" 等、OpenBao Database Engine の種別を指定する。
+// ttlSec=0 で既定 1 時間、上限 24 時間。
+func (s *SecretsClient) GetDynamic(ctx context.Context, engine, role string, ttlSec int32) (DynamicSecret, error) {
+	// proto Request を構築する。
+	req := &secretsv1.GetDynamicSecretRequest{
+		Engine:  engine,
+		Role:    role,
+		TtlSec:  ttlSec,
+		Context: s.tenantContext(),
+	}
+	// gRPC 呼出。
+	resp, err := s.client.raw.Secrets.GetDynamic(ctx, req)
+	if err != nil {
+		return DynamicSecret{}, err
+	}
+	// 応答を SDK 型に詰め替える。
+	return DynamicSecret{
+		Values:     resp.GetValues(),
+		LeaseID:    resp.GetLeaseId(),
+		TTLSec:     resp.GetTtlSec(),
+		IssuedAtMs: resp.GetIssuedAtMs(),
+	}, nil
+}
+
 // tenantContext は親 Client の Config から TenantContext proto を生成する。
 func (s *SecretsClient) tenantContext() *commonv1.TenantContext {
 	// 構造体リテラルで TenantContext を構築する。
