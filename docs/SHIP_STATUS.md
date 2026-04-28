@@ -106,7 +106,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `deploy/apps/app-of-apps.yaml` | App-of-Apps ルート（IMP-DIR-OPS-092） | **同梱済** | k1s0-platform AppProject 所属の Argo CD ルート Application |
 | `deploy/apps/application-sets/{infra,ops,tier1-facade,tier1-rust-service,tier2-dotnet-service,tier2-go-service,tier3-bff,tier3-web-app}.yaml` | カテゴリ別 ApplicationSet | **同梱済** | 8 ApplicationSet 配置完了。infra（Wave -10、list-generator）/ ops（Wave 40〜45）/ 6 サービス系（Wave 10〜30、image-updater annotation 付き） |
 | `deploy/apps/projects/{k1s0-platform,k1s0-tier1,k1s0-tier2,k1s0-tier3,rbac}.yaml` | AppProject + RBAC | **同梱済** | 4 AppProject + Argo CD グローバル RBAC ConfigMap（OIDC 連携） |
-| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app}` | Helm chart | **雛形あり** | 6 chart 全て配置完了。`helm lint` 通過、`helm template` 描画 OK |
+| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app, predeploy-hooks}` | Helm chart | **雛形あり** | 7 chart 全て配置完了。`helm lint` 通過、`helm template` 描画 OK。`predeploy-hooks` は Argo CD PreSync Hook で Postgres / Kafka / Valkey / MinIO の readiness を polling 検証する Job 4 種を提供（Sync Wave -1）。設計: `docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md` |
 | `deploy/rollouts/canary-strategies/` | Argo Rollouts canary 戦略 | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート |
 | `deploy/rollouts/analysis/` | 共通 ClusterAnalysisTemplate 5 本（IMP-REL-AT-040〜049） | **同梱済** | at-common-{error-rate,latency-p99,cpu,dependency-down,error-budget-burn}.yaml の 5 本（baseline 2σ / SLO 連動 / CPU 80% / 依存断短絡 / EB burn 2x）+ README |
 | `deploy/rollouts/analysis-templates/` | サービス固有 AnalysisTemplate 例 | **雛形あり** | error-rate.yaml / latency-p99.yaml の 2 例 |
