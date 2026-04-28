@@ -13,9 +13,15 @@
     // （docs は散文主体で line-break を厳密に強制すると編集効率が落ちる）
     "MD013": false,
 
-    // MD033 inline HTML: README.md は <div align="center"> や <img> を意図的に使用
+    // MD033 inline HTML: README.md は <div align="center"> や <img> を意図的に使用、
+    // また README の技術スタック表は <table>/<tr>/<td>、ToC は <a name=""> を使用するため
+    // 一般的な HTML レイアウト要素を許容する。プレースホルダ風の <role>/<service>/<env> 等は
+    // backtick で code-quote する規約（個別 docs の hygiene に委ねる）。
     "MD033": {
-      "allowed_elements": ["div", "img", "sub", "sup", "br", "details", "summary", "kbd"]
+      "allowed_elements": [
+        "div", "img", "sub", "sup", "br", "details", "summary", "kbd",
+        "a", "p", "table", "thead", "tbody", "tr", "td", "th", "caption"
+      ]
     },
 
     // MD041 first-line-h1: ADR / Knowledge は frontmatter 風メタが先頭に来る場合あり
@@ -25,6 +31,12 @@
     "MD024": {
       "siblings_only": true
     },
+
+    // MD036 emphasis-as-heading: README の技術スタック表や docs の表内サブセクションで
+    // **太字** をサブ見出し代わりに使う場面が多い。表セル内では正規の見出しに昇格できない
+    // （HTML <table> 内の markdown は `<h3>` がレンダラに無視されることがあるため）ため
+    // 全体を無効化する。意図しない誤用は code review で防ぐ。
+    "MD036": false,
 
     // MD026 trailing-punctuation in heading: 「？」「！」を含む見出しを許容
     "MD026": {
@@ -36,8 +48,10 @@
       "indent": 2
     },
 
-    // MD025 single-h1: ADR は 1 H1 厳守（既定で OK）
-    "MD025": true,
+    // MD025 single-h1: 企画書（章ごとに # で区切る IPA 業務文書スタイル）と
+    // postmortem_template（H1 プレースホルダを章扉として複数配置）の運用を許容するため
+    // 無効化。ADR / Knowledge は通常 1 H1 で書かれるため運用上の支障は実質無し。
+    "MD025": false,
 
     // MD040 fenced-code-language: 言語タグ無しの fenced code を warning 表示
     "MD040": true,
@@ -47,14 +61,25 @@
   },
 
   // 対象から外すパス（linter を回さない）
+  // 注: `node_modules/**` 単独だと top-level しか除外できず、
+  // src/tier3/web/packages/ui/node_modules/ 等の nested ディレクトリが対象に
+  // 残ってしまうため、`**/node_modules/**` 形式で任意階層を除外する。
+  // target / third_party / generated も同様に nested に対応させる。
   "ignores": [
-    "node_modules/**",
-    "target/**",
-    "third_party/**",
+    "**/node_modules/**",
+    "**/target/**",
+    "**/third_party/**",
+    "**/dist/**",
+    "**/coverage/**",
     "**/CHANGELOG.md",
     ".github/**/*.md",
     "**/_generated/**",
-    ".claude/**"
+    ".claude/**",
+    // gRPC reference docs は protoc-gen-doc による自動生成。
+    // 外部 proto（google.protobuf.Timestamp 等）への参照リンクは pkg-cross 解決が
+    // できず MD051 が必ず出るため、生成物全体を lint から除外する。proto 構文と
+    // 整合性は buf lint 側で担保されるため二重 lint は不要。
+    "docs/02_構想設計/02_tier1設計/grpc-reference/**"
   ],
 
   // 対象パス（明示）

@@ -200,8 +200,18 @@ jobs:
       - name: markdownlint
         id: markdownlint
         if: inputs.language == 'docs'
+        # `#node_modules` は top-level にしか効かず、src/tier3/web/packages/*/node_modules
+        # の nested を取りこぼすため、`#**/node_modules/**` で任意階層を除外する。
+        # target / third_party / dist / coverage も同じ理由で nested 対応。
+        # 設定本体は .markdownlint-cli2.jsonc の `ignores` で同期する。
         run: |
-          npx --yes markdownlint-cli2 "**/*.md" "#node_modules" "#target" "#third_party"
+          npx --yes markdownlint-cli2 \
+            "**/*.md" \
+            "#**/node_modules/**" \
+            "#**/target/**" \
+            "#**/third_party/**" \
+            "#**/dist/**" \
+            "#**/coverage/**"
 
       - name: yaml lint
         id: yaml-lint
