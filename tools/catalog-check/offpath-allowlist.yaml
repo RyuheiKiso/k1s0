@@ -1,0 +1,12 @@
+# tools/catalog-check/offpath-allowlist.yaml — Off-Path 検出の除外リスト
+#
+# 設計: docs/05_実装/99_索引/60_catalog-info検証/01_catalog-info検証設計.md（IMP-TRACE-CAT-026）
+# 責務:
+#   catalog-info.yaml を持たない意図的なディレクトリ（archived / external mirror / sandbox）を
+#   scan-offpath.sh の検出対象から除外する。
+#
+# 形式: src/ からの相対パスを 1 行 1 件で記述する。
+# 例:
+#   src/tier1/sandbox/experimental-feature
+
+# 現時点では除外対象なし。追加時はコメントで理由を記載する。

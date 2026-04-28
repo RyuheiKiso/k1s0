@@ -1,0 +1,96 @@
+# =============================================================================
+# tools/ci/path-filter/filters.yaml — dorny/paths-filter@v3 用の path-filter 定義
+#
+# 設計: docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+#       docs/05_実装/30_CI_CD設計/20_path_filter選択ビルド/01_path_filter選択ビルド.md
+# 関連 ID: IMP-CI-PF-031（filters.yaml 単一真実源化）
+#         IMP-CI-PF-035（run-golden-test.sh による filter 変更保護）
+#         IMP-CI-POL-003（契約軸の強制ビルド）
+#         IMP-CI-RWF-011（docs 単独 lint-only）
+#
+# 11 キー出力:
+#   tier1_rust / tier1_go / tier2_dotnet / tier2_go /
+#   tier3_web / tier3_native / sdk / platform / contracts / infra / docs
+#
+# 利用:
+#   .github/workflows/pr.yml の先頭 job で uses: dorny/paths-filter@v3
+#   filters: tools/ci/path-filter/filters.yaml
+#
+# 規則:
+#   contracts=true の場合、下流で sdk 全 4 言語 + tier1 サーバを強制ビルド
+#   docs=true の単独変更は lint-only（test/build/push を skip）
+#
+# 変更保護:
+#   本ファイルの変更時は tools/ci/path-filter/run-golden-test.sh が
+#   tests/ci/path-filter-golden/*.json で全 golden ケースを再評価する。
+#   regression があれば PR は block される。
+# =============================================================================
+
+# tier1
+tier1_rust:
+  - "src/tier1/rust/**"
+  - "src/contracts/**"        # 契約変更は tier1-rust 再ビルドを誘発
+  - "tools/codegen/buf/**"
+
+tier1_go:
+  - "src/tier1/go/**"
+  - "src/contracts/**"        # 契約変更は tier1-go 再ビルドを誘発
+  - "tools/codegen/buf/**"
+
+# tier2
+tier2_dotnet:
+  - "src/tier2/dotnet/**"
+  - "src/sdk/dotnet/**"
+  - "src/contracts/**"        # SDK 経由で間接波及
+  - "src/tier2/templates/dotnet-service/**"
+
+tier2_go:
+  - "src/tier2/go/**"
+  - "src/sdk/go/**"
+  - "src/contracts/**"
+  - "src/tier2/templates/go-service/**"
+
+# tier3
+tier3_web:
+  - "src/tier3/web/**"
+  - "src/tier3/bff/**"
+  - "src/sdk/typescript/**"
+  - "src/sdk/go/**"           # BFF が Go SDK 経由で叩く
+  - "src/contracts/**"
+
+tier3_native:
+  - "src/tier3/native/**"
+  - "src/tier3/legacy-wrap/**"
+  - "src/sdk/dotnet/**"
+  - "src/contracts/**"
+
+# SDK 横断（4 言語ともに影響）
+sdk:
+  - "src/sdk/**"
+  - "src/contracts/**"
+  - "tools/codegen/**"
+
+# platform（scaffold CLI / analyzer / Backstage plugin）
+platform:
+  - "src/platform/**"
+  - "src/contracts/**"
+  - "src/sdk/rust/**"
+
+# 契約軸: proto 変更は契約レビュー必須
+contracts:
+  - "src/contracts/**"
+
+# infra / deploy / ops
+infra:
+  - "infra/**"
+  - "deploy/**"
+  - "ops/**"
+
+# docs（単独変更は lint-only に分岐される）
+docs:
+  - "docs/**"
+  - "README.md"
+  - "CONTRIBUTING.md"
+  - "SECURITY.md"
+  - "GOVERNANCE.md"
+  - "CODE_OF_CONDUCT.md"

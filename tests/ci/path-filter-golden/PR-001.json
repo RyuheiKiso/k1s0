@@ -1,0 +1,6 @@
+{
+  "_description": "contracts 単独変更（proto 修正）— 全 tier / sdk / platform を強制ビルド誘発",
+  "files": [
+    "src/contracts/tier1/v1/state.proto"
+  ]
+}

@@ -50,8 +50,11 @@ func main() {
 		Name: "workflow",
 		// 既定 listen address。flag 未指定時に common.Run へ渡される値の参照用。
 		DefaultListen: defaultListen,
-		// service 登録 hook。WorkflowService を登録（リリース時点 全 RPC は Unimplemented）。
-		Register: workflow.Register(),
+		// service 登録 hook。WorkflowService を登録。
+		// production では `temporal.New(ctx, temporal.Config{HostPort: ..., Namespace: "k1s0"})` で
+		// Client を作り、`workflow.Deps{WorkflowAdapter: temporal.NewWorkflowAdapter(client)}` を渡す。
+		// 本最小骨格 main では adapter 未注入で動かす（後段の Temporal bootstrap で結線）。
+		Register: workflow.Register(workflow.Deps{}),
 		// 構造体リテラルを閉じる。
 	}
 

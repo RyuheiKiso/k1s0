@@ -4,57 +4,107 @@
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/08_Telemetry_API.md
 //   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md
 //     - DS-SW-COMP-038（Metrics Emitter: RED モデル / Prometheus ServiceMonitor）
-//   src/tier1/README.md（t1-state Pod の責務に Telemetry を含む）
 //
-// scope（リリース時点 placeholder）:
-//   実 OTel Collector → Mimir / Tempo への結線は plan 04-13 同期。
-//   現状は SDK 接続点を提供するため skeleton として登録し、全 RPC は Unimplemented を返す。
-//   FR-T1-TELEMETRY-001〜004 のうち SDK 側 facade（src/sdk/*/telemetry）は同梱済、
-//   本 handler はそれを受け止める空 server として機能する。
+// 役割（plan 04-13 結線済）:
+//   SDK 側 facade からの gRPC 入口で proto Metric / Span を受け取り、
+//   internal/otel.MetricEmitter / TraceEmitter 越しに OTel Metrics / Traces
+//   パイプライン（→ Mimir / Tempo）へ流す。
 
 package state
 
-// 標準 / 内部パッケージ。
 import (
-	// context 伝搬。
 	"context"
-	// SDK 生成 stub の TelemetryService 型。
+
+	"github.com/k1s0/k1s0/src/tier1/go/internal/otel"
 	telemetryv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/telemetry/v1"
-	// gRPC エラーコード。
 	"google.golang.org/grpc/codes"
-	// gRPC ステータスエラー。
 	"google.golang.org/grpc/status"
 )
 
 // telemetryHandler は TelemetryService の handler 実装。
-// Telemetry は OTel Collector を経由して Mimir（メトリクス）/ Tempo（トレース）へ
-// 流す設計のため、本 handler は SDK 側 facade からの gRPC 入口を確保するだけで、
-// 本格実装は plan 04-13 で OTel SDK / Collector 連携の文脈で行う。
 type telemetryHandler struct {
-	// 将来 RPC 用埋め込み（forward compatibility）。
 	telemetryv1.UnimplementedTelemetryServiceServer
-	// adapter 集合（Telemetry は OTel 側へ流すため Dapr adapter は使わない）。
 	deps Deps
 }
 
+// convertMetric は proto Metric を otel.MetricEntry に詰め替える。
+func convertMetric(m *telemetryv1.Metric) otel.MetricEntry {
+	if m == nil {
+		return otel.MetricEntry{}
+	}
+	return otel.MetricEntry{
+		Name:   m.GetName(),
+		Kind:   metricKindFromProto(m.GetKind()),
+		Value:  m.GetValue(),
+		Labels: m.GetLabels(),
+	}
+}
+
+// metricKindFromProto は proto MetricKind を otel.MetricKind に変換する。
+func metricKindFromProto(k telemetryv1.MetricKind) otel.MetricKind {
+	switch k {
+	case telemetryv1.MetricKind_COUNTER:
+		return otel.MetricKindCounter
+	case telemetryv1.MetricKind_GAUGE:
+		return otel.MetricKindGauge
+	case telemetryv1.MetricKind_HISTOGRAM:
+		return otel.MetricKindHistogram
+	default:
+		return otel.MetricKindCounter
+	}
+}
+
+// convertSpan は proto Span を otel.SpanEntry に詰め替える。
+func convertSpan(s *telemetryv1.Span) otel.SpanEntry {
+	if s == nil {
+		return otel.SpanEntry{}
+	}
+	var startNs, endNs int64
+	if s.GetStartTime() != nil {
+		startNs = s.GetStartTime().AsTime().UnixNano()
+	}
+	if s.GetEndTime() != nil {
+		endNs = s.GetEndTime().AsTime().UnixNano()
+	}
+	return otel.SpanEntry{
+		TraceID:            s.GetTraceId(),
+		SpanID:             s.GetSpanId(),
+		ParentSpanID:       s.GetParentSpanId(),
+		Name:               s.GetName(),
+		StartTimeUnixNanos: startNs,
+		EndTimeUnixNanos:   endNs,
+		Attributes:         s.GetAttributes(),
+	}
+}
+
 // EmitMetric はメトリクス送信（Counter / Gauge / Histogram の混在可）。
-func (h *telemetryHandler) EmitMetric(_ context.Context, req *telemetryv1.EmitMetricRequest) (*telemetryv1.EmitMetricResponse, error) {
-	// 入力 nil 防御。
+func (h *telemetryHandler) EmitMetric(ctx context.Context, req *telemetryv1.EmitMetricRequest) (*telemetryv1.EmitMetricResponse, error) {
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/telemetry: nil request")
 	}
-	// 実 OTel Collector 結線は plan 04-13。
-	return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitMetric not yet wired to OTel Collector (plan 04-13)")
+	if h.deps.MetricEmitter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitMetric not yet wired to OTel Collector")
+	}
+	for i, m := range req.GetMetrics() {
+		if err := h.deps.MetricEmitter.Record(ctx, convertMetric(m)); err != nil {
+			return nil, status.Errorf(codes.Internal, "tier1/telemetry: metric record failed at %d: %v", i, err)
+		}
+	}
+	return &telemetryv1.EmitMetricResponse{}, nil
 }
 
 // EmitSpan は終了済 Span の送信。
-func (h *telemetryHandler) EmitSpan(_ context.Context, req *telemetryv1.EmitSpanRequest) (*telemetryv1.EmitSpanResponse, error) {
-	// 入力 nil 防御。
+func (h *telemetryHandler) EmitSpan(ctx context.Context, req *telemetryv1.EmitSpanRequest) (*telemetryv1.EmitSpanResponse, error) {
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/telemetry: nil request")
 	}
-	// 実 OTel Collector 結線は plan 04-13。
-	return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitSpan not yet wired to OTel Collector (plan 04-13)")
+	if h.deps.TraceEmitter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitSpan not yet wired to OTel Collector")
+	}
+	for i, s := range req.GetSpans() {
+		if err := h.deps.TraceEmitter.Emit(ctx, convertSpan(s)); err != nil {
+			return nil, status.Errorf(codes.Internal, "tier1/telemetry: span emit failed at %d: %v", i, err)
+		}
+	}
+	return &telemetryv1.EmitSpanResponse{}, nil
 }

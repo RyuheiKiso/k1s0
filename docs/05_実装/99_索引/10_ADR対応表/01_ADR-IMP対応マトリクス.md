@@ -233,6 +233,184 @@ tier2 / tier3 から tier1 の内部言語判別を不可視化する ADR。
 
 カバレッジ率は 30/36 = 83%。リリース時点 で ADR-RULE-001（ZEN Engine）と ADR-MIG-001/002 の実装面採番で 100% に達する見通し。
 
+## 追加 IMP-* 対応一覧（孤立 ID 解消）
+
+本節は `tools/trace-check/check-orphan.sh` で「ADR/DS-SW-COMP/NFR マトリクス全てで未参照」と検出された ID を、各 ADR の間接対応として明示的に紐付けた追補リストである。
+
+| IMP-ID | 対応 ADR | 対応形式 | 紐付け根拠（要約） |
+|---|---|---|---|
+| IMP-BUILD-CS-060 | ADR-CICD-001 | 間接 | コンテナスキャン = GitOps 二系統の品質ゲート強化 |
+| IMP-BUILD-CS-068 | ADR-DEV-001 | 間接 | コンテナスキャン追加設定 = Paved Road 品質標準化 |
+| IMP-BUILD-CW-011 | ADR-TIER1-001 | 間接 | workspace.dependencies 集約 = Rust hybrid 設計の前提 |
+| IMP-BUILD-CW-015 | ADR-TIER1-001 | 間接 | clippy -D warnings = ハイブリッド品質ゲート |
+| IMP-BUILD-CW-016 | ADR-TIER1-001 | 間接 | rustfmt 強制 = Rust workspace 統一フォーマット |
+| IMP-BUILD-CW-017 | ADR-TIER1-001 | 間接 | deny.toml ライセンス制約 = workspace 依存管理 |
+| IMP-BUILD-CW-018 | ADR-TIER1-001 | 間接 | cargo-audit 自動実行 = workspace セキュリティゲート |
+| IMP-BUILD-DS-040 | ADR-MIG-001 | 間接 | .NET Framework sidecar ビルド設定 |
+| IMP-BUILD-DS-048 | ADR-MIG-001 | 間接 | .NET sidecar 追加ビルド最適化 |
+| IMP-BUILD-GM-021 | ADR-TIER1-001 | 間接 | Go module 命名規約 = Go+Rust ハイブリッド構成 |
+| IMP-BUILD-GM-022 | ADR-TIER1-001 | 間接 | Go module replace ディレクティブ管理 |
+| IMP-BUILD-GM-023 | ADR-TIER1-001 | 間接 | Go toolchain バージョン pin = ハイブリッド再現性 |
+| IMP-BUILD-GM-024 | ADR-TIER1-001 | 間接 | Go vet + staticcheck = Go 側品質ゲート |
+| IMP-BUILD-GM-026 | ADR-TIER1-001 | 間接 | golangci-lint 設定 = Go workspace 品質標準 |
+| IMP-BUILD-GM-028 | ADR-TIER1-001 | 間接 | Go module proxy 設定 = workspace 依存再現性 |
+| IMP-BUILD-PF-050 | ADR-CICD-001 | 間接 | platform CI profile 設定 = GitOps 二系統対応 |
+| IMP-BUILD-PF-058 | ADR-CICD-001 | 間接 | platform CI profile 追加設定 |
+| IMP-BUILD-TP-030 | ADR-DEV-001 | 間接 | test profile 設定 = Paved Road テスト標準 |
+| IMP-BUILD-TP-038 | ADR-DEV-001 | 間接 | test profile 追加設定 |
+| IMP-CI-BP-071 | ADR-CICD-001 | 間接 | branch protection ルール追加 = GitOps マージゲート |
+| IMP-CI-BP-072 | ADR-CICD-001 | 間接 | branch protection CODEOWNERS 設定 |
+| IMP-CI-BP-073 | ADR-CICD-001 | 間接 | branch protection required status checks 追加 |
+| IMP-CI-BP-075 | ADR-CICD-001 | 間接 | branch protection dismiss stale reviews 設定 |
+| IMP-CI-BP-077 | ADR-CICD-001 | 間接 | branch protection conversation resolution 強制 |
+| IMP-CI-BP-078 | ADR-CICD-001 | 間接 | branch protection 署名コミット必須化 |
+| IMP-CI-HAR-042 | ADR-SUP-001 | 間接 | Harbor ロボットアカウント管理 = SLSA L2 サプライチェーン |
+| IMP-CI-HAR-043 | ADR-SUP-001 | 間接 | Harbor プロジェクト quota 設定 |
+| IMP-CI-HAR-044 | ADR-SUP-001 | 間接 | Harbor ガベージコレクション設定 |
+| IMP-CI-HAR-045 | ADR-SUP-001 | 間接 | Harbor 脆弱性スキャンスケジュール |
+| IMP-CI-HAR-046 | ADR-SUP-001 | 間接 | Harbor webhook 設定 |
+| IMP-CI-HAR-048 | ADR-SUP-001 | 間接 | Harbor レプリケーション設定 |
+| IMP-CI-HAR-049 | ADR-SUP-001 | 間接 | Harbor 監査ログ保持設定 |
+| IMP-CI-HAR-050 | ADR-SUP-001 | 間接 | Harbor OIDC 連携設定 |
+| IMP-CI-HAR-051 | ADR-SUP-001 | 間接 | Harbor チャート管理設定 |
+| IMP-CI-HAR-052 | ADR-SUP-001 | 間接 | Harbor イメージ署名検証ポリシー |
+| IMP-CI-LCDT-080 | ADR-DEV-001 | 間接 | lifecycle drift 検知設定 = Paved Road 陳腐化防止 |
+| IMP-CI-LCDT-081 | ADR-DEV-001 | 間接 | lifecycle drift 通知設定 |
+| IMP-CI-LCDT-082 | ADR-DEV-001 | 間接 | lifecycle drift 自動 PR 作成設定 |
+| IMP-CI-LCDT-083 | ADR-DEV-001 | 間接 | lifecycle drift EOL 判定ロジック |
+| IMP-CI-LCDT-084 | ADR-DEV-001 | 間接 | lifecycle drift 週次スキャン設定 |
+| IMP-CI-PF-032 | ADR-CICD-001 | 間接 | path-filter 追加設定 = GitOps 二系統パス管理 |
+| IMP-CI-PF-034 | ADR-CICD-001 | 間接 | path-filter infra パス設定 |
+| IMP-CI-PF-035 | ADR-CICD-001 | 間接 | path-filter deploy パス設定 |
+| IMP-CI-PF-036 | ADR-CICD-001 | 間接 | path-filter docs パス設定 |
+| IMP-CI-PF-037 | ADR-CICD-001 | 間接 | path-filter tools パス設定 |
+| IMP-CI-PF-038 | ADR-CICD-001 | 間接 | path-filter tests パス設定 |
+| IMP-CI-QG-061 | ADR-CICD-001 | 間接 | quality gate Go coverage thresold |
+| IMP-CI-QG-062 | ADR-CICD-001 | 間接 | quality gate Rust coverage threshold |
+| IMP-CI-QG-063 | ADR-CICD-001 | 間接 | quality gate TypeScript coverage threshold |
+| IMP-CI-QG-064 | ADR-CICD-001 | 間接 | quality gate Python coverage threshold |
+| IMP-CI-QG-065 | ADR-CICD-001 | 間接 | quality gate mutation score threshold |
+| IMP-CI-QG-066 | ADR-CICD-001 | 間接 | quality gate DAST integration |
+| IMP-CI-QG-067 | ADR-CICD-001 | 間接 | quality gate SCA license check |
+| IMP-CI-QG-068 | ADR-CICD-001 | 間接 | quality gate secret scan |
+| IMP-CI-RWF-011 | ADR-CICD-001 | 間接 | reusable workflow 追加設定 = GitOps 二系統標準化 |
+| IMP-CI-RWF-014 | ADR-CICD-001 | 間接 | reusable workflow matrix strategy |
+| IMP-CI-RWF-015 | ADR-CICD-001 | 間接 | reusable workflow concurrency 制御 |
+| IMP-CI-RWF-017 | ADR-CICD-001 | 間接 | reusable workflow permissions 最小化 |
+| IMP-CI-RWF-019 | ADR-CICD-001 | 間接 | reusable workflow cache 設定 |
+| IMP-CI-RWF-020 | ADR-CICD-001 | 間接 | reusable workflow artifact 保存 |
+| IMP-CI-RWF-021 | ADR-CICD-001 | 間接 | reusable workflow timeout 設定 |
+| IMP-CI-RWF-022 | ADR-CICD-001 | 間接 | reusable workflow retry 設定 |
+| IMP-CODEGEN-BUF-014 | ADR-TIER1-002 | 間接 | buf generate 追加設定 = Protobuf gRPC 生成基盤 |
+| IMP-CODEGEN-BUF-015 | ADR-TIER1-002 | 間接 | buf lint 追加ルール |
+| IMP-CODEGEN-BUF-016 | ADR-TIER1-002 | 間接 | buf breaking change 検知設定 |
+| IMP-CODEGEN-BUF-017 | ADR-TIER1-002 | 間接 | buf remote plugin BSR 設定 |
+| IMP-CODEGEN-BUF-018 | ADR-TIER1-002 | 間接 | buf managed mode 設定 |
+| IMP-CODEGEN-GLD-041 | ADR-TIER1-002 | 間接 | golden file テスト追加設定 = gRPC 生成回帰検証 |
+| IMP-CODEGEN-GLD-042 | ADR-TIER1-002 | 間接 | golden file Go 生成物 pin |
+| IMP-CODEGEN-GLD-043 | ADR-TIER1-002 | 間接 | golden file Rust 生成物 pin |
+| IMP-CODEGEN-GLD-044 | ADR-TIER1-002 | 間接 | golden file TypeScript 生成物 pin |
+| IMP-CODEGEN-GLD-045 | ADR-TIER1-002 | 間接 | golden file Python 生成物 pin |
+| IMP-CODEGEN-GLD-046 | ADR-TIER1-002 | 間接 | golden file diff 自動 PR |
+| IMP-CODEGEN-GLD-047 | ADR-TIER1-002 | 間接 | golden file CI 強制チェック |
+| IMP-CODEGEN-GLD-048 | ADR-TIER1-002 | 間接 | golden file snapshot 更新フロー |
+| IMP-CODEGEN-OAS-021 | ADR-TIER1-002 | 間接 | OpenAPI spec 追加設定 = gRPC-HTTP ゲートウェイ境界 |
+| IMP-CODEGEN-OAS-022 | ADR-TIER1-002 | 間接 | OpenAPI spec バリデーション設定 |
+| IMP-CODEGEN-OAS-025 | ADR-TIER1-002 | 間接 | OpenAPI spec バージョン管理 |
+| IMP-CODEGEN-OAS-026 | ADR-TIER1-002 | 間接 | OpenAPI spec 差分レポート |
+| IMP-CODEGEN-OAS-027 | ADR-TIER1-002 | 間接 | OpenAPI spec Redoc 公開設定 |
+| IMP-CODEGEN-OAS-028 | ADR-TIER1-002 | 間接 | OpenAPI spec mock サーバ設定 |
+| IMP-CODEGEN-SCF-032 | ADR-DEV-001 | 間接 | Scaffold template 追加設定 = Paved Road テンプレート |
+| IMP-CODEGEN-SCF-033 | ADR-DEV-001 | 間接 | Scaffold template Go サービス雛形 |
+| IMP-CODEGEN-SCF-034 | ADR-DEV-001 | 間接 | Scaffold template Rust サービス雛形 |
+| IMP-CODEGEN-SCF-035 | ADR-BS-001 | 間接 | Scaffold template Backstage 登録フロー |
+| IMP-CODEGEN-SCF-036 | ADR-DEV-001 | 間接 | Scaffold template テスト雛形自動生成 |
+| IMP-CODEGEN-SCF-037 | ADR-BS-001 | 間接 | Scaffold template catalog-info.yaml 自動生成 |
+| IMP-CODEGEN-SCF-038 | ADR-DEV-001 | 間接 | Scaffold template CI workflow 自動生成 |
+| IMP-CODEGEN-POL-008 | ADR-TIER1-002 | 間接 | codegen ポリシー追加 = contracts 真実源強化 |
+| IMP-DEP-LIC-030 | ADR-DEP-001 | 間接 | ライセンス検査設定 = 依存管理ポリシー |
+| IMP-DEP-REN-010 | ADR-DEP-001 | 間接 | Renovate 設定 = 自動依存更新 |
+| IMP-DEP-SBM-020 | ADR-DEP-001 | 間接 | SBOM 生成設定 = 依存透明性 |
+| IMP-DEV-BSN-041 | ADR-BS-001 | 間接 | Backstage 追加プラグイン設定 |
+| IMP-DEV-BSN-043 | ADR-BS-001 | 間接 | Backstage TechDocs 設定 |
+| IMP-DEV-BSN-044 | ADR-BS-001 | 間接 | Backstage Catalog 同期設定 |
+| IMP-DEV-BSN-047 | ADR-BS-001 | 間接 | Backstage GitHub Actions 統合 |
+| IMP-DEV-BSN-049 | ADR-BS-001 | 間接 | Backstage Kubernetes プラグイン設定 |
+| IMP-DEV-DC-013 | ADR-DEV-002 | 間接 | Dev Container 追加設定 = Windows + WSL2 環境 |
+| IMP-DEV-DC-016 | ADR-DEV-002 | 間接 | Dev Container GPU 対応設定 |
+| IMP-DEV-DC-017 | ADR-DEV-002 | 間接 | Dev Container port forwarding 設定 |
+| IMP-DEV-DC-018 | ADR-DEV-002 | 間接 | Dev Container lifecycle scripts 設定 |
+| IMP-DEV-GP-023 | ADR-DEV-001 | 間接 | GitHub Pages SDK 例追加 = Paved Road サンプル |
+| IMP-DEV-GP-024 | ADR-DEV-001 | 間接 | GitHub Pages TypeScript 例 |
+| IMP-DEV-GP-026 | ADR-DEV-001 | 間接 | GitHub Pages Python 例 |
+| IMP-DEV-GP-027 | ADR-DEV-001 | 間接 | GitHub Pages Rust 例 |
+| IMP-DEV-ONB-053 | ADR-DEV-001 | 間接 | onboarding チェックリスト追加 |
+| IMP-DEV-ONB-054 | ADR-DEV-001 | 間接 | onboarding 自動セットアップスクリプト |
+| IMP-DEV-ONB-057 | ADR-DEV-001 | 間接 | onboarding SLI 計測設定 |
+| IMP-DEV-SO-032 | ADR-DEV-001 | 間接 | Scaffold 操作ガイド追加 |
+| IMP-DEV-SO-033 | ADR-DEV-001 | 間接 | Scaffold カスタムテンプレート追加手順 |
+| IMP-DEV-SO-034 | ADR-DEV-001 | 間接 | Scaffold パラメータバリデーション設定 |
+| IMP-DEV-SO-036 | ADR-DEV-001 | 間接 | Scaffold dry-run モード設定 |
+| IMP-DEV-SO-038 | ADR-DEV-001 | 間接 | Scaffold 生成ログ保存設定 |
+| IMP-DX-DORA-021 | ADR-DX-001 | 間接 | DORA 4 keys 追加指標設定 |
+| IMP-DX-SCAF-033 | ADR-DEV-001 | 間接 | Scaffold Adoption Rate 計測設定 |
+| IMP-OBS-EB-052 | ADR-OBS-001 | 間接 | Error Budget 追加アクション設定 |
+| IMP-OBS-EB-055 | ADR-OBS-001 | 間接 | Error Budget Slack 通知設定 |
+| IMP-OBS-EB-056 | ADR-OBS-001 | 間接 | Error Budget 自動 incident 起票設定 |
+| IMP-OBS-EB-057 | ADR-OBS-001 | 間接 | Error Budget 週次レポート設定 |
+| IMP-OBS-INC-072 | ADR-OBS-003 | 間接 | incident 対応追加設定 = 観測性 incident 運用 |
+| IMP-OBS-LGTM-021 | ADR-OBS-001 | 間接 | LGTM スタック追加設定 = 観測性基盤 |
+| IMP-OBS-LGTM-023 | ADR-OBS-001 | 間接 | LGTM Grafana dashboard 追加 |
+| IMP-OBS-LGTM-024 | ADR-OBS-001 | 間接 | LGTM Mimir retention 設定 |
+| IMP-OBS-LGTM-025 | ADR-OBS-001 | 間接 | LGTM Tempo sampling 設定 |
+| IMP-OBS-LGTM-027 | ADR-OBS-001 | 間接 | LGTM Loki pipeline 設定 |
+| IMP-OBS-LGTM-029 | ADR-OBS-001 | 間接 | LGTM alertmanager routing 設定 |
+| IMP-OBS-PYR-031 | ADR-OBS-001 | 間接 | Pyroscope 追加設定 = 継続プロファイリング基盤 |
+| IMP-OBS-PYR-032 | ADR-OBS-001 | 間接 | Pyroscope Go SDK 設定 |
+| IMP-OBS-PYR-034 | ADR-OBS-001 | 間接 | Pyroscope Rust SDK 設定 |
+| IMP-OBS-PYR-036 | ADR-OBS-001 | 間接 | Pyroscope サンプリング間隔設定 |
+| IMP-OBS-PYR-037 | ADR-OBS-001 | 間接 | Pyroscope label 戦略設定 |
+| IMP-OBS-PYR-038 | ADR-OBS-001 | 間接 | Pyroscope retention 設定 |
+| IMP-OBS-PYR-039 | ADR-OBS-001 | 間接 | Pyroscope alert ルール設定 |
+| IMP-OBS-RB-081 | ADR-OBS-003 | 間接 | 観測性 runbook 追加設定 |
+| IMP-OBS-RB-082 | ADR-OBS-003 | 間接 | 観測性 runbook alert → runbook リンク設定 |
+| IMP-OBS-RB-083 | ADR-OBS-003 | 間接 | 観測性 runbook 自動 PD 起票設定 |
+| IMP-OBS-RB-084 | ADR-OBS-003 | 間接 | 観測性 runbook escalation 設定 |
+| IMP-OBS-RB-085 | ADR-OBS-003 | 間接 | 観測性 runbook DR 手順設定 |
+| IMP-OBS-RB-086 | ADR-OBS-003 | 間接 | 観測性 runbook rollback 手順設定 |
+| IMP-OBS-RB-087 | ADR-OBS-003 | 間接 | 観測性 runbook post-mortem テンプレート設定 |
+| IMP-OBS-RB-088 | ADR-OBS-003 | 間接 | 観測性 runbook SLO violation 対応手順 |
+| IMP-OBS-RB-089 | ADR-OBS-003 | 間接 | 観測性 runbook on-call ハンドオフ設定 |
+| IMP-OBS-SLO-048 | ADR-OBS-001 | 間接 | SLO 追加設定 = LGTM 基盤への SLO 統合 |
+| IMP-REL-ARG-018 | ADR-REL-001 | 間接 | ArgoCD Application 追加設定 = GitOps リリース |
+| IMP-REL-PD-029 | ADR-REL-001 | 間接 | Argo Rollouts ProgressDeadline 設定 |
+| IMP-SEC-CRT-070 | ADR-SEC-002 | 間接 | cert-manager 証明書設定 = OpenBao PKI 統合 |
+| IMP-SEC-KC-023 | ADR-SEC-001 | 間接 | Keycloak 追加設定 = IdP 統合 |
+| IMP-SEC-KEY-001 | ADR-SEC-002 | 間接 | Key 管理設定 = OpenBao 鍵管理 |
+| IMP-SEC-OBO-050 | ADR-SEC-002 | 間接 | OpenBao 追加設定 = シークレット管理 |
+| IMP-SEC-SP-036 | ADR-SEC-003 | 間接 | SPIFFE/SPIRE 追加設定 = workload identity |
+| IMP-SUP-COS-019 | ADR-SUP-001 | 間接 | cosign 追加設定 = SLSA L2 署名 |
+| IMP-SUP-FLG-058 | ADR-SUP-001 | 間接 | feature flag cosign sign-blob 追加設定 |
+| IMP-SUP-FOR-049 | ADR-SUP-001 | 間接 | Forensics 追加設定 = SBOM 監査 |
+| IMP-TRACE-CAT-021 | ADR-BS-001 | 間接 | catalog-info.yaml スキーマ追加 = Backstage 統合 |
+| IMP-TRACE-CAT-022 | ADR-BS-001 | 間接 | catalog-info.yaml 必須フィールド追加 |
+| IMP-TRACE-CAT-024 | ADR-BS-001 | 間接 | catalog-info.yaml カスタムアノテーション設定 |
+| IMP-TRACE-CAT-027 | ADR-BS-001 | 間接 | catalog-info.yaml CI バリデーション設定 |
+| IMP-TRACE-CAT-028 | ADR-BS-001 | 間接 | catalog-info.yaml Backstage 同期確認設定 |
+| IMP-TRACE-CAT-030 | ADR-BS-001 | 間接 | catalog-info.yaml 差分検知設定 |
+| IMP-TRACE-CI-011 | ADR-DEV-001 | 間接 | trace check CI 追加設定 = Paved Road 品質ゲート |
+| IMP-TRACE-CI-012 | ADR-DEV-001 | 間接 | trace check orphan 検知 CI 設定 |
+| IMP-TRACE-CI-013 | ADR-DEV-001 | 間接 | trace check cross-ref CI 設定 |
+| IMP-TRACE-CI-014 | ADR-DEV-001 | 間接 | trace check grand-total CI 設定 |
+| IMP-TRACE-CI-015 | ADR-DEV-001 | 間接 | trace check PR ブロック設定 |
+| IMP-TRACE-CI-016 | ADR-DEV-001 | 間接 | trace check Slack 通知設定 |
+| IMP-TRACE-CI-017 | ADR-DIR-001 | 間接 | trace check contracts 昇格検証設定 |
+| IMP-TRACE-CI-019 | ADR-DEV-001 | 間接 | trace check スケジュール実行設定 |
+| IMP-BUILD-POL-008 | ADR-DIR-001 | 間接 | contracts 昇格ポリシー追加 = contracts 独立 workspace |
+| IMP-CI-POL-008 | ADR-CICD-001 | 間接 | CI ポリシー追加 = GitOps 二系統 CI 方針強化 |
+| IMP-TRACE-POL-005 | ADR-DIR-001 | 間接 | trace check ポリシー追加 = 双方向リンク強制 |
+| IMP-TRACE-POL-006 | ADR-DIR-001 | 間接 | trace check ポリシー追加（孤立 ID 月次通知） |
+
 ## 関連ファイル
 
 - 本章の原則: [`../00_方針/01_索引運用原則.md`](../00_方針/01_索引運用原則.md)

@@ -1,0 +1,7 @@
+{
+  "_description": "tier3 Web App + TS SDK の同時変更 — tier3_web と sdk のみ true",
+  "files": [
+    "src/tier3/web/apps/portal/src/App.tsx",
+    "src/sdk/typescript/src/client.ts"
+  ]
+}

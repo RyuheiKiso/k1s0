@@ -7,6 +7,8 @@ metadata:
   annotations:
     github.com/project-slug: k1s0/k1s0
     backstage.io/source-location: url:https://github.com/k1s0/k1s0/tree/main/examples/tier2-go-service
+    # Scaffold CLI 経由生成でない既存ファイルは固定値 legacy-pre-scaffold (CAT-021)
+    k1s0.io/template-version: legacy-pre-scaffold
   tags:
     - tier2
     - go

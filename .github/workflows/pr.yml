@@ -52,7 +52,7 @@ jobs:
       - id: f
         uses: dorny/paths-filter@v3
         with:
-          filters: tools/ci/path-filter.yaml
+          filters: tools/ci/path-filter/filters.yaml
       - id: docs_only
         # docs のみ true、他がすべて false の場合に lint-only に分岐（IMP-CI-RWF-011）
         run: |

@@ -1,0 +1,73 @@
+<mxfile>
+  <diagram name="Page-1" id="toml-types">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="490" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="490" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="TOML データ型の分類" style="text;html=1;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="180" y="10" width="400" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="root_box" value="TOML 値（root table 配下に格納される）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="48" width="280" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="line_l" style="endArrow=none;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=1.5;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="88" as="sourcePoint"/>
+            <mxPoint x="210" y="115" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="line_r" style="endArrow=none;html=1;rounded=0;strokeColor=#6c8ebf;strokeWidth=1.5;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="88" as="sourcePoint"/>
+            <mxPoint x="570" y="115" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="scalar_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="340" height="355" as="geometry"/>
+        </mxCell>
+        <mxCell id="scalar_title" value="Scalar 型（単一の値）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="340" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_string" value="String &amp;nbsp; &quot;hello&quot; / 'literal' / &quot;&quot;&quot;multi&quot;&quot;&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="165" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_int" value="Integer &amp;nbsp; 42 / 0xFF / 1_000_000" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="225" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_float" value="Float &amp;nbsp; 3.14 / 1e9 / inf / nan" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="285" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_bool" value="Boolean &amp;nbsp; true / false" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="345" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_dt" value="Date-Time &amp;nbsp; 2026-04-28T10:00:00Z (RFC 3339)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="405" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="comp_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="115" width="340" height="355" as="geometry"/>
+        </mxCell>
+        <mxCell id="comp_title" value="Compound 型（構造を持つ値）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="115" width="340" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_array" value="Array &amp;nbsp; [1, 2, 3] / [&quot;a&quot;, &quot;b&quot;]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="165" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_table" value="Standard Table &amp;nbsp; [server] key = val" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="225" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_inline" value="Inline Table &amp;nbsp; { x = 1, y = 2 }" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="285" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_aot" value="Array of Tables &amp;nbsp; [[items]] を繰り返す" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="345" width="300" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="c_dotted" value="Dotted Key &amp;nbsp; a.b.c = 1（深いネストの省略表現）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="405" width="300" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

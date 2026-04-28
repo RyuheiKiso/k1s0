@@ -38,12 +38,28 @@ trap 'rm -rf "${WORK}"' EXIT
 
 mkdir -p "${WORK}/actual" "${WORK}/expected"
 
+# 各 template が要求する追加引数（template.yaml parameters の required と整合させる）
+EXTRA_ARGS=(--description "Golden fixture sample (auto-regenerated)")
+case "${SCAFFOLD_NAME}" in
+    tier2-dotnet-service)
+        EXTRA_ARGS+=(--namespace K1s0.Tier2.GoldenFixture)
+        ;;
+esac
+
+# expected.tar.gz は ${SCAFFOLD_NAME}/golden-fixture/<files> を含む構造で生成されるため、
+# actual 側も同じ ${SCAFFOLD_NAME}/golden-fixture/<files> 階層に揃える。
+mkdir -p "${WORK}/actual/${SCAFFOLD_NAME}"
+
 # k1s0-scaffold は src/platform/scaffold/ で cargo run できる前提（採用初期 で multi-arch binary を GitHub Releases 配布）
 cd "${REPO_ROOT}/src/platform/scaffold"
-cargo run --release -- new "${SCAFFOLD_NAME}" --name golden-fixture --owner @k1s0/test --out "${WORK}/actual"
+cargo run --release --quiet -- new "${SCAFFOLD_NAME}" \
+    --name golden-fixture \
+    --owner @k1s0/test \
+    --out "${WORK}/actual/${SCAFFOLD_NAME}" \
+    "${EXTRA_ARGS[@]}"
 
 # 期待値を展開
 tar -xzf "${EXPECTED_TGZ}" -C "${WORK}/expected/"
 
 # 再帰 diff（差分があれば exit 1）
-diff -r "${WORK}/actual" "${WORK}/expected/${SCAFFOLD_NAME}"
+diff -r "${WORK}/actual/${SCAFFOLD_NAME}" "${WORK}/expected/${SCAFFOLD_NAME}"

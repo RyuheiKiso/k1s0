@@ -67,16 +67,99 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 	}, nil
 }
 
-// BulkPublish はバッチ Publish。本リリース時点 では Unimplemented。
-func (h *pubsubHandler) BulkPublish(_ context.Context, _ *pubsubv1.BulkPublishRequest) (*pubsubv1.BulkPublishResponse, error) {
-	// 直接 Unimplemented 返却。
-	return nil, status.Error(codes.Unimplemented, "tier1/pubsub: BulkPublish not yet wired (plan 04-05)")
+// BulkPublish は複数 message を順次 Publish する。
+// Dapr SDK は単一 PublishEvent しか提供しないため、ループで逐次発行する。
+// 1 件失敗で全体失敗（部分発行済 message のロールバックは pubsub backend
+// 仕様に依存するため、呼出側で冪等性キーによる重複発行検知を前提とする）。
+func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPublishRequest) (*pubsubv1.BulkPublishResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
+	}
+	for i, entry := range req.GetEntries() {
+		// 各 entry は PublishRequest（topic / data / content_type / idempotency_key /
+		// metadata / context）。BulkPublishRequest 側で topic を共通化しているため
+		// entry.topic と齟齬がある場合は entry を優先する。
+		topic := entry.GetTopic()
+		if topic == "" {
+			topic = req.GetTopic()
+		}
+		areq := dapr.PublishRequest{
+			Component:      "pubsub-kafka",
+			Topic:          topic,
+			Data:           entry.GetData(),
+			ContentType:    entry.GetContentType(),
+			IdempotencyKey: entry.GetIdempotencyKey(),
+			Metadata:       entry.GetMetadata(),
+			TenantID:       tenantIDOf(entry.GetContext()),
+		}
+		if _, err := h.deps.PubSubAdapter.Publish(ctx, areq); err != nil {
+			return nil, status.Errorf(codes.Internal, "tier1/pubsub: BulkPublish failed at entry %d: %v", i, err)
+		}
+	}
+	return &pubsubv1.BulkPublishResponse{}, nil
 }
 
-// Subscribe はサブスクリプション stream。本リリース時点 では Unimplemented。
-func (h *pubsubHandler) Subscribe(_ *pubsubv1.SubscribeRequest, _ pubsubv1.PubSubService_SubscribeServer) error {
-	// stream は plan 04-05 で実装。
-	return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired (plan 04-05)")
+// Subscribe は server-streaming RPC。Dapr Subscribe で得た subscription から
+// 逐次イベントを受信し、proto Event として gRPC stream クライアントへ転送する。
+//
+// stream context が cancel されると subscription を Close し関数を戻す。
+// 送信成功後に ev.Ack()、stream.Send 失敗時は ev.Retry() を呼んで Dapr 側で再配信させる。
+func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv1.PubSubService_SubscribeServer) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
+	}
+	if h.deps.PubSubAdapter == nil {
+		return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired")
+	}
+	ctx := stream.Context()
+	sub, err := h.deps.PubSubAdapter.Subscribe(ctx, dapr.SubscribeAdapterRequest{
+		Component:     "pubsub-kafka",
+		Topic:         req.GetTopic(),
+		ConsumerGroup: req.GetConsumerGroup(),
+		TenantID:      tenantIDOf(req.GetContext()),
+	})
+	if err != nil {
+		if isNotWired(err) {
+			return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired to Dapr backend")
+		}
+		return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe failed: %v", err)
+	}
+	defer func() { _ = sub.Close() }()
+
+	for {
+		// stream cancel チェック（Receive が block する前に context 状況を確認）。
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		ev, err := sub.Receive(ctx)
+		if err != nil {
+			// adapter 側で「subscription closed」を通常終了として返す場合は io.EOF など。
+			// 単純化のため、エラーは Internal として返却。
+			return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe receive: %v", err)
+		}
+		if ev == nil {
+			// イベント無しは無視して次へ。
+			continue
+		}
+		out := &pubsubv1.Event{
+			Topic:       ev.Topic,
+			Data:        ev.Data,
+			ContentType: ev.ContentType,
+			Offset:      ev.Offset,
+			Metadata:    ev.Metadata,
+		}
+		if err := stream.Send(out); err != nil {
+			// クライアントへの転送失敗 → Dapr 側で再配信させる。
+			if ev.Retry != nil {
+				_ = ev.Retry()
+			}
+			return status.Errorf(codes.Internal, "tier1/pubsub: stream.Send: %v", err)
+		}
+		// 転送成功 → ack。
+		if ev.Ack != nil {
+			_ = ev.Ack()
+		}
+	}
 }
 
 // translatePubSubErr は PubSub 用エラー翻訳。

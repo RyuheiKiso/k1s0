@@ -1,0 +1,119 @@
+<mxfile>
+  <diagram name="HOL Blocking Layers" id="hol-layers">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="780" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="HOL ブロッキングが発生する 3 つの層" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="700" height="36" as="geometry" />
+        </mxCell>
+
+        <mxCell id="appBox" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="1020" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="appTitle" value="① アプリ層 ── HTTP/1.1 パイプライン" style="text;html=1;fontSize=13;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#2e5cb8;" vertex="1" parent="1">
+          <mxGeometry x="55" y="68" width="500" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="appDesc" value="同一 TCP 接続でリクエストを順番に投入。応答も投入順に返す制約があり、&#xa;先頭のレスポンス R1 が遅いと後続 R2/R3 が完成済みでも送り出せない。" style="text;html=1;fontSize=11;align=left;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#333333;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="55" y="92" width="700" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cli1" value="クライアント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="180" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="srv1" value="サーバ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="900" y="180" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="r1" value="REQ1 → 重い処理 (DB 集計)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="140" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" value="REQ2 → キャッシュ Hit (即時)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="178" width="300" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" value="REQ3 → 静的アセット (即時)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="216" width="300" height="28" as="geometry" />
+        </mxCell>
+
+        <mxCell id="block1" value="R1 完成までは&#xa;R2/R3 を返送不可&#xa;＝ HOL ブロック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;fontColor=#8a1a1a;" vertex="1" parent="1">
+          <mxGeometry x="560" y="155" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tcpBox" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="1020" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="tcpTitle" value="② トランスポート層 ── TCP の単一バイトストリーム" style="text;html=1;fontSize=13;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#7a5d00;" vertex="1" parent="1">
+          <mxGeometry x="55" y="308" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="tcpDesc" value="TCP は順序保証付き単一ストリーム。途中セグメントが 1 つでも欠落すると、&#xa;再送が完了するまで後続到着済みセグメントも上位層へ渡せない。" style="text;html=1;fontSize=11;align=left;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#333333;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="55" y="332" width="700" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="seg1" value="Seg #1&#xa;到着" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seg2" value="Seg #2&#xa;✗ 紛失" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="400" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seg3" value="Seg #3&#xa;到着済" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="340" y="400" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="seg4" value="Seg #4&#xa;到着済" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="460" y="400" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rxbuf" value="受信バッファ&#xa;（カーネル）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="85" y="380" width="490" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="block2" value="Seg #2 が再送で到着するまで、&#xa;#3 #4 は受信バッファ内に保留され&#xa;アプリ read() に渡されない" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;fontColor=#8a1a1a;" vertex="1" parent="1">
+          <mxGeometry x="620" y="400" width="380" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="swBox" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1020" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="swTitle" value="③ ハードウェア層 ── 入力バッファ型スイッチ (FIFO)" style="text;html=1;fontSize=13;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#3a8a3a;" vertex="1" parent="1">
+          <mxGeometry x="55" y="548" width="600" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="swDesc" value="入力ポートの FIFO 先頭パケットの宛先出力ポートが他フローで占有されていると、&#xa;後続パケットの宛先が空いていても発射できない（最大スループット理論値 ≈ 58.6%）。" style="text;html=1;fontSize=11;align=left;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#333333;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="55" y="572" width="800" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="in1" value="入力 1 FIFO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="635" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p1a" value="P → 出力2 (待ち)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="650" width="110" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="p1b" value="P → 出力3 (空)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="675" width="110" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="p1c" value="P → 出力3 (空)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="700" width="110" height="22" as="geometry" />
+        </mxCell>
+
+        <mxCell id="out2" value="出力 2&#xa;（他フローで&#xa;使用中）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="630" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="out3" value="出力 3&#xa;（空き）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="700" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrowBlocked" style="endArrow=block;html=1;rounded=0;strokeColor=#b85450;strokeWidth=2;" edge="1" parent="1" source="p1a" target="out2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrowBlockedLabel" value="先頭が出力 2 待ち" style="text;html=1;fontSize=10;fontColor=#8a1a1a;align=center;" vertex="1" parent="1">
+          <mxGeometry x="220" y="640" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="block3" value="出力 3 は空でも&#xa;FIFO 規律のため&#xa;後続 2 件が発射できない" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;fontColor=#8a1a1a;" vertex="1" parent="1">
+          <mxGeometry x="600" y="650" width="220" height="80" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -4,20 +4,20 @@
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/07_Log_API.md
 //   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md
 //     - DS-SW-COMP-037（Log Adapter: stdout JSON Lines / OTel Collector / Loki 集約）
-//   src/tier1/README.md（t1-state Pod の責務に Log を含む）
 //
-// scope（リリース時点 placeholder）:
-//   実 OTel Logs パイプライン（OTel Collector → Loki）への結線は plan 04-13 同期。
-//   現状は SDK 接続点を提供するため skeleton として登録し、全 RPC は Unimplemented を返す。
-//   FR-T1-LOG-001〜004 のうち SDK 側 facade（src/sdk/*/log）は同梱済、本 handler は
-//   それを受け止める空 server として機能する。
+// 役割（plan 04-13 結線済）:
+//   SDK 側 facade からの gRPC 入口で proto LogEntry を受け取り、
+//   internal/otel.LogEmitter 越しに OTel Logs パイプラインへ流す。
+//   nil emitter（test 上などで未注入）の場合は Unimplemented を返す（fail-soft）。
 
 package state
 
-// 標準 / 内部パッケージ。
 import (
 	// context 伝搬。
 	"context"
+
+	// 共通 OTel adapter。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/otel"
 	// SDK 生成 stub の LogService 型。
 	logv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/log/v1"
 	// gRPC エラーコード。
@@ -27,34 +27,63 @@ import (
 )
 
 // logHandler は LogService の handler 実装。
-// LogService は OTel Logs パイプライン（OTel Collector → Loki）に直接乗せる設計のため、
-// 本 handler は SDK 側 facade からの gRPC 入口を確保するだけで、本格実装は plan 04-13 で
-// OTel SDK / Collector 連携の文脈で行う。
 type logHandler struct {
 	// 将来 RPC 用埋め込み（forward compatibility）。
 	logv1.UnimplementedLogServiceServer
-	// adapter 集合（Log は OTel 側へ流すため Dapr adapter は使わない）。
+	// adapter 集合（LogEmitter を取り出して使う）。
 	deps Deps
 }
 
+// convertLogEntry は proto LogEntry を otel.LogEntry に詰め替える。
+func convertLogEntry(e *logv1.LogEntry) otel.LogEntry {
+	if e == nil {
+		return otel.LogEntry{}
+	}
+	var ts int64
+	if e.GetTimestamp() != nil {
+		ts = e.GetTimestamp().AsTime().UnixNano()
+	}
+	return otel.LogEntry{
+		Timestamp:    ts,
+		Severity:     otel.SeverityFromProto(e.GetSeverity()),
+		SeverityText: otel.SeverityText(e.GetSeverity()),
+		Body:         e.GetBody(),
+		Attributes:   e.GetAttributes(),
+		StackTrace:   e.GetStackTrace(),
+	}
+}
+
 // Send は単一エントリ送信。
-func (h *logHandler) Send(_ context.Context, req *logv1.SendLogRequest) (*logv1.SendLogResponse, error) {
-	// 入力 nil 防御。
+func (h *logHandler) Send(ctx context.Context, req *logv1.SendLogRequest) (*logv1.SendLogResponse, error) {
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/log: nil request")
 	}
-	// 実 OTel Logs パイプライン結線は plan 04-13。
-	return nil, status.Error(codes.Unimplemented, "tier1/log: Send not yet wired to OTel Collector (plan 04-13)")
+	if h.deps.LogEmitter == nil {
+		// emitter 未注入 → 未結線扱い。
+		return nil, status.Error(codes.Unimplemented, "tier1/log: Send not yet wired to OTel Collector")
+	}
+	if err := h.deps.LogEmitter.Emit(ctx, convertLogEntry(req.GetEntry())); err != nil {
+		return nil, status.Errorf(codes.Internal, "tier1/log: emit failed: %v", err)
+	}
+	return &logv1.SendLogResponse{}, nil
 }
 
 // BulkSend は複数エントリの一括送信。
-func (h *logHandler) BulkSend(_ context.Context, req *logv1.BulkSendLogRequest) (*logv1.BulkSendLogResponse, error) {
-	// 入力 nil 防御。
+func (h *logHandler) BulkSend(ctx context.Context, req *logv1.BulkSendLogRequest) (*logv1.BulkSendLogResponse, error) {
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/log: nil request")
 	}
-	// 実 OTel Logs パイプライン結線は plan 04-13。
-	return nil, status.Error(codes.Unimplemented, "tier1/log: BulkSend not yet wired to OTel Collector (plan 04-13)")
+	if h.deps.LogEmitter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/log: BulkSend not yet wired to OTel Collector")
+	}
+	// 各エントリを順次 emit。1 件失敗で全体失敗とせず、最後にエラー件数を集計する方針も
+	// 取れるが、現状は最初のエラーで即返却（gRPC 慣用）。
+	accepted := int32(0)
+	for _, entry := range req.GetEntries() {
+		if err := h.deps.LogEmitter.Emit(ctx, convertLogEntry(entry)); err != nil {
+			return nil, status.Errorf(codes.Internal, "tier1/log: emit failed at entry %d: %v", accepted, err)
+		}
+		accepted++
+	}
+	return &logv1.BulkSendLogResponse{Accepted: accepted}, nil
 }

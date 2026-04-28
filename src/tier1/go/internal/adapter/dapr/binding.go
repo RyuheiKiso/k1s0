@@ -5,14 +5,19 @@
 //     - Binding API → 外部 HTTP / SMTP / S3（Dapr Output Binding）
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/05_Binding_API.md
 //
-// リリース時点 placeholder。実 Dapr SDK 接続は plan 04-12 で実装。
+// 役割（plan 04-12 結線済）:
+//   handler.go が呼び出す Output Binding 操作（create / get / list / delete / send 等）を
+//   Dapr SDK の InvokeBinding で実行する。応答 BindingEvent.Data と Metadata を返却する。
+//   テナント識別子は metadata に同梱して component 側に伝搬する。
 
 package dapr
 
-// 標準 Go ライブラリ。
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
+
+	// Dapr SDK の InvokeBindingRequest / BindingEvent 型を参照する。
+	daprclient "github.com/dapr/go-sdk/client"
 )
 
 // BindingRequest は Output Binding 呼出の入力。
@@ -43,20 +48,44 @@ type BindingAdapter interface {
 	Invoke(ctx context.Context, req BindingRequest) (BindingResponse, error)
 }
 
-// daprBindingAdapter は実装（リリース時点 placeholder）。
+// daprBindingAdapter は Client（narrow interface）越しに SDK を呼ぶ実装。
 type daprBindingAdapter struct {
-	// Dapr Client への参照。
 	client *Client
 }
 
 // NewBindingAdapter は BindingAdapter を生成する。
 func NewBindingAdapter(client *Client) BindingAdapter {
-	// 実装インスタンスを構築する。
 	return &daprBindingAdapter{client: client}
 }
 
-// Invoke は plan 04-12 で実装。
-func (a *daprBindingAdapter) Invoke(_ context.Context, _ BindingRequest) (BindingResponse, error) {
-	// placeholder
-	return BindingResponse{}, ErrNotWired
+// Invoke は Output Binding を呼び出す。
+// metadata にテナント識別子を含めて sidecar に伝搬する（呼出元 metadata は破壊しない）。
+func (a *daprBindingAdapter) Invoke(ctx context.Context, req BindingRequest) (BindingResponse, error) {
+	// metadata 合成（呼出元 map を破壊しないため新規 map を作る）。
+	meta := make(map[string]string, len(req.Metadata)+1)
+	for k, v := range req.Metadata {
+		meta[k] = v
+	}
+	if req.TenantID != "" {
+		meta[metadataKeyTenant] = req.TenantID
+	}
+	// SDK 呼出。Name / Operation / Data / Metadata を構造体に詰める。
+	in := &daprclient.InvokeBindingRequest{
+		Name:      req.Name,
+		Operation: req.Operation,
+		Data:      req.Data,
+		Metadata:  meta,
+	}
+	ev, err := a.client.bindingClient().InvokeBinding(ctx, in)
+	if err != nil {
+		return BindingResponse{}, err
+	}
+	// SDK は BindingEvent.Data と Metadata を返す。
+	if ev == nil {
+		return BindingResponse{}, nil
+	}
+	return BindingResponse{
+		Data:     ev.Data,
+		Metadata: ev.Metadata,
+	}, nil
 }

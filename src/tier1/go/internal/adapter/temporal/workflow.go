@@ -1,0 +1,243 @@
+// 本ファイルは Temporal を使った WorkflowAdapter 実装。
+//
+// 設計正典:
+//   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/06_Workflow_API.md
+//
+// 役割（plan 04-07 結線済 / Temporal 経路）:
+//   handler.go が呼び出す WorkflowService 6 RPC（Start / Signal / Query /
+//   Cancel / Terminate / GetStatus）を Temporal Go SDK で実装する。
+//
+// 動的 workflow 種別:
+//   ExecuteWorkflow に workflow type 名（string）をそのまま渡す。Temporal は
+//   登録済 worker が同名で workflow を register していれば dispatch する仕様。
+//   k1s0 では tier2 worker 側で `worker.RegisterWorkflowWithOptions(name=...)` で
+//   登録する運用想定（ADR-RULE-002）。
+//
+// 入出力ペイロード:
+//   proto は input/payload/result を `[]byte` で扱う。Temporal SDK は arg を
+//   `interface{}` として serialize するため、`[]byte` を渡すと内部 JSONPayloadConverter
+//   などで encode される。SDK の converter を上書きすればスキーマ既知の serialization も可能だが、
+//   本層は generic として `[]byte` のまま透過させる。
+//
+// status 翻訳:
+//   Temporal の WorkflowExecutionStatus 整数値（1=RUNNING, 2=COMPLETED, ...）を
+//   k1s0 proto WorkflowStatus 整数値（0=RUNNING, 1=COMPLETED, ...）に翻訳する。
+
+package temporal
+
+import (
+	"context"
+	"errors"
+
+	tclient "go.temporal.io/sdk/client"
+)
+
+// k1s0 の workflow proto 値（adapter 中立な int 値で表現）。
+// proto enum と同値で定義しているが、proto 依存をこの adapter に持ち込まないため
+// パッケージ内で再定義する。handler 側が proto enum とこの値を相互変換する。
+type WorkflowStatusValue int32
+
+const (
+	WorkflowStatusRunning        WorkflowStatusValue = 0
+	WorkflowStatusCompleted      WorkflowStatusValue = 1
+	WorkflowStatusFailed         WorkflowStatusValue = 2
+	WorkflowStatusCanceled       WorkflowStatusValue = 3
+	WorkflowStatusTerminated     WorkflowStatusValue = 4
+	WorkflowStatusContinuedAsNew WorkflowStatusValue = 5
+)
+
+// Temporal SDK の WorkflowExecutionStatus 整数値（enum.WorkflowExecutionStatus）。
+// SDK 直接 import するとサンプルが膨らむため、定数値で扱う（API 変更時はここも追従）。
+const (
+	temporalStatusUnspecified    int32 = 0
+	temporalStatusRunning        int32 = 1
+	temporalStatusCompleted      int32 = 2
+	temporalStatusFailed         int32 = 3
+	temporalStatusCanceled       int32 = 4
+	temporalStatusTerminated     int32 = 5
+	temporalStatusContinuedAsNew int32 = 6
+	temporalStatusTimedOut       int32 = 7
+)
+
+// translateStatus は Temporal の status code を k1s0 WorkflowStatusValue に翻訳する。
+// TimedOut / Unspecified は最も近い意味の Failed に寄せる（OpenFeature ERROR と同じ思想）。
+func translateStatus(code int32) WorkflowStatusValue {
+	switch code {
+	case temporalStatusRunning:
+		return WorkflowStatusRunning
+	case temporalStatusCompleted:
+		return WorkflowStatusCompleted
+	case temporalStatusFailed, temporalStatusTimedOut:
+		return WorkflowStatusFailed
+	case temporalStatusCanceled:
+		return WorkflowStatusCanceled
+	case temporalStatusTerminated:
+		return WorkflowStatusTerminated
+	case temporalStatusContinuedAsNew:
+		return WorkflowStatusContinuedAsNew
+	default:
+		// Unspecified などは Running と扱う（保守的）。
+		return WorkflowStatusRunning
+	}
+}
+
+// k1s0 既定 task queue。tier2 worker 側で同名 task queue を listen する運用。
+const defaultTaskQueue = "k1s0-default"
+
+// StartRequest は WorkflowAdapter.Start の入力。
+type StartRequest struct {
+	WorkflowType string
+	WorkflowID   string // 空なら呼出側で UUID 採番済を渡す
+	Input        []byte
+	Idempotent   bool   // true → 既存実行を返す（重複実行禁止）
+	TaskQueue    string // 空なら defaultTaskQueue
+	TenantID     string // memo / search attribute に詰める想定（plan 04-14）
+}
+
+// StartResponse は Start の応答。
+type StartResponse struct {
+	WorkflowID string
+	RunID      string
+}
+
+// SignalRequest は Signal の入力。
+type SignalRequest struct {
+	WorkflowID string
+	RunID      string // 空なら最新 run へ送信
+	SignalName string
+	Payload    []byte
+}
+
+// QueryRequest は Query の入力。
+type QueryRequest struct {
+	WorkflowID string
+	RunID      string
+	QueryName  string
+	Payload    []byte
+}
+
+// QueryResponse は Query の応答。
+type QueryResponse struct {
+	Result []byte
+}
+
+// CancelRequest は Cancel の入力。
+type CancelRequest struct {
+	WorkflowID string
+	RunID      string
+	Reason     string
+}
+
+// TerminateRequest は Terminate の入力。
+type TerminateRequest struct {
+	WorkflowID string
+	RunID      string
+	Reason     string
+}
+
+// GetStatusRequest は GetStatus の入力。
+type GetStatusRequest struct {
+	WorkflowID string
+	RunID      string
+}
+
+// GetStatusResponse は GetStatus の応答。
+type GetStatusResponse struct {
+	Status WorkflowStatusValue
+	RunID  string
+}
+
+// WorkflowAdapter は WorkflowService の操作集合。
+type WorkflowAdapter interface {
+	Start(ctx context.Context, req StartRequest) (StartResponse, error)
+	Signal(ctx context.Context, req SignalRequest) error
+	Query(ctx context.Context, req QueryRequest) (QueryResponse, error)
+	Cancel(ctx context.Context, req CancelRequest) error
+	Terminate(ctx context.Context, req TerminateRequest) error
+	GetStatus(ctx context.Context, req GetStatusRequest) (GetStatusResponse, error)
+}
+
+// temporalWorkflowAdapter は Client（narrow interface）越しに SDK を呼ぶ実装。
+type temporalWorkflowAdapter struct {
+	client *Client
+}
+
+// NewWorkflowAdapter は Client から WorkflowAdapter を生成する。
+func NewWorkflowAdapter(client *Client) WorkflowAdapter {
+	return &temporalWorkflowAdapter{client: client}
+}
+
+// Start は ExecuteWorkflow で新規ワークフローを起動する。
+// idempotent=true なら DuplicateRequestPolicy_REJECT_DUPLICATE は使わず、
+// SDK の WorkflowIDReusePolicy / WorkflowIDConflictPolicy を AllowDuplicate で
+// 既存実行を返すように設定する（同じ workflow_id で複数 run を許容）。
+func (a *temporalWorkflowAdapter) Start(ctx context.Context, req StartRequest) (StartResponse, error) {
+	tq := req.TaskQueue
+	if tq == "" {
+		tq = defaultTaskQueue
+	}
+	opts := tclient.StartWorkflowOptions{
+		ID:        req.WorkflowID,
+		TaskQueue: tq,
+	}
+	// Temporal の WorkflowIDReusePolicy: 既定（AllowDuplicate）= 完了済の同 ID は新 run 採番
+	// idempotent モードではここをカスタマイズ予定（plan 04-14）。
+	run, err := a.client.temporalClientFor().ExecuteWorkflow(ctx, opts, req.WorkflowType, req.Input)
+	if err != nil {
+		return StartResponse{}, err
+	}
+	return StartResponse{
+		WorkflowID: run.GetID(),
+		RunID:      run.GetRunID(),
+	}, nil
+}
+
+// Signal は SignalWorkflow を呼ぶ。RunID が空なら SDK は最新 run に送る。
+func (a *temporalWorkflowAdapter) Signal(ctx context.Context, req SignalRequest) error {
+	return a.client.temporalClientFor().SignalWorkflow(ctx, req.WorkflowID, req.RunID, req.SignalName, req.Payload)
+}
+
+// Query は QueryWorkflow を呼び、EncodedValue を []byte に変換して返す。
+func (a *temporalWorkflowAdapter) Query(ctx context.Context, req QueryRequest) (QueryResponse, error) {
+	enc, err := a.client.temporalClientFor().QueryWorkflow(ctx, req.WorkflowID, req.RunID, req.QueryName, req.Payload)
+	if err != nil {
+		return QueryResponse{}, err
+	}
+	if enc == nil || !enc.HasValue() {
+		return QueryResponse{Result: nil}, nil
+	}
+	// Temporal の EncodedValue.Get で []byte に展開する。SDK の default converter は JSON。
+	var out []byte
+	if err := enc.Get(&out); err != nil {
+		return QueryResponse{}, err
+	}
+	return QueryResponse{Result: out}, nil
+}
+
+// Cancel は CancelWorkflow を呼ぶ。Reason はワークフロー内 catch でハンドリングされる。
+func (a *temporalWorkflowAdapter) Cancel(ctx context.Context, req CancelRequest) error {
+	return a.client.temporalClientFor().CancelWorkflow(ctx, req.WorkflowID, req.RunID)
+}
+
+// Terminate は TerminateWorkflow を呼ぶ。Reason は監査ログに残る。
+func (a *temporalWorkflowAdapter) Terminate(ctx context.Context, req TerminateRequest) error {
+	return a.client.temporalClientFor().TerminateWorkflow(ctx, req.WorkflowID, req.RunID, req.Reason)
+}
+
+// GetStatus は DescribeWorkflowExecution を呼んで Status を取得する。
+func (a *temporalWorkflowAdapter) GetStatus(ctx context.Context, req GetStatusRequest) (GetStatusResponse, error) {
+	desc, err := a.client.temporalClientFor().DescribeWorkflowExecution(ctx, req.WorkflowID, req.RunID)
+	if err != nil {
+		return GetStatusResponse{}, err
+	}
+	if desc == nil {
+		return GetStatusResponse{}, ErrWorkflowNotFound
+	}
+	return GetStatusResponse{
+		Status: translateStatus(desc.StatusCode),
+		RunID:  desc.RunID,
+	}, nil
+}
+
+// 静的検査: errors.Is 用の reflection。
+var _ = errors.Is
