@@ -29,6 +29,8 @@ use k1s0_sdk_proto::k1s0::tier1::audit::v1::{
 };
 // store 層（lib.rs 経由）。
 use k1s0_tier1_audit::store::{AppendInput, AuditEntry, AuditStore, InMemoryAuditStore, QueryInput};
+// Export RPC の chunk 整形ループ（lib.rs 経由、フォーマッタ実装は export.rs）。
+use k1s0_tier1_audit::export::send_export_chunks;
 // SIGTERM / SIGINT 受信。
 use tokio::signal::unix::{SignalKind, signal};
 // 非同期 channel（server streaming で chunk を receiver 側に push する）。
@@ -282,146 +284,6 @@ impl AuditService for AuditServer {
             first_bad_sequence: outcome.first_bad_sequence,
             reason: outcome.reason,
         }))
-    }
-}
-
-/// ExportAuditChunk を chunk_bytes 単位で flush するヘルパ。
-/// is_last=true の chunk を必ず最後に 1 度だけ送る（クライアントが終端を判別するため）。
-async fn send_export_chunks(
-    tx: mpsc::Sender<Result<ExportAuditChunk, Status>>,
-    entries: Vec<AuditEntry>,
-    format: ExportFormat,
-    chunk_bytes: usize,
-) {
-    // chunk バッファと統計。chunk 連番 / event 件数。
-    let mut buf: Vec<u8> = Vec::with_capacity(chunk_bytes);
-    let mut chunk_seq: i64 = 0;
-    let mut events_in_chunk: i64 = 0;
-
-    // CSV 時はヘッダ行を最初に流す。
-    if matches!(format, ExportFormat::Csv) {
-        buf.extend_from_slice(b"audit_id,timestamp_ms,tenant_id,actor,action,resource,outcome\n");
-    }
-    // JSON 配列の開きカッコを最初に流す。
-    if matches!(format, ExportFormat::JsonArray) {
-        buf.push(b'[');
-    }
-
-    // 各 entry を 1 行 / 1 オブジェクトに整形して buf に追記する。
-    for (idx, e) in entries.iter().enumerate() {
-        let line = format_entry(e, format, idx == 0);
-        // chunk 上限を超えそうなら現 chunk を flush する。
-        if !buf.is_empty() && buf.len() + line.len() > chunk_bytes {
-            // 現 buf を chunk として送出する。
-            let _ = tx
-                .send(Ok(ExportAuditChunk {
-                    data: std::mem::take(&mut buf),
-                    sequence: chunk_seq,
-                    event_count: events_in_chunk,
-                    is_last: false,
-                }))
-                .await;
-            chunk_seq += 1;
-            events_in_chunk = 0;
-        }
-        buf.extend_from_slice(&line);
-        events_in_chunk += 1;
-    }
-
-    // JSON 配列の閉じカッコを末尾に追加する。
-    if matches!(format, ExportFormat::JsonArray) {
-        buf.push(b']');
-    }
-
-    // 最終 chunk を必ず 1 件送る（buf が空でも is_last=true で送る）。
-    let _ = tx
-        .send(Ok(ExportAuditChunk {
-            data: buf,
-            sequence: chunk_seq,
-            event_count: events_in_chunk,
-            is_last: true,
-        }))
-        .await;
-}
-
-/// 1 entry を所定フォーマットで bytes に変換する。
-/// JSON 配列形式の場合、2 件目以降は先頭に "," を付ける（valid な JSON 配列を構築）。
-fn format_entry(e: &AuditEntry, format: ExportFormat, is_first: bool) -> Vec<u8> {
-    match format {
-        ExportFormat::Csv => format!(
-            "{},{},{},{},{},{},{}\n",
-            csv_field(&e.audit_id),
-            e.timestamp_ms,
-            csv_field(&e.tenant_id),
-            csv_field(&e.actor),
-            csv_field(&e.action),
-            csv_field(&e.resource),
-            csv_field(&e.outcome),
-        )
-        .into_bytes(),
-        ExportFormat::Ndjson => {
-            // 1 行 1 イベントの JSON。末尾に改行。
-            let line = serde_json::json!({
-                "audit_id": e.audit_id,
-                "timestamp_ms": e.timestamp_ms,
-                "tenant_id": e.tenant_id,
-                "actor": e.actor,
-                "action": e.action,
-                "resource": e.resource,
-                "outcome": e.outcome,
-                "attributes": e.attributes,
-            });
-            let mut s = serde_json::to_vec(&line).unwrap_or_default();
-            s.push(b'\n');
-            s
-        }
-        ExportFormat::JsonArray => {
-            let line = serde_json::json!({
-                "audit_id": e.audit_id,
-                "timestamp_ms": e.timestamp_ms,
-                "tenant_id": e.tenant_id,
-                "actor": e.actor,
-                "action": e.action,
-                "resource": e.resource,
-                "outcome": e.outcome,
-                "attributes": e.attributes,
-            });
-            let body = serde_json::to_vec(&line).unwrap_or_default();
-            if is_first {
-                body
-            } else {
-                let mut s = Vec::with_capacity(body.len() + 1);
-                s.push(b',');
-                s.extend_from_slice(&body);
-                s
-            }
-        }
-        // UNSPECIFIED は NDJSON にフォールバック（caller 側でも正規化済だが defensive）。
-        _ => {
-            let line = serde_json::json!({
-                "audit_id": e.audit_id,
-                "timestamp_ms": e.timestamp_ms,
-                "tenant_id": e.tenant_id,
-                "actor": e.actor,
-                "action": e.action,
-                "resource": e.resource,
-                "outcome": e.outcome,
-            });
-            let mut s = serde_json::to_vec(&line).unwrap_or_default();
-            s.push(b'\n');
-            s
-        }
-    }
-}
-
-/// CSV フィールドを RFC 4180 に従って quote する。",", "\n", "\"" のいずれか含む場合は
-/// "..." で囲み、内部の "\"" は "\"\"" にエスケープする。
-fn csv_field(s: &str) -> String {
-    if s.contains([',', '"', '\n', '\r']) {
-        let escaped = s.replace('"', "\"\"");
-        format!("\"{}\"", escaped)
-    } else {
-        s.to_string()
     }
 }
 

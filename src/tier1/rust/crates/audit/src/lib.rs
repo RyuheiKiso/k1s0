@@ -15,3 +15,5 @@
 
 // WORM ハッシュチェーンと in-memory store を提供する module。
 pub mod store;
+// Export RPC の chunk 整形ヘルパ（CSV / NDJSON / JSON 配列フォーマッタ + chunk 送出ループ）。
+pub mod export;

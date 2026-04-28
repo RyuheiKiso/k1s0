@@ -126,6 +126,8 @@ func TestLogService_StdoutEmitter_OverGRPC(t *testing.T) {
 			// 属性。
 			Attributes: map[string]string{"service.name": "tier1"},
 		},
+		// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id は必須。
+		Context: makeTenantCtx("T"),
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Send failed: %v", err)
@@ -142,6 +144,8 @@ func TestLogService_StdoutEmitter_OverGRPC(t *testing.T) {
 			// 3 件目。
 			{Body: "e3", Severity: logv1.Severity_INFO},
 		},
+		// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id は必須。
+		Context: makeTenantCtx("T"),
 	})
 	// BulkSend 失敗は test 失敗。
 	if err != nil {
@@ -201,6 +205,8 @@ func TestTelemetryService_StdoutEmitter_OverGRPC(t *testing.T) {
 			// histogram。
 			{Name: "k1s0.invoke.duration_ms", Kind: telemetryv1.MetricKind_HISTOGRAM, Value: 12.5},
 		},
+		// NFR-E-AC-003: tenant_id 必須。
+		Context: makeTenantCtx("T"),
 	}); err != nil {
 		// fatal。
 		t.Fatalf("EmitMetric failed: %v", err)
@@ -220,6 +226,8 @@ func TestTelemetryService_StdoutEmitter_OverGRPC(t *testing.T) {
 				Name: "GET /api/v1/foo",
 			},
 		},
+		// NFR-E-AC-003: tenant_id 必須。
+		Context: makeTenantCtx("T"),
 	}); err != nil {
 		// fatal。
 		t.Fatalf("EmitSpan failed: %v", err)

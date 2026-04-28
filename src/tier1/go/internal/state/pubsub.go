@@ -36,6 +36,11 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "PubSub.Publish")
+	if err != nil {
+		return nil, err
+	}
 	// adapter 入力に変換。
 	areq := dapr.PublishRequest{
 		// Component は Publish の topic と分離（運用設定で確定）。本リリース時点 は固定値「pubsub-kafka」。
@@ -51,7 +56,7 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 		// メタデータ。
 		Metadata: req.GetMetadata(),
 		// テナント。
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	// adapter 呼出。
 	aresp, err := h.deps.PubSubAdapter.Publish(ctx, areq)
@@ -83,6 +88,11 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 		if topic == "" {
 			topic = req.GetTopic()
 		}
+		// NFR-E-AC-003: 各 entry も tenant_id 越境防止のため必須検証。
+		entTid, err := requireTenantID(entry.GetContext(), "PubSub.BulkPublish")
+		if err != nil {
+			return nil, err
+		}
 		areq := dapr.PublishRequest{
 			Component:      "pubsub-kafka",
 			Topic:          topic,
@@ -90,7 +100,7 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 			ContentType:    entry.GetContentType(),
 			IdempotencyKey: entry.GetIdempotencyKey(),
 			Metadata:       entry.GetMetadata(),
-			TenantID:       tenantIDOf(entry.GetContext()),
+			TenantID:       entTid,
 		}
 		if _, err := h.deps.PubSubAdapter.Publish(ctx, areq); err != nil {
 			return nil, status.Errorf(codes.Internal, "tier1/pubsub: BulkPublish failed at entry %d: %v", i, err)
@@ -111,12 +121,17 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 	if h.deps.PubSubAdapter == nil {
 		return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, terr := requireTenantID(req.GetContext(), "PubSub.Subscribe")
+	if terr != nil {
+		return terr
+	}
 	ctx := stream.Context()
 	sub, err := h.deps.PubSubAdapter.Subscribe(ctx, dapr.SubscribeAdapterRequest{
 		Component:     "pubsub-kafka",
 		Topic:         req.GetTopic(),
 		ConsumerGroup: req.GetConsumerGroup(),
-		TenantID:      tenantIDOf(req.GetContext()),
+		TenantID:      tid,
 	})
 	if err != nil {
 		if isNotWired(err) {

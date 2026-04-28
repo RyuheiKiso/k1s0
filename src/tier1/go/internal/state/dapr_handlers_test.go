@@ -75,10 +75,11 @@ func TestInvokeHandler_OK(t *testing.T) {
 	}
 	h := &invokeHandler{deps: Deps{InvokeAdapter: a}}
 	resp, err := h.Invoke(context.Background(), &serviceinvokev1.InvokeRequest{
-		AppId: "tier2-tax",
+		AppId:       "tier2-tax",
 		Method:      "calc",
 		Data:        []byte("input"),
 		ContentType: "text/plain",
+		Context:     makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Invoke error: %v", err)
@@ -106,7 +107,7 @@ func TestInvokeHandler_AdapterError(t *testing.T) {
 		},
 	}
 	h := &invokeHandler{deps: Deps{InvokeAdapter: a}}
-	_, err := h.Invoke(context.Background(), &serviceinvokev1.InvokeRequest{AppId: "x", Method: "m"})
+	_, err := h.Invoke(context.Background(), &serviceinvokev1.InvokeRequest{AppId: "x", Method: "m", Context: makeTenantCtx("T")})
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status: got %v want Internal", got)
 	}
@@ -130,6 +131,7 @@ func TestBindingHandler_OK(t *testing.T) {
 		Name:      "s3-archive",
 		Operation: "create",
 		Data:      []byte("payload"),
+		Context:   makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Invoke error: %v", err)
@@ -156,7 +158,7 @@ func TestFeatureHandler_EvaluateBoolean_OK(t *testing.T) {
 		},
 	}
 	h := &featureHandler{deps: Deps{FeatureAdapter: a}}
-	resp, err := h.EvaluateBoolean(context.Background(), &featurev1.EvaluateRequest{FlagKey: "checkout.fast"})
+	resp, err := h.EvaluateBoolean(context.Background(), &featurev1.EvaluateRequest{FlagKey: "checkout.fast", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("EvaluateBoolean error: %v", err)
 	}
@@ -175,7 +177,7 @@ func TestFeatureHandler_EvaluateString_OK(t *testing.T) {
 		},
 	}
 	h := &featureHandler{deps: Deps{FeatureAdapter: a}}
-	resp, err := h.EvaluateString(context.Background(), &featurev1.EvaluateRequest{FlagKey: "tier"})
+	resp, err := h.EvaluateString(context.Background(), &featurev1.EvaluateRequest{FlagKey: "tier", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("EvaluateString error: %v", err)
 	}
@@ -191,7 +193,7 @@ func TestFeatureHandler_EvaluateNumber_OK(t *testing.T) {
 		},
 	}
 	h := &featureHandler{deps: Deps{FeatureAdapter: a}}
-	resp, err := h.EvaluateNumber(context.Background(), &featurev1.EvaluateRequest{FlagKey: "rate"})
+	resp, err := h.EvaluateNumber(context.Background(), &featurev1.EvaluateRequest{FlagKey: "rate", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("EvaluateNumber error: %v", err)
 	}
@@ -207,7 +209,7 @@ func TestFeatureHandler_EvaluateObject_OK(t *testing.T) {
 		},
 	}
 	h := &featureHandler{deps: Deps{FeatureAdapter: a}}
-	resp, err := h.EvaluateObject(context.Background(), &featurev1.EvaluateRequest{FlagKey: "rate-limit"})
+	resp, err := h.EvaluateObject(context.Background(), &featurev1.EvaluateRequest{FlagKey: "rate-limit", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("EvaluateObject error: %v", err)
 	}
@@ -251,7 +253,7 @@ func TestInvokeService_InvokeStream_Chunking(t *testing.T) {
 	defer conn.Close()
 	client := serviceinvokev1.NewInvokeServiceClient(conn)
 	stream, err := client.InvokeStream(context.Background(), &serviceinvokev1.InvokeRequest{
-		AppId: "tier2-foo", Method: "stream-bar",
+		AppId: "tier2-foo", Method: "stream-bar", Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("InvokeStream: %v", err)
@@ -309,7 +311,7 @@ func TestInvokeService_InvokeStream_EmptyBody(t *testing.T) {
 	)
 	defer conn.Close()
 	client := serviceinvokev1.NewInvokeServiceClient(conn)
-	stream, err := client.InvokeStream(context.Background(), &serviceinvokev1.InvokeRequest{AppId: "x", Method: "y"})
+	stream, err := client.InvokeStream(context.Background(), &serviceinvokev1.InvokeRequest{AppId: "x", Method: "y", Context: makeTenantCtx("T")})
 	if err != nil {
 		t.Fatalf("InvokeStream: %v", err)
 	}
@@ -361,8 +363,9 @@ func TestInvokeService_OverGRPC(t *testing.T) {
 
 	client := serviceinvokev1.NewInvokeServiceClient(conn)
 	resp, err := client.Invoke(context.Background(), &serviceinvokev1.InvokeRequest{
-		AppId: "tier2-foo",
-		Method:      "bar",
+		AppId:   "tier2-foo",
+		Method:  "bar",
+		Context: makeTenantCtx("T"),
 	})
 	if err != nil {
 		t.Fatalf("Invoke over gRPC: %v", err)

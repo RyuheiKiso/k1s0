@@ -36,6 +36,11 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/binding: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tid, err := requireTenantID(req.GetContext(), "Binding.Invoke")
+	if err != nil {
+		return nil, err
+	}
 	// adapter 入力に変換。
 	areq := dapr.BindingRequest{
 		// Dapr Component 名。
@@ -47,7 +52,7 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		// メタデータ。
 		Metadata: req.GetMetadata(),
 		// テナント。
-		TenantID: tenantIDOf(req.GetContext()),
+		TenantID: tid,
 	}
 	// adapter 呼出。
 	aresp, err := h.deps.BindingAdapter.Invoke(ctx, areq)

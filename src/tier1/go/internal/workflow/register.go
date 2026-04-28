@@ -111,6 +111,16 @@ func translateErr(err error, rpc string) error {
 	return status.Errorf(codes.Internal, "tier1/workflow: %s: %v", rpc, err)
 }
 
+// requireTenantID は WorkflowService 用の tenant_id 必須検証ヘルパ。
+// NFR-E-AC-003 越境防止のため、すべての公開 RPC の冒頭で呼ぶ。
+// 引数 tenantID が空なら gRPC InvalidArgument を返す。
+func requireTenantID(tenantID, rpc string) error {
+	if tenantID == "" {
+		return status.Errorf(codes.InvalidArgument, "tier1/workflow: tenant_id required in TenantContext (%s)", rpc)
+	}
+	return nil
+}
+
 // notWiredBackend は backend ごとの未注入応答。
 func notWiredBackend(rpc string, backend workflowv1.WorkflowBackend) error {
 	switch backend {
@@ -129,6 +139,11 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/workflow: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	tenantID := req.GetContext().GetTenantId()
+	if err := requireTenantID(tenantID, "Workflow.Start"); err != nil {
+		return nil, err
+	}
 	// backend hint を解決する（AUTO は Temporal にフォールバック）。
 	backend := pickBackend(req.GetBackend())
 	switch backend {
@@ -142,7 +157,7 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 			WorkflowID:   req.GetWorkflowId(),
 			Input:        req.GetInput(),
 			Idempotent:   req.GetIdempotent(),
-			TenantID:     req.GetContext().GetTenantId(),
+			TenantID:     tenantID,
 		})
 		if err != nil {
 			return nil, translateErr(err, "Start")
@@ -164,7 +179,7 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 			WorkflowID:   req.GetWorkflowId(),
 			Input:        req.GetInput(),
 			Idempotent:   req.GetIdempotent(),
-			TenantID:     req.GetContext().GetTenantId(),
+			TenantID:     tenantID,
 		})
 		if err != nil {
 			return nil, translateErr(err, "Start")
@@ -182,6 +197,10 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 func (h *workflowHandler) Signal(ctx context.Context, req *workflowv1.SignalRequest) (*workflowv1.SignalResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/workflow: nil request")
+	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if err := requireTenantID(req.GetContext().GetTenantId(), "Workflow.Signal"); err != nil {
+		return nil, err
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
@@ -214,6 +233,10 @@ func (h *workflowHandler) Signal(ctx context.Context, req *workflowv1.SignalRequ
 func (h *workflowHandler) Query(ctx context.Context, req *workflowv1.QueryRequest) (*workflowv1.QueryResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/workflow: nil request")
+	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if err := requireTenantID(req.GetContext().GetTenantId(), "Workflow.Query"); err != nil {
+		return nil, err
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
@@ -249,6 +272,10 @@ func (h *workflowHandler) Cancel(ctx context.Context, req *workflowv1.CancelRequ
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/workflow: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if err := requireTenantID(req.GetContext().GetTenantId(), "Workflow.Cancel"); err != nil {
+		return nil, err
+	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
 		if h.deps.DaprAdapter == nil {
@@ -279,6 +306,10 @@ func (h *workflowHandler) Terminate(ctx context.Context, req *workflowv1.Termina
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/workflow: nil request")
 	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if err := requireTenantID(req.GetContext().GetTenantId(), "Workflow.Terminate"); err != nil {
+		return nil, err
+	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
 		if h.deps.DaprAdapter == nil {
@@ -308,6 +339,10 @@ func (h *workflowHandler) Terminate(ctx context.Context, req *workflowv1.Termina
 func (h *workflowHandler) GetStatus(ctx context.Context, req *workflowv1.GetStatusRequest) (*workflowv1.GetStatusResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/workflow: nil request")
+	}
+	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
+	if err := requireTenantID(req.GetContext().GetTenantId(), "Workflow.GetStatus"); err != nil {
+		return nil, err
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {

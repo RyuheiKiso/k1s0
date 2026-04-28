@@ -104,6 +104,8 @@ func TestStateService_InMemoryDaprBackend_RoundTrip(t *testing.T) {
 		Key: "session:abc",
 		// data。
 		Data: []byte("user-123"),
+		// NFR-E-AC-003: tenant_id は必須（テナント越境防止）。
+		Context: makeTenantCtx("T"),
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Set failed: %v", err)
@@ -115,6 +117,8 @@ func TestStateService_InMemoryDaprBackend_RoundTrip(t *testing.T) {
 		Store: "valkey-default",
 		// key。
 		Key: "session:abc",
+		// tenant_id（必須）。
+		Context: makeTenantCtx("T"),
 	})
 	// Get 失敗は test 失敗。
 	if err != nil {
@@ -145,6 +149,8 @@ func TestStateService_InMemoryDaprBackend_RoundTrip(t *testing.T) {
 		Key: "session:def",
 		// data2。
 		Data: []byte("user-456"),
+		// tenant_id（必須）。
+		Context: makeTenantCtx("T"),
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Set 2 failed: %v", err)
@@ -155,6 +161,8 @@ func TestStateService_InMemoryDaprBackend_RoundTrip(t *testing.T) {
 		Store: "valkey-default",
 		// keys。
 		Keys: []string{"session:abc", "session:def", "session:nope"},
+		// tenant_id（必須）。
+		Context: makeTenantCtx("T"),
 	})
 	// BulkGet 失敗は test 失敗。
 	if err != nil {
@@ -188,12 +196,14 @@ func TestStateService_InMemoryDaprBackend_RoundTrip(t *testing.T) {
 			// Delete op（既存 key）。
 			{Op: &statev1.TransactOp_Delete{Delete: &statev1.DeleteRequest{Store: "valkey-default", Key: "session:abc"}}},
 		},
+		// tenant_id（必須）。
+		Context: makeTenantCtx("T"),
 	}); err != nil {
 		// fatal。
 		t.Fatalf("Transact failed: %v", err)
 	}
 	// transactional 効果を確認する。
-	txGet, err := c.Get(ctx, &statev1.GetRequest{Store: "valkey-default", Key: "tx-key"})
+	txGet, err := c.Get(ctx, &statev1.GetRequest{Store: "valkey-default", Key: "tx-key", Context: makeTenantCtx("T")})
 	// Get 失敗は test 失敗。
 	if err != nil {
 		// fatal。
@@ -205,7 +215,7 @@ func TestStateService_InMemoryDaprBackend_RoundTrip(t *testing.T) {
 		t.Fatalf("tx-key data mismatch: %q", txGet.GetData())
 	}
 	// 削除済 key は NotFound のはず。
-	delGet, err := c.Get(ctx, &statev1.GetRequest{Store: "valkey-default", Key: "session:abc"})
+	delGet, err := c.Get(ctx, &statev1.GetRequest{Store: "valkey-default", Key: "session:abc", Context: makeTenantCtx("T")})
 	// Get 失敗は test 失敗。
 	if err != nil {
 		// fatal。
