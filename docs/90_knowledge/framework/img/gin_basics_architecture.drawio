@@ -1,0 +1,76 @@
+<mxfile host="65bd71144e">
+  <diagram name="gin-architecture" id="gin-arch">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Gin の主要コンポーネント構成" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="380" y="20" width="340" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="client" value="HTTP クライアント&#10;(curl / ブラウザ等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="320" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="netStd" value="net/http サーバ&#10;(Go 標準ライブラリ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="280" y="320" width="170" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="engineGroup" value="Engine (gin.Engine) — http.Handler 実装" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="100" width="540" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="tree" value="Radix Tree&#10;(httprouter 派生)&#10;HTTP メソッド毎にツリーを保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="150" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="rg" value="RouterGroup&#10;ルートを階層化&#10;(共通プレフィクス + 共通ミドルウェア)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="150" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mwChain" value="ミドルウェアチェーン&#10;(HandlersChain = []HandlerFunc)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="280" width="480" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mwLogger" value="Logger" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="555" y="370" width="100" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="mwRecovery" value="Recovery" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="675" y="370" width="100" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="mwAuth" value="Auth など" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="795" y="370" width="100" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="handler" value="Handler (HandlerFunc)&#10;業務ロジック本体&#10;func(c *gin.Context)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="915" y="370" width="105" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx" value="Context (gin.Context)&#10;リクエスト/レスポンス・パスパラメータ・&#10;クエリ・バインディング・キー値ストア" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="540" y="470" width="480" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="client" target="netStd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.7;" edge="1" parent="1" source="netStd" target="engineGroup">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="362" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;strokeColor=#000000;" edge="1" parent="1" source="tree" target="rg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="tree" target="mwChain">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="mwLogger" target="ctx">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="605" y="450" />
+              <mxPoint x="780" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="凡例&#10;• 暖色枠: Gin が提供する抽象&#10;• 寒色枠: 外部クライアント&#10;• 灰枠 : Go 標準ライブラリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;align=left;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="60" y="560" width="240" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
