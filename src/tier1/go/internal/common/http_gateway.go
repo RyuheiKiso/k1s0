@@ -201,6 +201,47 @@ func (g *HTTPGateway) RegisterStateRoutes(handlers StateRPCHandlers) {
 	}
 }
 
+// PubSubRPCHandlers は POST /k1s0/pubsub/{publish,bulkpublish} のハンドラ。
+// Subscribe は server-streaming のため HTTP/JSON では非対応（gRPC 経路を使う）。
+type PubSubRPCHandlers struct {
+	Publish     func(ctx context.Context, body []byte) (proto.Message, error)
+	BulkPublish func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterPubSubRoutes は PubSub API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterPubSubRoutes(handlers PubSubRPCHandlers) {
+	if handlers.Publish != nil {
+		g.register("/k1s0/pubsub/publish", handlers.Publish)
+	}
+	if handlers.BulkPublish != nil {
+		g.register("/k1s0/pubsub/bulkpublish", handlers.BulkPublish)
+	}
+}
+
+// SecretsRPCHandlers は POST /k1s0/secrets/{get,bulkget,getdynamic,rotate} のハンドラ。
+type SecretsRPCHandlers struct {
+	Get        func(ctx context.Context, body []byte) (proto.Message, error)
+	BulkGet    func(ctx context.Context, body []byte) (proto.Message, error)
+	GetDynamic func(ctx context.Context, body []byte) (proto.Message, error)
+	Rotate     func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterSecretsRoutes は Secrets API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterSecretsRoutes(handlers SecretsRPCHandlers) {
+	if handlers.Get != nil {
+		g.register("/k1s0/secrets/get", handlers.Get)
+	}
+	if handlers.BulkGet != nil {
+		g.register("/k1s0/secrets/bulkget", handlers.BulkGet)
+	}
+	if handlers.GetDynamic != nil {
+		g.register("/k1s0/secrets/getdynamic", handlers.GetDynamic)
+	}
+	if handlers.Rotate != nil {
+		g.register("/k1s0/secrets/rotate", handlers.Rotate)
+	}
+}
+
 // UnmarshalJSON は body を proto.Message に protojson でデコードするヘルパ。
 // 不正 JSON / 不明フィールドは InvalidArgument に翻訳して返す。
 func UnmarshalJSON(body []byte, msg proto.Message) error {
