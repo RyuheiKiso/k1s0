@@ -186,19 +186,27 @@ async fn handle_request(
         .get("authorization")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
+    // 特権 RPC 判定: gRPC 側 K1s0Layer と同じ集合を使う（HTTP / gRPC 経路で挙動を揃える）。
+    // full_method は "/<svc>/<method>" 形式なので先頭スラッシュを除いて lookup する。
+    let priv_rpcs = privileged_rpcs();
+    let is_privileged = priv_rpcs.contains(handler.full_method().trim_start_matches('/'));
     let claims = match state.auth.verify_bearer(auth_value.as_deref()).await {
         Ok(c) => c,
         Err(s) => {
-            // 認証失敗は audit にも記録（DENIED）。
-            state
-                .audit_emitter
-                .emit(build_record(
-                    &AuthClaims::default(),
-                    handler.full_method(),
-                    s.code(),
-                    "auth",
-                ))
-                .await;
+            // 共通規約 §「監査自動発火」: 特権 RPC 失敗のみ audit に記録（gRPC 側と挙動一致）。
+            // Audit.Record 自身の認証失敗は DENIED として残したい security 観点もあるが、
+            // 仕様としては「特権 RPC 自動発火」表に従う方が一貫しているため統一する。
+            if is_privileged {
+                state
+                    .audit_emitter
+                    .emit(build_record(
+                        &AuthClaims::default(),
+                        handler.full_method(),
+                        s.code(),
+                        "auth",
+                    ))
+                    .await;
+            }
             return write_error(s.code(), s.message());
         }
     };
@@ -222,8 +230,8 @@ async fn handle_request(
     let code = result.as_ref().map(|_| tonic::Code::Ok).unwrap_or_else(|s| s.code());
     span.finish(code);
 
-    // 監査: 特権 RPC のみ自動記録。
-    if privileged_rpcs().contains(handler.full_method().trim_start_matches('/')) {
+    // 監査: 特権 RPC のみ自動記録（is_privileged は auth 段階で判定済）。
+    if is_privileged {
         let resource = format!("k1s0:tenant:{}:rpc:{}", claims.tenant_id, route);
         let mut rec = build_record(&claims, handler.full_method(), code, &resource);
         rec.outcome = outcome_from_code(code).to_string();
