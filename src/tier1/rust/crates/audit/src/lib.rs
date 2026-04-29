@@ -17,3 +17,5 @@
 pub mod store;
 // Export RPC の chunk 整形ヘルパ（CSV / NDJSON / JSON 配列フォーマッタ + chunk 送出ループ）。
 pub mod export;
+// AuditService trait 実装本体。
+pub mod server;
