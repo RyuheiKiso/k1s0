@@ -96,6 +96,10 @@ func main() {
 		SecretsAdapter: cachedSecrets,
 		// 動的 Secret adapter。
 		DynamicAdapter: dynamicAdapter,
+		// 共通規約 §「冪等性と再試行」: 24h TTL の in-memory idempotency cache を有効化。
+		// production の multi-replica deploy では Valkey backed cache に置き換える想定だが、
+		// release-initial では in-memory backend で 1 Pod 内 dedup を提供する。
+		Idempotency: common.NewInMemoryIdempotencyCache(0),
 	}
 
 	// Secret 自動ローテーション（FR-T1-SECRETS-004）を起動する。
