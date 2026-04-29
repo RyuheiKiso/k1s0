@@ -41,6 +41,8 @@ import (
 	"os"
 	// SIGINT / SIGTERM の通知チャネル登録に signal.Notify を使う。
 	"os/signal"
+	// AuditEmitter singleton 用（sync.Once）。
+	"sync"
 	// SIGTERM 等の syscall シグナル定数を参照する。
 	"syscall"
 	// graceful shutdown のタイムアウト指定に time.Duration を使う。
@@ -62,10 +64,26 @@ import (
 // graceful shutdown の上限。Kubernetes terminationGracePeriodSeconds（既定 30s）より短く設定する。
 const shutdownTimeout = 25 * time.Second
 
+// auditEmitterSingleton は LoadAuditEmitterFromEnv が返す共有インスタンス。
+// gRPC chain と HTTP gateway の両方から呼ばれた場合に同一 emitter（=同一 gRPC 接続 / 同一
+// 内部キュー）を共有することで、TIER1_AUDIT_MODE=grpc 設定時に t1-audit Pod への接続を
+// 1 つに保つ（前 commit 424768f8b の備考で挙げた「2 接続問題」の解消）。
+// process 単一 main から複数回呼ばれる前提のため sync.Once で 1 度だけ初期化する。
+var (
+	auditEmitterOnce      sync.Once
+	auditEmitterSingleton AuditEmitter
+)
+
 // LoadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ（exported version）。
+// 同一プロセス内で複数回呼んでも同じ instance を返す（process scoped singleton）。
 // cmd 側から HTTP gateway にも同じ emitter を attach したい場合に使う。
-// 内部 runtime.go から呼ぶ unexported alias は loadAuditEmitterFromEnv（同 logic）。
-func LoadAuditEmitterFromEnv() AuditEmitter { return loadAuditEmitterFromEnv() }
+// 内部 runtime.go から呼ぶ unexported alias は loadAuditEmitterFromEnvOnce（同 logic）。
+func LoadAuditEmitterFromEnv() AuditEmitter {
+	auditEmitterOnce.Do(func() {
+		auditEmitterSingleton = loadAuditEmitterFromEnv()
+	})
+	return auditEmitterSingleton
+}
 
 // loadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ。
 //   - "grpc": t1-audit Pod に gRPC で event を非同期送信する（production）
@@ -151,7 +169,8 @@ func Run(p Pod, listen string) error {
 			AuthInterceptor(LoadAuthConfigFromEnv()),
 			RateLimitInterceptor(LoadRateLimitConfigFromEnv()),
 			ObservabilityInterceptor(),
-			AuditInterceptor(loadAuditEmitterFromEnv()),
+			// HTTP gateway と同じ emitter instance を共有する（singleton）。
+			AuditInterceptor(LoadAuditEmitterFromEnv()),
 		),
 	)
 
