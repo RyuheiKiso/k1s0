@@ -72,7 +72,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 |---|---|---|---|
 | `src/tier3/web/apps/{portal, admin, docs-site}` | React + Vite + pnpm | **同梱済** | 3 SPA（main.tsx / App.tsx / pages 2 件 / vitest 単体）+ Dockerfile（nginx + SPA fallback）+ catalog-info |
 | `src/tier3/web/packages/{ui, api-client, i18n, config}` | 共通パッケージ | **同梱済** | 4 package（ui: Button/Card/Spinner、api-client、i18n: ja/en、config）+ vitest 単体テスト |
-| `src/tier3/bff/cmd/{portal-bff, admin-bff}` | Go BFF | **同梱済** | 2 BFF cmd + GraphQL（schema.graphql）+ REST + auth/middleware + k1s0client + shared/{errors,otel} + Dockerfile.{portal,admin} |
+| `src/tier3/bff/cmd/{portal-bff, admin-bff}` | Go BFF | **同梱済** | 2 BFF cmd + GraphQL（schema.graphql）+ REST + auth/middleware + k1s0client + shared/{errors,otel} + Dockerfile.{portal,admin}。**6/7 internal package に単体テスト 38 件 pass**（auth: HMAC/JWKS 検証 + middleware bypass 防止、config: env override + bool/int パース、errors: Category→HTTPStatus + DomainError chain、k1s0client: per-request tenant 上書き + Close nil-safety、rest: HTTP→502/200/anon、graphql: stateGet 3 path + currentUser + 未知クエリ）。internal/shared/otel のみ 61-line startup helper のため未テスト |
 | `src/tier3/native/apps/{Hub, Admin}` | .NET MAUI | **同梱済** | 2 アプリ MAUI（App.xaml + AppShell + Pages + ViewModels + Services + Platforms/{Android,iOS}）+ shared/K1s0.Native.Shared + Native.sln |
 | `src/tier3/legacy-wrap/sidecars/K1s0.Legacy.Sidecar` | .NET Framework サイドカー | **同梱済** | ASP.NET Web API サイドカー（Global.asax + WebApiConfig + DaprConfig + K1s0BridgeController + DaprClientAdapter + StateValue + Web.config + packages.config + Dockerfile.windows）+ migration-guide 3 ステップ |
 
@@ -95,7 +95,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `infra/dapr/components/` + `infra/dapr/subscriptions/` | Dapr Component CRD（IMP-DIR-INFRA-074） | **雛形あり** | 7 Component（state/postgres / state/redis-cache / pubsub/kafka / secrets/vault / binding/s3-inbound / binding/smtp-outbound / configuration/default）+ 2 Subscription（audit-pii / feature） |
 | `infra/data/{cloudnativepg, kafka, minio, valkey}` | ADR-DATA-001/002/003/004 | **雛形あり** | 4 backend を production-grade defaults（HA / 監視 / バックアップ）で正規化済 |
 | `infra/security/{cert-manager, keycloak, openbao, spire, kyverno}` | ADR-SEC-001/002/003 / ADR-POL-001 | **雛形あり** | 5 component すべて HA 3 + 認証統合 + ServiceMonitor |
-| `infra/observability/{loki, tempo, mimir, grafana, otel-collector, pyroscope}` | ADR-OBS-001/002 | **雛形あり** | LGTM 6 component を production-grade で正規化済 |
+| `infra/observability/{loki, tempo, mimir, grafana, otel-collector, pyroscope, alerts}` | ADR-OBS-001/002 | **同梱済** | LGTM 6 component を production-grade で正規化済。**`alerts/` に PrometheusRule 4 本（k1s0-tier1/2/3-alerts + k1s0-slo）を配置：19 alert（SEV1=3 / SEV2=9 / SEV3=7）+ 6 recording rule（tier1 99.9% / tier3 99.5% SLO の 5m/1h/6h good ratio + Google SRE workbook 形式の fast/slow burn-rate アラート）。`ops/runbooks/daily/error-code-alert-policy.md` の閾値表に完全準拠、各 alert に runbook_url annotation で incident runbook へリンク** |
 | `infra/scaling/keda/` | KEDA | **雛形あり** | operator HA 2 + metrics-apiserver 2 + admission webhook + ServiceMonitor |
 | `infra/feature-management/flagd/` | ADR-FM-001 | **雛形あり** | flagd HA 3 replica + ConfigMap baseline flag + Service + ServiceMonitor |
 | `infra/environments/{dev, staging, prod}` | 環境別 overlay（IMP-DIR-INFRA-078） | **雛形あり** | 3 環境 overlay（kustomization + patches + values + secrets/.gitkeep）+ README |
@@ -108,7 +108,7 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `deploy/apps/app-of-apps.yaml` | App-of-Apps ルート（IMP-DIR-OPS-092） | **同梱済** | k1s0-platform AppProject 所属の Argo CD ルート Application |
 | `deploy/apps/application-sets/{infra,ops,tier1-facade,tier1-rust-service,tier2-dotnet-service,tier2-go-service,tier3-bff,tier3-web-app}.yaml` | カテゴリ別 ApplicationSet | **同梱済** | 8 ApplicationSet 配置完了。infra（Wave -10、list-generator）/ ops（Wave 40〜45）/ 6 サービス系（Wave 10〜30、image-updater annotation 付き） |
 | `deploy/apps/projects/{k1s0-platform,k1s0-tier1,k1s0-tier2,k1s0-tier3,rbac}.yaml` | AppProject + RBAC | **同梱済** | 4 AppProject + Argo CD グローバル RBAC ConfigMap（OIDC 連携） |
-| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app, predeploy-hooks}` | Helm chart | **雛形あり** | 7 chart 全て配置完了。`helm lint` 通過、`helm template` 描画 OK。`predeploy-hooks` は Argo CD PreSync Hook で Postgres / Kafka / Valkey / MinIO の readiness を polling 検証する Job 4 種を提供（Sync Wave -1）。設計: `docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md` |
+| `deploy/charts/{tier1-facade, tier1-rust-service, tier2-go-service, tier2-dotnet-service, tier3-bff, tier3-web-app, predeploy-hooks}` | Helm chart | **同梱済** | 7 chart 全て配置完了。`helm lint` 通過、`helm template` 描画 OK。`predeploy-hooks` は Argo CD PreSync Hook で Postgres / Kafka / Valkey / MinIO の readiness を polling 検証する Job 4 種を提供（Sync Wave -1）。**tier1/2/3 chart に `TIER1_AUTH_MODE` / `T2_AUTH_MODE` / `BFF_AUTH_MODE` env wiring 完了**（off / hmac / jwks 切替）+ tier1 chart に `httpPort` / `TIER1_RATELIMIT_RPS` / `TIER1_RATELIMIT_BURST` / `TIER1_HTTP_LISTEN_ADDR` / `TIER1_AUDIT_MODE` 等の production knobs を values 経由で公開。設計: `docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md` |
 | `deploy/rollouts/canary-strategies/` | Argo Rollouts canary 戦略 | **雛形あり** | canary 25→50→100% の 3 段階戦略テンプレート |
 | `deploy/rollouts/analysis/` | 共通 ClusterAnalysisTemplate 5 本（IMP-REL-AT-040〜049） | **同梱済** | at-common-{error-rate,latency-p99,cpu,dependency-down,error-budget-burn}.yaml の 5 本（baseline 2σ / SLO 連動 / CPU 80% / 依存断短絡 / EB burn 2x）+ README |
 | `deploy/rollouts/analysis-templates/` | サービス固有 AnalysisTemplate 例 | **雛形あり** | error-rate.yaml / latency-p99.yaml の 2 例 |
@@ -128,8 +128,8 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `tools/git-hooks/` | 自作 pre-commit hook | **同梱済** | japanese-header-guard.py / file-length-guard.py / drawio-svg-staleness.sh / link-check-wrapper.py |
 | `tools/_link_check.py` / `_link_fix.py` / `_export_svg.py` | docs 横断ツール | **同梱済** | docs リンク検査・drawio SVG export |
 | `tools/ci/go-dep-check/` + `tools/ci/rust-dep-check/` | 依存方向 linter（IMP-DIR-ROOT-002） | **同梱済** | Go / Rust 両側に独立 go.mod、`tier3 → tier2 → sdk → tier1` 一方向ルールを `import` / `path` 依存レベルで強制 |
-| `tests/` | e2e / contract / integration / fuzz / golden / fixtures | **雛形あり** | 6 カテゴリすべてに README + 動作可能な最小骨格 + CI hook 連携の入口 |
-| `examples/` | Golden Path 7 プロジェクト | **雛形あり** | 7 種すべてが build 可能な完動例。各 example に Dockerfile + catalog-info.yaml + 週次 E2E workflow |
+| `tests/` | e2e / contract / integration / fuzz / golden / fixtures | **同梱済**（一部雛形） | 6 カテゴリすべてに README + 動作可能な最小骨格 + CI hook 連携の入口。**fuzz/go**: 4 fuzz target（State.Set / Audit.Record / PubSub.Publish / Workflow.Start の protojson decode、735k execs / 0 panic 検証済）。**fuzz/rust**: 2 fuzz target（prost::Message::decode 4 message + SHA-256 hash chain 3 連鎖、libfuzzer 経由 CI 実行可能）。**integration/go**: tier1-facade の binary レベル結合テスト 3 件（Pod 起動 + HTTP/JSON gateway round-trip + tenant 越境）。**contract/openapi-contract**: tier1-openapi-spec.yaml を物理コピー、生成ツール `tools/codegen/openapi/run.sh` で自動同期。**golden/scaffold-outputs**: 4 ServiceType の expected.tar.gz、`compare-outputs.sh` で drift 検証。e2e のみ kind cluster 待ち（t.Skip） |
+| `examples/` | Golden Path 7 プロジェクト | **同梱済** | 7 種すべてが build 可能な完動例。各 example に Dockerfile + catalog-info.yaml + 週次 E2E workflow。**tier2-{go,dotnet}-service は docs §共通規約「認証認可」を満たす auth middleware 結線済**（Go: t2auth.Required + k1s0.WithTenant per-request override、.NET: AddK1s0JwtBearer + RequireAuthorization）。templates / 既存 services と同パタンで Golden Path 一貫性を保つ |
 
 ### ルート README 群（ドキュメント近接配置方針 / IMP-DIR-COMM-110）
 
