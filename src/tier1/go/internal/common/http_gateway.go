@@ -194,7 +194,10 @@ func (g *HTTPGateway) register(path string, handler httpHandlerFunc) {
 			writeJSONError(w, st.Code(), st.Message())
 			return
 		}
-		out, err := protojson.MarshalOptions{UseProtoNames: false, EmitUnpopulated: false}.Marshal(resp)
+		// EmitUnpopulated=true で zero 値も明示的に序列化する。proto3 の零値（特に enum 0）が
+		// 「未設定」と区別できない曖昧さを排除し、JSON consumer から見て契約通りのフィールドが
+		// 常に存在することを保証する（例: WorkflowStatus_RUNNING=0 が "status":"RUNNING" として返る）。
+		out, err := protojson.MarshalOptions{UseProtoNames: false, EmitUnpopulated: true}.Marshal(resp)
 		if err != nil {
 			writeJSONError(w, codes.Internal, "failed to marshal response: "+err.Error())
 			return

@@ -107,11 +107,20 @@ func main() {
 
 	// 5 公開 API の handler が依存する adapter 集合を構築する。
 	deps := state.NewDepsFromClient(daprClient)
-	// OTel Log / Metric / Trace の 3 emitter を stdout JSON Lines として構築する。
-	// docs 正典 DS-SW-COMP-037（"stdout JSON Lines / OTel Collector / Loki 集約"）の
-	// 第 1 段（stdout JSON Lines）を満たす実値出力経路。OTel Collector 経由切替は
-	// plan 04-13 で OTLP gRPC exporter を import する形で行う（emitter interface 不変）。
-	bundle := otel.NewStdoutBundle(os.Stdout)
+	// OTel Log / Metric / Trace の 3 emitter を環境変数判定で stdout / OTLP gRPC のどちらかで構築する。
+	// docs 正典 DS-SW-COMP-037（"stdout JSON Lines / OTel Collector / Loki 集約"）と
+	// DS-SW-COMP-038（Metrics Emitter）の両経路を満たす:
+	//   - OTEL_EXPORTER_OTLP_ENDPOINT 未設定 → stdout JSON Lines（dev / CI / fluentbit 経路）
+	//   - OTEL_EXPORTER_OTLP_ENDPOINT 設定済 → OTLP gRPC で Collector 直送
+	bundle := otel.NewBundle(context.Background())
+	// Pod 終了時に OTLP gRPC Provider を flush + close する（stdout 経路では no-op）。
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if shutdownErr := bundle.Shutdown(shutdownCtx); shutdownErr != nil {
+			log.Printf("t1-state: otel bundle shutdown: %v", shutdownErr)
+		}
+	}()
 	// deps に 3 emitter を注入する（同名フィールド代入）。
 	deps.LogEmitter = bundle.LogEmitter
 	deps.MetricEmitter = bundle.MetricEmitter
