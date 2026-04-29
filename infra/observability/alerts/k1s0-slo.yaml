@@ -1,0 +1,184 @@
+# 本ファイルは k1s0 の SLO（Service Level Objective）と burn-rate アラート。
+#
+# docs 正典:
+#   docs/03_要件定義/30_非機能要件/A_可用性.md（NFR-A-SLA-*）
+#
+# 設計方針:
+#   - SLO は "正常 request の比率" を SLI とする error budget 方式。
+#   - tier1: 99.9% 可用性目標（30 日で許容 error budget = 43.2 分）。
+#   - tier3: 99.5% 可用性目標（user-facing は CDN / network 揺れを織り込む）。
+#   - burn-rate は Google SRE workbook 推奨の 2 段階（fast / slow）構成:
+#       fast: 1h で 14.4× の burn = 1 時間で 1 ヶ月分の budget 消費 → SEV1
+#       slow: 6h で 6× の burn = 6 時間で 1 ヶ月分の budget 1/4 消費 → SEV2
+#   - Recording rule で SLI を pre-compute して alert query を軽くする。
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k1s0-slo
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    prometheus: k1s0
+    role: alert-rules
+spec:
+  groups:
+    # -------------------------------------------------------------------------
+    # Recording rule: tier1 / tier3 の good ratio を 5m / 1h / 6h で集計
+    # -------------------------------------------------------------------------
+    - name: k1s0.slo.recording
+      interval: 30s
+      rules:
+        # tier1 SLI = 1 - (UNAVAILABLE rate / total rate)。期間 5m。
+        - record: k1s0:tier1_availability:ratio_5m
+          expr: |
+            1 - (
+              sum(rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1",
+                rpc_grpc_status_code="14"
+              }[5m]))
+              /
+              sum(rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1"
+              }[5m]))
+            )
+
+        # tier1 SLI 1h / 6h（burn rate alert で参照）。
+        - record: k1s0:tier1_availability:ratio_1h
+          expr: |
+            1 - (
+              sum(rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1",
+                rpc_grpc_status_code="14"
+              }[1h]))
+              /
+              sum(rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1"
+              }[1h]))
+            )
+        - record: k1s0:tier1_availability:ratio_6h
+          expr: |
+            1 - (
+              sum(rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1",
+                rpc_grpc_status_code="14"
+              }[6h]))
+              /
+              sum(rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1"
+              }[6h]))
+            )
+
+        # tier3 SLI = 1 - (5xx rate / total)。
+        - record: k1s0:tier3_availability:ratio_5m
+          expr: |
+            1 - (
+              sum(rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3",
+                http_response_status_code=~"5.."
+              }[5m]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3"
+              }[5m]))
+            )
+        - record: k1s0:tier3_availability:ratio_1h
+          expr: |
+            1 - (
+              sum(rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3",
+                http_response_status_code=~"5.."
+              }[1h]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3"
+              }[1h]))
+            )
+        - record: k1s0:tier3_availability:ratio_6h
+          expr: |
+            1 - (
+              sum(rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3",
+                http_response_status_code=~"5.."
+              }[6h]))
+              /
+              sum(rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3"
+              }[6h]))
+            )
+
+    # -------------------------------------------------------------------------
+    # SLO burn-rate アラート（tier1: 99.9%、tier3: 99.5%）
+    # -------------------------------------------------------------------------
+    - name: k1s0.slo.burnrate
+      interval: 30s
+      rules:
+        # tier1 fast burn: 1h で 14.4× → SEV1
+        # 99.9% SLO の error budget = 0.001。14.4× burn = error rate 0.0144。
+        - alert: K1s0Tier1SLOFastBurn
+          expr: |
+            (1 - k1s0:tier1_availability:ratio_5m) > (14.4 * 0.001)
+            and
+            (1 - k1s0:tier1_availability:ratio_1h) > (14.4 * 0.001)
+          for: 2m
+          labels:
+            severity: SEV1
+            tier: tier1
+            slo: availability
+            channel: incident-alert
+            pagerduty: "true"
+          annotations:
+            summary: "tier1 SLO 99.9% を高速消費中（fast burn）"
+            description: |
+              直近 5m / 1h の error rate が 1.44% 超。1 時間で 1 ヶ月分の budget 消費。
+              即座に severity-decision-tree.md で SEV1 確定して PagerDuty 起動。
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/incidents/severity-decision-tree.md"
+
+        # tier1 slow burn: 6h で 6× → SEV2
+        - alert: K1s0Tier1SLOSlowBurn
+          expr: |
+            (1 - k1s0:tier1_availability:ratio_1h) > (6 * 0.001)
+            and
+            (1 - k1s0:tier1_availability:ratio_6h) > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: SEV2
+            tier: tier1
+            slo: availability
+            channel: alert-tier1
+          annotations:
+            summary: "tier1 SLO 99.9% を消費中（slow burn）"
+            description: "1h / 6h の error rate が 0.6% 超。budget 消費を抑える対応が必要。"
+
+        # tier3 fast burn: 99.5% SLO（error budget 0.005）。14.4× burn = 7.2%。
+        - alert: K1s0Tier3SLOFastBurn
+          expr: |
+            (1 - k1s0:tier3_availability:ratio_5m) > (14.4 * 0.005)
+            and
+            (1 - k1s0:tier3_availability:ratio_1h) > (14.4 * 0.005)
+          for: 2m
+          labels:
+            severity: SEV1
+            tier: tier3
+            slo: availability
+            channel: incident-alert
+            pagerduty: "true"
+          annotations:
+            summary: "tier3 SLO 99.5% を高速消費中（fast burn）"
+            description: "1h で 1 ヶ月分の budget 消費。BFF / web のいずれか即特定。"
+
+        # tier3 slow burn
+        - alert: K1s0Tier3SLOSlowBurn
+          expr: |
+            (1 - k1s0:tier3_availability:ratio_1h) > (6 * 0.005)
+            and
+            (1 - k1s0:tier3_availability:ratio_6h) > (6 * 0.005)
+          for: 15m
+          labels:
+            severity: SEV2
+            tier: tier3
+            slo: availability
+            channel: alert-tier3
+          annotations:
+            summary: "tier3 SLO 99.5% を消費中（slow burn）"
+            description: "1h / 6h の error rate が 3% 超。"

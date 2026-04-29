@@ -1,0 +1,133 @@
+# 本ファイルは tier3（Web / BFF 層）のアラートルール。
+#
+# docs 正典:
+#   ops/runbooks/daily/error-code-alert-policy.md（tier3 セクション）
+#
+# 対象 metric:
+#   BFF / web は HTTP server なので OTel semantic convention の
+#   `http_server_request_duration_seconds_*`。k1s0_io_tier="tier3"。
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k1s0-tier3-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/tier: tier3
+    prometheus: k1s0
+    role: alert-rules
+spec:
+  groups:
+    - name: k1s0.tier3.availability
+      interval: 30s
+      rules:
+        - alert: K1s0Tier3High5xxRate
+          # HTTP 5xx が 2% 超を 5 分継続で SEV2。
+          expr: |
+            (
+              sum by (service_name) (
+                rate(http_server_request_duration_seconds_count{
+                  k1s0_io_tier="tier3",
+                  http_response_status_code=~"5.."
+                }[5m])
+              )
+              /
+              sum by (service_name) (
+                rate(http_server_request_duration_seconds_count{
+                  k1s0_io_tier="tier3"
+                }[5m])
+              )
+            ) > 0.02
+          for: 5m
+          labels:
+            severity: SEV2
+            tier: tier3
+            channel: alert-tier3
+          annotations:
+            summary: "tier3 {{ $labels.service_name }} の 5xx error rate が 2% 超"
+            description: "5 分平均 {{ $value | humanizePercentage }}。BFF / 上流 tier1 を確認。"
+
+    - name: k1s0.tier3.auth
+      interval: 30s
+      rules:
+        - alert: K1s0Tier3Unauthorized
+          # HTTP 401 が 50 req/min を 5 分継続で SEV3。
+          expr: |
+            sum by (service_name) (
+              rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3",
+                http_response_status_code="401"
+              }[5m])
+            ) * 60 > 50
+          for: 5m
+          labels:
+            severity: SEV3
+            tier: tier3
+            channel: alert-tier3
+          annotations:
+            summary: "tier3 {{ $labels.service_name }} で 401 急増 ({{ $value }} req/min)"
+            description: "Keycloak issuer 経路 / token 期限切れを確認。"
+
+        - alert: K1s0Tier3Forbidden
+          # HTTP 403 が 20 req/min を 5 分継続で SEV2（authz 違反）。
+          expr: |
+            sum by (service_name) (
+              rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3",
+                http_response_status_code="403"
+              }[5m])
+            ) * 60 > 20
+          for: 5m
+          labels:
+            severity: SEV2
+            tier: tier3
+            channel: alert-tier3
+            team: security-sre
+          annotations:
+            summary: "tier3 {{ $labels.service_name }} で 403 急増 ({{ $value }} req/min)"
+            description: "auth-abuse / role escalation 攻撃疑い。Security SRE 巻込。"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/incidents/auth-abuse-detection.md"
+
+    - name: k1s0.tier3.ratelimit
+      interval: 30s
+      rules:
+        - alert: K1s0Tier3HighRateLimit
+          # HTTP 429 が 200 req/min を 1 分継続で SEV3。
+          expr: |
+            sum by (service_name) (
+              rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier3",
+                http_response_status_code="429"
+              }[1m])
+            ) * 60 > 200
+          for: 1m
+          labels:
+            severity: SEV3
+            tier: tier3
+            channel: alert-tier3
+          annotations:
+            summary: "tier3 {{ $labels.service_name }} で 429 多発（{{ $value }} req/min）"
+            description: "意図的な spike か、runaway client か判定。"
+
+    - name: k1s0.tier3.latency
+      interval: 30s
+      rules:
+        - alert: K1s0Tier3HighP99Latency
+          # p99 > 5 秒を 10 分継続で SEV3。
+          expr: |
+            histogram_quantile(0.99,
+              sum by (service_name, le) (
+                rate(http_server_request_duration_seconds_bucket{
+                  k1s0_io_tier="tier3"
+                }[5m])
+              )
+            ) > 5
+          for: 10m
+          labels:
+            severity: SEV3
+            tier: tier3
+            channel: alert-tier3
+          annotations:
+            summary: "tier3 {{ $labels.service_name }} p99 latency が 5 秒超"
+            description: "現在 {{ $value }}s。BFF → tier2/1 のホップで遅延を切り分ける。"

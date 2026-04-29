@@ -7,7 +7,7 @@
 
 ## 1. 検出 (Detection)
 
-Loki アラートルール（`infra/monitoring/loki/alerts/`）が以下のエラーコードパターンを監視し、
+Loki アラートルール（`infra/observability/alerts/`）が以下のエラーコードパターンを監視し、
 Alertmanager 経由で Slack `#alert-<tier>` チャンネルへ通知する。
 
 ```bash
