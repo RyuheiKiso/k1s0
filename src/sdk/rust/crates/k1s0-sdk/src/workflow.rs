@@ -92,6 +92,11 @@ impl WorkflowFacade {
                 workflow_id: workflow_id.to_string(),
                 input,
                 idempotent,
+                // 共通規約 §「冪等性と再試行」: idempotent=true の場合は workflow_id を
+                // dedup key として転用する（同 workflow_id 再実行は新 run を作らない）。
+                // start_with_backend は内部 helper のため、外部公開 API（run_short / run_long）
+                // が `idempotent=true` を渡せばこの値が使われる。
+                idempotency_key: if idempotent { workflow_id.to_string() } else { String::new() },
                 context: Some(self.client.tenant_context()),
                 backend: backend as i32,
             })
