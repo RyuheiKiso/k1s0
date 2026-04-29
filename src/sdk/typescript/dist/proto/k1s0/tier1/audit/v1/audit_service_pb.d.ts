@@ -103,6 +103,14 @@ export declare class RecordAuditRequest extends Message<RecordAuditRequest> {
      * @generated from field: k1s0.tier1.common.v1.TenantContext context = 2;
      */
     context?: TenantContext;
+    /**
+     * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+     * 重複 audit event 書込を防ぐ（hash chain 整合性が乱れないよう）。
+     * 同一キーでの再試行は副作用を重複させず初回 audit_id を返す。
+     *
+     * @generated from field: string idempotency_key = 3;
+     */
+    idempotencyKey: string;
     constructor(data?: PartialMessage<RecordAuditRequest>);
     static readonly runtime: typeof proto3;
     static readonly typeName = "k1s0.tier1.audit.v1.RecordAuditRequest";

@@ -10,15 +10,19 @@ public sealed class BindingFacade
     internal BindingFacade(K1s0Client client) { _client = client; }
 
     /// InvokeAsync: 出力バインディング呼出。
+    /// 共通規約 §「冪等性と再試行」: idempotencyKey が空でなければ tier1 が 24h dedup する。
     public async Task<(byte[] Data, IReadOnlyDictionary<string, string> Metadata)> InvokeAsync(
         string name, string operation, byte[] data,
-        IDictionary<string, string>? metadata = null, CancellationToken ct = default)
+        IDictionary<string, string>? metadata = null,
+        string idempotencyKey = "",
+        CancellationToken ct = default)
     {
         var req = new InvokeBindingRequest
         {
             Name = name,
             Operation = operation,
             Data = ByteString.CopyFrom(data),
+            IdempotencyKey = idempotencyKey,
             Context = _client.TenantContext(),
         };
         if (metadata != null) foreach (var kv in metadata) req.Metadata.Add(kv.Key, kv.Value);

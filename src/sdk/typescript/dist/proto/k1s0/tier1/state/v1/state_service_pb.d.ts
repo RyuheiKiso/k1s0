@@ -109,6 +109,13 @@ export declare class SetRequest extends Message<SetRequest> {
      * @generated from field: k1s0.tier1.common.v1.TenantContext context = 6;
      */
     context?: TenantContext;
+    /**
+     * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+     * 同一キーでの再試行は副作用を重複させず初回 SetResponse を返す
+     *
+     * @generated from field: string idempotency_key = 7;
+     */
+    idempotencyKey: string;
     constructor(data?: PartialMessage<SetRequest>);
     static readonly runtime: typeof proto3;
     static readonly typeName = "k1s0.tier1.state.v1.SetRequest";

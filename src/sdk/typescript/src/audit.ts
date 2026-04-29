@@ -20,6 +20,7 @@ export class AuditFacade {
     resource: string,
     outcome: string,
     attributes: Record<string, string> = {},
+    idempotencyKey = "",
   ): Promise<string> {
     const raw = createPromiseClient(AuditService, this.client.transport);
     const resp = await raw.record({
@@ -31,6 +32,7 @@ export class AuditFacade {
         outcome,
         attributes,
       }),
+      idempotencyKey,
       context: this.client.tenantContext(),
     });
     return resp.auditId;

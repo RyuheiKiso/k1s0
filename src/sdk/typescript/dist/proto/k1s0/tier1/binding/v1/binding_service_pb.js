@@ -45,6 +45,13 @@ export class InvokeBindingRequest extends Message {
      * @generated from field: k1s0.tier1.common.v1.TenantContext context = 5;
      */
     context;
+    /**
+     * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+     * 外部送信（SMTP / S3 等）の重複防止に必須。同一キーでの再試行は初回 response を返す。
+     *
+     * @generated from field: string idempotency_key = 6;
+     */
+    idempotencyKey = "";
     constructor(data) {
         super();
         proto3.util.initPartial(data, this);
@@ -57,6 +64,7 @@ export class InvokeBindingRequest extends Message {
         { no: 3, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
         { no: 4, name: "metadata", kind: "map", K: 9 /* ScalarType.STRING */, V: { kind: "scalar", T: 9 /* ScalarType.STRING */ } },
         { no: 5, name: "context", kind: "message", T: TenantContext },
+        { no: 6, name: "idempotency_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     ]);
     static fromBinary(bytes, options) {
         return new InvokeBindingRequest().fromBinary(bytes, options);

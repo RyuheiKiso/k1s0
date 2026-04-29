@@ -84,6 +84,9 @@ export class WorkflowFacade {
       workflowId,
       input,
       idempotent,
+      // 共通規約 §「冪等性と再試行」: idempotent=true なら workflow_id を
+      // dedup key として転用する（同 workflow_id 再投入は新 run を作らない）。
+      idempotencyKey: idempotent ? workflowId : "",
       context: this.client.tenantContext(),
       backend,
     });

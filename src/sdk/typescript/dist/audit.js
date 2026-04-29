@@ -10,7 +10,7 @@ export class AuditFacade {
         this.client = client;
     }
     /** record は監査イベント記録。auditId を返す。 */
-    async record(actor, action, resource, outcome, attributes = {}) {
+    async record(actor, action, resource, outcome, attributes = {}, idempotencyKey = "") {
         const raw = createPromiseClient(AuditService, this.client.transport);
         const resp = await raw.record({
             event: new AuditEvent({
@@ -21,6 +21,7 @@ export class AuditFacade {
                 outcome,
                 attributes,
             }),
+            idempotencyKey,
             context: this.client.tenantContext(),
         });
         return resp.auditId;

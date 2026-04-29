@@ -118,6 +118,13 @@ export declare class StartRequest extends Message<StartRequest> {
      * @generated from field: k1s0.tier1.workflow.v1.WorkflowBackend backend = 6;
      */
     backend: WorkflowBackend;
+    /**
+     * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+     * 同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+     *
+     * @generated from field: string idempotency_key = 7;
+     */
+    idempotencyKey: string;
     constructor(data?: PartialMessage<StartRequest>);
     static readonly runtime: typeof proto3;
     static readonly typeName = "k1s0.tier1.workflow.v1.StartRequest";

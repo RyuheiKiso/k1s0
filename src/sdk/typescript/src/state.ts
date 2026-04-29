@@ -9,6 +9,8 @@ export interface SaveOptions {
   expectedEtag?: string;
   // TTL 秒（0 / 省略は永続）。
   ttlSec?: number;
+  // 冪等性キー（共通規約 §「冪等性と再試行」: 24h 重複抑止、空文字 / 省略で dedup 無効）。
+  idempotencyKey?: string;
 }
 
 // StateFacade は StateService の動詞統一 facade。
@@ -59,6 +61,7 @@ export class StateFacade {
       expectedEtag: opts.expectedEtag ?? "",
       // TTL は省略時 0（永続）。
       ttlSec: opts.ttlSec ?? 0,
+      idempotencyKey: opts.idempotencyKey ?? "",
       context: this.client.tenantContext(),
     });
     // 新 ETag を返却する。

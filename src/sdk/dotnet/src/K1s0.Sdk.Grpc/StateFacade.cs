@@ -14,6 +14,9 @@ public sealed class SaveOptions
 
     // TTL 秒（0 / 省略は永続）。
     public int TtlSec { get; init; }
+
+    // 冪等性キー（共通規約 §「冪等性と再試行」: 24h 重複抑止、空文字 / 省略で dedup 無効）。
+    public string IdempotencyKey { get; init; } = string.Empty;
 }
 
 // StateFacade は StateService の動詞統一 facade。
@@ -66,6 +69,7 @@ public sealed class StateFacade
             Data = ByteString.CopyFrom(data),
             ExpectedEtag = opts.ExpectedEtag,
             TtlSec = opts.TtlSec,
+            IdempotencyKey = opts.IdempotencyKey,
             Context = _client.TenantContext(),
         };
         // RPC 呼出。
