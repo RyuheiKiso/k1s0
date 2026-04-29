@@ -76,9 +76,11 @@ func (f *fakeWorkflowClient) ResumeWorkflowBeta1(_ context.Context, _ *daprclien
 }
 
 // TestProductionStart_PassesOptionsAndComponent は Start で SDK に正しい Options / Component が渡ることを確認する。
+// L2 分離（NFR-E-AC-003）: 物理 InstanceID は "<tenant>::<workflow_id>" に scope され、応答は raw に戻る。
 func TestProductionStart_PassesOptionsAndComponent(t *testing.T) {
+	// SDK 応答も scope された ID を返す前提（production の Dapr Workflow 経路と等価）。
 	fake := &fakeWorkflowClient{
-		startResp: &daprclient.StartWorkflowResponse{InstanceID: "wf-1"},
+		startResp: &daprclient.StartWorkflowResponse{InstanceID: "tenant-a::wf-1"},
 	}
 	a := NewProduction(fake, "")
 	resp, err := a.Start(context.Background(), StartRequest{
@@ -91,8 +93,13 @@ func TestProductionStart_PassesOptionsAndComponent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Start error: %v", err)
 	}
+	// 応答は raw（"wf-1"）に戻す。tier2/tier3 視点では prefix が見えない。
 	if resp.WorkflowID != "wf-1" || resp.RunID != "wf-1" {
-		t.Errorf("response: got %+v", resp)
+		t.Errorf("response (should be unscoped): got %+v", resp)
+	}
+	// 物理 SDK 呼出 InstanceID は scope 済（"tenant-a::wf-1"）。
+	if fake.lastStart.InstanceID != "tenant-a::wf-1" {
+		t.Errorf("physical InstanceID (should be scoped): got %q want %q", fake.lastStart.InstanceID, "tenant-a::wf-1")
 	}
 	if fake.lastStart.WorkflowComponent != defaultWorkflowComponent {
 		t.Errorf("component: got %q want %q", fake.lastStart.WorkflowComponent, defaultWorkflowComponent)
@@ -143,8 +150,9 @@ func TestProductionSignal_MapsToRaiseEvent(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Signal error: %v", err)
 	}
-	if fake.lastRaiseEvent.InstanceID != "wf-1" {
-		t.Errorf("InstanceID: got %q", fake.lastRaiseEvent.InstanceID)
+	// L2 分離: 物理 InstanceID は scope 済。
+	if fake.lastRaiseEvent.InstanceID != "tenant-a::wf-1" {
+		t.Errorf("InstanceID (should be scoped): got %q want %q", fake.lastRaiseEvent.InstanceID, "tenant-a::wf-1")
 	}
 	if fake.lastRaiseEvent.EventName != "approval-received" {
 		t.Errorf("EventName: got %q", fake.lastRaiseEvent.EventName)
@@ -155,26 +163,28 @@ func TestProductionSignal_MapsToRaiseEvent(t *testing.T) {
 }
 
 // TestProductionCancel_MapsToPause は Cancel が PauseWorkflowBeta1 に変換されることを確認する。
+// L2 分離: TenantID 指定時は物理 InstanceID が scope 済になる。
 func TestProductionCancel_MapsToPause(t *testing.T) {
 	fake := &fakeWorkflowClient{}
 	a := NewProduction(fake, "")
-	if err := a.Cancel(context.Background(), CancelRequest{WorkflowID: "wf-1", Reason: "user-cancel"}); err != nil {
+	if err := a.Cancel(context.Background(), CancelRequest{WorkflowID: "wf-1", Reason: "user-cancel", TenantID: "tenant-a"}); err != nil {
 		t.Fatalf("Cancel error: %v", err)
 	}
-	if fake.lastPause == nil || fake.lastPause.InstanceID != "wf-1" {
-		t.Errorf("Pause not invoked: %+v", fake.lastPause)
+	if fake.lastPause == nil || fake.lastPause.InstanceID != "tenant-a::wf-1" {
+		t.Errorf("Pause not invoked / not scoped: %+v", fake.lastPause)
 	}
 }
 
 // TestProductionTerminate_MapsToTerminate は Terminate が TerminateWorkflowBeta1 に変換されることを確認する。
+// L2 分離: TenantID 指定時は物理 InstanceID が scope 済になる。
 func TestProductionTerminate_MapsToTerminate(t *testing.T) {
 	fake := &fakeWorkflowClient{}
 	a := NewProduction(fake, "")
-	if err := a.Terminate(context.Background(), TerminateRequest{WorkflowID: "wf-1"}); err != nil {
+	if err := a.Terminate(context.Background(), TerminateRequest{WorkflowID: "wf-1", TenantID: "tenant-a"}); err != nil {
 		t.Fatalf("Terminate error: %v", err)
 	}
-	if fake.lastTerminate == nil || fake.lastTerminate.InstanceID != "wf-1" {
-		t.Errorf("Terminate not invoked: %+v", fake.lastTerminate)
+	if fake.lastTerminate == nil || fake.lastTerminate.InstanceID != "tenant-a::wf-1" {
+		t.Errorf("Terminate not invoked / not scoped: %+v", fake.lastTerminate)
 	}
 }
 
