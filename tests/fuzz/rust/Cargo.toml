@@ -1,5 +1,8 @@
 # cargo-fuzz の crate（k1s0 fuzz/rust、独立 workspace）。
-# 雛形のため fuzz_targets は最小、採用初期 で proto_fuzz / crypto_fuzz を実装する。
+#
+# fuzz target:
+#   - proto_fuzz: tier1 internal proto の decode を fuzz して decoder panic / OOM を検出
+#   - crypto_fuzz: SHA-256 ハッシュチェーン構築の入力値域を fuzz（NFR-H-INT-001 補強）
 
 [package]
 name = "k1s0-fuzz"
@@ -11,8 +14,13 @@ edition = "2024"
 cargo-fuzz = true
 
 [dependencies]
-# 採用初期 で k1s0-tier1-proto-gen / sha2 / aes-gcm 等を依存に追加
 libfuzzer-sys = "0.4"
+# tier1 internal proto stub（k1s0::internal::audit::v1 等）。
+k1s0-tier1-proto-gen = { path = "../../../src/tier1/rust/crates/proto-gen" }
+# proto decode に必要なランタイム。
+prost = "0.13"
+# crypto_fuzz で SHA-256 を回すため。
+sha2 = "0.10"
 
 [[bin]]
 name = "proto_fuzz"
