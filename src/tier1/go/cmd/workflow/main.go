@@ -199,7 +199,12 @@ func startWorkflowHTTPGatewayIfEnabled(addr string, deps workflow.Deps) *http.Se
 		log.Printf("t1-workflow: HTTP/JSON gateway disabled (--http-listen=%q)", addr)
 		return nil
 	}
-	g := common.NewHTTPGateway()
+	// gRPC server と同じ interceptor chain を HTTP gateway にも適用する。
+	g := common.NewHTTPGateway().WithInterceptors(
+		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
+		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
+		common.ObservabilityInterceptor(),
+	)
 	g.RegisterWorkflowRoutes(workflow.MakeHTTPHandlers(workflow.NewWorkflowServiceServer(deps)))
 	srv := &http.Server{
 		Addr:              addr,

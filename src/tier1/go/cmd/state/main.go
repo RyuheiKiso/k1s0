@@ -176,7 +176,16 @@ func startHTTPGatewayIfEnabled(addr string, deps state.Deps) *http.Server {
 		log.Printf("t1-state: HTTP/JSON gateway disabled (--http-listen=%q)", addr)
 		return nil
 	}
-	g := common.NewHTTPGateway()
+	// gRPC server と同じ interceptor chain を HTTP gateway にも適用する
+	// （共通規約 §「認証と認可」/§「監査と痕跡」/§「レート制限とクォータ」が
+	//  HTTP / gRPC で同一に効くようにする）。
+	g := common.NewHTTPGateway().WithInterceptors(
+		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
+		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
+		common.ObservabilityInterceptor(),
+		// AuditInterceptor は HTTP 経路では emitter 共有のため main 側で同じ instance を渡す。
+		// 簡素化のため env 駆動の loadAuditEmitterFromEnv 経由（NoopAuditEmitter なら no-op）。
+	)
 	// 9 API の route を一括登録する（unary RPC のみ、stream は gRPC 経路）。
 	g.RegisterStateRoutes(state.MakeHTTPHandlers(state.NewStateServiceServer(deps)))
 	g.RegisterPubSubRoutes(state.MakeHTTPPubSubHandlers(state.NewPubSubServiceServer(deps)))

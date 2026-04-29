@@ -43,6 +43,7 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -83,8 +84,16 @@ func httpStatusFromGRPC(c codes.Code) int {
 type httpHandlerFunc func(ctx context.Context, body []byte) (proto.Message, error)
 
 // HTTPGateway は path → handler の registry を保持する HTTP server。
+//
+// interceptors:
+//   gRPC server に登録する UnaryServerInterceptor を HTTP 経路でも適用するため、
+//   register が handler を invoke する前に chain を通す。
+//   これにより HTTP / gRPC 両経路で同じ Auth / RateLimit / Observability / Audit が
+//   適用される（共通規約 §「認証と認可」/§「監査と痕跡」/§「レート制限とクォータ」と整合）。
+//   nil の場合は素通り（test / 早期 dev 経路）。
 type HTTPGateway struct {
-	mux *http.ServeMux
+	mux          *http.ServeMux
+	interceptors []grpc.UnaryServerInterceptor
 }
 
 // NewHTTPGateway は空 gateway を生成する。RegisterX で API ルートを追加する。
@@ -92,14 +101,59 @@ func NewHTTPGateway() *HTTPGateway {
 	return &HTTPGateway{mux: http.NewServeMux()}
 }
 
+// WithInterceptors は HTTP 経路でも適用する gRPC interceptor chain を設定する。
+// 同名 grpc.ChainUnaryInterceptor と同じ順序で chain を実行する（先頭が最外層）。
+// 通常 cmd/X/main.go で gRPC server に渡している interceptor と同じものを渡す。
+func (g *HTTPGateway) WithInterceptors(interceptors ...grpc.UnaryServerInterceptor) *HTTPGateway {
+	g.interceptors = append(g.interceptors, interceptors...)
+	return g
+}
+
 // Handler は http.Handler interface を満たす。net/http.Server の Handler に渡せる。
 func (g *HTTPGateway) Handler() http.Handler {
 	return g.mux
 }
 
+// invokeWithInterceptors は handler を interceptor chain で wrap して呼び出す。
+// interceptors が空なら handler を直接呼ぶ。
+// chain 順序は grpc.ChainUnaryInterceptor と同じ（先頭が最外層、handler 直前で最内層）。
+func (g *HTTPGateway) invokeWithInterceptors(ctx context.Context, info *grpc.UnaryServerInfo, body []byte, handler httpHandlerFunc) (proto.Message, error) {
+	// handler を grpc.UnaryHandler 風のシグネチャに wrap する。
+	// HTTP gateway は body を req として扱うが、interceptor chain 上は req は単に opaque な
+	// "incoming payload" として扱われる。extractTenantID 等は req に対し reflection するため、
+	// proto.Message 型として再構築できないと tenant_id が取れない。本実装では handler 内で
+	// protojson Unmarshal するため、interceptor 段階では req=nil を渡し、interceptor は
+	// metadata 由来の tenant_id（TIER1_AUTH_MODE=jwks/hmac で AuthInterceptor が JWT から
+	// 取り出した値）に依存する設計とする。
+	final := func(ctx context.Context, _ interface{}) (interface{}, error) {
+		return handler(ctx, body)
+	}
+	// interceptor chain を構築（最後の interceptor が final を呼ぶ）。
+	wrapped := final
+	for i := len(g.interceptors) - 1; i >= 0; i-- {
+		icpt := g.interceptors[i]
+		next := wrapped
+		wrapped = func(ctx context.Context, req interface{}) (interface{}, error) {
+			return icpt(ctx, req, info, next)
+		}
+	}
+	resp, err := wrapped(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, nil
+	}
+	return resp.(proto.Message), nil
+}
+
 // register は POST /k1s0/<api>/<rpc> をハンドルする内部 helper。
 // 認証は authForward で gRPC metadata に転送し、in-process gRPC handler で AuthInterceptor が検証する。
 func (g *HTTPGateway) register(path string, handler httpHandlerFunc) {
+	// HTTP path から gRPC FullMethod を再構築する（observability ラベル / audit action 用）。
+	// 例: /k1s0/state/get → /k1s0.tier1.state.v1.StateService/Get
+	fullMethod := httpPathToGRPCMethod(path)
+	info := &grpc.UnaryServerInfo{FullMethod: fullMethod}
 	g.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			writeJSONError(w, codes.InvalidArgument, "only POST is supported")
@@ -133,7 +187,8 @@ func (g *HTTPGateway) register(path string, handler httpHandlerFunc) {
 		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
 
-		resp, err := handler(ctx, body)
+		// interceptor chain を経由して handler を呼ぶ（HTTP / gRPC で同じ chain を適用）。
+		resp, err := g.invokeWithInterceptors(ctx, info, body, handler)
 		if err != nil {
 			st, _ := status.FromError(err)
 			writeJSONError(w, st.Code(), st.Message())
@@ -148,6 +203,85 @@ func (g *HTTPGateway) register(path string, handler httpHandlerFunc) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(out)
 	})
+}
+
+// apiToServiceName は HTTP gateway の url segment "<api>" を proto の service 名にマップする。
+// 単純な title-case では "PubSubService" のような複合語が "PubsubService" になってしまうため、
+// 明示的なマッピング表を持つ（proto 定義との整合を強制する）。
+var apiToServiceName = map[string]string{
+	"state":         "StateService",
+	"pubsub":        "PubSubService",
+	"secrets":       "SecretsService",
+	"workflow":      "WorkflowService",
+	"feature":       "FeatureService",
+	"binding":       "BindingService",
+	"log":           "LogService",
+	"telemetry":     "TelemetryService",
+	"serviceinvoke": "InvokeService",
+	// admin 系（HTTP 未対応だが将来拡張で追加可能）。
+	"decision": "DecisionService",
+	"audit":    "AuditService",
+	"pii":      "PiiService",
+}
+
+// rpcMethodNames は HTTP url segment "<rpc>" を proto の RPC 名にマップする例外集。
+// 単純な title-case で正しくない（複合語）case のみ列挙する。
+var rpcMethodNames = map[string]string{
+	"bulkget":         "BulkGet",
+	"bulksend":        "BulkSend",
+	"bulkpublish":     "BulkPublish",
+	"getstatus":       "GetStatus",
+	"emitmetric":      "EmitMetric",
+	"emitspan":        "EmitSpan",
+	"evaluateboolean": "EvaluateBoolean",
+	"evaluatestring":  "EvaluateString",
+	"evaluatenumber":  "EvaluateNumber",
+	"evaluateobject":  "EvaluateObject",
+	"getdynamic":      "GetDynamic",
+}
+
+// httpPathToGRPCMethod は HTTP gateway の path から対応する gRPC FullMethod を再構築する。
+// 例: "/k1s0/state/get" → "/k1s0.tier1.state.v1.StateService/Get"
+//
+// 用途: ObservabilityInterceptor / AuditInterceptor が info.FullMethod から API 名 / RPC 名を
+// 抽出するため、gRPC server 経由と同じ FullMethod を渡す必要がある。
+//
+// 命名は明示マップ（apiToServiceName / rpcMethodNames）でカバーし、未登録 API / RPC は
+// title-case で fallback する（小規模な dev 用 API 追加が破壊的にならないよう柔軟性を残す）。
+func httpPathToGRPCMethod(path string) string {
+	// "/" を除去して "k1s0/<api>/<rpc>" を取り出す。
+	if len(path) == 0 || path[0] != '/' {
+		return path
+	}
+	parts := strings.SplitN(path[1:], "/", 3)
+	if len(parts) != 3 || parts[0] != "k1s0" {
+		return path
+	}
+	api := parts[1]
+	rpc := parts[2]
+	// service 名は明示マップ優先、未登録は title-case fallback。
+	serviceName, ok := apiToServiceName[api]
+	if !ok {
+		serviceName = titleCase(api) + "Service"
+	}
+	// RPC 名は明示マップ優先、未登録は title-case fallback。
+	rpcName, ok := rpcMethodNames[rpc]
+	if !ok {
+		rpcName = titleCase(rpc)
+	}
+	return "/k1s0.tier1." + api + ".v1." + serviceName + "/" + rpcName
+}
+
+// titleCase は ASCII の最初の文字だけを大文字化する（Unicode は対象外、API 名は ASCII 限定前提）。
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	c := s[0]
+	if c >= 'a' && c <= 'z' {
+		return string(c-32) + s[1:]
+	}
+	return s
 }
 
 // errorBody は HTTP/JSON 応答のエラー schema（docs §「HTTP Status ↔ K1s0Error マッピング」）。

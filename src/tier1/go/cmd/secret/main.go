@@ -178,7 +178,12 @@ func startSecretsHTTPGatewayIfEnabled(addr string, deps secret.Deps) *http.Serve
 		log.Printf("t1-secret: HTTP/JSON gateway disabled (--http-listen=%q)", addr)
 		return nil
 	}
-	g := common.NewHTTPGateway()
+	// gRPC server と同じ interceptor chain を HTTP gateway にも適用する。
+	g := common.NewHTTPGateway().WithInterceptors(
+		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
+		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
+		common.ObservabilityInterceptor(),
+	)
 	g.RegisterSecretsRoutes(secret.MakeHTTPSecretsHandlers(secret.NewSecretsServiceServer(deps)))
 	srv := &http.Server{
 		Addr:              addr,
