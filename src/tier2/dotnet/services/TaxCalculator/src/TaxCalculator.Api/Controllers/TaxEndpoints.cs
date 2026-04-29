@@ -22,6 +22,6 @@ public static class TaxEndpoints
             {
                 return Results.BadRequest(new { error = new { code = "E-T2-TAX-001", message = ex.Message, category = "VALIDATION" } });
             }
-        });
+        }).RequireAuthorization();
     }
 }

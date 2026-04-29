@@ -8,6 +8,7 @@ using K1s0.Tier2.ApprovalFlow.Api.Controllers;
 using K1s0.Tier2.ApprovalFlow.Application.UseCases;
 using K1s0.Tier2.ApprovalFlow.Domain.Interfaces;
 using K1s0.Tier2.ApprovalFlow.Infrastructure.Persistence;
+using K1s0.Tier2.Common.Auth;
 
 // minimal hosting で WebApplication を組み立てる。
 var builder = WebApplication.CreateBuilder(args);
@@ -19,14 +20,22 @@ builder.Services.AddSingleton<IApprovalRepository, InMemoryApprovalRepository>()
 builder.Services.AddScoped<SubmitApprovalUseCase>();
 builder.Services.AddScoped<DecideApprovalUseCase>();
 
+// docs §共通規約「認証認可」: T2_AUTH_MODE 環境変数（off / hmac / jwks）に従って
+// JWT Bearer 認証を有効化する。tier1 / tier2 Go / tier3 BFF と同等の検証強度。
+builder.Services.AddK1s0JwtBearer();
+
 // アプリ本体を build する。
 var app = builder.Build();
 
-// 健全性プローブ。
-app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
-app.MapGet("/readyz", () => Results.Ok(new { status = "ready" }));
+// 認証 / 認可 middleware を pipeline に組み込む（順序: Authentication → Authorization）。
+app.UseAuthentication();
+app.UseAuthorization();
 
-// API エンドポイントを登録する。
+// 健全性プローブ（認証不要）。
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+app.MapGet("/readyz", () => Results.Ok(new { status = "ready" })).AllowAnonymous();
+
+// API エンドポイントを登録（MapApprovalEndpoints 側で .RequireAuthorization() 付与）。
 app.MapApprovalEndpoints();
 
 // 起動する。

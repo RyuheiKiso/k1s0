@@ -10,5 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\TaxCalculator.Application\TaxCalculator.Application.csproj" />
     <ProjectReference Include="..\TaxCalculator.Infrastructure\TaxCalculator.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\shared\K1s0.Tier2.Common.Auth\K1s0.Tier2.Common.Auth.csproj" />
   </ItemGroup>
 </Project>

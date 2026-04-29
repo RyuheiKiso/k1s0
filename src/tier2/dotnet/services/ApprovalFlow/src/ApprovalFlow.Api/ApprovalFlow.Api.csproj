@@ -19,5 +19,6 @@
     <ProjectReference Include="..\ApprovalFlow.Application\ApprovalFlow.Application.csproj" />
     <!-- DI 登録時のみ Infrastructure を参照する（Composition Root として許容、Domain 純粋性は維持） -->
     <ProjectReference Include="..\ApprovalFlow.Infrastructure\ApprovalFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\shared\K1s0.Tier2.Common.Auth\K1s0.Tier2.Common.Auth.csproj" />
   </ItemGroup>
 </Project>

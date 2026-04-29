@@ -18,8 +18,12 @@ import (
 
 	// reconcile UseCase。
 	"github.com/k1s0/k1s0/src/tier2/go/services/stock-reconciler/internal/application/usecases"
+	// 共通 auth middleware（context から tenant_id / subject を取り出す）。
+	t2auth "github.com/k1s0/k1s0/src/tier2/go/shared/auth"
 	// tier2 共通エラー型。
 	t2errors "github.com/k1s0/k1s0/src/tier2/go/shared/errors"
+	// k1s0 SDK の per-request tenant 上書き helper。
+	"github.com/k1s0/sdk-go/k1s0"
 )
 
 // reconcileHandler は reconcile エンドポイントのハンドラ。
@@ -87,8 +91,15 @@ func (h *reconcileHandler) handleReconcile(w http.ResponseWriter, r *http.Reques
 		// 早期 return。
 		return
 	}
+	// 認証済 tenant_id / subject を SDK 呼出に伝搬する（per-request 上書き）。
+	tenantID := t2auth.TenantIDFromContext(r.Context())
+	subject := t2auth.SubjectFromContext(r.Context())
+	ctx := r.Context()
+	if tenantID != "" {
+		ctx = k1s0.WithTenant(ctx, tenantID, subject)
+	}
 	// UseCase を実行する。
-	result, err := h.useCase.Execute(r.Context(), usecases.ReconcileInput{
+	result, err := h.useCase.Execute(ctx, usecases.ReconcileInput{
 		// SKU 文字列を渡す。
 		SKU: sku,
 		// authoritative 数量を渡す。

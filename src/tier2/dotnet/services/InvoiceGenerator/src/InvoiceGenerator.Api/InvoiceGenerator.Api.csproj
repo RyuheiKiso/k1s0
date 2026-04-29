@@ -10,5 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\InvoiceGenerator.Application\InvoiceGenerator.Application.csproj" />
     <ProjectReference Include="..\InvoiceGenerator.Infrastructure\InvoiceGenerator.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\shared\K1s0.Tier2.Common.Auth\K1s0.Tier2.Common.Auth.csproj" />
   </ItemGroup>
 </Project>
