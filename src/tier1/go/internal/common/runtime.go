@@ -63,13 +63,30 @@ import (
 const shutdownTimeout = 25 * time.Second
 
 // loadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ。
-//   - "log": stderr JSON 風ログ（dev / debug、t1-audit Pod が無くても event が確認できる）
+//   - "grpc": t1-audit Pod に gRPC で event を非同期送信する（production）
+//             env TIER1_AUDIT_GRPC_ENDPOINT で接続先を指定（既定 "t1-audit:50001"）
+//   - "log" : stderr JSON 風ログ（dev / debug、t1-audit Pod が無くても event 確認可）
 //   - 未指定 / "off": NoopAuditEmitter（既定、既存 test 互換）
 //
-// production では gRPC client backed emitter を別途 cmd 側で構築して runtime に注入する想定
-// （t1-audit Pod の AuditService.Record gRPC を叩く）。本関数は env 駆動 fallback としてのみ機能。
+// gRPC mode で接続失敗（dial timeout 等）した場合は LogAuditEmitter にフォールバックして
+// 起動を継続する（t1-audit が一時的に到達不能でも tier1 自体は動く fail-soft 方針）。
 func loadAuditEmitterFromEnv() AuditEmitter {
 	switch os.Getenv("TIER1_AUDIT_MODE") {
+	case "grpc":
+		endpoint := os.Getenv("TIER1_AUDIT_GRPC_ENDPOINT")
+		if endpoint == "" {
+			endpoint = "t1-audit:50001"
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		emitter, err := NewGRPCAuditEmitter(ctx, GRPCAuditEmitterConfig{Endpoint: endpoint})
+		if err != nil {
+			// fail-soft: 接続不能でも起動を続ける。LogAuditEmitter で stderr 出力に劣化する。
+			log.Printf("tier1: audit grpc emitter dial failed (endpoint=%q): %v; falling back to log mode", endpoint, err)
+			return LogAuditEmitter{}
+		}
+		log.Printf("tier1: audit grpc emitter connected to %s", endpoint)
+		return emitter
 	case "log":
 		return LogAuditEmitter{}
 	default:
