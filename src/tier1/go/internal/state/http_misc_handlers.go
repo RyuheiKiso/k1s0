@@ -31,8 +31,10 @@ func errSvcNotWired(name string) error {
 }
 
 // MakeHTTPFeatureHandlers は HTTP/JSON gateway 用 Feature handler 集合を組み立てる。
-func MakeHTTPFeatureHandlers(svc featurev1.FeatureServiceServer) common.FeatureRPCHandlers {
-	return common.FeatureRPCHandlers{
+// 評価系 4 RPC + 管理系 3 RPC の 7 RPC 全てをカバーする。adminSvc が nil の場合は
+// 評価系のみ登録し、admin route は未登録扱い（ハンドラ nil → register でスキップ）。
+func MakeHTTPFeatureHandlers(svc featurev1.FeatureServiceServer, adminSvc featurev1.FeatureAdminServiceServer) common.FeatureRPCHandlers {
+	out := common.FeatureRPCHandlers{
 		EvaluateBoolean: func(ctx context.Context, body []byte) (proto.Message, error) {
 			req := &featurev1.EvaluateRequest{}
 			if err := common.UnmarshalJSON(body, req); err != nil {
@@ -74,6 +76,31 @@ func MakeHTTPFeatureHandlers(svc featurev1.FeatureServiceServer) common.FeatureR
 			return svc.EvaluateObject(ctx, req)
 		},
 	}
+	// FeatureAdminService が注入されている時のみ管理系 3 RPC を登録する。
+	if adminSvc != nil {
+		out.RegisterFlag = func(ctx context.Context, body []byte) (proto.Message, error) {
+			req := &featurev1.RegisterFlagRequest{}
+			if err := common.UnmarshalJSON(body, req); err != nil {
+				return nil, err
+			}
+			return adminSvc.RegisterFlag(ctx, req)
+		}
+		out.GetFlag = func(ctx context.Context, body []byte) (proto.Message, error) {
+			req := &featurev1.GetFlagRequest{}
+			if err := common.UnmarshalJSON(body, req); err != nil {
+				return nil, err
+			}
+			return adminSvc.GetFlag(ctx, req)
+		}
+		out.ListFlags = func(ctx context.Context, body []byte) (proto.Message, error) {
+			req := &featurev1.ListFlagsRequest{}
+			if err := common.UnmarshalJSON(body, req); err != nil {
+				return nil, err
+			}
+			return adminSvc.ListFlags(ctx, req)
+		}
+	}
+	return out
 }
 
 // NewFeatureServiceServer は HTTP gateway / 統合テスト用 exported helper。

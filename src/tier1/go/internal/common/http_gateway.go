@@ -318,7 +318,10 @@ type StateRPCHandlers struct {
 	Set func(ctx context.Context, body []byte) (proto.Message, error)
 	// Delete は DeleteRequest を復元して State.Delete を呼ぶ。
 	Delete func(ctx context.Context, body []byte) (proto.Message, error)
-	// BulkGet / Transact は本 Pilot で同形に追加可能（実装は cmd 側）。
+	// BulkGet は BulkGetRequest を復元して State.BulkGet を呼ぶ。
+	BulkGet func(ctx context.Context, body []byte) (proto.Message, error)
+	// Transact は TransactRequest を復元して State.Transact を呼ぶ。
+	Transact func(ctx context.Context, body []byte) (proto.Message, error)
 }
 
 // RegisterStateRoutes は State API の HTTP/JSON ルートを登録する。
@@ -332,6 +335,12 @@ func (g *HTTPGateway) RegisterStateRoutes(handlers StateRPCHandlers) {
 	}
 	if handlers.Delete != nil {
 		g.register("/k1s0/state/delete", handlers.Delete)
+	}
+	if handlers.BulkGet != nil {
+		g.register("/k1s0/state/bulkget", handlers.BulkGet)
+	}
+	if handlers.Transact != nil {
+		g.register("/k1s0/state/transact", handlers.Transact)
 	}
 }
 
@@ -392,13 +401,18 @@ func (g *HTTPGateway) RegisterWorkflowRoutes(handlers WorkflowRPCHandlers) {
 	}
 }
 
-// FeatureRPCHandlers は POST /k1s0/feature/{evaluateboolean,evaluatestring,evaluatenumber,evaluateobject} のハンドラ。
-// FeatureAdminService（RegisterFlag / GetFlag / ListFlags）も同形で展開可能だが、リリース時点 では未登録。
+// FeatureRPCHandlers は POST /k1s0/feature/{evaluateboolean,evaluatestring,evaluatenumber,evaluateobject,
+// registerflag,getflag,listflags} のハンドラ。
+// 評価系 4 RPC + 管理系 3 RPC の 7 RPC 全てをカバーする。
 type FeatureRPCHandlers struct {
 	EvaluateBoolean func(ctx context.Context, body []byte) (proto.Message, error)
 	EvaluateString  func(ctx context.Context, body []byte) (proto.Message, error)
 	EvaluateNumber  func(ctx context.Context, body []byte) (proto.Message, error)
 	EvaluateObject  func(ctx context.Context, body []byte) (proto.Message, error)
+	// FeatureAdminService 系統。
+	RegisterFlag func(ctx context.Context, body []byte) (proto.Message, error)
+	GetFlag      func(ctx context.Context, body []byte) (proto.Message, error)
+	ListFlags    func(ctx context.Context, body []byte) (proto.Message, error)
 }
 
 // RegisterFeatureRoutes は Feature API の HTTP/JSON ルートを登録する。
@@ -414,6 +428,15 @@ func (g *HTTPGateway) RegisterFeatureRoutes(handlers FeatureRPCHandlers) {
 	}
 	if handlers.EvaluateObject != nil {
 		g.register("/k1s0/feature/evaluateobject", handlers.EvaluateObject)
+	}
+	if handlers.RegisterFlag != nil {
+		g.register("/k1s0/feature/registerflag", handlers.RegisterFlag)
+	}
+	if handlers.GetFlag != nil {
+		g.register("/k1s0/feature/getflag", handlers.GetFlag)
+	}
+	if handlers.ListFlags != nil {
+		g.register("/k1s0/feature/listflags", handlers.ListFlags)
 	}
 }
 

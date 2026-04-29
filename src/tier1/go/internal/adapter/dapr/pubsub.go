@@ -103,7 +103,15 @@ type daprPubSubAdapter struct {
 }
 
 // NewPubSubAdapter は PubSubAdapter を生成する。
+// Client が in-memory bus を保持する場合（dev / CI 経路）は SDK 経路をバイパスして
+// process 内 broker 越しの Publish/Subscribe round-trip を成立させる。
 func NewPubSubAdapter(client *Client) PubSubAdapter {
+	// in-memory bus がある時は in-memory adapter を返す。
+	if client != nil && client.pubsubBus != nil {
+		// process 内 broker 経由の adapter を返す。
+		return &inMemoryPubSubAdapter{bus: client.pubsubBus}
+	}
+	// production / fake 注入経路は SDK 越し adapter を返す。
 	return &daprPubSubAdapter{client: client}
 }
 

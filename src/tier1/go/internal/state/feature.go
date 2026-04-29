@@ -3,8 +3,9 @@
 // 設計正典:
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/11_Feature_API.md
 //
-// scope（リリース時点 placeholder）: 実 flagd 結線は plan 04-13。
-// FeatureAdminService（RegisterFlag / GetFlag / ListFlags）は本リリース時点 未登録（採用初期で追加）。
+// scope: 実 flagd 結線は OpenFeature SDK 経由で確立可能。dev / CI では in-memory
+// Configuration backend 経由で評価される。FeatureAdminService（RegisterFlag /
+// GetFlag / ListFlags）は同 Pod 内に併設実装（feature_admin.go）。
 
 package state
 

@@ -95,9 +95,8 @@ type daprConfigClient interface {
 }
 
 // Client は tier1 Go ファサードから見た Dapr SDK のアダプタ。
-// 本リリース時点では State 系のみ narrow interface として保持し、PubSub / Binding /
-// Invoke / Feature は ErrNotWired を返す placeholder のまま（plan 04-05 〜 04-13 で同様に
-// 結線する）。
+// 5 building block すべてを narrow interface として保持し、production では SDK 経由、
+// dev / CI では in-memory backend 経由で同じ adapter API を満たす。
 type Client struct {
 	// Dapr sidecar の gRPC 接続先（観測性 / デバッグ用途で SidecarAddress() から参照される）。
 	sidecarAddress string
@@ -114,6 +113,9 @@ type Client struct {
 	// SDK Client インスタンス（Close 時に SDK の Close を呼ぶ必要があるため保持）。
 	// fake 注入時は nil。
 	closer interface{ Close() }
+	// in-memory PubSub bus（dev / CI 経路でのみ non-nil）。
+	// production では nil で、PubSubAdapter は SDK 経由で動作する。
+	pubsubBus *pubsubBus
 }
 
 // Config は Client 初期化時に渡される設定。

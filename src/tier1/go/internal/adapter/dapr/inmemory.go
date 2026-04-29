@@ -496,13 +496,15 @@ func (errEtag) Error() string { return "tier1: dapr state etag mismatch" }
 func NewClientWithInMemoryBackends() *Client {
 	// in-memory backend を 1 つ生成し、5 narrow interface すべてに割当てる。
 	mem := newInMemoryDapr()
+	// in-memory pubsub bus を生成する（NewPubSubAdapter から参照される）。
+	bus := newPubSubBus()
 	// Client に in-memory backend を埋め込む（address は識別ラベル）。
 	return &Client{
 		// アドレスは "in-memory" 固定（観測用ラベル）。
 		sidecarAddress: "in-memory",
 		// state narrow interface に in-memory 実装を割当てる。
 		state: mem,
-		// pubsub narrow interface に in-memory 実装を割当てる。
+		// pubsub narrow interface に in-memory 実装を割当てる（NewPubSubAdapter は bus を優先する）。
 		pubsub: mem,
 		// invoke narrow interface に in-memory 実装を割当てる。
 		invoke: mem,
@@ -510,5 +512,7 @@ func NewClientWithInMemoryBackends() *Client {
 		binding: mem,
 		// configuration narrow interface に in-memory 実装を割当てる。
 		config: mem,
+		// in-memory pubsub bus（PubSubAdapter が non-nil 時に SDK 経路を bypass する）。
+		pubsubBus: bus,
 	}
 }

@@ -199,7 +199,10 @@ func startHTTPGatewayIfEnabled(addr string, deps state.Deps) *http.Server {
 	// 9 API の route を一括登録する（unary RPC のみ、stream は gRPC 経路）。
 	g.RegisterStateRoutes(state.MakeHTTPHandlers(state.NewStateServiceServer(deps)))
 	g.RegisterPubSubRoutes(state.MakeHTTPPubSubHandlers(state.NewPubSubServiceServer(deps)))
-	g.RegisterFeatureRoutes(state.MakeHTTPFeatureHandlers(state.NewFeatureServiceServer(deps)))
+	g.RegisterFeatureRoutes(state.MakeHTTPFeatureHandlers(
+		state.NewFeatureServiceServer(deps),
+		state.NewFeatureAdminServiceServer(deps.FeatureRegistry),
+	))
 	g.RegisterBindingRoutes(state.MakeHTTPBindingHandlers(state.NewBindingServiceServer(deps)))
 	g.RegisterLogRoutes(state.MakeHTTPLogHandlers(state.NewLogServiceServer(deps)))
 	g.RegisterTelemetryRoutes(state.MakeHTTPTelemetryHandlers(state.NewTelemetryServiceServer(deps)))
