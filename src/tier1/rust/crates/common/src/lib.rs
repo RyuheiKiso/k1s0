@@ -31,3 +31,7 @@ pub mod ratelimit;
 pub mod audit;
 // HTTP/JSON gateway 実装（axum）。
 pub mod http_gateway;
+// tonic gRPC Server 用の認証 / 流量 / 観測 / 監査統合 Layer。
+pub mod grpc_layer;
+// runtime ヘルパ（環境変数から共通リソースを構築）。
+pub mod runtime;

@@ -26,6 +26,10 @@ use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
 };
 // 共通 HealthService 実装。
 use k1s0_tier1_health::Service as HealthSvc;
+// 共通 gRPC interceptor Layer（auth / ratelimit / observability / audit auto-emit）。
+use k1s0_tier1_common::grpc_layer::K1s0Layer;
+// 共通 runtime（環境変数から共通リソースを構築）。
+use k1s0_tier1_common::runtime::CommonRuntime;
 // PII 検出 logic の library 部。
 use k1s0_tier1_pii::masker::{Finding, Masker};
 // SIGTERM / SIGINT 受信。
@@ -119,7 +123,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_v1()?;
     // 共通 HealthService を構築する。pii Pod は純関数 / ステートレスのため probe 空。
     let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
+    // docs §共通規約 に従う interceptor chain を構築。
+    let rt = CommonRuntime::from_env();
+    let layer = K1s0Layer::new(rt.auth, rt.rate_limiter, rt.audit_emitter);
     Server::builder()
+        .layer(layer)
         .add_service(PiiServiceServer::new(PiiServer::default()))
         .add_service(HealthServiceServer::new(health))
         .add_service(reflection)

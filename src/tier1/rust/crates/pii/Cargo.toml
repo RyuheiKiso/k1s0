@@ -28,6 +28,8 @@ path = "src/main.rs"
 k1s0-sdk-proto = { workspace = true }
 # 共通 HealthService 実装（Liveness / Readiness 2 RPC）。
 k1s0-tier1-health = { workspace = true }
+# 共通 interceptor / runtime helper。
+k1s0-tier1-common = { workspace = true }
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
 tokio = { workspace = true }

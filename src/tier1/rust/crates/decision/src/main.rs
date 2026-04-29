@@ -33,6 +33,10 @@ use k1s0_sdk_proto::k1s0::tier1::decision::v1::{
 };
 // 共通 HealthService 実装。
 use k1s0_tier1_health::Service as HealthSvc;
+// 共通 gRPC interceptor Layer（auth / ratelimit / observability / audit auto-emit）。
+use k1s0_tier1_common::grpc_layer::K1s0Layer;
+// 共通 runtime（環境変数から共通リソースを構築）。
+use k1s0_tier1_common::runtime::CommonRuntime;
 // 内部 registry。
 use k1s0_tier1_decision::registry::{RegisterInput, RegistryError, RuleMeta, RuleRegistry};
 
@@ -212,7 +216,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 共通 HealthService を構築する。decision Pod 自体は ZEN engine in-memory のため
     // 依存先 probe は空（リリース時点）。Postgres backed registry に切替時は probe 追加予定。
     let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
+    // docs §共通規約 に従う interceptor chain を構築。
+    let rt = CommonRuntime::from_env();
+    let layer = K1s0Layer::new(rt.auth, rt.rate_limiter, rt.audit_emitter);
     Server::builder()
+        .layer(layer)
         .add_service(DecisionServiceServer::new(dec))
         .add_service(DecisionAdminServiceServer::new(admin))
         .add_service(HealthServiceServer::new(health))
