@@ -9,7 +9,7 @@ COPY services/InvoiceGenerator/ ./services/InvoiceGenerator/
 COPY shared/ ./shared/
 RUN dotnet restore services/InvoiceGenerator/InvoiceGenerator.sln
 RUN dotnet publish services/InvoiceGenerator/src/InvoiceGenerator.Api/InvoiceGenerator.Api.csproj \
-    -c Release -o /publish --no-restore -p:PublishReadyToRun=true
+    -c Release -o /publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 USER app

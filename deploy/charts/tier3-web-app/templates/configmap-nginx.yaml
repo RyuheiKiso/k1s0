@@ -26,8 +26,10 @@ data:
       }
 
       # tier3-bff への reverse proxy
+      # proxy_pass の末尾に "/" を付けると nginx が location prefix（/api/）を strip するため、
+      # BFF が期待する /api/state/get に届かない。trailing slash を削除して location prefix を保持する。
       location /api/ {
-        proxy_pass {{ .Values.bffUpstream }}/;
+        proxy_pass {{ .Values.bffUpstream }};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -24,12 +24,11 @@ COPY shared/ ./shared/
 # 依存を解決する。
 RUN dotnet restore services/ApprovalFlow/ApprovalFlow.sln
 
-# Api 層を publish する。
+# Api 層を publish する。PublishReadyToRun は RID 必須となるため平易な PortablePublish に倒す。
 RUN dotnet publish services/ApprovalFlow/src/ApprovalFlow.Api/ApprovalFlow.Api.csproj \
     -c Release \
     -o /publish \
-    --no-restore \
-    -p:PublishReadyToRun=true
+    --no-restore
 
 # stage 2: runtime（aspnet 8.0 minimal）。
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime

@@ -11,11 +11,11 @@ FROM node:20-alpine AS builder
 WORKDIR /workspace
 RUN npm install -g pnpm@9
 # workspace 全体をコピー（filter で portal だけ install / build する）。
-COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json tsconfig.base.json ./
 COPY apps/portal/package.json apps/portal/
 COPY packages/ packages/
 COPY tools/ tools/
-RUN pnpm install --frozen-lockfile --filter '@k1s0/portal...'
+RUN pnpm install --filter '@k1s0/portal...'
 
 COPY apps/portal/ apps/portal/
 RUN pnpm --filter '@k1s0/portal' build
