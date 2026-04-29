@@ -13,6 +13,8 @@ import (
 	"context"
 	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	// SDK 生成 stub の PubSubService 型。
 	pubsubv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/pubsub/v1"
 	// gRPC エラーコード。
@@ -27,9 +29,14 @@ type pubsubHandler struct {
 	pubsubv1.UnimplementedPubSubServiceServer
 	// adapter 集合。
 	deps Deps
+	// 冪等性 cache（共通規約 §「冪等性と再試行」: 同一 idempotency_key の再試行で
+	// 副作用を発生させず初回と同じレスポンスを返す）。nil の場合は dedup なし。
+	idempotency common.IdempotencyCache
 }
 
 // Publish は単発 Publish。
+// 共通規約 §「冪等性と再試行」: idempotency_key 指定時は同一キーの再試行で副作用を
+// 重複させず、初回と同じレスポンスを返す（24h TTL の cache でレスポンスを保持）。
 func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishRequest) (*pubsubv1.PublishResponse, error) {
 	// 入力 nil 防御。
 	if req == nil {
@@ -41,35 +48,38 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 	if err != nil {
 		return nil, err
 	}
-	// adapter 入力に変換。
-	areq := dapr.PublishRequest{
-		// Component は Publish の topic と分離（運用設定で確定）。本リリース時点 は固定値「pubsub-kafka」。
-		Component: "pubsub-kafka",
-		// トピック名。
-		Topic: req.GetTopic(),
-		// データ本文。
-		Data: req.GetData(),
-		// Content-Type。
-		ContentType: req.GetContentType(),
-		// 冪等性キー。
-		IdempotencyKey: req.GetIdempotencyKey(),
-		// メタデータ。
-		Metadata: req.GetMetadata(),
-		// テナント。
-		TenantID: tid,
+	// 実 Publish 実行クロージャ。idempotency cache hit 時は呼ばれない。
+	doPublish := func() (interface{}, error) {
+		areq := dapr.PublishRequest{
+			Component:      "pubsub-kafka",
+			Topic:          req.GetTopic(),
+			Data:           req.GetData(),
+			ContentType:    req.GetContentType(),
+			IdempotencyKey: req.GetIdempotencyKey(),
+			Metadata:       req.GetMetadata(),
+			TenantID:       tid,
+		}
+		aresp, err := h.deps.PubSubAdapter.Publish(ctx, areq)
+		if err != nil {
+			return nil, translatePubSubErr(err, "Publish")
+		}
+		return &pubsubv1.PublishResponse{Offset: aresp.Offset}, nil
 	}
-	// adapter 呼出。
-	aresp, err := h.deps.PubSubAdapter.Publish(ctx, areq)
-	// エラー翻訳。
+	// 冪等性キー + cache が両方ある場合のみ dedup を適用する。
+	// 空キーや cache 未注入時は通常呼出（後方互換 / dev 経路）。
+	idempKey := common.IdempotencyKey(tid, "PubSub.Publish", req.GetIdempotencyKey())
+	if idempKey == "" || h.idempotency == nil {
+		resp, err := doPublish()
+		if err != nil {
+			return nil, err
+		}
+		return resp.(*pubsubv1.PublishResponse), nil
+	}
+	resp, err := h.idempotency.GetOrCompute(ctx, idempKey, doPublish)
 	if err != nil {
-		// 翻訳して返却する。
-		return nil, translatePubSubErr(err, "Publish")
+		return nil, err
 	}
-	// 応答返却。
-	return &pubsubv1.PublishResponse{
-		// Kafka offset。
-		Offset: aresp.Offset,
-	}, nil
+	return resp.(*pubsubv1.PublishResponse), nil
 }
 
 // BulkPublish は複数 message を順次 Publish する。

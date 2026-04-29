@@ -20,6 +20,8 @@ import (
 
 	// OpenBao adapter（本 Pod 専用）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/openbao"
+	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	// SDK 生成 stub の SecretsService 型。
 	secretsv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/secrets/v1"
 	// gRPC server 型。
@@ -36,6 +38,9 @@ type Deps struct {
 	SecretsAdapter openbao.SecretsAdapter
 	// 動的 secret 用 adapter（FR-T1-SECRETS-002、nil 時は GetDynamic が Unimplemented）。
 	DynamicAdapter openbao.DynamicAdapter
+	// Rotate の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL で同一 idempotency_key
+	// 再試行時に初回 response を返す）。nil の場合は dedup なし（後方互換 / 早期 dev）。
+	Idempotency common.IdempotencyCache
 }
 
 // secretHandler は SecretsService の handler 実装。
@@ -176,40 +181,43 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		// Unimplemented を返却する。
 		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Rotate not yet wired to OpenBao")
 	}
-	// adapter 入力に変換する。
-	ar := openbao.SecretRotateRequest{
-		// 対象 secret 名。
-		Name: req.GetName(),
-		// テナント識別子（境界検証用）。
-		TenantID: tenantID,
+	// 実 rotate 実行クロージャ。idempotency cache hit 時は呼ばれない。
+	doRotate := func() (interface{}, error) {
+		ar := openbao.SecretRotateRequest{
+			Name:     req.GetName(),
+			TenantID: tenantID,
+		}
+		resp, err := h.deps.SecretsAdapter.Rotate(ctx, ar)
+		if err != nil {
+			return nil, translateErr(err, "Rotate")
+		}
+		// 直前バージョン（new_version - 1）を計算する（初回は 0）。
+		prev := resp.Version - 1
+		if prev < 0 {
+			prev = 0
+		}
+		return &secretsv1.RotateSecretResponse{
+			NewVersion:      resp.Version,
+			PreviousVersion: prev,
+			RotatedAtMs:     time.Now().UnixMilli(),
+			// 静的 secret は TTL 0、動的 secret は GetDynamic 経路で発行する。
+			TtlSec: 0,
+		}, nil
 	}
-	// adapter で bump を実行する。
-	resp, err := h.deps.SecretsAdapter.Rotate(ctx, ar)
-	// adapter エラーを翻訳する。
+	// 共通規約 §「冪等性と再試行」: 同一 idempotency_key の再試行は初回 response を返す。
+	idempKey := common.IdempotencyKey(tenantID, "Secrets.Rotate", req.GetIdempotencyKey())
+	if idempKey == "" || h.deps.Idempotency == nil {
+		out, err := doRotate()
+		if err != nil {
+			return nil, err
+		}
+		return out.(*secretsv1.RotateSecretResponse), nil
+	}
+	out, err := h.deps.Idempotency.GetOrCompute(ctx, idempKey, doRotate)
 	if err != nil {
-		// translateErr で gRPC code に変換する。
-		return nil, translateErr(err, "Rotate")
+		return nil, err
 	}
-	// 直前バージョン（new_version - 1）を計算する（初回は 0）。
-	prev := resp.Version - 1
-	// 負値補正（理論上 1 未満は来ないが defensive）。
-	if prev < 0 {
-		// 0 にクリップする。
-		prev = 0
-	}
-	// 現在時刻を Unix epoch ミリ秒で取得する。
-	rotatedAtMs := time.Now().UnixMilli()
-	// 全フィールドを埋めて応答する（idempotency_key の二重 bump 抑止は plan 04-06 後段で実装）。
-	return &secretsv1.RotateSecretResponse{
-		// 新バージョン番号。
-		NewVersion: resp.Version,
-		// 直前バージョン。
-		PreviousVersion: prev,
-		// 実行時刻（ミリ秒）。
-		RotatedAtMs: rotatedAtMs,
-		// 静的 secret は TTL 0、動的 secret は GetDynamic 経路で発行する。
-		TtlSec: 0,
-	}, nil
+	return out.(*secretsv1.RotateSecretResponse), nil
 }
 
 // GetDynamic は動的 Secret 発行（FR-T1-SECRETS-002）。
