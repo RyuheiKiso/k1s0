@@ -20,13 +20,25 @@ package k1s0.tier1.pii.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // PII API。t1-pii Pod は純関数（ステートレス）で副作用なし。
 service PiiService {
   // PII 種別の検出（テキスト → findings 列）
-  rpc Classify(ClassifyRequest) returns (ClassifyResponse);
+  rpc Classify(ClassifyRequest) returns (ClassifyResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/pii/classify"
+      body: "*"
+    };
+  }
   // マスキング（テキスト → 置換後テキスト + findings）
-  rpc Mask(MaskRequest) returns (MaskResponse);
+  rpc Mask(MaskRequest) returns (MaskResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/pii/mask"
+      body: "*"
+    };
+  }
 }
 
 // Classify リクエスト

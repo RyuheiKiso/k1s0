@@ -21,12 +21,20 @@ package k1s0.tier1.serviceinvoke.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // サービス間呼出を仲介する。tier1 が allowlist / RBAC / 監査を一括強制する。
 service InvokeService {
   // 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
-  rpc Invoke(InvokeRequest) returns (InvokeResponse);
+  rpc Invoke(InvokeRequest) returns (InvokeResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/serviceinvoke/invoke"
+      body: "*"
+    };
+  }
   // ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+  // server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
   rpc InvokeStream(InvokeRequest) returns (stream InvokeChunk);
 }
 

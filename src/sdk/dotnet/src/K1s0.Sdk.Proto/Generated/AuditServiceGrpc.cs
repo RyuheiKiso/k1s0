@@ -166,6 +166,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
       /// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
       /// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
       /// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="responseStream">Used for sending responses back to the client.</param>
@@ -362,6 +363,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
       /// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
       /// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
       /// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -377,6 +379,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1 {
       /// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
       /// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
       /// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>

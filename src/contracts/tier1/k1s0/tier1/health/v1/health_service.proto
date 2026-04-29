@@ -15,15 +15,28 @@ syntax = "proto3";
 // パッケージ命名規約: k1s0.<module>.<api>.v<n>
 package k1s0.tier1.health.v1;
 
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
+
 // ヘルスチェック用の最小 service。Kubernetes liveness/readiness probe からの
 // gRPC ヘルスチェックと、tier2/tier3 からの疎通確認に使う。
 service HealthService {
   // Liveness probe: process が応答可能なら OK。依存 backend は見ない。
-  rpc Liveness(LivenessRequest) returns (LivenessResponse);
+  rpc Liveness(LivenessRequest) returns (LivenessResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/health/liveness"
+      body: "*"
+    };
+  }
 
   // Readiness probe: 依存 backend（Postgres / Kafka / OpenBao 等）が到達可能
   // かどうかも含めて判定する。詳細仕様は plan 04-16。
-  rpc Readiness(ReadinessRequest) returns (ReadinessResponse);
+  rpc Readiness(ReadinessRequest) returns (ReadinessResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/health/readiness"
+      body: "*"
+    };
+  }
 }
 
 // Liveness probe のリクエスト（現状フィールドなし、将来拡張用）

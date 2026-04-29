@@ -61,6 +61,7 @@ type AuditServiceClient interface {
 	// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
 	// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
 	// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+	// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
 	Export(ctx context.Context, in *ExportAuditRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ExportAuditChunk], error)
 }
 
@@ -138,6 +139,7 @@ type AuditServiceServer interface {
 	// 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
 	// server-streaming で範囲内の events を batch（chunk）に分けて配信し、
 	// 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+	// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
 	Export(*ExportAuditRequest, grpc.ServerStreamingServer[ExportAuditChunk]) error
 }
 

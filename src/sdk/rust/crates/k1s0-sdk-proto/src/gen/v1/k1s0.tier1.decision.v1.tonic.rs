@@ -383,6 +383,8 @@ pub mod decision_admin_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    /** JDM ルール文書の登録・バージョン管理（リリース時点 で proto 追加予定）
+*/
     #[derive(Debug, Clone)]
     pub struct DecisionAdminServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -463,6 +465,8 @@ pub mod decision_admin_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
+        /** JDM 文書の登録（schema validator と非決定要素 linter を通過必須）
+*/
         pub async fn register_rule(
             &mut self,
             request: impl tonic::IntoRequest<super::RegisterRuleRequest>,
@@ -493,6 +497,8 @@ pub mod decision_admin_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** バージョン一覧
+*/
         pub async fn list_versions(
             &mut self,
             request: impl tonic::IntoRequest<super::ListVersionsRequest>,
@@ -523,6 +529,8 @@ pub mod decision_admin_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** 特定バージョンの取得（レビュー用）
+*/
         pub async fn get_rule(
             &mut self,
             request: impl tonic::IntoRequest<super::GetRuleRequest>,
@@ -562,6 +570,8 @@ pub mod decision_admin_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with DecisionAdminServiceServer.
     #[async_trait]
     pub trait DecisionAdminService: Send + Sync + 'static {
+        /** JDM 文書の登録（schema validator と非決定要素 linter を通過必須）
+*/
         async fn register_rule(
             &self,
             request: tonic::Request<super::RegisterRuleRequest>,
@@ -569,6 +579,8 @@ pub mod decision_admin_service_server {
             tonic::Response<super::RegisterRuleResponse>,
             tonic::Status,
         >;
+        /** バージョン一覧
+*/
         async fn list_versions(
             &self,
             request: tonic::Request<super::ListVersionsRequest>,
@@ -576,11 +588,15 @@ pub mod decision_admin_service_server {
             tonic::Response<super::ListVersionsResponse>,
             tonic::Status,
         >;
+        /** 特定バージョンの取得（レビュー用）
+*/
         async fn get_rule(
             &self,
             request: tonic::Request<super::GetRuleRequest>,
         ) -> std::result::Result<tonic::Response<super::GetRuleResponse>, tonic::Status>;
     }
+    /** JDM ルール文書の登録・バージョン管理（リリース時点 で proto 追加予定）
+*/
     #[derive(Debug)]
     pub struct DecisionAdminServiceServer<T: DecisionAdminService> {
         inner: _Inner<T>,

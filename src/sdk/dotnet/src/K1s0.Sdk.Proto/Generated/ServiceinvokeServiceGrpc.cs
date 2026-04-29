@@ -112,6 +112,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
 
       /// <summary>
       /// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="responseStream">Used for sending responses back to the client.</param>
@@ -202,6 +203,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
       }
       /// <summary>
       /// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -215,6 +217,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Serviceinvoke.V1 {
       }
       /// <summary>
       /// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>

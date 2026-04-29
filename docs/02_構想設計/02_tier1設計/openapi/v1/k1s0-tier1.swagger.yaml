@@ -22,7 +22,900 @@ consumes:
   - application/json
 produces:
   - application/json
-paths: {}
+paths:
+  /k1s0/audit/query:
+    post:
+      summary: 監査イベント検索（範囲 + フィルタ、出力には PII Mask が自動適用）
+      operationId: Query
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1QueryAuditResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1QueryAuditRequest'
+      tags:
+        - AuditService
+  /k1s0/audit/record:
+    post:
+      summary: 監査イベント記録（成功時は audit_id を返す、改竄不可）
+      operationId: Record
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1RecordAuditResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1RecordAuditRequest'
+      tags:
+        - AuditService
+  /k1s0/audit/verifychain:
+    post:
+      summary: |-
+        ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
+        テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
+        改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
+      operationId: VerifyChain
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1VerifyChainResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1VerifyChainRequest'
+      tags:
+        - AuditService
+  /k1s0/binding/invoke:
+    post:
+      summary: 出力バインディング呼出（tier1 → 外部システムへ送信）
+      operationId: Invoke
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1InvokeBindingResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1InvokeBindingRequest'
+      tags:
+        - BindingService
+  /k1s0/decision/batchevaluate:
+    post:
+      summary: バッチ評価（複数入力を一括評価、JIT 最適化対象）
+      operationId: BatchEvaluate
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1BatchEvaluateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1BatchEvaluateRequest'
+      tags:
+        - DecisionService
+  /k1s0/decision/evaluate:
+    post:
+      summary: ルール評価（同期、非決定要素を含むルールは登録時に弾かれる）
+      operationId: Evaluate
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1EvaluateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/tier1decisionv1EvaluateRequest'
+      tags:
+        - DecisionService
+  /k1s0/decision/getrule:
+    post:
+      summary: 特定バージョンの取得（レビュー用）
+      operationId: GetRule
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetRuleResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1GetRuleRequest'
+      tags:
+        - DecisionAdminService
+  /k1s0/decision/listversions:
+    post:
+      summary: バージョン一覧
+      operationId: ListVersions
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListVersionsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1ListVersionsRequest'
+      tags:
+        - DecisionAdminService
+  /k1s0/decision/registerrule:
+    post:
+      summary: JDM 文書の登録（schema validator と非決定要素 linter を通過必須）
+      operationId: RegisterRule
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1RegisterRuleResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1RegisterRuleRequest'
+      tags:
+        - DecisionAdminService
+  /k1s0/feature/evaluateboolean:
+    post:
+      summary: Boolean Flag 評価
+      operationId: EvaluateBoolean
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1BooleanResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/tier1featurev1EvaluateRequest'
+      tags:
+        - FeatureService
+  /k1s0/feature/evaluatenumber:
+    post:
+      summary: 数値 Flag 評価
+      operationId: EvaluateNumber
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1NumberResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/tier1featurev1EvaluateRequest'
+      tags:
+        - FeatureService
+  /k1s0/feature/evaluateobject:
+    post:
+      summary: JSON オブジェクト Flag 評価
+      operationId: EvaluateObject
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ObjectResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/tier1featurev1EvaluateRequest'
+      tags:
+        - FeatureService
+  /k1s0/feature/evaluatestring:
+    post:
+      summary: String Flag 評価（Variant）
+      operationId: EvaluateString
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1StringResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/tier1featurev1EvaluateRequest'
+      tags:
+        - FeatureService
+  /k1s0/feature/getflag:
+    post:
+      summary: Flag 定義の取得
+      operationId: GetFlag
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetFlagResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1GetFlagRequest'
+      tags:
+        - FeatureAdminService
+  /k1s0/feature/listflags:
+    post:
+      summary: Flag 定義の一覧
+      operationId: ListFlags
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListFlagsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1ListFlagsRequest'
+      tags:
+        - FeatureAdminService
+  /k1s0/feature/registerflag:
+    post:
+      summary: Flag 定義の登録（permission 種別は approval_id 必須）
+      operationId: RegisterFlag
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1RegisterFlagResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1RegisterFlagRequest'
+      tags:
+        - FeatureAdminService
+  /k1s0/health/liveness:
+    post:
+      summary: 'Liveness probe: process が応答可能なら OK。依存 backend は見ない。'
+      operationId: Liveness
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1LivenessResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1LivenessRequest'
+      tags:
+        - HealthService
+  /k1s0/health/readiness:
+    post:
+      summary: |-
+        Readiness probe: 依存 backend（Postgres / Kafka / OpenBao 等）が到達可能
+        かどうかも含めて判定する。詳細仕様は plan 04-16。
+      operationId: Readiness
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ReadinessResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1ReadinessRequest'
+      tags:
+        - HealthService
+  /k1s0/log/bulksend:
+    post:
+      summary: 一括送信（accepted / rejected で集計を返す）
+      operationId: BulkSend
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1BulkSendLogResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1BulkSendLogRequest'
+      tags:
+        - LogService
+  /k1s0/log/send:
+    post:
+      summary: 単一エントリ送信
+      operationId: Send
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1SendLogResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1SendLogRequest'
+      tags:
+        - LogService
+  /k1s0/pii/classify:
+    post:
+      summary: PII 種別の検出（テキスト → findings 列）
+      operationId: Classify
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ClassifyResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1ClassifyRequest'
+      tags:
+        - PiiService
+  /k1s0/pii/mask:
+    post:
+      summary: マスキング（テキスト → 置換後テキスト + findings）
+      operationId: Mask
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1MaskResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1MaskRequest'
+      tags:
+        - PiiService
+  /k1s0/pubsub/bulkpublish:
+    post:
+      summary: バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
+      operationId: BulkPublish
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1BulkPublishResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1BulkPublishRequest'
+      tags:
+        - PubSubService
+  /k1s0/pubsub/publish:
+    post:
+      summary: 単発 Publish（idempotency_key で 24h 重複抑止）
+      operationId: Publish
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1PublishResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1PublishRequest'
+      tags:
+        - PubSubService
+  /k1s0/secrets/bulkget:
+    post:
+      summary: 一括取得（テナントに割当された全シークレット）
+      operationId: BulkGet
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1BulkGetSecretResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1BulkGetSecretRequest'
+      tags:
+        - SecretsService
+  /k1s0/secrets/get:
+    post:
+      summary: 単一シークレット取得（テナント越境参照は即 PermissionDenied、FR-T1-SECRETS-001）
+      operationId: Get
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetSecretResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1GetSecretRequest'
+      tags:
+        - SecretsService
+  /k1s0/secrets/getdynamic:
+    post:
+      summary: |-
+        動的シークレット発行（FR-T1-SECRETS-002）。
+        engine="postgres" 等の Database Engine から TTL 付き credential を都度発行する。
+        TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。
+      operationId: GetDynamic
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetDynamicSecretResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1GetDynamicSecretRequest'
+      tags:
+        - SecretsService
+  /k1s0/secrets/rotate:
+    post:
+      summary: |-
+        ローテーション実行（FR-T1-SECRETS-004）
+        成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
+        失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
+      operationId: Rotate
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1RotateSecretResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1RotateSecretRequest'
+      tags:
+        - SecretsService
+  /k1s0/serviceinvoke/invoke:
+    post:
+      summary: 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
+      operationId: Invoke
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1InvokeResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1InvokeRequest'
+      tags:
+        - InvokeService
+  /k1s0/state/bulkget:
+    post:
+      summary: 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
+      operationId: BulkGet
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1BulkGetResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1BulkGetRequest'
+      tags:
+        - StateService
+  /k1s0/state/delete:
+    post:
+      summary: キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
+      operationId: Delete
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1DeleteRequest'
+      tags:
+        - StateService
+  /k1s0/state/get:
+    post:
+      summary: キー単位の取得（未存在時は not_found=true、エラーには非該当）
+      operationId: Get
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1GetRequest'
+      tags:
+        - StateService
+  /k1s0/state/set:
+    post:
+      summary: キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
+      operationId: Set
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1SetResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1SetRequest'
+      tags:
+        - StateService
+  /k1s0/state/transact:
+    post:
+      summary: トランザクション境界付きの複数操作（全 Store で対応するわけではない）
+      operationId: Transact
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1TransactResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1TransactRequest'
+      tags:
+        - StateService
+  /k1s0/telemetry/emitmetric:
+    post:
+      summary: メトリクス送信（Counter / Gauge / Histogram の混在可）
+      operationId: EmitMetric
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1EmitMetricResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1EmitMetricRequest'
+      tags:
+        - TelemetryService
+  /k1s0/telemetry/emitspan:
+    post:
+      summary: Span 送信（既に終了済みの Span のみ受け付ける、開始 Span は OTel SDK で）
+      operationId: EmitSpan
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1EmitSpanResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1EmitSpanRequest'
+      tags:
+        - TelemetryService
+  /k1s0/workflow/cancel:
+    post:
+      summary: 正常終了の依頼（キャンセル）
+      operationId: Cancel
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CancelResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CancelRequest'
+      tags:
+        - WorkflowService
+  /k1s0/workflow/getstatus:
+    post:
+      summary: 状態取得
+      operationId: GetStatus
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetStatusResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1GetStatusRequest'
+      tags:
+        - WorkflowService
+  /k1s0/workflow/query:
+    post:
+      summary: クエリ（ワークフロー状態の読取り、副作用なし）
+      operationId: Query
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1QueryResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1QueryRequest'
+      tags:
+        - WorkflowService
+  /k1s0/workflow/signal:
+    post:
+      summary: シグナル送信（ワークフローへの入力イベント）
+      operationId: Signal
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1SignalResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1SignalRequest'
+      tags:
+        - WorkflowService
+  /k1s0/workflow/start:
+    post:
+      summary: ワークフロー開始
+      operationId: Start
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1StartResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1StartRequest'
+      tags:
+        - WorkflowService
+  /k1s0/workflow/terminate:
+    post:
+      summary: 強制終了
+      operationId: Terminate
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1TerminateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1TerminateRequest'
+      tags:
+        - WorkflowService
 definitions:
   protobufAny:
     type: object
@@ -55,6 +948,41 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/protobufAny'
+  tier1decisionv1EvaluateRequest:
+    type: object
+    properties:
+      rule_id:
+        type: string
+        title: ルール ID（tier2 で登録した JDM 文書の識別子）
+      rule_version:
+        type: string
+        title: ルールバージョン（省略時は最新有効）
+      input_json:
+        type: string
+        format: byte
+        title: 入力（JDM の context に相当、任意 JSON）
+      include_trace:
+        type: boolean
+        title: trace 情報を返すか（デバッグ用、PII を含む可能性あり）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Evaluate リクエスト
+  tier1featurev1EvaluateRequest:
+    type: object
+    properties:
+      flag_key:
+        type: string
+        title: 'Flag キー（命名規則: <tenant>.<component>.<feature>）'
+      evaluation_context:
+        type: object
+        additionalProperties:
+          type: string
+        title: 評価コンテキスト（targetingKey は subject と同一）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Flag 評価の共通入力
   v1AuditEvent:
     type: object
     properties:
@@ -80,6 +1008,25 @@ definitions:
           type: string
         title: 追加コンテキスト（ip / user_agent / request_id 等）
     title: 監査イベント
+  v1BatchEvaluateRequest:
+    type: object
+    properties:
+      rule_id:
+        type: string
+        title: ルール ID（全入力で共通）
+      rule_version:
+        type: string
+        title: ルールバージョン
+      inputs_json:
+        type: array
+        items:
+          type: string
+          format: byte
+        title: 入力 JSON 列（順序を保って評価される）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: BatchEvaluate リクエスト
   v1BatchEvaluateResponse:
     type: object
     properties:
@@ -100,6 +1047,21 @@ definitions:
         $ref: '#/definitions/v1FlagMetadata'
         title: メタ情報
     title: Boolean 評価応答
+  v1BulkGetRequest:
+    type: object
+    properties:
+      store:
+        type: string
+        title: Store 名（全キーで共通）
+      keys:
+        type: array
+        items:
+          type: string
+        title: 取得するキー一覧
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: BulkGet リクエスト
   v1BulkGetResponse:
     type: object
     properties:
@@ -109,6 +1071,13 @@ definitions:
           $ref: '#/definitions/v1GetResponse'
         title: 結果マップ（キー → GetResponse、未存在キーも not_found=true で含める）
     title: BulkGet 応答
+  v1BulkGetSecretRequest:
+    type: object
+    properties:
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: BulkGet リクエスト
   v1BulkGetSecretResponse:
     type: object
     properties:
@@ -133,6 +1102,19 @@ definitions:
         type: string
         title: 失敗時のエラーコード（成功時は空文字列）
     title: BulkPublish の個別エントリ結果
+  v1BulkPublishRequest:
+    type: object
+    properties:
+      topic:
+        type: string
+        title: トピック名（全エントリで共通）
+      entries:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1PublishRequest'
+        title: 公開するエントリ列
+    title: BulkPublish リクエスト
   v1BulkPublishResponse:
     type: object
     properties:
@@ -143,6 +1125,19 @@ definitions:
           $ref: '#/definitions/v1BulkPublishEntry'
         title: 各エントリの結果（失敗時は error_code に詳細）
     title: BulkPublish 応答
+  v1BulkSendLogRequest:
+    type: object
+    properties:
+      entries:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1LogEntry'
+        title: 送信エントリ列
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: BulkSend リクエスト
   v1BulkSendLogResponse:
     type: object
     properties:
@@ -155,9 +1150,32 @@ definitions:
         format: int32
         title: 拒否件数（PII フィルタや schema 違反で却下された件数）
     title: BulkSend 応答
+  v1CancelRequest:
+    type: object
+    properties:
+      workflow_id:
+        type: string
+        title: 対象ワークフロー ID
+      reason:
+        type: string
+        title: キャンセル理由（監査用、自由記述）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Cancel リクエスト
   v1CancelResponse:
     type: object
     title: Cancel 応答
+  v1ClassifyRequest:
+    type: object
+    properties:
+      text:
+        type: string
+        title: 判定対象テキスト
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Classify リクエスト
   v1ClassifyResponse:
     type: object
     properties:
@@ -204,9 +1222,35 @@ definitions:
         type: string
         title: 直近のエラー（reachable=false の時のみ意味を持つ）
     title: 個別依存の状態
+  v1EmitMetricRequest:
+    type: object
+    properties:
+      metrics:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Metric'
+        title: メトリクス列
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: EmitMetric リクエスト
   v1EmitMetricResponse:
     type: object
     title: EmitMetric 応答
+  v1EmitSpanRequest:
+    type: object
+    properties:
+      spans:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Span'
+        title: Span 列
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: EmitSpan リクエスト
   v1EmitSpanResponse:
     type: object
     title: EmitSpan 応答
@@ -410,6 +1454,23 @@ definitions:
         format: int32
         title: 重み（0〜100、全エントリ合計 100 必須）
     title: Experiment 種別の Flag で A/B 比率を指定
+  v1GetDynamicSecretRequest:
+    type: object
+    properties:
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト（テナント境界の検証に必須）
+      engine:
+        type: string
+        title: 発行エンジン名（"postgres" / "mysql" / "kafka" 等、OpenBao の database engine 種別）
+      role:
+        type: string
+        title: OpenBao 側で予め定義されたロール名（tenant_id でスコープされた role）
+      ttl_sec:
+        type: integer
+        format: int32
+        title: TTL 秒数（0 = 既定 3600 秒 = 1 時間、最大 86400 秒 = 24 時間）
+    title: GetDynamic リクエスト（FR-T1-SECRETS-002）
   v1GetDynamicSecretResponse:
     type: object
     properties:
@@ -430,6 +1491,20 @@ definitions:
         format: int64
         title: 発効時刻（Unix epoch ミリ秒）
     title: GetDynamic 応答
+  v1GetFlagRequest:
+    type: object
+    properties:
+      flag_key:
+        type: string
+        title: 対象 Flag キー
+      version:
+        type: string
+        format: int64
+        title: バージョン（省略時は最新）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: GetFlag リクエスト
   v1GetFlagResponse:
     type: object
     properties:
@@ -441,6 +1516,19 @@ definitions:
         format: int64
         title: バージョン
     title: GetFlag 応答
+  v1GetRequest:
+    type: object
+    properties:
+      store:
+        type: string
+        title: Store 名（valkey-default / postgres-tenant 等、運用側で設定）
+      key:
+        type: string
+        title: キー（テナント境界は tier1 が自動付与、クライアントはテナント内キーのみ指定）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Get リクエスト
   v1GetResponse:
     type: object
     properties:
@@ -455,6 +1543,19 @@ definitions:
         type: boolean
         title: キー未存在時は true（このとき data / etag は空、エラーではない）
     title: Get 応答
+  v1GetRuleRequest:
+    type: object
+    properties:
+      rule_id:
+        type: string
+        title: 対象ルール ID
+      rule_version:
+        type: string
+        title: 取得バージョン
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: GetRule リクエスト
   v1GetRuleResponse:
     type: object
     properties:
@@ -466,6 +1567,20 @@ definitions:
         $ref: '#/definitions/v1RuleVersionMeta'
         title: メタ情報
     title: GetRule 応答
+  v1GetSecretRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        title: シークレット名（テナント境界を超えた参照は即 PermissionDenied）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+      version:
+        type: integer
+        format: int32
+        title: 省略時は最新、明示で旧バージョン取得可（grace_period 中のみ）
+    title: Get リクエスト
   v1GetSecretResponse:
     type: object
     properties:
@@ -479,6 +1594,16 @@ definitions:
         format: int32
         title: バージョン（ローテーション追跡用）
     title: Get 応答
+  v1GetStatusRequest:
+    type: object
+    properties:
+      workflow_id:
+        type: string
+        title: 対象ワークフロー ID
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: GetStatus リクエスト
   v1GetStatusResponse:
     type: object
     properties:
@@ -496,6 +1621,33 @@ definitions:
         $ref: '#/definitions/v1ErrorDetail'
         title: 失敗時のエラー詳細（status = FAILED の時のみ）
     title: GetStatus 応答
+  v1InvokeBindingRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        title: 'バインディング名（運用側で事前設定、例: s3-archive / smtp-notify）'
+      operation:
+        type: string
+        title: 操作種別（create / get / list / delete / send 等、バインディング型依存）
+      data:
+        type: string
+        format: byte
+        title: 操作データ本文
+      metadata:
+        type: object
+        additionalProperties:
+          type: string
+        title: メタデータ（content-type / to / subject 等、バインディング型依存）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+      idempotency_key:
+        type: string
+        title: |-
+          冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+          外部送信（SMTP / S3 等）の重複防止に必須。同一キーでの再試行は初回 response を返す。
+    title: Invoke リクエスト
   v1InvokeBindingResponse:
     type: object
     properties:
@@ -520,6 +1672,30 @@ definitions:
         type: boolean
         title: ストリーム終端フラグ（true の場合は本チャンクが最終）
     title: ストリーム応答のチャンク
+  v1InvokeRequest:
+    type: object
+    properties:
+      app_id:
+        type: string
+        title: 呼出先のアプリ識別子（Dapr app_id 互換、tier2 のサービス名に相当）
+      method:
+        type: string
+        title: 呼出先のメソッド名（HTTP の場合は path に相当）
+      data:
+        type: string
+        format: byte
+        title: 呼出データ（bytes で透過伝搬、encoding は content_type で示す）
+      content_type:
+        type: string
+        title: Content-Type（application/json / application/grpc / application/protobuf 等）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト（テナント識別と相関 ID）
+      timeout_ms:
+        type: integer
+        format: int32
+        title: タイムアウト（ミリ秒、省略時は 5000ms）
+    title: Invoke リクエスト
   v1InvokeResponse:
     type: object
     properties:
@@ -565,6 +1741,19 @@ definitions:
       UNSPECIFIED + DEADLINE_EXCEEDED の計 10 値。
       新規追加は MINOR 版で許可、既存値の削除・意味変更は禁止。
       未知カテゴリを受け取った tier2/tier3 SDK は UNSPECIFIED として扱う。
+  v1ListFlagsRequest:
+    type: object
+    properties:
+      kind:
+        $ref: '#/definitions/v1FlagKind'
+        title: 種別フィルタ（省略で全種別）
+      state:
+        $ref: '#/definitions/v1FlagState'
+        title: 状態フィルタ（省略で ENABLED のみ）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: ListFlags リクエスト
   v1ListFlagsResponse:
     type: object
     properties:
@@ -575,6 +1764,16 @@ definitions:
           $ref: '#/definitions/v1FlagDefinition'
         title: Flag 定義列
     title: ListFlags 応答
+  v1ListVersionsRequest:
+    type: object
+    properties:
+      rule_id:
+        type: string
+        title: 対象ルール ID
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: ListVersions リクエスト
   v1ListVersionsResponse:
     type: object
     properties:
@@ -585,6 +1784,9 @@ definitions:
           $ref: '#/definitions/v1RuleVersionMeta'
         title: バージョン一覧（登録時刻昇順）
     title: ListVersions 応答
+  v1LivenessRequest:
+    type: object
+    title: Liveness probe のリクエスト（現状フィールドなし、将来拡張用）
   v1LivenessResponse:
     type: object
     properties:
@@ -618,6 +1820,16 @@ definitions:
         type: string
         title: 関連する例外スタック（オプション、マルチライン許容）
     title: LogEntry（OTel LogRecord と等価）
+  v1MaskRequest:
+    type: object
+    properties:
+      text:
+        type: string
+        title: マスキング対象テキスト
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Mask リクエスト
   v1MaskResponse:
     type: object
     properties:
@@ -745,6 +1957,30 @@ definitions:
         format: int64
         title: Kafka 側のオフセット
     title: Publish 応答
+  v1QueryAuditRequest:
+    type: object
+    properties:
+      from:
+        type: string
+        format: date-time
+        title: 範囲開始
+      to:
+        type: string
+        format: date-time
+        title: 範囲終了
+      filters:
+        type: object
+        additionalProperties:
+          type: string
+        title: フィルタ（任意の attributes 等価一致、AND 結合）
+      limit:
+        type: integer
+        format: int32
+        title: 件数上限（既定 100、最大 1000）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Query リクエスト
   v1QueryAuditResponse:
     type: object
     properties:
@@ -755,6 +1991,23 @@ definitions:
           $ref: '#/definitions/v1AuditEvent'
         title: 検索結果（時刻昇順、出力時に PII Mask 自動適用）
     title: Query 応答
+  v1QueryRequest:
+    type: object
+    properties:
+      workflow_id:
+        type: string
+        title: 対象ワークフロー ID
+      query_name:
+        type: string
+        title: クエリ名（tier2 ワークフロー実装が register しているクエリハンドラ名）
+      payload:
+        type: string
+        format: byte
+        title: ペイロード
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Query リクエスト
   v1QueryResponse:
     type: object
     properties:
@@ -763,6 +2016,9 @@ definitions:
         format: byte
         title: クエリ結果
     title: Query 応答
+  v1ReadinessRequest:
+    type: object
+    title: Readiness probe のリクエスト（現状フィールドなし、将来拡張用）
   v1ReadinessResponse:
     type: object
     properties:
@@ -775,6 +2031,22 @@ definitions:
           $ref: '#/definitions/v1DependencyStatus'
         title: 各依存（postgres / kafka / openbao / keycloak / 等）の個別状態
     title: 'Readiness response: 各依存の状態を個別に返す。'
+  v1RecordAuditRequest:
+    type: object
+    properties:
+      event:
+        $ref: '#/definitions/v1AuditEvent'
+        title: 記録対象イベント
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+      idempotency_key:
+        type: string
+        title: |-
+          冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+          重複 audit event 書込を防ぐ（hash chain 整合性が乱れないよう）。
+          同一キーでの再試行は副作用を重複させず初回 audit_id を返す。
+    title: Record リクエスト
   v1RecordAuditResponse:
     type: object
     properties:
@@ -782,6 +2054,22 @@ definitions:
         type: string
         title: WORM ストアでの固有 ID（再現性のあるハッシュ含む）
     title: Record 応答
+  v1RegisterFlagRequest:
+    type: object
+    properties:
+      flag:
+        $ref: '#/definitions/v1FlagDefinition'
+        title: Flag 定義
+      change_reason:
+        type: string
+        title: 変更理由（permission 種別 Flag の場合 Product Council 承認番号必須）
+      approval_id:
+        type: string
+        title: permission 種別時の承認番号（空値は permission 種別で reject）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: RegisterFlag リクエスト
   v1RegisterFlagResponse:
     type: object
     properties:
@@ -790,6 +2078,27 @@ definitions:
         format: int64
         title: バージョン（flag_key 内で単調増加）
     title: RegisterFlag 応答
+  v1RegisterRuleRequest:
+    type: object
+    properties:
+      rule_id:
+        type: string
+        title: ルール ID（tenant 内で一意）
+      jdm_document:
+        type: string
+        format: byte
+        title: JDM 文書（前節 JSON Schema に準拠、UTF-8 JSON）
+      sigstore_signature:
+        type: string
+        format: byte
+        title: Sigstore 署名（ADR-RULE-001、registry に登録する署名）
+      commit_hash:
+        type: string
+        title: コミット ID（Git commit hash、JDM バージョン追跡用）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: RegisterRule リクエスト
   v1RegisterRuleResponse:
     type: object
     properties:
@@ -801,6 +2110,28 @@ definitions:
         format: int64
         title: 発効可能となる時刻（即時なら registered_at と同じ、Unix epoch ミリ秒）
     title: RegisterRule 応答
+  v1RotateSecretRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        title: ローテーション対象シークレット名
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+      grace_period_sec:
+        type: integer
+        format: int32
+        title: |-
+          旧バージョンの猶予時間（0 は即無効、既定 3600 秒）
+          tier2 側の接続プール drain 時間を想定
+      policy:
+        type: string
+        title: 動的シークレット（DB 資格情報等）の場合の発行ポリシー名
+      idempotency_key:
+        type: string
+        title: 冪等性キー（同一キーでの再試行は同じ new_version を返す）
+    title: Rotate リクエスト
   v1RotateSecretResponse:
     type: object
     properties:
@@ -841,6 +2172,16 @@ definitions:
         type: boolean
         title: DEPRECATED 状態（非推奨のみ true、廃止後は ListVersions から消える）
     title: ルールバージョンのメタ情報
+  v1SendLogRequest:
+    type: object
+    properties:
+      entry:
+        $ref: '#/definitions/v1LogEntry'
+        title: 送信エントリ
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Send リクエスト
   v1SendLogResponse:
     type: object
     title: Send 応答
@@ -904,6 +2245,23 @@ definitions:
           ENUM_VALUE_PREFIX を ignore する。
       buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
       buf:lint:ignore ENUM_VALUE_PREFIX
+  v1SignalRequest:
+    type: object
+    properties:
+      workflow_id:
+        type: string
+        title: 対象ワークフロー ID
+      signal_name:
+        type: string
+        title: シグナル名（tier2 ワークフロー実装が listen している名前）
+      payload:
+        type: string
+        format: byte
+        title: ペイロード（任意 bytes）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Signal リクエスト
   v1SignalResponse:
     type: object
     title: Signal 応答（フィールド無し、成功は OK gRPC ステータスで表現）
@@ -936,6 +2294,34 @@ definitions:
           type: string
         title: 属性（http.method / db.system 等の OTel semantic conventions）
     title: 単一 Span
+  v1StartRequest:
+    type: object
+    properties:
+      workflow_type:
+        type: string
+        title: ワークフロー種別（tier2 で登録されたコード名）
+      workflow_id:
+        type: string
+        title: 実行 ID（指定なければ tier1 が UUID を生成）
+      input:
+        type: string
+        format: byte
+        title: 初期入力（任意 bytes、エンコーディングは tier2 側合意）
+      idempotent:
+        type: boolean
+        title: 冪等性（同一 workflow_id の重複開始は既存実行を返す）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+      backend:
+        $ref: '#/definitions/v1WorkflowBackend'
+        title: バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
+      idempotency_key:
+        type: string
+        title: |-
+          冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+          同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+    title: Start リクエスト
   v1StartResponse:
     type: object
     properties:
@@ -997,6 +2383,19 @@ definitions:
       呼出元テナントを特定する識別子。gRPC メタデータヘッダ
       （x-tenant-id / x-correlation-id / x-subject）と Request 側 message の
       `context` フィールドの両方で伝搬し、interceptor で整合性を検証する。
+  v1TerminateRequest:
+    type: object
+    properties:
+      workflow_id:
+        type: string
+        title: 対象ワークフロー ID
+      reason:
+        type: string
+        title: 強制終了理由（監査用、自由記述）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Terminate リクエスト
   v1TerminateResponse:
     type: object
     title: Terminate 応答
@@ -1010,6 +2409,22 @@ definitions:
         $ref: '#/definitions/v1DeleteRequest'
         title: Delete 操作
     title: トランザクション内の 1 操作（Set / Delete のいずれか）
+  v1TransactRequest:
+    type: object
+    properties:
+      store:
+        type: string
+        title: Store 名（全操作で共通、複数 Store を跨ぐトランザクションは不可）
+      operations:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1TransactOp'
+        title: 操作列（記述順に実行、途中失敗で全ロールバック）
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト
+    title: Transact リクエスト
   v1TransactResponse:
     type: object
     properties:
@@ -1017,6 +2432,21 @@ definitions:
         type: boolean
         title: コミット成功可否（false の場合は全ロールバック済み）
     title: Transact 応答
+  v1VerifyChainRequest:
+    type: object
+    properties:
+      from:
+        type: string
+        format: date-time
+        title: 範囲開始（任意）。未指定（zero）はテナント配下の全履歴を対象。
+      to:
+        type: string
+        format: date-time
+        title: 範囲終了（任意）。未指定（zero）は最新まで。
+      context:
+        $ref: '#/definitions/v1TenantContext'
+        title: 呼出元コンテキスト（テナント境界の検証に必須）
+    title: VerifyChain リクエスト（FR-T1-AUDIT-002）
   v1VerifyChainResponse:
     type: object
     properties:
