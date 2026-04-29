@@ -196,8 +196,21 @@ func (m *inMemoryDapr) GetState(_ context.Context, storeName, key string, meta m
 	return &daprclient.StateItem{Key: key, Value: v.value, Etag: v.etag}, nil
 }
 
-// SaveState は store / key に値を保存する（無条件）。
-func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data []byte, meta map[string]string, _ ...daprclient.StateOption) error {
+// firstWriteRequested は StateOption を畳み込んで concurrency が FirstWrite かを判定する。
+// production の Dapr SDK と同じ挙動を in-memory backend でも再現する（k1s0 共通規約
+// §「ETag 必須化」: First-Write-Wins を全 Set で強制）。
+func firstWriteRequested(opts []daprclient.StateOption) bool {
+	var so daprclient.StateOptions
+	for _, opt := range opts {
+		opt(&so)
+	}
+	return so.Concurrency == daprclient.StateConcurrencyFirstWrite
+}
+
+// SaveState は store / key に値を保存する。
+// StateConcurrencyFirstWrite を渡された場合、既存キーへの書込は errEtagMismatch を返す
+// （production Dapr の First-Write-Wins と一致）。それ以外は last-write-wins。
+func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data []byte, meta map[string]string, opts ...daprclient.StateOption) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -205,6 +218,12 @@ func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data 
 	tenant := tenantOf(meta)
 	// (tenant, store) bucket を書込時生成で取得する。
 	bucket := m.stateBucketLocked(tenant, storeName, true)
+	// First-Write-Wins: 既存キーへの書込は conflict として弾く（k1s0 §「ETag 必須化」）。
+	if firstWriteRequested(opts) {
+		if _, exists := bucket[key]; exists {
+			return errEtagMismatch
+		}
+	}
 	// 値と新 etag を保存する。
 	bucket[key] = inMemoryStateValue{value: data, etag: m.nextEtag()}
 	// 成功時 nil を返す。
@@ -212,6 +231,7 @@ func (m *inMemoryDapr) SaveState(_ context.Context, storeName, key string, data 
 }
 
 // SaveStateWithETag は楽観的排他付きで保存する（etag 不一致時 error）。
+// FirstWrite concurrency option が来ても挙動は変わらない（既に etag 比較で排他するため）。
 func (m *inMemoryDapr) SaveStateWithETag(_ context.Context, storeName, key string, data []byte, etag string, meta map[string]string, _ ...daprclient.StateOption) error {
 	// 書込 lock を取得する。
 	m.mu.Lock()

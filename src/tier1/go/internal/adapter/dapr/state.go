@@ -19,10 +19,14 @@
 //   metadata.tenantId は Dapr Component 側の partition / ACL 連携用に併送する
 //   （Kafka ACL / OpenBao Policy など Component 固有の経路で利用）。
 //
-// 楽観的排他（ETag）:
-//   ExpectedEtag が空のリクエスト → SaveState / DeleteState（無条件）
-//   ExpectedEtag が非空のリクエスト → SaveStateWithETag / DeleteStateWithETag
-//   conflict 時、Dapr SDK は status code を含む error を返す。本層では透過的に上位へ。
+// 楽観的排他（ETag）— "ETag 必須化（Dapr は任意）" 共通規約 §「Dapr 互換性マトリクス」:
+//   docs 規約: First-Write-Wins。すべての Set 系で StateConcurrencyFirstWrite を強制する。
+//   ExpectedEtag が空のリクエスト       → SaveState (FirstWrite) で「新規作成のみ許容」
+//                                         既存キーへの書込は Dapr が conflict（AlreadyExists）を返す
+//   ExpectedEtag が非空のリクエスト     → SaveStateWithETag (FirstWrite) で楽観的排他
+//                                         ETag 不一致時は Dapr が conflict を返す
+//   conflict 時の SDK エラーは translateStateErr で Conflict（gRPC AlreadyExists）に翻訳する。
+//   これにより Dapr の任意 ETag 動作（Last-Write-Wins）を k1s0 側で必須化する（NFR-E-AC 系）。
 
 package dapr
 
@@ -202,18 +206,23 @@ func (a *daprStateAdapter) Get(ctx context.Context, req StateGetRequest) (StateG
 // Set は単一キーを Dapr State に保存する。
 // ExpectedEtag が空なら SaveState、非空なら SaveStateWithETag を選択する。
 // 物理キーは prefixKey で `<tenant_id>/` を付与する（L2 テナント分離）。
+// ETag 必須化（共通規約 §「Dapr 互換性マトリクス」）: First-Write-Wins concurrency を強制する。
 func (a *daprStateAdapter) Set(ctx context.Context, req StateSetRequest) (StateSetResponse, error) {
 	// L2 テナント分離: 物理キーに `<tenant_id>/` を付与する。
 	physKey := prefixKey(req.TenantID, req.Key)
 	// metadata 構築（テナント + TTL）。
 	meta := buildMeta(req.TenantID, req.TTLSeconds)
+	// First-Write-Wins concurrency: docs §「ETag 必須化」要件。
+	concurrency := daprclient.WithConcurrency(daprclient.StateConcurrencyFirstWrite)
 	// 楽観的排他の有無で SDK メソッドを切り替える。
 	if req.ExpectedEtag == "" {
-		if err := a.client.stateClient().SaveState(ctx, req.Store, physKey, req.Data, meta); err != nil {
+		// ETag 不在 + First-Write: 既存キーへの書込は Dapr が conflict を返す（新規作成のみ許容）。
+		if err := a.client.stateClient().SaveState(ctx, req.Store, physKey, req.Data, meta, concurrency); err != nil {
 			return StateSetResponse{}, err
 		}
 	} else {
-		if err := a.client.stateClient().SaveStateWithETag(ctx, req.Store, physKey, req.Data, req.ExpectedEtag, meta); err != nil {
+		// ETag 提供 + First-Write: ETag 一致時のみ更新成功。
+		if err := a.client.stateClient().SaveStateWithETag(ctx, req.Store, physKey, req.Data, req.ExpectedEtag, meta, concurrency); err != nil {
 			return StateSetResponse{}, err
 		}
 	}

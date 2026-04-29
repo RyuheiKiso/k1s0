@@ -220,12 +220,28 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 }
 
 // translateErr は adapter エラーを gRPC ステータスエラーに翻訳する。
-// ErrNotWired は Unimplemented に、それ以外は Internal に翻訳する。
+// ErrNotWired は Unimplemented に、ETag mismatch / 既存キー衝突は AlreadyExists（Conflict）に、
+// それ以外は Internal に翻訳する。
+// docs §「エラー型 K1s0Error」: AlreadyExists / Conflict は ETag 不一致・冪等性キー衝突を表す。
 func translateErr(err error, rpc string, plan string) error {
 	// ErrNotWired は計画に従い Unimplemented とする。
 	if errors.Is(err, dapr.ErrNotWired) {
 		// 呼出 RPC 名と計画 ID を含めたメッセージを返却する。
 		return status.Errorf(codes.Unimplemented, "tier1/state: %s not yet wired to Dapr backend (%s)", rpc, plan)
+	}
+	// ETag 不一致 / First-Write 違反（既存キーへの無 ETag 書込）は AlreadyExists（Conflict）。
+	// docs §「エラー型 K1s0Error」: AlreadyExists / Conflict — ETag 不一致、冪等性キー衝突。
+	if errors.Is(err, dapr.ErrEtagMismatch) {
+		return status.Errorf(codes.AlreadyExists,
+			"tier1/state: %s: etag mismatch or first-write conflict", rpc)
+	}
+	// production Dapr SDK は conflict を gRPC Aborted で返すため、status code 経由でも検知する。
+	if st, ok := status.FromError(err); ok {
+		switch st.Code() {
+		case codes.Aborted, codes.AlreadyExists, codes.FailedPrecondition:
+			return status.Errorf(codes.AlreadyExists,
+				"tier1/state: %s: etag mismatch or first-write conflict: %s", rpc, st.Message())
+		}
 	}
 	// 想定外エラーは Internal にマップする。
 	return status.Errorf(codes.Internal, "tier1/state: %s adapter error: %v", rpc, err)
