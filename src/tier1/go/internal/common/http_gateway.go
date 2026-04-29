@@ -226,6 +226,120 @@ type SecretsRPCHandlers struct {
 	Rotate     func(ctx context.Context, body []byte) (proto.Message, error)
 }
 
+// WorkflowRPCHandlers は POST /k1s0/workflow/{start,signal,query,cancel,terminate,getstatus} のハンドラ。
+type WorkflowRPCHandlers struct {
+	Start     func(ctx context.Context, body []byte) (proto.Message, error)
+	Signal    func(ctx context.Context, body []byte) (proto.Message, error)
+	Query     func(ctx context.Context, body []byte) (proto.Message, error)
+	Cancel    func(ctx context.Context, body []byte) (proto.Message, error)
+	Terminate func(ctx context.Context, body []byte) (proto.Message, error)
+	GetStatus func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterWorkflowRoutes は Workflow API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterWorkflowRoutes(handlers WorkflowRPCHandlers) {
+	if handlers.Start != nil {
+		g.register("/k1s0/workflow/start", handlers.Start)
+	}
+	if handlers.Signal != nil {
+		g.register("/k1s0/workflow/signal", handlers.Signal)
+	}
+	if handlers.Query != nil {
+		g.register("/k1s0/workflow/query", handlers.Query)
+	}
+	if handlers.Cancel != nil {
+		g.register("/k1s0/workflow/cancel", handlers.Cancel)
+	}
+	if handlers.Terminate != nil {
+		g.register("/k1s0/workflow/terminate", handlers.Terminate)
+	}
+	if handlers.GetStatus != nil {
+		g.register("/k1s0/workflow/getstatus", handlers.GetStatus)
+	}
+}
+
+// FeatureRPCHandlers は POST /k1s0/feature/{evaluateboolean,evaluatestring,evaluatenumber,evaluateobject} のハンドラ。
+// FeatureAdminService（RegisterFlag / GetFlag / ListFlags）も同形で展開可能だが、リリース時点 では未登録。
+type FeatureRPCHandlers struct {
+	EvaluateBoolean func(ctx context.Context, body []byte) (proto.Message, error)
+	EvaluateString  func(ctx context.Context, body []byte) (proto.Message, error)
+	EvaluateNumber  func(ctx context.Context, body []byte) (proto.Message, error)
+	EvaluateObject  func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterFeatureRoutes は Feature API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterFeatureRoutes(handlers FeatureRPCHandlers) {
+	if handlers.EvaluateBoolean != nil {
+		g.register("/k1s0/feature/evaluateboolean", handlers.EvaluateBoolean)
+	}
+	if handlers.EvaluateString != nil {
+		g.register("/k1s0/feature/evaluatestring", handlers.EvaluateString)
+	}
+	if handlers.EvaluateNumber != nil {
+		g.register("/k1s0/feature/evaluatenumber", handlers.EvaluateNumber)
+	}
+	if handlers.EvaluateObject != nil {
+		g.register("/k1s0/feature/evaluateobject", handlers.EvaluateObject)
+	}
+}
+
+// BindingRPCHandlers は POST /k1s0/binding/invoke のハンドラ。
+type BindingRPCHandlers struct {
+	Invoke func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterBindingRoutes は Binding API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterBindingRoutes(handlers BindingRPCHandlers) {
+	if handlers.Invoke != nil {
+		g.register("/k1s0/binding/invoke", handlers.Invoke)
+	}
+}
+
+// LogRPCHandlers は POST /k1s0/log/{send,bulksend} のハンドラ。
+type LogRPCHandlers struct {
+	Send     func(ctx context.Context, body []byte) (proto.Message, error)
+	BulkSend func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterLogRoutes は Log API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterLogRoutes(handlers LogRPCHandlers) {
+	if handlers.Send != nil {
+		g.register("/k1s0/log/send", handlers.Send)
+	}
+	if handlers.BulkSend != nil {
+		g.register("/k1s0/log/bulksend", handlers.BulkSend)
+	}
+}
+
+// TelemetryRPCHandlers は POST /k1s0/telemetry/{emitmetric,emitspan} のハンドラ。
+type TelemetryRPCHandlers struct {
+	EmitMetric func(ctx context.Context, body []byte) (proto.Message, error)
+	EmitSpan   func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterTelemetryRoutes は Telemetry API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterTelemetryRoutes(handlers TelemetryRPCHandlers) {
+	if handlers.EmitMetric != nil {
+		g.register("/k1s0/telemetry/emitmetric", handlers.EmitMetric)
+	}
+	if handlers.EmitSpan != nil {
+		g.register("/k1s0/telemetry/emitspan", handlers.EmitSpan)
+	}
+}
+
+// InvokeRPCHandlers は POST /k1s0/serviceinvoke/invoke のハンドラ。
+// InvokeStream は server-streaming のため HTTP/JSON 非対応（gRPC 経路を使う運用）。
+type InvokeRPCHandlers struct {
+	Invoke func(ctx context.Context, body []byte) (proto.Message, error)
+}
+
+// RegisterInvokeRoutes は ServiceInvoke API の HTTP/JSON ルートを登録する。
+func (g *HTTPGateway) RegisterInvokeRoutes(handlers InvokeRPCHandlers) {
+	if handlers.Invoke != nil {
+		g.register("/k1s0/serviceinvoke/invoke", handlers.Invoke)
+	}
+}
+
 // RegisterSecretsRoutes は Secrets API の HTTP/JSON ルートを登録する。
 func (g *HTTPGateway) RegisterSecretsRoutes(handlers SecretsRPCHandlers) {
 	if handlers.Get != nil {
