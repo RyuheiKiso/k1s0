@@ -115,15 +115,19 @@ func Run(p Pod, listen string) error {
 	// 共通 interceptor チェイン（呼出順序が重要）:
 	//   1. AuthInterceptor: JWT 検証 + L1 テナント上書き（共通規約 §「認証と認可」/§「マルチテナント分離」L1）。
 	//      env TIER1_AUTH_MODE で off / hmac / jwks を切替。off は test / 早期 dev で pass-through。
-	//   2. ObservabilityInterceptor: OTel 1 span + RED メトリクス（共通規約 §「通信プロトコルと可観測性」）。
-	//      span は 3 番目の AuditInterceptor から trace_id / span_id を引くために 2 番目に置く。
-	//   3. AuditInterceptor: 特権操作の自動 Audit 発行（共通規約 §「監査と痕跡」）。
+	//   2. RateLimitInterceptor: テナント単位 token bucket（共通規約 §「レート制限とクォータ」）。
+	//      env TIER1_RATELIMIT_RPS で RPS 上限を設定。0 / 未指定で no-op。
+	//      Auth の後段に配置することで、AuthInfo.TenantID（JWT 検証済）を bucket 解決に使える。
+	//   3. ObservabilityInterceptor: OTel 1 span + RED メトリクス（共通規約 §「通信プロトコルと可観測性」）。
+	//      span は 4 番目の AuditInterceptor から trace_id / span_id を引くために 3 番目に置く。
+	//   4. AuditInterceptor: 特権操作の自動 Audit 発行（共通規約 §「監査と痕跡」）。
 	//      env TIER1_AUDIT_MODE が "log" 以外は NoopAuditEmitter で無効化（既存 test 互換）。
 	// Provider / 認証鍵が未設定の dev / test では各 interceptor が no-op として動作するため、
 	// cmd 側の setup を強制しない（既存テスト互換）。
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			AuthInterceptor(LoadAuthConfigFromEnv()),
+			RateLimitInterceptor(LoadRateLimitConfigFromEnv()),
 			ObservabilityInterceptor(),
 			AuditInterceptor(loadAuditEmitterFromEnv()),
 		),
