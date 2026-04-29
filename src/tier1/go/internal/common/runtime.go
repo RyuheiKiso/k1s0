@@ -62,6 +62,21 @@ import (
 // graceful shutdown の上限。Kubernetes terminationGracePeriodSeconds（既定 30s）より短く設定する。
 const shutdownTimeout = 25 * time.Second
 
+// loadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ。
+//   - "log": stderr JSON 風ログ（dev / debug、t1-audit Pod が無くても event が確認できる）
+//   - 未指定 / "off": NoopAuditEmitter（既定、既存 test 互換）
+//
+// production では gRPC client backed emitter を別途 cmd 側で構築して runtime に注入する想定
+// （t1-audit Pod の AuditService.Record gRPC を叩く）。本関数は env 駆動 fallback としてのみ機能。
+func loadAuditEmitterFromEnv() AuditEmitter {
+	switch os.Getenv("TIER1_AUDIT_MODE") {
+	case "log":
+		return LogAuditEmitter{}
+	default:
+		return NoopAuditEmitter{}
+	}
+}
+
 // Pod は 1 Pod を識別するメタデータと service 登録ロジックを集約する。
 type Pod struct {
 	// 構造体のフィールドを 1 行ずつ宣言する（Go 慣用、ここでは説明コメントのため複数行）。
@@ -97,16 +112,20 @@ func Run(p Pod, listen string) error {
 	}
 
 	// gRPC server インスタンスを生成する。
-	// 共通 interceptor チェイン:
-	//   - AuthInterceptor: JWT 検証 + L1 テナント上書き（共通規約 §「認証と認可」/§「マルチテナント分離」L1）。
-	//     env TIER1_AUTH_MODE で off / hmac / jwks を切替。off は test / 早期 dev で pass-through。
-	//   - ObservabilityInterceptor: OTel 1 span + RED メトリクス（共通規約 §「通信プロトコルと可観測性」）。
+	// 共通 interceptor チェイン（呼出順序が重要）:
+	//   1. AuthInterceptor: JWT 検証 + L1 テナント上書き（共通規約 §「認証と認可」/§「マルチテナント分離」L1）。
+	//      env TIER1_AUTH_MODE で off / hmac / jwks を切替。off は test / 早期 dev で pass-through。
+	//   2. ObservabilityInterceptor: OTel 1 span + RED メトリクス（共通規約 §「通信プロトコルと可観測性」）。
+	//      span は 3 番目の AuditInterceptor から trace_id / span_id を引くために 2 番目に置く。
+	//   3. AuditInterceptor: 特権操作の自動 Audit 発行（共通規約 §「監査と痕跡」）。
+	//      env TIER1_AUDIT_MODE が "log" 以外は NoopAuditEmitter で無効化（既存 test 互換）。
 	// Provider / 認証鍵が未設定の dev / test では各 interceptor が no-op として動作するため、
 	// cmd 側の setup を強制しない（既存テスト互換）。
 	srv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			AuthInterceptor(LoadAuthConfigFromEnv()),
 			ObservabilityInterceptor(),
+			AuditInterceptor(loadAuditEmitterFromEnv()),
 		),
 	)
 
