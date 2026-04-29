@@ -60,6 +60,11 @@ readinessProbe:
   initialDelaySeconds: 5
   periodSeconds: 5
 
+# docs §共通規約「認証認可」: tier2 .NET 共通 JWT 認証（K1s0.Tier2.Common.Auth）の駆動。
+# off / hmac / jwks の 3 mode（off は dev 限定、production では jwks を選ぶ）。
+auth:
+  mode: "off"
+
 env:
   - name: ASPNETCORE_URLS
     value: "http://+:8080"

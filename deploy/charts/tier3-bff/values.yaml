@@ -59,6 +59,12 @@ readinessProbe:
   initialDelaySeconds: 2
   periodSeconds: 5
 
+# docs §共通規約「認証認可」: tier3 BFF の internal/auth middleware を駆動する。
+# off / hmac / jwks の 3 mode（off は dev 限定、production では jwks を選ぶ）。
+# BFF_AUTH_HMAC_SECRET / BFF_AUTH_JWKS_URL は Secret 経由で注入する想定。
+auth:
+  mode: "off"
+
 env: []
 envFrom: []
 
