@@ -9,12 +9,8 @@ crds:
   # 既存 CRD を保持（chart upgrade 時に CRD 削除を防ぐ）
   keep: true
 
-# operator HA 構成
+# operator HA 構成（controller / webhook / cainjector を 3 replica で並列）
 replicaCount: 3
-webhook:
-  replicaCount: 3
-cainjector:
-  replicaCount: 3
 
 # Prometheus 監視を有効化
 prometheus:
@@ -27,7 +23,7 @@ extraArgs:
   - --enable-gateway-api
   - --feature-gates=ServerSideApply=true,ExperimentalGatewayAPISupport=true
 
-# resource sizing
+# resource sizing（controller 本体）
 resources:
   requests:
     cpu: 200m
@@ -36,6 +32,7 @@ resources:
     cpu: 1
     memory: 1Gi
 
+# webhook サブ chart 設定（HA + 軽量 resource）
 webhook:
   replicaCount: 3
   resources:
@@ -43,6 +40,7 @@ webhook:
       cpu: 100m
       memory: 256Mi
 
+# cainjector サブ chart 設定（HA + 軽量 resource）
 cainjector:
   replicaCount: 3
   resources:
