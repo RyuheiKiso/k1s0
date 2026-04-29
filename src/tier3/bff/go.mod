@@ -13,11 +13,12 @@
 //   tier1 / tier2 / contracts の internal package 直接参照は禁止。
 module github.com/k1s0/k1s0/src/tier3/bff
 
-go 1.22
+go 1.24.0
 
 require github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
 
 require (
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
