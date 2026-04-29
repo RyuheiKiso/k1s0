@@ -78,27 +78,44 @@ pub fn outcome_from_code(code: tonic::Code) -> &'static str {
 }
 
 /// 共通規約 §「監査自動発火」: WORM 化対象の特権 RPC 集合。
-/// Go 側 `privilegedRPCs` と完全一致するよう保つ。
+/// Go 側 `privilegedRPCs`（src/tier1/go/internal/common/audit.go）と完全一致するよう保つ。
+/// docs NFR-E-MON-001 / NFR-E-MON-002 / NFR-E-MON-004 を満たす。
+///
+/// 対象選定基準:
+///   - Secret アクセス（Get/BulkGet/GetDynamic/Rotate）: NFR-E-MON-002
+///   - Decision 評価 + Rule 登録: NFR-E-MON-001 「Decision 評価」+ NFR-E-MON-004
+///   - Feature Flag 定義変更（RegisterFlag のみ。Evaluate は高頻度のため除外）: NFR-E-MON-004
+///   - Binding 外部送信: NFR-E-MON-001
+///   - Workflow 状態変更（Start/Signal/Cancel/Terminate）: NFR-E-MON-001
+///   - State 書込（Set/Delete/Transact）: NFR-E-MON-001 「tier1 API 呼び出し」
+///   - PubSub 発行（Publish/BulkPublish）: NFR-E-MON-001 同上
 pub fn privileged_rpcs() -> HashSet<&'static str> {
     [
-        // State 系（書込）。
+        // State 系書込（NFR-E-MON-001）。読取（Get/BulkGet）は高頻度のため除外。
         "k1s0.tier1.state.v1.StateService/Set",
         "k1s0.tier1.state.v1.StateService/Delete",
         "k1s0.tier1.state.v1.StateService/Transact",
-        // PubSub。
+        // PubSub 発行（NFR-E-MON-001）。Subscribe は受信側のため除外。
         "k1s0.tier1.pubsub.v1.PubSubService/Publish",
-        // Secrets 系。
-        "k1s0.tier1.secrets.v1.SecretsService/Set",
+        "k1s0.tier1.pubsub.v1.PubSubService/BulkPublish",
+        // Secrets 全アクセス（NFR-E-MON-002）。Set RPC は IDL に存在しないため対象外。
+        "k1s0.tier1.secrets.v1.SecretsService/Get",
+        "k1s0.tier1.secrets.v1.SecretsService/BulkGet",
+        "k1s0.tier1.secrets.v1.SecretsService/GetDynamic",
         "k1s0.tier1.secrets.v1.SecretsService/Rotate",
-        // Workflow。
+        // Decision 評価 + 定義変更（NFR-E-MON-001 / NFR-E-MON-004）。
+        "k1s0.tier1.decision.v1.DecisionService/Evaluate",
+        "k1s0.tier1.decision.v1.DecisionService/BatchEvaluate",
+        "k1s0.tier1.decision.v1.DecisionAdminService/RegisterRule",
+        // Feature 定義変更（NFR-E-MON-004）。Evaluate* は高頻度のため除外。
+        "k1s0.tier1.feature.v1.FeatureAdminService/RegisterFlag",
+        // Workflow 状態変更（NFR-E-MON-001）。Query / GetStatus は読取のため除外。
         "k1s0.tier1.workflow.v1.WorkflowService/Start",
+        "k1s0.tier1.workflow.v1.WorkflowService/Signal",
         "k1s0.tier1.workflow.v1.WorkflowService/Cancel",
         "k1s0.tier1.workflow.v1.WorkflowService/Terminate",
-        "k1s0.tier1.workflow.v1.WorkflowService/Signal",
-        // Binding。
+        // Binding 外部送信（NFR-E-MON-001）。
         "k1s0.tier1.binding.v1.BindingService/Invoke",
-        // Decision Admin（rule 登録は監査必須）。
-        "k1s0.tier1.decision.v1.DecisionAdminService/RegisterRule",
         // Audit 自身は loop 防止のため対象外（自動発火しない）。
     ]
     .into_iter()

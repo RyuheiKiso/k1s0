@@ -259,6 +259,7 @@ mod tests {
         AuthClaims {
             tenant_id: tenant.to_string(),
             subject: "u1".to_string(),
+            roles: Vec::new(),
         }
     }
 

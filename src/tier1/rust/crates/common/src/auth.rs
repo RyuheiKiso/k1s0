@@ -44,12 +44,23 @@ impl AuthMode {
 }
 
 /// 検証済 JWT の最小情報。
+/// Keycloak `realm_access.roles` を `roles` に展開し、handler / interceptor が
+/// RBAC 判定（NFR-E-AC-002）で参照する。
 #[derive(Debug, Clone, Default)]
 pub struct AuthClaims {
     /// `tenant_id` クレーム（テナント境界の主キー）。
     pub tenant_id: String,
     /// `sub` クレーム（操作主体）。
     pub subject: String,
+    /// Keycloak Realm Role 集合（NFR-E-AC-002 RBAC）。`realm_access.roles` を展開済。
+    pub roles: Vec<String>,
+}
+
+impl AuthClaims {
+    /// 指定 role を含むかを判定する（線形探索、roles は通常数件のため十分）。
+    pub fn has_role(&self, role: &str) -> bool {
+        self.roles.iter().any(|r| r == role)
+    }
 }
 
 /// 認証検証器。
@@ -142,6 +153,8 @@ impl Authenticator {
                 // dev 既定（Go 側 `off mode` と同じ "demo-tenant"）。
                 tenant_id: "demo-tenant".to_string(),
                 subject: "dev".to_string(),
+                // dev では role 検査の対象外。空 Vec で「全 role 不在」を表現する。
+                roles: Vec::new(),
             }),
             AuthMode::Hmac => {
                 let token = extract_bearer(header_value)?;
@@ -255,6 +268,17 @@ struct JwtClaims {
     /// テナント ID。docs §共通規約 では `tenant_id` クレーム必須。
     #[serde(default)]
     tenant_id: String,
+    /// Keycloak realm_access（roles 配列を含む）。`realm_access` クレーム不在時は空。
+    #[serde(default)]
+    realm_access: RealmAccessClaim,
+}
+
+/// Keycloak `realm_access` クレーム。
+#[derive(Debug, Default, serde::Deserialize)]
+struct RealmAccessClaim {
+    /// Realm Role 一覧。
+    #[serde(default)]
+    roles: Vec<String>,
 }
 
 fn claims_to_auth(c: JwtClaims) -> Result<AuthClaims, tonic::Status> {
@@ -266,6 +290,7 @@ fn claims_to_auth(c: JwtClaims) -> Result<AuthClaims, tonic::Status> {
     Ok(AuthClaims {
         tenant_id: c.tenant_id,
         subject: c.sub,
+        roles: c.realm_access.roles,
     })
 }
 
