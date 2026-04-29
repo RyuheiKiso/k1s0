@@ -19,7 +19,7 @@
 # =============================================================================
 
 # build stage。
-FROM rust:1.85-bookworm AS builder
+FROM rust:1.90-bookworm AS builder
 
 # build context = src/。/workspace/tier1/rust/ で cargo build できるよう配置する。
 WORKDIR /workspace

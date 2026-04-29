@@ -3,13 +3,13 @@
 #
 # 設計: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md（Pod 別 Dockerfile 配置正典）
 #       docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/06_パッケージ構成_Rust_Go.md
-#       plan/04_tier1_Goファサード実装/01_リポジトリレイアウト.md
 # 関連 ID: IMP-BUILD-002 / IMP-BUILD-DOCKER-* / DS-SW-COMP-023 / ADR-TIER1-001
 #
-# build context: リポジトリルート（`docker build -f src/tier1/go/Dockerfile.state src/tier1/go/`）
+# build context: リポジトリルート必須（go.mod に replace ../../sdk/go があるため）
+#   docker build -f src/tier1/go/Dockerfile.state -t k1s0-tier1-state:dev .
 #
 # 設計方針:
-#   - multi-stage: golang:1.22-alpine で build → distroless/static-debian12:nonroot で run
+#   - multi-stage: golang:1.25-alpine で build → distroless/static-debian12:nonroot で run
 #   - CGO_ENABLED=0: pure Go ビルド、glibc 依存なしで distroless でも動作
 #   - -ldflags="-s -w": symbol table と debug info 削除でバイナリサイズ削減
 #   - -trimpath: ビルド path を normalize（再現性向上、CI/CD で同一ハッシュ保証）
@@ -18,18 +18,20 @@
 #   - EXPOSE 50001 50080 9090: gRPC + HTTP/JSON gateway + metrics ポート（docs 正典）
 # =============================================================================
 
-# build stage: Go 1.22 Alpine（最小サイズの builder）
-FROM golang:1.22-alpine AS builder
+# build stage: Go 1.25 Alpine（go.mod の go 1.25.0 directive と一致）
+FROM golang:1.25-alpine AS builder
 
-# ビルド作業ディレクトリ。リポジトリルートから本 Dockerfile が呼ばれる前提なので src/tier1/go/ をマウントする。
+# ビルド作業ディレクトリ。
 WORKDIR /workspace
 
-# 依存関係を先に解決してレイヤキャッシュを効かせる（go.mod 変更時のみ再 download）。
-COPY go.mod go.sum ./
-RUN go mod download
+# 同一 module の replace ../../sdk/go を満たすため sdk-go のソースを先にコピー。
+# ../../sdk/go から見た relative path で /workspace/src/sdk/go にレイアウトする。
+COPY src/sdk/go /workspace/src/sdk/go
+# tier1/go module 全体をコピー。
+COPY src/tier1/go /workspace/src/tier1/go
 
-# ソース全体をコピーしてビルド。.dockerignore で不要ファイルを除外する想定。
-COPY . .
+# tier1/go module をビルド対象とする。
+WORKDIR /workspace/src/tier1/go
 
 # t1-state バイナリをビルド。
 # -ldflags="-s -w" で symbol/debug info 削除、-trimpath で path 正規化。

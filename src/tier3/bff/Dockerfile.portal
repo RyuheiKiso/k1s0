@@ -3,21 +3,24 @@
 # docs 正典:
 #   docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/04_bff配置.md
 #
-# build context: docker build -f src/tier3/bff/Dockerfile.portal src/tier3/bff/
+# build context: replace ../../sdk/go のためリポジトリルートが必要:
+#   docker build -f src/tier3/bff/Dockerfile.portal -t k1s0-portal-bff:dev .
 
-FROM golang:1.22 AS builder
+FROM golang:1.25-alpine AS builder
+
 WORKDIR /workspace
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
+COPY src/sdk/go /workspace/src/sdk/go
+COPY src/tier3/bff /workspace/src/tier3/bff
+WORKDIR /workspace/src/tier3/bff
+
 RUN CGO_ENABLED=0 go build \
     -ldflags="-s -w" \
     -trimpath \
-    -o bin/portal-bff \
+    -o /out/portal-bff \
     ./cmd/portal-bff/
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /workspace/bin/portal-bff /usr/local/bin/portal-bff
+COPY --from=builder /out/portal-bff /usr/local/bin/portal-bff
 USER nonroot
 EXPOSE 8080 9090
 ENTRYPOINT ["/usr/local/bin/portal-bff"]

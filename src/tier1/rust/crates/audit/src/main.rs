@@ -117,10 +117,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             None => None,
         };
 
+    // 標準 grpc.health.v1.Health プロトコル登録（K8s grpc liveness/readiness probe 用）。
+    let (mut health_reporter, health_svc) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<AuditServiceServer<AuditServer>>()
+        .await;
+
     Server::builder()
         .layer(layer)
         .add_service(AuditServiceServer::new(server))
         .add_service(HealthServiceServer::new(health))
+        .add_service(health_svc)
         .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;

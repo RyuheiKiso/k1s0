@@ -36,6 +36,7 @@ async-trait = "0.1"
 serde_json = "1"
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
+tonic-health = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
 # PII 検出の正規表現エンジン。
