@@ -179,12 +179,14 @@ func startHTTPGatewayIfEnabled(addr string, deps state.Deps) *http.Server {
 	// gRPC server と同じ interceptor chain を HTTP gateway にも適用する
 	// （共通規約 §「認証と認可」/§「監査と痕跡」/§「レート制限とクォータ」が
 	//  HTTP / gRPC で同一に効くようにする）。
+	// AuditInterceptor も含めて 4 段全部適用する。grpc / http 経路で別 emitter
+	// instance を生成するため TIER1_AUDIT_MODE=grpc 時は 2 connection 発生するが、
+	// release-initial では機能性を優先（最適化は別 PR）。
 	g := common.NewHTTPGateway().WithInterceptors(
 		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
 		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
 		common.ObservabilityInterceptor(),
-		// AuditInterceptor は HTTP 経路では emitter 共有のため main 側で同じ instance を渡す。
-		// 簡素化のため env 駆動の loadAuditEmitterFromEnv 経由（NoopAuditEmitter なら no-op）。
+		common.AuditInterceptor(common.LoadAuditEmitterFromEnv()),
 	)
 	// 9 API の route を一括登録する（unary RPC のみ、stream は gRPC 経路）。
 	g.RegisterStateRoutes(state.MakeHTTPHandlers(state.NewStateServiceServer(deps)))

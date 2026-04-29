@@ -204,6 +204,7 @@ func startWorkflowHTTPGatewayIfEnabled(addr string, deps workflow.Deps) *http.Se
 		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
 		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
 		common.ObservabilityInterceptor(),
+		common.AuditInterceptor(common.LoadAuditEmitterFromEnv()),
 	)
 	g.RegisterWorkflowRoutes(workflow.MakeHTTPHandlers(workflow.NewWorkflowServiceServer(deps)))
 	srv := &http.Server{

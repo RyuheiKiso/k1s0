@@ -62,6 +62,11 @@ import (
 // graceful shutdown の上限。Kubernetes terminationGracePeriodSeconds（既定 30s）より短く設定する。
 const shutdownTimeout = 25 * time.Second
 
+// LoadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ（exported version）。
+// cmd 側から HTTP gateway にも同じ emitter を attach したい場合に使う。
+// 内部 runtime.go から呼ぶ unexported alias は loadAuditEmitterFromEnv（同 logic）。
+func LoadAuditEmitterFromEnv() AuditEmitter { return loadAuditEmitterFromEnv() }
+
 // loadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ。
 //   - "grpc": t1-audit Pod に gRPC で event を非同期送信する（production）
 //             env TIER1_AUDIT_GRPC_ENDPOINT で接続先を指定（既定 "t1-audit:50001"）

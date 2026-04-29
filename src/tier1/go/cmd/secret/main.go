@@ -183,6 +183,7 @@ func startSecretsHTTPGatewayIfEnabled(addr string, deps secret.Deps) *http.Serve
 		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
 		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
 		common.ObservabilityInterceptor(),
+		common.AuditInterceptor(common.LoadAuditEmitterFromEnv()),
 	)
 	g.RegisterSecretsRoutes(secret.MakeHTTPSecretsHandlers(secret.NewSecretsServiceServer(deps)))
 	srv := &http.Server{
