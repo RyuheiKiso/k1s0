@@ -63,8 +63,8 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | 領域 | docs 規定 | 実装ランク | 備考 |
 |---|---|---|---|
 | `src/tier2/templates/` + `src/tier3/templates/` | k1s0-scaffold が参照する Backstage Software Template v1beta3（IMP-CODEGEN-SCF-031〜034） | **同梱済** | 4 テンプレ配置済 |
-| `src/tier2/dotnet/services/{ApprovalFlow, InvoiceGenerator, TaxCalculator}` | tier2 完動例 | **同梱済** | 3 サービス DDD レイヤード（Domain / Application / Infrastructure / Api）+ xUnit ドメイン単体 + ArchitectureTests（NetArchTest）+ Dockerfile + catalog-info |
-| `src/tier2/go/services/{notification-hub, stock-reconciler}` | tier2 Go 完動例 | **同梱済** | 2 サービス cmd + internal/{api,config}/ + Dockerfile + catalog-info |
+| `src/tier2/dotnet/services/{ApprovalFlow, InvoiceGenerator, TaxCalculator}` | tier2 完動例 | **同梱済** | 3 サービス DDD レイヤード（Domain / Application / Infrastructure / Api）+ xUnit ドメイン単体 + ArchitectureTests（NetArchTest）+ Dockerfile + catalog-info。**JWT Bearer 認証 (`AddK1s0JwtBearer()` extension via `K1s0.Tier2.Common.Auth` shared lib、T2_AUTH_MODE=off/hmac/jwks の 3 mode)** + 全業務エンドポイントに `RequireAuthorization()` 付与済（tier1 Go の `TIER1_AUTH_MODE` と同等強度） |
+| `src/tier2/go/services/{notification-hub, stock-reconciler}` | tier2 Go 完動例 | **同梱済** | 2 サービス cmd + internal/{api,config}/ + Dockerfile + catalog-info。**JWT 認証 middleware (`shared/auth` パッケージ、go-jose/v4 で HS256-512 / RS256-512 検証 + JWKS TTL cache、6 単体テスト pass)** + handler で `t2auth.TenantIDFromContext` を取り出し `k1s0.WithTenant(ctx,...)` で SDK per-request 上書きする confused-deputy 対策済 |
 
 ### tier3（Web / Native / BFF / Legacy）
 
