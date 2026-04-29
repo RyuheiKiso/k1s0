@@ -96,6 +96,10 @@ config:
   # docs §共通規約「監査自動発火」: noop / log の 2 mode。
   # production は audit Pod への gRPC client モードを post-MVP で追加予定。
   auditMode: "log"
+  # docs §共通規約「レート制限」: テナント単位 token bucket の RPS と burst。
+  # 0 / 未設定で既定値（RPS=100、burst=200）。
+  rateLimitRps: 0
+  rateLimitBurst: 0
 
 service:
   type: ClusterIP

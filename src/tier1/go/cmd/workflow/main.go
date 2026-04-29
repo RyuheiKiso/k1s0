@@ -63,12 +63,20 @@ const defaultListen = ":50001"
 // HTTP/JSON 互換 gateway の既定 listen address。
 const defaultHTTPListen = ":50081"
 
+// envOrDefault は env で上書き可能な flag.String 既定値を返す（Helm から env 経由で渡せるように）。
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 // プロセスエントリポイント。flag パース、Temporal 結線、common.Run への委譲を行う。
 func main() {
 	// listen address の上書き flag を定義（既定 :50001）。
 	addr := flag.String("listen", defaultListen, "gRPC server listen address")
 	// HTTP/JSON 互換 gateway の listen address。空文字 / "off" で起動しない。
-	httpAddr := flag.String("http-listen", defaultHTTPListen, "HTTP/JSON gateway listen address (empty or \"off\" disables)")
+	httpAddr := flag.String("http-listen", envOrDefault("TIER1_HTTP_LISTEN_ADDR", defaultHTTPListen), "HTTP/JSON gateway listen address (empty or \"off\" disables)")
 	// flag 解析を起動直後に確定させる。
 	flag.Parse()
 

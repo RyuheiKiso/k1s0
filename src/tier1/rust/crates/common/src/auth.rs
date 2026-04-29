@@ -6,10 +6,10 @@
 //
 // 役割（Go 側 src/tier1/go/internal/common/auth.go と等価）:
 //   3 Pod の gRPC server に挿す UnaryInterceptor で、`authorization: Bearer <jwt>`
-//   header から JWT を抽出し、`AUTH_MODE` 環境変数の値に応じて 3 通りに振る舞う:
+//   header から JWT を抽出し、`TIER1_AUTH_MODE` 環境変数の値に応じて 3 通りに振る舞う:
 //     - `off`:   認証 skip（dev 限定）。`AuthClaims` には dev 既定値を埋める。
-//     - `hmac`:  共通秘密 `AUTH_HMAC_SECRET` で HS256 を verify する。
-//     - `jwks`:  `AUTH_JWKS_URL` から JWKS を fetch しキャッシュ、RS256 を verify する。
+//     - `hmac`:  共通秘密 `TIER1_AUTH_HMAC_SECRET` で HS256 を verify する。
+//     - `jwks`:  `TIER1_AUTH_JWKS_URL` から JWKS を fetch しキャッシュ、RS256 を verify する。
 //
 // AuthClaims が gRPC の MetadataMap（`x-tenant-id` / `x-subject`）に
 // 上書き伝搬され、後段の interceptor / handler が信頼できる。
@@ -33,9 +33,9 @@ pub enum AuthMode {
 }
 
 impl AuthMode {
-    /// 環境変数 `AUTH_MODE` を解釈する。未設定 / 空文字は `Off`。
+    /// 環境変数 `TIER1_AUTH_MODE` を解釈する。未設定 / 空文字は `Off`。
     pub fn from_env() -> Self {
-        match std::env::var("AUTH_MODE").unwrap_or_default().to_lowercase().as_str() {
+        match std::env::var("TIER1_AUTH_MODE").unwrap_or_default().to_lowercase().as_str() {
             "hmac" => AuthMode::Hmac,
             "jwks" => AuthMode::Jwks,
             _ => AuthMode::Off,
@@ -95,11 +95,11 @@ impl Authenticator {
     /// 環境変数からビルドする。エラーは Pod 起動時に panic して fail-fast にする。
     pub fn from_env() -> Self {
         let mode = AuthMode::from_env();
-        let hmac_secret = std::env::var("AUTH_HMAC_SECRET")
+        let hmac_secret = std::env::var("TIER1_AUTH_HMAC_SECRET")
             .ok()
             .filter(|s| !s.is_empty())
             .map(|s| s.into_bytes());
-        let jwks_url = std::env::var("AUTH_JWKS_URL").ok().filter(|s| !s.is_empty());
+        let jwks_url = std::env::var("TIER1_AUTH_JWKS_URL").ok().filter(|s| !s.is_empty());
         Self {
             mode,
             hmac_secret,
@@ -147,7 +147,7 @@ impl Authenticator {
                 let token = extract_bearer(header_value)?;
                 let secret = self.hmac_secret.as_ref().ok_or_else(|| {
                     tonic::Status::failed_precondition(
-                        "tier1/auth: AUTH_HMAC_SECRET is required when AUTH_MODE=hmac",
+                        "tier1/auth: TIER1_AUTH_HMAC_SECRET is required when TIER1_AUTH_MODE=hmac",
                     )
                 })?;
                 let key = DecodingKey::from_secret(secret);
@@ -163,7 +163,7 @@ impl Authenticator {
                 let token = extract_bearer(header_value)?;
                 let url = self.jwks_url.as_ref().ok_or_else(|| {
                     tonic::Status::failed_precondition(
-                        "tier1/auth: AUTH_JWKS_URL is required when AUTH_MODE=jwks",
+                        "tier1/auth: TIER1_AUTH_JWKS_URL is required when TIER1_AUTH_MODE=jwks",
                     )
                 })?;
                 self.refresh_jwks_if_stale(url).await?;

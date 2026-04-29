@@ -67,16 +67,25 @@ spec:
             # docs §共通規約「HTTP/JSON 互換」: HTTP gateway を起動する listen address。
             # values.pods.<name>.httpPort が 0 / 未設定なら env 自体を渡さず、Pod 側は gRPC のみで起動する。
             {{- if and $podCfg.httpPort (gt (int $podCfg.httpPort) 0) }}
-            - name: HTTP_LISTEN_ADDR
+            - name: TIER1_HTTP_LISTEN_ADDR
               value: {{ printf "0.0.0.0:%d" (int $podCfg.httpPort) | quote }}
             {{- end }}
             # docs §共通規約「認証認可」: AUTH_MODE / AUTH_HMAC_SECRET / AUTH_JWKS_URL は
             # config.authMode に従って選択する。production は jwks を Secret 経由で注入する想定。
-            - name: AUTH_MODE
+            - name: TIER1_AUTH_MODE
               value: {{ $.Values.config.authMode | quote }}
             # docs §共通規約「監査自動発火」: AUDIT_MODE は noop / log のいずれか。
-            - name: AUDIT_MODE
+            - name: TIER1_AUDIT_MODE
               value: {{ $.Values.config.auditMode | quote }}
+            # docs §共通規約「レート制限」: テナント単位 token bucket。0 / 未設定で既定値。
+            {{- if and (hasKey $.Values.config "rateLimitRps") (gt (int $.Values.config.rateLimitRps) 0) }}
+            - name: TIER1_RATELIMIT_RPS
+              value: {{ $.Values.config.rateLimitRps | quote }}
+            {{- end }}
+            {{- if and (hasKey $.Values.config "rateLimitBurst") (gt (int $.Values.config.rateLimitBurst) 0) }}
+            - name: TIER1_RATELIMIT_BURST
+              value: {{ $.Values.config.rateLimitBurst | quote }}
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "tier1-rust-service.fullname" $ }}-config

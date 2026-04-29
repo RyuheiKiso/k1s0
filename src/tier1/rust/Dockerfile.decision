@@ -15,7 +15,7 @@
 #     rust:bookworm に同梱済のため追加 install 不要
 #   - distroless/cc: Rust の動的依存（libc / libstdc++ / libgcc_s）を提供する最小 base
 #   - EXPOSE 50001 50080 9090: gRPC + HTTP/JSON gateway + metrics ポート
-#     HTTP gateway は HTTP_LISTEN_ADDR 環境変数設定時のみ起動（opt-in）
+#     HTTP gateway は TIER1_HTTP_LISTEN_ADDR 環境変数設定時のみ起動（opt-in）
 # =============================================================================
 
 # build stage。

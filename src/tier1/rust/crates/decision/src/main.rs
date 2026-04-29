@@ -227,11 +227,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rt = CommonRuntime::from_env();
     let layer = K1s0Layer::new(rt.auth.clone(), rt.rate_limiter.clone(), rt.audit_emitter.clone());
 
-    // HTTP/JSON gateway（HTTP_LISTEN_ADDR が設定されている場合のみ起動）。
+    // HTTP/JSON gateway（TIER1_HTTP_LISTEN_ADDR が設定されている場合のみ起動）。
     // 共通規約 §「HTTP/JSON 互換」: DecisionService 2 RPC + DecisionAdminService 3 RPC を
     // JSON で公開する（5 unary RPC、bytes フィールドは base64 で表現）。
     let http_handle: Option<tokio::task::JoinHandle<()>> =
-        match std::env::var("HTTP_LISTEN_ADDR").ok().filter(|s| !s.is_empty()) {
+        match std::env::var("TIER1_HTTP_LISTEN_ADDR").ok().filter(|s| !s.is_empty()) {
             Some(http_addr) => {
                 let http_state = DecisionHttpState {
                     registry: dec.registry.clone(),
