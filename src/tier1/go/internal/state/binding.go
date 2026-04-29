@@ -13,6 +13,8 @@ import (
 	"context"
 	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	// SDK 生成 stub の BindingService 型。
 	bindingv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/binding/v1"
 	// gRPC エラーコード。
@@ -30,10 +32,10 @@ type bindingHandler struct {
 }
 
 // Invoke は出力バインディング呼出。
+// 共通規約 §「冪等性と再試行」: idempotency_key 指定時は外部送信（SMTP / S3 等）の
+// 重複を防ぐため、同一キーの再試行で初回 InvokeBindingResponse を返す。
 func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindingRequest) (*bindingv1.InvokeBindingResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/binding: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
@@ -41,36 +43,38 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 	if err != nil {
 		return nil, err
 	}
-	// adapter 入力に変換。
-	areq := dapr.BindingRequest{
-		// Dapr Component 名。
-		Name: req.GetName(),
-		// 操作種別。
-		Operation: req.GetOperation(),
-		// データ本文。
-		Data: req.GetData(),
-		// メタデータ。
-		Metadata: req.GetMetadata(),
-		// テナント。
-		TenantID: tid,
-	}
-	// adapter 呼出。
-	aresp, err := h.deps.BindingAdapter.Invoke(ctx, areq)
-	// エラー翻訳。
-	if err != nil {
-		// 翻訳メッセージ。
-		if isNotWired(err) {
-			// Unimplemented 返却。
-			return nil, status.Error(codes.Unimplemented, "tier1/binding: Invoke not yet wired to Dapr backend (plan 04-12)")
+	// 実 Invoke 実行クロージャ。idempotency cache hit 時は呼ばれない。
+	doInvoke := func() (interface{}, error) {
+		areq := dapr.BindingRequest{
+			Name:      req.GetName(),
+			Operation: req.GetOperation(),
+			Data:      req.GetData(),
+			Metadata:  req.GetMetadata(),
+			TenantID:  tid,
 		}
-		// Internal 返却。
-		return nil, status.Errorf(codes.Internal, "tier1/binding: Invoke adapter error: %v", err)
+		aresp, err := h.deps.BindingAdapter.Invoke(ctx, areq)
+		if err != nil {
+			if isNotWired(err) {
+				return nil, status.Error(codes.Unimplemented, "tier1/binding: Invoke not yet wired to Dapr backend (plan 04-12)")
+			}
+			return nil, status.Errorf(codes.Internal, "tier1/binding: Invoke adapter error: %v", err)
+		}
+		return &bindingv1.InvokeBindingResponse{
+			Data:     aresp.Data,
+			Metadata: aresp.Metadata,
+		}, nil
 	}
-	// 応答返却。
-	return &bindingv1.InvokeBindingResponse{
-		// 応答本文。
-		Data: aresp.Data,
-		// メタデータ。
-		Metadata: aresp.Metadata,
-	}, nil
+	idempKey := common.IdempotencyKey(tid, "Binding.Invoke", req.GetIdempotencyKey())
+	if idempKey == "" || h.deps.Idempotency == nil {
+		resp, err := doInvoke()
+		if err != nil {
+			return nil, err
+		}
+		return resp.(*bindingv1.InvokeBindingResponse), nil
+	}
+	resp, err := h.deps.Idempotency.GetOrCompute(ctx, idempKey, doInvoke)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*bindingv1.InvokeBindingResponse), nil
 }

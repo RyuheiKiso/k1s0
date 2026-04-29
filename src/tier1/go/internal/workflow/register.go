@@ -26,6 +26,9 @@ import (
 	"errors"
 	"sync"
 
+	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
+
 	// Dapr Workflow adapter（FR-T1-WORKFLOW-001 短期向け）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/daprwf"
 	// Temporal adapter（長期向け）。
@@ -46,6 +49,9 @@ type Deps struct {
 	WorkflowAdapter temporal.WorkflowAdapter
 	// Dapr Workflow adapter（短期向け、nil 時は当該 backend RPC で Unimplemented）。
 	DaprAdapter daprwf.WorkflowAdapter
+	// Workflow.Start の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL）。
+	// nil の場合は dedup なし（既存挙動互換）。
+	Idempotency common.IdempotencyCache
 }
 
 // pickBackend は StartRequest.backend を解決する。AUTO は Temporal にフォールバック。
@@ -158,6 +164,23 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 	if err := requireTenantID(tenantID, "Workflow.Start"); err != nil {
 		return nil, err
 	}
+	// 共通規約 §「冪等性と再試行」: 同一 idempotency_key の再試行は初回 StartResponse を返す。
+	idempKey := common.IdempotencyKey(tenantID, "Workflow.Start", req.GetIdempotencyKey())
+	if idempKey != "" && h.deps.Idempotency != nil {
+		out, err := h.deps.Idempotency.GetOrCompute(ctx, idempKey, func() (interface{}, error) {
+			return h.startInternal(ctx, req, tenantID)
+		})
+		if err != nil {
+			return nil, err
+		}
+		return out.(*workflowv1.StartResponse), nil
+	}
+	return h.startInternal(ctx, req, tenantID)
+}
+
+// startInternal は Start RPC の実体（idempotency dedup を経由しない直接 path）。
+// Start から idempotency cache hit / miss どちらでも呼ばれる単一の実装地点。
+func (h *workflowHandler) startInternal(ctx context.Context, req *workflowv1.StartRequest, tenantID string) (*workflowv1.StartResponse, error) {
 	// backend hint を解決する（AUTO は Temporal にフォールバック）。
 	backend := pickBackend(req.GetBackend())
 	switch backend {
