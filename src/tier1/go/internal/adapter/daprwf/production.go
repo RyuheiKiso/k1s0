@@ -22,6 +22,11 @@
 //     業務要件として Query が必要な場合は Temporal backend（BACKEND_TEMPORAL）を使うこと。
 //   - tenant_id は StartWorkflowRequest.Options["tenant_id"] に格納し、Component 側で
 //     options を tag として記録する運用を前提とする（NFR-E-AC-003 越境防止の一段目）。
+//   - L2 物理分離（NFR-E-AC-003）: Dapr Workflow の InstanceID には scopedWorkflowID で
+//     "<tenant>::<workflow_id>" を埋め込む。Dapr の workflow state store は InstanceID を
+//     キーに永続化するため、prefix を付けない場合 tenantA と tenantB が同一 workflow_id を
+//     使うと InstanceID が衝突する。response の WorkflowID は unscopeWorkflowID で raw に
+//     戻して tier2/tier3 に透過させる（Temporal 経路と一貫させた契約）。
 
 package daprwf
 
@@ -73,6 +78,30 @@ type productionDaprWorkflow struct {
 // Dapr 公式 SDK の DefaultWorkflowComponent と整合させる。
 const defaultWorkflowComponent = "dapr"
 
+// scopedWorkflowID はテナント識別子を WorkflowID の prefix として埋め込む（L2、NFR-E-AC-003）。
+// Dapr Workflow の InstanceID には任意文字列が使えるため、"<tenant>::<workflow_id>"
+// を実 ID として永続化することで別テナントの ID と物理衝突しない。
+// tenantID が空（dev / 試験 fake）は prefix を付けず生 ID を使う。
+func scopedWorkflowID(tenantID, workflowID string) string {
+	if tenantID == "" {
+		return workflowID
+	}
+	return tenantID + "::" + workflowID
+}
+
+// unscopeWorkflowID は scopedWorkflowID で prefix を付けた ID から生 ID を復元する。
+// response の InstanceID を tier2/tier3 視点に戻すため、StartResponse / GetStatusResponse で使う。
+func unscopeWorkflowID(tenantID, scoped string) string {
+	if tenantID == "" {
+		return scoped
+	}
+	prefix := tenantID + "::"
+	if len(scoped) >= len(prefix) && scoped[:len(prefix)] == prefix {
+		return scoped[len(prefix):]
+	}
+	return scoped
+}
+
 // NewProduction は Dapr SDK の workflow client から production adapter を生成する。
 // component が空文字なら "dapr" を使う。
 func NewProduction(client daprWorkflowClient, component string) WorkflowAdapter {
@@ -83,6 +112,7 @@ func NewProduction(client daprWorkflowClient, component string) WorkflowAdapter 
 }
 
 // Start は Dapr Workflow を開始する。idempotent / tenant_id は Options metadata 経由で渡す。
+// L2 分離: 物理 InstanceID は "<tenant>::<workflow_id>" に scope し、応答は raw に戻す。
 func (p *productionDaprWorkflow) Start(ctx context.Context, req StartRequest) (StartResponse, error) {
 	// Options に tenant_id / idempotent を詰める。Component 側で取り出して利用する。
 	options := map[string]string{}
@@ -92,9 +122,11 @@ func (p *productionDaprWorkflow) Start(ctx context.Context, req StartRequest) (S
 	if req.Idempotent {
 		options["idempotent"] = "true"
 	}
+	// 物理 InstanceID にテナント prefix を付与する（L2 越境防止）。
+	physInstanceID := scopedWorkflowID(req.TenantID, req.WorkflowID)
 	resp, err := p.client.StartWorkflowBeta1(ctx, &daprclient.StartWorkflowRequest{
-		// 空文字なら SDK が UUID を採番する。
-		InstanceID:        req.WorkflowID,
+		// 空文字なら SDK が UUID を採番する（その場合 prefix も無効、レスポンスで unscope できない）。
+		InstanceID:        physInstanceID,
 		WorkflowComponent: p.component,
 		// workflow_type は Component 側で workflow function 名として解決される。
 		WorkflowName: req.WorkflowType,
@@ -107,17 +139,20 @@ func (p *productionDaprWorkflow) Start(ctx context.Context, req StartRequest) (S
 		return StartResponse{}, err
 	}
 	// Dapr Beta1 は run_id を expose しないため、instance_id を兼用する。
+	// 応答は tier2/tier3 視点の raw ID に戻して透過させる。
+	rawID := unscopeWorkflowID(req.TenantID, resp.InstanceID)
 	return StartResponse{
-		WorkflowID: resp.InstanceID,
+		WorkflowID: rawID,
 		// run_id は instance_id と同値で扱う（Beta1 spec 制約）。
-		RunID: resp.InstanceID,
+		RunID: rawID,
 	}, nil
 }
 
 // Signal は Dapr Workflow に外部イベントを送る（RaiseEventWorkflowBeta1）。
+// L2 分離: InstanceID を scope する。
 func (p *productionDaprWorkflow) Signal(ctx context.Context, req SignalRequest) error {
 	if err := p.client.RaiseEventWorkflowBeta1(ctx, &daprclient.RaiseEventWorkflowRequest{
-		InstanceID:        req.WorkflowID,
+		InstanceID:        scopedWorkflowID(req.TenantID, req.WorkflowID),
 		WorkflowComponent: p.component,
 		EventName:         req.SignalName,
 		EventData:         req.Payload,
@@ -138,9 +173,10 @@ func (p *productionDaprWorkflow) Query(_ context.Context, _ QueryRequest) (Query
 // Cancel は Dapr Workflow を一時停止する（PauseWorkflowBeta1）。
 // Dapr Workflow に "cancel" の concept は無いため、Pause を採用する。
 // 完全停止が必要な場合は Terminate を使う。
+// L2 分離: InstanceID を scope する。
 func (p *productionDaprWorkflow) Cancel(ctx context.Context, req CancelRequest) error {
 	if err := p.client.PauseWorkflowBeta1(ctx, &daprclient.PauseWorkflowRequest{
-		InstanceID:        req.WorkflowID,
+		InstanceID:        scopedWorkflowID(req.TenantID, req.WorkflowID),
 		WorkflowComponent: p.component,
 	}); err != nil {
 		return translateNotFound(err)
@@ -150,9 +186,10 @@ func (p *productionDaprWorkflow) Cancel(ctx context.Context, req CancelRequest) 
 
 // Terminate は Dapr Workflow を強制終了する（TerminateWorkflowBeta1）。
 // reason は Dapr SDK API 上 expose されていないため、観測性のため Component 側 ログ運用とする。
+// L2 分離: InstanceID を scope する。
 func (p *productionDaprWorkflow) Terminate(ctx context.Context, req TerminateRequest) error {
 	if err := p.client.TerminateWorkflowBeta1(ctx, &daprclient.TerminateWorkflowRequest{
-		InstanceID:        req.WorkflowID,
+		InstanceID:        scopedWorkflowID(req.TenantID, req.WorkflowID),
 		WorkflowComponent: p.component,
 	}); err != nil {
 		return translateNotFound(err)
@@ -161,9 +198,10 @@ func (p *productionDaprWorkflow) Terminate(ctx context.Context, req TerminateReq
 }
 
 // GetStatus は Dapr Workflow の状態を取得して WorkflowStatusValue に変換する。
+// L2 分離: InstanceID を scope し、応答 RunID は raw に戻す。
 func (p *productionDaprWorkflow) GetStatus(ctx context.Context, req GetStatusRequest) (GetStatusResponse, error) {
 	resp, err := p.client.GetWorkflowBeta1(ctx, &daprclient.GetWorkflowRequest{
-		InstanceID:        req.WorkflowID,
+		InstanceID:        scopedWorkflowID(req.TenantID, req.WorkflowID),
 		WorkflowComponent: p.component,
 	})
 	if err != nil {
@@ -171,8 +209,8 @@ func (p *productionDaprWorkflow) GetStatus(ctx context.Context, req GetStatusReq
 	}
 	return GetStatusResponse{
 		Status: mapDaprStatus(resp.RuntimeStatus),
-		// Beta1 は run_id を expose しないため instance_id を返す。
-		RunID: resp.InstanceID,
+		// Beta1 は run_id を expose しないため instance_id を返す（unscope して raw に戻す）。
+		RunID: unscopeWorkflowID(req.TenantID, resp.InstanceID),
 	}, nil
 }
 

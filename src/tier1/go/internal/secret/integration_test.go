@@ -112,7 +112,7 @@ func TestSecretsService_RoundTrip_OverGRPC(t *testing.T) {
 	// Background context を使う。
 	ctx := context.Background()
 	// 事前条件として in-memory backend に secret を seed する。
-	seedSecret(t, kv,"tenant/T1/db/master", map[string]interface{}{
+	seedSecret(t, kv,"T1/db/master", map[string]interface{}{
 		// password を文字列で保存する。
 		"password": "p@ss",
 		// username を文字列で保存する。
@@ -122,7 +122,7 @@ func TestSecretsService_RoundTrip_OverGRPC(t *testing.T) {
 	// 1. Get: seed した secret が proto 応答として正しく返るか。
 	getResp, err := c.Get(ctx, &secretsv1.GetSecretRequest{
 		// path を指定する。
-		Name: "tenant/T1/db/master",
+		Name: "T1/db/master",
 		// テナントを指定する。
 		Context: &commonv1.TenantContext{TenantId: "T1"},
 	})
@@ -145,7 +145,7 @@ func TestSecretsService_RoundTrip_OverGRPC(t *testing.T) {
 	// 2. Rotate: バージョン bump が成功し、応答に prev/new/rotated_at_ms が詰まる。
 	rotateResp, err := c.Rotate(ctx, &secretsv1.RotateSecretRequest{
 		// 対象 path。
-		Name: "tenant/T1/db/master",
+		Name: "T1/db/master",
 		// テナント。
 		Context: &commonv1.TenantContext{TenantId: "T1"},
 	})
@@ -172,7 +172,7 @@ func TestSecretsService_RoundTrip_OverGRPC(t *testing.T) {
 
 	// 3. BulkGet: tenant 配下を List + Get で全件取得する。
 	// 追加 seed して 2 件にする。
-	seedSecret(t, kv,"tenant/T1/api/key", map[string]interface{}{
+	seedSecret(t, kv,"T1/api/key", map[string]interface{}{
 		// API キーを文字列で保存する。
 		"value": "API-KEY-XYZ",
 	})

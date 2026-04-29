@@ -9,16 +9,16 @@
 //   各 Pod の main.go を最小化するため、共通する gRPC server bootstrap を本パッケージに集約する。
 //   cmd 配下からは internal/ のみ import 可能（他 Pod 内部参照禁止）の規約に整合。
 //
-// 提供する機能（リリース時点最小骨格）:
+// 提供する機能:
 //   - :50001 で listen（flag で上書き可、docs 正典 EXPOSE 50001）
 //   - 標準 gRPC health protocol（grpc.health.v1.Health/Check）応答 — Kubernetes probe 経路
 //   - k1s0 独自 HealthService（k1s0.tier1.health.v1.HealthService.Liveness / Readiness）応答
 //     — tier2 / tier3 から version / uptime / 依存先到達性の照会経路
 //   - gRPC reflection（dev / staging で grpcurl 疎通用、production は config で無効化予定）
+//   - ObservabilityInterceptor（OTel trace 1 span 発行 + RED メトリクス、共通規約 §可観測性）
 //   - SIGINT / SIGTERM で graceful shutdown（25s timeout）
 //
 // 未実装（plan 04-02 以降で追加）:
-//   - OTel trace / metrics / logger interceptor
 //   - retry / circuit-breaker / timeout
 //   - TLS / mTLS（SPIRE 連携）
 //   - 設定読込（YAML + envvar、internal/config/）
@@ -41,6 +41,8 @@ import (
 	"os"
 	// SIGINT / SIGTERM の通知チャネル登録に signal.Notify を使う。
 	"os/signal"
+	// AuditEmitter singleton 用（sync.Once）。
+	"sync"
 	// SIGTERM 等の syscall シグナル定数を参照する。
 	"syscall"
 	// graceful shutdown のタイムアウト指定に time.Duration を使う。
@@ -61,6 +63,59 @@ import (
 
 // graceful shutdown の上限。Kubernetes terminationGracePeriodSeconds（既定 30s）より短く設定する。
 const shutdownTimeout = 25 * time.Second
+
+// auditEmitterSingleton は LoadAuditEmitterFromEnv が返す共有インスタンス。
+// gRPC chain と HTTP gateway の両方から呼ばれた場合に同一 emitter（=同一 gRPC 接続 / 同一
+// 内部キュー）を共有することで、TIER1_AUDIT_MODE=grpc 設定時に t1-audit Pod への接続を
+// 1 つに保つ（前 commit 424768f8b の備考で挙げた「2 接続問題」の解消）。
+// process 単一 main から複数回呼ばれる前提のため sync.Once で 1 度だけ初期化する。
+var (
+	auditEmitterOnce      sync.Once
+	auditEmitterSingleton AuditEmitter
+)
+
+// LoadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ（exported version）。
+// 同一プロセス内で複数回呼んでも同じ instance を返す（process scoped singleton）。
+// cmd 側から HTTP gateway にも同じ emitter を attach したい場合に使う。
+// 内部 runtime.go から呼ぶ unexported alias は loadAuditEmitterFromEnvOnce（同 logic）。
+func LoadAuditEmitterFromEnv() AuditEmitter {
+	auditEmitterOnce.Do(func() {
+		auditEmitterSingleton = loadAuditEmitterFromEnv()
+	})
+	return auditEmitterSingleton
+}
+
+// loadAuditEmitterFromEnv は env TIER1_AUDIT_MODE で AuditEmitter を選ぶ。
+//   - "grpc": t1-audit Pod に gRPC で event を非同期送信する（production）
+//             env TIER1_AUDIT_GRPC_ENDPOINT で接続先を指定（既定 "t1-audit:50001"）
+//   - "log" : stderr JSON 風ログ（dev / debug、t1-audit Pod が無くても event 確認可）
+//   - 未指定 / "off": NoopAuditEmitter（既定、既存 test 互換）
+//
+// gRPC mode で接続失敗（dial timeout 等）した場合は LogAuditEmitter にフォールバックして
+// 起動を継続する（t1-audit が一時的に到達不能でも tier1 自体は動く fail-soft 方針）。
+func loadAuditEmitterFromEnv() AuditEmitter {
+	switch os.Getenv("TIER1_AUDIT_MODE") {
+	case "grpc":
+		endpoint := os.Getenv("TIER1_AUDIT_GRPC_ENDPOINT")
+		if endpoint == "" {
+			endpoint = "t1-audit:50001"
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		emitter, err := NewGRPCAuditEmitter(ctx, GRPCAuditEmitterConfig{Endpoint: endpoint})
+		if err != nil {
+			// fail-soft: 接続不能でも起動を続ける。LogAuditEmitter で stderr 出力に劣化する。
+			log.Printf("tier1: audit grpc emitter dial failed (endpoint=%q): %v; falling back to log mode", endpoint, err)
+			return LogAuditEmitter{}
+		}
+		log.Printf("tier1: audit grpc emitter connected to %s", endpoint)
+		return emitter
+	case "log":
+		return LogAuditEmitter{}
+	default:
+		return NoopAuditEmitter{}
+	}
+}
 
 // Pod は 1 Pod を識別するメタデータと service 登録ロジックを集約する。
 type Pod struct {
@@ -96,8 +151,28 @@ func Run(p Pod, listen string) error {
 		// if 分岐を閉じる。
 	}
 
-	// gRPC server インスタンスを生成する（interceptor / TLS は plan 04-02 で追加）。
-	srv := grpc.NewServer()
+	// gRPC server インスタンスを生成する。
+	// 共通 interceptor チェイン（呼出順序が重要）:
+	//   1. AuthInterceptor: JWT 検証 + L1 テナント上書き（共通規約 §「認証と認可」/§「マルチテナント分離」L1）。
+	//      env TIER1_AUTH_MODE で off / hmac / jwks を切替。off は test / 早期 dev で pass-through。
+	//   2. RateLimitInterceptor: テナント単位 token bucket（共通規約 §「レート制限とクォータ」）。
+	//      env TIER1_RATELIMIT_RPS で RPS 上限を設定。0 / 未指定で no-op。
+	//      Auth の後段に配置することで、AuthInfo.TenantID（JWT 検証済）を bucket 解決に使える。
+	//   3. ObservabilityInterceptor: OTel 1 span + RED メトリクス（共通規約 §「通信プロトコルと可観測性」）。
+	//      span は 4 番目の AuditInterceptor から trace_id / span_id を引くために 3 番目に置く。
+	//   4. AuditInterceptor: 特権操作の自動 Audit 発行（共通規約 §「監査と痕跡」）。
+	//      env TIER1_AUDIT_MODE が "log" 以外は NoopAuditEmitter で無効化（既存 test 互換）。
+	// Provider / 認証鍵が未設定の dev / test では各 interceptor が no-op として動作するため、
+	// cmd 側の setup を強制しない（既存テスト互換）。
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			AuthInterceptor(LoadAuthConfigFromEnv()),
+			RateLimitInterceptor(LoadRateLimitConfigFromEnv()),
+			ObservabilityInterceptor(),
+			// HTTP gateway と同じ emitter instance を共有する（singleton）。
+			AuditInterceptor(LoadAuditEmitterFromEnv()),
+		),
+	)
 
 	// 標準 gRPC health protocol を登録する。
 	hs := health.NewServer()

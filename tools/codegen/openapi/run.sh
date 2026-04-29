@@ -78,16 +78,26 @@ else
     find docs/02_構想設計/02_tier1設計/openapi/v1 -name "*.yaml" -o -name "*.yml" -o -name "*.json" 2>/dev/null
 fi
 
+# tests/contract/openapi-contract/tier1-openapi-spec.yaml は spec の物理コピー。
+# schemathesis / dredd 等の契約検証ツールが対象として参照する。
+# README の規約（「上記の物理コピー」）と一致させるため、生成と同時に同期する。
+contract_copy='tests/contract/openapi-contract/tier1-openapi-spec.yaml'
+if [[ -f "${out_file}" ]]; then
+    cp "${out_file}" "${contract_copy}"
+    echo "[ok] 同期: ${contract_copy}"
+fi
+
 if [[ "${CHECK}" == "1" ]]; then
-    target='docs/02_構想設計/02_tier1設計/openapi'
+    # 1) docs / contract コピーの両方の drift を検出
+    target='docs/02_構想設計/02_tier1設計/openapi tests/contract/openapi-contract'
     # 1) 既追跡ファイルの変更検出
-    if ! git diff --exit-code -- "${target}"; then
+    if ! git diff --exit-code -- ${target}; then
         echo "[error] OpenAPI が最新でありません。"
         echo "  対処: tools/codegen/openapi/run.sh を再実行し、git add してください。"
         exit 1
     fi
     # 2) untracked（新規生成）も検出。proto 追加で OpenAPI が増えた時の取りこぼし防止。
-    untracked=$(git ls-files --others --exclude-standard -- "${target}")
+    untracked=$(git ls-files --others --exclude-standard -- ${target})
     if [[ -n "${untracked}" ]]; then
         echo "[error] OpenAPI に未追跡ファイルがあります。git add してください:" >&2
         echo "${untracked}" >&2

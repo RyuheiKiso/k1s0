@@ -19,9 +19,10 @@
 //   削除確認は tools/ci/lint-replace-directive.sh のリリースゲートで行う。
 module github.com/k1s0/k1s0/src/tier2/go
 
-go 1.22
+go 1.24.0
 
 require (
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.66.2
 )

@@ -48,6 +48,12 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+# docs §共通規約「認証認可」: tier2 共通 JWT 認証 middleware を駆動する。
+# off / hmac / jwks の 3 mode（off は dev 限定、production では jwks を選ぶ）。
+# T2_AUTH_HMAC_SECRET / T2_AUTH_JWKS_URL は Secret 経由で注入する想定。
+auth:
+  mode: "off"
+
 # 環境変数（envFrom + env 個別の併用）
 env: []
 envFrom: []

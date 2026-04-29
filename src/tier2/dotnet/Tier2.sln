@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.0.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -43,6 +43,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxCalculator.Application.Tests", "services\TaxCalculator\tests\TaxCalculator.Application.Tests\TaxCalculator.Application.Tests.csproj", "{TC000001-0000-0000-0000-000000000006}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaxCalculator.ArchitectureTests", "services\TaxCalculator\tests\TaxCalculator.ArchitectureTests\TaxCalculator.ArchitectureTests.csproj", "{TC000001-0000-0000-0000-000000000007}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{062D5669-3B9B-4FE8-B5CD-1F1F6D71E6C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "K1s0.Tier2.Common.Auth", "shared\K1s0.Tier2.Common.Auth\K1s0.Tier2.Common.Auth.csproj", "{8F85087D-A21A-4B1E-B67A-FB958FB08077}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -134,5 +138,12 @@ Global
 		{TC000001-0000-0000-0000-000000000007}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{TC000001-0000-0000-0000-000000000007}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{TC000001-0000-0000-0000-000000000007}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F85087D-A21A-4B1E-B67A-FB958FB08077}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F85087D-A21A-4B1E-B67A-FB958FB08077}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F85087D-A21A-4B1E-B67A-FB958FB08077}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F85087D-A21A-4B1E-B67A-FB958FB08077}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8F85087D-A21A-4B1E-B67A-FB958FB08077} = {062D5669-3B9B-4FE8-B5CD-1F1F6D71E6C9}
 	EndGlobalSection
 EndGlobal

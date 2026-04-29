@@ -284,4 +284,114 @@ export class RotateSecretResponse extends Message {
         return proto3.util.equals(RotateSecretResponse, a, b);
     }
 }
+/**
+ * GetDynamic リクエスト（FR-T1-SECRETS-002）
+ *
+ * @generated from message k1s0.tier1.secrets.v1.GetDynamicSecretRequest
+ */
+export class GetDynamicSecretRequest extends Message {
+    /**
+     * 呼出元コンテキスト（テナント境界の検証に必須）
+     *
+     * @generated from field: k1s0.tier1.common.v1.TenantContext context = 1;
+     */
+    context;
+    /**
+     * 発行エンジン名（"postgres" / "mysql" / "kafka" 等、OpenBao の database engine 種別）
+     *
+     * @generated from field: string engine = 2;
+     */
+    engine = "";
+    /**
+     * OpenBao 側で予め定義されたロール名（tenant_id でスコープされた role）
+     *
+     * @generated from field: string role = 3;
+     */
+    role = "";
+    /**
+     * TTL 秒数（0 = 既定 3600 秒 = 1 時間、最大 86400 秒 = 24 時間）
+     *
+     * @generated from field: int32 ttl_sec = 4;
+     */
+    ttlSec = 0;
+    constructor(data) {
+        super();
+        proto3.util.initPartial(data, this);
+    }
+    static runtime = proto3;
+    static typeName = "k1s0.tier1.secrets.v1.GetDynamicSecretRequest";
+    static fields = proto3.util.newFieldList(() => [
+        { no: 1, name: "context", kind: "message", T: TenantContext },
+        { no: 2, name: "engine", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+        { no: 3, name: "role", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+        { no: 4, name: "ttl_sec", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    ]);
+    static fromBinary(bytes, options) {
+        return new GetDynamicSecretRequest().fromBinary(bytes, options);
+    }
+    static fromJson(jsonValue, options) {
+        return new GetDynamicSecretRequest().fromJson(jsonValue, options);
+    }
+    static fromJsonString(jsonString, options) {
+        return new GetDynamicSecretRequest().fromJsonString(jsonString, options);
+    }
+    static equals(a, b) {
+        return proto3.util.equals(GetDynamicSecretRequest, a, b);
+    }
+}
+/**
+ * GetDynamic 応答
+ *
+ * @generated from message k1s0.tier1.secrets.v1.GetDynamicSecretResponse
+ */
+export class GetDynamicSecretResponse extends Message {
+    /**
+     * 発行された credential 一式（"username" / "password" 等の key=value）
+     *
+     * @generated from field: map<string, string> values = 1;
+     */
+    values = {};
+    /**
+     * OpenBao 側 lease ID（renewal / revoke 用、削除時に呼び返す）
+     *
+     * @generated from field: string lease_id = 2;
+     */
+    leaseId = "";
+    /**
+     * 実際に付与された TTL 秒数（要求値が ceiling を超えたら短縮される）
+     *
+     * @generated from field: int32 ttl_sec = 3;
+     */
+    ttlSec = 0;
+    /**
+     * 発効時刻（Unix epoch ミリ秒）
+     *
+     * @generated from field: int64 issued_at_ms = 4;
+     */
+    issuedAtMs = protoInt64.zero;
+    constructor(data) {
+        super();
+        proto3.util.initPartial(data, this);
+    }
+    static runtime = proto3;
+    static typeName = "k1s0.tier1.secrets.v1.GetDynamicSecretResponse";
+    static fields = proto3.util.newFieldList(() => [
+        { no: 1, name: "values", kind: "map", K: 9 /* ScalarType.STRING */, V: { kind: "scalar", T: 9 /* ScalarType.STRING */ } },
+        { no: 2, name: "lease_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+        { no: 3, name: "ttl_sec", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+        { no: 4, name: "issued_at_ms", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    ]);
+    static fromBinary(bytes, options) {
+        return new GetDynamicSecretResponse().fromBinary(bytes, options);
+    }
+    static fromJson(jsonValue, options) {
+        return new GetDynamicSecretResponse().fromJson(jsonValue, options);
+    }
+    static fromJsonString(jsonString, options) {
+        return new GetDynamicSecretResponse().fromJsonString(jsonString, options);
+    }
+    static equals(a, b) {
+        return proto3.util.equals(GetDynamicSecretResponse, a, b);
+    }
+}
 //# sourceMappingURL=secrets_service_pb.js.map

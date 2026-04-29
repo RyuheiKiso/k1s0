@@ -37,6 +37,7 @@ export class StateFacade {
             expectedEtag: opts.expectedEtag ?? "",
             // TTL は省略時 0（永続）。
             ttlSec: opts.ttlSec ?? 0,
+            idempotencyKey: opts.idempotencyKey ?? "",
             context: this.client.tenantContext(),
         });
         // 新 ETag を返却する。

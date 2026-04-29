@@ -17,6 +17,7 @@ export class BindingFacade {
     operation: string,
     data: Uint8Array,
     metadata: Record<string, string> = {},
+    idempotencyKey = "",
   ): Promise<{ data: Uint8Array; metadata: Record<string, string> }> {
     const raw = createPromiseClient(BindingService, this.client.transport);
     const resp = await raw.invoke({
@@ -24,6 +25,7 @@ export class BindingFacade {
       operation,
       data,
       metadata,
+      idempotencyKey,
       context: this.client.tenantContext(),
     });
     return { data: resp.data, metadata: resp.metadata };

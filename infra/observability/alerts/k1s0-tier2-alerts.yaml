@@ -1,0 +1,120 @@
+# 本ファイルは tier2（SDK / ファサード層）のアラートルール。
+#
+# docs 正典:
+#   ops/runbooks/daily/error-code-alert-policy.md（tier2 セクション）
+#
+# 対象 metric:
+#   tier2 サービスは HTTP API なので `http_server_request_duration_seconds_count`
+#   と `http_server_request_duration_seconds_bucket`（OTel semantic convention）。
+#   k1s0_io_tier="tier2" ラベルで filter する。
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k1s0-tier2-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/tier: tier2
+    prometheus: k1s0
+    role: alert-rules
+spec:
+  groups:
+    # -------------------------------------------------------------------------
+    # tier2 認証系（401 / 403 急増は auth-abuse / IAM 不整合の signal）
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier2.auth
+      interval: 30s
+      rules:
+        - alert: K1s0Tier2Unauthenticated
+          # HTTP 401 が 20 req/min を 5 分継続で SEV2。
+          expr: |
+            sum by (service_name) (
+              rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier2",
+                http_response_status_code="401"
+              }[5m])
+            ) * 60 > 20
+          for: 5m
+          labels:
+            severity: SEV2
+            tier: tier2
+            channel: alert-tier2
+            team: security-sre
+          annotations:
+            summary: "tier2 {{ $labels.service_name }} で 401 急増 ({{ $value }} req/min)"
+            description: "auth-abuse の可能性。auth-abuse-detection.md を参照。"
+
+    # -------------------------------------------------------------------------
+    # tier2 可用性系
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier2.availability
+      interval: 30s
+      rules:
+        - alert: K1s0Tier2HighErrorRate
+          # 5xx が全 request の 3% 超を 5 分継続で SEV2。
+          expr: |
+            (
+              sum by (service_name) (
+                rate(http_server_request_duration_seconds_count{
+                  k1s0_io_tier="tier2",
+                  http_response_status_code=~"5.."
+                }[5m])
+              )
+              /
+              sum by (service_name) (
+                rate(http_server_request_duration_seconds_count{
+                  k1s0_io_tier="tier2"
+                }[5m])
+              )
+            ) > 0.03
+          for: 5m
+          labels:
+            severity: SEV2
+            tier: tier2
+            channel: alert-tier2
+          annotations:
+            summary: "tier2 {{ $labels.service_name }} の 5xx error rate が 3% 超"
+            description: "5 分平均 {{ $value | humanizePercentage }}。"
+
+        - alert: K1s0Tier2DBConnectionError
+          # DB 接続エラー（502/503）が 5 req/min を 3 分継続で SEV1。
+          # tier2 から見ると tier1 facade が UNAVAILABLE を返した時に 502 / 503 にする慣習。
+          expr: |
+            sum by (service_name) (
+              rate(http_server_request_duration_seconds_count{
+                k1s0_io_tier="tier2",
+                http_response_status_code=~"502|503"
+              }[3m])
+            ) * 60 > 5
+          for: 3m
+          labels:
+            severity: SEV1
+            tier: tier2
+            channel: incident-alert
+            pagerduty: "true"
+          annotations:
+            summary: "tier2 {{ $labels.service_name }} で upstream / DB 接続エラー多発"
+            description: "PagerDuty 起動。tier1 facade 側 status を即確認。"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/incidents/postgresql-primary-down.md"
+
+    # -------------------------------------------------------------------------
+    # tier2 Dapr sidecar 状態
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier2.dapr
+      interval: 30s
+      rules:
+        - alert: K1s0Tier2DaprSidecarDown
+          # Dapr sidecar の Up が 2 Pod 以上失敗で SEV2 即時。
+          # dapr metrics は dapr_runtime_health_check という独自ラベル群。
+          # 簡易: Pod label app.kubernetes.io/managed-by="dapr" の up==0 個数。
+          expr: |
+            count(up{job=~".*dapr.*", k1s0_io_tier="tier2"} == 0) > 2
+          for: 0m
+          labels:
+            severity: SEV2
+            tier: tier2
+            channel: alert-tier2
+          annotations:
+            summary: "tier2 で Dapr sidecar 障害が 2 Pod 以上"
+            description: "Dapr control-plane を確認、kubectl describe で sidecar 状態を見る。"

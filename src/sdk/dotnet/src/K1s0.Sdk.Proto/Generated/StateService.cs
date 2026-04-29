@@ -30,53 +30,54 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
             "CgNrZXkYAiABKAlSA2tleRI9Cgdjb250ZXh0GAMgASgLMiMuazFzMC50aWVy",
             "MS5jb21tb24udjEuVGVuYW50Q29udGV4dFIHY29udGV4dCJSCgtHZXRSZXNw",
             "b25zZRISCgRkYXRhGAEgASgMUgRkYXRhEhIKBGV0YWcYAiABKAlSBGV0YWcS",
-            "GwoJbm90X2ZvdW5kGAMgASgIUghub3RGb3VuZCLFAQoKU2V0UmVxdWVzdBIU",
+            "GwoJbm90X2ZvdW5kGAMgASgIUghub3RGb3VuZCLuAQoKU2V0UmVxdWVzdBIU",
             "CgVzdG9yZRgBIAEoCVIFc3RvcmUSEAoDa2V5GAIgASgJUgNrZXkSEgoEZGF0",
             "YRgDIAEoDFIEZGF0YRIjCg1leHBlY3RlZF9ldGFnGAQgASgJUgxleHBlY3Rl",
             "ZEV0YWcSFwoHdHRsX3NlYxgFIAEoBVIGdHRsU2VjEj0KB2NvbnRleHQYBiAB",
             "KAsyIy5rMXMwLnRpZXIxLmNvbW1vbi52MS5UZW5hbnRDb250ZXh0Ugdjb250",
-            "ZXh0IigKC1NldFJlc3BvbnNlEhkKCG5ld19ldGFnGAEgASgJUgduZXdFdGFn",
-            "IpsBCg1EZWxldGVSZXF1ZXN0EhQKBXN0b3JlGAEgASgJUgVzdG9yZRIQCgNr",
-            "ZXkYAiABKAlSA2tleRIjCg1leHBlY3RlZF9ldGFnGAMgASgJUgxleHBlY3Rl",
-            "ZEV0YWcSPQoHY29udGV4dBgEIAEoCzIjLmsxczAudGllcjEuY29tbW9uLnYx",
-            "LlRlbmFudENvbnRleHRSB2NvbnRleHQiKgoORGVsZXRlUmVzcG9uc2USGAoH",
-            "ZGVsZXRlZBgBIAEoCFIHZGVsZXRlZCJ5Cg5CdWxrR2V0UmVxdWVzdBIUCgVz",
-            "dG9yZRgBIAEoCVIFc3RvcmUSEgoEa2V5cxgCIAMoCVIEa2V5cxI9Cgdjb250",
-            "ZXh0GAMgASgLMiMuazFzMC50aWVyMS5jb21tb24udjEuVGVuYW50Q29udGV4",
-            "dFIHY29udGV4dCK8AQoPQnVsa0dldFJlc3BvbnNlEksKB3Jlc3VsdHMYASAD",
-            "KAsyMS5rMXMwLnRpZXIxLnN0YXRlLnYxLkJ1bGtHZXRSZXNwb25zZS5SZXN1",
-            "bHRzRW50cnlSB3Jlc3VsdHMaXAoMUmVzdWx0c0VudHJ5EhAKA2tleRgBIAEo",
-            "CVIDa2V5EjYKBXZhbHVlGAIgASgLMiAuazFzMC50aWVyMS5zdGF0ZS52MS5H",
-            "ZXRSZXNwb25zZVIFdmFsdWU6AjgBIoUBCgpUcmFuc2FjdE9wEjMKA3NldBgB",
-            "IAEoCzIfLmsxczAudGllcjEuc3RhdGUudjEuU2V0UmVxdWVzdEgAUgNzZXQS",
-            "PAoGZGVsZXRlGAIgASgLMiIuazFzMC50aWVyMS5zdGF0ZS52MS5EZWxldGVS",
-            "ZXF1ZXN0SABSBmRlbGV0ZUIECgJvcCKnAQoPVHJhbnNhY3RSZXF1ZXN0EhQK",
-            "BXN0b3JlGAEgASgJUgVzdG9yZRI/CgpvcGVyYXRpb25zGAIgAygLMh8uazFz",
-            "MC50aWVyMS5zdGF0ZS52MS5UcmFuc2FjdE9wUgpvcGVyYXRpb25zEj0KB2Nv",
-            "bnRleHQYAyABKAsyIy5rMXMwLnRpZXIxLmNvbW1vbi52MS5UZW5hbnRDb250",
-            "ZXh0Ugdjb250ZXh0IjAKEFRyYW5zYWN0UmVzcG9uc2USHAoJY29tbWl0dGVk",
-            "GAEgASgIUgljb21taXR0ZWQypAMKDFN0YXRlU2VydmljZRJICgNHZXQSHy5r",
-            "MXMwLnRpZXIxLnN0YXRlLnYxLkdldFJlcXVlc3QaIC5rMXMwLnRpZXIxLnN0",
-            "YXRlLnYxLkdldFJlc3BvbnNlEkgKA1NldBIfLmsxczAudGllcjEuc3RhdGUu",
-            "djEuU2V0UmVxdWVzdBogLmsxczAudGllcjEuc3RhdGUudjEuU2V0UmVzcG9u",
-            "c2USUQoGRGVsZXRlEiIuazFzMC50aWVyMS5zdGF0ZS52MS5EZWxldGVSZXF1",
-            "ZXN0GiMuazFzMC50aWVyMS5zdGF0ZS52MS5EZWxldGVSZXNwb25zZRJUCgdC",
-            "dWxrR2V0EiMuazFzMC50aWVyMS5zdGF0ZS52MS5CdWxrR2V0UmVxdWVzdBok",
-            "LmsxczAudGllcjEuc3RhdGUudjEuQnVsa0dldFJlc3BvbnNlElcKCFRyYW5z",
-            "YWN0EiQuazFzMC50aWVyMS5zdGF0ZS52MS5UcmFuc2FjdFJlcXVlc3QaJS5r",
-            "MXMwLnRpZXIxLnN0YXRlLnYxLlRyYW5zYWN0UmVzcG9uc2VC6wEKF2NvbS5r",
-            "MXMwLnRpZXIxLnN0YXRlLnYxQhFTdGF0ZVNlcnZpY2VQcm90b1ABWjtnaXRo",
-            "dWIuY29tL2sxczAvc2RrLWdvL3Byb3RvL3YxL2sxczAvdGllcjEvc3RhdGUv",
-            "djE7c3RhdGV2MaICA0tUU6oCJksxczAuU2RrLkdlbmVyYXRlZC5LMXMwLlRp",
-            "ZXIxLlN0YXRlLlYxygITSzFzMFxUaWVyMVxTdGF0ZVxWMeICH0sxczBcVGll",
-            "cjFcU3RhdGVcVjFcR1BCTWV0YWRhdGHqAhZLMXMwOjpUaWVyMTo6U3RhdGU6",
-            "OlYxYgZwcm90bzM="));
+            "ZXh0EicKD2lkZW1wb3RlbmN5X2tleRgHIAEoCVIOaWRlbXBvdGVuY3lLZXki",
+            "KAoLU2V0UmVzcG9uc2USGQoIbmV3X2V0YWcYASABKAlSB25ld0V0YWcimwEK",
+            "DURlbGV0ZVJlcXVlc3QSFAoFc3RvcmUYASABKAlSBXN0b3JlEhAKA2tleRgC",
+            "IAEoCVIDa2V5EiMKDWV4cGVjdGVkX2V0YWcYAyABKAlSDGV4cGVjdGVkRXRh",
+            "ZxI9Cgdjb250ZXh0GAQgASgLMiMuazFzMC50aWVyMS5jb21tb24udjEuVGVu",
+            "YW50Q29udGV4dFIHY29udGV4dCIqCg5EZWxldGVSZXNwb25zZRIYCgdkZWxl",
+            "dGVkGAEgASgIUgdkZWxldGVkInkKDkJ1bGtHZXRSZXF1ZXN0EhQKBXN0b3Jl",
+            "GAEgASgJUgVzdG9yZRISCgRrZXlzGAIgAygJUgRrZXlzEj0KB2NvbnRleHQY",
+            "AyABKAsyIy5rMXMwLnRpZXIxLmNvbW1vbi52MS5UZW5hbnRDb250ZXh0Ugdj",
+            "b250ZXh0IrwBCg9CdWxrR2V0UmVzcG9uc2USSwoHcmVzdWx0cxgBIAMoCzIx",
+            "LmsxczAudGllcjEuc3RhdGUudjEuQnVsa0dldFJlc3BvbnNlLlJlc3VsdHNF",
+            "bnRyeVIHcmVzdWx0cxpcCgxSZXN1bHRzRW50cnkSEAoDa2V5GAEgASgJUgNr",
+            "ZXkSNgoFdmFsdWUYAiABKAsyIC5rMXMwLnRpZXIxLnN0YXRlLnYxLkdldFJl",
+            "c3BvbnNlUgV2YWx1ZToCOAEihQEKClRyYW5zYWN0T3ASMwoDc2V0GAEgASgL",
+            "Mh8uazFzMC50aWVyMS5zdGF0ZS52MS5TZXRSZXF1ZXN0SABSA3NldBI8CgZk",
+            "ZWxldGUYAiABKAsyIi5rMXMwLnRpZXIxLnN0YXRlLnYxLkRlbGV0ZVJlcXVl",
+            "c3RIAFIGZGVsZXRlQgQKAm9wIqcBCg9UcmFuc2FjdFJlcXVlc3QSFAoFc3Rv",
+            "cmUYASABKAlSBXN0b3JlEj8KCm9wZXJhdGlvbnMYAiADKAsyHy5rMXMwLnRp",
+            "ZXIxLnN0YXRlLnYxLlRyYW5zYWN0T3BSCm9wZXJhdGlvbnMSPQoHY29udGV4",
+            "dBgDIAEoCzIjLmsxczAudGllcjEuY29tbW9uLnYxLlRlbmFudENvbnRleHRS",
+            "B2NvbnRleHQiMAoQVHJhbnNhY3RSZXNwb25zZRIcCgljb21taXR0ZWQYASAB",
+            "KAhSCWNvbW1pdHRlZDKkAwoMU3RhdGVTZXJ2aWNlEkgKA0dldBIfLmsxczAu",
+            "dGllcjEuc3RhdGUudjEuR2V0UmVxdWVzdBogLmsxczAudGllcjEuc3RhdGUu",
+            "djEuR2V0UmVzcG9uc2USSAoDU2V0Eh8uazFzMC50aWVyMS5zdGF0ZS52MS5T",
+            "ZXRSZXF1ZXN0GiAuazFzMC50aWVyMS5zdGF0ZS52MS5TZXRSZXNwb25zZRJR",
+            "CgZEZWxldGUSIi5rMXMwLnRpZXIxLnN0YXRlLnYxLkRlbGV0ZVJlcXVlc3Qa",
+            "Iy5rMXMwLnRpZXIxLnN0YXRlLnYxLkRlbGV0ZVJlc3BvbnNlElQKB0J1bGtH",
+            "ZXQSIy5rMXMwLnRpZXIxLnN0YXRlLnYxLkJ1bGtHZXRSZXF1ZXN0GiQuazFz",
+            "MC50aWVyMS5zdGF0ZS52MS5CdWxrR2V0UmVzcG9uc2USVwoIVHJhbnNhY3QS",
+            "JC5rMXMwLnRpZXIxLnN0YXRlLnYxLlRyYW5zYWN0UmVxdWVzdBolLmsxczAu",
+            "dGllcjEuc3RhdGUudjEuVHJhbnNhY3RSZXNwb25zZULrAQoXY29tLmsxczAu",
+            "dGllcjEuc3RhdGUudjFCEVN0YXRlU2VydmljZVByb3RvUAFaO2dpdGh1Yi5j",
+            "b20vazFzMC9zZGstZ28vcHJvdG8vdjEvazFzMC90aWVyMS9zdGF0ZS92MTtz",
+            "dGF0ZXYxogIDS1RTqgImSzFzMC5TZGsuR2VuZXJhdGVkLksxczAuVGllcjEu",
+            "U3RhdGUuVjHKAhNLMXMwXFRpZXIxXFN0YXRlXFYx4gIfSzFzMFxUaWVyMVxT",
+            "dGF0ZVxWMVxHUEJNZXRhZGF0YeoCFksxczA6OlRpZXIxOjpTdGF0ZTo6VjFi",
+            "BnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetRequest.Parser, new[]{ "Store", "Key", "Context" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.GetResponse.Parser, new[]{ "Data", "Etag", "NotFound" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest.Parser, new[]{ "Store", "Key", "Data", "ExpectedEtag", "TtlSec", "Context" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetRequest.Parser, new[]{ "Store", "Key", "Data", "ExpectedEtag", "TtlSec", "Context", "IdempotencyKey" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.SetResponse.Parser, new[]{ "NewEtag" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteRequest.Parser, new[]{ "Store", "Key", "ExpectedEtag", "Context" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.State.V1.DeleteResponse.Parser, new[]{ "Deleted" }, null, null, null, null),
@@ -712,6 +713,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       expectedEtag_ = other.expectedEtag_;
       ttlSec_ = other.ttlSec_;
       context_ = other.context_ != null ? other.context_.Clone() : null;
+      idempotencyKey_ = other.idempotencyKey_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -811,6 +813,22 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       }
     }
 
+    /// <summary>Field number for the "idempotency_key" field.</summary>
+    public const int IdempotencyKeyFieldNumber = 7;
+    private string idempotencyKey_ = "";
+    /// <summary>
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 同一キーでの再試行は副作用を重複させず初回 SetResponse を返す
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string IdempotencyKey {
+      get { return idempotencyKey_; }
+      set {
+        idempotencyKey_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -832,6 +850,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       if (ExpectedEtag != other.ExpectedEtag) return false;
       if (TtlSec != other.TtlSec) return false;
       if (!object.Equals(Context, other.Context)) return false;
+      if (IdempotencyKey != other.IdempotencyKey) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -845,6 +864,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       if (ExpectedEtag.Length != 0) hash ^= ExpectedEtag.GetHashCode();
       if (TtlSec != 0) hash ^= TtlSec.GetHashCode();
       if (context_ != null) hash ^= Context.GetHashCode();
+      if (IdempotencyKey.Length != 0) hash ^= IdempotencyKey.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -887,6 +907,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
         output.WriteRawTag(50);
         output.WriteMessage(Context);
       }
+      if (IdempotencyKey.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(IdempotencyKey);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -921,6 +945,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
         output.WriteRawTag(50);
         output.WriteMessage(Context);
       }
+      if (IdempotencyKey.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(IdempotencyKey);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -948,6 +976,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
       }
       if (context_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
+      }
+      if (IdempotencyKey.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(IdempotencyKey);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -981,6 +1012,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
           Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
         }
         Context.MergeFrom(other.Context);
+      }
+      if (other.IdempotencyKey.Length != 0) {
+        IdempotencyKey = other.IdempotencyKey;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1028,6 +1062,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
             input.ReadMessage(Context);
             break;
           }
+          case 58: {
+            IdempotencyKey = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1072,6 +1110,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.State.V1 {
               Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
             }
             input.ReadMessage(Context);
+            break;
+          }
+          case 58: {
+            IdempotencyKey = input.ReadString();
             break;
           }
         }

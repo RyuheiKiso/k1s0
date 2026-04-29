@@ -63,6 +63,9 @@ message SetRequest {
   int32 ttl_sec = 5;
   // 呼出元コンテキスト
   k1s0.tier1.common.v1.TenantContext context = 6;
+  // 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+  // 同一キーでの再試行は副作用を重複させず初回 SetResponse を返す
+  string idempotency_key = 7;
 }
 
 // Set 応答

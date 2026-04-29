@@ -58,6 +58,9 @@ message StartRequest {
   k1s0.tier1.common.v1.TenantContext context = 5;
   // バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
   WorkflowBackend backend = 6;
+  // 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+  // 同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+  string idempotency_key = 7;
 }
 
 // Start 応答

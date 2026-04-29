@@ -21,7 +21,7 @@ func (f *FeatureAdminClient) RegisterFlag(ctx context.Context, flag *featurev1.F
 		Flag:         flag,
 		ChangeReason: changeReason,
 		ApprovalId:   approvalID,
-		Context:      f.client.tenantContext(),
+		Context:      f.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return 0, e
@@ -33,7 +33,7 @@ func (f *FeatureAdminClient) RegisterFlag(ctx context.Context, flag *featurev1.F
 func (f *FeatureAdminClient) GetFlag(ctx context.Context, flagKey string, version int64) (*featurev1.FlagDefinition, int64, error) {
 	req := &featurev1.GetFlagRequest{
 		FlagKey: flagKey,
-		Context: f.client.tenantContext(),
+		Context: f.client.tenantContext(ctx),
 	}
 	// version > 0 のときだけ optional を設定する。
 	if version > 0 {
@@ -48,7 +48,7 @@ func (f *FeatureAdminClient) GetFlag(ctx context.Context, flagKey string, versio
 
 // ListFlags は Flag 定義一覧。kind / state は nil で全件、指定すれば絞込。
 func (f *FeatureAdminClient) ListFlags(ctx context.Context, kind *featurev1.FlagKind, state *featurev1.FlagState) ([]*featurev1.FlagDefinition, error) {
-	req := &featurev1.ListFlagsRequest{Context: f.client.tenantContext()}
+	req := &featurev1.ListFlagsRequest{Context: f.client.tenantContext(ctx)}
 	if kind != nil {
 		req.Kind = kind
 	}

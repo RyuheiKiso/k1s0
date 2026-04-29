@@ -41,7 +41,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=builder /out/t1-workflow /usr/local/bin/t1-workflow
 
 # gRPC + metrics ポート公開。
-EXPOSE 50001 9090
+EXPOSE 50001 50080 9090
 
 # nonroot user（UID 65532）。
 USER nonroot:nonroot

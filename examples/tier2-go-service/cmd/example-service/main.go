@@ -25,6 +25,9 @@ import (
 
 	// k1s0 高水準 SDK facade。
 	"github.com/k1s0/sdk-go/k1s0"
+	// docs §共通規約「認証認可」を満たす共通 JWT 認証 middleware
+	// （T2_AUTH_MODE=off/hmac/jwks の 3 mode、tier2 全 Go サービス共通）。
+	t2auth "github.com/k1s0/k1s0/src/tier2/go/shared/auth"
 )
 
 // プロセスエントリポイント。
@@ -51,27 +54,19 @@ func main() {
 	}
 	defer client.Close()
 
-	// HTTP handler を組み立てる。
-	mux := http.NewServeMux()
+	// 業務 endpoint 用の subrouter を組み立てる（auth middleware 必須）。
+	authMux := http.NewServeMux()
 
-	// /healthz: 単純な疎通確認。
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		// 200 OK を返却する。
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
-
-	// /readyz: tier1 facade との疎通も含めた健全性確認（リリース時点は単純）。
-	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ready"))
-	})
-
-	// /sample-write: tier1 State API への書き込みサンプル（k1s0 SDK 利用デモ）。
-	mux.HandleFunc("/sample-write", func(w http.ResponseWriter, r *http.Request) {
+	// /sample-write: tier1 State API への書き込みサンプル（k1s0 SDK 利用デモ、JWT 必須）。
+	authMux.HandleFunc("/sample-write", func(w http.ResponseWriter, r *http.Request) {
 		// HTTP context を tier1 RPC にも伝搬する。
 		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
+		// auth middleware が attach した tenant_id / subject を SDK 呼出に
+		// per-request 上書きする（confused deputy 対策、NFR-E-AC-003 準拠）。
+		if tid := t2auth.TenantIDFromContext(r.Context()); tid != "" {
+			ctx = k1s0.WithTenant(ctx, tid, t2auth.SubjectFromContext(r.Context()))
+		}
 		// State.Save を呼び出す（valkey-default Store の "tier2-example/last-call" キーに current time を書く）。
 		etag, err := client.State().Save(ctx, "valkey-default", "tier2-example/last-call",
 			[]byte(time.Now().UTC().Format(time.RFC3339)))
@@ -83,6 +78,20 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("saved, etag=" + etag))
 	})
+
+	// 外側 mux: /healthz / /readyz は probe で auth 不要。
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ready"))
+	})
+	// /sample-write は auth middleware で wrap する（docs §共通規約「認証認可」、
+	// T2_AUTH_MODE 環境変数で off / hmac / jwks の 3 mode を選択）。
+	mux.Handle("/sample-write", t2auth.Required()(authMux))
 
 	// HTTP server を組み立てる。
 	srv := &http.Server{

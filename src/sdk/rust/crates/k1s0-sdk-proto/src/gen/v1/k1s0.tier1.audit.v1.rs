@@ -33,6 +33,11 @@ pub struct RecordAuditRequest {
     /// 呼出元コンテキスト
     #[prost(message, optional, tag="2")]
     pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 重複 audit event 書込を防ぐ（hash chain 整合性が乱れないよう）。
+    /// 同一キーでの再試行は副作用を重複させず初回 audit_id を返す。
+    #[prost(string, tag="3")]
+    pub idempotency_key: ::prost::alloc::string::String,
 }
 /// Record 応答
 #[allow(clippy::derive_partial_eq_without_eq)]

@@ -1,0 +1,51 @@
+# =============================================================================
+# t1-decision Pod 用 Dockerfile（DS-SW-COMP-008: ZEN Engine JDM 評価 Pod）
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/04_rust_crate配置.md
+#       docs/02_構想設計/adr/ADR-RULE-001-zen-engine.md
+# 関連 ID: IMP-BUILD-002 / IMP-BUILD-DOCKER-* / DS-SW-COMP-008
+#
+# build context: src/（`docker build -f src/tier1/rust/Dockerfile.decision src/`）
+#   - tier1/rust の Cargo.toml が `../../sdk/rust/...` を path 参照しているため、
+#     build context は src/ 配下を含める必要がある（tier1/rust 単独では不足）。
+#
+# 設計方針:
+#   - multi-stage: rust:1.85-bookworm（Edition 2024 必須）→ distroless/cc-debian12:nonroot
+#   - ZEN Engine 0.55+ の rquickjs（C ソース埋込）コンパイル用に gcc/g++ が必要だが、
+#     rust:bookworm に同梱済のため追加 install 不要
+#   - distroless/cc: Rust の動的依存（libc / libstdc++ / libgcc_s）を提供する最小 base
+#   - EXPOSE 50001 50080 9090: gRPC + HTTP/JSON gateway + metrics ポート
+#     HTTP gateway は TIER1_HTTP_LISTEN_ADDR 環境変数設定時のみ起動（opt-in）
+# =============================================================================
+
+# build stage。
+FROM rust:1.85-bookworm AS builder
+
+# build context = src/。/workspace/tier1/rust/ で cargo build できるよう配置する。
+WORKDIR /workspace
+
+# context の src/ をすべてコピー（.dockerignore で target / node_modules を除外）。
+COPY . .
+
+# t1-decision バイナリを release ビルド。--locked で Cargo.lock 厳守、再現性向上。
+RUN cargo build --release \
+    --manifest-path tier1/rust/Cargo.toml \
+    --locked \
+    -p k1s0-tier1-decision --bin t1-decision
+
+# =============================================================================
+# runtime stage。
+# =============================================================================
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+# build stage からバイナリのみコピー。
+COPY --from=builder /workspace/tier1/rust/target/release/t1-decision /usr/local/bin/t1-decision
+
+# gRPC（50001）/ HTTP gateway（50080）/ metrics（9090）の 3 ポート公開。
+EXPOSE 50001 50080 9090
+
+# nonroot UID 65532 で起動。
+USER nonroot:nonroot
+
+# exec 形式 ENTRYPOINT（signal が直接届く、tokio graceful shutdown 動作）。
+ENTRYPOINT ["/usr/local/bin/t1-decision"]

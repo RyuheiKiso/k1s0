@@ -147,6 +147,13 @@ export class SetRequest extends Message {
      * @generated from field: k1s0.tier1.common.v1.TenantContext context = 6;
      */
     context;
+    /**
+     * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+     * 同一キーでの再試行は副作用を重複させず初回 SetResponse を返す
+     *
+     * @generated from field: string idempotency_key = 7;
+     */
+    idempotencyKey = "";
     constructor(data) {
         super();
         proto3.util.initPartial(data, this);
@@ -160,6 +167,7 @@ export class SetRequest extends Message {
         { no: 4, name: "expected_etag", kind: "scalar", T: 9 /* ScalarType.STRING */ },
         { no: 5, name: "ttl_sec", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
         { no: 6, name: "context", kind: "message", T: TenantContext },
+        { no: 7, name: "idempotency_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     ]);
     static fromBinary(bytes, options) {
         return new SetRequest().fromBinary(bytes, options);

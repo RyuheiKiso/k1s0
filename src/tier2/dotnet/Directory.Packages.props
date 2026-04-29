@@ -20,6 +20,11 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.10" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
 
+    <!-- ASP.NET Core JWT Bearer 認証（docs §共通規約「認証認可」、Keycloak / HMAC dev / off の 3 mode）。 -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
+    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.1.2" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.1.2" />
+
     <!-- Dapr / k1s0 SDK（本リポジトリ内 ProjectReference は CPM 対象外） -->
     <PackageVersion Include="Dapr.Client" Version="1.14.0" />
 

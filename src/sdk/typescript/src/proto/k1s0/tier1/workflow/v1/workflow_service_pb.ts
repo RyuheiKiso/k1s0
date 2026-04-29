@@ -166,6 +166,14 @@ export class StartRequest extends Message<StartRequest> {
    */
   backend = WorkflowBackend.BACKEND_AUTO;
 
+  /**
+   * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+   * 同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+   *
+   * @generated from field: string idempotency_key = 7;
+   */
+  idempotencyKey = "";
+
   constructor(data?: PartialMessage<StartRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -180,6 +188,7 @@ export class StartRequest extends Message<StartRequest> {
     { no: 4, name: "idempotent", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 5, name: "context", kind: "message", T: TenantContext },
     { no: 6, name: "backend", kind: "enum", T: proto3.getEnumType(WorkflowBackend) },
+    { no: 7, name: "idempotency_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StartRequest {

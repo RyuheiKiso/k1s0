@@ -5,11 +5,15 @@
 // 関連 ID: ADR-DEV-001（Paved Road）/ ADR-TIER1-002（Protobuf gRPC）
 module github.com/k1s0/k1s0/examples/tier2-go-service
 
-go 1.22
-
-require github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
+go 1.24.0
 
 require (
+	github.com/k1s0/k1s0/src/tier2/go v0.0.0
+	github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
+)
+
+require (
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
@@ -20,3 +24,6 @@ require (
 
 // 同一リポジトリ内の SDK Go を path 参照（リリース後 publish したら削除）
 replace github.com/k1s0/sdk-go => ../../src/sdk/go
+
+// tier2 共通 JWT 認証 middleware を path 参照（同 monorepo 内 module）
+replace github.com/k1s0/k1s0/src/tier2/go => ../../src/tier2/go

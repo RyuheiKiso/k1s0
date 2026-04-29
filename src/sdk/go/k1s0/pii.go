@@ -17,7 +17,7 @@ func (c *Client) Pii() *PiiClient { return c.pii }
 func (p *PiiClient) Classify(ctx context.Context, text string) (findings []*piiv1.PiiFinding, containsPii bool, err error) {
 	resp, e := p.client.raw.Pii.Classify(ctx, &piiv1.ClassifyRequest{
 		Text:    text,
-		Context: p.client.tenantContext(),
+		Context: p.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, false, e
@@ -29,7 +29,7 @@ func (p *PiiClient) Classify(ctx context.Context, text string) (findings []*piiv
 func (p *PiiClient) Mask(ctx context.Context, text string) (maskedText string, findings []*piiv1.PiiFinding, err error) {
 	resp, e := p.client.raw.Pii.Mask(ctx, &piiv1.MaskRequest{
 		Text:    text,
-		Context: p.client.tenantContext(),
+		Context: p.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return "", nil, e

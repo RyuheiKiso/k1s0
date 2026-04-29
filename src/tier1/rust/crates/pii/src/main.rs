@@ -26,8 +26,17 @@ use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
 };
 // 共通 HealthService 実装。
 use k1s0_tier1_health::Service as HealthSvc;
+// 共通 gRPC interceptor Layer（auth / ratelimit / observability / audit auto-emit）。
+use k1s0_tier1_common::grpc_layer::K1s0Layer;
+// 共通 HTTP/JSON gateway。
+use k1s0_tier1_common::http_gateway::{HttpGateway, JsonRpc, serve as serve_http};
+// 共通 runtime（環境変数から共通リソースを構築）。
+use k1s0_tier1_common::runtime::CommonRuntime;
 // PII 検出 logic の library 部。
+use k1s0_tier1_pii::http::{ClassifyRpc, MaskRpc, PiiHttpState};
 use k1s0_tier1_pii::masker::{Finding, Masker};
+// 標準同期。
+use std::sync::Arc;
 // SIGTERM / SIGINT 受信。
 use tokio::signal::unix::{SignalKind, signal};
 // tonic ランタイム。
@@ -119,12 +128,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_v1()?;
     // 共通 HealthService を構築する。pii Pod は純関数 / ステートレスのため probe 空。
     let health = HealthSvc::new(env!("CARGO_PKG_VERSION").to_string(), vec![]);
+    // docs §共通規約 に従う interceptor chain を構築。
+    let rt = CommonRuntime::from_env();
+    let layer = K1s0Layer::new(rt.auth.clone(), rt.rate_limiter.clone(), rt.audit_emitter.clone());
+
+    // HTTP/JSON gateway（TIER1_HTTP_LISTEN_ADDR が設定されている場合のみ起動）。
+    // 共通規約 §「HTTP/JSON 互換インタフェース共通仕様」に従い、Pii API の
+    // 2 RPC（Classify / Mask）を JSON で公開する。auth / ratelimit / audit は
+    // gateway 側が同 chain で適用する（Go 側 HTTPGateway と同じ挙動）。
+    let http_handle: Option<tokio::task::JoinHandle<()>> =
+        match std::env::var("TIER1_HTTP_LISTEN_ADDR").ok().filter(|s| !s.is_empty()) {
+            Some(http_addr) => {
+                let pii_state = PiiHttpState {
+                    masker: Arc::new(Masker::default()),
+                };
+                let gateway = HttpGateway::new(
+                    rt.auth.clone(),
+                    rt.rate_limiter.clone(),
+                    rt.audit_emitter.clone(),
+                )
+                .register(Arc::new(ClassifyRpc { state: pii_state.clone() }) as Arc<dyn JsonRpc>)
+                .register(Arc::new(MaskRpc { state: pii_state }) as Arc<dyn JsonRpc>);
+                let router = gateway.into_router();
+                eprintln!("tier1/pii: HTTP/JSON gateway listening on {}", http_addr);
+                let addr_for_task = http_addr.clone();
+                Some(tokio::spawn(async move {
+                    if let Err(e) = serve_http(&addr_for_task, router).await {
+                        eprintln!("tier1/pii: HTTP gateway error: {}", e);
+                    }
+                }))
+            }
+            None => None,
+        };
+
     Server::builder()
+        .layer(layer)
         .add_service(PiiServiceServer::new(PiiServer::default()))
         .add_service(HealthServiceServer::new(health))
         .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
+    // gRPC server 終了後 HTTP gateway も停止する（K8s では Pod 全体が落ちるので abort で十分）。
+    if let Some(h) = http_handle {
+        h.abort();
+    }
     Ok(())
 }
 

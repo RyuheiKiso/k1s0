@@ -38,6 +38,8 @@ import (
 	"flag"
 	// 起動 / shutdown / エラーログを stderr に出す（OTel logger は plan 04-02 で導入）。
 	"log"
+	// HTTP server bootstrap（HTTP/JSON 互換 gateway 用）。
+	"net/http"
 	// stdout への OTel JSON Lines 出力先。
 	"os"
 	// HealthService.Readiness の probe ごと timeout 制御に使う。
@@ -59,10 +61,25 @@ import (
 // Dapr sidecar 経由の app-port も 50001 を期待（dapr.io/app-port=50001）。
 const defaultListen = ":50001"
 
+// HTTP/JSON 互換 gateway の既定 listen address（共通規約 §「HTTP/JSON 互換」）。
+// gRPC 50001 とポート分離して同 Pod に同居させる（Service 側で多 port 公開する想定）。
+// 環境変数 / flag が空文字なら HTTP gateway を起動しない（gRPC 経路のみで運用する選択も許容）。
+const defaultHTTPListen = ":50081"
+
+// envOrDefault は env で上書き可能な flag.String 既定値を返す（Helm から env 経由で渡せるように）。
+func envOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 // プロセスエントリポイント。flag パースと adapter 初期化、common.Run への委譲を行う。
 func main() {
 	// listen address の上書き flag を定義（既定 :50001、後で ConfigMap → envvar → flag の優先順で読む）。
 	addr := flag.String("listen", defaultListen, "gRPC server listen address")
+	// HTTP/JSON 互換 gateway の listen address。空文字 / "off" で起動しない。
+	httpAddr := flag.String("http-listen", envOrDefault("TIER1_HTTP_LISTEN_ADDR", defaultHTTPListen), "HTTP/JSON gateway listen address (empty or \"off\" disables)")
 	// Dapr sidecar address の flag（空文字なら DAPR_GRPC_ENDPOINT 環境変数を参照）。
 	daprAddr := flag.String("dapr-address", "", "Dapr sidecar gRPC address (empty = use DAPR_GRPC_ENDPOINT env or in-memory backend)")
 	// flag 解析を起動直後に確定させる。
@@ -99,6 +116,20 @@ func main() {
 	deps.LogEmitter = bundle.LogEmitter
 	deps.MetricEmitter = bundle.MetricEmitter
 	deps.TraceEmitter = bundle.TraceEmitter
+
+	// HTTP/JSON 互換 gateway を別 goroutine で起動する（共通規約 §「HTTP/JSON 互換」）。
+	// flag が空文字 / "off" なら HTTP server を起動しない（純 gRPC 運用への切替）。
+	httpServer := startHTTPGatewayIfEnabled(*httpAddr, deps)
+	// Pod 終了時に HTTP server も graceful shutdown する。
+	defer func() {
+		if httpServer != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+				log.Printf("t1-state: http gateway shutdown: %v", err)
+			}
+		}
+	}()
 
 	// Pod メタデータを構築する（5 API すべて Register hook で登録）。
 	pod := common.Pod{
@@ -137,6 +168,55 @@ func main() {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-state: %v", err)
 	}
+}
+
+// startHTTPGatewayIfEnabled は HTTP/JSON 互換 gateway を別 goroutine で起動する。
+// addr が空文字 / "off" なら起動せず nil を返す（純 gRPC 運用）。
+//
+// 起動する route 集合（Go 側 9 API・25 unary RPC）:
+//   - State / PubSub / Binding / Feature / Log / Telemetry / ServiceInvoke
+//
+// 認証は本 gateway 単体では行わず、Service Mesh（Istio Ambient mTLS）または gRPC AuthInterceptor
+// の前段配置で外部認証を担保する運用を前提とする（共通規約 §「認証と認可」）。
+// release-initial では Pod-internal 経路として外部公開しない設計が望ましい。
+func startHTTPGatewayIfEnabled(addr string, deps state.Deps) *http.Server {
+	if addr == "" || addr == "off" {
+		log.Printf("t1-state: HTTP/JSON gateway disabled (--http-listen=%q)", addr)
+		return nil
+	}
+	// gRPC server と同じ interceptor chain を HTTP gateway にも適用する
+	// （共通規約 §「認証と認可」/§「監査と痕跡」/§「レート制限とクォータ」が
+	//  HTTP / gRPC で同一に効くようにする）。
+	// AuditInterceptor も含めて 4 段全部適用する。grpc / http 経路で別 emitter
+	// instance を生成するため TIER1_AUDIT_MODE=grpc 時は 2 connection 発生するが、
+	// release-initial では機能性を優先（最適化は別 PR）。
+	g := common.NewHTTPGateway().WithInterceptors(
+		common.AuthInterceptor(common.LoadAuthConfigFromEnv()),
+		common.RateLimitInterceptor(common.LoadRateLimitConfigFromEnv()),
+		common.ObservabilityInterceptor(),
+		common.AuditInterceptor(common.LoadAuditEmitterFromEnv()),
+	)
+	// 9 API の route を一括登録する（unary RPC のみ、stream は gRPC 経路）。
+	g.RegisterStateRoutes(state.MakeHTTPHandlers(state.NewStateServiceServer(deps)))
+	g.RegisterPubSubRoutes(state.MakeHTTPPubSubHandlers(state.NewPubSubServiceServer(deps)))
+	g.RegisterFeatureRoutes(state.MakeHTTPFeatureHandlers(state.NewFeatureServiceServer(deps)))
+	g.RegisterBindingRoutes(state.MakeHTTPBindingHandlers(state.NewBindingServiceServer(deps)))
+	g.RegisterLogRoutes(state.MakeHTTPLogHandlers(state.NewLogServiceServer(deps)))
+	g.RegisterTelemetryRoutes(state.MakeHTTPTelemetryHandlers(state.NewTelemetryServiceServer(deps)))
+	g.RegisterInvokeRoutes(state.MakeHTTPInvokeHandlers(state.NewInvokeServiceServer(deps)))
+
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           g.Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		log.Printf("t1-state: HTTP/JSON gateway listening on %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("t1-state: http gateway: %v", err)
+		}
+	}()
+	return srv
 }
 
 // newDaprClient は flag / DAPR_GRPC_ENDPOINT / in-memory の優先順で Dapr Client を構築する。

@@ -10,9 +10,13 @@ public sealed class AuditFacade
     internal AuditFacade(K1s0Client client) { _client = client; }
 
     /// RecordAsync: 監査イベント記録。auditId を返す。
+    /// 共通規約 §「冪等性と再試行」: idempotencyKey が空でなければ tier1 が 24h dedup
+    /// する（hash chain 二重追記防止）。空文字なら毎回新 entry が作られる。
     public async Task<string> RecordAsync(
         string actor, string action, string resource, string outcome,
-        IDictionary<string, string>? attributes = null, CancellationToken ct = default)
+        IDictionary<string, string>? attributes = null,
+        string idempotencyKey = "",
+        CancellationToken ct = default)
     {
         var ev = new AuditEvent
         {
@@ -23,7 +27,14 @@ public sealed class AuditFacade
             Outcome = outcome,
         };
         if (attributes != null) foreach (var kv in attributes) ev.Attributes.Add(kv.Key, kv.Value);
-        var resp = await _client.Raw.Audit.RecordAsync(new RecordAuditRequest { Event = ev, Context = _client.TenantContext() }, cancellationToken: ct);
+        var resp = await _client.Raw.Audit.RecordAsync(
+            new RecordAuditRequest
+            {
+                Event = ev,
+                IdempotencyKey = idempotencyKey,
+                Context = _client.TenantContext(),
+            },
+            cancellationToken: ct);
         return resp.AuditId;
     }
 

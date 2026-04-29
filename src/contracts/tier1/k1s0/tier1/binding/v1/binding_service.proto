@@ -33,6 +33,9 @@ message InvokeBindingRequest {
   map<string, string> metadata = 4;
   // 呼出元コンテキスト
   k1s0.tier1.common.v1.TenantContext context = 5;
+  // 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+  // 外部送信（SMTP / S3 等）の重複防止に必須。同一キーでの再試行は初回 response を返す。
+  string idempotency_key = 6;
 }
 
 // Invoke 応答

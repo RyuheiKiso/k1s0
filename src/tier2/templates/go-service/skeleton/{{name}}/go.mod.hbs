@@ -6,8 +6,14 @@ go 1.22
 
 require (
 	github.com/k1s0/sdk-go v0.0.0
+	// docs §共通規約「認証認可」を満たす共通 JWT 認証 middleware（tier2 全 Go サービス共通）。
+	github.com/k1s0/k1s0/src/tier2/go v0.0.0
 )
 
 // リリース時点 SDK は未公開のため、採用組織のリポジトリ内 SDK を path で参照する想定。
 // SDK が外部 registry に publish されたら `replace` を削除する運用（IMP-BUILD-GM-026）。
 replace github.com/k1s0/sdk-go => ../sdk/go
+
+// tier2 Go の shared/auth パッケージを path 参照する（採用組織のリポジトリ
+// レイアウトに合わせて relative path を調整）。
+replace github.com/k1s0/k1s0/src/tier2/go => ../tier2-go

@@ -19,6 +19,10 @@ pub struct InvokeBindingRequest {
     /// 呼出元コンテキスト
     #[prost(message, optional, tag="5")]
     pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 外部送信（SMTP / S3 等）の重複防止に必須。同一キーでの再試行は初回 response を返す。
+    #[prost(string, tag="6")]
+    pub idempotency_key: ::prost::alloc::string::String,
 }
 /// Invoke 応答
 #[allow(clippy::derive_partial_eq_without_eq)]

@@ -35,6 +35,7 @@ impl AuditFacade {
     }
 
     /// record は監査イベント記録。audit_id を返す。
+    /// idempotency_key が空でなければ tier1 が 24h dedup（hash chain 二重追記防止）する。
     pub async fn record(
         &mut self,
         actor: &str,
@@ -42,6 +43,7 @@ impl AuditFacade {
         resource: &str,
         outcome: &str,
         attributes: HashMap<String, String>,
+        idempotency_key: &str,
     ) -> Result<String, Status> {
         // 現在時刻を Timestamp に変換する。
         let now = SystemTime::now()
@@ -63,6 +65,7 @@ impl AuditFacade {
                     outcome: outcome.to_string(),
                     attributes,
                 }),
+                idempotency_key: idempotency_key.to_string(),
                 context: Some(self.client.tenant_context()),
             })
             .await?

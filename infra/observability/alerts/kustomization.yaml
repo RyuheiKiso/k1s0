@@ -1,0 +1,25 @@
+# 本ファイルは k1s0 Prometheus alerting rules の Kustomize 入口。
+#
+# docs 正典:
+#   ops/runbooks/daily/error-code-alert-policy.md
+#   docs/03_要件定義/30_非機能要件/A_可用性.md（NFR-A-SLA-*）
+#
+# 適用方法:
+#   kubectl kustomize infra/observability/alerts | kubectl apply -f -
+#   または GitOps（Argo CD ApplicationSet `infra.yaml`）で自動同期。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Prometheus operator (kube-prometheus-stack) を前提にした PrometheusRule CRD を配置する。
+# namespace は monitoring を期待（kube-prometheus-stack の既定）。
+resources:
+  - k1s0-tier1-alerts.yaml
+  - k1s0-tier2-alerts.yaml
+  - k1s0-tier3-alerts.yaml
+  - k1s0-slo.yaml
+
+labels:
+  - includeSelectors: false
+    pairs:
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/part-of: k1s0

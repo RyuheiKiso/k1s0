@@ -2,6 +2,7 @@ import type { K1s0Client } from "./client.js";
 export interface SaveOptions {
     expectedEtag?: string;
     ttlSec?: number;
+    idempotencyKey?: string;
 }
 export declare class StateFacade {
     private readonly client;

@@ -24,5 +24,7 @@
          本 example は別 sln のためあくまで POC、リリース時点 NuGet Package に切替予定）。 -->
     <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Grpc/K1s0.Sdk.Grpc.csproj" />
     <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
+    <!-- 共通規約「認証認可」を満たす JWT Bearer middleware（AddK1s0JwtBearer extension）。 -->
+    <ProjectReference Include="../../src/tier2/dotnet/shared/K1s0.Tier2.Common.Auth/K1s0.Tier2.Common.Auth.csproj" />
   </ItemGroup>
 </Project>

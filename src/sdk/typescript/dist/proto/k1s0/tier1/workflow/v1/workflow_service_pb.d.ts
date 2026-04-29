@@ -2,6 +2,34 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Message, proto3 } from "@bufbuild/protobuf";
 import { ErrorDetail, TenantContext } from "../../common/v1/common_pb.js";
 /**
+ * バックエンド種別（FR-T1-WORKFLOW-001 の "短期は Dapr Workflow、長期実行は Temporal" 対応）。
+ * SDK の RunShort / RunLong は本 enum を BACKEND_DAPR / BACKEND_TEMPORAL に固定する。
+ * 注: zero 値は AUTO（明示指定なし、tier1 が workflow_type / 期待実行時間で振り分け）。
+ * buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+ *
+ * @generated from enum k1s0.tier1.workflow.v1.WorkflowBackend
+ */
+export declare enum WorkflowBackend {
+    /**
+     * 既定値: tier1 が workflow_type / 期待実行時間に基づいて自動選択する。
+     *
+     * @generated from enum value: BACKEND_AUTO = 0;
+     */
+    BACKEND_AUTO = 0,
+    /**
+     * 短期ワークフロー向け（Dapr Workflow building block、上限 7 日）。
+     *
+     * @generated from enum value: BACKEND_DAPR = 1;
+     */
+    BACKEND_DAPR = 1,
+    /**
+     * 長期ワークフロー向け（Temporal、上限なし）。
+     *
+     * @generated from enum value: BACKEND_TEMPORAL = 2;
+     */
+    BACKEND_TEMPORAL = 2
+}
+/**
  * 実行状態の列挙。
  * 注: 正典 IDL は本 enum の zero value を `RUNNING = 0` と定義しているため、
  *     buf STANDARD lint の ENUM_ZERO_VALUE_SUFFIX / ENUM_VALUE_PREFIX を ignore する。
@@ -84,6 +112,19 @@ export declare class StartRequest extends Message<StartRequest> {
      * @generated from field: k1s0.tier1.common.v1.TenantContext context = 5;
      */
     context?: TenantContext;
+    /**
+     * バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
+     *
+     * @generated from field: k1s0.tier1.workflow.v1.WorkflowBackend backend = 6;
+     */
+    backend: WorkflowBackend;
+    /**
+     * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+     * 同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+     *
+     * @generated from field: string idempotency_key = 7;
+     */
+    idempotencyKey: string;
     constructor(data?: PartialMessage<StartRequest>);
     static readonly runtime: typeof proto3;
     static readonly typeName = "k1s0.tier1.workflow.v1.StartRequest";
@@ -111,6 +152,12 @@ export declare class StartResponse extends Message<StartResponse> {
      * @generated from field: string run_id = 2;
      */
     runId: string;
+    /**
+     * 実際に選択された backend（AUTO で起動された場合の解決結果が入る）。
+     *
+     * @generated from field: k1s0.tier1.workflow.v1.WorkflowBackend backend = 3;
+     */
+    backend: WorkflowBackend;
     constructor(data?: PartialMessage<StartResponse>);
     static readonly runtime: typeof proto3;
     static readonly typeName = "k1s0.tier1.workflow.v1.StartResponse";

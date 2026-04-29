@@ -8,13 +8,14 @@ export class BindingFacade {
         this.client = client;
     }
     /** invoke は出力バインディング呼出。 */
-    async invoke(name, operation, data, metadata = {}) {
+    async invoke(name, operation, data, metadata = {}, idempotencyKey = "") {
         const raw = createPromiseClient(BindingService, this.client.transport);
         const resp = await raw.invoke({
             name,
             operation,
             data,
             metadata,
+            idempotencyKey,
             context: this.client.tenantContext(),
         });
         return { data: resp.data, metadata: resp.metadata };

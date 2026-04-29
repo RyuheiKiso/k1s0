@@ -17,10 +17,10 @@ public static class ApprovalEndpoints
     // POST /api/approvals/{id}/decide 入力 DTO。
     public sealed record DecideRequestBody(string Approver, string Decision);
 
-    // ルートを組み立てる。
+    // ルートを組み立てる（docs §共通規約「認証認可」: 全 /api/* エンドポイント JWT 必須）。
     public static void MapApprovalEndpoints(this WebApplication app)
     {
-        // POST /api/approvals : 新規承認申請。
+        // POST /api/approvals : 新規承認申請。RequireAuthorization で JWT 必須化。
         app.MapPost("/api/approvals", async (SubmitRequestBody body, SubmitApprovalUseCase useCase, CancellationToken ct) =>
         {
             try
@@ -35,7 +35,7 @@ public static class ApprovalEndpoints
                 // ドメイン入力不正は 400。
                 return Results.BadRequest(new { error = new { code = "E-T2-APPR-001", message = ex.Message, category = "VALIDATION" } });
             }
-        });
+        }).RequireAuthorization();
 
         // POST /api/approvals/{id}/decide : 承認 / 却下。
         app.MapPost("/api/approvals/{id}/decide", async (string id, DecideRequestBody body, DecideApprovalUseCase useCase, CancellationToken ct) =>
@@ -67,6 +67,6 @@ public static class ApprovalEndpoints
                 // 状態遷移違反は 409。
                 return Results.Conflict(new { error = new { code = "E-T2-APPR-005", message = ex.Message, category = "CONFLICT" } });
             }
-        });
+        }).RequireAuthorization();
     }
 }

@@ -50,6 +50,10 @@ pub struct SetRequest {
     /// 呼出元コンテキスト
     #[prost(message, optional, tag="6")]
     pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 同一キーでの再試行は副作用を重複させず初回 SetResponse を返す
+    #[prost(string, tag="7")]
+    pub idempotency_key: ::prost::alloc::string::String,
 }
 /// Set 応答
 #[allow(clippy::derive_partial_eq_without_eq)]

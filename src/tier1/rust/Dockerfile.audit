@@ -1,0 +1,37 @@
+# =============================================================================
+# t1-audit Pod 用 Dockerfile（DS-SW-COMP-007: WORM ストア StatefulSet Pod）
+#
+# 設計: docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/04_rust_crate配置.md
+#       docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（AuditService）
+# 関連 ID: IMP-BUILD-002 / IMP-BUILD-DOCKER-* / DS-SW-COMP-007 / FR-T1-AUDIT-* / NFR-H-INT-001
+#
+# build context: src/（`docker build -f src/tier1/rust/Dockerfile.audit src/`）
+#
+# 設計方針:
+#   - multi-stage: rust:1.85-bookworm → distroless/cc-debian12:nonroot
+#   - SHA-256 hash chain は ring crate 経由のため build に C コンパイラ必要（rust:bookworm 同梱）
+#   - EXPOSE 50001 50080 9090: gRPC + HTTP/JSON gateway + metrics ポート
+# =============================================================================
+
+# build stage。
+FROM rust:1.85-bookworm AS builder
+
+WORKDIR /workspace
+COPY . .
+
+# t1-audit バイナリを release ビルド。
+RUN cargo build --release \
+    --manifest-path tier1/rust/Cargo.toml \
+    --locked \
+    -p k1s0-tier1-audit --bin t1-audit
+
+# =============================================================================
+# runtime stage。
+# =============================================================================
+FROM gcr.io/distroless/cc-debian12:nonroot
+
+COPY --from=builder /workspace/tier1/rust/target/release/t1-audit /usr/local/bin/t1-audit
+
+EXPOSE 50001 50080 9090
+USER nonroot:nonroot
+ENTRYPOINT ["/usr/local/bin/t1-audit"]

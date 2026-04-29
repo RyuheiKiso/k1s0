@@ -57,6 +57,11 @@ spec:
             - name: grpc
               containerPort: {{ $podCfg.grpcPort }}
               protocol: TCP
+            {{- if and $podCfg.httpPort (gt (int $podCfg.httpPort) 0) }}
+            - name: http
+              containerPort: {{ $podCfg.httpPort }}
+              protocol: TCP
+            {{- end }}
             - name: metrics
               containerPort: {{ $podCfg.metricsPort }}
               protocol: TCP
@@ -67,6 +72,19 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            # docs §共通規約「HTTP/JSON 互換」: HTTP gateway を起動する listen address。
+            # values.pods.<name>.httpPort が 0 / 未設定なら env 自体を渡さず、Pod 側は gRPC のみで起動する。
+            {{- if and $podCfg.httpPort (gt (int $podCfg.httpPort) 0) }}
+            - name: TIER1_HTTP_LISTEN_ADDR
+              value: {{ printf "0.0.0.0:%d" (int $podCfg.httpPort) | quote }}
+            {{- end }}
+            # docs §共通規約「認証認可」: AUTH_MODE = off / hmac / jwks。
+            # production は AUTH_HMAC_SECRET / AUTH_JWKS_URL を Secret から注入する想定。
+            - name: TIER1_AUTH_MODE
+              value: {{ $.Values.config.authMode | quote }}
+            # docs §共通規約「監査自動発火」: AUDIT_MODE = noop / log / grpc。
+            - name: TIER1_AUDIT_MODE
+              value: {{ $.Values.config.auditMode | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "tier1-facade.fullname" $ }}-config

@@ -130,6 +130,7 @@ func buildPubSubMeta(tenantID, idempotencyKey string, extra map[string]string) m
 // Subscribe は Dapr SDK Subscribe を呼び、PubSubSubscription を返す。
 // ConsumerGroup は Dapr SDK の SubscriptionOptions.Metadata にコンポーネント依存
 // キー（kafka なら "consumerGroup"）として詰める運用。
+// 物理トピック名は prefixKey で `<tenant_id>/` を付与し、Receive の応答 Topic は strip して返す。
 func (a *daprPubSubAdapter) Subscribe(ctx context.Context, req SubscribeAdapterRequest) (PubSubSubscription, error) {
 	meta := buildPubSubMeta(req.TenantID, "", nil)
 	if req.ConsumerGroup != "" {
@@ -139,21 +140,29 @@ func (a *daprPubSubAdapter) Subscribe(ctx context.Context, req SubscribeAdapterR
 		// kafka backend では "consumerGroup" がコンポーネント既定キー。
 		meta["consumerGroup"] = req.ConsumerGroup
 	}
+	// L2 テナント分離: 物理トピック名に `<tenant_id>/` を付与する。
+	physTopic := prefixKey(req.TenantID, req.Topic)
 	sub, err := a.client.pubsubClient().Subscribe(ctx, daprclient.SubscriptionOptions{
 		PubsubName: req.Component,
-		Topic:      req.Topic,
+		Topic:      physTopic,
 		Metadata:   meta,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &daprSubscriptionAdapter{sub: sub, topic: req.Topic}, nil
+	// daprSubscriptionAdapter.topic は tier2/tier3 視点の論理トピックを保持する
+	// （Receive 応答 Event.Topic に strip 済を返すため）。
+	return &daprSubscriptionAdapter{sub: sub, topic: req.Topic, tenantID: req.TenantID}, nil
 }
 
 // daprSubscriptionAdapter は Dapr SDK Subscription を PubSubSubscription に適合させる。
 type daprSubscriptionAdapter struct {
-	sub   *daprclient.Subscription
+	// SDK の Subscription への参照。
+	sub *daprclient.Subscription
+	// tier2/tier3 視点の論理トピック名（prefix なし）。Receive 応答に詰めて透過させる。
 	topic string
+	// L2 テナント分離用: SDK 応答に物理トピック（`<tenant_id>/<topic>`）が出た場合に strip する。
+	tenantID string
 }
 
 func (s *daprSubscriptionAdapter) Receive(_ context.Context) (*SubscribedEvent, error) {
@@ -175,12 +184,19 @@ func (s *daprSubscriptionAdapter) Receive(_ context.Context) (*SubscribedEvent, 
 	} else if s, ok := msg.Data.(string); ok {
 		data = []byte(s)
 	}
+	// 応答の Topic は subscription 開始時に保持した論理トピック名を使う。
+	// SDK 側で TopicEvent.Topic を返す経路があっても tier2/tier3 視点では物理 prefix を見せない。
+	logicalTopic := s.topic
+	// SDK 経路で TopicEvent.Topic に物理トピックが入った場合の fallback として strip も試みる。
+	if msg.TopicEvent.Topic != "" {
+		logicalTopic = stripKey(s.tenantID, msg.TopicEvent.Topic)
+	}
 	return &SubscribedEvent{
-		Topic:       s.topic,
+		Topic:       logicalTopic,
 		Data:        data,
 		ContentType: msg.DataContentType,
-		Metadata:    nil,    // SDK の TopicEvent には header メタデータ未露出
-		Offset:      0,      // SDK は exposing しない
+		Metadata:    nil, // SDK の TopicEvent には header メタデータ未露出
+		Offset:      0,   // SDK は exposing しない
 		Ack:         msg.Success,
 		Retry:       msg.Retry,
 	}, nil
@@ -191,9 +207,12 @@ func (s *daprSubscriptionAdapter) Close() error {
 }
 
 // Publish はトピックへ event を発行する。
+// 物理トピック名は prefixKey で `<tenant_id>/` を付与する（L2 テナント分離）。
 func (a *daprPubSubAdapter) Publish(ctx context.Context, req PublishRequest) (PublishResponse, error) {
 	// metadata 構築（テナント + 冪等性 + 利用側追加）。
 	meta := buildPubSubMeta(req.TenantID, req.IdempotencyKey, req.Metadata)
+	// L2 テナント分離: 物理トピックに `<tenant_id>/` を付与する。
+	physTopic := prefixKey(req.TenantID, req.Topic)
 
 	// SDK の PublishEvent オプションを組み立てる。
 	// content-type が空でも SDK は default を使うので無条件指定はしない。
@@ -206,7 +225,7 @@ func (a *daprPubSubAdapter) Publish(ctx context.Context, req PublishRequest) (Pu
 	}
 
 	// Dapr SDK 呼び出し。data は []byte で渡し、SDK 側で適切に serialize される。
-	if err := a.client.pubsubClient().PublishEvent(ctx, req.Component, req.Topic, req.Data, opts...); err != nil {
+	if err := a.client.pubsubClient().PublishEvent(ctx, req.Component, physTopic, req.Data, opts...); err != nil {
 		return PublishResponse{}, err
 	}
 	// SDK は Kafka offset を返さないため 0 を返却する（proto field は予約）。

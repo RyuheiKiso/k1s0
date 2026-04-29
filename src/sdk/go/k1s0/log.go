@@ -40,7 +40,7 @@ func (l *LogClient) Send(ctx context.Context, severity Severity, body string, at
 			Body:       body,
 			Attributes: attributes,
 		},
-		Context: l.client.tenantContext(),
+		Context: l.client.tenantContext(ctx),
 	}
 	// RPC 呼出。
 	_, err := l.client.raw.Log.Send(ctx, req)
@@ -67,8 +67,24 @@ func (l *LogClient) Debug(ctx context.Context, body string, attrs map[string]str
 	return l.Send(ctx, SeverityDebug, body, attrs)
 }
 
-// tenantContext のため secrets.go の helper と独立した実装は持たない（client.cfg を直参照）。
-func (c *Client) tenantContext() *commonv1.TenantContext {
+// tenantContext は ctx に WithTenant で attach された per-request override を優先し、
+// 未 attach の場合は client.cfg を fallback として TenantContext proto を構築する。
+//
+// per-request override の動機:
+//   tier3 BFF など、1 SDK インスタンスで複数エンドユーザのリクエストを処理する経路では、
+//   各リクエストの JWT tenant_id を SDK 呼出時に伝搬する必要がある。WithTenant(ctx, ...)
+//   で attach された override が cfg より優先されることで、static cfg.TenantID を全
+//   リクエストで共用してしまう越境を防ぐ（NFR-E-AC-003）。
+func (c *Client) tenantContext(ctx context.Context) *commonv1.TenantContext {
+	// per-request override（BFF middleware が attach する）を最優先で確認する。
+	if ov, ok := tenantOverrideFromContext(ctx); ok {
+		return &commonv1.TenantContext{
+			TenantId:      ov.TenantID,
+			Subject:       ov.Subject,
+			CorrelationId: ov.CorrelationID,
+		}
+	}
+	// fallback: static cfg を使う（既存利用経路の互換性を維持）。
 	return &commonv1.TenantContext{
 		TenantId: c.cfg.TenantID,
 		Subject:  c.cfg.Subject,

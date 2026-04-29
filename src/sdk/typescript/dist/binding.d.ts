@@ -4,7 +4,7 @@ export declare class BindingFacade {
     private readonly client;
     constructor(client: K1s0Client);
     /** invoke は出力バインディング呼出。 */
-    invoke(name: string, operation: string, data: Uint8Array, metadata?: Record<string, string>): Promise<{
+    invoke(name: string, operation: string, data: Uint8Array, metadata?: Record<string, string>, idempotencyKey?: string): Promise<{
         data: Uint8Array;
         metadata: Record<string, string>;
     }>;

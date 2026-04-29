@@ -30,6 +30,8 @@ package state
 import (
 	// Dapr adapter（本リリース時点 placeholder）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	// OTel 共通 emitter（Log / Metric / Trace）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/otel"
 	// SDK 生成 stub の各 service registration 関数を import する（公開 12 API のうち 7 件）。
@@ -63,10 +65,17 @@ type Deps struct {
 	MetricEmitter otel.MetricEmitter
 	// OTel Traces パイプライン（Tempo 経由）への emitter。
 	TraceEmitter otel.TraceEmitter
+	// PubSub.Publish の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL の dedup）。
+	// nil 時は dedup 無効（後方互換、release-initial / dev 経路）。
+	Idempotency common.IdempotencyCache
 }
 
 // NewDepsFromClient は単一の Dapr Client から 5 つのアダプタを構築する。
 // main.go の起動シーケンスで使用される（lazy 不可、健全性確認前に初期化必須）。
+//
+// 冪等性 cache（共通規約 §「冪等性と再試行」）は in-memory 24h TTL backend で
+// 既定有効化する。production の multi-replica deploy では Valkey backed cache に
+// 置き換える想定だが、release-initial では 1 Pod 内 dedup を提供する。
 func NewDepsFromClient(client *dapr.Client) Deps {
 	// 各 adapter を Client 共有で生成する。
 	return Deps{
@@ -80,6 +89,8 @@ func NewDepsFromClient(client *dapr.Client) Deps {
 		InvokeAdapter: dapr.NewInvokeAdapter(client),
 		// Feature Flag（flagd）。
 		FeatureAdapter: dapr.NewFeatureAdapter(client),
+		// 24h TTL の in-memory dedup cache（共通規約 §「冪等性と再試行」）。
+		Idempotency: common.NewInMemoryIdempotencyCache(0),
 	}
 }
 
@@ -93,7 +104,8 @@ func Register(deps Deps) func(*grpc.Server) {
 		// StateService（FR-T1-STATE-001〜005）登録。
 		statev1.RegisterStateServiceServer(srv, &stateHandler{deps: deps})
 		// PubSubService（FR-T1-PUBSUB-001〜005）登録。
-		pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: deps})
+		// 冪等性 cache を Deps から伝播する（nil 時は dedup スキップ）。
+		pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: deps, idempotency: deps.Idempotency})
 		// BindingService（FR-T1-BINDING-001〜004）登録。
 		bindingv1.RegisterBindingServiceServer(srv, &bindingHandler{deps: deps})
 		// FeatureService（FR-T1-FEATURE-001〜004）登録。

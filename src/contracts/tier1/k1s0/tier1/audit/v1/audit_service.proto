@@ -62,6 +62,10 @@ message RecordAuditRequest {
   AuditEvent event = 1;
   // 呼出元コンテキスト
   k1s0.tier1.common.v1.TenantContext context = 2;
+  // 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+  // 重複 audit event 書込を防ぐ（hash chain 整合性が乱れないよう）。
+  // 同一キーでの再試行は副作用を重複させず初回 audit_id を返す。
+  string idempotency_key = 3;
 }
 
 // Record 応答

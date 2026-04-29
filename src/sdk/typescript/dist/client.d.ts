@@ -112,6 +112,12 @@ export declare class K1s0Client {
                 readonly O: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").BulkGetSecretResponse;
                 readonly kind: import("@bufbuild/protobuf").MethodKind.Unary;
             };
+            readonly getDynamic: {
+                readonly name: "GetDynamic";
+                readonly I: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").GetDynamicSecretRequest;
+                readonly O: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").GetDynamicSecretResponse;
+                readonly kind: import("@bufbuild/protobuf").MethodKind.Unary;
+            };
             readonly rotate: {
                 readonly name: "Rotate";
                 readonly I: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").RotateSecretRequest;

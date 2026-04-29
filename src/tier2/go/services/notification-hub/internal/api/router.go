@@ -21,6 +21,8 @@ import (
 	"github.com/k1s0/k1s0/src/tier2/go/services/notification-hub/internal/config"
 	// dispatch UseCase。
 	"github.com/k1s0/k1s0/src/tier2/go/services/notification-hub/internal/application/usecases"
+	// 共通 JWT 認証 middleware（docs §共通規約「認証認可」、tier2 全 Go サービス共通）。
+	t2auth "github.com/k1s0/k1s0/src/tier2/go/shared/auth"
 )
 
 // Server は HTTP server を保持する構造体。
@@ -33,16 +35,21 @@ type Server struct {
 
 // NewServer は HTTP server を構築する。
 func NewServer(useCase *usecases.DispatchUseCase, cfg config.HTTPConfig) *Server {
-	// ServeMux を組み立てる。
-	mux := http.NewServeMux()
+	// 公開エンドポイント用の subrouter を組み立てる（auth middleware を必須にする）。
+	authMux := http.NewServeMux()
 	// dispatch handler を組み立てる。
 	dh := newDispatchHandler(useCase)
-	// 公開エンドポイントを登録する。
-	mux.HandleFunc("POST /notify", dh.handleDispatch)
+	// /notify は JWT 必須。
+	authMux.HandleFunc("POST /notify", dh.handleDispatch)
+	// liveness / readiness は probe で auth 不要なので外側 mux に置く。
+	mux := http.NewServeMux()
 	// liveness probe。
 	mux.HandleFunc("GET /healthz", handleLiveness)
 	// readiness probe。
 	mux.HandleFunc("GET /readyz", handleReadiness)
+	// 公開エンドポイントは auth middleware で wrap する（docs §共通規約「認証認可」、
+	// T2_AUTH_MODE 環境変数で off / hmac / jwks の 3 mode を選択）。
+	mux.Handle("/notify", t2auth.Required()(authMux))
 	// http.Server を組み立てる。
 	srv := &http.Server{
 		// listen address。

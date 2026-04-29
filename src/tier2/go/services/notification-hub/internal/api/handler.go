@@ -14,8 +14,12 @@ import (
 
 	// dispatch UseCase。
 	"github.com/k1s0/k1s0/src/tier2/go/services/notification-hub/internal/application/usecases"
+	// 共通 auth middleware（context から tenant_id / subject を取り出す）。
+	t2auth "github.com/k1s0/k1s0/src/tier2/go/shared/auth"
 	// tier2 共通エラー型。
 	t2errors "github.com/k1s0/k1s0/src/tier2/go/shared/errors"
+	// k1s0 SDK の per-request tenant 上書き helper。
+	"github.com/k1s0/sdk-go/k1s0"
 )
 
 // dispatchHandler は dispatch エンドポイントのハンドラ。
@@ -83,8 +87,17 @@ func (h *dispatchHandler) handleDispatch(w http.ResponseWriter, r *http.Request)
 		// 早期 return。
 		return
 	}
+	// 認証済 tenant_id / subject を SDK 呼出に伝搬する（per-request 上書き）。
+	// auth middleware が attach した値を使い、SDK 側 Config 既定値ではなく
+	// 「実際にこのリクエストを発行したユーザのテナント」で tier1 を呼び出す。
+	tenantID := t2auth.TenantIDFromContext(r.Context())
+	subject := t2auth.SubjectFromContext(r.Context())
+	ctx := r.Context()
+	if tenantID != "" {
+		ctx = k1s0.WithTenant(ctx, tenantID, subject)
+	}
 	// UseCase を実行する。
-	result, err := h.useCase.Execute(r.Context(), usecases.DispatchInput{
+	result, err := h.useCase.Execute(ctx, usecases.DispatchInput{
 		// チャネル文字列。
 		Channel: body.Channel,
 		// 受信者。

@@ -15,7 +15,7 @@
 #   - -trimpath: ビルド path を normalize（再現性向上、CI/CD で同一ハッシュ保証）
 #   - distroless: shell / package manager 含まない最小 base image（攻撃面最小化）
 #   - nonroot: UID 65532 で起動（特権削除、k8s securityContext 整合）
-#   - EXPOSE 50001 9090: gRPC + metrics ポート（docs 正典）
+#   - EXPOSE 50001 50080 9090: gRPC + HTTP/JSON gateway + metrics ポート（docs 正典）
 # =============================================================================
 
 # build stage: Go 1.22 Alpine（最小サイズの builder）
@@ -47,8 +47,9 @@ FROM gcr.io/distroless/static-debian12:nonroot
 # build stage からバイナリのみをコピー（ソース / Go toolchain は image に残らない）。
 COPY --from=builder /out/t1-state /usr/local/bin/t1-state
 
-# gRPC（50001）と metrics（9090）の 2 ポートを公開する（docs 正典 EXPOSE）。
-EXPOSE 50001 9090
+# gRPC（50001）/ HTTP gateway（50080）/ metrics（9090）の 3 ポートを公開する（docs 正典 EXPOSE）。
+# HTTP gateway は HTTP_LISTEN_ADDR 環境変数が設定された場合のみ Pod 側で listen される（opt-in）。
+EXPOSE 50001 50080 9090
 
 # distroless の nonroot user（UID 65532）で起動。k8s securityContext.runAsNonRoot=true と整合。
 USER nonroot:nonroot

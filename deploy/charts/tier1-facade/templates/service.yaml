@@ -31,6 +31,14 @@ spec:
       protocol: TCP
       # appProtocol=grpc は Istio / Envoy が L7 識別に使う（k8s 1.20+）。
       appProtocol: grpc
+    # HTTP/JSON gateway ポート（docs §「HTTP/JSON 互換」、httpPort=0 で無効）。
+    {{- if and $podCfg.httpPort (gt (int $podCfg.httpPort) 0) }}
+    - name: http
+      port: {{ $podCfg.httpPort }}
+      targetPort: http
+      protocol: TCP
+      appProtocol: http
+    {{- end }}
     # metrics ポート（Prometheus / OTel collector が scrape する）。
     - name: metrics
       port: {{ $podCfg.metricsPort }}

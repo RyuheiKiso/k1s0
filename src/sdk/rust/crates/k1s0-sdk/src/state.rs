@@ -48,6 +48,7 @@ impl StateFacade {
 
     /// Save はキー単位の保存。新 ETag を返す。
     /// expected_etag が空の場合は無条件、ttl_sec=0 は永続。
+    /// idempotency_key が空でなければ tier1 が 24h dedup する（共通規約 §「冪等性と再試行」）。
     pub async fn save(
         &mut self,
         store: &str,
@@ -55,6 +56,7 @@ impl StateFacade {
         data: Vec<u8>,
         expected_etag: &str,
         ttl_sec: i32,
+        idempotency_key: &str,
     ) -> Result<String, Status> {
         // proto Request を構築する。
         let req = SetRequest {
@@ -63,6 +65,7 @@ impl StateFacade {
             data,
             expected_etag: expected_etag.to_string(),
             ttl_sec,
+            idempotency_key: idempotency_key.to_string(),
             context: Some(self.client.tenant_context()),
         };
         // RPC 呼出。

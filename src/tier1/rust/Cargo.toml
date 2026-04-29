@@ -32,10 +32,11 @@ members = [
     "crates/proto-gen",
     # 3 Pod 共通の HealthService 実装（Liveness / Readiness）。
     "crates/health",
-]
-# 補助 crate（common / otel-util / policy / proto）は内容実装に伴い members に追加する（plan 04-08 〜）。
-exclude = [
+    # 3 Pod 共通の interceptor / idempotency / HTTP gateway。
     "crates/common",
+]
+# 残る補助 crate（otel-util / policy / proto）は内容実装に伴い members に追加する（plan 04-08 〜）。
+exclude = [
     "crates/otel-util",
     "crates/policy",
     "crates/proto",
@@ -64,3 +65,5 @@ k1s0-sdk-proto = { path = "../../sdk/rust/crates/k1s0-sdk-proto", version = "0.1
 k1s0-tier1-proto-gen = { path = "crates/proto-gen", version = "0.1" }
 # 3 Pod 共通の HealthService 実装。
 k1s0-tier1-health = { path = "crates/health", version = "0.1" }
+# 3 Pod 共通の interceptor / idempotency / HTTP gateway。
+k1s0-tier1-common = { path = "crates/common", version = "0.1" }

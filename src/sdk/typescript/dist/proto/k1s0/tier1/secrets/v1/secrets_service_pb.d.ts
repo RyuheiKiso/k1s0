@@ -192,4 +192,84 @@ export declare class RotateSecretResponse extends Message<RotateSecretResponse> 
     static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RotateSecretResponse;
     static equals(a: RotateSecretResponse | PlainMessage<RotateSecretResponse> | undefined, b: RotateSecretResponse | PlainMessage<RotateSecretResponse> | undefined): boolean;
 }
+/**
+ * GetDynamic リクエスト（FR-T1-SECRETS-002）
+ *
+ * @generated from message k1s0.tier1.secrets.v1.GetDynamicSecretRequest
+ */
+export declare class GetDynamicSecretRequest extends Message<GetDynamicSecretRequest> {
+    /**
+     * 呼出元コンテキスト（テナント境界の検証に必須）
+     *
+     * @generated from field: k1s0.tier1.common.v1.TenantContext context = 1;
+     */
+    context?: TenantContext;
+    /**
+     * 発行エンジン名（"postgres" / "mysql" / "kafka" 等、OpenBao の database engine 種別）
+     *
+     * @generated from field: string engine = 2;
+     */
+    engine: string;
+    /**
+     * OpenBao 側で予め定義されたロール名（tenant_id でスコープされた role）
+     *
+     * @generated from field: string role = 3;
+     */
+    role: string;
+    /**
+     * TTL 秒数（0 = 既定 3600 秒 = 1 時間、最大 86400 秒 = 24 時間）
+     *
+     * @generated from field: int32 ttl_sec = 4;
+     */
+    ttlSec: number;
+    constructor(data?: PartialMessage<GetDynamicSecretRequest>);
+    static readonly runtime: typeof proto3;
+    static readonly typeName = "k1s0.tier1.secrets.v1.GetDynamicSecretRequest";
+    static readonly fields: FieldList;
+    static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDynamicSecretRequest;
+    static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDynamicSecretRequest;
+    static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDynamicSecretRequest;
+    static equals(a: GetDynamicSecretRequest | PlainMessage<GetDynamicSecretRequest> | undefined, b: GetDynamicSecretRequest | PlainMessage<GetDynamicSecretRequest> | undefined): boolean;
+}
+/**
+ * GetDynamic 応答
+ *
+ * @generated from message k1s0.tier1.secrets.v1.GetDynamicSecretResponse
+ */
+export declare class GetDynamicSecretResponse extends Message<GetDynamicSecretResponse> {
+    /**
+     * 発行された credential 一式（"username" / "password" 等の key=value）
+     *
+     * @generated from field: map<string, string> values = 1;
+     */
+    values: {
+        [key: string]: string;
+    };
+    /**
+     * OpenBao 側 lease ID（renewal / revoke 用、削除時に呼び返す）
+     *
+     * @generated from field: string lease_id = 2;
+     */
+    leaseId: string;
+    /**
+     * 実際に付与された TTL 秒数（要求値が ceiling を超えたら短縮される）
+     *
+     * @generated from field: int32 ttl_sec = 3;
+     */
+    ttlSec: number;
+    /**
+     * 発効時刻（Unix epoch ミリ秒）
+     *
+     * @generated from field: int64 issued_at_ms = 4;
+     */
+    issuedAtMs: bigint;
+    constructor(data?: PartialMessage<GetDynamicSecretResponse>);
+    static readonly runtime: typeof proto3;
+    static readonly typeName = "k1s0.tier1.secrets.v1.GetDynamicSecretResponse";
+    static readonly fields: FieldList;
+    static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetDynamicSecretResponse;
+    static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetDynamicSecretResponse;
+    static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetDynamicSecretResponse;
+    static equals(a: GetDynamicSecretResponse | PlainMessage<GetDynamicSecretResponse> | undefined, b: GetDynamicSecretResponse | PlainMessage<GetDynamicSecretResponse> | undefined): boolean;
+}
 //# sourceMappingURL=secrets_service_pb.d.ts.map

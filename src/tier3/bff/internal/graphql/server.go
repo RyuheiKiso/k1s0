@@ -18,19 +18,23 @@ import (
 	"net/http"
 	// timeout 設定。
 	"time"
-
-	// k1s0 SDK ラッパー。
-	"github.com/k1s0/k1s0/src/tier3/bff/internal/k1s0client"
 )
+
+// StateClient は Resolver が必要とする k1s0 State の最小 interface。
+// 実体は k1s0client.Client が満たすが、test では in-memory mock を渡せる。
+type StateClient interface {
+	// StateGet は k1s0 State から指定キーを取得する。
+	StateGet(ctx context.Context, store, key string) (data []byte, etag string, found bool, err error)
+}
 
 // Resolver は GraphQL クエリを解決する Resolver。
 type Resolver struct {
-	// k1s0 SDK Client。
-	k1s0Client *k1s0client.Client
+	// k1s0 State の最小 interface（テスト容易性のため抽象化）。
+	k1s0Client StateClient
 }
 
 // NewResolver は Resolver を組み立てる。
-func NewResolver(client *k1s0client.Client) *Resolver {
+func NewResolver(client StateClient) *Resolver {
 	return &Resolver{k1s0Client: client}
 }
 

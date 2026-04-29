@@ -1,0 +1,57 @@
+# 本ファイルは k1s0 tier1 Rust core 共通 crate の Cargo マニフェスト。
+#
+# 設計正典:
+#   docs/03_要件定義/00_共通規約.md（§ 共通規約 / § 冪等性と再試行 / § テナント分離 / § 認証認可）
+#   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/01_tier1全体コンポーネント俯瞰.md
+#   docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/04_rust_crate配置.md
+#
+# 役割（Go 側 src/tier1/go/internal/common/ に対応する Rust 横断機能）:
+#   - idempotency: 24h TTL の重複抑止 cache（共通規約 §「冪等性と再試行」）
+#   - interceptor: tonic gRPC interceptor 集合（auth / ratelimit / observability / audit）
+#   - http_gateway: axum 経由の HTTP/JSON gateway（共通規約 §「HTTP/JSON gateway」）
+#   - tenant: TenantContext 検証 helper
+
+[package]
+# crate 名は Go 側 `internal/common` に対応する Rust 共通 crate。
+name = "k1s0-tier1-common"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 Rust core common (idempotency / interceptors / http gateway)"
+
+[lib]
+name = "k1s0_tier1_common"
+path = "src/lib.rs"
+
+[dependencies]
+# tonic / tokio / prost は workspace 共通設定を継承。
+tonic = { workspace = true }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros", "rt-multi-thread"] }
+prost = { workspace = true }
+# 公開 API の型（HTTP gateway で Request / Response の JSON 変換に使う）。
+k1s0-sdk-proto = { workspace = true }
+# HTTP gateway 実装。
+axum = { version = "0.7", default-features = false, features = ["http1", "json", "tokio", "matched-path"] }
+tower = { version = "0.5", default-features = false, features = ["util"] }
+http = "1"
+bytes = "1"
+# proto3 JSON 互換のシリアライザ。
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+prost-types.workspace = true
+# JWT 検証（HS / RS / JWKS）。jsonwebtoken は jose-style algorithm 切替を内蔵。
+jsonwebtoken = "9"
+# `async fn in trait` を dyn 互換にするためのデシュガー。
+async-trait = "0.1"
+# 観測性 trace span（OTel 統合は将来段階で追加）。
+tracing = "0.1"
+# JWKS 取得用の HTTP client（rustls）。
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+# Lazy global の初期化に使う。
+once_cell = "1"
+
+[dev-dependencies]
+# テスト時の async runtime。
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util", "time"] }

@@ -1,0 +1,185 @@
+# 本ファイルは tier1 内部 gRPC API のアラートルール（Prometheus 互換）。
+#
+# docs 正典:
+#   ops/runbooks/daily/error-code-alert-policy.md（tier1 セクション）
+#   docs/03_要件定義/30_非機能要件/A_可用性.md（NFR-A-SLA-*）
+#
+# 対象 metric:
+#   OTel collector → Mimir 経由で取り込まれた gRPC server スパンの
+#   `rpc_server_duration_milliseconds_count{rpc_grpc_status_code=...}` ラベル。
+#   k1s0 tier1 の K1s0Layer / runtime.go interceptor が emit する標準 OTel
+#   semantic convention に従う（IMP-OBS-* / NFR-O-OBS-*）。
+#
+# 受信先:
+#   Alertmanager → Slack `#alert-tier1` / `#incident-alert`（PagerDuty 連携）
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k1s0-tier1-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/tier: tier1
+    prometheus: k1s0
+    role: alert-rules
+spec:
+  groups:
+    # -------------------------------------------------------------------------
+    # tier1 認証系（K1s0Error.Unauthorized / Forbidden の急増検知）
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier1.auth
+      interval: 30s
+      rules:
+        - alert: K1s0Tier1Unauthenticated
+          # gRPC code 16 = UNAUTHENTICATED。10 req/min を 5 分超過で SEV2。
+          expr: |
+            sum by (rpc_service, rpc_method) (
+              rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1",
+                rpc_grpc_status_code="16"
+              }[5m])
+            ) * 60 > 10
+          for: 5m
+          labels:
+            severity: SEV2
+            tier: tier1
+            channel: alert-tier1
+            team: security-sre
+          annotations:
+            summary: "tier1 で UNAUTHENTICATED が急増 ({{ $value }} req/min)"
+            description: |
+              {{ $labels.rpc_service }}.{{ $labels.rpc_method }} で
+              UNAUTHENTICATED が 5 分平均 {{ $value }} req/min。
+              auth-abuse の可能性。auth-abuse-detection.md を参照。
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/incidents/auth-abuse-detection.md"
+
+        - alert: K1s0Tier1PermissionDenied
+          # gRPC code 7 = PERMISSION_DENIED。5 req/min で SEV2。
+          expr: |
+            sum by (rpc_service, rpc_method) (
+              rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1",
+                rpc_grpc_status_code="7"
+              }[5m])
+            ) * 60 > 5
+          for: 5m
+          labels:
+            severity: SEV2
+            tier: tier1
+            channel: alert-tier1
+            team: security-sre
+          annotations:
+            summary: "tier1 で PERMISSION_DENIED が急増 ({{ $value }} req/min)"
+            description: "テナント越境攻撃疑い。tenant-boundary-breach.md を参照。"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/incidents/tenant-boundary-breach.md"
+
+    # -------------------------------------------------------------------------
+    # tier1 可用性系（NFR-A-SLA-001: 99.9% 可用性目標）
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier1.availability
+      interval: 30s
+      rules:
+        - alert: K1s0Tier1HighErrorRate
+          # 全 gRPC code のうち 13 (INTERNAL) が 1% 超を 10 分継続。
+          expr: |
+            (
+              sum by (rpc_service) (
+                rate(rpc_server_duration_milliseconds_count{
+                  k1s0_io_tier="tier1",
+                  rpc_grpc_status_code="13"
+                }[5m])
+              )
+              /
+              sum by (rpc_service) (
+                rate(rpc_server_duration_milliseconds_count{
+                  k1s0_io_tier="tier1"
+                }[5m])
+              )
+            ) > 0.01
+          for: 10m
+          labels:
+            severity: SEV2
+            tier: tier1
+            channel: alert-tier1
+          annotations:
+            summary: "tier1 {{ $labels.rpc_service }} の INTERNAL error rate が 1% 超"
+            description: "10 分平均 {{ $value | humanizePercentage }}。Pod ログを確認。"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/daily/error-code-alert-policy.md"
+
+        - alert: K1s0Tier1ServiceUnavailable
+          # gRPC code 14 = UNAVAILABLE。5% 超を 5 分継続で SEV1。
+          expr: |
+            (
+              sum by (rpc_service) (
+                rate(rpc_server_duration_milliseconds_count{
+                  k1s0_io_tier="tier1",
+                  rpc_grpc_status_code="14"
+                }[5m])
+              )
+              /
+              sum by (rpc_service) (
+                rate(rpc_server_duration_milliseconds_count{
+                  k1s0_io_tier="tier1"
+                }[5m])
+              )
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: SEV1
+            tier: tier1
+            channel: incident-alert
+            pagerduty: "true"
+          annotations:
+            summary: "tier1 {{ $labels.rpc_service }} 5% 超が UNAVAILABLE（SEV1）"
+            description: "PagerDuty へエスカレーション。severity-decision-tree.md 参照。"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/ops/runbooks/incidents/severity-decision-tree.md"
+
+    # -------------------------------------------------------------------------
+    # tier1 レート制限（K1s0Layer の RateLimitInterceptor が拒否した分）
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier1.ratelimit
+      interval: 30s
+      rules:
+        - alert: K1s0Tier1RateLimitExceeded
+          # gRPC code 8 = RESOURCE_EXHAUSTED。100 req/min を 1 分継続で SEV3。
+          expr: |
+            sum by (rpc_service, k1s0_tenant_id) (
+              rate(rpc_server_duration_milliseconds_count{
+                k1s0_io_tier="tier1",
+                rpc_grpc_status_code="8"
+              }[1m])
+            ) * 60 > 100
+          for: 1m
+          labels:
+            severity: SEV3
+            tier: tier1
+            channel: alert-tier1
+          annotations:
+            summary: "tier1 でテナント {{ $labels.k1s0_tenant_id }} がレート制限超過"
+            description: "{{ $value }} req/min。トラフィック spike か runaway client 疑い。"
+
+    # -------------------------------------------------------------------------
+    # tier1 latency（NFR-A-SLA-001: p99 < 500ms 目標）
+    # -------------------------------------------------------------------------
+    - name: k1s0.tier1.latency
+      interval: 30s
+      rules:
+        - alert: K1s0Tier1HighP99Latency
+          # p99 latency が 500ms 超を 10 分継続。
+          expr: |
+            histogram_quantile(0.99,
+              sum by (rpc_service, le) (
+                rate(rpc_server_duration_milliseconds_bucket{
+                  k1s0_io_tier="tier1"
+                }[5m])
+              )
+            ) > 500
+          for: 10m
+          labels:
+            severity: SEV3
+            tier: tier1
+            channel: alert-tier1
+          annotations:
+            summary: "tier1 {{ $labels.rpc_service }} p99 latency が 500ms 超"
+            description: "現在 {{ $value }}ms。NFR-A-SLA-001 違反。"

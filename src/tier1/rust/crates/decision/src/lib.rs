@@ -8,3 +8,5 @@
 
 // JDM ルール registry と evaluator。
 pub mod registry;
+// HTTP/JSON gateway 用 JsonRpc 実装。
+pub mod http;

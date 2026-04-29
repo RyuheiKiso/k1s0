@@ -32,6 +32,6 @@ public static class InvoiceEndpoints
             {
                 return Results.BadRequest(new { error = new { code = "E-T2-INVOICE-002", message = ex.Message, category = "VALIDATION" } });
             }
-        });
+        }).RequireAuthorization();
     }
 }

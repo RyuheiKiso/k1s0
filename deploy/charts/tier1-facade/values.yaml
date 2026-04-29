@@ -77,6 +77,9 @@ pods:
     replicas: 1
     # gRPC 公開ポート（docs 正典 EXPOSE 50001、Dapr sidecar app-port と整合）。
     grpcPort: 50001
+    # HTTP/JSON gateway ポート。docs §共通規約「HTTP/JSON 互換」に従い
+    # POST /k1s0/<api>/<rpc> の JSON 経路を提供する。0 で無効（gRPC のみ）。
+    httpPort: 50080
     # Prometheus metrics ポート（採用初期で OTel collector / Prometheus が scrape する）。
     metricsPort: 9090
     # resources は production の想定下限（採用初期で実測に置換）。
@@ -128,6 +131,11 @@ config:
   otelExporterEndpoint: "otel-collector.observability.svc.cluster.local:4317"
   # ログレベル（debug / info / warn / error）。
   logLevel: "info"
+  # docs §共通規約「認証認可」: off / hmac / jwks の 3 mode。
+  # production は jwks（Keycloak 等）に上書き、dev は off。
+  authMode: "off"
+  # docs §共通規約「監査自動発火」: noop / log / grpc の 3 mode（grpc は audit Pod 直結）。
+  auditMode: "log"
 
 # Service の type（既定 ClusterIP、Istio Ambient ztunnel 経由で十分）。
 service:

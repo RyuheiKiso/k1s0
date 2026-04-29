@@ -43,6 +43,15 @@ func WithTTL(ttlSec int32) SetOption {
 	}
 }
 
+// WithSetIdempotencyKey は Save の冪等性キーを設定する（共通規約 §「冪等性と再試行」）。
+// 同 key の再投入は tier1 側で 24h 重複抑止される（最初のレスポンスを再生する）。
+// PubSub.Publish の WithIdempotencyKey との関数名衝突を避けるため別名にしている。
+func WithSetIdempotencyKey(key string) SetOption {
+	return func(req *statev1.SetRequest) {
+		req.IdempotencyKey = key
+	}
+}
+
 // Get はキー単位の取得。未存在時は (nil, "", false, nil) を返す。
 func (s *StateClient) Get(ctx context.Context, store, key string) (data []byte, etag string, found bool, err error) {
 	// proto Request を構築する。
@@ -52,7 +61,7 @@ func (s *StateClient) Get(ctx context.Context, store, key string) (data []byte, 
 		// キー（テナント prefix は tier1 が自動付与）。
 		Key: key,
 		// 親 Client から TenantContext を継承する。
-		Context: s.tenantContext(),
+		Context: s.tenantContext(ctx),
 	}
 	// 生成 stub 経由で RPC 呼び出し。
 	resp, e := s.client.raw.State.Get(ctx, req)
@@ -82,7 +91,7 @@ func (s *StateClient) Save(ctx context.Context, store, key string, data []byte, 
 		// 値本文。
 		Data: data,
 		// TenantContext を継承する。
-		Context: s.tenantContext(),
+		Context: s.tenantContext(ctx),
 	}
 	// 各 SetOption を req に適用する。
 	for _, opt := range opts {
@@ -111,7 +120,7 @@ func (s *StateClient) Delete(ctx context.Context, store, key, expectedEtag strin
 		// 期待 ETag（空は無条件）。
 		ExpectedEtag: expectedEtag,
 		// TenantContext を継承する。
-		Context: s.tenantContext(),
+		Context: s.tenantContext(ctx),
 	}
 	// 生成 stub 経由で RPC 呼び出し。
 	_, e := s.client.raw.State.Delete(ctx, req)
@@ -119,15 +128,8 @@ func (s *StateClient) Delete(ctx context.Context, store, key, expectedEtag strin
 	return e
 }
 
-// tenantContext は親 Client の Config から TenantContext proto を生成する。
-func (s *StateClient) tenantContext() *commonv1.TenantContext {
-	// 構造体リテラルで TenantContext を構築する。
-	return &commonv1.TenantContext{
-		// テナント ID。
-		TenantId: s.client.cfg.TenantID,
-		// subject。
-		Subject: s.client.cfg.Subject,
-		// correlation_id は呼出ごとに変わるため空（OTel interceptor が後段付与する想定）。
-		CorrelationId: "",
-	}
+// tenantContext は ctx の per-request override を優先しつつ TenantContext proto を生成する。
+// override 不在時は親 Client の Config から構築する（log.go の tenantContext と同方針）。
+func (s *StateClient) tenantContext(ctx context.Context) *commonv1.TenantContext {
+	return s.client.tenantContext(ctx)
 }

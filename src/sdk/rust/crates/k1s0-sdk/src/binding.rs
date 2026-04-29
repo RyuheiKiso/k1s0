@@ -19,12 +19,14 @@ impl BindingFacade {
     }
 
     /// invoke は出力バインディング呼出。返り値は (data, metadata)。
+    /// idempotency_key が空でなければ tier1 が 24h dedup する（共通規約 §「冪等性と再試行」）。
     pub async fn invoke(
         &mut self,
         name: &str,
         operation: &str,
         data: Vec<u8>,
         metadata: HashMap<String, String>,
+        idempotency_key: &str,
     ) -> Result<(Vec<u8>, HashMap<String, String>), Status> {
         let resp = self
             .raw
@@ -33,6 +35,7 @@ impl BindingFacade {
                 operation: operation.to_string(),
                 data,
                 metadata,
+                idempotency_key: idempotency_key.to_string(),
                 context: Some(self.client.tenant_context()),
             })
             .await?
