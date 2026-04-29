@@ -39,6 +39,9 @@ pods:
     args: []
     replicas: 1
     grpcPort: 50001
+    # HTTP/JSON gateway ポート。docs §共通規約「HTTP/JSON 互換」に従い
+    # POST /k1s0/<api>/<rpc> の JSON 経路を提供する。0 で無効（gRPC のみ）。
+    httpPort: 50080
     metricsPort: 9090
     resources:
       requests:
@@ -54,6 +57,9 @@ pods:
     # audit は WORM ストア書込で堅牢性が必要、リリース時点 1 / 採用初期 3 推奨
     replicas: 1
     grpcPort: 50001
+    # HTTP/JSON gateway ポート。docs §共通規約「HTTP/JSON 互換」に従い
+    # POST /k1s0/<api>/<rpc> の JSON 経路を提供する。0 で無効（gRPC のみ）。
+    httpPort: 50080
     metricsPort: 9090
     resources:
       requests:
@@ -69,6 +75,9 @@ pods:
     # 純関数ステートレスのため HPA で容易に拡張可
     replicas: 1
     grpcPort: 50001
+    # HTTP/JSON gateway ポート。docs §共通規約「HTTP/JSON 互換」に従い
+    # POST /k1s0/<api>/<rpc> の JSON 経路を提供する。0 で無効（gRPC のみ）。
+    httpPort: 50080
     metricsPort: 9090
     resources:
       requests:
@@ -81,6 +90,12 @@ pods:
 config:
   otelExporterEndpoint: "otel-collector.observability.svc.cluster.local:4317"
   logLevel: "info"
+  # docs §共通規約「認証認可」: off / hmac / jwks の 3 mode。
+  # production は jwks（Keycloak 等）に上書き、dev は off。
+  authMode: "off"
+  # docs §共通規約「監査自動発火」: noop / log の 2 mode。
+  # production は audit Pod への gRPC client モードを post-MVP で追加予定。
+  auditMode: "log"
 
 service:
   type: ClusterIP
