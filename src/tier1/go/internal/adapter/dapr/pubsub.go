@@ -149,7 +149,7 @@ func (a *daprPubSubAdapter) Subscribe(ctx context.Context, req SubscribeAdapterR
 		meta["consumerGroup"] = req.ConsumerGroup
 	}
 	// L2 テナント分離: 物理トピック名に `<tenant_id>/` を付与する。
-	physTopic := prefixKey(req.TenantID, req.Topic)
+	physTopic := prefixTopic(req.TenantID, req.Topic)
 	sub, err := a.client.pubsubClient().Subscribe(ctx, daprclient.SubscriptionOptions{
 		PubsubName: req.Component,
 		Topic:      physTopic,
@@ -197,7 +197,7 @@ func (s *daprSubscriptionAdapter) Receive(_ context.Context) (*SubscribedEvent, 
 	logicalTopic := s.topic
 	// SDK 経路で TopicEvent.Topic に物理トピックが入った場合の fallback として strip も試みる。
 	if msg.TopicEvent.Topic != "" {
-		logicalTopic = stripKey(s.tenantID, msg.TopicEvent.Topic)
+		logicalTopic = stripTopic(s.tenantID, msg.TopicEvent.Topic)
 	}
 	return &SubscribedEvent{
 		Topic:       logicalTopic,
@@ -220,7 +220,7 @@ func (a *daprPubSubAdapter) Publish(ctx context.Context, req PublishRequest) (Pu
 	// metadata 構築（テナント + 冪等性 + 利用側追加）。
 	meta := buildPubSubMeta(req.TenantID, req.IdempotencyKey, req.Metadata)
 	// L2 テナント分離: 物理トピックに `<tenant_id>/` を付与する。
-	physTopic := prefixKey(req.TenantID, req.Topic)
+	physTopic := prefixTopic(req.TenantID, req.Topic)
 
 	// SDK の PublishEvent オプションを組み立てる。
 	// content-type が空でも SDK は default を使うので無条件指定はしない。

@@ -63,8 +63,8 @@ func TestPubSubAdapter_Publish_OK(t *testing.T) {
 		t.Fatalf("PublishEvent not called once: %d", called)
 	}
 	// L2 テナント分離（NFR-E-AC-003）: 物理トピックは "<tenant_id>/<topic>" になる。
-	if observedComp != "pubsub-kafka" || observedTopic != "tenant-A/k1s0.events.user-created" {
-		t.Fatalf("component/topic mismatch: %s / %s (want pubsub-kafka / tenant-A/k1s0.events.user-created)", observedComp, observedTopic)
+	if observedComp != "pubsub-kafka" || observedTopic != "tenant-A.k1s0.events.user-created" {
+		t.Fatalf("component/topic mismatch: %s / %s (want pubsub-kafka / tenant-A.k1s0.events.user-created)", observedComp, observedTopic)
 	}
 	if string(observedData) != `{"user_id":"42"}` {
 		t.Fatalf("data mismatch: got %q", observedData)
