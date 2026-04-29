@@ -19,3 +19,5 @@ pub mod store;
 pub mod export;
 // AuditService trait 実装本体。
 pub mod server;
+// HTTP/JSON gateway 用 JsonRpc 実装。
+pub mod http;

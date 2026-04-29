@@ -117,6 +117,13 @@ impl HttpGateway {
     }
 }
 
+/// `serve` は HttpGateway を `addr` で listen 開始し、stop signal までブロックする。
+/// 呼出元（Pod main）は通常これを `tokio::spawn` で別 task 化する。
+pub async fn serve(addr: &str, router: Router) -> std::io::Result<()> {
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, router).await
+}
+
 /// `axum` State として共有される実行時情報。
 struct SharedState {
     auth: Arc<Authenticator>,

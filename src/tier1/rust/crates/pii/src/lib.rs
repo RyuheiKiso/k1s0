@@ -11,3 +11,5 @@
 
 // PII 検出 / マスキングの中核ロジック。
 pub mod masker;
+// HTTP/JSON gateway 用 JsonRpc 実装。
+pub mod http;

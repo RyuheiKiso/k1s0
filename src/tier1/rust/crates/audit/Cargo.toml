@@ -29,8 +29,10 @@ path = "src/main.rs"
 k1s0-sdk-proto = { workspace = true }
 # 共通 HealthService 実装（Liveness / Readiness 2 RPC）。
 k1s0-tier1-health = { workspace = true }
-# 共通 idempotency cache。
+# 共通 idempotency cache + interceptor + HTTP gateway。
 k1s0-tier1-common = { workspace = true }
+# HTTP gateway 実装用 async_trait デシュガー。
+async-trait = "0.1"
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
 tokio = { workspace = true }

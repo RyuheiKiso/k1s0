@@ -33,8 +33,12 @@ use k1s0_tier1_audit::store::{AuditStore, InMemoryAuditStore};
 use k1s0_tier1_common::idempotency::{IdempotencyCache, InMemoryIdempotencyCache};
 // 共通 gRPC interceptor Layer（auth / ratelimit / observability / audit auto-emit）。
 use k1s0_tier1_common::grpc_layer::K1s0Layer;
+// 共通 HTTP/JSON gateway。
+use k1s0_tier1_common::http_gateway::{HttpGateway, JsonRpc, serve as serve_http};
 // 共通 runtime（環境変数から auth / rate_limiter / audit_emitter / idempotency をまとめて構築）。
 use k1s0_tier1_common::runtime::CommonRuntime;
+// Audit HTTP/JSON gateway 用 adapter。
+use k1s0_tier1_audit::http::{AuditHttpState, QueryRpc, RecordRpc, VerifyChainRpc};
 // SIGTERM / SIGINT 受信。
 use tokio::signal::unix::{SignalKind, signal};
 // tonic ランタイム。
@@ -82,7 +86,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // docs §共通規約 に従う interceptor chain を環境変数駆動で構築する。
     // AUTH_MODE / AUTH_HMAC_SECRET / AUTH_JWKS_URL / AUDIT_MODE で挙動を切替。
     let rt = CommonRuntime::from_env();
-    let layer = K1s0Layer::new(rt.auth, rt.rate_limiter, rt.audit_emitter);
+    let layer = K1s0Layer::new(rt.auth.clone(), rt.rate_limiter.clone(), rt.audit_emitter.clone());
+
+    // HTTP/JSON gateway（HTTP_LISTEN_ADDR が設定されている場合のみ起動）。
+    // 共通規約 §「HTTP/JSON 互換」: AuditService の 3 unary RPC を JSON で公開する。
+    // Export は server-streaming のため非対応（gRPC 経路を使う）。
+    let http_handle: Option<tokio::task::JoinHandle<()>> =
+        match std::env::var("HTTP_LISTEN_ADDR").ok().filter(|s| !s.is_empty()) {
+            Some(http_addr) => {
+                let http_state = AuditHttpState {
+                    server: Arc::new(server.clone()),
+                };
+                let gateway = HttpGateway::new(
+                    rt.auth.clone(),
+                    rt.rate_limiter.clone(),
+                    rt.audit_emitter.clone(),
+                )
+                .register(Arc::new(RecordRpc { state: http_state.clone() }) as Arc<dyn JsonRpc>)
+                .register(Arc::new(QueryRpc { state: http_state.clone() }) as Arc<dyn JsonRpc>)
+                .register(Arc::new(VerifyChainRpc { state: http_state }) as Arc<dyn JsonRpc>);
+                let router = gateway.into_router();
+                eprintln!("tier1/audit: HTTP/JSON gateway listening on {}", http_addr);
+                let addr_for_task = http_addr.clone();
+                Some(tokio::spawn(async move {
+                    if let Err(e) = serve_http(&addr_for_task, router).await {
+                        eprintln!("tier1/audit: HTTP gateway error: {}", e);
+                    }
+                }))
+            }
+            None => None,
+        };
+
     Server::builder()
         .layer(layer)
         .add_service(AuditServiceServer::new(server))
@@ -90,6 +124,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(reflection)
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
+    if let Some(h) = http_handle {
+        h.abort();
+    }
     Ok(())
 }
 

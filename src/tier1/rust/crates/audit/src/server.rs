@@ -34,6 +34,10 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
 /// `AuditServer` は AuditService の trait 実装。
+///
+/// HTTP/JSON gateway と gRPC server の両方が同 instance を共有して同 store /
+/// idempotency cache に書き込めるよう、Arc<dyn> 済の field のみ持つ。
+#[derive(Clone)]
 pub struct AuditServer {
     /// hash-chain backed store（trait object で他実装に swap 可能）。
     pub store: Arc<dyn AuditStore>,

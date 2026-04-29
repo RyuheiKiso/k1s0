@@ -30,6 +30,10 @@ k1s0-sdk-proto = { workspace = true }
 k1s0-tier1-health = { workspace = true }
 # 共通 interceptor / runtime helper。
 k1s0-tier1-common = { workspace = true }
+# HTTP gateway 実装の async_trait デシュガー（JsonRpc trait impl 用）。
+async-trait = "0.1"
+# JsonRpc 戻り値の JSON 値型。
+serde_json = "1"
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
 tokio = { workspace = true }
