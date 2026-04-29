@@ -36,5 +36,25 @@ export class SecretsFacade {
             previousVersion: resp.previousVersion,
         };
     }
+    /**
+     * getDynamic は動的 Secret 発行（FR-T1-SECRETS-002）。
+     * engine="postgres" / "mysql" / "kafka" 等の OpenBao Database Engine 種別を指定する。
+     * ttlSec=0 で既定 1 時間（3600）、上限 24 時間（86400）に clamp される。
+     */
+    async getDynamic(engine, role, ttlSec = 0) {
+        const raw = this.client.rawSecrets();
+        const resp = await raw.getDynamic({
+            engine,
+            role,
+            ttlSec,
+            context: this.client.tenantContext(),
+        });
+        return {
+            values: resp.values,
+            leaseId: resp.leaseId,
+            ttlSec: resp.ttlSec,
+            issuedAtMs: Number(resp.issuedAtMs),
+        };
+    }
 }
 //# sourceMappingURL=secrets.js.map

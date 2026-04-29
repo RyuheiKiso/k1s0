@@ -37,5 +37,23 @@ export class AuditFacade {
         });
         return resp.events;
     }
+    /**
+     * verifyChain は監査ハッシュチェーンの整合性を検証する（FR-T1-AUDIT-002）。
+     * fromDate / toDate に未指定（undefined）を渡すと全範囲を対象にする。
+     */
+    async verifyChain(fromDate, toDate) {
+        const raw = createPromiseClient(AuditService, this.client.transport);
+        const resp = await raw.verifyChain({
+            from: fromDate ? Timestamp.fromDate(fromDate) : undefined,
+            to: toDate ? Timestamp.fromDate(toDate) : undefined,
+            context: this.client.tenantContext(),
+        });
+        return {
+            valid: resp.valid,
+            checkedCount: Number(resp.checkedCount),
+            firstBadSequence: Number(resp.firstBadSequence),
+            reason: resp.reason,
+        };
+    }
 }
 //# sourceMappingURL=audit.js.map
