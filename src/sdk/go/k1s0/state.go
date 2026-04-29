@@ -43,6 +43,15 @@ func WithTTL(ttlSec int32) SetOption {
 	}
 }
 
+// WithSetIdempotencyKey は Save の冪等性キーを設定する（共通規約 §「冪等性と再試行」）。
+// 同 key の再投入は tier1 側で 24h 重複抑止される（最初のレスポンスを再生する）。
+// PubSub.Publish の WithIdempotencyKey との関数名衝突を避けるため別名にしている。
+func WithSetIdempotencyKey(key string) SetOption {
+	return func(req *statev1.SetRequest) {
+		req.IdempotencyKey = key
+	}
+}
+
 // Get はキー単位の取得。未存在時は (nil, "", false, nil) を返す。
 func (s *StateClient) Get(ctx context.Context, store, key string) (data []byte, etag string, found bool, err error) {
 	// proto Request を構築する。

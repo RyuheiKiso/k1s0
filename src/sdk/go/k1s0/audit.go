@@ -16,7 +16,9 @@ type AuditClient struct{ client *Client }
 func (c *Client) Audit() *AuditClient { return c.audit }
 
 // Record は監査イベント記録。WORM ストアに append-only、audit_id を返す。
-func (a *AuditClient) Record(ctx context.Context, actor, action, resource, outcome string, attributes map[string]string) (string, error) {
+// 共通規約 §「冪等性と再試行」: idempotencyKey が空でなければ tier1 が 24h dedup
+// する（hash chain への二重追記を防ぐ）。空文字なら毎回新 entry が作られる。
+func (a *AuditClient) Record(ctx context.Context, actor, action, resource, outcome string, attributes map[string]string, idempotencyKey string) (string, error) {
 	resp, e := a.client.raw.Audit.Record(ctx, &auditv1.RecordAuditRequest{
 		Event: &auditv1.AuditEvent{
 			Timestamp:  timestamppb.New(time.Now().UTC()),
@@ -26,7 +28,8 @@ func (a *AuditClient) Record(ctx context.Context, actor, action, resource, outco
 			Outcome:    outcome,
 			Attributes: attributes,
 		},
-		Context: a.client.tenantContext(ctx),
+		IdempotencyKey: idempotencyKey,
+		Context:        a.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return "", e
