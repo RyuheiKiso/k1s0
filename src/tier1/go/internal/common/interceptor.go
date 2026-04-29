@@ -28,6 +28,10 @@ package common
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
+	// proto request の GetContext() / GetTenantId() を呼び出すための reflection。
+	// proto 生成コードの GetContext() は具象型 *TenantContext を返すため、
+	// 構造的 interface 一致では捕捉できず reflection 経由の動的呼出が必要。
+	"reflect"
 	// Counter / Histogram のラベル文字列に gRPC code を表示する。
 	"strconv"
 	// 経過時間計測。
@@ -117,25 +121,53 @@ type tenantIDProvider interface {
 // extractTenantID はリクエスト proto から tenant_id を取り出す。
 // req が *X{Context: *TenantContext{TenantId: "T"}} 型の場合に "T" を返す。
 // 取り出せない場合は "" を返し、metric ラベルでは "unknown" として記録する。
+//
+// 実装メモ:
+//   proto 生成コードでは GetRequest.GetContext() は具象型 *commonv1.TenantContext を返す。
+//   Go の構造的型一致は厳密で、`func() interface{ GetTenantId() string }` と
+//   `func() *commonv1.TenantContext` は別シグネチャ扱いとなり、interface 直接 assertion では取れない。
+//   そのため reflection で GetContext() → GetTenantId() を順に呼び出す。
+//   1 RPC あたり 2 回の MethodByName 呼出のみで O(1) の小コスト。
 func extractTenantID(req interface{}) string {
-	// 上位 wrapper（リクエスト proto 全般）で GetContext() が定義されていれば、
-	// その戻り値が *TenantContext で GetTenantId() を持つ。
-	type ctxGetter interface {
-		// proto 生成コードでは Context フィールドが TenantContext 型で、GetContext は *TenantContext を返す。
-		// 戻り値の interface{} 互換のため any 経由で型 assertion する。
-		GetContext() interface {
-			GetTenantId() string
+	if req == nil {
+		return ""
+	}
+	rv := reflect.ValueOf(req)
+	if !rv.IsValid() {
+		return ""
+	}
+	// Pointer 型 / nil pointer を安全に扱う。
+	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return ""
+	}
+	getCtx := rv.MethodByName("GetContext")
+	if !getCtx.IsValid() || getCtx.Type().NumIn() != 0 || getCtx.Type().NumOut() != 1 {
+		return ""
+	}
+	out := getCtx.Call(nil)
+	if len(out) != 1 {
+		return ""
+	}
+	tc := out[0]
+	// nil interface / nil pointer のチェック。Kind が Ptr / Interface のみで IsNil 適用。
+	if !tc.IsValid() {
+		return ""
+	}
+	switch tc.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		if tc.IsNil() {
+			return ""
 		}
 	}
-	g, ok := req.(ctxGetter)
-	if !ok {
+	getTID := tc.MethodByName("GetTenantId")
+	if !getTID.IsValid() || getTID.Type().NumIn() != 0 || getTID.Type().NumOut() != 1 {
 		return ""
 	}
-	tc := g.GetContext()
-	if tc == nil {
+	tidOut := getTID.Call(nil)
+	if len(tidOut) != 1 || tidOut[0].Kind() != reflect.String {
 		return ""
 	}
-	return tc.GetTenantId()
+	return tidOut[0].String()
 }
 
 // apiNameFromMethod は full method "/k1s0.tier1.<api>.v1.<Service>/<Method>" から
