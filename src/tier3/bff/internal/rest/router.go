@@ -6,23 +6,29 @@ package rest
 
 // 標準 / 内部 import。
 import (
+	// context 伝搬。
+	"context"
 	// JSON エンコード / デコード。
 	"encoding/json"
 	// HTTP server。
 	"net/http"
-
-	// k1s0 SDK ラッパー。
-	"github.com/k1s0/k1s0/src/tier3/bff/internal/k1s0client"
 )
+
+// StateClient は Router が必要とする k1s0 State の最小 interface。
+// 実体は k1s0client.Client が満たすが、test では in-memory mock を渡せる。
+type StateClient interface {
+	// StateGet は k1s0 State から指定キーを取得する。
+	StateGet(ctx context.Context, store, key string) (data []byte, etag string, found bool, err error)
+}
 
 // Router は REST ルートを mux に登録する。
 type Router struct {
-	// k1s0 SDK Client。
-	k1s0Client *k1s0client.Client
+	// k1s0 State の最小 interface（テスト容易性のため抽象化）。
+	k1s0Client StateClient
 }
 
 // NewRouter は Router を組み立てる。
-func NewRouter(client *k1s0client.Client) *Router {
+func NewRouter(client StateClient) *Router {
 	return &Router{k1s0Client: client}
 }
 
