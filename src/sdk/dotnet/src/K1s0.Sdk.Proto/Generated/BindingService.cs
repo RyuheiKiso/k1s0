@@ -26,30 +26,31 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
           string.Concat(
             "CitrMXMwL3RpZXIxL2JpbmRpbmcvdjEvYmluZGluZ19zZXJ2aWNlLnByb3Rv",
             "EhVrMXMwLnRpZXIxLmJpbmRpbmcudjEaIWsxczAvdGllcjEvY29tbW9uL3Yx",
-            "L2NvbW1vbi5wcm90byKvAgoUSW52b2tlQmluZGluZ1JlcXVlc3QSEgoEbmFt",
+            "L2NvbW1vbi5wcm90byLYAgoUSW52b2tlQmluZGluZ1JlcXVlc3QSEgoEbmFt",
             "ZRgBIAEoCVIEbmFtZRIcCglvcGVyYXRpb24YAiABKAlSCW9wZXJhdGlvbhIS",
             "CgRkYXRhGAMgASgMUgRkYXRhElUKCG1ldGFkYXRhGAQgAygLMjkuazFzMC50",
             "aWVyMS5iaW5kaW5nLnYxLkludm9rZUJpbmRpbmdSZXF1ZXN0Lk1ldGFkYXRh",
             "RW50cnlSCG1ldGFkYXRhEj0KB2NvbnRleHQYBSABKAsyIy5rMXMwLnRpZXIx",
-            "LmNvbW1vbi52MS5UZW5hbnRDb250ZXh0Ugdjb250ZXh0GjsKDU1ldGFkYXRh",
-            "RW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVl",
-            "OgI4ASLAAQoVSW52b2tlQmluZGluZ1Jlc3BvbnNlEhIKBGRhdGEYASABKAxS",
-            "BGRhdGESVgoIbWV0YWRhdGEYAiADKAsyOi5rMXMwLnRpZXIxLmJpbmRpbmcu",
-            "djEuSW52b2tlQmluZGluZ1Jlc3BvbnNlLk1ldGFkYXRhRW50cnlSCG1ldGFk",
-            "YXRhGjsKDU1ldGFkYXRhRW50cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFs",
-            "dWUYAiABKAlSBXZhbHVlOgI4ATJ1Cg5CaW5kaW5nU2VydmljZRJjCgZJbnZv",
-            "a2USKy5rMXMwLnRpZXIxLmJpbmRpbmcudjEuSW52b2tlQmluZGluZ1JlcXVl",
-            "c3QaLC5rMXMwLnRpZXIxLmJpbmRpbmcudjEuSW52b2tlQmluZGluZ1Jlc3Bv",
-            "bnNlQvsBChljb20uazFzMC50aWVyMS5iaW5kaW5nLnYxQhNCaW5kaW5nU2Vy",
-            "dmljZVByb3RvUAFaP2dpdGh1Yi5jb20vazFzMC9zZGstZ28vcHJvdG8vdjEv",
-            "azFzMC90aWVyMS9iaW5kaW5nL3YxO2JpbmRpbmd2MaICA0tUQqoCKEsxczAu",
-            "U2RrLkdlbmVyYXRlZC5LMXMwLlRpZXIxLkJpbmRpbmcuVjHKAhVLMXMwXFRp",
-            "ZXIxXEJpbmRpbmdcVjHiAiFLMXMwXFRpZXIxXEJpbmRpbmdcVjFcR1BCTWV0",
-            "YWRhdGHqAhhLMXMwOjpUaWVyMTo6QmluZGluZzo6VjFiBnByb3RvMw=="));
+            "LmNvbW1vbi52MS5UZW5hbnRDb250ZXh0Ugdjb250ZXh0EicKD2lkZW1wb3Rl",
+            "bmN5X2tleRgGIAEoCVIOaWRlbXBvdGVuY3lLZXkaOwoNTWV0YWRhdGFFbnRy",
+            "eRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgCIAEoCVIFdmFsdWU6AjgB",
+            "IsABChVJbnZva2VCaW5kaW5nUmVzcG9uc2USEgoEZGF0YRgBIAEoDFIEZGF0",
+            "YRJWCghtZXRhZGF0YRgCIAMoCzI6LmsxczAudGllcjEuYmluZGluZy52MS5J",
+            "bnZva2VCaW5kaW5nUmVzcG9uc2UuTWV0YWRhdGFFbnRyeVIIbWV0YWRhdGEa",
+            "OwoNTWV0YWRhdGFFbnRyeRIQCgNrZXkYASABKAlSA2tleRIUCgV2YWx1ZRgC",
+            "IAEoCVIFdmFsdWU6AjgBMnUKDkJpbmRpbmdTZXJ2aWNlEmMKBkludm9rZRIr",
+            "LmsxczAudGllcjEuYmluZGluZy52MS5JbnZva2VCaW5kaW5nUmVxdWVzdBos",
+            "LmsxczAudGllcjEuYmluZGluZy52MS5JbnZva2VCaW5kaW5nUmVzcG9uc2VC",
+            "+wEKGWNvbS5rMXMwLnRpZXIxLmJpbmRpbmcudjFCE0JpbmRpbmdTZXJ2aWNl",
+            "UHJvdG9QAVo/Z2l0aHViLmNvbS9rMXMwL3Nkay1nby9wcm90by92MS9rMXMw",
+            "L3RpZXIxL2JpbmRpbmcvdjE7YmluZGluZ3YxogIDS1RCqgIoSzFzMC5TZGsu",
+            "R2VuZXJhdGVkLksxczAuVGllcjEuQmluZGluZy5WMcoCFUsxczBcVGllcjFc",
+            "QmluZGluZ1xWMeICIUsxczBcVGllcjFcQmluZGluZ1xWMVxHUEJNZXRhZGF0",
+            "YeoCGEsxczA6OlRpZXIxOjpCaW5kaW5nOjpWMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest.Parser, new[]{ "Name", "Operation", "Data", "Metadata", "Context" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingRequest.Parser, new[]{ "Name", "Operation", "Data", "Metadata", "Context", "IdempotencyKey" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1.InvokeBindingResponse.Parser, new[]{ "Data", "Metadata" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, })
           }));
     }
@@ -100,6 +101,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       data_ = other.data_;
       metadata_ = other.metadata_.Clone();
       context_ = other.context_ != null ? other.context_.Clone() : null;
+      idempotencyKey_ = other.idempotencyKey_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -183,6 +185,22 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       }
     }
 
+    /// <summary>Field number for the "idempotency_key" field.</summary>
+    public const int IdempotencyKeyFieldNumber = 6;
+    private string idempotencyKey_ = "";
+    /// <summary>
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 外部送信（SMTP / S3 等）の重複防止に必須。同一キーでの再試行は初回 response を返す。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string IdempotencyKey {
+      get { return idempotencyKey_; }
+      set {
+        idempotencyKey_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -203,6 +221,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       if (Data != other.Data) return false;
       if (!Metadata.Equals(other.Metadata)) return false;
       if (!object.Equals(Context, other.Context)) return false;
+      if (IdempotencyKey != other.IdempotencyKey) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -215,6 +234,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       if (Data.Length != 0) hash ^= Data.GetHashCode();
       hash ^= Metadata.GetHashCode();
       if (context_ != null) hash ^= Context.GetHashCode();
+      if (IdempotencyKey.Length != 0) hash ^= IdempotencyKey.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -250,6 +270,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(Context);
       }
+      if (IdempotencyKey.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(IdempotencyKey);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -277,6 +301,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(Context);
       }
+      if (IdempotencyKey.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(IdempotencyKey);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -299,6 +327,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
       size += metadata_.CalculateSize(_map_metadata_codec);
       if (context_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
+      }
+      if (IdempotencyKey.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(IdempotencyKey);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -327,6 +358,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
           Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
         }
         Context.MergeFrom(other.Context);
+      }
+      if (other.IdempotencyKey.Length != 0) {
+        IdempotencyKey = other.IdempotencyKey;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -370,6 +404,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
             input.ReadMessage(Context);
             break;
           }
+          case 50: {
+            IdempotencyKey = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -410,6 +448,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Binding.V1 {
               Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
             }
             input.ReadMessage(Context);
+            break;
+          }
+          case 50: {
+            IdempotencyKey = input.ReadString();
             break;
           }
         }

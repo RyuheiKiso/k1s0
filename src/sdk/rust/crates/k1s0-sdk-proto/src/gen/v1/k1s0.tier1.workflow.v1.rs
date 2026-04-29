@@ -22,6 +22,10 @@ pub struct StartRequest {
     /// バックエンド hint（BACKEND_AUTO で tier1 が自動選択）。
     #[prost(enumeration="WorkflowBackend", tag="6")]
     pub backend: i32,
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+    #[prost(string, tag="7")]
+    pub idempotency_key: ::prost::alloc::string::String,
 }
 /// Start 応答
 #[allow(clippy::derive_partial_eq_without_eq)]

@@ -169,6 +169,15 @@ export class RecordAuditRequest extends Message<RecordAuditRequest> {
    */
   context?: TenantContext;
 
+  /**
+   * 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+   * 重複 audit event 書込を防ぐ（hash chain 整合性が乱れないよう）。
+   * 同一キーでの再試行は副作用を重複させず初回 audit_id を返す。
+   *
+   * @generated from field: string idempotency_key = 3;
+   */
+  idempotencyKey = "";
+
   constructor(data?: PartialMessage<RecordAuditRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -179,6 +188,7 @@ export class RecordAuditRequest extends Message<RecordAuditRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "event", kind: "message", T: AuditEvent },
     { no: 2, name: "context", kind: "message", T: TenantContext },
+    { no: 3, name: "idempotency_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RecordAuditRequest {

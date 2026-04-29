@@ -17,6 +17,8 @@ import (
 	"context"
 	// Dapr adapter（ErrNotWired 判定用）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	// SDK 生成 stub の StateService 型。
 	statev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/state/v1"
 	// gRPC エラーコード。
@@ -35,6 +37,8 @@ type stateHandler struct {
 	// adapter 集合への参照。
 	deps Deps
 }
+
+// idempotency cache へのアクセス helper（stateHandler は deps.Idempotency を経由）。
 
 // Get は単一キー取得。adapter 経由 Valkey 取得（リリース時点 placeholder）。
 func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*statev1.GetResponse, error) {
@@ -76,6 +80,8 @@ func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*state
 }
 
 // Set は単一キー保存。
+// 共通規約 §「冪等性と再試行」: idempotency_key 指定時は同一キーの再試行で副作用を
+// 重複させず、初回 SetResponse を返す（24h TTL の cache でレスポンスを保持）。
 func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*statev1.SetResponse, error) {
 	// 入力 nil 防御。
 	if req == nil {
@@ -87,30 +93,36 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 	if err != nil {
 		return nil, err
 	}
-	// adapter 入力に変換する。
-	areq := dapr.StateSetRequest{
-		// store。
-		Store: req.GetStore(),
-		// key。
-		Key: req.GetKey(),
-		// data。
-		Data: req.GetData(),
-		// 期待 ETag。
-		ExpectedEtag: req.GetExpectedEtag(),
-		// TTL 秒。
-		TTLSeconds: req.GetTtlSec(),
-		// テナント。
-		TenantID: tid,
+	// 実 Set 実行クロージャ。idempotency cache hit 時は呼ばれない。
+	doSet := func() (interface{}, error) {
+		areq := dapr.StateSetRequest{
+			Store:        req.GetStore(),
+			Key:          req.GetKey(),
+			Data:         req.GetData(),
+			ExpectedEtag: req.GetExpectedEtag(),
+			TTLSeconds:   req.GetTtlSec(),
+			TenantID:     tid,
+		}
+		aresp, err := h.deps.StateAdapter.Set(ctx, areq)
+		if err != nil {
+			return nil, translateErr(err, "Set", "plan 04-04")
+		}
+		return &statev1.SetResponse{NewEtag: aresp.NewEtag}, nil
 	}
-	// adapter 呼出。
-	aresp, err := h.deps.StateAdapter.Set(ctx, areq)
+	// 冪等性キー + cache が両方ある場合のみ dedup を適用する。
+	idempKey := common.IdempotencyKey(tid, "State.Set", req.GetIdempotencyKey())
+	if idempKey == "" || h.deps.Idempotency == nil {
+		resp, err := doSet()
+		if err != nil {
+			return nil, err
+		}
+		return resp.(*statev1.SetResponse), nil
+	}
+	resp, err := h.deps.Idempotency.GetOrCompute(ctx, idempKey, doSet)
 	if err != nil {
-		// 翻訳して返却する。
-		return nil, translateErr(err, "Set", "plan 04-04")
+		return nil, err
 	}
-	// 成功応答。NewEtag は Dapr SDK が SaveState 時に etag を返さないため
-	// 通常は空文字。Component 側が etag を生成する場合は後続 Get で取得する。
-	return &statev1.SetResponse{NewEtag: aresp.NewEtag}, nil
+	return resp.(*statev1.SetResponse), nil
 }
 
 // Delete は単一キー削除。

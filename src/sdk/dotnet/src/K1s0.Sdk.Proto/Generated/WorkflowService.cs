@@ -26,66 +26,66 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
           string.Concat(
             "Ci1rMXMwL3RpZXIxL3dvcmtmbG93L3YxL3dvcmtmbG93X3NlcnZpY2UucHJv",
             "dG8SFmsxczAudGllcjEud29ya2Zsb3cudjEaIWsxczAvdGllcjEvY29tbW9u",
-            "L3YxL2NvbW1vbi5wcm90byKMAgoMU3RhcnRSZXF1ZXN0EiMKDXdvcmtmbG93",
+            "L3YxL2NvbW1vbi5wcm90byK1AgoMU3RhcnRSZXF1ZXN0EiMKDXdvcmtmbG93",
             "X3R5cGUYASABKAlSDHdvcmtmbG93VHlwZRIfCgt3b3JrZmxvd19pZBgCIAEo",
             "CVIKd29ya2Zsb3dJZBIUCgVpbnB1dBgDIAEoDFIFaW5wdXQSHgoKaWRlbXBv",
             "dGVudBgEIAEoCFIKaWRlbXBvdGVudBI9Cgdjb250ZXh0GAUgASgLMiMuazFz",
             "MC50aWVyMS5jb21tb24udjEuVGVuYW50Q29udGV4dFIHY29udGV4dBJBCgdi",
             "YWNrZW5kGAYgASgOMicuazFzMC50aWVyMS53b3JrZmxvdy52MS5Xb3JrZmxv",
-            "d0JhY2tlbmRSB2JhY2tlbmQiigEKDVN0YXJ0UmVzcG9uc2USHwoLd29ya2Zs",
-            "b3dfaWQYASABKAlSCndvcmtmbG93SWQSFQoGcnVuX2lkGAIgASgJUgVydW5J",
-            "ZBJBCgdiYWNrZW5kGAMgASgOMicuazFzMC50aWVyMS53b3JrZmxvdy52MS5X",
-            "b3JrZmxvd0JhY2tlbmRSB2JhY2tlbmQiqgEKDVNpZ25hbFJlcXVlc3QSHwoL",
-            "d29ya2Zsb3dfaWQYASABKAlSCndvcmtmbG93SWQSHwoLc2lnbmFsX25hbWUY",
-            "AiABKAlSCnNpZ25hbE5hbWUSGAoHcGF5bG9hZBgDIAEoDFIHcGF5bG9hZBI9",
-            "Cgdjb250ZXh0GAQgASgLMiMuazFzMC50aWVyMS5jb21tb24udjEuVGVuYW50",
-            "Q29udGV4dFIHY29udGV4dCIQCg5TaWduYWxSZXNwb25zZSKnAQoMUXVlcnlS",
-            "ZXF1ZXN0Eh8KC3dvcmtmbG93X2lkGAEgASgJUgp3b3JrZmxvd0lkEh0KCnF1",
-            "ZXJ5X25hbWUYAiABKAlSCXF1ZXJ5TmFtZRIYCgdwYXlsb2FkGAMgASgMUgdw",
-            "YXlsb2FkEj0KB2NvbnRleHQYBCABKAsyIy5rMXMwLnRpZXIxLmNvbW1vbi52",
-            "MS5UZW5hbnRDb250ZXh0Ugdjb250ZXh0IicKDVF1ZXJ5UmVzcG9uc2USFgoG",
-            "cmVzdWx0GAEgASgMUgZyZXN1bHQihwEKDUNhbmNlbFJlcXVlc3QSHwoLd29y",
-            "a2Zsb3dfaWQYASABKAlSCndvcmtmbG93SWQSFgoGcmVhc29uGAIgASgJUgZy",
-            "ZWFzb24SPQoHY29udGV4dBgDIAEoCzIjLmsxczAudGllcjEuY29tbW9uLnYx",
-            "LlRlbmFudENvbnRleHRSB2NvbnRleHQiEAoOQ2FuY2VsUmVzcG9uc2UiigEK",
-            "EFRlcm1pbmF0ZVJlcXVlc3QSHwoLd29ya2Zsb3dfaWQYASABKAlSCndvcmtm",
-            "bG93SWQSFgoGcmVhc29uGAIgASgJUgZyZWFzb24SPQoHY29udGV4dBgDIAEo",
-            "CzIjLmsxczAudGllcjEuY29tbW9uLnYxLlRlbmFudENvbnRleHRSB2NvbnRl",
-            "eHQiEwoRVGVybWluYXRlUmVzcG9uc2UicgoQR2V0U3RhdHVzUmVxdWVzdBIf",
-            "Cgt3b3JrZmxvd19pZBgBIAEoCVIKd29ya2Zsb3dJZBI9Cgdjb250ZXh0GAIg",
-            "ASgLMiMuazFzMC50aWVyMS5jb21tb24udjEuVGVuYW50Q29udGV4dFIHY29u",
-            "dGV4dCK7AQoRR2V0U3RhdHVzUmVzcG9uc2USPgoGc3RhdHVzGAEgASgOMiYu",
-            "azFzMC50aWVyMS53b3JrZmxvdy52MS5Xb3JrZmxvd1N0YXR1c1IGc3RhdHVz",
-            "EhUKBnJ1bl9pZBgCIAEoCVIFcnVuSWQSFgoGb3V0cHV0GAMgASgMUgZvdXRw",
-            "dXQSNwoFZXJyb3IYBCABKAsyIS5rMXMwLnRpZXIxLmNvbW1vbi52MS5FcnJv",
-            "ckRldGFpbFIFZXJyb3IqSwoPV29ya2Zsb3dCYWNrZW5kEhAKDEJBQ0tFTkRf",
-            "QVVUTxAAEhAKDEJBQ0tFTkRfREFQUhABEhQKEEJBQ0tFTkRfVEVNUE9SQUwQ",
-            "AipsCg5Xb3JrZmxvd1N0YXR1cxILCgdSVU5OSU5HEAASDQoJQ09NUExFVEVE",
-            "EAESCgoGRkFJTEVEEAISDAoIQ0FOQ0VMRUQQAxIOCgpURVJNSU5BVEVEEAQS",
-            "FAoQQ09OVElOVUVEX0FTX05FVxAFMrMECg9Xb3JrZmxvd1NlcnZpY2USVAoF",
-            "U3RhcnQSJC5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlN0YXJ0UmVxdWVzdBol",
-            "LmsxczAudGllcjEud29ya2Zsb3cudjEuU3RhcnRSZXNwb25zZRJXCgZTaWdu",
-            "YWwSJS5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlNpZ25hbFJlcXVlc3QaJi5r",
-            "MXMwLnRpZXIxLndvcmtmbG93LnYxLlNpZ25hbFJlc3BvbnNlElQKBVF1ZXJ5",
-            "EiQuazFzMC50aWVyMS53b3JrZmxvdy52MS5RdWVyeVJlcXVlc3QaJS5rMXMw",
-            "LnRpZXIxLndvcmtmbG93LnYxLlF1ZXJ5UmVzcG9uc2USVwoGQ2FuY2VsEiUu",
-            "azFzMC50aWVyMS53b3JrZmxvdy52MS5DYW5jZWxSZXF1ZXN0GiYuazFzMC50",
-            "aWVyMS53b3JrZmxvdy52MS5DYW5jZWxSZXNwb25zZRJgCglUZXJtaW5hdGUS",
-            "KC5rMXMwLnRpZXIxLndvcmtmbG93LnYxLlRlcm1pbmF0ZVJlcXVlc3QaKS5r",
-            "MXMwLnRpZXIxLndvcmtmbG93LnYxLlRlcm1pbmF0ZVJlc3BvbnNlEmAKCUdl",
-            "dFN0YXR1cxIoLmsxczAudGllcjEud29ya2Zsb3cudjEuR2V0U3RhdHVzUmVx",
-            "dWVzdBopLmsxczAudGllcjEud29ya2Zsb3cudjEuR2V0U3RhdHVzUmVzcG9u",
-            "c2VCgwIKGmNvbS5rMXMwLnRpZXIxLndvcmtmbG93LnYxQhRXb3JrZmxvd1Nl",
-            "cnZpY2VQcm90b1ABWkFnaXRodWIuY29tL2sxczAvc2RrLWdvL3Byb3RvL3Yx",
-            "L2sxczAvdGllcjEvd29ya2Zsb3cvdjE7d29ya2Zsb3d2MaICA0tUV6oCKUsx",
-            "czAuU2RrLkdlbmVyYXRlZC5LMXMwLlRpZXIxLldvcmtmbG93LlYxygIWSzFz",
-            "MFxUaWVyMVxXb3JrZmxvd1xWMeICIksxczBcVGllcjFcV29ya2Zsb3dcVjFc",
-            "R1BCTWV0YWRhdGHqAhlLMXMwOjpUaWVyMTo6V29ya2Zsb3c6OlYxYgZwcm90",
-            "bzM="));
+            "d0JhY2tlbmRSB2JhY2tlbmQSJwoPaWRlbXBvdGVuY3lfa2V5GAcgASgJUg5p",
+            "ZGVtcG90ZW5jeUtleSKKAQoNU3RhcnRSZXNwb25zZRIfCgt3b3JrZmxvd19p",
+            "ZBgBIAEoCVIKd29ya2Zsb3dJZBIVCgZydW5faWQYAiABKAlSBXJ1bklkEkEK",
+            "B2JhY2tlbmQYAyABKA4yJy5rMXMwLnRpZXIxLndvcmtmbG93LnYxLldvcmtm",
+            "bG93QmFja2VuZFIHYmFja2VuZCKqAQoNU2lnbmFsUmVxdWVzdBIfCgt3b3Jr",
+            "Zmxvd19pZBgBIAEoCVIKd29ya2Zsb3dJZBIfCgtzaWduYWxfbmFtZRgCIAEo",
+            "CVIKc2lnbmFsTmFtZRIYCgdwYXlsb2FkGAMgASgMUgdwYXlsb2FkEj0KB2Nv",
+            "bnRleHQYBCABKAsyIy5rMXMwLnRpZXIxLmNvbW1vbi52MS5UZW5hbnRDb250",
+            "ZXh0Ugdjb250ZXh0IhAKDlNpZ25hbFJlc3BvbnNlIqcBCgxRdWVyeVJlcXVl",
+            "c3QSHwoLd29ya2Zsb3dfaWQYASABKAlSCndvcmtmbG93SWQSHQoKcXVlcnlf",
+            "bmFtZRgCIAEoCVIJcXVlcnlOYW1lEhgKB3BheWxvYWQYAyABKAxSB3BheWxv",
+            "YWQSPQoHY29udGV4dBgEIAEoCzIjLmsxczAudGllcjEuY29tbW9uLnYxLlRl",
+            "bmFudENvbnRleHRSB2NvbnRleHQiJwoNUXVlcnlSZXNwb25zZRIWCgZyZXN1",
+            "bHQYASABKAxSBnJlc3VsdCKHAQoNQ2FuY2VsUmVxdWVzdBIfCgt3b3JrZmxv",
+            "d19pZBgBIAEoCVIKd29ya2Zsb3dJZBIWCgZyZWFzb24YAiABKAlSBnJlYXNv",
+            "bhI9Cgdjb250ZXh0GAMgASgLMiMuazFzMC50aWVyMS5jb21tb24udjEuVGVu",
+            "YW50Q29udGV4dFIHY29udGV4dCIQCg5DYW5jZWxSZXNwb25zZSKKAQoQVGVy",
+            "bWluYXRlUmVxdWVzdBIfCgt3b3JrZmxvd19pZBgBIAEoCVIKd29ya2Zsb3dJ",
+            "ZBIWCgZyZWFzb24YAiABKAlSBnJlYXNvbhI9Cgdjb250ZXh0GAMgASgLMiMu",
+            "azFzMC50aWVyMS5jb21tb24udjEuVGVuYW50Q29udGV4dFIHY29udGV4dCIT",
+            "ChFUZXJtaW5hdGVSZXNwb25zZSJyChBHZXRTdGF0dXNSZXF1ZXN0Eh8KC3dv",
+            "cmtmbG93X2lkGAEgASgJUgp3b3JrZmxvd0lkEj0KB2NvbnRleHQYAiABKAsy",
+            "Iy5rMXMwLnRpZXIxLmNvbW1vbi52MS5UZW5hbnRDb250ZXh0Ugdjb250ZXh0",
+            "IrsBChFHZXRTdGF0dXNSZXNwb25zZRI+CgZzdGF0dXMYASABKA4yJi5rMXMw",
+            "LnRpZXIxLndvcmtmbG93LnYxLldvcmtmbG93U3RhdHVzUgZzdGF0dXMSFQoG",
+            "cnVuX2lkGAIgASgJUgVydW5JZBIWCgZvdXRwdXQYAyABKAxSBm91dHB1dBI3",
+            "CgVlcnJvchgEIAEoCzIhLmsxczAudGllcjEuY29tbW9uLnYxLkVycm9yRGV0",
+            "YWlsUgVlcnJvcipLCg9Xb3JrZmxvd0JhY2tlbmQSEAoMQkFDS0VORF9BVVRP",
+            "EAASEAoMQkFDS0VORF9EQVBSEAESFAoQQkFDS0VORF9URU1QT1JBTBACKmwK",
+            "DldvcmtmbG93U3RhdHVzEgsKB1JVTk5JTkcQABINCglDT01QTEVURUQQARIK",
+            "CgZGQUlMRUQQAhIMCghDQU5DRUxFRBADEg4KClRFUk1JTkFURUQQBBIUChBD",
+            "T05USU5VRURfQVNfTkVXEAUyswQKD1dvcmtmbG93U2VydmljZRJUCgVTdGFy",
+            "dBIkLmsxczAudGllcjEud29ya2Zsb3cudjEuU3RhcnRSZXF1ZXN0GiUuazFz",
+            "MC50aWVyMS53b3JrZmxvdy52MS5TdGFydFJlc3BvbnNlElcKBlNpZ25hbBIl",
+            "LmsxczAudGllcjEud29ya2Zsb3cudjEuU2lnbmFsUmVxdWVzdBomLmsxczAu",
+            "dGllcjEud29ya2Zsb3cudjEuU2lnbmFsUmVzcG9uc2USVAoFUXVlcnkSJC5r",
+            "MXMwLnRpZXIxLndvcmtmbG93LnYxLlF1ZXJ5UmVxdWVzdBolLmsxczAudGll",
+            "cjEud29ya2Zsb3cudjEuUXVlcnlSZXNwb25zZRJXCgZDYW5jZWwSJS5rMXMw",
+            "LnRpZXIxLndvcmtmbG93LnYxLkNhbmNlbFJlcXVlc3QaJi5rMXMwLnRpZXIx",
+            "LndvcmtmbG93LnYxLkNhbmNlbFJlc3BvbnNlEmAKCVRlcm1pbmF0ZRIoLmsx",
+            "czAudGllcjEud29ya2Zsb3cudjEuVGVybWluYXRlUmVxdWVzdBopLmsxczAu",
+            "dGllcjEud29ya2Zsb3cudjEuVGVybWluYXRlUmVzcG9uc2USYAoJR2V0U3Rh",
+            "dHVzEiguazFzMC50aWVyMS53b3JrZmxvdy52MS5HZXRTdGF0dXNSZXF1ZXN0",
+            "GikuazFzMC50aWVyMS53b3JrZmxvdy52MS5HZXRTdGF0dXNSZXNwb25zZUKD",
+            "AgoaY29tLmsxczAudGllcjEud29ya2Zsb3cudjFCFFdvcmtmbG93U2Vydmlj",
+            "ZVByb3RvUAFaQWdpdGh1Yi5jb20vazFzMC9zZGstZ28vcHJvdG8vdjEvazFz",
+            "MC90aWVyMS93b3JrZmxvdy92MTt3b3JrZmxvd3YxogIDS1RXqgIpSzFzMC5T",
+            "ZGsuR2VuZXJhdGVkLksxczAuVGllcjEuV29ya2Zsb3cuVjHKAhZLMXMwXFRp",
+            "ZXIxXFdvcmtmbG93XFYx4gIiSzFzMFxUaWVyMVxXb3JrZmxvd1xWMVxHUEJN",
+            "ZXRhZGF0YeoCGUsxczA6OlRpZXIxOjpXb3JrZmxvdzo6VjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.CommonReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend), typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowStatus), }, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest.Parser, new[]{ "WorkflowType", "WorkflowId", "Input", "Idempotent", "Context", "Backend" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartRequest.Parser, new[]{ "WorkflowType", "WorkflowId", "Input", "Idempotent", "Context", "Backend", "IdempotencyKey" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.StartResponse.Parser, new[]{ "WorkflowId", "RunId", "Backend" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalRequest.Parser, new[]{ "WorkflowId", "SignalName", "Payload", "Context" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.SignalResponse.Parser, null, null, null, null, null),
@@ -205,6 +205,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       idempotent_ = other.idempotent_;
       context_ = other.context_ != null ? other.context_.Clone() : null;
       backend_ = other.backend_;
+      idempotencyKey_ = other.idempotencyKey_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -304,6 +305,22 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
     }
 
+    /// <summary>Field number for the "idempotency_key" field.</summary>
+    public const int IdempotencyKeyFieldNumber = 7;
+    private string idempotencyKey_ = "";
+    /// <summary>
+    /// 冪等性キー（共通規約 §「冪等性と再試行」: 24h TTL の dedup）
+    /// 同一キーでの再試行は副作用を重複させず初回 StartResponse を返す
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string IdempotencyKey {
+      get { return idempotencyKey_; }
+      set {
+        idempotencyKey_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -325,6 +342,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       if (Idempotent != other.Idempotent) return false;
       if (!object.Equals(Context, other.Context)) return false;
       if (Backend != other.Backend) return false;
+      if (IdempotencyKey != other.IdempotencyKey) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -338,6 +356,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       if (Idempotent != false) hash ^= Idempotent.GetHashCode();
       if (context_ != null) hash ^= Context.GetHashCode();
       if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) hash ^= Backend.GetHashCode();
+      if (IdempotencyKey.Length != 0) hash ^= IdempotencyKey.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -380,6 +399,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
         output.WriteRawTag(48);
         output.WriteEnum((int) Backend);
       }
+      if (IdempotencyKey.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(IdempotencyKey);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -414,6 +437,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
         output.WriteRawTag(48);
         output.WriteEnum((int) Backend);
       }
+      if (IdempotencyKey.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(IdempotencyKey);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -441,6 +468,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
       if (Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Backend);
+      }
+      if (IdempotencyKey.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(IdempotencyKey);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -474,6 +504,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
       }
       if (other.Backend != global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend.BackendAuto) {
         Backend = other.Backend;
+      }
+      if (other.IdempotencyKey.Length != 0) {
+        IdempotencyKey = other.IdempotencyKey;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -521,6 +554,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
             Backend = (global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend) input.ReadEnum();
             break;
           }
+          case 58: {
+            IdempotencyKey = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -565,6 +602,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1 {
           }
           case 48: {
             Backend = (global::K1s0.Sdk.Generated.K1s0.Tier1.Workflow.V1.WorkflowBackend) input.ReadEnum();
+            break;
+          }
+          case 58: {
+            IdempotencyKey = input.ReadString();
             break;
           }
         }
