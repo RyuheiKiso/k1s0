@@ -31,6 +31,8 @@ import (
 	"flag"
 	// 起動 / shutdown / エラーログを stderr に出す。
 	"log"
+	// HTTP/JSON 互換 gateway 用。
+	"net/http"
 	// 環境変数読出。
 	"os"
 	// HealthService.Readiness の probe ごと timeout 制御。
@@ -49,10 +51,17 @@ import (
 // :50001 は docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md（EXPOSE 50001）正典準拠。
 const defaultListen = ":50001"
 
+// HTTP/JSON 互換 gateway の既定 listen address。Secret は機密性が高いため、デフォルトでは
+// Pod-internal 経路のみ提供する想定で 127.0.0.1 にバインドする運用を推奨（Service の
+// containerPort も exposing しない）。flag / env で外向き port に上書き可能。
+const defaultHTTPListen = "127.0.0.1:50081"
+
 // プロセスエントリポイント。flag パース、OpenBao 結線、common.Run への委譲を行う。
 func main() {
 	// listen address の上書き flag を定義（既定 :50001）。
 	addr := flag.String("listen", defaultListen, "gRPC server listen address")
+	// HTTP/JSON 互換 gateway の listen address。空文字 / "off" で起動しない。
+	httpAddr := flag.String("http-listen", defaultHTTPListen, "HTTP/JSON gateway listen address (empty or \"off\" disables)")
 	// flag 解析を起動直後に確定させる。
 	flag.Parse()
 
@@ -104,6 +113,18 @@ func main() {
 		rotator.Stop()
 	}()
 
+	// HTTP/JSON 互換 gateway を別 goroutine で起動する（共通規約 §「HTTP/JSON 互換」）。
+	httpServer := startSecretsHTTPGatewayIfEnabled(*httpAddr, deps)
+	defer func() {
+		if httpServer != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+				log.Printf("t1-secret: http gateway shutdown: %v", err)
+			}
+		}
+	}()
+
 	// Pod メタデータを構築する（SecretsService 登録）。
 	pod := common.Pod{
 		// Pod 論理名。ログ出力で "tier1/secret" として表示される。
@@ -138,6 +159,35 @@ func main() {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-secret: %v", err)
 	}
+}
+
+// startSecretsHTTPGatewayIfEnabled は HTTP/JSON 互換 gateway を別 goroutine で起動する。
+// addr が空文字 / "off" なら起動せず nil を返す（純 gRPC 運用）。
+//
+// Secret API は機密性が高いため:
+//   - 既定 bind address は 127.0.0.1 で Pod-internal 経路のみ exposing
+//   - 本 gateway 単体では認証を行わず、Service Mesh（Istio Ambient mTLS）または
+//     gRPC AuthInterceptor の前段配置で外部認証を担保する
+//   - 共通規約 §「認証と認可」と整合
+func startSecretsHTTPGatewayIfEnabled(addr string, deps secret.Deps) *http.Server {
+	if addr == "" || addr == "off" {
+		log.Printf("t1-secret: HTTP/JSON gateway disabled (--http-listen=%q)", addr)
+		return nil
+	}
+	g := common.NewHTTPGateway()
+	g.RegisterSecretsRoutes(secret.MakeHTTPSecretsHandlers(secret.NewSecretsServiceServer(deps)))
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           g.Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		log.Printf("t1-secret: HTTP/JSON gateway listening on %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("t1-secret: http gateway: %v", err)
+		}
+	}()
+	return srv
 }
 
 // newDynamicAdapter は OPENBAO_ADDR の有無で production / in-memory backend を切り替えて

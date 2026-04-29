@@ -34,6 +34,8 @@ import (
 	"flag"
 	// 起動 / shutdown / エラーログを stderr に出す。
 	"log"
+	// HTTP/JSON 互換 gateway 用。
+	"net/http"
 	// 環境変数読出。
 	"os"
 	// SDK error 文字列フォールバック判定。
@@ -58,10 +60,15 @@ import (
 // :50001 は docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/03_go_module配置.md（EXPOSE 50001）正典準拠。
 const defaultListen = ":50001"
 
+// HTTP/JSON 互換 gateway の既定 listen address。
+const defaultHTTPListen = ":50081"
+
 // プロセスエントリポイント。flag パース、Temporal 結線、common.Run への委譲を行う。
 func main() {
 	// listen address の上書き flag を定義（既定 :50001）。
 	addr := flag.String("listen", defaultListen, "gRPC server listen address")
+	// HTTP/JSON 互換 gateway の listen address。空文字 / "off" で起動しない。
+	httpAddr := flag.String("http-listen", defaultHTTPListen, "HTTP/JSON gateway listen address (empty or \"off\" disables)")
 	// flag 解析を起動直後に確定させる。
 	flag.Parse()
 
@@ -99,6 +106,18 @@ func main() {
 		// Dapr Workflow（短期）。production / in-memory のどちらでも handler 側変更不要。
 		DaprAdapter: daprWorkflowClient,
 	}
+
+	// HTTP/JSON 互換 gateway を別 goroutine で起動する（共通規約 §「HTTP/JSON 互換」）。
+	httpServer := startWorkflowHTTPGatewayIfEnabled(*httpAddr, deps)
+	defer func() {
+		if httpServer != nil {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+				log.Printf("t1-workflow: http gateway shutdown: %v", err)
+			}
+		}
+	}()
 
 	// Pod メタデータを構築する（WorkflowService 登録）。
 	pod := common.Pod{
@@ -168,6 +187,32 @@ func main() {
 		// fatal log は stderr + exit(1) を 1 行で行う Go の慣用。
 		log.Fatalf("t1-workflow: %v", err)
 	}
+}
+
+// startWorkflowHTTPGatewayIfEnabled は HTTP/JSON 互換 gateway を別 goroutine で起動する。
+// addr が空文字 / "off" なら起動せず nil を返す。
+//
+// 認証は本 gateway 単体では行わず、Service Mesh（Istio Ambient mTLS）または gRPC
+// AuthInterceptor の前段配置で外部認証を担保する運用を前提とする（共通規約 §「認証と認可」）。
+func startWorkflowHTTPGatewayIfEnabled(addr string, deps workflow.Deps) *http.Server {
+	if addr == "" || addr == "off" {
+		log.Printf("t1-workflow: HTTP/JSON gateway disabled (--http-listen=%q)", addr)
+		return nil
+	}
+	g := common.NewHTTPGateway()
+	g.RegisterWorkflowRoutes(workflow.MakeHTTPHandlers(workflow.NewWorkflowServiceServer(deps)))
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           g.Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		log.Printf("t1-workflow: HTTP/JSON gateway listening on %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("t1-workflow: http gateway: %v", err)
+		}
+	}()
+	return srv
 }
 
 // newDaprWorkflowAdapter は環境変数 DAPR_GRPC_ENDPOINT の有無で
