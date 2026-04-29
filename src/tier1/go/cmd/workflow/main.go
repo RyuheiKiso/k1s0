@@ -105,6 +105,10 @@ func main() {
 		WorkflowAdapter: temporal.NewWorkflowAdapter(temporalClient),
 		// Dapr Workflow（短期）。production / in-memory のどちらでも handler 側変更不要。
 		DaprAdapter: daprWorkflowClient,
+		// 共通規約 §「冪等性と再試行」: 24h TTL の in-memory dedup cache を有効化。
+		// production の multi-replica deploy では Valkey backed cache に置き換える想定だが、
+		// release-initial では in-memory backend で 1 Pod 内 dedup を提供する。
+		Idempotency: common.NewInMemoryIdempotencyCache(0),
 	}
 
 	// HTTP/JSON 互換 gateway を別 goroutine で起動する（共通規約 §「HTTP/JSON 互換」）。
