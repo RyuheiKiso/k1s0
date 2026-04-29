@@ -2,6 +2,7 @@
 // k1s0-scaffold が生成した雛形。{{description}}
 //
 // 設計参考: examples/tier2-go-service/cmd/example-service/main.go
+//           src/tier2/go/services/notification-hub/internal/api/router.go（auth middleware 結線）
 package main
 
 // 標準 / 内部 import。
@@ -23,6 +24,9 @@ import (
 
 	// k1s0 高水準 SDK facade。
 	"github.com/k1s0/sdk-go/k1s0"
+	// docs §共通規約「認証認可」を満たす共通 JWT 認証 middleware
+	// （T2_AUTH_MODE=off/hmac/jwks の 3 mode、tier2 全 Go サービス共通）。
+	t2auth "github.com/k1s0/k1s0/src/tier2/go/shared/auth"
 )
 
 // プロセスエントリポイント。
@@ -49,7 +53,24 @@ func main() {
 	}
 	defer client.Close()
 
-	// HTTP handler を組み立てる。
+	// 業務 endpoint 用の subrouter を組み立てる（auth middleware 必須）。
+	authMux := http.NewServeMux()
+	// /sample-write: 採用組織のドメインロジックに置換するサンプル endpoint。
+	authMux.HandleFunc("POST /sample-write", func(w http.ResponseWriter, r *http.Request) {
+		// auth middleware が attach した tenant_id / subject を SDK 呼出に
+		// per-request 上書きする（confused deputy 対策、NFR-E-AC-003 準拠）。
+		tenantID := t2auth.TenantIDFromContext(r.Context())
+		subject := t2auth.SubjectFromContext(r.Context())
+		ctx := r.Context()
+		if tenantID != "" {
+			ctx = k1s0.WithTenant(ctx, tenantID, subject)
+		}
+		_ = ctx // 採用組織側で SDK 呼出時に使う（例: client.State().Save(ctx, ...)）。
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"saved":true}`))
+	})
+
+	// 外側 mux: /healthz / /readyz は probe で auth 不要。
 	mux := http.NewServeMux()
 
 	// /healthz: 単純な疎通確認（liveness）。
@@ -64,6 +85,10 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ready"))
 	})
+
+	// /sample-write は auth middleware で wrap する（docs §共通規約「認証認可」、
+	// T2_AUTH_MODE 環境変数で off / hmac / jwks の 3 mode を選択）。
+	mux.Handle("/sample-write", t2auth.Required()(authMux))
 
 	// HTTP server を起動する。
 	srv := &http.Server{
