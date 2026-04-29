@@ -21,7 +21,7 @@ func (d *DecisionAdminClient) RegisterRule(ctx context.Context, ruleID string, j
 		JdmDocument:       jdmDocument,
 		SigstoreSignature: sigstoreSignature,
 		CommitHash:        commitHash,
-		Context:           d.client.tenantContext(),
+		Context:           d.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return "", 0, e
@@ -33,7 +33,7 @@ func (d *DecisionAdminClient) RegisterRule(ctx context.Context, ruleID string, j
 func (d *DecisionAdminClient) ListVersions(ctx context.Context, ruleID string) ([]*decisionv1.RuleVersionMeta, error) {
 	resp, e := d.client.raw.DecisionAdmin.ListVersions(ctx, &decisionv1.ListVersionsRequest{
 		RuleId:  ruleID,
-		Context: d.client.tenantContext(),
+		Context: d.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, e
@@ -46,7 +46,7 @@ func (d *DecisionAdminClient) GetRule(ctx context.Context, ruleID, ruleVersion s
 	resp, e := d.client.raw.DecisionAdmin.GetRule(ctx, &decisionv1.GetRuleRequest{
 		RuleId:      ruleID,
 		RuleVersion: ruleVersion,
-		Context:     d.client.tenantContext(),
+		Context:     d.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, nil, e

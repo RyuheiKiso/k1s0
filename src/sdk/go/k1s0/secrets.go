@@ -25,7 +25,7 @@ func (s *SecretsClient) Get(ctx context.Context, name string) (values map[string
 		// シークレット名。
 		Name: name,
 		// TenantContext を継承する。
-		Context: s.tenantContext(),
+		Context: s.tenantContext(ctx),
 	}
 	// 生成 stub 経由で RPC 呼び出し。
 	resp, e := s.client.raw.Secrets.Get(ctx, req)
@@ -66,7 +66,7 @@ func (s *SecretsClient) Rotate(ctx context.Context, name string, opts ...RotateO
 		// シークレット名。
 		Name: name,
 		// TenantContext を継承する。
-		Context: s.tenantContext(),
+		Context: s.tenantContext(ctx),
 	}
 	// 各 RotateOption を req に適用する。
 	for _, opt := range opts {
@@ -105,7 +105,7 @@ func (s *SecretsClient) GetDynamic(ctx context.Context, engine, role string, ttl
 		Engine:  engine,
 		Role:    role,
 		TtlSec:  ttlSec,
-		Context: s.tenantContext(),
+		Context: s.tenantContext(ctx),
 	}
 	// gRPC 呼出。
 	resp, err := s.client.raw.Secrets.GetDynamic(ctx, req)
@@ -121,15 +121,8 @@ func (s *SecretsClient) GetDynamic(ctx context.Context, engine, role string, ttl
 	}, nil
 }
 
-// tenantContext は親 Client の Config から TenantContext proto を生成する。
-func (s *SecretsClient) tenantContext() *commonv1.TenantContext {
-	// 構造体リテラルで TenantContext を構築する。
-	return &commonv1.TenantContext{
-		// テナント ID。
-		TenantId: s.client.cfg.TenantID,
-		// subject。
-		Subject: s.client.cfg.Subject,
-		// correlation_id は OTel interceptor 後段付与。
-		CorrelationId: "",
-	}
+// tenantContext は ctx の per-request override を優先しつつ TenantContext proto を生成する。
+// override 不在時は親 Client の Config から構築する。
+func (s *SecretsClient) tenantContext(ctx context.Context) *commonv1.TenantContext {
+	return s.client.tenantContext(ctx)
 }

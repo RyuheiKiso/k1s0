@@ -26,7 +26,7 @@ func (a *AuditClient) Record(ctx context.Context, actor, action, resource, outco
 			Outcome:    outcome,
 			Attributes: attributes,
 		},
-		Context: a.client.tenantContext(),
+		Context: a.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return "", e
@@ -41,7 +41,7 @@ func (a *AuditClient) Query(ctx context.Context, from, to time.Time, filters map
 		To:      timestamppb.New(to),
 		Filters: filters,
 		Limit:   limit,
-		Context: a.client.tenantContext(),
+		Context: a.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, e
@@ -65,7 +65,7 @@ type VerifyChainResult struct {
 // from / to が zero 時刻なら全範囲を対象にする（gRPC 側で nil 扱い）。
 func (a *AuditClient) VerifyChain(ctx context.Context, from, to time.Time) (VerifyChainResult, error) {
 	// proto Request を構築する。zero time は nil で渡し、tier1 側が "未指定" として解釈する。
-	req := &auditv1.VerifyChainRequest{Context: a.client.tenantContext()}
+	req := &auditv1.VerifyChainRequest{Context: a.client.tenantContext(ctx)}
 	if !from.IsZero() {
 		req.From = timestamppb.New(from)
 	}

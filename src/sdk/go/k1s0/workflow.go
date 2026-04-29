@@ -40,7 +40,7 @@ func (w *WorkflowClient) startWithBackend(ctx context.Context, workflowType, wor
 		Input:        input,
 		Idempotent:   idempotent,
 		Backend:      backend,
-		Context:      w.client.tenantContext(),
+		Context:      w.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return "", "", e
@@ -54,7 +54,7 @@ func (w *WorkflowClient) Signal(ctx context.Context, workflowID, signalName stri
 		WorkflowId: workflowID,
 		SignalName: signalName,
 		Payload:    payload,
-		Context:    w.client.tenantContext(),
+		Context:    w.client.tenantContext(ctx),
 	})
 	return e
 }
@@ -65,7 +65,7 @@ func (w *WorkflowClient) Query(ctx context.Context, workflowID, queryName string
 		WorkflowId: workflowID,
 		QueryName:  queryName,
 		Payload:    payload,
-		Context:    w.client.tenantContext(),
+		Context:    w.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, e
@@ -78,7 +78,7 @@ func (w *WorkflowClient) Cancel(ctx context.Context, workflowID, reason string) 
 	_, e := w.client.raw.Workflow.Cancel(ctx, &workflowv1.CancelRequest{
 		WorkflowId: workflowID,
 		Reason:     reason,
-		Context:    w.client.tenantContext(),
+		Context:    w.client.tenantContext(ctx),
 	})
 	return e
 }
@@ -88,7 +88,7 @@ func (w *WorkflowClient) Terminate(ctx context.Context, workflowID, reason strin
 	_, e := w.client.raw.Workflow.Terminate(ctx, &workflowv1.TerminateRequest{
 		WorkflowId: workflowID,
 		Reason:     reason,
-		Context:    w.client.tenantContext(),
+		Context:    w.client.tenantContext(ctx),
 	})
 	return e
 }
@@ -97,6 +97,6 @@ func (w *WorkflowClient) Terminate(ctx context.Context, workflowID, reason strin
 func (w *WorkflowClient) GetStatus(ctx context.Context, workflowID string) (*workflowv1.GetStatusResponse, error) {
 	return w.client.raw.Workflow.GetStatus(ctx, &workflowv1.GetStatusRequest{
 		WorkflowId: workflowID,
-		Context:    w.client.tenantContext(),
+		Context:    w.client.tenantContext(ctx),
 	})
 }

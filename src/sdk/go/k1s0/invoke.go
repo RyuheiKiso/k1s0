@@ -23,7 +23,7 @@ func (i *InvokeClient) Call(ctx context.Context, appID, method string, data []by
 		Method:      method,
 		Data:        data,
 		ContentType: contentType,
-		Context:     i.client.tenantContext(),
+		Context:     i.client.tenantContext(ctx),
 		TimeoutMs:   timeoutMs,
 	})
 	if e != nil {
@@ -43,7 +43,7 @@ func (i *InvokeClient) Stream(ctx context.Context, appID, method string, data []
 	// proto Request を構築する。
 	req := &serviceinvokev1.InvokeRequest{
 		AppId: appID, Method: method, Data: data, ContentType: contentType,
-		Context: i.client.tenantContext(), TimeoutMs: timeoutMs,
+		Context: i.client.tenantContext(ctx), TimeoutMs: timeoutMs,
 	}
 	// 生成 stub の InvokeStream を起動する。
 	stream, err := i.client.raw.ServiceInvoke.InvokeStream(ctx, req)

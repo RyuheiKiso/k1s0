@@ -21,7 +21,7 @@ func (d *DecisionClient) Evaluate(ctx context.Context, ruleID, ruleVersion strin
 		RuleVersion:  ruleVersion,
 		InputJson:    inputJSON,
 		IncludeTrace: includeTrace,
-		Context:      d.client.tenantContext(),
+		Context:      d.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, nil, 0, e
@@ -35,7 +35,7 @@ func (d *DecisionClient) BatchEvaluate(ctx context.Context, ruleID, ruleVersion 
 		RuleId:      ruleID,
 		RuleVersion: ruleVersion,
 		InputsJson:  inputs,
-		Context:     d.client.tenantContext(),
+		Context:     d.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, e

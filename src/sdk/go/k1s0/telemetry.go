@@ -17,7 +17,7 @@ func (c *Client) Telemetry() *TelemetryClient { return c.telemetry }
 func (t *TelemetryClient) EmitMetric(ctx context.Context, metrics []*telemetryv1.Metric) error {
 	_, e := t.client.raw.Telemetry.EmitMetric(ctx, &telemetryv1.EmitMetricRequest{
 		Metrics: metrics,
-		Context: t.client.tenantContext(),
+		Context: t.client.tenantContext(ctx),
 	})
 	return e
 }
@@ -26,7 +26,7 @@ func (t *TelemetryClient) EmitMetric(ctx context.Context, metrics []*telemetryv1
 func (t *TelemetryClient) EmitSpan(ctx context.Context, spans []*telemetryv1.Span) error {
 	_, e := t.client.raw.Telemetry.EmitSpan(ctx, &telemetryv1.EmitSpanRequest{
 		Spans:   spans,
-		Context: t.client.tenantContext(),
+		Context: t.client.tenantContext(ctx),
 	})
 	return e
 }

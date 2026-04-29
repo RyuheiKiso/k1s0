@@ -20,7 +20,7 @@ func (b *BindingClient) Invoke(ctx context.Context, name, operation string, data
 		Operation: operation,
 		Data:      data,
 		Metadata:  metadata,
-		Context:   b.client.tenantContext(),
+		Context:   b.client.tenantContext(ctx),
 	})
 	if e != nil {
 		return nil, nil, e
