@@ -142,6 +142,16 @@ func AuthFromContext(ctx context.Context) (*AuthInfo, bool) {
 	return v, ok
 }
 
+// NewAuthContext は AuthInfo を context に attach する公開ヘルパ。test や
+// in-process 経路で AuthInterceptor を bypass して claims を注入する用途。
+// production 経路では AuthInterceptor が同等の処理を行う。
+func NewAuthContext(parent context.Context, info *AuthInfo) context.Context {
+	if info == nil {
+		return parent
+	}
+	return context.WithValue(parent, authInfoKey{}, info)
+}
+
 // EnforceTenantBoundary は handler 段で JWT 由来 tenant_id (context の AuthInfo) と
 // proto body の tenant_id を比較し、一致しなければ PermissionDenied を返す。
 // AuthInfo が context に無い場合（auth=off の dev 環境）は body 由来をそのまま採用。

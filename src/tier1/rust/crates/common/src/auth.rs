@@ -393,6 +393,53 @@ mod tests {
         assert!(extract_bearer(Some("Bearer ")).is_err());
         assert!(extract_bearer(Some("Bearer abc")).is_ok());
     }
+
+    /// G3 / H1 regression: cross-tenant boundary を Rust handler 段で reject。
+    #[test]
+    fn enforce_tenant_boundary_cross_tenant_rejected() {
+        let claims = AuthClaims {
+            tenant_id: "tenant-A".to_string(),
+            subject: "alice".to_string(),
+            ..Default::default()
+        };
+        let err = enforce_tenant_boundary(&claims, "tenant-B", "Audit.Record").unwrap_err();
+        assert_eq!(err.code(), tonic::Code::PermissionDenied);
+        assert!(
+            err.message().contains("cross-tenant"),
+            "error should mention 'cross-tenant', got: {}",
+            err.message()
+        );
+        assert!(
+            err.message().contains("tenant-A") && err.message().contains("tenant-B"),
+            "error should expose jwt + body tenants, got: {}",
+            err.message()
+        );
+    }
+
+    #[test]
+    fn enforce_tenant_boundary_matching_tenant_ok() {
+        let claims = AuthClaims {
+            tenant_id: "tenant-A".to_string(),
+            ..Default::default()
+        };
+        let tid = enforce_tenant_boundary(&claims, "tenant-A", "Audit.Record").unwrap();
+        assert_eq!(tid, "tenant-A");
+    }
+
+    #[test]
+    fn enforce_tenant_boundary_empty_body_rejected() {
+        let claims = AuthClaims::default();
+        let err = enforce_tenant_boundary(&claims, "", "Audit.Record").unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+
+    /// 空 claims (auth=off の demo-tenant でない場合の test) は body を採用する。
+    #[test]
+    fn enforce_tenant_boundary_empty_claims_skips_check() {
+        let claims = AuthClaims::default();
+        let tid = enforce_tenant_boundary(&claims, "tenant-X", "Audit.Record").unwrap();
+        assert_eq!(tid, "tenant-X");
+    }
 }
 
 /// `enforce_tenant_boundary` は handler 段で JWT 由来 tenant_id (claims) と
