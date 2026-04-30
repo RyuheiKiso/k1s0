@@ -121,12 +121,12 @@ fi
 # ---------- Check 5: ApplicationSet 8 件 ----------
 
 header "ApplicationSet 8 件"
-# 実際の名前: tier2/tier3 系は -example suffix 付き（deploy/apps/application-sets/ の元定義に従う）
+# 実際の名前: ADR-POL-002 finishing で multi-service 化したため tier2/3 は複数形 + suffix 無し
 EXPECTED_APPSETS=(
     infra ops
     tier1-facade tier1-rust-service
-    tier2-dotnet-service-example tier2-go-service-example
-    tier3-bff-example tier3-web-app-example
+    tier2-dotnet-services tier2-go-services
+    tier3-bffs tier3-web-apps
 )
 for as in "${EXPECTED_APPSETS[@]}"; do
     if kubectl -n argocd get applicationset "${as}" >/dev/null 2>&1; then
