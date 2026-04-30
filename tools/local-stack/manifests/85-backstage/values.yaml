@@ -21,6 +21,28 @@ backstage:
     requests:
       cpu: 100m
       memory: 512Mi
+  # ADR-POL-002 P4 finishing で発覚: backstage namespace は Kubernetes 1.31+ の
+  # Pod Security Admission で `restricted:latest` profile が enforce されており、
+  # 4 要件 (allowPrivilegeEscalation=false / drop ALL caps / runAsNonRoot=true /
+  # seccompProfile=RuntimeDefault) を満たす必要がある。Pod / Container の両方に
+  # securityContext を設定して admission を通す。
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false  # backstage は /tmp や cache に書込みあり
+    runAsNonRoot: true
+    runAsUser: 1000
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
   appConfig:
     app:
       title: k1s0 (local)

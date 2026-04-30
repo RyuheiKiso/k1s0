@@ -15,6 +15,11 @@ spec:
       owner: k1s0
       secret:
         name: k1s0-postgres-credentials
+      # ADR-POL-002 P4 finishing で発覚: backstage は plugin ごとに `backstage_plugin_<name>`
+      # DB を動的 CREATE するため、所有 user に CREATEDB 権限が必要。
+      # postInitApplicationSQL は initdb 完了後に application user として実行される。
+      postInitApplicationSQL:
+        - ALTER USER k1s0 CREATEDB
   resources:
     requests:
       cpu: 100m
