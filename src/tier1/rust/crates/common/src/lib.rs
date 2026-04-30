@@ -35,3 +35,5 @@ pub mod http_gateway;
 pub mod grpc_layer;
 // runtime ヘルパ（環境変数から共通リソースを構築）。
 pub mod runtime;
+// google.protobuf.Timestamp ↔ RFC 3339 文字列（protojson 互換）。
+pub mod timestamp;

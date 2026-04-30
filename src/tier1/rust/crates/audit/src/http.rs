@@ -170,13 +170,23 @@ fn tenant_ctx_for(claims: &AuthClaims) -> TenantContext {
     }
 }
 
-/// `{"seconds": N, "nanos": N}` または ISO8601 文字列を Timestamp に変換する。
-/// 本リリースでは `{seconds, nanos}` 形式のみサポート（protojson 互換は将来）。
+/// `google.protobuf.Timestamp` を JSON から復元する。
+/// 受入形式（互換性のため両方対応）:
+///   1. RFC 3339 文字列（protojson canonical: `"2026-04-30T09:00:00Z"`）
+///   2. `{"seconds": N, "nanos": N}`（proto wire 内部表現、後方互換用）
+///
+/// docs §「HTTP/JSON 互換」が protojson 直列化を要求するため、出力は (1) のみ
+/// だが、入力は legacy client 互換のため (2) も受け付ける。
 fn parse_timestamp(v: Option<&JsonValue>) -> Option<prost_types::Timestamp> {
     let v = v?;
     if v.is_null() {
         return None;
     }
+    // RFC 3339 文字列 path（protojson 互換）。
+    if let Some(s) = v.as_str() {
+        return k1s0_tier1_common::timestamp::rfc3339_to_timestamp(s);
+    }
+    // {seconds, nanos} 後方互換 path。
     let seconds = v.get("seconds").and_then(|s| s.as_i64()).unwrap_or(0);
     let nanos = v.get("nanos").and_then(|n| n.as_i64()).unwrap_or(0) as i32;
     Some(prost_types::Timestamp { seconds, nanos })
@@ -220,9 +230,15 @@ fn parse_audit_event(v: &JsonValue) -> Result<AuditEvent, tonic::Status> {
 }
 
 /// AuditEvent → protojson 互換 JSON。
+/// timestamp は protojson canonical の RFC 3339 文字列（`"2026-04-30T09:00:00Z"` 等）に
+/// 整形する。tier1-openapi-spec.yaml §「v1AuditEvent.timestamp」が `format: date-time`
+/// を要求するため、`{seconds, nanos}` の internal repr で返すと schemathesis が
+/// "Response violates schema" を検出する。
 fn audit_event_to_json(e: &AuditEvent) -> JsonValue {
-    let ts = e.timestamp.as_ref().map(|t| {
-        serde_json::json!({ "seconds": t.seconds, "nanos": t.nanos })
+    let ts = e.timestamp.as_ref().and_then(|t| {
+        // RFC 3339 整形不能な異常値（i64 overflow 等）は null にフォールバック。
+        // 通常 audit chain で記録される値は時刻範囲内のため到達不能。
+        k1s0_tier1_common::timestamp::timestamp_to_rfc3339(t).map(JsonValue::String)
     });
     let attrs: serde_json::Map<String, JsonValue> = e
         .attributes

@@ -30,6 +30,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	bao "github.com/openbao/openbao/api/v2"
 )
@@ -164,7 +165,15 @@ func (a *openbaoSecretsAdapter) Get(ctx context.Context, req SecretGetRequest) (
 		secret, err = a.client.kvClientFor().Get(ctx, physPath)
 	}
 	if err != nil {
-		// OpenBao SDK は 404 系を含めて error 返却するため、上位で NotFound に翻訳する。
+		// OpenBao SDK は 404 / 未存在 を「string メッセージで包んだ通常 error」で返す
+		// （sentinel ErrSecretNotFound ではない）。本 adapter で sentinel に正規化し、
+		// 上位 translateErr が codes.NotFound (= HTTP 404) に翻訳できるようにする。
+		// ErrSecretNotFound でない Internal 翻訳は kv2 SDK の永続的 not-found を
+		// codes.Internal 化してしまい、schemathesis が contract drift を検出する。
+		if msg := err.Error(); strings.Contains(msg, "secret not found") ||
+			strings.Contains(msg, "404") {
+			return SecretGetResponse{}, ErrSecretNotFound
+		}
 		return SecretGetResponse{}, err
 	}
 	if secret == nil {
