@@ -64,6 +64,17 @@ scope: contracts / sdk-{dotnet,go,rust,typescript} / tier1-{go,rust} / tier2 /
 - [ ] テストを追加・更新した（unit / integration / contract のいずれか）
 - [ ] 関連する SHIP_STATUS.md のマチュリティ記述を更新した（必要時）
 
+### local-stack / SoT 変更時のみ（ADR-POL-002）
+
+- [ ] `tools/local-stack/up.sh` の `apply_*` 関数を新設・改名・廃止した場合、
+      `infra/security/kyverno/block-non-canonical-helm-releases.yaml` の
+      `deny.conditions.all[0].value` allow-list を**同 PR で**更新した
+- [ ] `tools/local-stack/known-releases.sh` の出力と Kyverno policy allow-list の diff が空
+      （`.github/workflows/drift-check.yml` sync-check job が PR で機械検証する。事前に
+      `diff <(./tools/local-stack/known-releases.sh \| sort -u) <(yq ... policy)` で確認推奨）
+- [ ] `up.sh` 改修時、`tools/local-stack/verify-cluster.sh` も期待値（namespace 名 / 重要 release 名 /
+      ApplicationSet 名）を更新した
+
 ## ブレイクダウン
 
 <!-- どのファイル変更が何を意味するか、レビュアの読み順を提示 -->

@@ -303,14 +303,15 @@ apply_kyverno() {
     log "  Kyverno ClusterPolicy (baseline + drift) を適用"
     kubectl apply -k "${REPO_ROOT}/infra/security/kyverno/" 2>&1 | tail -5 || warn "  policy apply 失敗"
 
-    # ADR-POL-002 mode 切替: strict のみ drift policy を Enforce に patch
-    if [[ "${MODE}" == "strict" ]]; then
-        log "  mode=strict: drift policy を Enforce に切替"
+    # ADR-POL-002 mode 切替: dev のみ drift policy を Audit に patch（逆設計）。
+    # YAML default を Enforce にしたため strict mode では何もしない（Enforce が persistent）。
+    if [[ "${MODE}" == "dev" ]]; then
+        log "  mode=dev: drift policy を Audit に切替（探索を許す）"
         kubectl patch clusterpolicy block-non-canonical-helm-releases --type=json \
-            -p='[{"op":"replace","path":"/spec/validationFailureAction","value":"Enforce"}]' \
-            2>/dev/null || warn "  drift policy Enforce patch 失敗"
+            -p='[{"op":"replace","path":"/spec/validationFailureAction","value":"Audit"}]' \
+            2>/dev/null || warn "  drift policy Audit patch 失敗"
     else
-        log "  mode=dev: drift policy は Audit のみ（違反は admission ではなく log で検知）"
+        log "  mode=strict: drift policy は YAML default の Enforce で稼働"
     fi
 }
 

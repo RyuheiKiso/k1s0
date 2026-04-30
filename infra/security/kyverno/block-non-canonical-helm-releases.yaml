@@ -5,10 +5,15 @@
 # (= 開発者個人の `helm install` が drift として堆積する経路) を runtime で阻止する。
 #
 # モード:
-#   - Audit (既定): 違反を検知して警告を log に出すが、deny しない。dev role 向け。
-#   - Enforce: 違反を admission で deny する。infra-ops / full / production-mirror role 向け。
-#   モード切替は up.sh `--mode {dev,strict}` から行う（kubectl patch で
-#   spec.validationFailureAction を書き換え）。
+#   - Enforce (本ファイル既定): 違反を admission で deny する。infra-ops / full / production-mirror 向け。
+#   - Audit: 違反を検知して警告を log に出すが、deny しない。dev role 向け。
+#   モード切替は up.sh `--mode {dev,strict}` から行う:
+#   - mode=strict (既定): YAML default の Enforce のまま (no patch)
+#   - mode=dev: kubectl patch で Audit に書き換え
+#
+#   設計判断 (ADR-POL-002 P4 後の review): default を Audit にすると `kubectl apply -k`
+#   や Kyverno の policy resync で Enforce 状態が Audit に revert する事故が頻発した。
+#   default を Enforce に倒し、dev mode 側を patch で Audit にする逆設計の方が persistent。
 #
 # ephemeral 探索の許可: tmp-* / dev-* で始まる namespace は本 policy の検査対象外。
 # 開発者個人の探索的 helm install はそれらの ns で行うこと。
@@ -20,9 +25,9 @@
 #
 # 適用方法:
 #   kubectl apply -f infra/security/kyverno/block-non-canonical-helm-releases.yaml
-#   その後 mode=strict なら:
+#   その後 mode=dev なら（dev role の探索負荷を下げるため）:
 #   kubectl patch clusterpolicy block-non-canonical-helm-releases --type=json \
-#       -p='[{"op":"replace","path":"/spec/validationFailureAction","value":"Enforce"}]'
+#       -p='[{"op":"replace","path":"/spec/validationFailureAction","value":"Audit"}]'
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
@@ -38,7 +43,7 @@ metadata:
       in tools/local-stack/up.sh canonical apply_* functions are denied.
       This policy enforces ADR-POL-002 single source of truth for the local kind cluster.
 spec:
-  validationFailureAction: Audit  # 既定 Audit。strict mode で Enforce に patch される。
+  validationFailureAction: Enforce  # 既定 Enforce。dev mode で Audit に patch される（逆設計）。
   background: true
   rules:
     - name: known-canonical-release-only

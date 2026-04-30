@@ -413,6 +413,7 @@ kind 環境では本質的に検証できない領域を、**「kind 検証済 /
 | | Kyverno ImageVerify (cosign keyed) | ✅ 検証済 (F6: signed admit / unsigned block) | (継承) | ✅ keyless (GHA OIDC + Rekor) に切替後に再確認 |
 | | GitHub Actions workflows | ⚠️ YAML 構文のみ (G6) | (継承) | ✅ 実 PR で workflow 発火 / image push / Rekor entry 生成を確認 |
 | | Renovate dependency dashboard | ⚠️ 設定 JSON 検証のみ (G6) | (継承) | ✅ 実 GitHub repo で auto PR 生成 + auto-merge を確認 |
+| | **local cluster drift check 自動化 (ADR-POL-002)** | ❌ 不可 (drift 状態でそもそも up.sh が SoT として機能していなかった) | ✅ 検証済 (H4: Kyverno block-non-canonical-helm-releases Enforce + CI drift-check.yml sync-check + up.sh `--mode {dev,strict}` の三層防御。canonical 25 release set との diff 0、22 argocd Apps 中 20 Synced+Healthy) | ✅ そのまま転用可 (Kyverno ClusterPolicy / CI workflow / mode 切替は cluster-agnostic、production cluster でも同 policy + CI 構成で drift 検知可能) |
 | **ストレージ / 永続化** | CNPG Postgres backed state | ✅ 検証済 (A: state.postgresql v2 + Pod restart 永続) | (継承) | ✅ Longhorn / EBS / PD storage class に切替、replica + WAL backup を確認 |
 | | Audit Postgres WORM trigger | ✅ 検証済 (G8) | (継承) | ✅ そのまま転用可 |
 | | OpenBao secret rotation (10s interval) | ✅ 検証済 (F7: version 3071→3090 連続増分) | (継承) | ✅ KV v2 backend を Postgres / file 永続化に切替後に再確認 (現状 inmem) |
