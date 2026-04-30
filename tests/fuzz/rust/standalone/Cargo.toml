@@ -1,0 +1,29 @@
+# 本 crate は cargo-fuzz が install 可能 (libfuzzer-sys + LLVM linker の sanitizer
+# サポート) でない環境向けの代替 harness。fuzz_targets/proto_fuzz.rs および
+# fuzz_targets/crypto_fuzz.rs と同等の「任意 byte 列で decoder / hash chain が
+# panic しない」性質を、libfuzzer 不要の deterministic random ループで検証する。
+#
+# 完全な coverage-guided fuzzing は cargo-fuzz が必要だが、本 harness は seed +
+# repeat で短時間に大量 case を流して panic 検出する。CI 環境で cargo-fuzz が
+# 入る場合は fuzz_targets/ を直接使用し、そうでない場合は本 standalone を使う。
+
+[package]
+name = "k1s0-fuzz-standalone"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+k1s0-tier1-proto-gen = { path = "../../../../src/tier1/rust/crates/proto-gen" }
+prost = "0.13"
+sha2 = "0.10"
+rand = "0.8"
+rand_chacha = "0.3"
+
+[[bin]]
+name = "proto_fuzz_standalone"
+path = "src/proto_fuzz.rs"
+
+[[bin]]
+name = "crypto_fuzz_standalone"
+path = "src/crypto_fuzz.rs"
