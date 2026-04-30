@@ -389,4 +389,50 @@ mod tests {
         let v2 = serde_json::json!({ "ruleId": "r2" });
         assert_eq!(pick_str(&v2, "ruleId").as_deref(), Some("r2"));
     }
+
+    /// G1 regression: Decision.RegisterRule が空 ruleId / 空 jdmDocument を
+    /// InvalidArgument で事前検証する。registry に空 bytes が渡って
+    /// "EOF while parsing a value at line 1 column 0" の codes.Internal に
+    /// 潰れる経路を防ぐ。
+    #[tokio::test]
+    async fn register_rule_rejects_empty_rule_id() {
+        use crate::registry::RuleRegistry;
+        use k1s0_tier1_common::auth::AuthClaims;
+        use std::sync::Arc;
+        let state = DecisionHttpState {
+            registry: Arc::new(RuleRegistry::new()),
+        };
+        let rpc = RegisterRuleRpc { state };
+        let claims = AuthClaims::default();
+        // 空 body → ruleId required
+        let body = serde_json::json!({});
+        let err = rpc.invoke(&claims, body).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+        assert!(
+            err.message().contains("ruleId required"),
+            "error should mention 'ruleId required', got: {}",
+            err.message()
+        );
+    }
+
+    #[tokio::test]
+    async fn register_rule_rejects_empty_jdm_document() {
+        use crate::registry::RuleRegistry;
+        use k1s0_tier1_common::auth::AuthClaims;
+        use std::sync::Arc;
+        let state = DecisionHttpState {
+            registry: Arc::new(RuleRegistry::new()),
+        };
+        let rpc = RegisterRuleRpc { state };
+        let claims = AuthClaims::default();
+        // ruleId only → jdmDocument required
+        let body = serde_json::json!({ "ruleId": "my-rule" });
+        let err = rpc.invoke(&claims, body).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+        assert!(
+            err.message().contains("jdmDocument required"),
+            "error should mention 'jdmDocument required', got: {}",
+            err.message()
+        );
+    }
 }

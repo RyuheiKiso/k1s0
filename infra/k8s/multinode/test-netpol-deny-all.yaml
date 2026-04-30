@@ -1,0 +1,66 @@
+# default-deny NetworkPolicy + 検証用 client/server Pod。
+# kindnet では NetworkPolicy が ignore されるため curl が通ってしまう。Calico では
+# block されることを確認する。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netpol-test
+  labels: { k1s0.io/component: netpol-test }
+---
+# default deny ingress / egress (egress 例外で DNS/api-server のみ)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: netpol-test
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  egress:
+  # DNS は許可しないと Pod 起動に失敗する場合あり
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - { protocol: UDP, port: 53 }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: server
+  namespace: netpol-test
+  labels: { app: server, k1s0.io/component: netpol-test }
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.27-alpine
+    ports: [{ containerPort: 80 }]
+    resources:
+      requests: { cpu: 10m, memory: 16Mi }
+      limits:   { cpu: 100m, memory: 64Mi }
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 101
+      allowPrivilegeEscalation: false
+      capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  namespace: netpol-test
+  labels: { app: client, k1s0.io/component: netpol-test }
+spec:
+  containers:
+  - name: curl
+    image: curlimages/curl:8.10.1
+    command: ["sleep", "3600"]
+    resources:
+      requests: { cpu: 10m, memory: 16Mi }
+      limits:   { cpu: 100m, memory: 64Mi }
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 100
+      allowPrivilegeEscalation: false
+      capabilities: { drop: [ALL] }

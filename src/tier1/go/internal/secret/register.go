@@ -73,12 +73,10 @@ func (h *secretHandler) Get(ctx context.Context, req *secretsv1.GetSecretRequest
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tenantID := req.GetContext().GetTenantId()
-	// tenantID 未設定はテナント境界違反として弾く（adapter の path 構築前で短絡）。
-	if tenantID == "" {
-		// InvalidArgument で返却する（BulkGet / GetDynamic / Rotate と一貫）。
-		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	// NFR-E-AC-003 二重防御: JWT 由来 tenant_id と body の一致を handler 段でも検証。
+	tenantID, err := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.Get")
+	if err != nil {
+		return nil, err
 	}
 	// secret 名も必須（空名はテナント prefix のみで lookup → 誤動作の元）。
 	if req.GetName() == "" {
@@ -120,12 +118,10 @@ func (h *secretHandler) BulkGet(ctx context.Context, req *secretsv1.BulkGetSecre
 		// Unimplemented 返却。
 		return nil, status.Error(codes.Unimplemented, "tier1/secrets: BulkGet not yet wired to OpenBao")
 	}
-	// テナント識別子を取り出す（必須）。
-	tenantID := req.GetContext().GetTenantId()
-	// tenantID 未設定はテナント境界違反として弾く（NFR-E-AC-003）。
-	if tenantID == "" {
-		// 不正引数として返却。
-		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	// NFR-E-AC-003 二重防御: JWT 由来 tenant_id と body の一致を handler 段でも検証。
+	tenantID, terr := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.BulkGet")
+	if terr != nil {
+		return nil, terr
 	}
 	// adapter で list + per-key get を実行する。
 	items, err := h.deps.SecretsAdapter.ListAndGet(ctx, tenantID)
@@ -164,12 +160,10 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 		// 不正引数として返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tenantID := req.GetContext().GetTenantId()
-	// tenantID 未設定はテナント境界違反として弾く（rotate 対象の誤同定を防止）。
-	if tenantID == "" {
-		// InvalidArgument で返却する。
-		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	// NFR-E-AC-003 二重防御: JWT 由来 tenant_id と body の一致を handler 段でも検証。
+	tenantID, terr := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.Rotate")
+	if terr != nil {
+		return nil, terr
 	}
 	// secret 名も必須（空名は rotate 対象が確定しないため不正）。
 	if req.GetName() == "" {
@@ -227,10 +221,10 @@ func (h *secretHandler) GetDynamic(ctx context.Context, req *secretsv1.GetDynami
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
 	}
-	// テナント未指定はテナント境界違反として弾く（NFR-E-AC-003）。
-	tenantID := req.GetContext().GetTenantId()
-	if tenantID == "" {
-		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: tenant_id required in TenantContext")
+	// NFR-E-AC-003 二重防御: JWT 由来 tenant_id と body の一致を handler 段でも検証。
+	tenantID, terr := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.GetDynamic")
+	if terr != nil {
+		return nil, terr
 	}
 	// engine / role 必須。
 	if req.GetEngine() == "" {

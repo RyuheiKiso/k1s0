@@ -197,6 +197,11 @@ impl Authenticator {
                 let mut v = Validation::new(Algorithm::RS256);
                 v.algorithms = vec![Algorithm::RS256, Algorithm::RS384, Algorithm::RS512];
                 v.validate_exp = true;
+                // 既定で `aud` を要求する jsonwebtoken のデフォルトは Keycloak の
+                // password grant が `aud=account` を返す等で破綻するため、aud 検証は
+                // off にする。production では `TIER1_AUTH_AUDIENCE` を将来導入して
+                // 期待 aud を渡す形に拡張する。
+                v.validate_aud = false;
                 let data = decode::<JwtClaims>(token, &key, &v)
                     .map_err(|e| tonic::Status::unauthenticated(format!("tier1/auth: {}", e)))?;
                 claims_to_auth(data.claims)
@@ -388,4 +393,81 @@ mod tests {
         assert!(extract_bearer(Some("Bearer ")).is_err());
         assert!(extract_bearer(Some("Bearer abc")).is_ok());
     }
+
+    /// G3 / H1 regression: cross-tenant boundary を Rust handler 段で reject。
+    #[test]
+    fn enforce_tenant_boundary_cross_tenant_rejected() {
+        let claims = AuthClaims {
+            tenant_id: "tenant-A".to_string(),
+            subject: "alice".to_string(),
+            ..Default::default()
+        };
+        let err = enforce_tenant_boundary(&claims, "tenant-B", "Audit.Record").unwrap_err();
+        assert_eq!(err.code(), tonic::Code::PermissionDenied);
+        assert!(
+            err.message().contains("cross-tenant"),
+            "error should mention 'cross-tenant', got: {}",
+            err.message()
+        );
+        assert!(
+            err.message().contains("tenant-A") && err.message().contains("tenant-B"),
+            "error should expose jwt + body tenants, got: {}",
+            err.message()
+        );
+    }
+
+    #[test]
+    fn enforce_tenant_boundary_matching_tenant_ok() {
+        let claims = AuthClaims {
+            tenant_id: "tenant-A".to_string(),
+            ..Default::default()
+        };
+        let tid = enforce_tenant_boundary(&claims, "tenant-A", "Audit.Record").unwrap();
+        assert_eq!(tid, "tenant-A");
+    }
+
+    #[test]
+    fn enforce_tenant_boundary_empty_body_rejected() {
+        let claims = AuthClaims::default();
+        let err = enforce_tenant_boundary(&claims, "", "Audit.Record").unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+
+    /// 空 claims (auth=off の demo-tenant でない場合の test) は body を採用する。
+    #[test]
+    fn enforce_tenant_boundary_empty_claims_skips_check() {
+        let claims = AuthClaims::default();
+        let tid = enforce_tenant_boundary(&claims, "tenant-X", "Audit.Record").unwrap();
+        assert_eq!(tid, "tenant-X");
+    }
+}
+
+/// `enforce_tenant_boundary` は handler 段で JWT 由来 tenant_id (claims) と
+/// proto body の tenant_id を比較し、一致しなければ PermissionDenied を返す。
+/// 空 body tenant_id は InvalidArgument。
+///
+/// NFR-E-AC-003 二重防御:
+///   - K1s0Layer は claims を request.extensions に格納するが body との比較はしない
+///   - 各 RPC handler で body.context.tenant_id を抽出 → 本関数で claims と照合する
+///   - これにより Go state pod の G3 と同種 cross-tenant bypass を Rust 側でも閉じる
+///
+/// 戻り値は最終的に handler が store/adapter に渡すべき正規 tenant_id (claims が優先)。
+pub fn enforce_tenant_boundary(
+    claims: &AuthClaims,
+    body_tenant_id: &str,
+    rpc: &str,
+) -> Result<String, tonic::Status> {
+    if body_tenant_id.is_empty() {
+        return Err(tonic::Status::invalid_argument(format!(
+            "tier1: tenant_id required in TenantContext ({})",
+            rpc
+        )));
+    }
+    if !claims.tenant_id.is_empty() && claims.tenant_id != body_tenant_id {
+        return Err(tonic::Status::permission_denied(format!(
+            "tier1: cross-tenant request rejected ({}): jwt={:?} body={:?}",
+            rpc, claims.tenant_id, body_tenant_id
+        )));
+    }
+    Ok(body_tenant_id.to_string())
 }
