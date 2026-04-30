@@ -49,12 +49,17 @@ backstage:
         - allow: [Component, System, API, Resource, Location, Domain, User, Group]
 
 service:
+  # ADR-POL-002 P4 で発覚: backstage chart 2.6.3 の schema 制約:
+  #   - service.nodePort トップレベル → 不可
+  #   - service.ports.backend: object → 不可（integer のみ）
+  # NodePort 30700 は kind extraPortMappings で host:30700 → cluster:30700 として
+  # 公開されるため、Service が NodePort タイプであれば自動 allocate でもアクセスできる
+  # （ただし host:30700 → service の routing は targetPort 一致が必要）。
+  # 現状の chart 制約上、nodePort 固定割当は ingress 経由が推奨。
   type: NodePort
   ports:
-    backend: 7007
     name: http-backend
-  # NodePort は backstage chart 2.6 系で targetPort と nodePort を両方明示する必要あり
-  nodePort: 30700
+    backend: 7007
 
 ingress:
   enabled: false

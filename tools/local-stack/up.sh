@@ -386,7 +386,9 @@ bootstrap_gitea_content() {
     gitea_pod=$(kubectl -n gitops get pod -l app=gitea -o jsonpath='{.items[0].metadata.name}')
 
     # admin user 作成（既存なら skip）。gitea 1.22 系の admin user create CLI を使用。
-    kubectl -n gitops exec "${gitea_pod}" -- /usr/local/bin/gitea admin user create \
+    # ADR-POL-002 P4 で発覚: --config を渡さないと "Unable to load config file" で失敗するため明示。
+    kubectl -n gitops exec "${gitea_pod}" -- /usr/local/bin/gitea \
+        --config /data/gitea/conf/app.ini admin user create \
         --username argocd --password 'ArgoCD123!' --email 'argocd@k1s0.local' --admin 2>/dev/null \
         || true
 
@@ -395,11 +397,12 @@ bootstrap_gitea_content() {
     local pf_pid=$!
     sleep 3
 
-    # org / repo 作成（既存なら skip）
-    curl -sf -u "argocd:ArgoCD123!" -X POST "http://localhost:13000/api/v1/orgs" \
-        -H "Content-Type: application/json" \
-        -d '{"username":"argocd","visibility":"public"}' >/dev/null 2>&1 || true
-    curl -sf -u "argocd:ArgoCD123!" -X POST "http://localhost:13000/api/v1/orgs/argocd/repos" \
+    # repo 作成: user "argocd" 直下に repo "k1s0" を作る（既存なら skip）。
+    # ADR-POL-002 P4 で発覚: gitea で user 名と org 名は同 namespace のため、user "argocd" 作成後に
+    # org "argocd" を作ろうとすると "user already exists" で衝突する。
+    # argocd Application URL は `argocd/k1s0` のままで user/org どちらでも解決するため、
+    # user 直下 repo として作成する。
+    curl -sf -u "argocd:ArgoCD123!" -X POST "http://localhost:13000/api/v1/user/repos" \
         -H "Content-Type: application/json" \
         -d '{"name":"k1s0","auto_init":false,"default_branch":"main","private":false}' >/dev/null 2>&1 || true
 
@@ -423,19 +426,22 @@ bootstrap_gitea_content() {
 #   - app-of-apps は production の GitHub root から再帰展開する pattern のため local-stack では使わない
 #     （local で app-of-apps を入れると gitea 内の ApplicationSet が再び GitHub URL を読みに行き循環するため）。
 apply_argocd_appsets() {
-    log "  ApplicationSets を Argo CD に適用 (GitHub URL → local gitea URL 変換)"
+    log "  AppProjects + ApplicationSets を Argo CD に適用 (GitHub URL → local gitea URL 変換)"
     local tmp
     tmp=$(mktemp -d)
+    # AppProject を先に適用（ApplicationSet が project: k1s0-* を参照するため）
+    cp "${REPO_ROOT}/deploy/apps/projects/"*.yaml "${tmp}/" 2>/dev/null || true
     cp "${REPO_ROOT}/deploy/apps/application-sets/"*.yaml "${tmp}/" 2>/dev/null || true
     find "${tmp}" -name "*.yaml" -exec sed -i \
         -e 's|https://github.com/k1s0/k1s0.git|http://gitea.gitops.svc.cluster.local:3000/argocd/k1s0.git|g' \
         -e 's|"https://github.com/k1s0/k1s0.git"|"http://gitea.gitops.svc.cluster.local:3000/argocd/k1s0.git"|g' \
         {} +
-    kubectl apply -f "${tmp}/" 2>&1 | tail -10 || warn "  appset apply 失敗"
+    kubectl apply -f "${tmp}/" 2>&1 | tail -15 || warn "  appset apply 失敗"
     rm -rf "${tmp}"
-    local count
-    count=$(ls "${REPO_ROOT}/deploy/apps/application-sets/"*.yaml 2>/dev/null | wc -l)
-    log "  → ${count} ApplicationSets 適用完了"
+    local proj_count appset_count
+    proj_count=$(ls "${REPO_ROOT}/deploy/apps/projects/"*.yaml 2>/dev/null | wc -l)
+    appset_count=$(ls "${REPO_ROOT}/deploy/apps/application-sets/"*.yaml 2>/dev/null | wc -l)
+    log "  → ${proj_count} AppProjects + ${appset_count} ApplicationSets 適用完了"
 }
 
 apply_argo_rollouts() {

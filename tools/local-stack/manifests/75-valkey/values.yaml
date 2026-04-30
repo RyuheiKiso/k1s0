@@ -1,6 +1,19 @@
 # Valkey (ADR-DATA-004) — Redis 互換 OSS
 # helm repo add bitnami https://charts.bitnami.com/bitnami
 # helm install valkey bitnami/valkey -n valkey --version 5.5.1 -f values.yaml
+#
+# ADR-POL-002 P4 で発覚: bitnami chart は image.registry default が
+# `registry-1.docker.io` で、kind の containerd registry mirror 設定（"docker.io"
+# alias 用）が効かず ImagePullBackOff になる。global.imageRegistry: docker.io で
+# alias 経路に矯正し、mirror.gcr.io 経由 pull を効かせる。
+# さらに Bitnami の OCI helm chart 自体も registry-1.docker.io から pull するため
+# DH unauthenticated 100 pulls/6h を踏むと chart pull も失敗する（実証済み）。
+# その場合の代替策は (a) docker login で authenticated pull (200/6h)、または
+# (b) helm push で local registry に再 push してそこから install。リリース時点では
+# rate-limit に当たった場合のみ defer する運用とする。
+
+global:
+  imageRegistry: docker.io
 
 architecture: standalone
 auth:

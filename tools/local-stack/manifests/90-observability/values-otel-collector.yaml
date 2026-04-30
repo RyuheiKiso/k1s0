@@ -8,6 +8,12 @@
 
 mode: deployment
 
+# ADR-POL-002 P4 で発覚: opentelemetry-collector chart は image.repository を明示
+# 必須化（"image.repository must be set"）。core distribution の image を指定。
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: 0.117.0
+
 resources:
   requests:
     cpu: 50m

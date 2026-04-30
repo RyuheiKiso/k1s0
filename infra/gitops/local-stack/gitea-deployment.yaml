@@ -92,6 +92,15 @@ spec:
         - name: gitea
           image: gitea/gitea:1.22-rootless
           imagePullPolicy: IfNotPresent
+          # gitea-rootless の default config path は /etc/gitea/app.ini で固定されており、
+          # GITEA_CUSTOM env だけでは config が読まれず install wizard が開きっぱなしになる
+          # （ADR-POL-002 P4 で実証済み: "Prepare to run install page" log）。
+          # --config を明示することで PVC 永続化された app.ini を使わせる。
+          command:
+            - /usr/local/bin/gitea
+            - --config
+            - /data/gitea/conf/app.ini
+            - web
           env:
             - name: GITEA_WORK_DIR
               value: /data/gitea
