@@ -18,7 +18,6 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-k1s0-local}"
 SRC="${1:-}"
 
@@ -28,6 +27,7 @@ err() { printf '\033[31m[restore:err]\033[0m %s\n' "$*" >&2; }
 
 # 引数指定がなければ最新の backup を自動選択
 if [[ -z "${SRC}" ]]; then
+    # shellcheck disable=SC2012
     SRC=$(ls -dt /tmp/k1s0-backup-2026* 2>/dev/null | head -1 || echo "")
     [[ -z "${SRC}" ]] && { err "バックアップが見つからない (/tmp/k1s0-backup-*)。引数で明示指定して"; exit 2; }
     log "最新バックアップを自動選択: ${SRC}"
@@ -70,7 +70,7 @@ restore_gitea() {
     kubectl -n gitops port-forward svc/gitea 13050:3000 >/dev/null 2>&1 &
     local pf_pid=$!
     local pf_ready=0
-    for i in {1..15}; do
+    for _ in {1..15}; do
         curl -sf "http://localhost:13050/api/healthz" >/dev/null 2>&1 && { pf_ready=1; break; }
         sleep 1
     done
@@ -89,10 +89,10 @@ restore_gitea() {
     local tmp_clone
     tmp_clone=$(mktemp -d)
     git clone --bare "${bare_repo}" "${tmp_clone}/k1s0.git" 2>&1 | tail -3
-    pushd "${tmp_clone}/k1s0.git" >/dev/null
+    pushd "${tmp_clone}/k1s0.git" >/dev/null || { warn "  pushd 失敗"; rm -rf "${tmp_clone}"; kill ${pf_pid} 2>/dev/null || true; return; }
     git push --mirror "http://argocd:ArgoCD123!@localhost:13050/argocd/k1s0.git" 2>&1 | tail -3 \
         || warn "  gitea bare repo push 失敗"
-    popd >/dev/null
+    popd >/dev/null || true
     rm -rf "${tmp_clone}"
 
     kill ${pf_pid} 2>/dev/null || true
