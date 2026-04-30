@@ -1,44 +1,67 @@
 # =============================================================================
-# k1s0 tier2-go-service Argo CD ApplicationSet（リファレンステンプレート）
+# k1s0 tier2-go-services Argo CD ApplicationSet
 #
-# 設計: docs/05_実装/70_リリース設計/、docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md
-# 関連 ID: ADR-CICD-001 / ADR-DEV-001（Paved Road）
+# 設計: docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/03_go_services配置.md
+# 関連 ID: ADR-CICD-001 / ADR-DEV-001 / ADR-POL-002 (E 群解消)
 #
-# scope: tier2 Go service の典型例（example-tier2-service）を環境別に配備する。
-# 実 service（notification-hub / stock-reconciler 等）は本テンプレートを複製して
-# service.name と image.repository を上書きする運用とする。
+# scope: tier2 Go 業務サービス 2 件（notification-hub / example-tier2-go）を
+# 3 環境（dev / staging / prod）で配備する。chart は tier2-go-service を共有。
+# example-tier2-go は Paved Road 学習用に残置（IMP-DEV-GP-* と整合）。
 # =============================================================================
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: tier2-go-service-example
+  name: tier2-go-services
   namespace: argocd
 spec:
   generators:
     - list:
         elements:
-          - env: dev
+          # === notification-hub ===
+          - service: notification-hub
+            imageRepo: tier2-notification-hub
+            env: dev
             namespace: tier2-services
             valuesFile: deploy/kustomize/overlays/dev/tier2-go-service-values.yaml
-          - env: staging
+          - service: notification-hub
+            imageRepo: tier2-notification-hub
+            env: staging
             namespace: tier2-services
             valuesFile: deploy/kustomize/overlays/staging/tier2-go-service-values.yaml
-          - env: prod
+          - service: notification-hub
+            imageRepo: tier2-notification-hub
+            env: prod
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/prod/tier2-go-service-values.yaml
+          # === example-tier2-go (Paved Road 学習用) ===
+          - service: example-tier2-go
+            imageRepo: tier2-example
+            env: dev
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/dev/tier2-go-service-values.yaml
+          - service: example-tier2-go
+            imageRepo: tier2-example
+            env: staging
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/staging/tier2-go-service-values.yaml
+          - service: example-tier2-go
+            imageRepo: tier2-example
+            env: prod
             namespace: tier2-services
             valuesFile: deploy/kustomize/overlays/prod/tier2-go-service-values.yaml
   template:
     metadata:
-      name: "tier2-go-service-example-{{env}}"
+      name: "tier2-{{service}}-{{env}}"
       labels:
+        k1s0.io/service: "{{service}}"
         k1s0.io/tier: tier2
         k1s0.io/lang: go
         k1s0.io/env: "{{env}}"
       annotations:
-        # 例として example-tier2-service の image を追跡する。実 service は別 ApplicationSet で個別管理。
         argocd-image-updater.argoproj.io/image-list: |
-          tier2-example=ghcr.io/k1s0/k1s0/tier2-example
-        argocd-image-updater.argoproj.io/tier2-example.update-strategy: semver
-        argocd-image-updater.argoproj.io/tier2-example.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          {{service}}=ghcr.io/k1s0/k1s0/{{imageRepo}}
+        argocd-image-updater.argoproj.io/{{service}}.update-strategy: semver
+        argocd-image-updater.argoproj.io/{{service}}.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
         argocd-image-updater.argoproj.io/write-back-method: git
         argocd-image-updater.argoproj.io/write-back-target: kustomization
         argocd-image-updater.argoproj.io/git-branch: main
@@ -49,9 +72,17 @@ spec:
         targetRevision: main
         path: deploy/charts/tier2-go-service
         helm:
+          releaseName: "{{service}}"
           valueFiles:
             - values.yaml
             - "$values/{{valuesFile}}"
+          parameters:
+            - name: service.name
+              value: "{{service}}"
+            - name: image.repository
+              value: "k1s0/k1s0/{{imageRepo}}"
+            - name: dapr.appId
+              value: "{{service}}"
       sources:
         - repoURL: "https://github.com/k1s0/k1s0.git"
           targetRevision: main

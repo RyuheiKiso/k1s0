@@ -1,40 +1,67 @@
 # =============================================================================
-# k1s0 tier3-bff Argo CD ApplicationSet（リファレンステンプレート）
+# k1s0 tier3-bffs Argo CD ApplicationSet
 #
 # 設計: docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/02_bff配置.md
+# 関連 ID: ADR-CICD-001 / ADR-DEV-001 / ADR-POL-002 (E 群解消)
 #
-# scope: tier3 BFF（portal-bff / admin-bff 等）を環境別に配備する。
+# scope: tier3 BFF 業務サービス 2 件（admin-bff / portal-bff）を
+# 3 環境（dev / staging / prod）で配備する。chart は tier3-bff を共有し、
+# service.name / image.repository を helm.parameters で per-service 上書き。
 # =============================================================================
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: tier3-bff-example
+  name: tier3-bffs
   namespace: argocd
 spec:
   generators:
     - list:
         elements:
-          - env: dev
+          # === admin-bff ===
+          - service: admin-bff
+            imageRepo: tier3-admin-bff
+            env: dev
             namespace: tier3-bff
             valuesFile: deploy/kustomize/overlays/dev/tier3-bff-values.yaml
-          - env: staging
+          - service: admin-bff
+            imageRepo: tier3-admin-bff
+            env: staging
             namespace: tier3-bff
             valuesFile: deploy/kustomize/overlays/staging/tier3-bff-values.yaml
-          - env: prod
+          - service: admin-bff
+            imageRepo: tier3-admin-bff
+            env: prod
+            namespace: tier3-bff
+            valuesFile: deploy/kustomize/overlays/prod/tier3-bff-values.yaml
+          # === portal-bff ===
+          - service: portal-bff
+            imageRepo: tier3-portal-bff
+            env: dev
+            namespace: tier3-bff
+            valuesFile: deploy/kustomize/overlays/dev/tier3-bff-values.yaml
+          - service: portal-bff
+            imageRepo: tier3-portal-bff
+            env: staging
+            namespace: tier3-bff
+            valuesFile: deploy/kustomize/overlays/staging/tier3-bff-values.yaml
+          - service: portal-bff
+            imageRepo: tier3-portal-bff
+            env: prod
             namespace: tier3-bff
             valuesFile: deploy/kustomize/overlays/prod/tier3-bff-values.yaml
   template:
     metadata:
-      name: "tier3-bff-example-{{env}}"
+      name: "tier3-{{service}}-{{env}}"
       labels:
+        k1s0.io/service: "{{service}}"
         k1s0.io/tier: tier3
         k1s0.io/lang: go-bff
         k1s0.io/env: "{{env}}"
       annotations:
         argocd-image-updater.argoproj.io/image-list: |
-          tier3-example-bff=ghcr.io/k1s0/k1s0/tier3-example-bff
-        argocd-image-updater.argoproj.io/tier3-example-bff.update-strategy: semver
-        argocd-image-updater.argoproj.io/tier3-example-bff.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          {{service}}=ghcr.io/k1s0/k1s0/{{imageRepo}}
+        argocd-image-updater.argoproj.io/{{service}}.update-strategy: semver
+        argocd-image-updater.argoproj.io/{{service}}.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
         argocd-image-updater.argoproj.io/write-back-method: git
         argocd-image-updater.argoproj.io/write-back-target: kustomization
         argocd-image-updater.argoproj.io/git-branch: main
@@ -45,9 +72,15 @@ spec:
         targetRevision: main
         path: deploy/charts/tier3-bff
         helm:
+          releaseName: "{{service}}"
           valueFiles:
             - values.yaml
             - "$values/{{valuesFile}}"
+          parameters:
+            - name: service.name
+              value: "{{service}}"
+            - name: image.repository
+              value: "k1s0/k1s0/{{imageRepo}}"
       sources:
         - repoURL: "https://github.com/k1s0/k1s0.git"
           targetRevision: main

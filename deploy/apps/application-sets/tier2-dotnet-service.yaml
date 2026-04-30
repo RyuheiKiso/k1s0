@@ -1,42 +1,88 @@
 # =============================================================================
-# k1s0 tier2-dotnet-service Argo CD ApplicationSet（リファレンステンプレート）
+# k1s0 tier2-dotnet-services Argo CD ApplicationSet
 #
 # 設計: docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_dotnet_services配置.md
+# 関連 ID: ADR-CICD-001 / ADR-DEV-001 / ADR-POL-002 (E 群解消、業務サービス全件 GitOps 化)
 #
-# scope: tier2 .NET service の典型例を環境別に配備する。
-# 実 service（ApprovalFlow / InvoiceGenerator / TaxCalculator 等）は本テンプレートを
-# 複製して service.name と image.repository を上書きする運用とする。
+# scope: tier2 .NET 業務サービス 3 件（ApprovalFlow / InvoiceGenerator /
+# TaxCalculator）を 3 環境（dev / staging / prod）で配備する。chart は単一の
+# tier2-dotnet-service を共有し、service.name / image.repository / dapr.appId を
+# helm.parameters で per-service 上書きする pattern。
+#
+# ADR-POL-002 P4 finishing で「リファレンステンプレート（-example）のみで
+# 業務サービスは個別 Application 化されていない」状態を解消するために本ファイルで
+# 3 services × 3 envs = 9 Applications を生成する設計に転換した。
 # =============================================================================
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: tier2-dotnet-service-example
+  name: tier2-dotnet-services
   namespace: argocd
 spec:
   generators:
     - list:
         elements:
-          - env: dev
+          # === ApprovalFlow ===
+          - service: approvalflow
+            imageRepo: tier2-approvalflow
+            env: dev
             namespace: tier2-services
             valuesFile: deploy/kustomize/overlays/dev/tier2-dotnet-service-values.yaml
-          - env: staging
+          - service: approvalflow
+            imageRepo: tier2-approvalflow
+            env: staging
             namespace: tier2-services
             valuesFile: deploy/kustomize/overlays/staging/tier2-dotnet-service-values.yaml
-          - env: prod
+          - service: approvalflow
+            imageRepo: tier2-approvalflow
+            env: prod
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/prod/tier2-dotnet-service-values.yaml
+          # === InvoiceGenerator ===
+          - service: invoicegen
+            imageRepo: tier2-invoicegen
+            env: dev
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/dev/tier2-dotnet-service-values.yaml
+          - service: invoicegen
+            imageRepo: tier2-invoicegen
+            env: staging
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/staging/tier2-dotnet-service-values.yaml
+          - service: invoicegen
+            imageRepo: tier2-invoicegen
+            env: prod
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/prod/tier2-dotnet-service-values.yaml
+          # === TaxCalculator ===
+          - service: taxcalc
+            imageRepo: tier2-taxcalc
+            env: dev
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/dev/tier2-dotnet-service-values.yaml
+          - service: taxcalc
+            imageRepo: tier2-taxcalc
+            env: staging
+            namespace: tier2-services
+            valuesFile: deploy/kustomize/overlays/staging/tier2-dotnet-service-values.yaml
+          - service: taxcalc
+            imageRepo: tier2-taxcalc
+            env: prod
             namespace: tier2-services
             valuesFile: deploy/kustomize/overlays/prod/tier2-dotnet-service-values.yaml
   template:
     metadata:
-      name: "tier2-dotnet-service-example-{{env}}"
+      name: "tier2-{{service}}-{{env}}"
       labels:
+        k1s0.io/service: "{{service}}"
         k1s0.io/tier: tier2
         k1s0.io/lang: dotnet
         k1s0.io/env: "{{env}}"
       annotations:
         argocd-image-updater.argoproj.io/image-list: |
-          tier2-example-dotnet=ghcr.io/k1s0/k1s0/tier2-example-dotnet
-        argocd-image-updater.argoproj.io/tier2-example-dotnet.update-strategy: semver
-        argocd-image-updater.argoproj.io/tier2-example-dotnet.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
+          {{service}}=ghcr.io/k1s0/k1s0/{{imageRepo}}
+        argocd-image-updater.argoproj.io/{{service}}.update-strategy: semver
+        argocd-image-updater.argoproj.io/{{service}}.allow-tags: "regexp:^[0-9]+\\.[0-9]+\\.[0-9]+$"
         argocd-image-updater.argoproj.io/write-back-method: git
         argocd-image-updater.argoproj.io/write-back-target: kustomization
         argocd-image-updater.argoproj.io/git-branch: main
@@ -47,9 +93,17 @@ spec:
         targetRevision: main
         path: deploy/charts/tier2-dotnet-service
         helm:
+          releaseName: "{{service}}"
           valueFiles:
             - values.yaml
             - "$values/{{valuesFile}}"
+          parameters:
+            - name: service.name
+              value: "{{service}}"
+            - name: image.repository
+              value: "k1s0/k1s0/{{imageRepo}}"
+            - name: dapr.appId
+              value: "{{service}}"
       sources:
         - repoURL: "https://github.com/k1s0/k1s0.git"
           targetRevision: main
