@@ -1,0 +1,33 @@
+# kind multi-node + Calico CNI configuration (ADR-NET-001 / ADR-CNCF-001).
+# 設計: docs 正典での production 移行検証 (multi-node + NetworkPolicy 強制) を
+# kind 環境で再現する。kindnet は NetworkPolicy を ignore するため Calico に切替。
+#
+# 起動:
+#   kind create cluster --name k1s0-multinode --config infra/k8s/multinode/kind-multinode.yaml
+#   kubectl apply -f infra/k8s/multinode/calico.yaml  # CNI install
+#
+# 構成: 1 control-plane + 3 worker。Pod anti-affinity / topology spread の検証用。
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: k1s0-multinode
+networking:
+  # kindnet を無効化し Calico をデフォルト CNI として install する。
+  disableDefaultCNI: true
+  # Calico がデフォルトで使う pod subnet。
+  podSubnet: "192.168.0.0/16"
+nodes:
+- role: control-plane
+  labels:
+    node-role.k1s0.io/tier: control-plane
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: zone-a
+    node-role.k1s0.io/tier: workload
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: zone-b
+    node-role.k1s0.io/tier: workload
+- role: worker
+  labels:
+    topology.kubernetes.io/zone: zone-c
+    node-role.k1s0.io/tier: workload

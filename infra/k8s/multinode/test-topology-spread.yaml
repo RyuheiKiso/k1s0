@@ -1,0 +1,25 @@
+# topology spread constraint の動作検証: 3 replica を 3 zone に 1:1:1 で分散。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topo-test
+  namespace: default
+  labels: { k1s0.io/component: topology-test }
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: topo-test } }
+  template:
+    metadata:
+      labels: { app: topo-test, k1s0.io/component: topology-test }
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector: { matchLabels: { app: topo-test } }
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.10
+        resources:
+          requests: { cpu: 10m, memory: 8Mi }
+          limits:   { cpu: 100m, memory: 32Mi }
