@@ -1,0 +1,63 @@
+# temporal ローカル開発用 (workflow engine, tier2 .NET / Go saga 用)
+# helm chart: https://go.temporal.io/helm-charts (chart name: temporal, version 0.65.0)
+#
+# 設計: tier2 のロングランニング workflow（taxcalc / approvalflow / invoicegen 等）が
+# temporal client を使う前提。ローカルでは cassandra cluster_size=1, elasticsearch replicas=1 で軽量化。
+# 観測は既存 grafana/prometheus に集約するため chart 内蔵 grafana/prometheus は disable。
+# Kyverno (ADR-POL-002) require-resource-requests を全 sub-component に指定する。
+
+server:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+cassandra:
+  enabled: true
+  config:
+    cluster_size: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+elasticsearch:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# 観測は既存 observability layer に集約
+grafana:
+  enabled: false
+prometheus:
+  enabled: false
+
+# Web UI は Backstage 経由で expose する想定で chart 側は最低限
+web:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+schema:
+  setup:
+    enabled: true
+  update:
+    enabled: true

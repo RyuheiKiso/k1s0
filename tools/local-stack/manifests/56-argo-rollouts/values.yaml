@@ -1,0 +1,22 @@
+# argo-rollouts (ADR-CICD-002) ローカル開発用
+# helm repo: https://argoproj.github.io/argo-helm
+# chart: argo-rollouts (umbrella で controller + crds + 任意 dashboard)
+#
+# 設計: progressive delivery の controller のみを動かす。dashboard は backstage で参照する想定で
+# 既定 disabled。Kyverno (ADR-POL-002) require-resource-requests を満たすため
+# controller に resources.requests/limits を必ず指定する。
+
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+dashboard:
+  enabled: false  # Backstage に embed する設計のためここでは disable
+
+# CRDs は chart 側 default で installCRDs=true。

@@ -1,0 +1,30 @@
+# Prometheus (ローカル開発用)
+# helm chart: prometheus-community/prometheus v29.4.0
+# 元設計から抽出: 旧 helm release `prometheus` の USER-SUPPLIED VALUES。
+#
+# 設計: otel-collector からの prometheusremotewrite 受信専用。
+# alertmanager / kube-state-metrics / node-exporter / pushgateway は dev では disable
+# （production では別レイヤで起動）。
+
+alertmanager:
+  enabled: false
+kube-state-metrics:
+  enabled: false
+prometheus-node-exporter:
+  enabled: false
+prometheus-pushgateway:
+  enabled: false
+
+server:
+  extraArgs:
+    enable-feature: remote-write-receiver
+    web.enable-remote-write-receiver: ""
+  persistentVolume:
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi

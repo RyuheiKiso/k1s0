@@ -1,0 +1,111 @@
+# ADR-POL-002 (local-stack-single-source-of-truth) Kyverno policy。
+#
+# 目的: tools/local-stack/up.sh で apply される known release set 以外の helm
+# release が cluster 内に作成されることを deny する。これにより SoT 違反
+# (= 開発者個人の `helm install` が drift として堆積する経路) を runtime で阻止する。
+#
+# モード:
+#   - Audit (既定): 違反を検知して警告を log に出すが、deny しない。dev role 向け。
+#   - Enforce: 違反を admission で deny する。infra-ops / full / production-mirror role 向け。
+#   モード切替は up.sh `--mode {dev,strict}` から行う（kubectl patch で
+#   spec.validationFailureAction を書き換え）。
+#
+# ephemeral 探索の許可: tmp-* / dev-* で始まる namespace は本 policy の検査対象外。
+# 開発者個人の探索的 helm install はそれらの ns で行うこと。
+#
+# known release set 同期ルール:
+#   up.sh に新規 apply_<name> 関数を追加した場合、本ファイルの
+#   spec.rules[0].validate.deny.conditions.all[0].value 配列にも release 名を必ず追加する。
+#   PR テンプレートで両者の同期を強制する想定（[ ] up.sh and policy synced）。
+#
+# 適用方法:
+#   kubectl apply -f infra/security/kyverno/block-non-canonical-helm-releases.yaml
+#   その後 mode=strict なら:
+#   kubectl patch clusterpolicy block-non-canonical-helm-releases --type=json \
+#       -p='[{"op":"replace","path":"/spec/validationFailureAction","value":"Enforce"}]'
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: block-non-canonical-helm-releases
+  annotations:
+    policies.kyverno.io/title: Block non-canonical Helm releases
+    policies.kyverno.io/category: ADR-POL-002 (local-stack SoT)
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Secret
+    policies.kyverno.io/description: |
+      Helm release secret (type=helm.sh/release.v1) for releases NOT registered
+      in tools/local-stack/up.sh canonical apply_* functions are denied.
+      This policy enforces ADR-POL-002 single source of truth for the local kind cluster.
+spec:
+  validationFailureAction: Audit  # 既定 Audit。strict mode で Enforce に patch される。
+  background: true
+  rules:
+    - name: known-canonical-release-only
+      match:
+        any:
+          - resources:
+              kinds:
+                - Secret
+      exclude:
+        any:
+          # ephemeral 探索 namespace は除外（ADR-POL-002 で明示的に許可された開発者領域）
+          - resources:
+              namespaces:
+                - "tmp-*"
+                - "dev-*"
+      preconditions:
+        all:
+          # helm release secret のみ評価対象
+          - key: "{{ request.object.type || '' }}"
+            operator: Equals
+            value: "helm.sh/release.v1"
+      validate:
+        message: |
+          Helm release '{{ request.object.metadata.labels.name || 'unknown' }}' in namespace
+          '{{ request.object.metadata.namespace }}' is NOT in the canonical release set defined
+          by tools/local-stack/up.sh.
+
+          ADR-POL-002 forbids drift: every Helm release on the local kind cluster MUST be
+          either (a) installed via up.sh apply_* functions, or (b) installed in a 'tmp-*' /
+          'dev-*' namespace for ephemeral exploration.
+
+          To register this release as canonical:
+            1. Add an 'apply_<name>' function to tools/local-stack/up.sh
+            2. Add the release name to this policy's allow-list (this file)
+            3. PR template requires both edits in the same commit
+
+          To use ephemeral install: re-run with namespace prefixed 'tmp-' or 'dev-'.
+        deny:
+          conditions:
+            all:
+              - key: "{{ request.object.metadata.labels.name }}"
+                operator: NotIn
+                value:
+                  # === infra layer (up.sh apply_* helm release 名) ===
+                  - cert-manager
+                  - kyverno
+                  - spire-crds
+                  - spire
+                  - dapr
+                  - argocd
+                  - argo-rollouts
+                  - envoy-gateway
+                  - cnpg
+                  - strimzi  # apply_kafka
+                  - temporal
+                  - minio
+                  - valkey
+                  - openbao
+                  - backstage
+                  - loki
+                  - tempo
+                  - grafana
+                  - prometheus
+                  - otel-collector
+                  - keycloak
+                  # === istio (istioctl が helm secret を作る) ===
+                  - istio-base
+                  - istio-cni
+                  - istiod
+                  - ztunnel

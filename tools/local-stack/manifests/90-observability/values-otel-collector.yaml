@@ -1,0 +1,59 @@
+# OpenTelemetry Collector (ローカル開発用)
+# helm chart: open-telemetry/opentelemetry-collector v0.117.0
+# 元設計から抽出: 旧 helm release `otel-collector` の USER-SUPPLIED VALUES。
+#
+# 設計: tier1/2/3 の OTLP receiver として、loki (logs) / tempo (traces) /
+# prometheus (metrics) に fan-out する単一エンドポイント。
+# Kyverno (ADR-POL-002) require-resource-requests を満たす。
+
+mode: deployment
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  processors:
+    batch:
+      send_batch_size: 1024
+      timeout: 5s
+  exporters:
+    debug:
+      verbosity: detailed
+    otlp/tempo:
+      endpoint: tempo.observability.svc.cluster.local:4317
+      tls:
+        insecure: true
+    otlphttp/loki:
+      endpoint: http://loki.observability.svc.cluster.local:3100/otlp
+      tls:
+        insecure: true
+    prometheusremotewrite:
+      endpoint: http://prometheus-server.observability.svc.cluster.local/api/v1/write
+      tls:
+        insecure: true
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [otlp/tempo, debug]
+      logs:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [otlphttp/loki, debug]
+      metrics:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [prometheusremotewrite, debug]

@@ -1,0 +1,89 @@
+# ADR-POL-002: on-demand demo
+# 用途: SPIFFE/SPIRE の Workload API + spiffe-helper による
+# X.509 SVID 自動更新の動作検証用デモ。
+# 常駐対象から外したため必要時のみ kubectl apply で起動する。
+#
+# 前提: spire-server / spire-agent が cluster 内で稼働していること
+#       （up.sh apply_spire で配備済み）。
+#
+# 起動: kubectl apply -f tools/local-stack/demo/spiffe-helper-test.yaml
+# 削除: kubectl delete -f tools/local-stack/demo/spiffe-helper-test.yaml
+#
+# 検証:
+#   kubectl -n spire-test exec deploy/spiffe-helper -c spiffe-helper -- ls /run/spiffe/certs
+#   → svid.crt / svid.key / bundle.crt が存在し、TTL が短い（30s〜1m）ことを確認
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spire-test
+  labels:
+    k1s0.io/on-demand: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spiffe-helper-config
+  namespace: spire-test
+data:
+  helper.conf: |
+    agent_address = "/run/spire/agent-sockets/spire-agent.sock"
+    cmd = ""
+    cmd_args = ""
+    cert_dir = "/run/spiffe/certs"
+    svid_file_name = "svid.crt"
+    svid_key_file_name = "svid.key"
+    svid_bundle_file_name = "bundle.crt"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spiffe-helper
+  namespace: spire-test
+  labels:
+    app.kubernetes.io/name: spiffe-helper
+    k1s0.io/on-demand: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: spiffe-helper
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: spiffe-helper
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: spiffe-helper
+          image: ghcr.io/spiffe/spiffe-helper:0.10.1
+          args: ["-config", "/etc/spiffe-helper/helper.conf"]
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { cpu: 100m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/agent-sockets
+              readOnly: true
+            - name: certs
+              mountPath: /run/spiffe/certs
+            - name: helper-config
+              mountPath: /etc/spiffe-helper
+              readOnly: true
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/agent-sockets
+            type: Directory
+        - name: certs
+          emptyDir: {}
+        - name: helper-config
+          configMap:
+            name: spiffe-helper-config

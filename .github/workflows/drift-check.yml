@@ -1,0 +1,136 @@
+# ADR-POL-002 drift-check: local-stack canonical 集合の整合検証。
+#
+# 三層防御の Layer 2 (CI 段階) を担う:
+#   - Layer 1 (runtime 強制): infra/security/kyverno/block-non-canonical-helm-releases.yaml
+#   - Layer 2 (PR 段階): 本 workflow
+#   - Layer 3 (運用境界): tools/local-stack/up.sh --mode {dev,strict}
+#
+# 検証内容:
+#   sync-check: tools/local-stack/known-releases.sh の出力と、
+#               infra/security/kyverno/block-non-canonical-helm-releases.yaml の
+#               allow-list が一致することを確認。両者は SoT の同一情報を別形式で表現するため、
+#               PR で片方だけ編集された場合に fail する。
+#   integration: kind を立てて up.sh --mode strict を実行し、
+#                生成された helm releases が全て known set に含まれることを確認（軽量 role 限定）。
+
+name: drift-check
+
+on:
+  pull_request:
+    paths:
+      - "tools/local-stack/**"
+      - "infra/security/kyverno/**"
+      - "deploy/apps/**"
+      - "deploy/charts/**"
+      - "deploy/kustomize/**"
+      - "infra/gitops/**"
+      - "infra/registry/**"
+      - ".github/workflows/drift-check.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sync-check:
+    name: known-releases ↔ Kyverno policy 同期検証
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: known-releases.sh 出力取得
+        id: known
+        run: |
+          set -euo pipefail
+          KNOWN_FILE=$(mktemp)
+          tools/local-stack/known-releases.sh | sort -u > "${KNOWN_FILE}"
+          echo "known_file=${KNOWN_FILE}" >> "${GITHUB_OUTPUT}"
+          echo "::group::known-releases.sh"
+          cat "${KNOWN_FILE}"
+          echo "::endgroup::"
+      - name: Kyverno policy allow-list 抽出
+        id: policy
+        run: |
+          set -euo pipefail
+          POLICY_FILE=$(mktemp)
+          # ClusterPolicy の deny.conditions.all[0].value 配列を yaml parse して抽出
+          python3 - <<'PYEOF' > "${POLICY_FILE}"
+          import yaml
+          with open("infra/security/kyverno/block-non-canonical-helm-releases.yaml") as f:
+              for doc in yaml.safe_load_all(f):
+                  if not doc:
+                      continue
+                  if doc.get("kind") != "ClusterPolicy":
+                      continue
+                  rules = doc["spec"]["rules"]
+                  for rule in rules:
+                      v = rule.get("validate", {})
+                      d = v.get("deny", {})
+                      conds = d.get("conditions", {}).get("all", [])
+                      for c in conds:
+                          if c.get("operator") == "NotIn" and isinstance(c.get("value"), list):
+                              for r in c["value"]:
+                                  print(r)
+          PYEOF
+          sort -u -o "${POLICY_FILE}" "${POLICY_FILE}"
+          echo "policy_file=${POLICY_FILE}" >> "${GITHUB_OUTPUT}"
+          echo "::group::Kyverno allow-list"
+          cat "${POLICY_FILE}"
+          echo "::endgroup::"
+      - name: diff 検証
+        run: |
+          set -euo pipefail
+          if ! diff -u "${{ steps.known.outputs.known_file }}" "${{ steps.policy.outputs.policy_file }}"; then
+            echo ""
+            echo "::error::known-releases.sh と Kyverno policy allow-list が不一致です。"
+            echo "::error::ADR-POL-002 SoT 整合性違反: tools/local-stack/up.sh と"
+            echo "::error::infra/security/kyverno/block-non-canonical-helm-releases.yaml を"
+            echo "::error::同じ PR で同期させてください。"
+            exit 1
+          fi
+          echo "✅ known-releases.sh と Kyverno policy allow-list が一致しています"
+
+  integration:
+    name: kind + up.sh --mode strict integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: sync-check
+    # 重い integration test なので main への merge と push 時のみ。PR は sync-check のみで十分軽量。
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'drift-integration')
+    steps:
+      - uses: actions/checkout@v4
+      - name: 必要ツール install (kind / helm / kubectl / istioctl)
+        run: |
+          set -euo pipefail
+          curl -sLo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+          chmod +x /usr/local/bin/kind
+          curl -sLo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl
+          chmod +x /usr/local/bin/kubectl
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          curl -sL https://istio.io/downloadIstio | ISTIO_VERSION=1.29.2 sh -
+          sudo mv istio-1.29.2/bin/istioctl /usr/local/bin/
+      - name: docs-writer role で軽量 up.sh
+        run: |
+          set -euo pipefail
+          # CI では full role は重すぎるため docs-writer 相当 + 主要 layer の組合せで検証
+          tools/local-stack/up.sh --role docs-writer --mode strict
+      - name: 生成 helm release が known set に含まれるか検証
+        run: |
+          set -euo pipefail
+          ACTUAL=$(helm list -A --output json | python3 -c '
+          import json, sys
+          for r in json.load(sys.stdin):
+              print(r["name"])' | sort -u)
+          KNOWN=$(tools/local-stack/known-releases.sh | sort -u)
+          # 差分を検出（actual に known 外がいたら drift）
+          DRIFT=$(comm -23 <(echo "${ACTUAL}") <(echo "${KNOWN}"))
+          if [[ -n "${DRIFT}" ]]; then
+            echo "::error::生成された helm release に canonical 集合外のものが検出されました:"
+            echo "${DRIFT}"
+            exit 1
+          fi
+          echo "✅ 全 helm release が canonical 集合内"
+      - name: cleanup
+        if: always()
+        run: kind delete cluster --name k1s0-local || true

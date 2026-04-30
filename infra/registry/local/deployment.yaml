@@ -1,90 +1,78 @@
-apiVersion: apps/v1
-kind: Deployment
+# OCI Registry (ローカル開発用)
+# ADR-POL-002 (local-stack SoT) に基づき up.sh apply_registry から呼ばれる正規マニフェスト。
+# 元設計の emptyDir を PVC に変更（image push 後 pod 再起動で消える事故を防ぐ。
+# kind cluster 破棄時は image 全消失＝再 push 前提）。
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  annotations:
-    deployment.kubernetes.io/revision: "1"
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"registry","k1s0.io/component":"registry"},"name":"registry","namespace":"registry"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"registry"}},"template":{"metadata":{"labels":{"app":"registry","k1s0.io/component":"registry"}},"spec":{"containers":[{"env":[{"name":"REGISTRY_STORAGE_DELETE_ENABLED","value":"true"},{"name":"REGISTRY_HTTP_ADDR","value":"0.0.0.0:5000"}],"image":"registry:2.8.3","name":"registry","ports":[{"containerPort":5000,"name":"http"}],"resources":{"limits":{"cpu":"500m","memory":"512Mi"},"requests":{"cpu":"50m","memory":"128Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"seccompProfile":{"type":"RuntimeDefault"}},"volumeMounts":[{"mountPath":"/var/lib/registry","name":"data"}]}],"securityContext":{"fsGroup":1000,"runAsNonRoot":true,"runAsUser":1000},"volumes":[{"emptyDir":{},"name":"data"}]}}}}
-  generation: 1
+  name: registry-data
+  namespace: registry
   labels:
     app: registry
     k1s0.io/component: registry
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: registry
   namespace: registry
+  labels:
+    app: registry
+    k1s0.io/component: registry
 spec:
-  progressDeadlineSeconds: 600
   replicas: 1
-  revisionHistoryLimit: 10
+  strategy:
+    type: Recreate  # PVC RWO のため Recreate
   selector:
     matchLabels:
       app: registry
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
   template:
     metadata:
       labels:
         app: registry
         k1s0.io/component: registry
     spec:
-      containers:
-      - env:
-        - name: REGISTRY_STORAGE_DELETE_ENABLED
-          value: "true"
-        - name: REGISTRY_HTTP_ADDR
-          value: 0.0.0.0:5000
-        image: registry:2.8.3
-        imagePullPolicy: IfNotPresent
-        name: registry
-        ports:
-        - containerPort: 5000
-          name: http
-          protocol: TCP
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 50m
-            memory: 128Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          seccompProfile:
-            type: RuntimeDefault
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-        volumeMounts:
-        - mountPath: /var/lib/registry
-          name: data
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
       securityContext:
         fsGroup: 1000
         runAsNonRoot: true
         runAsUser: 1000
-      terminationGracePeriodSeconds: 30
+      containers:
+        - name: registry
+          image: registry:2.8.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REGISTRY_STORAGE_DELETE_ENABLED
+              value: "true"
+            - name: REGISTRY_HTTP_ADDR
+              value: 0.0.0.0:5000
+          ports:
+            - name: http
+              containerPort: 5000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/registry
       volumes:
-      - emptyDir: {}
-        name: data
-  availableReplicas: 1
-  conditions:
-  - lastTransitionTime: "2026-04-30T10:06:22Z"
-    lastUpdateTime: "2026-04-30T10:06:22Z"
-    message: Deployment has minimum availability.
-    reason: MinimumReplicasAvailable
-    type: Available
-  - lastTransitionTime: "2026-04-30T10:06:18Z"
-    lastUpdateTime: "2026-04-30T10:06:22Z"
-    message: ReplicaSet "registry-775dd48cb7" has successfully progressed.
-    reason: NewReplicaSetAvailable
-    type: Progressing
-  observedGeneration: 1
-  readyReplicas: 1
-  replicas: 1
-  updatedReplicas: 1
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry-data
