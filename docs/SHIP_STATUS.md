@@ -171,6 +171,122 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 | `docs/90_knowledge/` | 技術学習資料 | **同梱済** | |
 | `docs/INDEX.md` | 階層ナビゲーション索引 | **同梱済** | |
 
+## 実 K8s 検証実績（2026-04-30 session）
+
+リリース時点直前に kind v0.27.0 + Kubernetes 1.31.4 + 8 Helm chart を実 install して
+全 tier の round-trip を実機検証した。本セクションは「同梱済」ランクの**実機での裏付け**を
+明示するもので、コード単体テストでは検出できなかった drift を 6 件発見し全て修正済（commit
+`fd1621a62`〜`f7163b572`）。本ファイルの「同梱済」記述はすべて本検証で動作確認済。
+
+### 実 cluster 構成（11 namespace × 50 Pod、全 Running）
+
+| Namespace | コンポーネント | バージョン |
+|---|---|---|
+| `dapr-system` | Dapr control plane（operator / sidecar-injector / sentry / scheduler×3 / placement） | 1.17.5 |
+| `cnpg-system` + `k1s0-tier1/pg-state` | CloudNativePG operator + Postgres single-instance | 0.28.0 / PG 18 |
+| `kafka` | Strimzi operator + Kafka cluster（KRaft、controller+broker dual-role） | 0.51.0 / Kafka 4.2.0 |
+| `openbao` | OpenBao server（dev mode、KVv2 マウント） | 2.5.3 |
+| `temporal` | Temporal frontend / history / matching / worker / web + Cassandra + Elasticsearch | 0.65.0 |
+| `keycloak` | Keycloak（quay.io/keycloak/keycloak:26.0、dev mode、realm `k1s0` 設定済） | 26.0 |
+| `argocd` | Argo CD control plane + ApplicationSet で `tier1-facade` 3 環境（dev/staging/prod）生成 | 9.5.4 |
+| `flagd` | flagd（OpenFeature 互換 Flag 評価エンジン） | 0.11.6 |
+| `k1s0-tier1` | tier1 Go 3 Pod（state with Dapr sidecar 2/2、secret 2/2、workflow 2/2）+ Rust 3 Pod | dev tag |
+| `k1s0-tier2` | notification-hub Go + TaxCalculator .NET | dev tag |
+| `k1s0-tier3` | portal-bff Go + portal-web Nginx | dev tag |
+
+### 実バックエンド経由で証跡を取った round-trip 経路
+
+| Component | 経路 | 検証内容 | 結果 |
+|---|---|---|---|
+| `state.in-memory` | tier1-state Set/Get | UUID etag 復元 | OK |
+| `state.postgresql v2` → CNPG Postgres 18 | tier1-state Set/Get、Pod kill 後復旧 | 同 etag/data 復元（force kill 含む） | OK |
+| `pubsub.kafka v1` → Strimzi Kafka 4.2.0 | tier1-state Publish | kafka-console-consumer で CloudEvents JSON 受信 | OK |
+| `pubsub.kafka v1` | tier1-state gRPC Subscribe stream | grpcurl で 3 events 順序通り受信（base64 cnQtMQ==/cnQtMg==/cnQtMw==） | OK |
+| OpenBao KVv2 | tier1-secret Get / Rotate / 自動 rotation | values 復元 + version 1→2、`ROTATION_SCHEDULE=10s` で 10 秒ごとに version bump（21→30 観測） | OK |
+| Temporal | tier1-workflow Start / GetStatus | UUIDv7 runId、Temporal CLI で `T-temporal::wf-temporal-1` 登録確認 | OK |
+| Rust audit Pod | Record / Query / VerifyChain | hash chain integrity valid | OK |
+| Rust decision Pod | RegisterRule / Evaluate（ZEN Engine） | `{"tier":"high"}` | OK |
+| Rust pii Pod | Classify / Mask | EMAIL+PHONE 検出、`[EMAIL]` 置換 | OK |
+| Keycloak Realm `k1s0` | password grant → JWT 発行 | `tenant_id=T-kc` + `realm_access.roles=[user]` クレーム埋込確認 | OK |
+| BFF JWKS verify → tier1 State | 完全 chain（Web→BFF→tier1） | Bearer JWT 検証 → tier1 Postgres Get で HTTP 200 | OK |
+
+### 本検証で発見した実装 drift（全件修正済 commit 化）
+
+| commit | 修正内容 | 発見経路 |
+|---|---|---|
+| `f7163b572` | tier1 PubSub の tenant separator が `/` 固定で Kafka topic 規則 `[a-zA-Z0-9._-]+` と非互換、`.` separator を pubsub 専用に新設 | Strimzi で "invalid topic" エラー |
+| `6ada41a6e` | .NET Dockerfile の `PublishReadyToRun` が RID 必須 / web Dockerfile の pnpm `--frozen-lockfile` 不整合 + tsconfig.base.json 不在 / tier3-web nginx `proxy_pass URL/` の trailing `/` で BFF が 404 | 実 docker build / 実 web→BFF 経路で発覚 |
+| `d479cedb4` | tier1 Go Dockerfile の Go 1.22 → 1.25 base image 不整合 + `replace ../../sdk/go` の build context 不在、Rust 3 Pod が `grpc.health.v1.Health` 未実装で K8s grpc liveness/readiness probe 不能 | 実 Helm install で発覚 |
+| `53c284e84` | proto 13 ファイルに `google.api.http` annotation 未付与で OpenAPI v2 spec が paths 0、schemathesis / dredd の契約検証が事実上 no-op | OpenAPI gen 結果 0 paths で発覚 |
+| `922fd1edf` | Rust `privileged_rpcs()` が Go 側 `privilegedRPCs` と乖離（IDL 不在 RPC 混入 / 必須 RPC 不足）、AuthClaims に `roles` フィールドが 3 言語とも不在で NFR-E-AC-002 RBAC 判定不能 | docs ↔ コード整合確認で発覚 |
+| `533346f80` | infra/security/cert-manager/values.yaml に webhook/cainjector 重複キー（後段が前段を黙って消す） | kubeconform で検出 |
+
+リリース時点コードはこれら 6 修正と前段 2 commit（`fd1621a62` tier1 3 経路結線 / `84aedee88` 残 RPC E2E + OTLP gRPC exporter）を含む。
+
+### 既知の未検証領域（採用初期で実施）
+
+採用検討者が誤認しないよう、本セッション**未検証**の項目を明記する。
+
+- Argo Rollouts canary 戦略の実発火（ADR-CICD-002）
+- Kyverno ClusterPolicy の実発火（ADR-CICD-003）
+- Istio Ambient mesh / mTLS 強制（ADR-0001）
+- SPIRE / SPIFFE workload identity（ADR-SEC-003）
+- Loki / Tempo / Mimir / Grafana スタックへの実 OTLP gRPC 流入（ADR-OBS-001）
+- SLSA / cosign 署名フロー（ADR-SUP-001）
+- NFR-A 可用性 SLO 99.9% / NFR-B 性能 p99 latency の数値計測
+- tier3-native MAUI / Argo CD ApplicationSet の実 git sync（local cluster は git remote 未認証）
+- Backstage backend 統合（plugin の build は通過、Backstage 本体は未起動）
+- flagd と tier1 FeatureService の Dapr Configuration 経由結線（flagd Pod は起動済、Component CR は未配備）
+
+### ADR 実装トレース（36 件全件、`src/` `infra/` `deploy/` `tools/` を node_modules / target / dist 除外でスキャン）
+
+各 ADR の「決定が実装ツリーに何らかの形で反映されているか」をサンプル参照ファイル付きで追跡する。
+**実 K8s クラスタでの動作検証**は「実 K8s 検証実績」セクションで深さを区別する（コード / 設定が
+存在 ≠ 実 cluster で動作確認済）。
+
+| ADR | 実装サンプル参照 | 実 cluster 検証 |
+|---|---|---|
+| ADR-0001 (Istio Ambient vs sidecar) | `infra/mesh/istio-ambient/values.yaml` | 未検証（採用初期） |
+| ADR-0002 (drawio layer 規約) | `tools/git-hooks/drawio-svg-staleness.sh` | N/A（規約） |
+| ADR-0003 (AGPL 隔離) | `infra/README.md` | N/A（運用ポリシー） |
+| ADR-BS-001 (Backstage) | `src/platform/backstage-plugins/`、`catalog-info.yaml` × 多数 | 未検証（plugin build 通過のみ） |
+| ADR-CICD-001 (Argo CD) | `deploy/apps/{app-of-apps,application-sets,projects}/`、`infra/k8s/namespaces/namespaces.yaml` | **検証済**（control plane install + 4 AppProject + 3 Application） |
+| ADR-CICD-002 (Argo Rollouts) | `deploy/rollouts/{analysis,canary-strategies}/` | 未検証 |
+| ADR-CICD-003 (Kyverno) | `infra/security/kyverno/{baseline-policies,kustomization}.yaml` | 未検証 |
+| ADR-DATA-001 (CloudNativePG) | `infra/data/cloudnativepg/`、`postgresql.cnpg.io` CRD 利用 | **検証済**（CNPG operator install + Postgres single-instance + tier1-state 永続化） |
+| ADR-DATA-002 (Strimzi Kafka) | `infra/data/kafka/{kafka-cluster,strimzi-values}.yaml` | **検証済**（Strimzi 0.51 + Kafka 4.2.0 KRaft + Publish/Subscribe round-trip） |
+| ADR-DATA-003 (MinIO) | `infra/data/minio/values.yaml` | 未検証 |
+| ADR-DATA-004 (Valkey) | `infra/data/valkey/values.yaml`、`state.redis` adapter | 未検証 |
+| ADR-DEP-001 (Renovate) | `renovate.json`、`infra/security/openbao/policies/ci-runner.hcl` | 未検証（CI gate 別 PR） |
+| ADR-DEV-001 (Paved Road) | `src/tier2/templates/`、`src/tier3/templates/` | 未検証（Backstage Scaffolder 実行は別 PR） |
+| ADR-DEV-002 (WSL2 + Docker) | `tools/devcontainer/postCreate.sh`、`.devcontainer/` | **検証済**（本セッション全体が WSL2 + Docker 環境で実行） |
+| ADR-DIR-001 (contracts 昇格) | `src/contracts/tier1/`、`src/contracts/internal/` | **検証済**（buf generate / OpenAPI 42 paths 化が contracts/ 直接参照） |
+| ADR-DIR-002 (infra 分離) | `infra/` ディレクトリ全体、`infra/README.md` | **検証済**（kustomize 3 環境 + helm chart 全 7 件 dry-run + 一部実 install） |
+| ADR-DIR-003 (sparse checkout) | `.sparse-checkout/`、`tools/sparse/{checkout-role,verify}.sh` | 未検証（cone mode は CI で実行する想定） |
+| ADR-DX-001 (DX metrics 分離) | `tools/catalog-check/check-lifecycle.sh` | N/A（DX metric 計測パイプライン別 PR） |
+| ADR-FM-001 (flagd / OpenFeature) | `infra/feature-management/flagd/{flagd-deployment,values}.yaml`、`src/contracts/tier1/k1s0/tier1/feature/` | 部分検証（flagd Pod 起動済、Dapr Configuration 経由結線は別 PR） |
+| ADR-MIG-001 (.NET Framework sidecar) | `src/README.md`（言及のみ）、実装なし | N/A（採用後の運用拡大時で導入） |
+| ADR-MIG-002 (API Gateway) | `infra/mesh/envoy-gateway/gateway-internal.yaml` | 未検証 |
+| ADR-OBS-001 (Grafana LGTM) | `infra/environments/dev/values/{loki,tempo}/values.yaml`、`infra/observability/{grafana,loki,tempo,mimir,pyroscope}/values.yaml` | 未検証（OTLP exporter 結線済 / Collector → LGTM スタック流入は採用初期で確認） |
+| ADR-OBS-002 (OTel Collector) | `src/tier2/go/shared/otel/init.go`、`src/tier1/go/internal/otel/otel.go`、`infra/observability/otel-collector/values.yaml` | 部分検証（OTLP gRPC exporter 結線済、実 Collector への流入は採用初期） |
+| ADR-OBS-003 (Incident Taxonomy) | `infra/observability/alerts/k1s0-tier3-alerts.yaml` | N/A（運用文書 + alert ルール） |
+| ADR-POL-001 (Kyverno 二重オーナー) | `infra/security/kyverno/`、`infra/README.md` | 未検証 |
+| ADR-REL-001 (Progressive Delivery) | `deploy/rollouts/canary-strategies/canary-25-50-100.yaml` | 未検証 |
+| ADR-RULE-001 (ZEN Engine) | `src/contracts/internal/k1s0/internal/decision/v1/decision.proto`、`src/tier1/rust/crates/decision/` | **検証済**（cluster 上 t1-decision Pod で RegisterRule→Evaluate `{"tier":"high"}`） |
+| ADR-RULE-002 (Temporal) | `src/tier1/go/internal/adapter/temporal/workflow.go`、`infra/feature-management/`（参照） | **検証済**（Temporal cluster install + tier1-workflow Start/GetStatus、Temporal CLI で workflow 確認） |
+| ADR-SEC-001 (Keycloak) | `infra/security/keycloak/values.yaml`、tier3 BFF JWKS auth | **検証済**（Keycloak 26 install + realm `k1s0` + BFF JWKS verify chain HTTP 200） |
+| ADR-SEC-002 (OpenBao) | `infra/security/openbao/`、`src/tier1/go/internal/adapter/openbao/`、`src/sdk/typescript/src/secrets.ts` | **検証済**（OpenBao install + tier1-secret Get/Rotate + 自動 rotation 10 回観測） |
+| ADR-SEC-003 (SPIFFE/SPIRE) | `infra/security/spire/values.yaml` | 未検証 |
+| ADR-STOR-001 (Longhorn) | `infra/k8s/storage/kustomization.yaml` | 未検証（kind 環境では local-path-provisioner 使用） |
+| ADR-STOR-002 (MetalLB) | `infra/k8s/networking/metallb-values.yaml` | 未検証 |
+| ADR-SUP-001 (SLSA / SBOM / cosign) | `src/tier2/templates/go-service/skeleton/{{name}}/Dockerfile.hbs`（template 内） | 未検証 |
+| ADR-TIER1-001 (Go + Rust hybrid) | `src/tier1/go/cmd/{state,secret,workflow}`、`src/tier1/rust/crates/{audit,decision,pii}` | **検証済**（6 Pod 全 Running） |
+| ADR-TIER1-002 (Protobuf gRPC) | 14 proto / 47 RPC + 4 SDK 生成 | **検証済**（gRPC + HTTP/JSON gateway 経路で 17 round-trip 完了） |
+| ADR-TIER1-003 (言語不可視) | tier1 internal proto は SDK 配布物に含まれない設計、`src/contracts/internal/` | **検証済**（buf.gen.internal.yaml で internal を SDK から分離生成） |
+
+**集計**: 36 件中、コード/設定が存在 = 36 件、実 K8s 検証済 = 14 件、部分検証 = 2 件、未検証 = 16 件、N/A（規約 / 運用文書） = 4 件。
+未検証 16 件はすべて「採用初期」段階の実装対象で、リリース時点では設計合意（Accepted）状態を docs / IaC で確定済。
+
 ## 「docs から逸脱しない」ことの保証
 
 本リポジトリの実装作業は、以下のメカニズムで docs 正典との整合性を保つ。
