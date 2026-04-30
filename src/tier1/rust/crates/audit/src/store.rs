@@ -33,6 +33,10 @@ pub enum StoreError {
     Serialize(String),
     /// 内部ロック獲得失敗（poisoned）。
     LockPoisoned,
+    /// Postgres 等の永続バックエンド由来のエラー（PostgresAuditStore で発生）。
+    Backend(String),
+    /// チェーン整合性違反（verify_chain でのみ使用）。
+    Integrity(String),
 }
 
 impl std::fmt::Display for StoreError {
@@ -40,6 +44,8 @@ impl std::fmt::Display for StoreError {
         match self {
             StoreError::Serialize(s) => write!(f, "serialize: {}", s),
             StoreError::LockPoisoned => write!(f, "lock poisoned"),
+            StoreError::Backend(s) => write!(f, "backend: {}", s),
+            StoreError::Integrity(s) => write!(f, "integrity: {}", s),
         }
     }
 }
@@ -156,7 +162,7 @@ impl Default for InMemoryAuditStore {
 
 /// canonical_bytes は AppendInput を deterministic な JSON で serialize した
 /// bytes を返す。BTreeMap でキー順を固定し、tenant_id / actor / action 等の順序も固定する。
-fn canonical_bytes(input: &AppendInput) -> Result<Vec<u8>, StoreError> {
+pub(crate) fn canonical_bytes(input: &AppendInput) -> Result<Vec<u8>, StoreError> {
     // serde_json は struct field 順を struct 定義順で出力するため、struct を
     // 1 件作って serialize すれば deterministic。BTreeMap 経由で attributes も整列する。
     #[derive(Serialize)]

@@ -71,7 +71,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let listen = listen_addr();
     let addr = listen.parse()?;
     eprintln!("tier1/audit: gRPC server listening on {}", listen);
-    let store: Arc<dyn AuditStore> = Arc::new(InMemoryAuditStore::new());
+    // env `K1S0_AUDIT_PG_DSN` が設定されていれば Postgres-backed WORM ストアを使う
+    // （CNPG cluster の k1s0-postgres-rw を想定、NFR-H-INT-001 永続化）。
+    // 未設定 / 接続失敗時は InMemoryAuditStore に fallback（dev / CI 用）。
+    let store: Arc<dyn AuditStore> = if let Ok(dsn) = std::env::var("K1S0_AUDIT_PG_DSN") {
+        match k1s0_tier1_audit::postgres_store::PostgresAuditStore::connect(&dsn).await {
+            Ok(s) => {
+                eprintln!("tier1/audit: PostgresAuditStore connected (DSN ok)");
+                Arc::new(s)
+            }
+            Err(e) => {
+                eprintln!(
+                    "tier1/audit: PostgresAuditStore connect failed ({}), falling back to in-memory",
+                    e
+                );
+                Arc::new(InMemoryAuditStore::new())
+            }
+        }
+    } else {
+        eprintln!("tier1/audit: K1S0_AUDIT_PG_DSN not set, using InMemoryAuditStore (dev mode)");
+        Arc::new(InMemoryAuditStore::new())
+    };
     // 共通規約 §「冪等性と再試行」: 24h TTL（既定）の重複抑止 cache を有効化。
     let idempotency: Arc<dyn IdempotencyCache> =
         Arc::new(InMemoryIdempotencyCache::new(std::time::Duration::ZERO));
