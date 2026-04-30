@@ -36,7 +36,19 @@ repos:
       - id: trailing-whitespace
         # markdown の意図的な末尾 2 spaces（改行）は許容
         args: [--markdown-linebreak-ext=md]
+        # protoc-gen-doc 生成物は ToC リスト区切りに「whitespace のみの行」を出力する。
+        # trailing-whitespace はその行を空行に潰すが、buf generate が CI で同行を再生成するため
+        # grpc-docs-check と相互に競合する。protoc 生成物は buf lint 側で品質担保するため除外。
+        exclude: |
+          (?x)^(
+              docs/02_構想設計/02_tier1設計/grpc-reference/.*
+          )$
       - id: end-of-file-fixer
+        # 同上（grpc-reference/ は buf generate の生成物として常に EOF 形が固定される）
+        exclude: |
+          (?x)^(
+              docs/02_構想設計/02_tier1設計/grpc-reference/.*
+          )$
       - id: check-yaml
         # multi-document yaml を許容（Helm chart / k8s manifest で使われる）
         args: [--allow-multiple-documents]
