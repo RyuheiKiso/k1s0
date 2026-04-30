@@ -167,12 +167,21 @@ wait_for_pods_ready() {
 # 固定値はホストの docker daemon が異なる subnet を割当てた場合に失敗するため、
 # `docker network inspect` 経由で実際の subnet を抽出する。
 generate_metallb_pool() {
+    # ADR-POL-002 P4 で発覚: docker network kind が IPv4 と IPv6 両方の subnet を持つ環境では
+    # IPAM.Config[0] が IPv6 になる場合があり、"fc00:f853:ccd:e793::/64" のような subnet を引いて
+    # MetalLB の IPv4 形式 IPAddressPool 生成が壊れる。明示的に IPv4 subnet のみを抽出する。
     local subnet
     subnet="$(docker network inspect kind 2>/dev/null \
-        | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['IPAM']['Config'][0]['Subnet'])" 2>/dev/null \
+        | python3 -c "import sys,json
+d = json.load(sys.stdin)
+for c in d[0]['IPAM']['Config']:
+    s = c.get('Subnet','')
+    if '.' in s and ':' not in s:
+        print(s)
+        break" 2>/dev/null \
         || echo "")"
     if [[ -z "${subnet}" ]]; then
-        warn "kind docker network から subnet を取得できませんでした。固定値 172.18.255.200-250 を使用"
+        warn "kind docker network から IPv4 subnet を取得できませんでした。固定値 172.18.255.200-250 を使用"
         echo "172.18.255.200-172.18.255.250"
         return
     fi
@@ -199,14 +208,18 @@ start_cluster() {
 
 apply_cni() {
     has_layer cni || return 0
-    log "Calico CNI install (${CALICO_VERSION})"
+    log "Calico CNI install (${CALICO_VERSION}, quay.io mirror)"
     kubectl create -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/tigera-operator.yaml" 2>/dev/null || true
+    # registry: "quay.io/" 指定で Docker Hub の rate limit 回避（ADR-POL-002 P4 で実証済み）。
+    # multinode (4 ノード) で同一イメージを 4× pull するため、unauthenticated docker.io 100 pulls/6h
+    # の壁を踏みやすい。quay.io/calico/* は同等の image を提供する公式ミラー。
     kubectl apply -f - <<EOF || true
 apiVersion: operator.tigera.io/v1
 kind: Installation
 metadata:
   name: default
 spec:
+  registry: quay.io/
   calicoNetwork:
     ipPools:
       - blockSize: 26
@@ -215,12 +228,20 @@ spec:
         natOutgoing: Enabled
         nodeSelector: all()
 EOF
-    wait_for_pods_ready calico-system 300s
+    # multinode の image pull に時間がかかるため timeout を 600s に延長
+    wait_for_pods_ready calico-system 600s
 }
 
 apply_cert_manager() {
     has_layer cert-manager || return 0
     log "cert-manager install (${CERT_MANAGER_VERSION})"
+    # cert-manager の --enable-gateway-api 引数が要求する Gateway API CRDs を事前 install。
+    # envoy-gateway 自身も同 CRDs を bundle するが kubectl apply は冪等に動作するため衝突しない。
+    # ADR-POL-002 P4 rebuild 時に「Gateway API CRDs 不在で cert-manager-controller が CrashLoopBackOff」
+    # を実証済み（v1.20.2 のデフォルト挙動として CRDs 不在を fatal とする変更が入った）。
+    log "  Gateway API CRDs (standard v1.2.1) を事前 install"
+    kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml" 2>&1 | tail -3 \
+        || warn "  Gateway API CRDs install 失敗（後続 cert-manager が CrashLoop の可能性）"
     ensure_helm_repo jetstack https://charts.jetstack.io
     helm upgrade --install cert-manager jetstack/cert-manager \
         --namespace cert-manager --version "${CERT_MANAGER_VERSION}" \

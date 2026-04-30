@@ -15,6 +15,13 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: k1s0-local
+# Docker Hub の unauthenticated pull rate limit (100 pulls/6h/IP) を multinode (4 ノード) で
+# 踏み抜く事故を防ぐため、containerd の registry mirror を mirror.gcr.io（Google Cloud の Docker Hub mirror）
+# に向ける。ADR-POL-002 P4 rebuild 時に Calico image pull が 429 を返した実証から導入。
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["https://mirror.gcr.io", "https://registry-1.docker.io"]
 networking:
   # Calico を後から install するため kindnet を無効化
   disableDefaultCNI: true
@@ -66,13 +73,16 @@ nodes:
     labels:
       k1s0.io/workload: ingress
 # kubeadm patches
+# 注意: apiServer.extraArgs.anonymous-auth=false は設定しないこと。
+# kubeadm join は cluster-info ConfigMap を anonymous で discovery するため、
+# anonymous-auth を無効化すると multi-node 構成で worker join が "Unauthorized" で失敗する
+# （ADR-POL-002 P4 rebuild 時に実証済み: failed to request the cluster-info ConfigMap: Unauthorized）。
+# 将来 OIDC (Keycloak 連携) を追加する場合は oidc-* extraArgs として追加し、
+# anonymous-auth は kubeadm bootstrap 後に Kyverno / NetworkPolicy で API サーバの anonymous 経路を
+# 絞る方針に切替える。
 kubeadmConfigPatches:
   - |
     kind: ClusterConfiguration
-    apiServer:
-      extraArgs:
-        # OIDC を将来 Keycloak に向ける際に拡張する余地を残す
-        anonymous-auth: "false"
     controllerManager:
       extraArgs:
         bind-address: "0.0.0.0"
