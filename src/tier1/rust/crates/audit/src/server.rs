@@ -291,3 +291,148 @@ impl AuditService for AuditServer {
         }))
     }
 }
+
+#[cfg(test)]
+mod handler_tests {
+    use super::*;
+    use crate::store::InMemoryAuditStore;
+    use k1s0_sdk_proto::k1s0::tier1::audit::v1::AuditEvent;
+    use k1s0_sdk_proto::k1s0::tier1::common::v1::TenantContext;
+    use k1s0_tier1_common::auth::AuthClaims;
+    use k1s0_tier1_common::idempotency::InMemoryIdempotencyCache;
+
+    /// テスト用 AuditServer を構築する。in-memory store + 空 idempotency cache。
+    fn server() -> AuditServer {
+        AuditServer {
+            store: Arc::new(InMemoryAuditStore::new()),
+            idempotency: Arc::new(InMemoryIdempotencyCache::new(std::time::Duration::ZERO)),
+        }
+    }
+
+    /// claims (tenant-A) を `Request::extensions` に注入する helper。
+    /// K1s0Layer が production で行う処理を bypass してテストから直接 inject する。
+    fn req_with_claims<T>(payload: T, tenant_id: &str) -> Request<T> {
+        let mut r = Request::new(payload);
+        r.extensions_mut().insert(AuthClaims {
+            tenant_id: tenant_id.to_string(),
+            subject: "alice".to_string(),
+            ..Default::default()
+        });
+        r
+    }
+
+    fn sample_event() -> AuditEvent {
+        AuditEvent {
+            actor: "alice".to_string(),
+            action: "Read".to_string(),
+            resource: "secret/foo".to_string(),
+            outcome: "SUCCESS".to_string(),
+            ..Default::default()
+        }
+    }
+
+    /// G3 / H1 regression: claims (JWT) と body の tenant_id が不一致 → handler が
+    /// PermissionDenied で reject。
+    #[tokio::test]
+    async fn record_rejects_cross_tenant() {
+        let s = server();
+        let req = req_with_claims(
+            RecordAuditRequest {
+                event: Some(sample_event()),
+                context: Some(TenantContext {
+                    tenant_id: "tenant-B".to_string(), // 攻撃側の偽装値
+                    ..Default::default()
+                }),
+                idempotency_key: String::new(),
+            },
+            "tenant-A", // claims (JWT 由来)
+        );
+        let err = s.record(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::PermissionDenied);
+        assert!(
+            err.message().contains("cross-tenant"),
+            "error should mention 'cross-tenant', got: {}",
+            err.message()
+        );
+        assert!(
+            err.message().contains("tenant-A") && err.message().contains("tenant-B"),
+            "error should expose jwt + body tenants, got: {}",
+            err.message()
+        );
+    }
+
+    /// 一致する tenant_id なら通常通り record される (auth_id を返す)。
+    #[tokio::test]
+    async fn record_accepts_matching_tenant() {
+        let s = server();
+        let req = req_with_claims(
+            RecordAuditRequest {
+                event: Some(sample_event()),
+                context: Some(TenantContext {
+                    tenant_id: "tenant-A".to_string(),
+                    ..Default::default()
+                }),
+                idempotency_key: String::new(),
+            },
+            "tenant-A",
+        );
+        let resp = s.record(req).await.expect("matching tenant should pass");
+        assert!(
+            !resp.into_inner().audit_id.is_empty(),
+            "successful record should return non-empty audit_id"
+        );
+    }
+
+    /// claims が無い (auth=off / HTTP gateway 経由) なら body の tenant_id を採用する
+    /// (旧挙動互換、H1 の仕様)。
+    #[tokio::test]
+    async fn record_without_claims_uses_body_tenant() {
+        let s = server();
+        // claims を入れずに request 構築
+        let req = Request::new(RecordAuditRequest {
+            event: Some(sample_event()),
+            context: Some(TenantContext {
+                tenant_id: "any-tenant".to_string(),
+                ..Default::default()
+            }),
+            idempotency_key: String::new(),
+        });
+        let resp = s.record(req).await.expect("auth=off path should accept body");
+        assert!(!resp.into_inner().audit_id.is_empty());
+    }
+
+    /// query / verify_chain も同じ cross-tenant 防御を持つこと。
+    #[tokio::test]
+    async fn query_rejects_cross_tenant() {
+        let s = server();
+        let req = req_with_claims(
+            QueryAuditRequest {
+                context: Some(TenantContext {
+                    tenant_id: "tenant-B".to_string(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+            "tenant-A",
+        );
+        let err = s.query(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    }
+
+    #[tokio::test]
+    async fn verify_chain_rejects_cross_tenant() {
+        let s = server();
+        let req = req_with_claims(
+            VerifyChainRequest {
+                context: Some(TenantContext {
+                    tenant_id: "tenant-B".to_string(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+            "tenant-A",
+        );
+        let err = s.verify_chain(req).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::PermissionDenied);
+    }
+}
