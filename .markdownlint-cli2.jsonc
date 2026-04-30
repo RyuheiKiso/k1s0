@@ -57,7 +57,21 @@
     "MD040": true,
 
     // MD060 table-column-style: 既存ドキュメント全件と style 不一致のため無効化（IMP-CI-LCDT-080 系で別途方針整理）
-    "MD060": false
+    "MD060": false,
+
+    // MD010 no-hard-tabs: code block 内（Go や Makefile の tab 縦割り）は tab を許容。
+    // 散文の hard-tab は引き続き禁止。
+    "MD010": {
+      "code_blocks": false
+    },
+
+    // MD032 blanks-around-lists: 既存 docs で列直前に空行が無いケースが多発しており、
+    // 個別修正は段階的な docs hygiene PR で行う方針（IMP-CI-LCDT-082）。
+    "MD032": false,
+
+    // MD037 spaces-in-emphasis: 日本語と英数記号が混在する文中の `apply_*` `tmp-*` 等を
+    // backtick 囲みで code として扱うのが規約だが、過去 docs の漏れを段階修正のため warning に。
+    "MD037": false
   },
 
   // 対象から外すパス（linter を回さない）

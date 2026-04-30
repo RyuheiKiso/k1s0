@@ -9,7 +9,7 @@
 - [30_quality_gate/](30_quality_gate/)（4 段 quality gate）
 - [50_branch_protection/01_branch_protection.md](50_branch_protection/01_branch_protection.md)（`ci-overall` 1 本必須）
 - plan/02_開発環境整備/11_monorepo_CI_orchestration.md
-- 配置: [`.github/workflows/`](../../../.github/workflows/) / [`tools/ci/actions/`](../../../tools/ci/actions/) / [`tools/ci/path-filter.yaml`](../../../tools/ci/path-filter.yaml)
+- 配置: [`.github/workflows/`](../../../.github/workflows/) / [`tools/ci/actions/`](../../../tools/ci/actions/) / [`tools/ci/path-filter/filters.yaml`](../../../tools/ci/path-filter/filters.yaml)
 
 ## 1. workflow taxonomy（命名規約と配置）
 
@@ -114,7 +114,7 @@ matrix の組合せ爆発を避けるため、**段階別に matrix の幅を変
 reusable workflow から呼び出す共通部品（言語 toolchain setup / cache 設定 / 共通 step）は `tools/ci/actions/<name>/action.yml` に配置する。`.github/actions/` ではなく `tools/ci/` 配下に置く理由:
 
 - sparse-checkout cone で `infra-ops` 役にも `tools/ci/` を含めることで CI 部品の編集も役切替で完結
-- `tools/ci/path-filter.yaml` と並置して CI 関連を集約
+- `tools/ci/path-filter/filters.yaml` と並置して CI 関連を集約
 - IMP-CI-RWF-021 の正典
 
 呼出側（reusable workflow）から:
@@ -164,4 +164,4 @@ CI workflow 実行時間 / 成功率を以下のメトリクスで集計する:
 
 - [10_reusable_workflow/01_reusable_workflow設計.md](10_reusable_workflow/01_reusable_workflow設計.md)
 - [`tools/ci/actions/`](../../../tools/ci/actions/) — composite action 雛形
-- [`tools/ci/path-filter.yaml`](../../../tools/ci/path-filter.yaml) — path-filter 11 軸
+- [`tools/ci/path-filter/filters.yaml`](../../../tools/ci/path-filter/filters.yaml) — path-filter 11 軸
