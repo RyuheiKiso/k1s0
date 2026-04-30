@@ -6,9 +6,9 @@
 - [k1s0/tier1/common/v1/common.proto](#k1s0_tier1_common_v1_common-proto)
     - [ErrorDetail](#k1s0-tier1-common-v1-ErrorDetail)
     - [TenantContext](#k1s0-tier1-common-v1-TenantContext)
-  
+
     - [K1s0ErrorCategory](#k1s0-tier1-common-v1-K1s0ErrorCategory)
-  
+
 - [k1s0/tier1/audit/v1/audit_service.proto](#k1s0_tier1_audit_v1_audit_service-proto)
     - [AuditEvent](#k1s0-tier1-audit-v1-AuditEvent)
     - [AuditEvent.AttributesEntry](#k1s0-tier1-audit-v1-AuditEvent-AttributesEntry)
@@ -21,19 +21,19 @@
     - [RecordAuditResponse](#k1s0-tier1-audit-v1-RecordAuditResponse)
     - [VerifyChainRequest](#k1s0-tier1-audit-v1-VerifyChainRequest)
     - [VerifyChainResponse](#k1s0-tier1-audit-v1-VerifyChainResponse)
-  
+
     - [ExportFormat](#k1s0-tier1-audit-v1-ExportFormat)
-  
+
     - [AuditService](#k1s0-tier1-audit-v1-AuditService)
-  
+
 - [k1s0/tier1/binding/v1/binding_service.proto](#k1s0_tier1_binding_v1_binding_service-proto)
     - [InvokeBindingRequest](#k1s0-tier1-binding-v1-InvokeBindingRequest)
     - [InvokeBindingRequest.MetadataEntry](#k1s0-tier1-binding-v1-InvokeBindingRequest-MetadataEntry)
     - [InvokeBindingResponse](#k1s0-tier1-binding-v1-InvokeBindingResponse)
     - [InvokeBindingResponse.MetadataEntry](#k1s0-tier1-binding-v1-InvokeBindingResponse-MetadataEntry)
-  
+
     - [BindingService](#k1s0-tier1-binding-v1-BindingService)
-  
+
 - [k1s0/tier1/decision/v1/decision_service.proto](#k1s0_tier1_decision_v1_decision_service-proto)
     - [BatchEvaluateRequest](#k1s0-tier1-decision-v1-BatchEvaluateRequest)
     - [BatchEvaluateResponse](#k1s0-tier1-decision-v1-BatchEvaluateResponse)
@@ -46,10 +46,10 @@
     - [RegisterRuleRequest](#k1s0-tier1-decision-v1-RegisterRuleRequest)
     - [RegisterRuleResponse](#k1s0-tier1-decision-v1-RegisterRuleResponse)
     - [RuleVersionMeta](#k1s0-tier1-decision-v1-RuleVersionMeta)
-  
+
     - [DecisionAdminService](#k1s0-tier1-decision-v1-DecisionAdminService)
     - [DecisionService](#k1s0-tier1-decision-v1-DecisionService)
-  
+
 - [k1s0/tier1/feature/v1/feature_service.proto](#k1s0_tier1_feature_v1_feature_service-proto)
     - [BooleanResponse](#k1s0-tier1-feature-v1-BooleanResponse)
     - [EvaluateRequest](#k1s0-tier1-feature-v1-EvaluateRequest)
@@ -68,14 +68,14 @@
     - [RegisterFlagResponse](#k1s0-tier1-feature-v1-RegisterFlagResponse)
     - [StringResponse](#k1s0-tier1-feature-v1-StringResponse)
     - [TargetingRule](#k1s0-tier1-feature-v1-TargetingRule)
-  
+
     - [FlagKind](#k1s0-tier1-feature-v1-FlagKind)
     - [FlagState](#k1s0-tier1-feature-v1-FlagState)
     - [FlagValueType](#k1s0-tier1-feature-v1-FlagValueType)
-  
+
     - [FeatureAdminService](#k1s0-tier1-feature-v1-FeatureAdminService)
     - [FeatureService](#k1s0-tier1-feature-v1-FeatureService)
-  
+
 - [k1s0/tier1/health/v1/health_service.proto](#k1s0_tier1_health_v1_health_service-proto)
     - [DependencyStatus](#k1s0-tier1-health-v1-DependencyStatus)
     - [LivenessRequest](#k1s0-tier1-health-v1-LivenessRequest)
@@ -83,9 +83,9 @@
     - [ReadinessRequest](#k1s0-tier1-health-v1-ReadinessRequest)
     - [ReadinessResponse](#k1s0-tier1-health-v1-ReadinessResponse)
     - [ReadinessResponse.DependenciesEntry](#k1s0-tier1-health-v1-ReadinessResponse-DependenciesEntry)
-  
+
     - [HealthService](#k1s0-tier1-health-v1-HealthService)
-  
+
 - [k1s0/tier1/log/v1/log_service.proto](#k1s0_tier1_log_v1_log_service-proto)
     - [BulkSendLogRequest](#k1s0-tier1-log-v1-BulkSendLogRequest)
     - [BulkSendLogResponse](#k1s0-tier1-log-v1-BulkSendLogResponse)
@@ -93,20 +93,20 @@
     - [LogEntry.AttributesEntry](#k1s0-tier1-log-v1-LogEntry-AttributesEntry)
     - [SendLogRequest](#k1s0-tier1-log-v1-SendLogRequest)
     - [SendLogResponse](#k1s0-tier1-log-v1-SendLogResponse)
-  
+
     - [Severity](#k1s0-tier1-log-v1-Severity)
-  
+
     - [LogService](#k1s0-tier1-log-v1-LogService)
-  
+
 - [k1s0/tier1/pii/v1/pii_service.proto](#k1s0_tier1_pii_v1_pii_service-proto)
     - [ClassifyRequest](#k1s0-tier1-pii-v1-ClassifyRequest)
     - [ClassifyResponse](#k1s0-tier1-pii-v1-ClassifyResponse)
     - [MaskRequest](#k1s0-tier1-pii-v1-MaskRequest)
     - [MaskResponse](#k1s0-tier1-pii-v1-MaskResponse)
     - [PiiFinding](#k1s0-tier1-pii-v1-PiiFinding)
-  
+
     - [PiiService](#k1s0-tier1-pii-v1-PiiService)
-  
+
 - [k1s0/tier1/pubsub/v1/pubsub_service.proto](#k1s0_tier1_pubsub_v1_pubsub_service-proto)
     - [BulkPublishEntry](#k1s0-tier1-pubsub-v1-BulkPublishEntry)
     - [BulkPublishRequest](#k1s0-tier1-pubsub-v1-BulkPublishRequest)
@@ -117,9 +117,9 @@
     - [PublishRequest.MetadataEntry](#k1s0-tier1-pubsub-v1-PublishRequest-MetadataEntry)
     - [PublishResponse](#k1s0-tier1-pubsub-v1-PublishResponse)
     - [SubscribeRequest](#k1s0-tier1-pubsub-v1-SubscribeRequest)
-  
+
     - [PubSubService](#k1s0-tier1-pubsub-v1-PubSubService)
-  
+
 - [k1s0/tier1/secrets/v1/secrets_service.proto](#k1s0_tier1_secrets_v1_secrets_service-proto)
     - [BulkGetSecretRequest](#k1s0-tier1-secrets-v1-BulkGetSecretRequest)
     - [BulkGetSecretResponse](#k1s0-tier1-secrets-v1-BulkGetSecretResponse)
@@ -132,16 +132,16 @@
     - [GetSecretResponse.ValuesEntry](#k1s0-tier1-secrets-v1-GetSecretResponse-ValuesEntry)
     - [RotateSecretRequest](#k1s0-tier1-secrets-v1-RotateSecretRequest)
     - [RotateSecretResponse](#k1s0-tier1-secrets-v1-RotateSecretResponse)
-  
+
     - [SecretsService](#k1s0-tier1-secrets-v1-SecretsService)
-  
+
 - [k1s0/tier1/serviceinvoke/v1/serviceinvoke_service.proto](#k1s0_tier1_serviceinvoke_v1_serviceinvoke_service-proto)
     - [InvokeChunk](#k1s0-tier1-serviceinvoke-v1-InvokeChunk)
     - [InvokeRequest](#k1s0-tier1-serviceinvoke-v1-InvokeRequest)
     - [InvokeResponse](#k1s0-tier1-serviceinvoke-v1-InvokeResponse)
-  
+
     - [InvokeService](#k1s0-tier1-serviceinvoke-v1-InvokeService)
-  
+
 - [k1s0/tier1/state/v1/state_service.proto](#k1s0_tier1_state_v1_state_service-proto)
     - [BulkGetRequest](#k1s0-tier1-state-v1-BulkGetRequest)
     - [BulkGetResponse](#k1s0-tier1-state-v1-BulkGetResponse)
@@ -155,9 +155,9 @@
     - [TransactOp](#k1s0-tier1-state-v1-TransactOp)
     - [TransactRequest](#k1s0-tier1-state-v1-TransactRequest)
     - [TransactResponse](#k1s0-tier1-state-v1-TransactResponse)
-  
+
     - [StateService](#k1s0-tier1-state-v1-StateService)
-  
+
 - [k1s0/tier1/telemetry/v1/telemetry_service.proto](#k1s0_tier1_telemetry_v1_telemetry_service-proto)
     - [EmitMetricRequest](#k1s0-tier1-telemetry-v1-EmitMetricRequest)
     - [EmitMetricResponse](#k1s0-tier1-telemetry-v1-EmitMetricResponse)
@@ -167,11 +167,11 @@
     - [Metric.LabelsEntry](#k1s0-tier1-telemetry-v1-Metric-LabelsEntry)
     - [Span](#k1s0-tier1-telemetry-v1-Span)
     - [Span.AttributesEntry](#k1s0-tier1-telemetry-v1-Span-AttributesEntry)
-  
+
     - [MetricKind](#k1s0-tier1-telemetry-v1-MetricKind)
-  
+
     - [TelemetryService](#k1s0-tier1-telemetry-v1-TelemetryService)
-  
+
 - [k1s0/tier1/workflow/v1/workflow_service.proto](#k1s0_tier1_workflow_v1_workflow_service-proto)
     - [CancelRequest](#k1s0-tier1-workflow-v1-CancelRequest)
     - [CancelResponse](#k1s0-tier1-workflow-v1-CancelResponse)
@@ -185,12 +185,12 @@
     - [StartResponse](#k1s0-tier1-workflow-v1-StartResponse)
     - [TerminateRequest](#k1s0-tier1-workflow-v1-TerminateRequest)
     - [TerminateResponse](#k1s0-tier1-workflow-v1-TerminateResponse)
-  
+
     - [WorkflowBackend](#k1s0-tier1-workflow-v1-WorkflowBackend)
     - [WorkflowStatus](#k1s0-tier1-workflow-v1-WorkflowStatus)
-  
+
     - [WorkflowService](#k1s0-tier1-workflow-v1-WorkflowService)
-  
+
 - [Scalar Value Types](#scalar-value-types)
 
 
@@ -254,7 +254,7 @@ proto 構文宣言（proto3）
 
 
 
- 
+
 
 
 <a name="k1s0-tier1-common-v1-K1s0ErrorCategory"></a>
@@ -279,11 +279,11 @@ UNSPECIFIED &#43; DEADLINE_EXCEEDED の計 10 値。
 | K1S0_ERROR_DEADLINE_EXCEEDED | 9 | gRPC Deadline 超過（副作用未発生扱い、再試行可） |
 
 
- 
 
- 
 
- 
+
+
+
 
 
 
@@ -498,7 +498,7 @@ VerifyChain 応答
 
 
 
- 
+
 
 
 <a name="k1s0-tier1-audit-v1-ExportFormat"></a>
@@ -514,9 +514,9 @@ Export のフォーマット種別。
 | EXPORT_FORMAT_JSON_ARRAY | 3 | 単一 JSON 配列（小規模向け、最後の chunk で `]` を閉じる）。 |
 
 
- 
 
- 
+
+
 
 
 <a name="k1s0-tier1-audit-v1-AuditService"></a>
@@ -531,7 +531,7 @@ Audit API。WORM ストア（Postgres &#43; immutable view）に追記専用で�
 | VerifyChain | [VerifyChainRequest](#k1s0-tier1-audit-v1-VerifyChainRequest) | [VerifyChainResponse](#k1s0-tier1-audit-v1-VerifyChainResponse) | ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。 テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。 |
 | Export | [ExportAuditRequest](#k1s0-tier1-audit-v1-ExportAuditRequest) | [ExportAuditChunk](#k1s0-tier1-audit-v1-ExportAuditChunk) stream | 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF &#34;Audit.Export&#34;）。 server-streaming で範囲内の events を batch（chunk）に分けて配信し、 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。 server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。 |
 
- 
+
 
 
 
@@ -617,11 +617,11 @@ Invoke 応答
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-binding-v1-BindingService"></a>
@@ -633,7 +633,7 @@ Binding API。バインディング名は運用側で事前設定（s3-archive /
 | ----------- | ------------ | ------------- | ------------|
 | Invoke | [InvokeBindingRequest](#k1s0-tier1-binding-v1-InvokeBindingRequest) | [InvokeBindingResponse](#k1s0-tier1-binding-v1-InvokeBindingResponse) | 出力バインディング呼出（tier1 → 外部システムへ送信） |
 
- 
+
 
 
 
@@ -838,11 +838,11 @@ RegisterRule 応答
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-decision-v1-DecisionAdminService"></a>
@@ -867,7 +867,7 @@ Decision 評価 API。tier1 内の Rust 実装（ZEN Engine 統合）にディ�
 | Evaluate | [EvaluateRequest](#k1s0-tier1-decision-v1-EvaluateRequest) | [EvaluateResponse](#k1s0-tier1-decision-v1-EvaluateResponse) | ルール評価（同期、非決定要素を含むルールは登録時に弾かれる） |
 | BatchEvaluate | [BatchEvaluateRequest](#k1s0-tier1-decision-v1-BatchEvaluateRequest) | [BatchEvaluateResponse](#k1s0-tier1-decision-v1-BatchEvaluateResponse) | バッチ評価（複数入力を一括評価、JIT 最適化対象） |
 
- 
+
 
 
 
@@ -1170,7 +1170,7 @@ targeting ルール（JsonLogic 互換、flagd 仕様準拠）。
 
 
 
- 
+
 
 
 <a name="k1s0-tier1-feature-v1-FlagKind"></a>
@@ -1219,9 +1219,9 @@ Flag の戻り値型
 | FLAG_VALUE_OBJECT | 4 | object 型（任意 JSON） |
 
 
- 
 
- 
+
+
 
 
 <a name="k1s0-tier1-feature-v1-FeatureAdminService"></a>
@@ -1248,7 +1248,7 @@ Feature Flag 評価 API。OpenFeature 互換、flagd 仕様準拠。
 | EvaluateNumber | [EvaluateRequest](#k1s0-tier1-feature-v1-EvaluateRequest) | [NumberResponse](#k1s0-tier1-feature-v1-NumberResponse) | 数値 Flag 評価 |
 | EvaluateObject | [EvaluateRequest](#k1s0-tier1-feature-v1-EvaluateRequest) | [ObjectResponse](#k1s0-tier1-feature-v1-ObjectResponse) | JSON オブジェクト Flag 評価 |
 
- 
+
 
 
 
@@ -1353,11 +1353,11 @@ Readiness response: 各依存の状態を個別に返す。
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-health-v1-HealthService"></a>
@@ -1371,7 +1371,7 @@ gRPC ヘルスチェックと、tier2/tier3 からの疎通確認に使う。
 | Liveness | [LivenessRequest](#k1s0-tier1-health-v1-LivenessRequest) | [LivenessResponse](#k1s0-tier1-health-v1-LivenessResponse) | Liveness probe: process が応答可能なら OK。依存 backend は見ない。 |
 | Readiness | [ReadinessRequest](#k1s0-tier1-health-v1-ReadinessRequest) | [ReadinessResponse](#k1s0-tier1-health-v1-ReadinessResponse) | Readiness probe: 依存 backend（Postgres / Kafka / OpenBao 等）が到達可能 かどうかも含めて判定する。詳細仕様は plan 04-16。 |
 
- 
+
 
 
 
@@ -1482,7 +1482,7 @@ Send 応答
 
 
 
- 
+
 
 
 <a name="k1s0-tier1-log-v1-Severity"></a>
@@ -1505,9 +1505,9 @@ buf:lint:ignore ENUM_VALUE_PREFIX
 | FATAL | 21 | OTel SeverityNumber FATAL |
 
 
- 
 
- 
+
+
 
 
 <a name="k1s0-tier1-log-v1-LogService"></a>
@@ -1520,7 +1520,7 @@ Log API。本 API は OTel Logs パイプラインに直接乗せる（Loki / Gr
 | Send | [SendLogRequest](#k1s0-tier1-log-v1-SendLogRequest) | [SendLogResponse](#k1s0-tier1-log-v1-SendLogResponse) | 単一エントリ送信 |
 | BulkSend | [BulkSendLogRequest](#k1s0-tier1-log-v1-BulkSendLogRequest) | [BulkSendLogResponse](#k1s0-tier1-log-v1-BulkSendLogResponse) | 一括送信（accepted / rejected で集計を返す） |
 
- 
+
 
 
 
@@ -1626,11 +1626,11 @@ PII 検出結果の 1 件
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-pii-v1-PiiService"></a>
@@ -1643,7 +1643,7 @@ PII API。t1-pii Pod は純関数（ステートレス）で副作用なし。
 | Classify | [ClassifyRequest](#k1s0-tier1-pii-v1-ClassifyRequest) | [ClassifyResponse](#k1s0-tier1-pii-v1-ClassifyResponse) | PII 種別の検出（テキスト → findings 列） |
 | Mask | [MaskRequest](#k1s0-tier1-pii-v1-MaskRequest) | [MaskResponse](#k1s0-tier1-pii-v1-MaskResponse) | マスキング（テキスト → 置換後テキスト &#43; findings） |
 
- 
+
 
 
 
@@ -1812,11 +1812,11 @@ Subscribe リクエスト
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-pubsub-v1-PubSubService"></a>
@@ -1830,7 +1830,7 @@ PubSub API。Kafka をバックエンドとし、tier1 がテナント接頭辞�
 | BulkPublish | [BulkPublishRequest](#k1s0-tier1-pubsub-v1-BulkPublishRequest) | [BulkPublishResponse](#k1s0-tier1-pubsub-v1-BulkPublishResponse) | バッチ Publish（個別エントリの成否を BulkPublishEntry で返す） |
 | Subscribe | [SubscribeRequest](#k1s0-tier1-pubsub-v1-SubscribeRequest) | [Event](#k1s0-tier1-pubsub-v1-Event) stream | サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか） server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。 |
 
- 
+
 
 
 
@@ -2032,11 +2032,11 @@ Rotate 応答
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-secrets-v1-SecretsService"></a>
@@ -2051,7 +2051,7 @@ Secrets API。OpenBao をバックエンドとし、tier1 が PII / アクセス
 | GetDynamic | [GetDynamicSecretRequest](#k1s0-tier1-secrets-v1-GetDynamicSecretRequest) | [GetDynamicSecretResponse](#k1s0-tier1-secrets-v1-GetDynamicSecretResponse) | 動的シークレット発行（FR-T1-SECRETS-002）。 engine=&#34;postgres&#34; 等の Database Engine から TTL 付き credential を都度発行する。 TTL 経過後は OpenBao が backend ユーザを自動失効（drop）させる。 |
 | Rotate | [RotateSecretRequest](#k1s0-tier1-secrets-v1-RotateSecretRequest) | [RotateSecretResponse](#k1s0-tier1-secrets-v1-RotateSecretResponse) | ローテーション実行（FR-T1-SECRETS-004） 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。 |
 
- 
+
 
 
 
@@ -2129,11 +2129,11 @@ Invoke 応答
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-serviceinvoke-v1-InvokeService"></a>
@@ -2146,7 +2146,7 @@ Invoke 応答
 | Invoke | [InvokeRequest](#k1s0-tier1-serviceinvoke-v1-InvokeRequest) | [InvokeResponse](#k1s0-tier1-serviceinvoke-v1-InvokeResponse) | 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換） |
 | InvokeStream | [InvokeRequest](#k1s0-tier1-serviceinvoke-v1-InvokeRequest) | [InvokeChunk](#k1s0-tier1-serviceinvoke-v1-InvokeChunk) stream | ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム） server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。 |
 
- 
+
 
 
 
@@ -2363,11 +2363,11 @@ Transact 応答
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="k1s0-tier1-state-v1-StateService"></a>
@@ -2383,7 +2383,7 @@ Transact 応答
 | BulkGet | [BulkGetRequest](#k1s0-tier1-state-v1-BulkGetRequest) | [BulkGetResponse](#k1s0-tier1-state-v1-BulkGetResponse) | 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない） |
 | Transact | [TransactRequest](#k1s0-tier1-state-v1-TransactRequest) | [TransactResponse](#k1s0-tier1-state-v1-TransactResponse) | トランザクション境界付きの複数操作（全 Store で対応するわけではない） |
 
- 
+
 
 
 
@@ -2525,7 +2525,7 @@ EmitSpan 応答
 
 
 
- 
+
 
 
 <a name="k1s0-tier1-telemetry-v1-MetricKind"></a>
@@ -2544,9 +2544,9 @@ buf:lint:ignore ENUM_VALUE_PREFIX
 | HISTOGRAM | 2 | 分布ヒストグラム（quantile / bucket 計算用） |
 
 
- 
 
- 
+
+
 
 
 <a name="k1s0-tier1-telemetry-v1-TelemetryService"></a>
@@ -2559,7 +2559,7 @@ Telemetry API。OTel Collector → Mimir / Tempo に転送する経路で使う�
 | EmitMetric | [EmitMetricRequest](#k1s0-tier1-telemetry-v1-EmitMetricRequest) | [EmitMetricResponse](#k1s0-tier1-telemetry-v1-EmitMetricResponse) | メトリクス送信（Counter / Gauge / Histogram の混在可） |
 | EmitSpan | [EmitSpanRequest](#k1s0-tier1-telemetry-v1-EmitSpanRequest) | [EmitSpanResponse](#k1s0-tier1-telemetry-v1-EmitSpanResponse) | Span 送信（既に終了済みの Span のみ受け付ける、開始 Span は OTel SDK で） |
 
- 
+
 
 
 
@@ -2764,7 +2764,7 @@ Terminate 応答
 
 
 
- 
+
 
 
 <a name="k1s0-tier1-workflow-v1-WorkflowBackend"></a>
@@ -2802,9 +2802,9 @@ buf:lint:ignore ENUM_VALUE_PREFIX
 | CONTINUED_AS_NEW | 5 | Continue-as-New（長期ワークフローの履歴ローテーション） |
 
 
- 
 
- 
+
+
 
 
 <a name="k1s0-tier1-workflow-v1-WorkflowService"></a>
@@ -2821,7 +2821,7 @@ Workflow API。tier2 がワークフロー種別をコード登録し、tier1 �
 | Terminate | [TerminateRequest](#k1s0-tier1-workflow-v1-TerminateRequest) | [TerminateResponse](#k1s0-tier1-workflow-v1-TerminateResponse) | 強制終了 |
 | GetStatus | [GetStatusRequest](#k1s0-tier1-workflow-v1-GetStatusRequest) | [GetStatusResponse](#k1s0-tier1-workflow-v1-GetStatusResponse) | 状態取得 |
 
- 
+
 
 
 
