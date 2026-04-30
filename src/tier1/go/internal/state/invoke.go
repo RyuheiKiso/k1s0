@@ -136,6 +136,12 @@ func translateInvokeErr(err error, rpc string) error {
 		// メッセージに RPC 名と plan ID を含める。
 		return status.Errorf(codes.Unimplemented, "tier1/serviceinvoke: %s not yet wired to Dapr backend (plan 04-11)", rpc)
 	}
+	// dapr が返す gRPC status を尊重する。serviceinvoke は対象 service が gRPC で
+	// status を返すケース（NotFound / PermissionDenied / Unavailable 等）が多く、
+	// それらを Internal に潰すと client は適切な再試行判定ができない。
+	if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
+		return status.Errorf(st.Code(), "tier1/serviceinvoke: %s adapter error: %s", rpc, st.Message())
+	}
 	// 想定外エラーは Internal。
 	return status.Errorf(codes.Internal, "tier1/serviceinvoke: %s adapter error: %v", rpc, err)
 }

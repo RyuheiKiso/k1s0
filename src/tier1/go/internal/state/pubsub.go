@@ -11,6 +11,8 @@ package state
 import (
 	// context 伝搬。
 	"context"
+	// topic 形式検証用の事前コンパイル正規表現。
+	"regexp"
 	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
@@ -22,6 +24,28 @@ import (
 	// gRPC ステータスエラー。
 	"google.golang.org/grpc/status"
 )
+
+// pubsubTopicRegex は PubSub backend が共通で許容する topic 名の正規表現。
+// docs §「PubSub テナント prefix の物理表現」と整合: Kafka / GCP Pub/Sub /
+// NATS / Redis Streams のいずれも `[a-zA-Z0-9._-]+` のみ。tier1 はテナント
+// prefix を「ドット区切り」で付与するため、本 regex は prefix 付与「前」の
+// 論理 topic 名と prefix 付与「後」の物理 topic 名 双方に適用できる。
+var pubsubTopicRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+
+// validatePubSubTopic は handler 段で topic 名を事前検証する。
+// 不正値は backend 越しに 500 を返さず、InvalidArgument（HTTP 400）として弾く。
+func validatePubSubTopic(topic string) error {
+	// 空 topic は単独で扱う（より具体的なメッセージを返すため）。
+	if topic == "" {
+		return status.Error(codes.InvalidArgument, "tier1/pubsub: topic required")
+	}
+	// 形式検証: Kafka 互換 regex。
+	if !pubsubTopicRegex.MatchString(topic) {
+		return status.Error(codes.InvalidArgument,
+			"tier1/pubsub: invalid topic name (must match [a-zA-Z0-9._-]+)")
+	}
+	return nil
+}
 
 // pubsubHandler は PubSubService の handler 実装。
 type pubsubHandler struct {
@@ -46,6 +70,13 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	tid, err := requireTenantID(req.GetContext(), "PubSub.Publish")
 	if err != nil {
+		return nil, err
+	}
+	// topic 名は Kafka / GCP Pub/Sub / NATS / Redis Streams 等で
+	// `[a-zA-Z0-9._-]+` のみ許可。非 ASCII / 制御文字を含む topic は backend が
+	// "invalid topic" として 500 を返してしまうため、handler で InvalidArgument に
+	// 変換する（docs §「PubSub テナント prefix の物理表現」と整合）。
+	if err := validatePubSubTopic(req.GetTopic()); err != nil {
 		return nil, err
 	}
 	// 実 Publish 実行クロージャ。idempotency cache hit 時は呼ばれない。
@@ -101,6 +132,10 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 		// NFR-E-AC-003: 各 entry も tenant_id 越境防止のため必須検証。
 		entTid, err := requireTenantID(entry.GetContext(), "PubSub.BulkPublish")
 		if err != nil {
+			return nil, err
+		}
+		// topic 形式の事前検証（Kafka 規約 [a-zA-Z0-9._-]+）。
+		if err := validatePubSubTopic(topic); err != nil {
 			return nil, err
 		}
 		areq := dapr.PublishRequest{
@@ -193,6 +228,11 @@ func translatePubSubErr(err error, rpc string) error {
 	if isNotWired(err) {
 		// 翻訳メッセージ。
 		return status.Errorf(codes.Unimplemented, "tier1/pubsub: %s not yet wired to Dapr backend (plan 04-05)", rpc)
+	}
+	// dapr / Kafka adapter が返す gRPC status code を尊重する（FailedPrecondition →
+	// 409 / InvalidArgument → 400 / Unavailable → 503 等を HTTP layer に正しく伝える）。
+	if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
+		return status.Errorf(st.Code(), "tier1/pubsub: %s adapter error: %s", rpc, st.Message())
 	}
 	// その他 → Internal。
 	return status.Errorf(codes.Internal, "tier1/pubsub: %s adapter error: %v", rpc, err)

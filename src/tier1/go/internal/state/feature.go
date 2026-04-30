@@ -172,6 +172,15 @@ func translateFeatureErr(err error, rpc string) error {
 		// 翻訳メッセージ。
 		return status.Errorf(codes.Unimplemented, "tier1/feature: %s not yet wired to flagd (plan 04-13)", rpc)
 	}
+	// dapr が返す gRPC status を尊重する（例: configuration store 未設定 →
+	// FailedPrecondition、permission 系 → PermissionDenied）。`status.FromError` は
+	// gRPC status を保持していれば true を返し、保持していなければ Unknown 扱い。
+	// ここでは Unknown 以外（つまり真正な gRPC status）はそのまま再 emit して
+	// HTTP layer で適切な status code（FailedPrecondition→409 / Unavailable→503 等）に
+	// マップさせる。これにより adapter が透過的に上流のエラーを伝搬できる。
+	if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
+		return status.Errorf(st.Code(), "tier1/feature: %s adapter error: %s", rpc, st.Message())
+	}
 	// その他 → Internal。
 	return status.Errorf(codes.Internal, "tier1/feature: %s adapter error: %v", rpc, err)
 }

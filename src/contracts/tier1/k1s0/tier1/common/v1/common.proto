@@ -17,12 +17,21 @@ syntax = "proto3";
 // パッケージ命名規約: k1s0.tier1.<api>.v<n>
 package k1s0.tier1.common.v1;
 
+// google.api.field_behavior を REQUIRED 注記用に import する。
+// AIP-203 / AEP-203 に従い、tier1 の handler が必須としている tenant_id を
+// proto レベルで宣言する。これは OpenAPI v2 / Swagger の `required: [tenant_id]`
+// に伝搬し、schemathesis 等の契約検証ツールが impl と spec の双方向 drift を
+// 検出できるようにする。
+import "google/api/field_behavior.proto";
+
 // 呼出元テナントを特定する識別子。gRPC メタデータヘッダ
 // （x-tenant-id / x-correlation-id / x-subject）と Request 側 message の
 // `context` フィールドの両方で伝搬し、interceptor で整合性を検証する。
 message TenantContext {
-  // テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証）
-  string tenant_id = 1;
+  // テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証、必須）
+  // tier1 全 RPC handler は tenant_id 不在時に InvalidArgument を返す。
+  // この実装契約を AIP-203 REQUIRED で OpenAPI に伝搬する。
+  string tenant_id = 1 [(google.api.field_behavior) = REQUIRED];
   // 呼出元の主体（workload_id または user_id、SPIFFE ID 互換）
   string subject = 2;
   // 相関 ID（OTel traceparent と紐付けて全 tier 横断トレース）

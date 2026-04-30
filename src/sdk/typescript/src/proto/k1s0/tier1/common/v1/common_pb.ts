@@ -125,7 +125,9 @@ proto3.util.setEnumType(K1s0ErrorCategory, "k1s0.tier1.common.v1.K1s0ErrorCatego
  */
 export class TenantContext extends Message<TenantContext> {
   /**
-   * テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証）
+   * テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証、必須）
+   * tier1 全 RPC handler は tenant_id 不在時に InvalidArgument を返す。
+   * この実装契約を AIP-203 REQUIRED で OpenAPI に伝搬する。
    *
    * @generated from field: string tenant_id = 1;
    */

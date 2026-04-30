@@ -89,6 +89,15 @@ func (h *telemetryHandler) EmitMetric(ctx context.Context, req *telemetryv1.Emit
 	if h.deps.MetricEmitter == nil {
 		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitMetric not yet wired to OTel Collector")
 	}
+	// 必須入力（各 metric の name）を事前検証。OTel SDK は空 instrument 名を
+	// rejecting し plain error を返すため、handler 段で InvalidArgument に
+	// 変換しないと codes.Internal に潰れて HTTP 500 になる。
+	for i, m := range req.GetMetrics() {
+		if m.GetName() == "" {
+			return nil, status.Errorf(codes.InvalidArgument,
+				"tier1/telemetry: metric[%d].name required (non-empty)", i)
+		}
+	}
 	for i, m := range req.GetMetrics() {
 		if err := h.deps.MetricEmitter.Record(ctx, convertMetric(m)); err != nil {
 			return nil, status.Errorf(codes.Internal, "tier1/telemetry: metric record failed at %d: %v", i, err)
