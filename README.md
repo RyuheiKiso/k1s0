@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/assets/banner.gif" alt="k1s0 — Keep It Simple, 0 Vendor Lock-in" width="900">
+
 # k1s0
 
 **個人開発のクラウドネイティブ・アプリケーションプラットフォーム**
