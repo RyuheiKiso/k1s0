@@ -327,3 +327,61 @@ impl AuditStore for PostgresAuditStore {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// G8 regression: WORM trigger が schema migration から消されていないこと。
+    /// 将来 schema を編集する誰かが trigger を緩めたり削除したりすると WORM 性
+    /// が静かに壊れるので、SCHEMA_SQL に必須要素が含まれていることを文字列検査
+    /// で固定する (実 Postgres 接続テストは E2E で別建て、本テストは unit-only)。
+    #[test]
+    fn schema_sql_includes_worm_trigger() {
+        assert!(
+            SCHEMA_SQL.contains("audit_block_modify"),
+            "WORM trigger function 'audit_block_modify' must be in SCHEMA_SQL"
+        );
+        assert!(
+            SCHEMA_SQL.contains("BEFORE UPDATE OR DELETE"),
+            "trigger must fire BEFORE UPDATE OR DELETE to block writes"
+        );
+        assert!(
+            SCHEMA_SQL.contains("RAISE EXCEPTION"),
+            "trigger must RAISE EXCEPTION to abort the modification"
+        );
+        assert!(
+            SCHEMA_SQL.contains("WORM"),
+            "trigger error message must mention WORM for operator clarity"
+        );
+    }
+
+    /// schema が必須カラム (audit_id / prev_id / tenant_id 等) を持つこと。
+    #[test]
+    fn schema_sql_has_all_required_columns() {
+        let required = [
+            "audit_id    TEXT NOT NULL",
+            "prev_id     TEXT NOT NULL",
+            "timestamp_ms BIGINT NOT NULL",
+            "actor       TEXT NOT NULL",
+            "tenant_id   TEXT NOT NULL",
+            "attributes  JSONB",
+        ];
+        for col in &required {
+            assert!(
+                SCHEMA_SQL.contains(col),
+                "SCHEMA_SQL missing required column: {}",
+                col
+            );
+        }
+    }
+
+    /// idx_audit_tenant_ts index (NFR-B-PERF: tenant + 時刻範囲クエリの高速化)。
+    #[test]
+    fn schema_sql_has_tenant_timestamp_index() {
+        assert!(
+            SCHEMA_SQL.contains("idx_audit_tenant_ts"),
+            "schema must create idx_audit_tenant_ts for (tenant_id, timestamp_ms) lookups"
+        );
+    }
+}
