@@ -54,7 +54,7 @@ func TestHTTPStatusFromGRPC_DocsTable(t *testing.T) {
 	}
 }
 
-// register は POST 以外を 400 で弾く。
+// register は POST 以外を 405 + Allow ヘッダで弾く（RFC 9110 §15.5.6）。
 func TestRegister_RejectsNonPost(t *testing.T) {
 	g := NewHTTPGateway()
 	g.register("/test", func(ctx context.Context, body []byte) (proto.Message, error) {
@@ -68,8 +68,16 @@ func TestRegister_RejectsNonPost(t *testing.T) {
 		t.Fatalf("GET: %v", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Fatalf("status = %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", resp.StatusCode)
+	}
+	// Allow ヘッダで利用可能 method を明示する
+	if got := resp.Header.Get("Allow"); got != http.MethodPost {
+		t.Fatalf("Allow header = %q, want %q", got, http.MethodPost)
+	}
+	// content-type は JSON で返す（schemathesis 等の契約検証で plain text drift しないこと）
+	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+		t.Fatalf("Content-Type = %q, want application/json", ct)
 	}
 }
 

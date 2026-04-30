@@ -14,13 +14,25 @@ package k1s0.tier1.decision.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // Decision 評価 API。tier1 内の Rust 実装（ZEN Engine 統合）にディスパッチする。
 service DecisionService {
   // ルール評価（同期、非決定要素を含むルールは登録時に弾かれる）
-  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse);
+  rpc Evaluate(EvaluateRequest) returns (EvaluateResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/decision/evaluate"
+      body: "*"
+    };
+  }
   // バッチ評価（複数入力を一括評価、JIT 最適化対象）
-  rpc BatchEvaluate(BatchEvaluateRequest) returns (BatchEvaluateResponse);
+  rpc BatchEvaluate(BatchEvaluateRequest) returns (BatchEvaluateResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/decision/batchevaluate"
+      body: "*"
+    };
+  }
 }
 
 // Evaluate リクエスト
@@ -68,11 +80,26 @@ message BatchEvaluateResponse {
 // JDM ルール文書の登録・バージョン管理（リリース時点 で proto 追加予定）
 service DecisionAdminService {
   // JDM 文書の登録（schema validator と非決定要素 linter を通過必須）
-  rpc RegisterRule(RegisterRuleRequest) returns (RegisterRuleResponse);
+  rpc RegisterRule(RegisterRuleRequest) returns (RegisterRuleResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/decision/registerrule"
+      body: "*"
+    };
+  }
   // バージョン一覧
-  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse);
+  rpc ListVersions(ListVersionsRequest) returns (ListVersionsResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/decision/listversions"
+      body: "*"
+    };
+  }
   // 特定バージョンの取得（レビュー用）
-  rpc GetRule(GetRuleRequest) returns (GetRuleResponse);
+  rpc GetRule(GetRuleRequest) returns (GetRuleResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/decision/getrule"
+      body: "*"
+    };
+  }
 }
 
 // RegisterRule リクエスト

@@ -14,19 +14,46 @@ package k1s0.tier1.state.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // 状態管理 API。Store 名で valkey / postgres / minio 等のバックエンドを切り替える。
 service StateService {
   // キー単位の取得（未存在時は not_found=true、エラーには非該当）
-  rpc Get(GetRequest) returns (GetResponse);
+  rpc Get(GetRequest) returns (GetResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/state/get"
+      body: "*"
+    };
+  }
   // キー単位の保存（ETag 不一致時は FAILED_PRECONDITION でエラー）
-  rpc Set(SetRequest) returns (SetResponse);
+  rpc Set(SetRequest) returns (SetResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/state/set"
+      body: "*"
+    };
+  }
   // キー単位の削除（ETag を expected_etag に渡せば楽観的排他で削除）
-  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/state/delete"
+      body: "*"
+    };
+  }
   // 複数キーの一括取得（部分的な未存在は not_found=true で表現、エラーにしない）
-  rpc BulkGet(BulkGetRequest) returns (BulkGetResponse);
+  rpc BulkGet(BulkGetRequest) returns (BulkGetResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/state/bulkget"
+      body: "*"
+    };
+  }
   // トランザクション境界付きの複数操作（全 Store で対応するわけではない）
-  rpc Transact(TransactRequest) returns (TransactResponse);
+  rpc Transact(TransactRequest) returns (TransactResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/state/transact"
+      body: "*"
+    };
+  }
 }
 
 // Get リクエスト

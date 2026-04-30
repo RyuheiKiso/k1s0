@@ -37,6 +37,7 @@ k1s0-tier1-common = { workspace = true }
 async-trait = "0.1"
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
+tonic-health = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
 # 評価入出力の JSON ペイロード。

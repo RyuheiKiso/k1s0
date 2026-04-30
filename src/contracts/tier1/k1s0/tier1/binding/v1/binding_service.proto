@@ -14,11 +14,18 @@ package k1s0.tier1.binding.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // Binding API。バインディング名は運用側で事前設定（s3-archive / smtp-notify 等）。
 service BindingService {
   // 出力バインディング呼出（tier1 → 外部システムへ送信）
-  rpc Invoke(InvokeBindingRequest) returns (InvokeBindingResponse);
+  rpc Invoke(InvokeBindingRequest) returns (InvokeBindingResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/binding/invoke"
+      body: "*"
+    };
+  }
 }
 
 // Invoke リクエスト

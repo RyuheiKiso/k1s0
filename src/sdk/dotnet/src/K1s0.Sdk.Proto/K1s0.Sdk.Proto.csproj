@@ -23,6 +23,13 @@
   <ItemGroup>
     <!-- gRPC + protobuf ランタイム -->
     <PackageReference Include="Google.Protobuf" Version="3.28.3" />
+    <!--
+      生成 stub に google/api/http.proto annotation が含まれており、生成された C# が
+      Google.Api 名前空間（HttpRule / HttpAnnotation 等）を参照する。CommonProtos が
+      無いと CS0234 で build 不能。Google.Api.CommonProtos は googleapis 共通型の
+      C# package で、grpc-gateway / grpc-ecosystem の慣用と一致。
+    -->
+    <PackageReference Include="Google.Api.CommonProtos" Version="2.16.0" />
     <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
     <PackageReference Include="Grpc.Core.Api" Version="2.66.0" />
     <PackageReference Include="Grpc.Tools" Version="2.66.0">

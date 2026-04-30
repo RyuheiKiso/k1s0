@@ -1,0 +1,149 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="kind cluster architecture">
+    <mxGraphModel dx="1200" dy="820" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="host" value="Host machine (developer laptop / CI runner)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#999999;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="30" width="1140" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="kubectl" value="kubectl&#10;(host binary)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="78" width="140" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="kubeconfig" value="~/.kube/config&#10;server: 127.0.0.1:NNNNN" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="78" width="200" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="kubectl は host のバイナリ。kind create cluster が docker run -p 127.0.0.1:NNNNN:6443 で公開した API server に接続する (NNNNN は ephemeral port、例: 40579)。" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;fillColor=#fffde7;strokeColor=#cca676;rounded=0;spacingLeft=8;spacingRight=8;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="440" y="80" width="700" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="docker" value="Docker Engine" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=12;spacingTop=8;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="1110" height="570" as="geometry" />
+        </mxCell>
+        <mxCell id="node1" value="kindest/node container: k1s0-local-control-plane (role: control-plane)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="200" width="540" height="510" as="geometry" />
+        </mxCell>
+        <mxCell id="sectA" value="systemd (PID 1) ＋ コンテナランタイム" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="240" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="systemd" value="systemd" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="125" y="270" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="containerd" value="containerd" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="285" y="270" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="kubelet" value="kubelet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="445" y="270" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sectB" value="Static Pods (/etc/kubernetes/manifests/、kubelet が起動)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="335" width="500" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="apiserver" value="kube-apiserver" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="125" y="365" width="220" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="etcd" value="etcd (cluster state)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="365" y="365" width="230" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="sched" value="kube-scheduler" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="125" y="405" width="220" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="ctrl" value="kube-controller-manager" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="405" width="230" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="sectC" value="System Pods (DaemonSet 等)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="460" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="kproxy" value="kube-proxy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="125" y="490" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="kindnet" value="kindnet (CNI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="285" y="490" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="coredns" value="coredns" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="445" y="490" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sectD" value="ユーザワークロード Pod (kube-scheduler が配置)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="110" y="555" width="500" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="up1" value="Pod: pg-state-1&#10;(CloudNativePG)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="125" y="585" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="up2" value="Pod: tier1-rust-decision" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="585" width="230" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="up3" value="Pod: rollout-canary-demo-…" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="125" y="640" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="up4" value="… 他多数" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="640" width="230" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="node2" value="kindest/node container: worker (任意・複数可、role: worker)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="200" width="490" height="510" as="geometry" />
+        </mxCell>
+        <mxCell id="wA" value="systemd (PID 1) ＋ コンテナランタイム" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="240" width="450" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wsystemd" value="systemd" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="695" y="270" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wcontainerd" value="containerd" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="845" y="270" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wkubelet" value="kubelet" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="995" y="270" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wB" value="System Pods (control-plane と同様の DaemonSet)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="335" width="450" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wkproxy" value="kube-proxy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="695" y="365" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wkindnet" value="kindnet (CNI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="915" y="365" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wD" value="ユーザワークロード Pod" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#bbbbbb;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="430" width="450" height="265" as="geometry" />
+        </mxCell>
+        <mxCell id="wnote" value="kind 既定では control-plane 1 ノードのみ。&#10;multi-node にする時は kind: Cluster YAML に role を追加する。&#10;&#10;static pods (apiserver / etcd 等) は worker には乗らない。&#10;kubelet / containerd / kube-proxy / kindnet は同じ。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="700" y="460" width="410" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="arr" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;edgeStyle=none;curved=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="kubectl" target="apiserver">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="140" />
+              <mxPoint x="50" y="140" />
+              <mxPoint x="50" y="360" />
+              <mxPoint x="235" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="870" y="740" width="290" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="legtitle" value="凡例" style="text;html=1;fontSize=10;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="880" y="745" width="60" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="legi1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="880" y="775" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legl1" value="インフラ層" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="905" y="773" width="60" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legi2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="970" y="775" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legl2" value="データ層" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="995" y="773" width="60" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legi3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="775" width="20" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="legl3" value="アプリ層" style="text;html=1;fontSize=10;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="773" width="60" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

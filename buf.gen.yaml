@@ -35,6 +35,15 @@ inputs:
 # proto 内に書かず buf.gen.yaml で集中管理する。
 managed:
   enabled: true
+  # googleapis (google/api/*, google/protobuf/*, google/rpc/*) は外部 BSR
+  # モジュールが既に Go / C# 等の公式 import path を持っているため、
+  # k1s0 prefix で上書きしない。Go では google.golang.org/genproto/googleapis/api を
+  # 既存依存として使い、生成 stub からの import path 衝突を防ぐ。
+  disable:
+    - module: buf.build/googleapis/googleapis
+      file_option: go_package_prefix
+    - module: buf.build/googleapis/googleapis
+      file_option: csharp_namespace_prefix
   override:
     # Go SDK の module name は docs 正典で `github.com/k1s0/sdk-go`（OSS 公開 path）。
     # リポジトリ物理配置は src/sdk/go/ だが、go.mod の module 宣言は外部公開 path に揃える。

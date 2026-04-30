@@ -48,9 +48,17 @@ func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*state
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Get")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Get")
 	if err != nil {
 		return nil, err
+	}
+	// 必須入力（store / key）の事前検証。空の場合 dapr SDK が plain error を返し
+	// codes.Internal に潰れるため、handler 段で InvalidArgument として弾く。
+	if req.GetStore() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: store required")
+	}
+	if req.GetKey() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: key required")
 	}
 	// adapter 入力に変換する。
 	areq := dapr.StateGetRequest{
@@ -89,9 +97,16 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Set")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Set")
 	if err != nil {
 		return nil, err
+	}
+	// 必須入力（store / key）の事前検証。
+	if req.GetStore() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: store required")
+	}
+	if req.GetKey() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: key required")
 	}
 	// 実 Set 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doSet := func() (interface{}, error) {
@@ -133,9 +148,16 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Delete")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Delete")
 	if err != nil {
 		return nil, err
+	}
+	// 必須入力（store / key）の事前検証。
+	if req.GetStore() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: store required")
+	}
+	if req.GetKey() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: key required")
 	}
 	// adapter 入力に変換する（StateSetRequest を流用）。
 	areq := dapr.StateSetRequest{
@@ -163,9 +185,16 @@ func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest)
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.BulkGet")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.BulkGet")
 	if err != nil {
 		return nil, err
+	}
+	// 必須入力の事前検証。
+	if req.GetStore() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: store required")
+	}
+	if len(req.GetKeys()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: keys required (non-empty)")
 	}
 	areq := dapr.StateBulkGetRequest{
 		Store:    req.GetStore(),
@@ -193,9 +222,16 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Transact")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Transact")
 	if err != nil {
 		return nil, err
+	}
+	// 必須入力の事前検証。
+	if req.GetStore() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: store required")
+	}
+	if len(req.GetOperations()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "tier1/state: operations required (non-empty)")
 	}
 	ops := make([]dapr.TransactOp, 0, len(req.GetOperations()))
 	for _, op := range req.GetOperations() {

@@ -16,13 +16,25 @@ package k1s0.tier1.telemetry.v1;
 import "google/protobuf/timestamp.proto";
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // Telemetry API。OTel Collector → Mimir / Tempo に転送する経路で使う。
 service TelemetryService {
   // メトリクス送信（Counter / Gauge / Histogram の混在可）
-  rpc EmitMetric(EmitMetricRequest) returns (EmitMetricResponse);
+  rpc EmitMetric(EmitMetricRequest) returns (EmitMetricResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/telemetry/emitmetric"
+      body: "*"
+    };
+  }
   // Span 送信（既に終了済みの Span のみ受け付ける、開始 Span は OTel SDK で）
-  rpc EmitSpan(EmitSpanRequest) returns (EmitSpanResponse);
+  rpc EmitSpan(EmitSpanRequest) returns (EmitSpanResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/telemetry/emitspan"
+      body: "*"
+    };
+  }
 }
 
 // メトリクス種別。

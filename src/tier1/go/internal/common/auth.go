@@ -65,13 +65,42 @@ const (
 )
 
 // AuthClaims は tier1 が JWT から抽出する必須クレーム。
+// Keycloak realm_access.roles を Roles に展開し、handler が RBAC 判定（NFR-E-AC-002）に使う。
 type AuthClaims struct {
 	// テナント識別子（必須、TenantContext.tenant_id と突き合わせる）。
 	TenantID string `json:"tenant_id"`
 	// 呼出主体（user_id / workload_id、TenantContext.subject に上書き）。
 	Subject string `json:"sub"`
+	// Keycloak Realm Role 集合（NFR-E-AC-002）。`realm_access.roles` から展開。
+	RealmAccess RealmAccess `json:"realm_access,omitempty"`
 	// JWT 標準クレーム（exp / iat / nbf 検証用）。
 	jwt.Claims
+}
+
+// RealmAccess は Keycloak `realm_access` クレームの roles 配列。
+type RealmAccess struct {
+	// Realm Role 一覧。
+	Roles []string `json:"roles,omitempty"`
+}
+
+// HasRole は claims が指定 role を含むかを判定する。
+// Keycloak Realm Role の単純包含チェック。
+func (c *AuthClaims) HasRole(role string) bool {
+	// nil 防御。
+	if c == nil {
+		// false を返す。
+		return false
+	}
+	// 線形探索（roles は通常数件のため十分高速）。
+	for _, r := range c.RealmAccess.Roles {
+		// 完全一致のみ許容する。
+		if r == role {
+			// 一致を返す。
+			return true
+		}
+	}
+	// 不在を返す。
+	return false
 }
 
 // authInfoKey は context に attach する AuthInfo の key 型。
@@ -83,6 +112,27 @@ type AuthInfo struct {
 	TenantID string
 	Subject  string
 	Mode     AuthMode
+	// Realm Role 一覧（NFR-E-AC-002 RBAC 判定）。off mode では空 slice。
+	Roles []string
+}
+
+// HasRole は AuthInfo が指定 role を含むかを判定する（NFR-E-AC-002）。
+func (a *AuthInfo) HasRole(role string) bool {
+	// nil 防御。
+	if a == nil {
+		// false を返す。
+		return false
+	}
+	// 線形探索（roles は通常数件）。
+	for _, r := range a.Roles {
+		// 完全一致のみ。
+		if r == role {
+			// 一致を返す。
+			return true
+		}
+	}
+	// 不在を返す。
+	return false
 }
 
 // AuthFromContext は context から AuthInfo を取り出す。
@@ -239,11 +289,12 @@ func AuthInterceptor(cfg AuthInterceptorConfig) grpc.UnaryServerInterceptor {
 				"tier1: tenant_id mismatch: request=%q jwt=%q", reqCtx, claims.TenantID)
 		}
 
-		// AuthInfo を context に attach し handler に渡す。
+		// AuthInfo を context に attach し handler に渡す。Roles は Keycloak realm_access.roles から展開する。
 		ctx = context.WithValue(ctx, authInfoKey{}, &AuthInfo{
 			TenantID: claims.TenantID,
 			Subject:  claims.Subject,
 			Mode:     cfg.Mode,
+			Roles:    append([]string(nil), claims.RealmAccess.Roles...),
 		})
 		return handler(ctx, req)
 	}

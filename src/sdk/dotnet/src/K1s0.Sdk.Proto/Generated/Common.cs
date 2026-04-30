@@ -25,28 +25,29 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Common.V1 {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
             "CiFrMXMwL3RpZXIxL2NvbW1vbi92MS9jb21tb24ucHJvdG8SFGsxczAudGll",
-            "cjEuY29tbW9uLnYxIm0KDVRlbmFudENvbnRleHQSGwoJdGVuYW50X2lkGAEg",
-            "ASgJUgh0ZW5hbnRJZBIYCgdzdWJqZWN0GAIgASgJUgdzdWJqZWN0EiUKDmNv",
-            "cnJlbGF0aW9uX2lkGAMgASgJUg1jb3JyZWxhdGlvbklkIsQBCgtFcnJvckRl",
-            "dGFpbBISCgRjb2RlGAEgASgJUgRjb2RlEkMKCGNhdGVnb3J5GAUgASgOMicu",
-            "azFzMC50aWVyMS5jb21tb24udjEuSzFzMEVycm9yQ2F0ZWdvcnlSCGNhdGVn",
-            "b3J5EhgKB21lc3NhZ2UYAiABKAlSB21lc3NhZ2USHAoJcmV0cnlhYmxlGAMg",
-            "ASgIUglyZXRyeWFibGUSJAoOcmV0cnlfYWZ0ZXJfbXMYBCABKAVSDHJldHJ5",
-            "QWZ0ZXJNcyq/AgoRSzFzMEVycm9yQ2F0ZWdvcnkSGgoWSzFTMF9FUlJPUl9V",
-            "TlNQRUNJRklFRBAAEh8KG0sxUzBfRVJST1JfSU5WQUxJRF9BUkdVTUVOVBAB",
-            "Eh4KGksxUzBfRVJST1JfVU5BVVRIRU5USUNBVEVEEAISIAocSzFTMF9FUlJP",
-            "Ul9QRVJNSVNTSU9OX0RFTklFRBADEhgKFEsxUzBfRVJST1JfTk9UX0ZPVU5E",
-            "EAQSFwoTSzFTMF9FUlJPUl9DT05GTElDVBAFEiEKHUsxUzBfRVJST1JfUkVT",
-            "T1VSQ0VfRVhIQVVTVEVEEAYSGgoWSzFTMF9FUlJPUl9VTkFWQUlMQUJMRRAH",
-            "EhcKE0sxUzBfRVJST1JfSU5URVJOQUwQCBIgChxLMVMwX0VSUk9SX0RFQURM",
-            "SU5FX0VYQ0VFREVEEAlC7AEKGGNvbS5rMXMwLnRpZXIxLmNvbW1vbi52MUIL",
-            "Q29tbW9uUHJvdG9QAVo9Z2l0aHViLmNvbS9rMXMwL3Nkay1nby9wcm90by92",
-            "MS9rMXMwL3RpZXIxL2NvbW1vbi92MTtjb21tb252MaICA0tUQ6oCJ0sxczAu",
-            "U2RrLkdlbmVyYXRlZC5LMXMwLlRpZXIxLkNvbW1vbi5WMcoCFEsxczBcVGll",
-            "cjFcQ29tbW9uXFYx4gIgSzFzMFxUaWVyMVxDb21tb25cVjFcR1BCTWV0YWRh",
-            "dGHqAhdLMXMwOjpUaWVyMTo6Q29tbW9uOjpWMWIGcHJvdG8z"));
+            "cjEuY29tbW9uLnYxGh9nb29nbGUvYXBpL2ZpZWxkX2JlaGF2aW9yLnByb3Rv",
+            "InIKDVRlbmFudENvbnRleHQSIAoJdGVuYW50X2lkGAEgASgJQgPgQQJSCHRl",
+            "bmFudElkEhgKB3N1YmplY3QYAiABKAlSB3N1YmplY3QSJQoOY29ycmVsYXRp",
+            "b25faWQYAyABKAlSDWNvcnJlbGF0aW9uSWQixAEKC0Vycm9yRGV0YWlsEhIK",
+            "BGNvZGUYASABKAlSBGNvZGUSQwoIY2F0ZWdvcnkYBSABKA4yJy5rMXMwLnRp",
+            "ZXIxLmNvbW1vbi52MS5LMXMwRXJyb3JDYXRlZ29yeVIIY2F0ZWdvcnkSGAoH",
+            "bWVzc2FnZRgCIAEoCVIHbWVzc2FnZRIcCglyZXRyeWFibGUYAyABKAhSCXJl",
+            "dHJ5YWJsZRIkCg5yZXRyeV9hZnRlcl9tcxgEIAEoBVIMcmV0cnlBZnRlck1z",
+            "Kr8CChFLMXMwRXJyb3JDYXRlZ29yeRIaChZLMVMwX0VSUk9SX1VOU1BFQ0lG",
+            "SUVEEAASHwobSzFTMF9FUlJPUl9JTlZBTElEX0FSR1VNRU5UEAESHgoaSzFT",
+            "MF9FUlJPUl9VTkFVVEhFTlRJQ0FURUQQAhIgChxLMVMwX0VSUk9SX1BFUk1J",
+            "U1NJT05fREVOSUVEEAMSGAoUSzFTMF9FUlJPUl9OT1RfRk9VTkQQBBIXChNL",
+            "MVMwX0VSUk9SX0NPTkZMSUNUEAUSIQodSzFTMF9FUlJPUl9SRVNPVVJDRV9F",
+            "WEhBVVNURUQQBhIaChZLMVMwX0VSUk9SX1VOQVZBSUxBQkxFEAcSFwoTSzFT",
+            "MF9FUlJPUl9JTlRFUk5BTBAIEiAKHEsxUzBfRVJST1JfREVBRExJTkVfRVhD",
+            "RUVERUQQCULsAQoYY29tLmsxczAudGllcjEuY29tbW9uLnYxQgtDb21tb25Q",
+            "cm90b1ABWj1naXRodWIuY29tL2sxczAvc2RrLWdvL3Byb3RvL3YxL2sxczAv",
+            "dGllcjEvY29tbW9uL3YxO2NvbW1vbnYxogIDS1RDqgInSzFzMC5TZGsuR2Vu",
+            "ZXJhdGVkLksxczAuVGllcjEuQ29tbW9uLlYxygIUSzFzMFxUaWVyMVxDb21t",
+            "b25cVjHiAiBLMXMwXFRpZXIxXENvbW1vblxWMVxHUEJNZXRhZGF0YeoCF0sx",
+            "czA6OlRpZXIxOjpDb21tb246OlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
-          new pbr::FileDescriptor[] { },
+          new pbr::FileDescriptor[] { global::Google.Api.FieldBehaviorReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.K1s0ErrorCategory), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext), global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext.Parser, new[]{ "TenantId", "Subject", "CorrelationId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.ErrorDetail), global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.ErrorDetail.Parser, new[]{ "Code", "Category", "Message", "Retryable", "RetryAfterMs" }, null, null, null, null)
@@ -164,7 +165,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Common.V1 {
     public const int TenantIdFieldNumber = 1;
     private string tenantId_ = "";
     /// <summary>
-    /// テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証）
+    /// テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証、必須）
+    /// tier1 全 RPC handler は tenant_id 不在時に InvalidArgument を返す。
+    /// この実装契約を AIP-203 REQUIRED で OpenAPI に伝搬する。
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]

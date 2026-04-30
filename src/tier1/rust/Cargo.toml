@@ -54,6 +54,13 @@ repository = "https://github.com/k1s0/k1s0"
 [workspace.dependencies]
 # gRPC ランタイム（tonic は prost に依存）
 tonic = { version = "0.12", default-features = false, features = ["codegen", "prost", "transport"] }
+# RFC 3339 / ISO 8601 整形（protojson 互換: google.protobuf.Timestamp ↔ string）。
+time = { version = "0.3", default-features = false, features = ["std", "formatting", "parsing", "macros"] }
+# Postgres client（PostgresAuditStore 用、CNPG-backed WORM 永続化）。
+tokio-postgres = { version = "0.7", default-features = false, features = ["runtime", "with-serde_json-1", "with-time-0_3"] }
+# 標準 grpc.health.v1.Health protocol 実装（K8s grpc liveness/readiness probe 用）
+# transport feature は set_serving::<S>() の NamedService 連携に必要。
+tonic-health = { version = "0.12", default-features = false, features = ["transport"] }
 # protobuf ランタイム
 prost = { version = "0.13", default-features = false, features = ["std"] }
 prost-types = { version = "0.13", default-features = false, features = ["std"] }

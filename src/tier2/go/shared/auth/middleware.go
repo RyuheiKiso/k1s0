@@ -61,6 +61,9 @@ const TenantIDKey contextKey = "k1s0.tenant_id"
 // TokenKey は受け取った生 JWT 文字列を context から取り出すキー（tier1 への転送用）。
 const TokenKey contextKey = "k1s0.bearer_token"
 
+// RolesKey は認証済 Realm Role 一覧を context から取り出すキー（NFR-E-AC-002 RBAC）。
+const RolesKey contextKey = "k1s0.roles"
+
 // AuthMode は middleware の動作モード。
 type AuthMode string
 
@@ -74,11 +77,62 @@ const (
 )
 
 // authClaims は JWT から取り出すクレーム（tenant_id 必須、Keycloak 互換）。
+// realm_access.roles を解釈して RolesKey に attach する（NFR-E-AC-002 RBAC）。
 type authClaims struct {
 	// テナント識別子（必須）。
 	TenantID string `json:"tenant_id"`
+	// Keycloak の realm_access.roles を取り出すための入れ子型。
+	RealmAccess *struct {
+		Roles []string `json:"roles"`
+	} `json:"realm_access,omitempty"`
 	// JWT 標準クレーム（exp / iat / nbf / sub）。
 	jwt.Claims
+}
+
+// flattenedRoles は RealmAccess.Roles を平坦化して返す（nil-safe）。
+func (c *authClaims) flattenedRoles() []string {
+	// nil 防御。
+	if c == nil || c.RealmAccess == nil {
+		// nil を返す。
+		return nil
+	}
+	// 値 copy で外部書換えから守る。
+	out := make([]string, len(c.RealmAccess.Roles))
+	copy(out, c.RealmAccess.Roles)
+	// 返却。
+	return out
+}
+
+// RolesFromContext は middleware が attach した Realm Role 配列を返す（NFR-E-AC-002）。
+func RolesFromContext(ctx context.Context) []string {
+	// nil context 防御。
+	if ctx == nil {
+		// nil を返す。
+		return nil
+	}
+	// 型アサーション。
+	v, ok := ctx.Value(RolesKey).([]string)
+	// 不在は nil。
+	if !ok {
+		// nil を返す。
+		return nil
+	}
+	// 値を返す。
+	return v
+}
+
+// HasRole は context 内 roles が指定 role を含むかを判定する。
+func HasRole(ctx context.Context, role string) bool {
+	// 線形探索。
+	for _, r := range RolesFromContext(ctx) {
+		// 完全一致のみ。
+		if r == role {
+			// 一致を返す。
+			return true
+		}
+	}
+	// 不在を返す。
+	return false
 }
 
 // Config は middleware の挙動を制御する。
@@ -183,7 +237,7 @@ func RequiredWithConfig(cfg Config) func(http.Handler) http.Handler {
 				writeUnauthorized(w, "empty token")
 				return
 			}
-			subject, tenantID, err := authenticate(r.Context(), cfg, jwks, token)
+			subject, tenantID, roles, err := authenticate(r.Context(), cfg, jwks, token)
 			if err != nil {
 				writeUnauthorized(w, err.Error())
 				return
@@ -191,6 +245,7 @@ func RequiredWithConfig(cfg Config) func(http.Handler) http.Handler {
 			ctx := context.WithValue(r.Context(), SubjectKey, subject)
 			ctx = context.WithValue(ctx, TenantIDKey, tenantID)
 			ctx = context.WithValue(ctx, TokenKey, token)
+			ctx = context.WithValue(ctx, RolesKey, roles)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -201,66 +256,68 @@ func Required() func(http.Handler) http.Handler {
 	return RequiredWithConfig(LoadConfigFromEnv())
 }
 
-// authenticate は token を mode に応じて検証し、subject / tenant_id を返す。
-func authenticate(ctx context.Context, cfg Config, jwks *jwksCache, token string) (string, string, error) {
+// authenticate は token を mode に応じて検証し、subject / tenant_id / roles を返す。
+// roles は Keycloak realm_access.roles を平坦化したもの（NFR-E-AC-002 RBAC）。
+func authenticate(ctx context.Context, cfg Config, jwks *jwksCache, token string) (string, string, []string, error) {
 	switch cfg.Mode {
 	case AuthModeOff:
 		// dev 既定: token 内容を見ず demo-tenant に固定する（tier3 BFF off mode と同等）。
-		return "dev", "demo-tenant", nil
+		// off モードでは roles は空（RBAC は dev でスキップ）。
+		return "dev", "demo-tenant", nil, nil
 	case AuthModeHMAC:
 		if len(cfg.HMACSecret) == 0 {
-			return "", "", errors.New("T2_AUTH_HMAC_SECRET not set")
+			return "", "", nil, errors.New("T2_AUTH_HMAC_SECRET not set")
 		}
 		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256, jose.HS384, jose.HS512})
 		if err != nil {
-			return "", "", fmt.Errorf("parse: %w", err)
+			return "", "", nil, fmt.Errorf("parse: %w", err)
 		}
 		var claims authClaims
 		if err := parsed.Claims(cfg.HMACSecret, &claims); err != nil {
-			return "", "", fmt.Errorf("verify: %w", err)
+			return "", "", nil, fmt.Errorf("verify: %w", err)
 		}
 		return finalizeClaims(&claims)
 	case AuthModeJWKS:
 		if jwks == nil {
-			return "", "", errors.New("jwks not configured")
+			return "", "", nil, errors.New("jwks not configured")
 		}
 		keys, err := jwks.fetch(ctx)
 		if err != nil {
-			return "", "", err
+			return "", "", nil, err
 		}
 		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.RS256, jose.RS384, jose.RS512})
 		if err != nil {
-			return "", "", fmt.Errorf("parse: %w", err)
+			return "", "", nil, fmt.Errorf("parse: %w", err)
 		}
 		if len(parsed.Headers) == 0 {
-			return "", "", errors.New("jwt has no header")
+			return "", "", nil, errors.New("jwt has no header")
 		}
 		matches := keys.Key(parsed.Headers[0].KeyID)
 		if len(matches) == 0 {
-			return "", "", fmt.Errorf("kid %q not found in jwks", parsed.Headers[0].KeyID)
+			return "", "", nil, fmt.Errorf("kid %q not found in jwks", parsed.Headers[0].KeyID)
 		}
 		var claims authClaims
 		if err := parsed.Claims(matches[0].Key, &claims); err != nil {
-			return "", "", fmt.Errorf("verify: %w", err)
+			return "", "", nil, fmt.Errorf("verify: %w", err)
 		}
 		return finalizeClaims(&claims)
 	default:
-		return "", "", fmt.Errorf("unsupported T2_AUTH_MODE: %s", cfg.Mode)
+		return "", "", nil, fmt.Errorf("unsupported T2_AUTH_MODE: %s", cfg.Mode)
 	}
 }
 
-// finalizeClaims は標準クレームを検証し、必須フィールドを返す。
-func finalizeClaims(claims *authClaims) (string, string, error) {
+// finalizeClaims は標準クレームを検証し、必須フィールドと roles を返す。
+func finalizeClaims(claims *authClaims) (string, string, []string, error) {
 	if err := claims.Claims.ValidateWithLeeway(jwt.Expected{Time: time.Now()}, 30*time.Second); err != nil {
-		return "", "", fmt.Errorf("standard claims: %w", err)
+		return "", "", nil, fmt.Errorf("standard claims: %w", err)
 	}
 	if claims.TenantID == "" {
-		return "", "", errors.New("missing tenant_id claim")
+		return "", "", nil, errors.New("missing tenant_id claim")
 	}
 	if claims.Subject == "" {
-		return "", "", errors.New("missing sub claim")
+		return "", "", nil, errors.New("missing sub claim")
 	}
-	return claims.Subject, claims.TenantID, nil
+	return claims.Subject, claims.TenantID, claims.flattenedRoles(), nil
 }
 
 // SubjectFromContext は middleware が attach した subject を取り出す。

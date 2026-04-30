@@ -25,7 +25,10 @@ func startMiscHTTPGateway(t *testing.T) (*httptest.Server, func()) {
 	client := dapr.NewClientWithInMemoryBackends()
 	deps := NewDepsFromClient(client)
 	g := common.NewHTTPGateway()
-	g.RegisterFeatureRoutes(MakeHTTPFeatureHandlers(NewFeatureServiceServer(deps)))
+	g.RegisterFeatureRoutes(MakeHTTPFeatureHandlers(
+		NewFeatureServiceServer(deps),
+		NewFeatureAdminServiceServer(deps.FeatureRegistry),
+	))
 	g.RegisterBindingRoutes(MakeHTTPBindingHandlers(NewBindingServiceServer(deps)))
 	g.RegisterLogRoutes(MakeHTTPLogHandlers(NewLogServiceServer(deps)))
 	g.RegisterTelemetryRoutes(MakeHTTPTelemetryHandlers(NewTelemetryServiceServer(deps)))

@@ -47,6 +47,7 @@ type PubSubServiceClient interface {
 	// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
 	BulkPublish(ctx context.Context, in *BulkPublishRequest, opts ...grpc.CallOption) (*BulkPublishResponse, error)
 	// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+	// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Event], error)
 }
 
@@ -108,6 +109,7 @@ type PubSubServiceServer interface {
 	// バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
 	BulkPublish(context.Context, *BulkPublishRequest) (*BulkPublishResponse, error)
 	// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+	// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
 	Subscribe(*SubscribeRequest, grpc.ServerStreamingServer[Event]) error
 }
 

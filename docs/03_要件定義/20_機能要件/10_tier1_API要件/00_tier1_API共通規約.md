@@ -149,10 +149,24 @@ gRPC デッドラインは呼出側が指定し、tier1 は受信したデッド
 全 API は `tenant_id` を水平分離キーとして扱う。tier1 は以下の 3 層でテナント越境を防ぐ（NFR-E-AC-003）。
 
 - **L1（入口）**: JWT / SPIFFE ID から `tenant_id` を導出し、リクエストの `TenantContext` を上書き
-- **L2（ルーティング）**: バックエンドのキー / トピック / バケット / パーティションに `<tenant_id>/` を自動付与
+- **L2（ルーティング）**: バックエンドのキー / トピック / バケット / パーティションにテナント prefix を自動付与
 - **L3（監査）**: Audit API は `tenant_id` をクエリ索引に持ち、他テナントのレコード閲覧を拒否
 
 L2 のキー空間分離は tier2/tier3 から不可視。tier2 が `SetState("foo", ...)` と呼んだ場合、物理キーは `<tenant_id>/foo` になる。
+
+### L2 separator 規約（backend カテゴリ別）
+
+backend が許容する文字種が異なるため、separator は 2 種類を使い分ける。tier1 adapter 層が
+透過的に切替えるため tier2/tier3 は意識不要。
+
+| backend カテゴリ | 物理表現 | separator | 例 | 根拠 |
+|---|---|---|---|---|
+| State / Binding / ServiceInvoke / Configuration | `<tenant_id>/<key>` | **`/`** | `T-foo/session:abc123` | KVS / S3 prefix / Service Invocation appId は `/` を許容 |
+| Pub/Sub（topic / consumer-group） | `<tenant_id>.<topic>` | **`.`** | `T-foo.orders` | Kafka / GCP Pub/Sub / NATS / Redis Streams は topic 名で `/` を**許容しない**（`[a-zA-Z0-9._-]+` のみ） |
+
+実装は `src/tier1/go/internal/adapter/dapr/tenant_prefix.go` の `prefixKey` / `prefixTopic` /
+`stripKey` / `stripTopic` ヘルパ群が backend 種別ごとに使い分ける。Subscribe 時は応答 topic 名から
+prefix を strip して tier2/tier3 視点の論理 topic 名に戻す（`stripTopic`）。
 
 ## バージョニングと後方互換
 

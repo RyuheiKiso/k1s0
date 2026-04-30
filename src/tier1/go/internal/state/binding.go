@@ -39,9 +39,17 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		return nil, status.Error(codes.InvalidArgument, "tier1/binding: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "Binding.Invoke")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Binding.Invoke")
 	if err != nil {
 		return nil, err
+	}
+	// 必須入力の事前検証（adapter 越しに dapr SDK が返す errors.New("...required") を
+	// codes.Internal として上位に漏らさないよう、handler で InvalidArgument として弾く）。
+	if req.GetName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/binding: name required")
+	}
+	if req.GetOperation() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/binding: operation required")
 	}
 	// 実 Invoke 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doInvoke := func() (interface{}, error) {
@@ -56,6 +64,10 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		if err != nil {
 			if isNotWired(err) {
 				return nil, status.Error(codes.Unimplemented, "tier1/binding: Invoke not yet wired to Dapr backend (plan 04-12)")
+			}
+			// dapr が返す gRPC status を尊重する（PermissionDenied / FailedPrecondition 等）
+			if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
+				return nil, status.Errorf(st.Code(), "tier1/binding: Invoke adapter error: %s", st.Message())
 			}
 			return nil, status.Errorf(codes.Internal, "tier1/binding: Invoke adapter error: %v", err)
 		}

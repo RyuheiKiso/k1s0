@@ -85,6 +85,20 @@
 
 **要件達成後**: Keycloak Realm Role（プラットフォーム全体）、Client Role（個別コンポーネント）、アプリケーションロール（業務サービス別）の 3 階層でロール管理する。tier1 API は Keycloak Role に基づき認可判定。ZEN Engine 決定表で業務ポリシー評価。
 
+**実装の伝搬経路（リリース時点）**:
+
+JWT の `realm_access.roles` クレームを 3 言語の `AuthClaims` にロードし、`HasRole(role)` /
+`has_role(role)` ヘルパ越しに handler / interceptor から参照する。実装位置:
+
+- tier1 Go: `src/tier1/go/internal/common/auth.go` の `AuthClaims.RealmAccess.Roles` →
+  `AuthInfo.Roles` に展開、`HasRole` / `AuthFromContext().HasRole` を公開
+- tier1 Rust: `src/tier1/rust/crates/common/src/auth.rs` の `AuthClaims.roles: Vec<String>`、
+  `has_role` メソッド、`RealmAccessClaim` deserializer
+- tier2 Go: `src/tier2/go/shared/auth/middleware.go` の `RolesKey` context、
+  `RolesFromContext` / `HasRole(ctx, role)`
+- tier3 BFF: 既存 `src/tier3/bff/internal/auth/middleware.go` の `RolesKey` / `RolesFromContext`
+  と等価。`auth.Required("user")` で realm role gate を強制
+
 **崩れた時**: 過剰権限で内部不正リスクが増す。
 
 **受け入れ基準**:
@@ -92,6 +106,11 @@
 - ロール定義を Backstage で一覧表示
 - 最小権限の原則で初期ロール定義
 - 四半期ごとにロール棚卸し
+- JWT の `realm_access.roles` クレームを tier1 / tier2 / tier3 BFF の各 `AuthClaims` で受信し、
+  `HasRole` / `has_role` で realm role 判定が行えること（実 Keycloak realm `k1s0` + alice
+  ユーザに realm role `user` を付与し、BFF JWKS mode で `Authorization: Bearer <jwt>` → tier1
+  State.Get の完全 chain が HTTP 200 を返すまで K8s cluster 上で 2026-04-30 に検証済、
+  `docs/SHIP_STATUS.md` §「実 K8s 検証実績」参照）
 
 **優先度**: MUST
 

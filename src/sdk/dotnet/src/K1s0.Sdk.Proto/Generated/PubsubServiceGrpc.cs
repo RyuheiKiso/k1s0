@@ -131,6 +131,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
 
       /// <summary>
       /// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request received from the client.</param>
       /// <param name="responseStream">Used for sending responses back to the client.</param>
@@ -269,6 +270,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
       }
       /// <summary>
       /// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -282,6 +284,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pubsub.V1 {
       }
       /// <summary>
       /// サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+      /// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
       /// </summary>
       /// <param name="request">The request to send to the server.</param>
       /// <param name="options">The options for the call.</param>

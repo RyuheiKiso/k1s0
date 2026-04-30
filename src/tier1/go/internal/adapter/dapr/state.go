@@ -226,8 +226,18 @@ func (a *daprStateAdapter) Set(ctx context.Context, req StateSetRequest) (StateS
 			return StateSetResponse{}, err
 		}
 	}
-	// SDK の SaveState は ETag を返さないため空文字を返す（必要時は handler で Get を再実行）。
-	return StateSetResponse{NewEtag: ""}, nil
+	// Dapr Go SDK の SaveState gRPC 応答 (Empty) には新 ETag が含まれない仕様の
+	// ため、save 成功後に Get を 1 回追加で発行して新 ETag を取得する。共通規約
+	// §「Dapr 互換性マトリクス」が SetResponse.new_etag を必須としているため、
+	// 1 round-trip 追加のコストよりクライアントが楽観的同時実行のために etag を
+	// 取得し続けられる API 互換性を優先する。Get が失敗 / NotFound の場合は
+	// 空文字に fallback する（race で他 writer が削除した可能性、API 契約上は
+	// new_etag は best-effort）。
+	gItem, gerr := a.client.stateClient().GetState(ctx, req.Store, physKey, meta)
+	if gerr != nil || gItem == nil {
+		return StateSetResponse{NewEtag: ""}, nil
+	}
+	return StateSetResponse{NewEtag: gItem.Etag}, nil
 }
 
 // BulkGet は複数キーを Dapr GetBulkState で一括取得する。

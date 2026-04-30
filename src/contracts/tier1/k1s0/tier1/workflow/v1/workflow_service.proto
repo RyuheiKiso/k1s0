@@ -14,21 +14,53 @@ package k1s0.tier1.workflow.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // Workflow API。tier2 がワークフロー種別をコード登録し、tier1 経由で実行操作する。
 service WorkflowService {
   // ワークフロー開始
-  rpc Start(StartRequest) returns (StartResponse);
+  rpc Start(StartRequest) returns (StartResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/workflow/start"
+      body: "*"
+    };
+  }
   // シグナル送信（ワークフローへの入力イベント）
-  rpc Signal(SignalRequest) returns (SignalResponse);
+  rpc Signal(SignalRequest) returns (SignalResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/workflow/signal"
+      body: "*"
+    };
+  }
   // クエリ（ワークフロー状態の読取り、副作用なし）
-  rpc Query(QueryRequest) returns (QueryResponse);
+  rpc Query(QueryRequest) returns (QueryResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/workflow/query"
+      body: "*"
+    };
+  }
   // 正常終了の依頼（キャンセル）
-  rpc Cancel(CancelRequest) returns (CancelResponse);
+  rpc Cancel(CancelRequest) returns (CancelResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/workflow/cancel"
+      body: "*"
+    };
+  }
   // 強制終了
-  rpc Terminate(TerminateRequest) returns (TerminateResponse);
+  rpc Terminate(TerminateRequest) returns (TerminateResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/workflow/terminate"
+      body: "*"
+    };
+  }
   // 状態取得
-  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/workflow/getstatus"
+      body: "*"
+    };
+  }
 }
 
 // バックエンド種別（FR-T1-WORKFLOW-001 の "短期は Dapr Workflow、長期実行は Temporal" 対応）。

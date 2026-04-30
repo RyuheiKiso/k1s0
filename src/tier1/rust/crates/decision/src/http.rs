@@ -127,6 +127,20 @@ impl JsonRpc for RegisterRuleRpc {
         let rule_id = pick_str(&body, "ruleId").unwrap_or_default();
         let jdm = pick_bytes(&body, "jdmDocument")?;
         let commit_hash = pick_str(&body, "commitHash").unwrap_or_default();
+        // 必須入力の事前検証。registry は内部で JDM JSON を parse するため、
+        // empty bytes / 空 rule_id を素通りさせると downstream で
+        // "EOF while parsing a value at line 1 column 0" が出て codes.Internal
+        // に潰れてしまう。handler 段で InvalidArgument に統一する。
+        if rule_id.is_empty() {
+            return Err(tonic::Status::invalid_argument(
+                "tier1/decision: ruleId required",
+            ));
+        }
+        if jdm.is_empty() {
+            return Err(tonic::Status::invalid_argument(
+                "tier1/decision: jdmDocument required (non-empty base64-encoded JDM JSON)",
+            ));
+        }
         let outcome = self
             .state
             .registry

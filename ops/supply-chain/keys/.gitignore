@@ -1,0 +1,5 @@
+# cosign.key は秘密鍵（COSIGN_PASSWORD 空で生成された OSS 検証用テスト鍵）。
+# リポジトリには公開鍵 cosign.pub のみコミットする。秘密鍵は本リポジトリでの
+# 「リリース時点 OSS 真正性証明」用なので、漏洩しても重大被害は出ないが、
+# 一般原則として private key の commit は避ける。再生成手順は README.md 参照。
+cosign.key

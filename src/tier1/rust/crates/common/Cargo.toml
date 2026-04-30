@@ -41,6 +41,8 @@ bytes = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 prost-types.workspace = true
+# RFC 3339 / ISO 8601 整形（google.protobuf.Timestamp ↔ string、protojson 互換）。
+time = { workspace = true }
 # JWT 検証（HS / RS / JWKS）。jsonwebtoken は jose-style algorithm 切替を内蔵。
 jsonwebtoken = "9"
 # `async fn in trait` を dyn 互換にするためのデシュガー。

@@ -14,14 +14,27 @@ package k1s0.tier1.pubsub.v1;
 
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // PubSub API。Kafka をバックエンドとし、tier1 がテナント接頭辞付与と冪等性管理を行う。
 service PubSubService {
   // 単発 Publish（idempotency_key で 24h 重複抑止）
-  rpc Publish(PublishRequest) returns (PublishResponse);
+  rpc Publish(PublishRequest) returns (PublishResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/pubsub/publish"
+      body: "*"
+    };
+  }
   // バッチ Publish（個別エントリの成否を BulkPublishEntry で返す）
-  rpc BulkPublish(BulkPublishRequest) returns (BulkPublishResponse);
+  rpc BulkPublish(BulkPublishRequest) returns (BulkPublishResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/pubsub/bulkpublish"
+      body: "*"
+    };
+  }
   // サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+  // server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
   rpc Subscribe(SubscribeRequest) returns (stream Event);
 }
 

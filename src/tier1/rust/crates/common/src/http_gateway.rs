@@ -27,9 +27,9 @@ use std::sync::Arc;
 use axum::{
     Router,
     extract::{Json, Path, State},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, Method, StatusCode},
     response::{IntoResponse, Response},
-    routing::post,
+    routing::any,
 };
 // JSON 値型。
 use serde_json::Value as JsonValue;
@@ -104,6 +104,8 @@ impl HttpGateway {
     }
 
     /// axum `Router` を構築する。
+    /// 非 POST method は `handle_request` 内で 405 + Allow ヘッダ + JSON body で
+    /// 返す（axum default の空 body 405 を避ける、Go 側 http_gateway.go と同じ挙動）。
     pub fn into_router(self) -> Router {
         let shared = Arc::new(SharedState {
             auth: self.auth,
@@ -112,7 +114,7 @@ impl HttpGateway {
             handlers: self.handlers,
         });
         Router::new()
-            .route("/k1s0/:api/:rpc", post(handle_request))
+            .route("/k1s0/:api/:rpc", any(handle_request))
             .with_state(shared)
     }
 }
@@ -169,13 +171,34 @@ pub fn http_status_from_grpc(c: tonic::Code) -> StatusCode {
     }
 }
 
-/// axum handler。POST /k1s0/:api/:rpc にマッチして上記 chain を回す。
+/// axum handler。/k1s0/:api/:rpc にマッチして chain を回す。POST 以外は
+/// 405 + Allow: POST + JSON K1s0Error body で reject する（RFC 9110 §15.5.6）。
 async fn handle_request(
     State(state): State<Arc<SharedState>>,
+    method: Method,
     Path((api, rpc)): Path<(String, String)>,
     headers: HeaderMap,
-    Json(body): Json<JsonValue>,
+    body_bytes: axum::body::Bytes,
 ) -> Response {
+    // 非 POST は 405 + Allow + JSON で返す（Go gateway と同等の挙動）。
+    if method != Method::POST {
+        return write_method_not_allowed("only POST is supported");
+    }
+    // POST に限り JSON 本体を解釈する。HEAD 等のため、Json extractor は使わず
+    // Bytes → JSON parse を自前で行う（Json 不正を InvalidArgument にマップしたい）。
+    let body: JsonValue = if body_bytes.is_empty() {
+        JsonValue::Object(serde_json::Map::new())
+    } else {
+        match serde_json::from_slice(&body_bytes) {
+            Ok(v) => v,
+            Err(e) => {
+                return write_error(
+                    tonic::Code::InvalidArgument,
+                    &format!("invalid json body: {}", e),
+                );
+            }
+        }
+    };
     let route = format!("{}/{}", api, rpc);
     let Some(handler) = state.lookup(&route) else {
         return write_error(tonic::Code::NotFound, "unknown route");
@@ -274,6 +297,24 @@ fn write_error(code: tonic::Code, message: &str) -> Response {
         "content-type",
         "application/json; charset=utf-8".parse().unwrap(),
     );
+    resp
+}
+
+/// 405 Method Not Allowed を Allow: POST + JSON K1s0Error で返す。
+/// gRPC code 系には 405 が無いため、code 名は HTTP 拡張の "MethodNotAllowed"。
+fn write_method_not_allowed(message: &str) -> Response {
+    let body = ErrorBody {
+        code: "MethodNotAllowed",
+        message,
+    };
+    let json = serde_json::json!({ "error": body });
+    let mut resp = (StatusCode::METHOD_NOT_ALLOWED, Json(json)).into_response();
+    resp.headers_mut().insert(
+        "content-type",
+        "application/json; charset=utf-8".parse().unwrap(),
+    );
+    resp.headers_mut()
+        .insert("allow", "POST".parse().unwrap());
     resp
 }
 

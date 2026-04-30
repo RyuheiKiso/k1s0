@@ -5,11 +5,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /workspace
 RUN npm install -g pnpm@9
-COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json ./
+COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json tsconfig.base.json ./
 COPY apps/docs-site/package.json apps/docs-site/
 COPY packages/ packages/
 COPY tools/ tools/
-RUN pnpm install --frozen-lockfile --filter '@k1s0/docs-site...'
+RUN pnpm install --filter '@k1s0/docs-site...'
 
 COPY apps/docs-site/ apps/docs-site/
 RUN pnpm --filter '@k1s0/docs-site' build

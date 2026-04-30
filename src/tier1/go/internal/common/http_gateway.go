@@ -36,8 +36,8 @@ package common
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -110,8 +110,18 @@ func (g *HTTPGateway) WithInterceptors(interceptors ...grpc.UnaryServerIntercept
 }
 
 // Handler は http.Handler interface を満たす。net/http.Server の Handler に渡せる。
+// 未登録 path への要求は plain text "404 page not found" ではなく JSON 形式の K1s0Error
+// として返す（schemathesis 等の contract test で content-type 不整合を起こさないため）。
 func (g *HTTPGateway) Handler() http.Handler {
-	return g.mux
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// ServeMux に登録された path だけを通す。未登録は JSON 404 で返す。
+		handler, pattern := g.mux.Handler(r)
+		if pattern == "" {
+			writeJSONError(w, codes.NotFound, "no route matches "+r.URL.Path)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	})
 }
 
 // invokeWithInterceptors は handler を interceptor chain で wrap して呼び出す。
@@ -156,7 +166,9 @@ func (g *HTTPGateway) register(path string, handler httpHandlerFunc) {
 	info := &grpc.UnaryServerInfo{FullMethod: fullMethod}
 	g.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			writeJSONError(w, codes.InvalidArgument, "only POST is supported")
+			// HTTP/1.1 RFC 9110 §15.5.6 に従い、対応外メソッドは 405 + Allow ヘッダで返す
+			w.Header().Set("Allow", http.MethodPost)
+			writeJSONError405(w, "only POST is supported")
 			return
 		}
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
@@ -194,7 +206,10 @@ func (g *HTTPGateway) register(path string, handler httpHandlerFunc) {
 			writeJSONError(w, st.Code(), st.Message())
 			return
 		}
-		out, err := protojson.MarshalOptions{UseProtoNames: false, EmitUnpopulated: false}.Marshal(resp)
+		// EmitUnpopulated=true で zero 値も明示的に序列化する。proto3 の零値（特に enum 0）が
+		// 「未設定」と区別できない曖昧さを排除し、JSON consumer から見て契約通りのフィールドが
+		// 常に存在することを保証する（例: WorkflowStatus_RUNNING=0 が "status":"RUNNING" として返る）。
+		out, err := protojson.MarshalOptions{UseProtoNames: false, EmitUnpopulated: true}.Marshal(resp)
 		if err != nil {
 			writeJSONError(w, codes.Internal, "failed to marshal response: "+err.Error())
 			return
@@ -284,26 +299,49 @@ func titleCase(s string) string {
 	return s
 }
 
-// errorBody は HTTP/JSON 応答のエラー schema（docs §「HTTP Status ↔ K1s0Error マッピング」）。
-type errorBody struct {
-	Code         string `json:"code"`
-	Message      string `json:"message"`
-	RetryAfterMs int32  `json:"retry_after_ms,omitempty"`
-	TraceID      string `json:"trace_id,omitempty"`
-}
-
 // writeJSONError は HTTP status + JSON body のセットでエラーを返す。
+//
+// メッセージに含まれる任意の制御文字（例: kafka が返す \x0f 等）が JSON 構文として
+// invalid escape にならないよう、必ず encoding/json でマーシャルする。fmt.Sprintf %q は
+// Go 言語の escape 規則（\xHH 含む）を使うため JSON.parse で失敗する（schemathesis 等が
+// "Invalid \escape" として deserialization error を検出する原因）。
 func writeJSONError(w http.ResponseWriter, c codes.Code, msg string) {
-	body := errorBody{
-		Code:    c.String(),
-		Message: msg,
-	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(httpStatusFromGRPC(c))
-	// シンプルに encoding/json を使う（protojson に依存しない）。
-	out := fmt.Sprintf(`{"error":{"code":%q,"message":%q,"retry_after_ms":%d}}`,
-		body.Code, body.Message, body.RetryAfterMs)
-	_, _ = io.Copy(w, bytes.NewReader([]byte(out)))
+	writeErrorJSON(w, c.String(), msg, 0)
+}
+
+// writeJSONError405 は 405 Method Not Allowed を JSON body で返す。
+// gRPC code 系の status マッピングには 405 は含まれない（HTTP 固有意味論）ため、
+// writeJSONError とは別ルートで HTTP status のみ 405 を直接書く。
+// code フィールドは "MethodNotAllowed"（K1s0Error の HTTP 拡張）。
+func writeJSONError405(w http.ResponseWriter, msg string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	writeErrorJSON(w, "MethodNotAllowed", msg, 0)
+}
+
+// writeErrorJSON は K1s0Error envelope を encoding/json で安全に書き出す共通 helper。
+// msg に任意のバイト列（kafka のエラーメッセージ等の \x0f 等）が含まれても、
+// json.Marshal が \u00XX escape に正規化するため、出力は常に valid JSON となる。
+func writeErrorJSON(w http.ResponseWriter, code, msg string, retryAfterMs int32) {
+	body := struct {
+		Error struct {
+			Code         string `json:"code"`
+			Message      string `json:"message"`
+			RetryAfterMs int32  `json:"retry_after_ms"`
+		} `json:"error"`
+	}{}
+	body.Error.Code = code
+	body.Error.Message = msg
+	body.Error.RetryAfterMs = retryAfterMs
+	buf, err := json.Marshal(body)
+	if err != nil {
+		// 想定外（JSON 化不能な構造ではないので通常は到達しない）。
+		// 最低限の fallback として固定文字列を返す。
+		buf = []byte(`{"error":{"code":"Internal","message":"failed to encode error","retry_after_ms":0}}`)
+	}
+	_, _ = io.Copy(w, bytes.NewReader(buf))
 }
 
 // RegisterStateRoutes は POST /k1s0/state/{get,set,delete,bulkget,transact} を gateway に登録する。
@@ -318,7 +356,10 @@ type StateRPCHandlers struct {
 	Set func(ctx context.Context, body []byte) (proto.Message, error)
 	// Delete は DeleteRequest を復元して State.Delete を呼ぶ。
 	Delete func(ctx context.Context, body []byte) (proto.Message, error)
-	// BulkGet / Transact は本 Pilot で同形に追加可能（実装は cmd 側）。
+	// BulkGet は BulkGetRequest を復元して State.BulkGet を呼ぶ。
+	BulkGet func(ctx context.Context, body []byte) (proto.Message, error)
+	// Transact は TransactRequest を復元して State.Transact を呼ぶ。
+	Transact func(ctx context.Context, body []byte) (proto.Message, error)
 }
 
 // RegisterStateRoutes は State API の HTTP/JSON ルートを登録する。
@@ -332,6 +373,12 @@ func (g *HTTPGateway) RegisterStateRoutes(handlers StateRPCHandlers) {
 	}
 	if handlers.Delete != nil {
 		g.register("/k1s0/state/delete", handlers.Delete)
+	}
+	if handlers.BulkGet != nil {
+		g.register("/k1s0/state/bulkget", handlers.BulkGet)
+	}
+	if handlers.Transact != nil {
+		g.register("/k1s0/state/transact", handlers.Transact)
 	}
 }
 
@@ -392,13 +439,18 @@ func (g *HTTPGateway) RegisterWorkflowRoutes(handlers WorkflowRPCHandlers) {
 	}
 }
 
-// FeatureRPCHandlers は POST /k1s0/feature/{evaluateboolean,evaluatestring,evaluatenumber,evaluateobject} のハンドラ。
-// FeatureAdminService（RegisterFlag / GetFlag / ListFlags）も同形で展開可能だが、リリース時点 では未登録。
+// FeatureRPCHandlers は POST /k1s0/feature/{evaluateboolean,evaluatestring,evaluatenumber,evaluateobject,
+// registerflag,getflag,listflags} のハンドラ。
+// 評価系 4 RPC + 管理系 3 RPC の 7 RPC 全てをカバーする。
 type FeatureRPCHandlers struct {
 	EvaluateBoolean func(ctx context.Context, body []byte) (proto.Message, error)
 	EvaluateString  func(ctx context.Context, body []byte) (proto.Message, error)
 	EvaluateNumber  func(ctx context.Context, body []byte) (proto.Message, error)
 	EvaluateObject  func(ctx context.Context, body []byte) (proto.Message, error)
+	// FeatureAdminService 系統。
+	RegisterFlag func(ctx context.Context, body []byte) (proto.Message, error)
+	GetFlag      func(ctx context.Context, body []byte) (proto.Message, error)
+	ListFlags    func(ctx context.Context, body []byte) (proto.Message, error)
 }
 
 // RegisterFeatureRoutes は Feature API の HTTP/JSON ルートを登録する。
@@ -414,6 +466,15 @@ func (g *HTTPGateway) RegisterFeatureRoutes(handlers FeatureRPCHandlers) {
 	}
 	if handlers.EvaluateObject != nil {
 		g.register("/k1s0/feature/evaluateobject", handlers.EvaluateObject)
+	}
+	if handlers.RegisterFlag != nil {
+		g.register("/k1s0/feature/registerflag", handlers.RegisterFlag)
+	}
+	if handlers.GetFlag != nil {
+		g.register("/k1s0/feature/getflag", handlers.GetFlag)
+	}
+	if handlers.ListFlags != nil {
+		g.register("/k1s0/feature/listflags", handlers.ListFlags)
 	}
 }
 

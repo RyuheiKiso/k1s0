@@ -23,20 +23,38 @@ package k1s0.tier1.audit.v1;
 import "google/protobuf/timestamp.proto";
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // Audit API。WORM ストア（Postgres + immutable view）に追記専用で記録する。
 service AuditService {
   // 監査イベント記録（成功時は audit_id を返す、改竄不可）
-  rpc Record(RecordAuditRequest) returns (RecordAuditResponse);
+  rpc Record(RecordAuditRequest) returns (RecordAuditResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/audit/record"
+      body: "*"
+    };
+  }
   // 監査イベント検索（範囲 + フィルタ、出力には PII Mask が自動適用）
-  rpc Query(QueryAuditRequest) returns (QueryAuditResponse);
+  rpc Query(QueryAuditRequest) returns (QueryAuditResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/audit/query"
+      body: "*"
+    };
+  }
   // ハッシュチェーン整合性検証（FR-T1-AUDIT-002）。
   // テナント配下の全イベントの prev_hash / event_hash の連鎖を検証する。
   // 改ざん検知時は valid=false で先頭の不整合 sequence_number と reason を返す。
-  rpc VerifyChain(VerifyChainRequest) returns (VerifyChainResponse);
+  rpc VerifyChain(VerifyChainRequest) returns (VerifyChainResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/audit/verifychain"
+      body: "*"
+    };
+  }
   // 監査ログのテナント単位エクスポート（FR-T1-AUDIT-002 疑似 IF "Audit.Export"）。
   // server-streaming で範囲内の events を batch（chunk）に分けて配信し、
   // 大量レコードでもメモリを圧迫しない。format で CSV / JSON / NDJSON を選択する。
+  // server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
   rpc Export(ExportAuditRequest) returns (stream ExportAuditChunk);
 }
 

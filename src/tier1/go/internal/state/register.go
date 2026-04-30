@@ -20,8 +20,8 @@
 //     を Unimplemented に翻訳して返す。実 Dapr backend 結線は plan 04-04 〜 04-13。
 //   - Log / Telemetry 2 handler は Unimplemented を直接返す。実 OTel Collector / Loki / Mimir
 //     結線は plan 04-13。
-//   - FeatureAdminService（RegisterFlag / GetFlag / ListFlags）は本リリース時点 未登録
-//     （採用初期で追加、feature.go 冒頭参照）。
+//   - FeatureAdminService（RegisterFlag / GetFlag / ListFlags）は in-memory FlagRegistry
+//     と組合せて 同 Pod に登録（feature_admin.go）。HTTP/JSON gateway も同形で 7 RPC を露出する。
 
 // Package state は t1-state Pod が登録する 7 公開 API のハンドラを提供する。
 package state
@@ -59,6 +59,9 @@ type Deps struct {
 	InvokeAdapter dapr.InvokeAdapter
 	// Feature Flag（flagd 直結）アダプタ。
 	FeatureAdapter dapr.FeatureAdapter
+	// FeatureAdminService 用 in-memory registry（FlagDefinition の登録 / 取得 / 一覧）。
+	// nil 時は handler 側で 0 値の registry を生成する（dev / 旧コード互換）。
+	FeatureRegistry *FlagRegistry
 	// OTel Logs パイプライン（Loki 経由）への emitter。nil 時は LogService が Unimplemented を返す。
 	LogEmitter otel.LogEmitter
 	// OTel Metrics パイプライン（Mimir 経由）への emitter。
@@ -89,6 +92,8 @@ func NewDepsFromClient(client *dapr.Client) Deps {
 		InvokeAdapter: dapr.NewInvokeAdapter(client),
 		// Feature Flag（flagd）。
 		FeatureAdapter: dapr.NewFeatureAdapter(client),
+		// FeatureAdminService 用 in-memory registry。
+		FeatureRegistry: NewFlagRegistry(),
 		// 24h TTL の in-memory dedup cache（共通規約 §「冪等性と再試行」）。
 		Idempotency: common.NewInMemoryIdempotencyCache(0),
 	}
@@ -110,6 +115,13 @@ func Register(deps Deps) func(*grpc.Server) {
 		bindingv1.RegisterBindingServiceServer(srv, &bindingHandler{deps: deps})
 		// FeatureService（FR-T1-FEATURE-001〜004）登録。
 		featurev1.RegisterFeatureServiceServer(srv, &featureHandler{deps: deps})
+		// FeatureAdminService（RegisterFlag / GetFlag / ListFlags）登録。
+		// deps.FeatureRegistry が nil の場合は新規 registry を生成して登録する（後方互換）。
+		featureRegistry := deps.FeatureRegistry
+		if featureRegistry == nil {
+			featureRegistry = NewFlagRegistry()
+		}
+		featurev1.RegisterFeatureAdminServiceServer(srv, &featureAdminHandler{registry: featureRegistry})
 		// LogService（FR-T1-LOG-001〜004）登録。実 OTel Collector 結線は plan 04-13。
 		logv1.RegisterLogServiceServer(srv, &logHandler{deps: deps})
 		// TelemetryService（FR-T1-TELEMETRY-001〜004）登録。実 OTel Collector 結線は plan 04-13。

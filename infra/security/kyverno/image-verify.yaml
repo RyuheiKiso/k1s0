@@ -1,0 +1,39 @@
+# Kyverno ClusterPolicy for cosign keyed image signature verification.
+# 設計: ADR-CICD-003 (Kyverno admission) + ADR-SUP-001 (SLSA L2 signed images)
+# 関連 ID: NFR-E-IT-001 (イメージ改ざん耐性)
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signature
+  annotations:
+    policies.kyverno.io/category: k1s0 Supply Chain
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  failurePolicy: Fail
+  rules:
+    - name: verify-k1s0-image-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: ["k1s0-tier1", "k1s0-tier2", "k1s0-tier3"]
+      verifyImages:
+        - imageReferences:
+            - "registry.registry.svc.cluster.local:5000/*"
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    publicKeys: |-
+                      -----BEGIN PUBLIC KEY-----
+                      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE6jbTHKIbuXB1G9GDYGAiMrXc6MvN
+                      ipAre6OJ4l2ltKr9Y9T0q+mF3mSCdwk/Xf5t1yIFEFk0T1umpzMd4MKuTg==
+                      -----END PUBLIC KEY-----
+                    rekor:
+                      ignoreTlog: true
+                    ctlog:
+                      ignoreSCT: true
+          mutateDigest: false
+          required: true

@@ -78,27 +78,44 @@ func (NoopAuditEmitter) Emit(_ context.Context, _ AuditEvent) {}
 
 // privilegedRPCs は docs §「監査と痕跡」で auto-emit が MUST と規定された fullMethod 集合。
 // 該当しない RPC は audit を発行しない（誤発火防止 / 監査ストア肥大化防止）。
+// privilegedRPCs は docs NFR-E-MON-001 / 002 / 004 を満たす対象 fullMethod 集合。
+// Rust 側 `privileged_rpcs()`（src/tier1/rust/crates/common/src/audit.rs）と完全一致を保つ。
+//
+// 対象選定基準:
+//   - Secret アクセス（Get/BulkGet/GetDynamic/Rotate）: NFR-E-MON-002
+//   - Decision 評価 + Rule 登録: NFR-E-MON-001「Decision 評価」+ NFR-E-MON-004
+//   - Feature Flag 定義変更（RegisterFlag のみ。Evaluate は高頻度のため除外）: NFR-E-MON-004
+//   - Binding 外部送信: NFR-E-MON-001
+//   - Workflow 状態変更（Start/Signal/Cancel/Terminate）: NFR-E-MON-001
+//   - State 書込（Set/Delete/Transact）: NFR-E-MON-001「tier1 API 呼び出し」
+//   - PubSub 発行（Publish/BulkPublish）: NFR-E-MON-001 同上
 var privilegedRPCs = map[string]bool{
-	// Secrets: Get / BulkGet / GetDynamic / Rotate（取得・ローテーション）。
+	// State 書込（NFR-E-MON-001）。Get / BulkGet は高頻度のため除外。
+	"/k1s0.tier1.state.v1.StateService/Set":      true,
+	"/k1s0.tier1.state.v1.StateService/Delete":   true,
+	"/k1s0.tier1.state.v1.StateService/Transact": true,
+	// PubSub 発行（NFR-E-MON-001）。Subscribe は受信側のため除外。
+	"/k1s0.tier1.pubsub.v1.PubSubService/Publish":     true,
+	"/k1s0.tier1.pubsub.v1.PubSubService/BulkPublish": true,
+	// Secrets 全アクセス（NFR-E-MON-002）。
 	"/k1s0.tier1.secrets.v1.SecretsService/Get":        true,
 	"/k1s0.tier1.secrets.v1.SecretsService/BulkGet":    true,
 	"/k1s0.tier1.secrets.v1.SecretsService/GetDynamic": true,
 	"/k1s0.tier1.secrets.v1.SecretsService/Rotate":     true,
-	// Decision: Evaluate / BatchEvaluate / Admin 系（評価 + 定義変更）。
-	"/k1s0.tier1.decision.v1.DecisionService/Evaluate":           true,
-	"/k1s0.tier1.decision.v1.DecisionService/BatchEvaluate":      true,
-	"/k1s0.tier1.decision.v1.DecisionAdminService/RegisterRule":  true,
-	// Feature: Admin 系（変更操作のみ。Evaluate は高頻度すぎるため除外）。
+	// Decision 評価 + Admin 系（評価 + 定義変更）。
+	"/k1s0.tier1.decision.v1.DecisionService/Evaluate":          true,
+	"/k1s0.tier1.decision.v1.DecisionService/BatchEvaluate":     true,
+	"/k1s0.tier1.decision.v1.DecisionAdminService/RegisterRule": true,
+	// Feature 定義変更（NFR-E-MON-004）。Evaluate* は高頻度のため除外。
 	"/k1s0.tier1.feature.v1.FeatureAdminService/RegisterFlag": true,
-	// Binding: Invoke（外部送信）。
-	"/k1s0.tier1.binding.v1.BindingService/Invoke": true,
-	// Audit: Record（再帰防止のため除外。Audit Pod 側で自己ログ運用とする）。
-	// "/k1s0.tier1.audit.v1.AuditService/Record": false,
-	// Workflow: 状態変更系（Start / Signal / Cancel / Terminate）。Query / GetStatus は読取のため除外。
+	// Workflow 状態変更系。Query / GetStatus は読取のため除外。
 	"/k1s0.tier1.workflow.v1.WorkflowService/Start":     true,
 	"/k1s0.tier1.workflow.v1.WorkflowService/Signal":    true,
 	"/k1s0.tier1.workflow.v1.WorkflowService/Cancel":    true,
 	"/k1s0.tier1.workflow.v1.WorkflowService/Terminate": true,
+	// Binding 外部送信。
+	"/k1s0.tier1.binding.v1.BindingService/Invoke": true,
+	// Audit: Record（再帰防止のため除外。Audit Pod 側で自己ログ運用とする）。
 }
 
 // AuditInterceptor は特権 RPC 完了後に AuditEmitter で event を発行する Unary Server Interceptor。

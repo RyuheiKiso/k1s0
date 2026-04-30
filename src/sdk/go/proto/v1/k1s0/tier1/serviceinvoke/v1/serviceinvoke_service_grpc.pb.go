@@ -51,6 +51,7 @@ type InvokeServiceClient interface {
 	// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
 	Invoke(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (*InvokeResponse, error)
 	// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+	// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
 	InvokeStream(ctx context.Context, in *InvokeRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[InvokeChunk], error)
 }
 
@@ -100,6 +101,7 @@ type InvokeServiceServer interface {
 	// 任意サービスの任意メソッドを呼び出す（app_id は Dapr の app_id 概念と互換）
 	Invoke(context.Context, *InvokeRequest) (*InvokeResponse, error)
 	// ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+	// server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
 	InvokeStream(*InvokeRequest, grpc.ServerStreamingServer[InvokeChunk]) error
 }
 

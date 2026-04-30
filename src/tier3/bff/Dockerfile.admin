@@ -1,20 +1,23 @@
 # admin-bff Dockerfile（multi-stage）。
 #
-# build context: docker build -f src/tier3/bff/Dockerfile.admin src/tier3/bff/
+# build context: replace ../../sdk/go のためリポジトリルートが必要:
+#   docker build -f src/tier3/bff/Dockerfile.admin -t k1s0-admin-bff:dev .
 
-FROM golang:1.22 AS builder
+FROM golang:1.25-alpine AS builder
+
 WORKDIR /workspace
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
+COPY src/sdk/go /workspace/src/sdk/go
+COPY src/tier3/bff /workspace/src/tier3/bff
+WORKDIR /workspace/src/tier3/bff
+
 RUN CGO_ENABLED=0 go build \
     -ldflags="-s -w" \
     -trimpath \
-    -o bin/admin-bff \
+    -o /out/admin-bff \
     ./cmd/admin-bff/
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /workspace/bin/admin-bff /usr/local/bin/admin-bff
+COPY --from=builder /out/admin-bff /usr/local/bin/admin-bff
 USER nonroot
 EXPOSE 8080 9090
 ENTRYPOINT ["/usr/local/bin/admin-bff"]

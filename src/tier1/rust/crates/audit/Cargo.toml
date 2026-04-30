@@ -35,6 +35,7 @@ k1s0-tier1-common = { workspace = true }
 async-trait = "0.1"
 # tonic / tokio / prost は workspace 共通設定を継承。
 tonic = { workspace = true }
+tonic-health = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
 # WORM 改竄検知用の SHA-256 ハッシュチェーン。
@@ -48,8 +49,11 @@ prost-types.workspace = true
 tonic-reflection = "0.12"
 # Export RPC の server-streaming で mpsc::Receiver を Stream に変換するため。
 tokio-stream = "0.1"
+# Postgres-backed WORM ストア（PostgresAuditStore）。CNPG cluster の DSN は env で渡す。
+tokio-postgres = { workspace = true }
 # 並行 in-memory store の RwLock 用（std::sync::RwLock で十分なため async-aware は不要）。
 
 [lib]
 name = "k1s0_tier1_audit"
 path = "src/lib.rs"
+

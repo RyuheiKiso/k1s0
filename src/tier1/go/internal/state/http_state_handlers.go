@@ -68,6 +68,28 @@ func MakeHTTPHandlers(stateSvc statev1.StateServiceServer) common.StateRPCHandle
 			}
 			return stateSvc.Delete(ctx, req)
 		},
+		// FR-T1-STATE-004: 複数キー一括取得（BulkGet）。
+		BulkGet: func(ctx context.Context, body []byte) (proto.Message, error) {
+			req := &statev1.BulkGetRequest{}
+			if err := common.UnmarshalJSON(body, req); err != nil {
+				return nil, err
+			}
+			if stateSvc == nil {
+				return nil, status.Error(codes.Unavailable, "state service not wired")
+			}
+			return stateSvc.BulkGet(ctx, req)
+		},
+		// FR-T1-STATE-005: 複数操作の単一トランザクション（Transact）。
+		Transact: func(ctx context.Context, body []byte) (proto.Message, error) {
+			req := &statev1.TransactRequest{}
+			if err := common.UnmarshalJSON(body, req); err != nil {
+				return nil, err
+			}
+			if stateSvc == nil {
+				return nil, status.Error(codes.Unavailable, "state service not wired")
+			}
+			return stateSvc.Transact(ctx, req)
+		},
 	}
 }
 

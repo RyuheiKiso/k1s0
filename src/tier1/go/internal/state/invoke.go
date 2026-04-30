@@ -38,7 +38,7 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 		return nil, status.Error(codes.InvalidArgument, "tier1/serviceinvoke: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "Invoke.Invoke")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Invoke.Invoke")
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 		return status.Error(codes.Unimplemented, "tier1/serviceinvoke: InvokeStream not yet wired to Dapr backend")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, terr := requireTenantID(req.GetContext(), "Invoke.InvokeStream")
+	tid, terr := requireTenantIDFromCtx(stream.Context(), req.GetContext(), "Invoke.InvokeStream")
 	if terr != nil {
 		return terr
 	}
@@ -135,6 +135,12 @@ func translateInvokeErr(err error, rpc string) error {
 	if isNotWired(err) {
 		// メッセージに RPC 名と plan ID を含める。
 		return status.Errorf(codes.Unimplemented, "tier1/serviceinvoke: %s not yet wired to Dapr backend (plan 04-11)", rpc)
+	}
+	// dapr が返す gRPC status を尊重する。serviceinvoke は対象 service が gRPC で
+	// status を返すケース（NotFound / PermissionDenied / Unavailable 等）が多く、
+	// それらを Internal に潰すと client は適切な再試行判定ができない。
+	if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
+		return status.Errorf(st.Code(), "tier1/serviceinvoke: %s adapter error: %s", rpc, st.Message())
 	}
 	// 想定外エラーは Internal。
 	return status.Errorf(codes.Internal, "tier1/serviceinvoke: %s adapter error: %v", rpc, err)

@@ -19,9 +19,15 @@
 
 package dapr
 
-// tenantSeparator は <tenant_id> と元キー / トピック / バケットを区切る区切り文字。
+// tenantSeparator は State / Binding / ServiceInvoke 用の物理キー区切り。
 // docs 共通規約に "<tenant_id>/foo" 形式と明記されているため "/" 固定。
 const tenantSeparator = "/"
+
+// pubsubTenantSeparator は Pub/Sub topic / subscription 名 専用の区切り。
+// Kafka の topic 名は `[a-zA-Z0-9._-]+` のみを許容し "/" を拒否する（実 Strimzi
+// Kafka 4.2.0 で "invalid topic" エラー確認済）ため、pubsub 経路では "." を使う。
+// GCP Pub/Sub / AWS SNS / NATS / Redis Streams も "." 互換。
+const pubsubTenantSeparator = "."
 
 // prefixKey は物理キーに `<tenant_id>/` を付与する。
 // tenantID が空文字の場合は元キーをそのまま返す（in-memory backend の test フィクスチャ用）。
@@ -80,4 +86,33 @@ func hasTenantPrefix(tenantID, key string) bool {
 		return false
 	}
 	return key[:len(prefix)] == prefix
+}
+
+// prefixTopic は Pub/Sub topic 名に `<tenant_id>.` を付与する。Kafka など
+// "/" を許容しない backend 用に "." separator を使う点が prefixKey と異なる。
+func prefixTopic(tenantID, topic string) string {
+	if tenantID == "" {
+		return topic
+	}
+	prefix := tenantID + pubsubTenantSeparator
+	if len(topic) >= len(prefix) && topic[:len(prefix)] == prefix {
+		return topic
+	}
+	return tenantID + pubsubTenantSeparator + topic
+}
+
+// stripTopic は Pub/Sub topic 名から `<tenant_id>.` を取り除いて
+// tier2/tier3 視点の論理 topic に戻す。
+func stripTopic(tenantID, topic string) string {
+	if tenantID == "" {
+		return topic
+	}
+	prefix := tenantID + pubsubTenantSeparator
+	if len(topic) < len(prefix) {
+		return topic
+	}
+	if topic[:len(prefix)] != prefix {
+		return topic
+	}
+	return topic[len(prefix):]
 }

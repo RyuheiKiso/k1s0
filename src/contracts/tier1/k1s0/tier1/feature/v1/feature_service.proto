@@ -16,17 +16,39 @@ package k1s0.tier1.feature.v1;
 import "google/protobuf/struct.proto";
 // 共通型（TenantContext / ErrorDetail）の import
 import "k1s0/tier1/common/v1/common.proto";
+// google.api.http annotation（HTTP/JSON gateway 経路を OpenAPI に出すため）
+import "google/api/annotations.proto";
 
 // Feature Flag 評価 API。OpenFeature 互換、flagd 仕様準拠。
 service FeatureService {
   // Boolean Flag 評価
-  rpc EvaluateBoolean(EvaluateRequest) returns (BooleanResponse);
+  rpc EvaluateBoolean(EvaluateRequest) returns (BooleanResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/evaluateboolean"
+      body: "*"
+    };
+  }
   // String Flag 評価（Variant）
-  rpc EvaluateString(EvaluateRequest) returns (StringResponse);
+  rpc EvaluateString(EvaluateRequest) returns (StringResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/evaluatestring"
+      body: "*"
+    };
+  }
   // 数値 Flag 評価
-  rpc EvaluateNumber(EvaluateRequest) returns (NumberResponse);
+  rpc EvaluateNumber(EvaluateRequest) returns (NumberResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/evaluatenumber"
+      body: "*"
+    };
+  }
   // JSON オブジェクト Flag 評価
-  rpc EvaluateObject(EvaluateRequest) returns (ObjectResponse);
+  rpc EvaluateObject(EvaluateRequest) returns (ObjectResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/evaluateobject"
+      body: "*"
+    };
+  }
 }
 
 // Flag 評価の共通入力
@@ -100,11 +122,26 @@ message ObjectResponse {
 // Flag 定義の登録・更新（リリース時点 提供）
 service FeatureAdminService {
   // Flag 定義の登録（permission 種別は approval_id 必須）
-  rpc RegisterFlag(RegisterFlagRequest) returns (RegisterFlagResponse);
+  rpc RegisterFlag(RegisterFlagRequest) returns (RegisterFlagResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/registerflag"
+      body: "*"
+    };
+  }
   // Flag 定義の取得
-  rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
+  rpc GetFlag(GetFlagRequest) returns (GetFlagResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/getflag"
+      body: "*"
+    };
+  }
   // Flag 定義の一覧
-  rpc ListFlags(ListFlagsRequest) returns (ListFlagsResponse);
+  rpc ListFlags(ListFlagsRequest) returns (ListFlagsResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/feature/listflags"
+      body: "*"
+    };
+  }
 }
 
 // flagd 互換の Flag 定義。k1s0 は OpenFeature / flagd 仕様に準拠。

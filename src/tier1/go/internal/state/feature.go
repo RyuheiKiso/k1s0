@@ -3,8 +3,9 @@
 // 設計正典:
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/11_Feature_API.md
 //
-// scope（リリース時点 placeholder）: 実 flagd 結線は plan 04-13。
-// FeatureAdminService（RegisterFlag / GetFlag / ListFlags）は本リリース時点 未登録（採用初期で追加）。
+// scope: 実 flagd 結線は OpenFeature SDK 経由で確立可能。dev / CI では in-memory
+// Configuration backend 経由で評価される。FeatureAdminService（RegisterFlag /
+// GetFlag / ListFlags）は同 Pod 内に併設実装（feature_admin.go）。
 
 package state
 
@@ -38,7 +39,7 @@ func (h *featureHandler) EvaluateBoolean(ctx context.Context, req *featurev1.Eva
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
 		return nil, err
 	}
 	// adapter 入力。
@@ -67,7 +68,7 @@ func (h *featureHandler) EvaluateString(ctx context.Context, req *featurev1.Eval
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateString"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateString"); err != nil {
 		return nil, err
 	}
 	// adapter 入力構築 + 呼出。
@@ -94,7 +95,7 @@ func (h *featureHandler) EvaluateNumber(ctx context.Context, req *featurev1.Eval
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateNumber"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateNumber"); err != nil {
 		return nil, err
 	}
 	// adapter 呼出。
@@ -121,7 +122,7 @@ func (h *featureHandler) EvaluateObject(ctx context.Context, req *featurev1.Eval
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateObject"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateObject"); err != nil {
 		return nil, err
 	}
 	// adapter 呼出。
@@ -170,6 +171,15 @@ func translateFeatureErr(err error, rpc string) error {
 	if isNotWired(err) {
 		// 翻訳メッセージ。
 		return status.Errorf(codes.Unimplemented, "tier1/feature: %s not yet wired to flagd (plan 04-13)", rpc)
+	}
+	// dapr が返す gRPC status を尊重する（例: configuration store 未設定 →
+	// FailedPrecondition、permission 系 → PermissionDenied）。`status.FromError` は
+	// gRPC status を保持していれば true を返し、保持していなければ Unknown 扱い。
+	// ここでは Unknown 以外（つまり真正な gRPC status）はそのまま再 emit して
+	// HTTP layer で適切な status code（FailedPrecondition→409 / Unavailable→503 等）に
+	// マップさせる。これにより adapter が透過的に上流のエラーを伝搬できる。
+	if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
+		return status.Errorf(st.Code(), "tier1/feature: %s adapter error: %s", rpc, st.Message())
 	}
 	// その他 → Internal。
 	return status.Errorf(codes.Internal, "tier1/feature: %s adapter error: %v", rpc, err)

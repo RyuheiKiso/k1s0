@@ -33,6 +33,10 @@ pub enum StoreError {
     Serialize(String),
     /// 内部ロック獲得失敗（poisoned）。
     LockPoisoned,
+    /// Postgres 等の永続バックエンド由来のエラー（PostgresAuditStore で発生）。
+    Backend(String),
+    /// チェーン整合性違反（verify_chain でのみ使用）。
+    Integrity(String),
 }
 
 impl std::fmt::Display for StoreError {
@@ -40,6 +44,8 @@ impl std::fmt::Display for StoreError {
         match self {
             StoreError::Serialize(s) => write!(f, "serialize: {}", s),
             StoreError::LockPoisoned => write!(f, "lock poisoned"),
+            StoreError::Backend(s) => write!(f, "backend: {}", s),
+            StoreError::Integrity(s) => write!(f, "integrity: {}", s),
         }
     }
 }
@@ -156,7 +162,7 @@ impl Default for InMemoryAuditStore {
 
 /// canonical_bytes は AppendInput を deterministic な JSON で serialize した
 /// bytes を返す。BTreeMap でキー順を固定し、tenant_id / actor / action 等の順序も固定する。
-fn canonical_bytes(input: &AppendInput) -> Result<Vec<u8>, StoreError> {
+pub(crate) fn canonical_bytes(input: &AppendInput) -> Result<Vec<u8>, StoreError> {
     // serde_json は struct field 順を struct 定義順で出力するため、struct を
     // 1 件作って serialize すれば deterministic。BTreeMap 経由で attributes も整列する。
     #[derive(Serialize)]
@@ -454,5 +460,70 @@ mod tests {
         }
         let r = s.verify_chain();
         assert!(r.is_err(), "tamper should be detected");
+    }
+
+    /// VerifyChain RPC の詳細応答（proto VerifyChainResponse 互換）が、
+    /// 改ざんされた entry の **正確な sequence 番号 + 検知理由** を
+    /// 返すことを検証する。NFR-H-INT-001 / 002 の核心要件:
+    /// "完全性違反は検知可能 + 違反箇所が特定可能"。
+    #[test]
+    fn verify_chain_detail_returns_first_bad_sequence_with_reason() {
+        let s = InMemoryAuditStore::new();
+        s.append(make_input(1, "u1", "T")).unwrap();
+        s.append(make_input(2, "u2", "T")).unwrap();
+        s.append(make_input(3, "u3", "T")).unwrap();
+        // 改ざん前 detail: valid=true / checked=3 / first_bad=0
+        let ok = s.verify_chain_detail("T", None, None).unwrap();
+        assert!(ok.valid, "before tamper should be valid");
+        assert_eq!(ok.checked_count, 3);
+        assert_eq!(ok.first_bad_sequence, 0);
+        assert_eq!(ok.reason, "");
+        // 中央の 2 件目を改ざん。
+        {
+            let mut entries = s.entries.write().unwrap();
+            entries[1].action = "tampered".to_string();
+        }
+        let bad = s.verify_chain_detail("T", None, None).unwrap();
+        assert!(!bad.valid, "tamper must be reported invalid");
+        // checked_count は valid だった entry 数（1 件目）まで。
+        assert_eq!(
+            bad.checked_count, 1,
+            "checked_count should stop at the entry preceding the tamper"
+        );
+        // 2 件目で audit_id 不整合を検知するはず。
+        assert_eq!(
+            bad.first_bad_sequence, 2,
+            "first_bad_sequence must point to the tampered entry"
+        );
+        assert!(
+            bad.reason.contains("audit_id mismatch at sequence 2"),
+            "reason should describe the actual mismatch (got: {:?})",
+            bad.reason
+        );
+    }
+
+    /// 中央の entry を **削除** した場合、それ以降の prev_id chain が壊れて
+    /// 検知される。InMemory store は entries Vec を露出する WORM 違反テスト用 API
+    /// を持たないため、unsafe な write 直接編集を使う。
+    #[test]
+    fn verify_chain_detail_detects_deletion_via_prev_id_break() {
+        let s = InMemoryAuditStore::new();
+        s.append(make_input(1, "u1", "T")).unwrap();
+        s.append(make_input(2, "u2", "T")).unwrap();
+        s.append(make_input(3, "u3", "T")).unwrap();
+        // 2 件目を削除（→ 3 件目の prev_id が 1 件目の audit_id を指さない状態）。
+        {
+            let mut entries = s.entries.write().unwrap();
+            entries.remove(1);
+        }
+        let bad = s.verify_chain_detail("T", None, None).unwrap();
+        assert!(!bad.valid, "deletion must be reported invalid");
+        // 1 件目はそのまま valid、2 件目の位置（旧 3 件目）で prev_id mismatch。
+        assert_eq!(bad.first_bad_sequence, 2);
+        assert!(
+            bad.reason.contains("prev_id mismatch at sequence 2"),
+            "reason should say prev_id mismatch (got: {:?})",
+            bad.reason
+        );
     }
 }

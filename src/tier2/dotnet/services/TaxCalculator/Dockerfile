@@ -8,7 +8,7 @@ COPY services/TaxCalculator/ ./services/TaxCalculator/
 COPY shared/ ./shared/
 RUN dotnet restore services/TaxCalculator/TaxCalculator.sln
 RUN dotnet publish services/TaxCalculator/src/TaxCalculator.Api/TaxCalculator.Api.csproj \
-    -c Release -o /publish --no-restore -p:PublishReadyToRun=true
+    -c Release -o /publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim AS runtime
 USER app
