@@ -59,7 +59,7 @@ func (h *logHandler) Send(ctx context.Context, req *logv1.SendLogRequest) (*logv
 		return nil, status.Error(codes.InvalidArgument, "tier1/log: nil request")
 	}
 	// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id 必須強制。
-	if _, err := requireTenantID(req.GetContext(), "Log.Send"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Log.Send"); err != nil {
 		return nil, err
 	}
 	if h.deps.LogEmitter == nil {
@@ -78,7 +78,7 @@ func (h *logHandler) BulkSend(ctx context.Context, req *logv1.BulkSendLogRequest
 		return nil, status.Error(codes.InvalidArgument, "tier1/log: nil request")
 	}
 	// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id 必須強制。
-	if _, err := requireTenantID(req.GetContext(), "Log.BulkSend"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Log.BulkSend"); err != nil {
 		return nil, err
 	}
 	if h.deps.LogEmitter == nil {

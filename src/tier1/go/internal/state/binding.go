@@ -39,7 +39,7 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		return nil, status.Error(codes.InvalidArgument, "tier1/binding: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "Binding.Invoke")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Binding.Invoke")
 	if err != nil {
 		return nil, err
 	}

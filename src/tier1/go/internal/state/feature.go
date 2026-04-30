@@ -39,7 +39,7 @@ func (h *featureHandler) EvaluateBoolean(ctx context.Context, req *featurev1.Eva
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
 		return nil, err
 	}
 	// adapter 入力。
@@ -68,7 +68,7 @@ func (h *featureHandler) EvaluateString(ctx context.Context, req *featurev1.Eval
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateString"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateString"); err != nil {
 		return nil, err
 	}
 	// adapter 入力構築 + 呼出。
@@ -95,7 +95,7 @@ func (h *featureHandler) EvaluateNumber(ctx context.Context, req *featurev1.Eval
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateNumber"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateNumber"); err != nil {
 		return nil, err
 	}
 	// adapter 呼出。
@@ -122,7 +122,7 @@ func (h *featureHandler) EvaluateObject(ctx context.Context, req *featurev1.Eval
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Feature.EvaluateObject"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateObject"); err != nil {
 		return nil, err
 	}
 	// adapter 呼出。

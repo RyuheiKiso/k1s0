@@ -252,7 +252,7 @@ func (h *featureAdminHandler) RegisterFlag(ctx context.Context, req *featurev1.R
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "FeatureAdmin.RegisterFlag")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "FeatureAdmin.RegisterFlag")
 	// 検証失敗は即返却。
 	if err != nil {
 		// 翻訳済 error を返す。
@@ -281,7 +281,7 @@ func (h *featureAdminHandler) GetFlag(ctx context.Context, req *featurev1.GetFla
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// tenant_id 必須検証。
-	tid, err := requireTenantID(req.GetContext(), "FeatureAdmin.GetFlag")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "FeatureAdmin.GetFlag")
 	// 検証失敗は即返却。
 	if err != nil {
 		// 翻訳済 error を返す。
@@ -322,7 +322,7 @@ func (h *featureAdminHandler) ListFlags(ctx context.Context, req *featurev1.List
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	// tenant_id 必須検証。
-	tid, err := requireTenantID(req.GetContext(), "FeatureAdmin.ListFlags")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "FeatureAdmin.ListFlags")
 	// 検証失敗は即返却。
 	if err != nil {
 		// 翻訳済 error を返す。

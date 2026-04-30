@@ -38,7 +38,7 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 		return nil, status.Error(codes.InvalidArgument, "tier1/serviceinvoke: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "Invoke.Invoke")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Invoke.Invoke")
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 		return status.Error(codes.Unimplemented, "tier1/serviceinvoke: InvokeStream not yet wired to Dapr backend")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, terr := requireTenantID(req.GetContext(), "Invoke.InvokeStream")
+	tid, terr := requireTenantIDFromCtx(stream.Context(), req.GetContext(), "Invoke.InvokeStream")
 	if terr != nil {
 		return terr
 	}

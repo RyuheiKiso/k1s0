@@ -48,7 +48,7 @@ func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*state
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Get")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Get")
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Set")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Set")
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Delete")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Delete")
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest)
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.BulkGet")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.BulkGet")
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "State.Transact")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "State.Transact")
 	if err != nil {
 		return nil, err
 	}

@@ -83,7 +83,7 @@ func (h *telemetryHandler) EmitMetric(ctx context.Context, req *telemetryv1.Emit
 		return nil, status.Error(codes.InvalidArgument, "tier1/telemetry: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Telemetry.EmitMetric"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Telemetry.EmitMetric"); err != nil {
 		return nil, err
 	}
 	if h.deps.MetricEmitter == nil {
@@ -112,7 +112,7 @@ func (h *telemetryHandler) EmitSpan(ctx context.Context, req *telemetryv1.EmitSp
 		return nil, status.Error(codes.InvalidArgument, "tier1/telemetry: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	if _, err := requireTenantID(req.GetContext(), "Telemetry.EmitSpan"); err != nil {
+	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Telemetry.EmitSpan"); err != nil {
 		return nil, err
 	}
 	if h.deps.TraceEmitter == nil {

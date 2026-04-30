@@ -70,7 +70,7 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 		return nil, status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, err := requireTenantID(req.GetContext(), "PubSub.Publish")
+	tid, err := requireTenantIDFromCtx(ctx, req.GetContext(), "PubSub.Publish")
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 		// NFR-E-AC-003: 各 entry も tenant_id 越境防止のため必須検証。tenant 越境は
 		// 「batch 全体の前提違反」のため、entry 結果ではなく即時 InvalidArgument で
 		// 弾く（部分成功で抜けると security audit が破綻するため）。
-		entTid, err := requireTenantID(entry.GetContext(), "PubSub.BulkPublish")
+		entTid, err := requireTenantIDFromCtx(ctx, entry.GetContext(), "PubSub.BulkPublish")
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +196,7 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 		return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired")
 	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
-	tid, terr := requireTenantID(req.GetContext(), "PubSub.Subscribe")
+	tid, terr := requireTenantIDFromCtx(stream.Context(), req.GetContext(), "PubSub.Subscribe")
 	if terr != nil {
 		return terr
 	}
