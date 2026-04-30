@@ -11,6 +11,8 @@ package state
 import (
 	// context 伝搬。
 	"context"
+	// BulkPublish entry 失敗時の error_code 整形用。
+	"fmt"
 	// topic 形式検証用の事前コンパイル正規表現。
 	"regexp"
 	// Dapr adapter。
@@ -115,12 +117,17 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 
 // BulkPublish は複数 message を順次 Publish する。
 // Dapr SDK は単一 PublishEvent しか提供しないため、ループで逐次発行する。
-// 1 件失敗で全体失敗（部分発行済 message のロールバックは pubsub backend
-// 仕様に依存するため、呼出側で冪等性キーによる重複発行検知を前提とする）。
+//
+// docs §「PubSub API」: 「配列内の各エントリに個別の結果を返す（部分成功あり）」
+// → 各 entry は独立した結果（成功 = offset、失敗 = error_code + メッセージ）として
+// `BulkPublishEntry` に詰めて返す。1 件失敗で全体停止せず、後続 entry も処理する。
+// tenant_id 不在のように batch 全体に響く前提違反は最初に弾き、entry 個別の不正
+// （topic 形式 / adapter 側エラー等）は entry 結果に格納して継続する。
 func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPublishRequest) (*pubsubv1.BulkPublishResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
 	}
+	results := make([]*pubsubv1.BulkPublishEntry, 0, len(req.GetEntries()))
 	for i, entry := range req.GetEntries() {
 		// 各 entry は PublishRequest（topic / data / content_type / idempotency_key /
 		// metadata / context）。BulkPublishRequest 側で topic を共通化しているため
@@ -129,14 +136,21 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 		if topic == "" {
 			topic = req.GetTopic()
 		}
-		// NFR-E-AC-003: 各 entry も tenant_id 越境防止のため必須検証。
+		// NFR-E-AC-003: 各 entry も tenant_id 越境防止のため必須検証。tenant 越境は
+		// 「batch 全体の前提違反」のため、entry 結果ではなく即時 InvalidArgument で
+		// 弾く（部分成功で抜けると security audit が破綻するため）。
 		entTid, err := requireTenantID(entry.GetContext(), "PubSub.BulkPublish")
 		if err != nil {
 			return nil, err
 		}
-		// topic 形式の事前検証（Kafka 規約 [a-zA-Z0-9._-]+）。
-		if err := validatePubSubTopic(topic); err != nil {
-			return nil, err
+		// topic 形式の事前検証（Kafka 規約 [a-zA-Z0-9._-]+）。entry レベルの不正なので
+		// entry 結果に格納して次へ進む。
+		if verr := validatePubSubTopic(topic); verr != nil {
+			results = append(results, &pubsubv1.BulkPublishEntry{
+				EntryIndex: int32(i),
+				ErrorCode:  "InvalidArgument: invalid topic name",
+			})
+			continue
 		}
 		areq := dapr.PublishRequest{
 			Component:      "pubsub-kafka",
@@ -147,11 +161,26 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 			Metadata:       entry.GetMetadata(),
 			TenantID:       entTid,
 		}
-		if _, err := h.deps.PubSubAdapter.Publish(ctx, areq); err != nil {
-			return nil, status.Errorf(codes.Internal, "tier1/pubsub: BulkPublish failed at entry %d: %v", i, err)
+		aresp, perr := h.deps.PubSubAdapter.Publish(ctx, areq)
+		if perr != nil {
+			// adapter 側 error も entry 個別の失敗として扱う（部分成功）。原 gRPC
+			// code が取れる場合はそれを使い、無い場合は Internal 相当。
+			code := "Internal"
+			if st, ok := status.FromError(perr); ok && st.Code() != codes.Unknown {
+				code = st.Code().String()
+			}
+			results = append(results, &pubsubv1.BulkPublishEntry{
+				EntryIndex: int32(i),
+				ErrorCode:  fmt.Sprintf("%s: %s", code, perr.Error()),
+			})
+			continue
 		}
+		results = append(results, &pubsubv1.BulkPublishEntry{
+			EntryIndex: int32(i),
+			Offset:     aresp.Offset,
+		})
 	}
-	return &pubsubv1.BulkPublishResponse{}, nil
+	return &pubsubv1.BulkPublishResponse{Results: results}, nil
 }
 
 // Subscribe は server-streaming RPC。Dapr Subscribe で得た subscription から
