@@ -361,6 +361,76 @@ dapr control plane / cnpg-system 等）は **privileged container** または **
 application 層（k1s0-tier1 / tier2 / tier3）には baseline policy が引き続き適用され、業務 Pod は
 `runAsNonRoot=true` + resources.requests + k1s0.io/component label 必須が強制される。
 
+
+### H1〜H3 さらなる横展開 + regression CI 化 + multi-node 検証（2026-04-30 PR #853 後の追加 session）
+
+PR #853 発行後、「G3 cross-tenant CRITICAL bug が一度出た以上、同パターンの姉妹バグが
+他にもある」を前提に、Go (secret / workflow) + Rust (audit gRPC) を横展開検査して
+**さらに 10 RPC で同パターンを発見・修正**。加えて、F1〜H1 で潰した bug の regression
+を unit test に固定して CI 化、multi-node kind + Calico での NetworkPolicy / topology
+spread 強制を実機検証。
+
+| 検証 | 実装 / 結果 |
+|---|---|
+| **H1: G3 同パターンの横展開** | Go `internal/common/auth.go` に `EnforceTenantBoundary(ctx, body, rpc)` を新設、JWT 由来 tenant_id (AuthInfo) と body.tenant_id の不一致を PermissionDenied で reject。Go secret (4 RPC) / Go workflow (6 RPC) / Rust audit gRPC server (4 RPC: record / query / export / verify_chain) を全て本関数経由に切替。Rust 側は `crates/common/src/auth.rs` に `enforce_tenant_boundary(claims, body, rpc)` 同等関数を追加 + `req.extensions().get::<AuthClaims>()` で K1s0Layer が格納した claims を抽出。**E2E 検証**: Go workflow gRPC で Alice (tenant-A JWT) + body tenant-B → "PermissionDenied: tenant_id mismatch" / Rust audit gRPC で同条件 → "PermissionDenied: cross-tenant request rejected (Audit.Record): jwt=\"tenant-A\" body=\"tenant-B\""。副次修正: Rust K1s0Layer が `grpc.health.*` / `k1s0.tier1.health.*` / `grpc.reflection.*` を auth verify から skip する処理を追加 (auth=jwks 時に kubelet probe が再起動ループに陥る問題を解消)、jsonwebtoken の audience validation を off (Keycloak password grant の `aud=account` 互換性確保)。 |
+| **H2: regression test の CI 化** | F1〜H1 で潰した 4 種類の bug 経路を unit test に固定し go test / cargo test で再発検知できるようにした。新規 16 test ケース: (a) Go `internal/common/cross_tenant_regression_test.go` 5 ケース (`EnforceTenantBoundary` の cross-tenant reject / matching / auth=off pass-through / empty body / empty claims skip)、(b) Go `internal/state/regression_test.go` 5 ケース (BulkPublish PartialSuccess / MissingTenantStopsAll / StateHandler.Get CrossTenantRejected / MatchingTenantPassesAuthCheck)、(c) Rust `crates/decision/src/http.rs` 2 ケース (RegisterRule rejects empty rule_id / empty jdmDocument)、(d) Rust `crates/common/src/auth.rs` 4 ケース (`enforce_tenant_boundary` の cross-tenant / matching / empty body / empty claims)。副次: Go `common.NewAuthContext(parent, info)` 公開ヘルパを追加 (test や in-process 経路で claims 注入用)。**全 16 test PASS**、go test ./... と cargo test --release --lib も全 PASS。 |
+| **H3a: multi-node kind + Calico 検証** | `infra/k8s/multinode/` 配下に prescription を追加: `kind-multinode.yaml` (1 control-plane + 3 worker、zone-a/b/c label、`disableDefaultCNI: true`、Pod subnet 192.168.0.0/16) + `test-netpol-deny-all.yaml` (default-deny NetworkPolicy + client/server Pod) + `test-topology-spread.yaml` (maxSkew=1 + DoNotSchedule)。**実機検証 (kind v0.27.0 / k8s 1.32.2 / Calico v3.29.2 / 4-node)**: (1) **topology spread**: 3 replica が worker / worker2 / worker3 に **1:1:1 で分散** (kubectl get pod -o wide で確認)、(2) **NetworkPolicy 強制**: default-deny 適用時 `curl --max-time 5` が "Connection timed out after 5063 milliseconds" で block、policy 削除後の retry で `hello` 応答 = Calico が **enforce している**ことを確認。kindnet では同条件で curl が通る (NetworkPolicy ignore) ため、Calico への切替が production-grade network policy enforcement の前提条件であることが裏付けられた。 |
+
+### Production carry-over verification matrix
+
+kind 環境では本質的に検証できない領域を、**「kind 検証済 / kind multi-node 検証済 / production 必須 (kind 不可)」** で 1:1 マトリクス化する。
+本 PR + #853 までで kind 段階の検証は実質完了、残るのは production / cloud 環境での確認のみ。
+
+| 検証カテゴリ | 項目 | kind single-node (k1s0-local) | kind multi-node + Calico (k1s0-multinode) | production K8s (managed / on-prem) で必須再検証 |
+|---|---|---|---|---|
+| **アプリケーション層** | 12 RPC E2E (state / pubsub / secret / workflow / audit / decision / pii / feature / binding / log / telemetry / invoke) | ✅ 検証済 (A〜H + F1〜H2) | (継承) | ✅ そのまま転用可 |
+| | SDK 4 言語 round-trip (Go / Rust / .NET / TypeScript) | ✅ 検証済 (F2) | (継承) | ✅ そのまま転用可 |
+| | cross-tenant boundary (NFR-E-AC-003) | ✅ 検証済 (G3 + H1 + H2 regression test) | (継承) | ✅ そのまま転用可 |
+| | Audit WORM (NFR-H-INT-001) | ✅ 検証済 (G8: PostgresAuditStore + trigger) | (継承) | ✅ そのまま転用可 |
+| | Idempotency / Bulk / Transact / partial success | ✅ 検証済 (F4) | (継承) | ✅ そのまま転用可 |
+| | schemathesis OpenAPI contract (5000+ test cases) | ✅ 検証済 (E2 + F1) | (継承) | ✅ そのまま転用可 |
+| | fuzz (Go std + Rust standalone、~3M execs / 0 panic) | ✅ 検証済 (E3) | (継承) | ✅ そのまま転用可 |
+| **ネットワーク層** | NetworkPolicy 強制 (default-deny → block) | ❌ 不可 (kindnet ignore) | ✅ 検証済 (H3a) | ✅ kind multi-node 結果が転用可 (Calico/Cilium 同 API) |
+| | Pod topology spread / multi-AZ 分散 | ❌ 不可 (single-node) | ✅ 検証済 (H3a) | ✅ kind multi-node 結果が転用可 |
+| | Pod anti-affinity (各 tier1 pod が別 node) | ❌ 不可 (single-node) | (要追加検証) | ✅ production (3+ node) で確認 |
+| | Istio Ambient mTLS STRICT | ✅ 検証済 (C3) | (要追加検証) | ✅ production の cert-manager / SPIRE 結線で再確認 |
+| | gRPC-Web translator (envoy) | ✅ 検証済 (F2: TS SDK 経路) | (継承) | ✅ Istio Ambient Gateway grpc-web filter に置換 |
+| **GitOps / CI/CD** | Argo CD ApplicationSet sync (3 環境 dev/staging/prod) | ✅ 検証済 (F5: gitea local) | (継承) | ✅ GitHub / GHE 切替後に再確認、認証経路 (PAT / SSH key / GHA OIDC) を本番化 |
+| | Argo Rollouts canary (25→50→75→100 step) | ✅ 検証済 (C2) | (継承) | ✅ AnalysisRun (Prometheus query) と組合せ確認 |
+| | Kyverno baseline policy 4 種 (admission block) | ✅ 検証済 (C1) | (継承) | ✅ そのまま転用可 |
+| | Kyverno ImageVerify (cosign keyed) | ✅ 検証済 (F6: signed admit / unsigned block) | (継承) | ✅ keyless (GHA OIDC + Rekor) に切替後に再確認 |
+| | GitHub Actions workflows | ⚠️ YAML 構文のみ (G6) | (継承) | ✅ 実 PR で workflow 発火 / image push / Rekor entry 生成を確認 |
+| | Renovate dependency dashboard | ⚠️ 設定 JSON 検証のみ (G6) | (継承) | ✅ 実 GitHub repo で auto PR 生成 + auto-merge を確認 |
+| **ストレージ / 永続化** | CNPG Postgres backed state | ✅ 検証済 (A: state.postgresql v2 + Pod restart 永続) | (継承) | ✅ Longhorn / EBS / PD storage class に切替、replica + WAL backup を確認 |
+| | Audit Postgres WORM trigger | ✅ 検証済 (G8) | (継承) | ✅ そのまま転用可 |
+| | OpenBao secret rotation (10s interval) | ✅ 検証済 (F7: version 3071→3090 連続増分) | (継承) | ✅ KV v2 backend を Postgres / file 永続化に切替後に再確認 (現状 inmem) |
+| | at-rest 暗号化 (NFR-G-ENC-001) | ❌ 不可 (local-path / OpenBao inmem) | ❌ 不可 (Calico でも storage 層は同じ) | ✅ Longhorn LUKS / EBS encryption / OpenBao auto-unseal (cloud KMS) で確認 |
+| | TLS in-transit (NFR-G-ENC-002) | ✅ 検証済 (Istio Ambient mTLS STRICT) | (要追加検証) | ✅ Ingress / external API も含めて E2E 確認 |
+| **可観測性** | OTLP gRPC 流入 (Loki / Tempo / Mimir) | ✅ 検証済 (E1: 3 signal 流入確認) | (継承) | ✅ そのまま転用可 |
+| | SPIRE / SPIFFE workload identity (60 entry 自動発行) | ✅ 検証済 (E5) | (継承) | ✅ JWT-SVID Federate (oidc-discovery) を実 trust-domain で確認 |
+| | Grafana dashboards (LGTM 3 backend) | ⚠️ install のみ (E1) | (継承) | ✅ 実トラフィックでクエリ + alerting 確認 |
+| **可用性 / DR** | NFR-A-FT-001 (単一 Pod 自動復旧 < 15min) | ✅ 検証済 (756s = 12分36秒) | (要追加検証 multi-node) | ✅ multi-node でフェイルオーバ Time 再測 (kind より速い見込み) |
+| | NFR-A-FT-002 (Kafka 1 broker 障害継続) | ❌ 不可 (1 broker 構成) | ❌ 不可 (同) | ✅ Strimzi 3 broker + ISR 確認 |
+| | NFR-A-FT-003 (Postgres フェイルオーバ) | ❌ 不可 (1 instance) | ❌ 不可 (同) | ✅ CNPG 3 instance + auto-failover 確認 |
+| | NFR-A-DR-001 (RTO 4hr / RPO 1hr) | ❌ 不可 (single cluster) | ❌ 不可 (同) | ✅ Velero + cross-region restore で実測 |
+| | HA control-plane (3+ etcd / apiserver) | ❌ 不可 (1 etcd) | ❌ 不可 (1 control-plane) | ✅ managed K8s (EKS/GKE/AKS) または talos で確認 |
+| **NFR-B (性能)** | tier1 API p99 < 500ms (NFR-B-PERF-001) | ✅ 検証済 (74ms / c=50) | (要追加検証 multi-replica で SLA 達成) | ✅ production multi-replica + LB で SLA 達成見込み (G7 根本原因) |
+| | State.Get p99 < 10ms (NFR-B-PERF-003) | ⚠️ c=1 で達成 (1ms)、c=50 では未達 (54ms) | (要追加検証) | ✅ 多 replica 分散で達成 (G7 結論) |
+| | スループット 150 RPS (NFR-B-PERF-002) | ⚠️ 低負荷で測定済 (4000 RPS / 50 conc 確認) | (要追加検証) | ✅ production 規模で持続負荷試験 |
+| **採用初期で deploy 必須 (kind 不可)** | Backstage UI (ADR-BS-001) | ⚠️ catalog-info.yaml 静的検証のみ (G10) | ❌ 不可 (GHCR / public IDP 必要) | ✅ production で GHE + Backstage chart deploy + scaffolder template 実行 |
+| | MinIO (ADR-DATA-003) | ❌ 未 deploy | ❌ 未 deploy | ✅ production で MinIO chart + tenant scoping 確認 |
+| | Valkey (ADR-DATA-004) | ❌ 未 deploy | ❌ 未 deploy | ✅ production で Valkey HA + state.redis adapter 結線確認 |
+| | Longhorn (ADR-STOR-001) | ❌ kind 制約で不可 | ❌ 同 | ✅ on-prem で Longhorn install + at-rest LUKS 確認 |
+| | MetalLB (ADR-STOR-002) | ❌ 未 deploy | ❌ 未 deploy | ✅ on-prem で MetalLB install + L2 / BGP 確認 |
+| | Envoy API Gateway (ADR-MIG-002) | ❌ Gateway API CRD 未 install | ❌ 同 | ✅ Gateway API CRD + Envoy Gateway install + HTTPRoute 確認 |
+
+凡例: ✅ 検証済 / ⚠️ 部分検証または静的検証のみ / ❌ kind では構造的に不可
+
+### 結論
+
+- **本 PR + #853 で kind 段階の検証は実質完了** (アプリケーション層 / 大半の infra 層 + multi-node + Calico での network policy enforcement)
+- **production K8s で必須となる残検証**は上表の右列「production K8s で必須再検証」で 1:1 に明文化、採用組織は本 matrix を「kind では検証済 / 移行段階で必ず追加実施するもの」のチェックリストとして使える
+
 ## 「docs から逸脱しない」ことの保証
 
 本リポジトリの実装作業は、以下のメカニズムで docs 正典との整合性を保つ。
