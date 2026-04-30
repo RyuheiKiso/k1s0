@@ -100,15 +100,16 @@ if [[ ${APPS} -eq 0 ]]; then
     warn "argocd Application が 0 件 (まだ ApplicationSet が generate していない可能性)"
 else
     ok "argocd Applications: ${APPS} 件"
-    NOT_SYNCED=$(kubectl -n argocd get applications.argoproj.io \
-        -o json 2>/dev/null | python3 -c '
+    NOT_SYNCED=$(kubectl -n argocd get applications.argoproj.io -o json 2>/dev/null \
+        | python3 -c "
 import json, sys
 d = json.load(sys.stdin)
-for a in d["items"]:
-    sync = a.get("status",{}).get("sync",{}).get("status","Unknown")
-    health = a.get("status",{}).get("health",{}).get("status","Unknown")
-    if sync != "Synced" or health != "Healthy":
-        print(f"  {a[\"metadata\"][\"name\"]}: sync={sync} health={health}")')
+for a in d['items']:
+    sync = a.get('status',{}).get('sync',{}).get('status','Unknown')
+    health = a.get('status',{}).get('health',{}).get('status','Unknown')
+    if sync != 'Synced' or health != 'Healthy':
+        name = a['metadata']['name']
+        print(f'  {name}: sync={sync} health={health}')")
     if [[ -z "${NOT_SYNCED}" ]]; then
         ok "全 Application Synced + Healthy"
     else
@@ -120,7 +121,13 @@ fi
 # ---------- Check 5: ApplicationSet 8 件 ----------
 
 header "ApplicationSet 8 件"
-EXPECTED_APPSETS=(infra ops tier1-facade tier1-rust-service tier2-dotnet-service tier2-go-service tier3-bff tier3-web-app)
+# 実際の名前: tier2/tier3 系は -example suffix 付き（deploy/apps/application-sets/ の元定義に従う）
+EXPECTED_APPSETS=(
+    infra ops
+    tier1-facade tier1-rust-service
+    tier2-dotnet-service-example tier2-go-service-example
+    tier3-bff-example tier3-web-app-example
+)
 for as in "${EXPECTED_APPSETS[@]}"; do
     if kubectl -n argocd get applicationset "${as}" >/dev/null 2>&1; then
         ok "ApplicationSet/${as}"
@@ -134,14 +141,18 @@ done
 header "Gitea repo 内容"
 if kubectl -n gitops get deploy gitea >/dev/null 2>&1; then
     ok "gitea Deployment 存在"
-    GITEA_POD=$(kubectl -n gitops get pod -l app=gitea -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
-    if [[ -n "${GITEA_POD}" ]]; then
-        if kubectl -n gitops exec "${GITEA_POD}" -- ls /data/git/repositories/argocd/k1s0.git >/dev/null 2>&1; then
-            ok "argocd/k1s0 repo bootstrap 完了"
-        else
-            ng "argocd/k1s0 repo が gitea に無い"
-        fi
+    # gitea repo の実体パスは rootless image 既定で /var/lib/gitea/git/repositories/
+    # または GITEA_CUSTOM 配下の場合あり。API 経由で存在確認するのが堅い。
+    kubectl -n gitops port-forward svc/gitea 13099:3000 >/dev/null 2>&1 &
+    PF_PID=$!
+    sleep 2
+    if curl -sf -u "argocd:ArgoCD123!" "http://localhost:13099/api/v1/repos/argocd/k1s0/branches/main" >/dev/null 2>&1; then
+        ok "argocd/k1s0 repo に main branch 存在 (API 経由)"
+    else
+        ng "argocd/k1s0 repo の main branch が API から見えない"
     fi
+    kill ${PF_PID} 2>/dev/null || true
+    wait ${PF_PID} 2>/dev/null || true
 else
     ng "gitea Deployment 不在"
 fi
