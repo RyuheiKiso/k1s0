@@ -8,27 +8,29 @@
 # が同じ password を参照する。これは "kind cluster 内のみで通用する dev credentials"
 # でありリリース時点 production 環境では使われないため、ggshield の検知対象から外す。
 #
-# 規約: 本 allowlist には password 文字列の SHA1 か文字列リテラルを直書きする。
-# 新たな allowlist を追加する場合、PR レビューで「production への意図せぬ流出が無いか」
-# を確認すること。
+# 規約: 本 allowlist には password 文字列リテラルを直書きする。新たな allowlist を
+# 追加する場合、PR レビューで「production への意図せぬ流出が無いか」を確認すること。
+#
+# Schema: ggshield 公式 (https://docs.gitguardian.com/ggshield-docs/reference/config)
+#   - paths-ignore はトップレベル（secret 配下ではない）
+#   - matches-ignore はトップレベル（ignored-matches ではなく matches-ignore）
 
 version: 2
 
-secret:
-  # ggshield の secret スキャナ向け allowlist
-  ignored-matches:
-    - name: "argocd dev admin password (local kind only, ADR-POL-002)"
-      match: "ArgoCD123!"
-    - name: "k1s0 local-stack postgres dev password (CNPG cluster, kind only)"
-      match: "k1s0-local-dev-password"
+# 文字列マッチで全 secret 検出から除外（dev-only credentials）
+matches-ignore:
+  - name: "argocd dev admin password (local kind only, ADR-POL-002)"
+    match: "ArgoCD123!"
+  - name: "k1s0 local-stack postgres dev password (CNPG cluster, kind only)"
+    match: "k1s0-local-dev-password"
 
-  # ファイル単位の例外（local-stack の bootstrap が dev credentials を参照する）
-  ignored-paths:
-    - "tools/local-stack/lib/apply-layers.sh"
-    - "tools/local-stack/restore-cluster.sh"
-    - "tools/local-stack/verify-cluster.sh"
-    - "tools/local-stack/up.sh"
-    - "infra/gitops/local-stack/argocd-repo-secret.yaml"
-    - "infra/gitops/local-stack/README.md"
-    - "tools/local-stack/manifests/60-cnpg/k1s0-cluster.yaml"
-    - "tools/local-stack/manifests/85-backstage/values.yaml"
+# パス単位で全 secret 検出から除外（local-stack の bootstrap が dev credentials を参照）
+paths-ignore:
+  - "tools/local-stack/lib/apply-layers.sh"
+  - "tools/local-stack/restore-cluster.sh"
+  - "tools/local-stack/verify-cluster.sh"
+  - "tools/local-stack/up.sh"
+  - "infra/gitops/local-stack/argocd-repo-secret.yaml"
+  - "infra/gitops/local-stack/README.md"
+  - "tools/local-stack/manifests/60-cnpg/k1s0-cluster.yaml"
+  - "tools/local-stack/manifests/85-backstage/values.yaml"
