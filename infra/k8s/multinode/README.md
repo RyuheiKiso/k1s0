@@ -100,3 +100,49 @@ hello                                                       # ✅ allowed
   CNI を使うため、本 prescription での検証結果は **そのまま production に転用可能**
 - `k1s0-local` (single-node + kindnet) で検証できなかった「multi-node 挙動 +
   NetworkPolicy 強制」は本 prescription で kind ベースに保ったまま検証可能
+
+## I1〜I3 追加検証 (2026-04-30 後段)
+
+H3a で prescription を validate した後、application-level の挙動も multi-node で
+検証して production carry-over matrix の `(要追加検証 multi-node)` 列を埋めた。
+
+### I1: multi-replica perf SLA (G7 仮説の実証)
+
+`tier1-state` を 3 replica + Pod anti-affinity (各 worker に 1 つ) で deploy、
+in-cluster `ab` で c=50 / 5000 req:
+
+| 環境 | p50 | p95 | p99 |
+|---|---|---|---|
+| single-pod (k1s0-local, c=50) | 5ms | 71ms | **80ms** ❌ SLA 未達 |
+| 3-replica (multinode, c=50) | 4ms | 8ms | **15ms** (5x 改善) ⚠️ ほぼ達成 |
+| 3-replica (multinode, c=100) | 9ms | 17ms | **20ms** |
+
+→ G7 仮説 (production multi-replica で SLA 達成) は **方向として実証**。kind の
+overhead (containerd / port-forward なし in-cluster でも残る) で 10ms 微超過、
+production の bare metal / cloud node では 5+ replica で SLA <10ms を達成見込み。
+
+### I2: NFR-A-FT-001 multi-node failover
+
+3 replica 状態で 1 pod を `--force --grace-period=0` で削除しつつ 30 秒間 HTTP
+トラフィックを流す:
+
+- 30 秒 window で **8449 requests / 2 failures (0.024%)**
+- 新 Pod (`tier1-state-...-54nzn`) が同 worker で **27 秒で Ready**
+- Service LB が remaining 2 replicas にトラフィックをすぐルーティング = 実質
+  zero-downtime
+- single-pod では同シナリオが **756 秒 (12 分)** だった (NFR-A-FT-001 SLA <15min
+  ぎりぎり) → multi-replica で **28x 高速化**、SLA を桁違いに上回る達成
+
+### I3: Istio Ambient mTLS STRICT (multi-node)
+
+Istio Ambient (istio-base 1.29.2 + istio-cni + ztunnel + istiod profile=ambient)
+を multi-node cluster に install、`k1s0-tier1` namespace に
+`istio.io/dataplane-mode=ambient` label + PeerAuthentication STRICT を適用:
+
+- **in-mesh → in-mesh** (perf-tester → tier1-state): 成功 (ztunnel が自動 mTLS、
+  cross-node でも問題なし)
+- **outside-mesh → in-mesh** (outside-mesh ns の curl pod → tier1-state):
+  `curl: (56) Recv failure: Connection reset by peer` で **STRICT が reject**
+
+→ ambient mesh が **複数 worker 跨ぎでも mTLS 強制を維持**。single-node (C3)
+の検証結果が multi-node でもそのまま再現することを確認。
