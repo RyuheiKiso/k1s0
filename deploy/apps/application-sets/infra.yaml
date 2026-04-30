@@ -1,11 +1,15 @@
 # 本ファイルは infra/environments/<env>/ 全体を Argo CD で配備する ApplicationSet。
-# list-generator で dev / staging / prod の 3 環境を固定し、それぞれの cluster に
-# kustomize build 結果（CNPG / Kafka / MinIO / Valkey / LGTM / Istio / Envoy Gateway / Dapr 等）を sync する。
+# **dev 環境はリストから除外** — ADR-POL-002 で local kind cluster の infra layer は
+# tools/local-stack/up.sh apply_* が SoT として配備する責務に固定したため、argocd の
+# infra-dev Application が同じリソースを reconcile しようとすると dual ownership で
+# OutOfSync Degraded になる（P4 後の検証で実証済み）。staging / prod のみを argocd
+# 管理範囲とし、各々の remote cluster URL に sync する。
 #
 # Sync Wave -10〜0 で Operator + CRD と data backend を起動。tier1 以降は
 # 別 ApplicationSet（tier1-facade.yaml 等）が Wave 10〜30 で起動する。
 #
 # 詳細設計: docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md
+# 関連 ADR: ADR-POL-002（local cluster 配備は up.sh が SoT）
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -18,8 +22,7 @@ spec:
   generators:
     - list:
         elements:
-          - env: dev
-            cluster: https://kubernetes.default.svc
+          # dev は ADR-POL-002 により up.sh apply_* が SoT のため argocd 管理対象外
           - env: staging
             cluster: https://staging.k1s0.internal
           - env: prod

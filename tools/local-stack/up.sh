@@ -386,6 +386,22 @@ bootstrap_gitea_content() {
     local gitea_pod
     gitea_pod=$(kubectl -n gitops get pod -l app=gitea -o jsonpath='{.items[0].metadata.name}')
 
+    # ADR-POL-002 P4 finishing で発覚: gitea web pod が Available になっても
+    # SQLite schema 初期化が完了するまでに数秒かかる（admin user create が
+    # "no such table: user" で失敗する）。schema 初期化を polling で確認する。
+    log "  gitea SQLite schema 初期化を待機 (max 60s)"
+    local schema_ready=0
+    for i in {1..30}; do
+        if kubectl -n gitops exec "${gitea_pod}" -- /usr/local/bin/gitea \
+            --config /data/gitea/conf/app.ini admin user list 2>/dev/null >/dev/null; then
+            schema_ready=1
+            log "    → schema ready ($((i*2))s)"
+            break
+        fi
+        sleep 2
+    done
+    [[ "${schema_ready}" == "1" ]] || warn "  schema 初期化が 60s 内に終わらず先に進む（後続 retry あり）"
+
     # admin user 作成（既存なら skip）。gitea 1.22 系の admin user create CLI を使用。
     # ADR-POL-002 P4 で発覚: --config を渡さないと "Unable to load config file" で失敗するため明示。
     kubectl -n gitops exec "${gitea_pod}" -- /usr/local/bin/gitea \
@@ -394,30 +410,65 @@ bootstrap_gitea_content() {
         || true
 
     # port-forward 経由で API + git push
+    # ADR-POL-002 P4 finishing で発覚: port-forward の establish 待ちが固定 sleep だと
+    # 環境差で取り損ねる。curl で health check が通るまで polling する。
     kubectl -n gitops port-forward svc/gitea 13000:3000 >/dev/null 2>&1 &
     local pf_pid=$!
-    sleep 3
+    local pf_ready=0
+    for i in {1..15}; do
+        if curl -sf "http://localhost:13000/api/healthz" >/dev/null 2>&1; then
+            pf_ready=1
+            break
+        fi
+        sleep 1
+    done
+    if [[ "${pf_ready}" != "1" ]]; then
+        warn "  gitea port-forward が establish せず bootstrap 継続不能"
+        kill ${pf_pid} 2>/dev/null || true
+        return
+    fi
 
     # repo 作成: user "argocd" 直下に repo "k1s0" を作る（既存なら skip）。
     # ADR-POL-002 P4 で発覚: gitea で user 名と org 名は同 namespace のため、user "argocd" 作成後に
     # org "argocd" を作ろうとすると "user already exists" で衝突する。
     # argocd Application URL は `argocd/k1s0` のままで user/org どちらでも解決するため、
     # user 直下 repo として作成する。
-    curl -sf -u "argocd:ArgoCD123!" -X POST "http://localhost:13000/api/v1/user/repos" \
-        -H "Content-Type: application/json" \
-        -d '{"name":"k1s0","auto_init":false,"default_branch":"main","private":false}' >/dev/null 2>&1 || true
+    # ADR-POL-002 P4 finishing で発覚: API repo 作成失敗を |true で誤魔化すと
+    # 後段 git push が "repository not found" 失敗する。明示的に成功確認 + retry する。
+    local repo_ready=0
+    for i in {1..5}; do
+        local code
+        code=$(curl -sS -o /dev/null -w "%{http_code}" -u "argocd:ArgoCD123!" \
+            -X POST "http://localhost:13000/api/v1/user/repos" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"k1s0","auto_init":false,"default_branch":"main","private":false}' 2>/dev/null)
+        # 201 Created = 新規作成、409 Conflict = 既存（OK）、それ以外は retry
+        if [[ "${code}" == "201" || "${code}" == "409" ]]; then
+            repo_ready=1
+            log "    → repo argocd/k1s0 ready (HTTP ${code}, attempt ${i})"
+            break
+        fi
+        sleep 2
+    done
+    if [[ "${repo_ready}" != "1" ]]; then
+        warn "  gitea repo 作成失敗（5 retry）。後段 push は失敗する見込み"
+    fi
 
     # 現 working tree を push（commit 済み内容のみ）
     pushd "${REPO_ROOT}" >/dev/null
     git remote remove gitea-local 2>/dev/null || true
     git remote add gitea-local "http://argocd:ArgoCD123!@localhost:13000/argocd/k1s0.git"
-    git push gitea-local HEAD:main --force 2>&1 | tail -3 || warn "  gitea push 失敗"
+    if git push gitea-local HEAD:main --force 2>&1 | tail -3; then
+        log "    → git push 成功"
+    else
+        warn "  gitea push 失敗（後段 argocd Application が source unreachable で OutOfSync する）"
+    fi
     git remote remove gitea-local 2>/dev/null || true
     popd >/dev/null
 
     kill ${pf_pid} 2>/dev/null || true
     wait ${pf_pid} 2>/dev/null || true
-    log "  → gitea push 完了"
+    log "  → gitea bootstrap 完了"
 }
 
 # deploy/apps/application-sets/*.yaml を local gitea URL に変換して直接適用。
