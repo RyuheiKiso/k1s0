@@ -1,0 +1,32 @@
+# envoy-gateway ローカル開発用 (Gateway API 1.x 実装)
+# helm chart: oci://docker.io/envoyproxy/gateway-helm v1.2.4
+#
+# 設計: tier1 facade の external 露出に envoy-grpcweb proxy が依存しているため、
+# Gateway API リソースを admit する controller として配備する。
+# Kyverno (ADR-POL-002) require-resource-requests を満たす。
+
+deployment:
+  envoyGateway:
+    image:
+      repository: docker.io/envoyproxy/gateway
+      tag: v1.2.4
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  ports:
+    - name: grpc
+      port: 18000
+      targetPort: 18000
+    - name: ratelimit
+      port: 18001
+      targetPort: 18001
+
+config:
+  envoyGateway:
+    logging:
+      level:
+        default: info

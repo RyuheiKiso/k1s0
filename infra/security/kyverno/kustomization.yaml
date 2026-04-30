@@ -14,3 +14,4 @@ kind: Kustomization
 
 resources:
   - baseline-policies.yaml
+  - block-non-canonical-helm-releases.yaml  # ADR-POL-002 drift 防止

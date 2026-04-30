@@ -1,10 +1,14 @@
-# 本ファイルは ops 系ツール（Backstage 開発者ポータル / LitmusChaos / Runbook サーバ）を配備する ApplicationSet。
+# 本ファイルは ops 系ツール（LitmusChaos / Runbook サーバ）を配備する ApplicationSet。
 # Sync Wave 40 で展開し、tier1〜tier3 のアプリ Pod 起動完了後に運用ツールを順次立ち上げる。
-# Backstage は別途 `infra/k8s/namespaces/k1s0-platform-tools.yaml` で namespace 確保済み前提。
+#
+# **Backstage はリストから除外** — ADR-POL-002 で Backstage は up.sh apply_backstage が
+# SoT として helm install する正規 layer に固定したため、argocd ops から重複管理しない。
+# ops/backstage path も repo に存在せず ComparisonError が出ていた経路を解消する。
 #
 # 詳細設計:
 #   docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/02_ArgoCD_ApplicationSet配置.md
 #   docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/06_Backstage_プラグイン配置.md
+# 関連 ADR: ADR-POL-002（Backstage の SoT は up.sh）
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -17,10 +21,7 @@ spec:
   generators:
     - list:
         elements:
-          - app: backstage
-            path: ops/backstage
-            namespace: k1s0-platform-tools
-            wave: "40"
+          # backstage は ADR-POL-002 で up.sh apply_backstage が SoT のため除外
           - app: chaos
             path: ops/chaos
             namespace: k1s0-chaos

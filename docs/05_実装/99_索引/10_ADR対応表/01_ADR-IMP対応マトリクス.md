@@ -61,6 +61,13 @@ Kyverno ポリシーを Platform + Security の二重承認で運用する構造
 - 直接: `IMP-POL-POL-001`（dual ownership） / `IMP-POL-POL-003`（例外 30 日時限）
 - 間接: `IMP-POL-POL-002, 004〜007`（audit モード / 脅威モデル / Runbook / WORM / NetworkPolicy） / `IMP-SUP-POL-006`（cosign 検証の Kyverno 実行）
 
+### ADR-POL-002（local-stack を Single Source of Truth とする）
+
+`tools/local-stack/up.sh` をローカル kind cluster の唯一の構成 SoT とし、helm release は up.sh apply_* 関数経由 / argocd Application 経由でのみ許可。Kyverno block-non-canonical-helm-releases (runtime) + CI drift-check workflow (PR) + `up.sh --mode {dev,strict}` (運用境界) の三層防御で SoT 違反を構造的に阻止する。
+
+- 直接: `IMP-DEV-POL-006`（ローカルは kind/k3d + Dapr Local で本番再現 = up.sh が唯一の経路） / `IMP-DEV-DC-014`（ローカル Kubernetes と Dapr Local の統合 = up.sh layer 構成と整合）
+- 間接: `IMP-POL-POL-001〜007`（dual ownership 設計を SoT 強制 layer に拡張） / `IMP-SUP-POL-005`（drift 検知 Runbook） / `IMP-DEV-ONB-055〜059`（ephemeral namespace の使い方をオンボーディングへ反映）
+
 ### ADR-OBS-003（Incident Taxonomy 統合）
 
 可用性（AVL）インシデントとセキュリティ（SEC）インシデントを単一 Taxonomy で統合分類する ADR。
@@ -337,6 +344,7 @@ tier2 / tier3 から tier1 の内部言語判別を不可視化する ADR。
 | IMP-DEV-BSN-047 | ADR-BS-001 | 間接 | Backstage GitHub Actions 統合 |
 | IMP-DEV-BSN-049 | ADR-BS-001 | 間接 | Backstage Kubernetes プラグイン設定 |
 | IMP-DEV-DC-013 | ADR-DEV-002 | 間接 | Dev Container 追加設定 = Windows + WSL2 環境 |
+| IMP-DEV-DC-014 | ADR-POL-002 | 直接 | ローカル Kubernetes 構成は up.sh 経由のみ |
 | IMP-DEV-DC-016 | ADR-DEV-002 | 間接 | Dev Container GPU 対応設定 |
 | IMP-DEV-DC-017 | ADR-DEV-002 | 間接 | Dev Container port forwarding 設定 |
 | IMP-DEV-DC-018 | ADR-DEV-002 | 間接 | Dev Container lifecycle scripts 設定 |
@@ -344,6 +352,7 @@ tier2 / tier3 から tier1 の内部言語判別を不可視化する ADR。
 | IMP-DEV-GP-024 | ADR-DEV-001 | 間接 | GitHub Pages TypeScript 例 |
 | IMP-DEV-GP-026 | ADR-DEV-001 | 間接 | GitHub Pages Python 例 |
 | IMP-DEV-GP-027 | ADR-DEV-001 | 間接 | GitHub Pages Rust 例 |
+| IMP-DEV-POL-006 | ADR-POL-002 | 直接 | ローカル本番再現 (kind/k3d + Dapr Local) は up.sh apply_* / argocd Application 経由のみ |
 | IMP-DEV-ONB-053 | ADR-DEV-001 | 間接 | onboarding チェックリスト追加 |
 | IMP-DEV-ONB-054 | ADR-DEV-001 | 間接 | onboarding 自動セットアップスクリプト |
 | IMP-DEV-ONB-057 | ADR-DEV-001 | 間接 | onboarding SLI 計測設定 |

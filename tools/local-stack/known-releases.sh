@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+# tools/local-stack/known-releases.sh — ADR-POL-002 canonical helm release set printer
+#
+# 用途:
+#   1. CI (drift-check) が現 cluster の helm list と比較する基準として使う。
+#   2. Kyverno policy block-non-canonical-helm-releases.yaml の allow-list と
+#      手動同期しているか PR で機械検証する基準。
+#
+# 出力: canonical release 名を 1 行 1 件で stdout に出力。
+#
+# 依存: tools/local-stack/up.sh の `helm upgrade --install <release-name>` 行と、
+#       本スクリプトの output、Kyverno policy の allow-list が三者整合する必要がある。
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+UP_SH="${REPO_ROOT}/tools/local-stack/up.sh"
+
+# up.sh から `helm upgrade --install <release-name> ...` を grep で抽出
+grep -E '^\s*helm upgrade --install\s+\S+' "${UP_SH}" \
+    | sed -E 's/.*helm upgrade --install\s+([A-Za-z0-9_-]+).*/\1/' \
+    | sort -u
+
+# istioctl install で生成される helm release も canonical 扱い
+echo "istio-base"
+echo "istio-cni"
+echo "istiod"
+echo "ztunnel"

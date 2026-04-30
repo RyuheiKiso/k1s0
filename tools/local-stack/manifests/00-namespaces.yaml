@@ -126,3 +126,49 @@ metadata:
   name: keycloak
   labels:
     k1s0.io/layer: identity
+---
+# ADR-POL-002 P4 で発覚した不足 namespace 群（gitea / registry / spire-server / temporal /
+# argo-rollouts / envoy-gateway-system が事前作成されておらず apply_* が namespace not found で
+# 失敗していた）。SoT 統一のため up.sh 内の全 helm release / manual apply 先 namespace を
+# 本ファイルで先行作成する方針に統一。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops
+  labels:
+    k1s0.io/layer: gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry
+  labels:
+    k1s0.io/layer: registry
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spire-server
+  labels:
+    k1s0.io/layer: identity
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argo-rollouts
+  labels:
+    k1s0.io/layer: gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: envoy-gateway-system
+  labels:
+    k1s0.io/layer: ingress
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: temporal
+  labels:
+    k1s0.io/layer: workflow

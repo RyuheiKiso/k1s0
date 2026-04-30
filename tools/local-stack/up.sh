@@ -16,8 +16,14 @@
 #
 # レイヤと依存:
 #   cluster -> cni -> cert-manager -> metallb -> istio-ambient -> kyverno -> spire ->
-#   dapr -> flagd -> argocd -> cnpg -> kafka -> minio -> valkey -> openbao -> backstage ->
+#   dapr -> flagd -> gitea -> registry -> argocd -> argo-rollouts -> envoy-gateway ->
+#   cnpg -> kafka -> temporal -> minio -> valkey -> openbao -> backstage ->
 #   observability -> keycloak
+#
+# Mode (ADR-POL-002):
+#   --mode dev    開発者の探索を許す。Kyverno の drift policy は audit のみ。既定 (tier*-dev / docs-writer)。
+#   --mode strict drift を deny。SoT 違反 (up.sh 既知 release set 外の helm install) を runtime 拒否。
+#                  既定 (infra-ops / full / production-mirror)。
 
 set -euo pipefail
 
@@ -43,20 +49,41 @@ readonly VALKEY_VERSION="5.5.1"
 readonly LOKI_CHART_VERSION="6.21.0"
 readonly TEMPO_CHART_VERSION="1.24.4"
 readonly GRAFANA_CHART_VERSION="8.10.4"
+readonly OTEL_COLLECTOR_VERSION="0.117.0"
+readonly PROMETHEUS_CHART_VERSION="29.4.0"
 readonly METALLB_VERSION="v0.14.9"
 readonly CALICO_VERSION="v3.29.1"
+# ADR-POL-002 で追加された SoT 強制対象の新規レイヤ
+readonly ARGO_ROLLOUTS_VERSION="2.40.9"
+readonly ENVOY_GATEWAY_VERSION="v1.2.4"
+readonly TEMPORAL_VERSION="0.65.0"
 
 declare -A ROLE_LAYERS=(
-    ["tier1-rust-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg kafka minio valkey openbao"
-    ["tier1-go-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg kafka minio valkey openbao"
-    ["tier2-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg kafka minio valkey openbao"
-    ["tier3-web-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg openbao backstage"
-    ["tier3-native-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg openbao"
-    ["platform-cli-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg backstage"
+    ["tier1-rust-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg kafka minio valkey openbao"
+    ["tier1-go-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg kafka minio valkey openbao"
+    ["tier2-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts cnpg kafka temporal minio valkey openbao"
+    ["tier3-web-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts cnpg openbao backstage"
+    ["tier3-native-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts cnpg openbao"
+    ["platform-cli-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg backstage"
     ["sdk-dev"]="cni cert-manager metallb istio kyverno spire dapr flagd cnpg kafka openbao"
-    ["infra-ops"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg kafka minio valkey openbao backstage observability keycloak"
+    ["infra-ops"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg kafka temporal minio valkey openbao backstage observability keycloak"
     ["docs-writer"]="cni cert-manager"
-    ["full"]="cni cert-manager metallb istio kyverno spire dapr flagd argocd cnpg kafka minio valkey openbao backstage observability keycloak"
+    ["full"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg kafka temporal minio valkey openbao backstage observability keycloak"
+)
+
+# ADR-POL-002: role 別の既定 mode（drift policy の Kyverno 強制度）。
+# `--mode` で明示指定された場合はそちらが優先。
+declare -A ROLE_MODE=(
+    ["tier1-rust-dev"]="dev"
+    ["tier1-go-dev"]="dev"
+    ["tier2-dev"]="dev"
+    ["tier3-web-dev"]="dev"
+    ["tier3-native-dev"]="dev"
+    ["platform-cli-dev"]="dev"
+    ["sdk-dev"]="dev"
+    ["docs-writer"]="dev"
+    ["infra-ops"]="strict"
+    ["full"]="strict"
 )
 
 ROLE="docs-writer"
@@ -64,6 +91,7 @@ SELECTED_LAYERS=""
 SKIP_LAYERS=""
 SKIP_CLUSTER=0
 EXTRA_OBS=0
+MODE=""  # ADR-POL-002: dev | strict（未指定なら ROLE_MODE のデフォルトを使う）
 
 log() { printf '\033[36m[local-stack]\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m[local-stack][warn]\033[0m %s\n' "$*"; }
@@ -82,12 +110,21 @@ while [[ $# -gt 0 ]]; do
         --skip) SKIP_LAYERS="$2"; shift 2 ;;
         --no-cluster) SKIP_CLUSTER=1; shift ;;
         --observability) EXTRA_OBS=1; shift ;;
+        --mode) MODE="$2"; shift 2 ;;
         *) fail "未知の引数: $1" ;;
     esac
 done
 
 if [[ -z "${ROLE_LAYERS[${ROLE}]+x}" ]]; then
     fail "未知の role: ${ROLE}（利用可能: ${!ROLE_LAYERS[*]}）"
+fi
+
+# mode 解決（明示指定 > role の既定 > "dev" fallback）
+if [[ -z "${MODE}" ]]; then
+    MODE="${ROLE_MODE[${ROLE}]:-dev}"
+fi
+if [[ "${MODE}" != "dev" && "${MODE}" != "strict" ]]; then
+    fail "未知の mode: ${MODE}（dev | strict のみ）"
 fi
 
 if [[ -n "${SELECTED_LAYERS}" ]]; then
@@ -105,6 +142,7 @@ fi
 LAYERS_TO_APPLY="$(echo "${LAYERS_TO_APPLY}" | tr -s ' ')"
 
 log "role=${ROLE}"
+log "mode=${MODE} (ADR-POL-002)"
 log "layers=${LAYERS_TO_APPLY}"
 
 has_layer() {
@@ -129,12 +167,21 @@ wait_for_pods_ready() {
 # 固定値はホストの docker daemon が異なる subnet を割当てた場合に失敗するため、
 # `docker network inspect` 経由で実際の subnet を抽出する。
 generate_metallb_pool() {
+    # ADR-POL-002 P4 で発覚: docker network kind が IPv4 と IPv6 両方の subnet を持つ環境では
+    # IPAM.Config[0] が IPv6 になる場合があり、"fc00:f853:ccd:e793::/64" のような subnet を引いて
+    # MetalLB の IPv4 形式 IPAddressPool 生成が壊れる。明示的に IPv4 subnet のみを抽出する。
     local subnet
     subnet="$(docker network inspect kind 2>/dev/null \
-        | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['IPAM']['Config'][0]['Subnet'])" 2>/dev/null \
+        | python3 -c "import sys,json
+d = json.load(sys.stdin)
+for c in d[0]['IPAM']['Config']:
+    s = c.get('Subnet','')
+    if '.' in s and ':' not in s:
+        print(s)
+        break" 2>/dev/null \
         || echo "")"
     if [[ -z "${subnet}" ]]; then
-        warn "kind docker network から subnet を取得できませんでした。固定値 172.18.255.200-250 を使用"
+        warn "kind docker network から IPv4 subnet を取得できませんでした。固定値 172.18.255.200-250 を使用"
         echo "172.18.255.200-172.18.255.250"
         return
     fi
@@ -161,14 +208,18 @@ start_cluster() {
 
 apply_cni() {
     has_layer cni || return 0
-    log "Calico CNI install (${CALICO_VERSION})"
+    log "Calico CNI install (${CALICO_VERSION}, quay.io mirror)"
     kubectl create -f "https://raw.githubusercontent.com/projectcalico/calico/${CALICO_VERSION}/manifests/tigera-operator.yaml" 2>/dev/null || true
+    # registry: "quay.io/" 指定で Docker Hub の rate limit 回避（ADR-POL-002 P4 で実証済み）。
+    # multinode (4 ノード) で同一イメージを 4× pull するため、unauthenticated docker.io 100 pulls/6h
+    # の壁を踏みやすい。quay.io/calico/* は同等の image を提供する公式ミラー。
     kubectl apply -f - <<EOF || true
 apiVersion: operator.tigera.io/v1
 kind: Installation
 metadata:
   name: default
 spec:
+  registry: quay.io/
   calicoNetwork:
     ipPools:
       - blockSize: 26
@@ -177,12 +228,20 @@ spec:
         natOutgoing: Enabled
         nodeSelector: all()
 EOF
-    wait_for_pods_ready calico-system 300s
+    # multinode の image pull に時間がかかるため timeout を 600s に延長
+    wait_for_pods_ready calico-system 600s
 }
 
 apply_cert_manager() {
     has_layer cert-manager || return 0
     log "cert-manager install (${CERT_MANAGER_VERSION})"
+    # cert-manager の --enable-gateway-api 引数が要求する Gateway API CRDs を事前 install。
+    # envoy-gateway 自身も同 CRDs を bundle するが kubectl apply は冪等に動作するため衝突しない。
+    # ADR-POL-002 P4 rebuild 時に「Gateway API CRDs 不在で cert-manager-controller が CrashLoopBackOff」
+    # を実証済み（v1.20.2 のデフォルト挙動として CRDs 不在を fatal とする変更が入った）。
+    log "  Gateway API CRDs (standard v1.2.1) を事前 install"
+    kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml" 2>&1 | tail -3 \
+        || warn "  Gateway API CRDs install 失敗（後続 cert-manager が CrashLoop の可能性）"
     ensure_helm_repo jetstack https://charts.jetstack.io
     helm upgrade --install cert-manager jetstack/cert-manager \
         --namespace cert-manager --version "${CERT_MANAGER_VERSION}" \
@@ -239,6 +298,21 @@ apply_kyverno() {
     helm upgrade --install kyverno kyverno/kyverno \
         --namespace kyverno --version "${KYVERNO_VERSION}" \
         -f "${MANIFESTS}/35-kyverno/values.yaml" --wait
+
+    # baseline + drift policy を適用（ADR-POL-001 二分所有 + ADR-POL-002 SoT）
+    log "  Kyverno ClusterPolicy (baseline + drift) を適用"
+    kubectl apply -k "${REPO_ROOT}/infra/security/kyverno/" 2>&1 | tail -5 || warn "  policy apply 失敗"
+
+    # ADR-POL-002 mode 切替: dev のみ drift policy を Audit に patch（逆設計）。
+    # YAML default を Enforce にしたため strict mode では何もしない（Enforce が persistent）。
+    if [[ "${MODE}" == "dev" ]]; then
+        log "  mode=dev: drift policy を Audit に切替（探索を許す）"
+        kubectl patch clusterpolicy block-non-canonical-helm-releases --type=json \
+            -p='[{"op":"replace","path":"/spec/validationFailureAction","value":"Audit"}]' \
+            2>/dev/null || warn "  drift policy Audit patch 失敗"
+    else
+        log "  mode=strict: drift policy は YAML default の Enforce で稼働"
+    fi
 }
 
 apply_spire() {
@@ -271,6 +345,20 @@ apply_flagd() {
     kubectl apply -f "${MANIFESTS}/50-flagd/manifest.yaml"
 }
 
+apply_gitea() {
+    has_layer gitea || return 0
+    log "Gitea install (Argo CD の sync 元 git)"
+    kubectl apply -f "${REPO_ROOT}/infra/gitops/local-stack/gitea-deployment.yaml"
+    kubectl apply -f "${REPO_ROOT}/infra/gitops/local-stack/gitea-service.yaml"
+}
+
+apply_registry() {
+    has_layer registry || return 0
+    log "OCI registry install (Kyverno ImageVerify 検証用)"
+    kubectl apply -f "${REPO_ROOT}/infra/registry/local/deployment.yaml"
+    kubectl apply -f "${REPO_ROOT}/infra/registry/local/service.yaml"
+}
+
 apply_argocd() {
     has_layer argocd || return 0
     log "Argo CD install (${ARGOCD_VERSION}, NodePort 30080)"
@@ -278,6 +366,152 @@ apply_argocd() {
     helm upgrade --install argocd argo/argo-cd \
         --namespace argocd --version "${ARGOCD_VERSION}" \
         -f "${MANIFESTS}/55-argocd/values.yaml" --wait || true
+
+    # ADR-POL-002 (E 群解消): GitOps を SoT として確立する。
+    # argocd 起動後、gitea に repo 内容を push し、deploy/apps/app-of-apps と
+    # deploy/apps/application-sets の全 9 件を argocd に登録する（URL は local gitea に変換）。
+    if has_layer gitea; then
+        kubectl apply -f "${REPO_ROOT}/infra/gitops/local-stack/argocd-repo-secret.yaml" 2>/dev/null || true
+        bootstrap_gitea_content
+        apply_argocd_appsets
+    fi
+}
+
+# gitea に local リポジトリ内容を push（idempotent）。
+# argocd が repo を sync する前提として呼ばれる。
+bootstrap_gitea_content() {
+    log "  Gitea content bootstrap (admin user + argocd/k1s0 repo + push)"
+    kubectl -n gitops wait --for=condition=Available deployment/gitea --timeout=300s 2>/dev/null \
+        || { warn "  gitea が Available にならず bootstrap スキップ"; return; }
+    local gitea_pod
+    gitea_pod=$(kubectl -n gitops get pod -l app=gitea -o jsonpath='{.items[0].metadata.name}')
+
+    # ADR-POL-002 P4 finishing で発覚: gitea web pod が Available になっても
+    # SQLite schema 初期化が完了するまでに数秒かかる（admin user create が
+    # "no such table: user" で失敗する）。schema 初期化を polling で確認する。
+    log "  gitea SQLite schema 初期化を待機 (max 60s)"
+    local schema_ready=0
+    for i in {1..30}; do
+        if kubectl -n gitops exec "${gitea_pod}" -- /usr/local/bin/gitea \
+            --config /data/gitea/conf/app.ini admin user list 2>/dev/null >/dev/null; then
+            schema_ready=1
+            log "    → schema ready ($((i*2))s)"
+            break
+        fi
+        sleep 2
+    done
+    [[ "${schema_ready}" == "1" ]] || warn "  schema 初期化が 60s 内に終わらず先に進む（後続 retry あり）"
+
+    # admin user 作成（既存なら skip）。gitea 1.22 系の admin user create CLI を使用。
+    # ADR-POL-002 P4 で発覚: --config を渡さないと "Unable to load config file" で失敗するため明示。
+    kubectl -n gitops exec "${gitea_pod}" -- /usr/local/bin/gitea \
+        --config /data/gitea/conf/app.ini admin user create \
+        --username argocd --password 'ArgoCD123!' --email 'argocd@k1s0.local' --admin 2>/dev/null \
+        || true
+
+    # port-forward 経由で API + git push
+    # ADR-POL-002 P4 finishing で発覚: port-forward の establish 待ちが固定 sleep だと
+    # 環境差で取り損ねる。curl で health check が通るまで polling する。
+    kubectl -n gitops port-forward svc/gitea 13000:3000 >/dev/null 2>&1 &
+    local pf_pid=$!
+    local pf_ready=0
+    for i in {1..15}; do
+        if curl -sf "http://localhost:13000/api/healthz" >/dev/null 2>&1; then
+            pf_ready=1
+            break
+        fi
+        sleep 1
+    done
+    if [[ "${pf_ready}" != "1" ]]; then
+        warn "  gitea port-forward が establish せず bootstrap 継続不能"
+        kill ${pf_pid} 2>/dev/null || true
+        return
+    fi
+
+    # repo 作成: user "argocd" 直下に repo "k1s0" を作る（既存なら skip）。
+    # ADR-POL-002 P4 で発覚: gitea で user 名と org 名は同 namespace のため、user "argocd" 作成後に
+    # org "argocd" を作ろうとすると "user already exists" で衝突する。
+    # argocd Application URL は `argocd/k1s0` のままで user/org どちらでも解決するため、
+    # user 直下 repo として作成する。
+    # ADR-POL-002 P4 finishing で発覚: API repo 作成失敗を |true で誤魔化すと
+    # 後段 git push が "repository not found" 失敗する。明示的に成功確認 + retry する。
+    local repo_ready=0
+    for i in {1..5}; do
+        local code
+        code=$(curl -sS -o /dev/null -w "%{http_code}" -u "argocd:ArgoCD123!" \
+            -X POST "http://localhost:13000/api/v1/user/repos" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"k1s0","auto_init":false,"default_branch":"main","private":false}' 2>/dev/null)
+        # 201 Created = 新規作成、409 Conflict = 既存（OK）、それ以外は retry
+        if [[ "${code}" == "201" || "${code}" == "409" ]]; then
+            repo_ready=1
+            log "    → repo argocd/k1s0 ready (HTTP ${code}, attempt ${i})"
+            break
+        fi
+        sleep 2
+    done
+    if [[ "${repo_ready}" != "1" ]]; then
+        warn "  gitea repo 作成失敗（5 retry）。後段 push は失敗する見込み"
+    fi
+
+    # 現 working tree を push（commit 済み内容のみ）
+    pushd "${REPO_ROOT}" >/dev/null
+    git remote remove gitea-local 2>/dev/null || true
+    git remote add gitea-local "http://argocd:ArgoCD123!@localhost:13000/argocd/k1s0.git"
+    if git push gitea-local HEAD:main --force 2>&1 | tail -3; then
+        log "    → git push 成功"
+    else
+        warn "  gitea push 失敗（後段 argocd Application が source unreachable で OutOfSync する）"
+    fi
+    git remote remove gitea-local 2>/dev/null || true
+    popd >/dev/null
+
+    kill ${pf_pid} 2>/dev/null || true
+    wait ${pf_pid} 2>/dev/null || true
+    log "  → gitea bootstrap 完了"
+}
+
+# deploy/apps/application-sets/*.yaml を local gitea URL に変換して直接適用。
+# 設計判断 (ADR-POL-002):
+#   - canonical 定義は production の GitHub URL のままで保持（deploy/apps/ 配下を改変しない）。
+#   - local-stack ではコピー→sed 変換→apply の 3 段で local gitea URL に切替える。
+#   - app-of-apps は production の GitHub root から再帰展開する pattern のため local-stack では使わない
+#     （local で app-of-apps を入れると gitea 内の ApplicationSet が再び GitHub URL を読みに行き循環するため）。
+apply_argocd_appsets() {
+    log "  AppProjects + ApplicationSets を Argo CD に適用 (GitHub URL → local gitea URL 変換)"
+    local tmp
+    tmp=$(mktemp -d)
+    # AppProject を先に適用（ApplicationSet が project: k1s0-* を参照するため）
+    cp "${REPO_ROOT}/deploy/apps/projects/"*.yaml "${tmp}/" 2>/dev/null || true
+    cp "${REPO_ROOT}/deploy/apps/application-sets/"*.yaml "${tmp}/" 2>/dev/null || true
+    find "${tmp}" -name "*.yaml" -exec sed -i \
+        -e 's|https://github.com/k1s0/k1s0.git|http://gitea.gitops.svc.cluster.local:3000/argocd/k1s0.git|g' \
+        -e 's|"https://github.com/k1s0/k1s0.git"|"http://gitea.gitops.svc.cluster.local:3000/argocd/k1s0.git"|g' \
+        {} +
+    kubectl apply -f "${tmp}/" 2>&1 | tail -15 || warn "  appset apply 失敗"
+    rm -rf "${tmp}"
+    local proj_count appset_count
+    proj_count=$(ls "${REPO_ROOT}/deploy/apps/projects/"*.yaml 2>/dev/null | wc -l)
+    appset_count=$(ls "${REPO_ROOT}/deploy/apps/application-sets/"*.yaml 2>/dev/null | wc -l)
+    log "  → ${proj_count} AppProjects + ${appset_count} ApplicationSets 適用完了"
+}
+
+apply_argo_rollouts() {
+    has_layer argo-rollouts || return 0
+    log "Argo Rollouts install (${ARGO_ROLLOUTS_VERSION}, ADR-CICD-002)"
+    ensure_helm_repo argo https://argoproj.github.io/argo-helm
+    helm upgrade --install argo-rollouts argo/argo-rollouts \
+        --namespace argo-rollouts --version "${ARGO_ROLLOUTS_VERSION}" \
+        -f "${MANIFESTS}/56-argo-rollouts/values.yaml" --wait || true
+}
+
+apply_envoy_gateway() {
+    has_layer envoy-gateway || return 0
+    log "Envoy Gateway install (${ENVOY_GATEWAY_VERSION}, OCI chart)"
+    kubectl create namespace envoy-gateway-system 2>/dev/null || true
+    helm upgrade --install envoy-gateway oci://docker.io/envoyproxy/gateway-helm \
+        --namespace envoy-gateway-system --version "${ENVOY_GATEWAY_VERSION}" \
+        -f "${MANIFESTS}/57-envoy-gateway/values.yaml" --wait || true
 }
 
 apply_cnpg() {
@@ -300,6 +534,15 @@ apply_kafka() {
         -f "${MANIFESTS}/65-kafka/strimzi-values.yaml" --wait
     log "k1s0 Kafka cluster (KRaft 単一ノード)"
     kubectl apply -f "${MANIFESTS}/65-kafka/k1s0-kafka.yaml"
+}
+
+apply_temporal() {
+    has_layer temporal || return 0
+    log "Temporal install (${TEMPORAL_VERSION}, workflow engine)"
+    ensure_helm_repo temporal https://go.temporal.io/helm-charts
+    helm upgrade --install temporal temporal/temporal \
+        --namespace temporal --version "${TEMPORAL_VERSION}" \
+        -f "${MANIFESTS}/66-temporal/values.yaml" --timeout 10m || true
 }
 
 apply_minio() {
@@ -340,8 +583,9 @@ apply_backstage() {
 
 apply_observability() {
     has_layer observability || return 0
-    log "Observability (Loki ${LOKI_CHART_VERSION} / Tempo ${TEMPO_CHART_VERSION} / Grafana ${GRAFANA_CHART_VERSION}) install"
+    log "Observability (Loki ${LOKI_CHART_VERSION} / Tempo ${TEMPO_CHART_VERSION} / Grafana ${GRAFANA_CHART_VERSION} / OTel ${OTEL_COLLECTOR_VERSION}) install"
     ensure_helm_repo grafana https://grafana.github.io/helm-charts
+    ensure_helm_repo open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
     helm upgrade --install loki grafana/loki \
         --namespace observability --version "${LOKI_CHART_VERSION}" \
         -f "${MANIFESTS}/90-observability/values-loki.yaml" || true
@@ -351,6 +595,14 @@ apply_observability() {
     helm upgrade --install grafana grafana/grafana \
         --namespace observability --version "${GRAFANA_CHART_VERSION}" \
         -f "${MANIFESTS}/90-observability/values-grafana.yaml" || true
+    # OTel Collector + Prometheus (現状 drift で見つかったため SoT に取り込む)
+    ensure_helm_repo prometheus-community https://prometheus-community.github.io/helm-charts
+    helm upgrade --install prometheus prometheus-community/prometheus \
+        --namespace observability --version "${PROMETHEUS_CHART_VERSION}" \
+        -f "${MANIFESTS}/90-observability/values-prometheus.yaml" || true
+    helm upgrade --install otel-collector open-telemetry/opentelemetry-collector \
+        --namespace observability --version "${OTEL_COLLECTOR_VERSION}" \
+        -f "${MANIFESTS}/90-observability/values-otel-collector.yaml" || true
 }
 
 apply_keycloak() {
@@ -371,9 +623,14 @@ apply_kyverno
 apply_spire
 apply_dapr
 apply_flagd
+apply_gitea
+apply_registry
 apply_argocd
+apply_argo_rollouts
+apply_envoy_gateway
 apply_cnpg
 apply_kafka
+apply_temporal
 apply_minio
 apply_valkey
 apply_openbao
@@ -383,11 +640,20 @@ apply_keycloak
 
 log ""
 log "=========================================="
-log "  k1s0 local-stack 起動完了 (role=${ROLE})"
+log "  k1s0 local-stack 起動完了 (role=${ROLE} mode=${MODE})"
 log "=========================================="
-log "アクセスポイント (kind の hostPort 経由):"
+log "アクセスポイント (kind の hostPort 経由 / port-forward):"
 log "  - Argo CD UI:   http://localhost:30080  (admin / 初期 PW は kubectl -n argocd get secret argocd-initial-admin-secret)"
 log "  - Backstage:    http://localhost:30700"
 log "  - Grafana:      http://localhost:30300  (admin / k1s0-local-dev-password)"
+log "  - Gitea:        kubectl -n gitops port-forward svc/gitea 3000:3000  (admin / argocd:ArgoCD123!)"
+log "  - Temporal Web: kubectl -n temporal port-forward svc/temporal-web 8080:8080"
 log ""
 log "次の操作: tools/local-stack/status.sh で配備状態を確認、down.sh で停止"
+log "再構築前のバックアップ: tools/local-stack/backup-cluster.sh (ADR-POL-002)"
+log ""
+if [[ "${MODE}" == "strict" ]]; then
+    log "Mode=strict: Kyverno で SoT 違反 (up.sh 既知 release set 外の helm install) を deny"
+else
+    log "Mode=dev: Kyverno は audit のみ。drift は警告（PR 段階で CI が検出）"
+fi

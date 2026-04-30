@@ -1,24 +1,21 @@
+# Gitea Service (ローカル開発用)
+# ADR-POL-002: up.sh apply_gitea から呼ばれる正規 Service マニフェスト。
+# argocd-repo-secret の url は `http://gitea.gitops.svc.cluster.local:3000` を参照する。
+---
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"gitea","namespace":"gitops"},"spec":{"ports":[{"name":"http","port":3000,"targetPort":3000}],"selector":{"app":"gitea"}}}
   name: gitea
   namespace: gitops
+  labels:
+    app: gitea
+    k1s0.io/component: gitops-server
 spec:
-  - 10.96.134.44
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-  - IPv4
-  ipFamilyPolicy: SingleStack
-  ports:
-  - name: http
-    port: 3000
-    protocol: TCP
-    targetPort: 3000
+  type: ClusterIP
   selector:
     app: gitea
-  sessionAffinity: None
-  type: ClusterIP
-  loadBalancer: {}
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
