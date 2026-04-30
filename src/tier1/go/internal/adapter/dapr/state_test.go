@@ -139,8 +139,15 @@ func TestStateAdapter_Get_SDKError(t *testing.T) {
 func TestStateAdapter_Set_NoEtagThenWithEtag(t *testing.T) {
 	saveCalled := 0
 	saveETagCalled := 0
+	getAfterSaveCalled := 0
 	var observedEtag string
 	fake := &fakeStateClient{
+		// Set が新 ETag 取得のため Save 後に Get を 1 回呼ぶようになった。
+		// 戻り値の Etag が SetResponse.NewEtag に伝搬する。
+		getFn: func(_ context.Context, _, _ string, _ map[string]string) (*daprclient.StateItem, error) {
+			getAfterSaveCalled++
+			return &daprclient.StateItem{Etag: "etag-after-save"}, nil
+		},
 		saveFn: func(_ context.Context, store, key string, data []byte, meta map[string]string, _ ...daprclient.StateOption) error {
 			saveCalled++
 			if store != "s" || key != "k" || string(data) != "v" {
@@ -158,15 +165,23 @@ func TestStateAdapter_Set_NoEtagThenWithEtag(t *testing.T) {
 		},
 	}
 	a := newAdapterWithFake(t, fake)
-	// 1. ETag 空 → SaveState
-	if _, err := a.Set(context.Background(), StateSetRequest{Store: "s", Key: "k", Data: []byte("v"), TTLSeconds: 60}); err != nil {
+	// 1. ETag 空 → SaveState + 後続 Get で新 ETag 取得。
+	resp, err := a.Set(context.Background(), StateSetRequest{Store: "s", Key: "k", Data: []byte("v"), TTLSeconds: 60})
+	if err != nil {
 		t.Fatalf("Set (no etag) error: %v", err)
 	}
 	if saveCalled != 1 || saveETagCalled != 0 {
 		t.Fatalf("SaveState not called as expected: save=%d saveETag=%d", saveCalled, saveETagCalled)
 	}
-	// 2. ETag 非空 → SaveStateWithETag
-	if _, err := a.Set(context.Background(), StateSetRequest{Store: "s", Key: "k", Data: []byte("v"), ExpectedEtag: "v7"}); err != nil {
+	if resp.NewEtag != "etag-after-save" {
+		t.Fatalf("NewEtag mismatch: got %q want %q", resp.NewEtag, "etag-after-save")
+	}
+	if getAfterSaveCalled != 1 {
+		t.Fatalf("post-save Get not called: getAfterSaveCalled=%d", getAfterSaveCalled)
+	}
+	// 2. ETag 非空 → SaveStateWithETag + 後続 Get。
+	resp2, err := a.Set(context.Background(), StateSetRequest{Store: "s", Key: "k", Data: []byte("v"), ExpectedEtag: "v7"})
+	if err != nil {
 		t.Fatalf("Set (with etag) error: %v", err)
 	}
 	if saveCalled != 1 || saveETagCalled != 1 {
@@ -174,6 +189,12 @@ func TestStateAdapter_Set_NoEtagThenWithEtag(t *testing.T) {
 	}
 	if observedEtag != "v7" {
 		t.Fatalf("etag mismatch: got %q want v7", observedEtag)
+	}
+	if resp2.NewEtag != "etag-after-save" {
+		t.Fatalf("NewEtag (with etag path) mismatch: got %q", resp2.NewEtag)
+	}
+	if getAfterSaveCalled != 2 {
+		t.Fatalf("post-save Get not called for second Set: getAfterSaveCalled=%d", getAfterSaveCalled)
 	}
 }
 
