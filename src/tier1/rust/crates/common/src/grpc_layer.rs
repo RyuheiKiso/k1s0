@@ -115,7 +115,18 @@ where
         // Authorization header を文字列として抽出（async に持ち込む）。
         let auth_header = extract_auth_header(req.headers());
 
+        // Liveness / Readiness 用の health probe (kubelet が呼ぶ grpc.health.v1.Health
+        // と k1s0.tier1.health.v1.HealthService) は Authorization header を持たない
+        // ので、auth verify を skip する。auth=jwks 時に probe が
+        // "missing authorization" で fail し pod が再起動ループに陥るのを防ぐ。
+        let skip_auth = full_method.starts_with("/grpc.health.")
+            || full_method.starts_with("/k1s0.tier1.health.")
+            || full_method.starts_with("/grpc.reflection.");
+
         Box::pin(async move {
+            if skip_auth {
+                return Ok(inner.call(req).await?);
+            }
             // 1) 認証: JWT verify。失敗時は gRPC status を含む応答を即返す。
             let claims = match auth.verify_bearer(auth_header.as_deref()).await {
                 Ok(c) => c,

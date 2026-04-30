@@ -100,17 +100,22 @@ impl AuditService for AuditServer {
         &self,
         req: Request<RecordAuditRequest>,
     ) -> Result<Response<RecordAuditResponse>, Status> {
+        // NFR-E-AC-003 二重防御: K1s0Layer が extensions に格納した claims (JWT 由来
+        // tenant_id) と body.context.tenant_id を比較し、不一致なら PermissionDenied。
+        // claims が無い場合 (auth=off) は body 由来をそのまま採用 (旧挙動維持)。
+        let claims = req
+            .extensions()
+            .get::<k1s0_tier1_common::auth::AuthClaims>()
+            .cloned()
+            .unwrap_or_default();
         let r = req.into_inner();
-        let tenant_id = r
+        let body_tid = r
             .context
             .as_ref()
             .map(|c| c.tenant_id.clone())
             .unwrap_or_default();
-        if tenant_id.is_empty() {
-            return Err(Status::invalid_argument(
-                "tier1/audit: tenant_id required in TenantContext",
-            ));
-        }
+        let tenant_id =
+            k1s0_tier1_common::auth::enforce_tenant_boundary(&claims, &body_tid, "Audit.Record")?;
         let event = match r.event {
             Some(e) => e,
             None => {
@@ -147,17 +152,20 @@ impl AuditService for AuditServer {
         &self,
         req: Request<QueryAuditRequest>,
     ) -> Result<Response<QueryAuditResponse>, Status> {
+        // NFR-E-AC-003 二重防御: claims と body の tenant_id 一致を検査。
+        let claims = req
+            .extensions()
+            .get::<k1s0_tier1_common::auth::AuthClaims>()
+            .cloned()
+            .unwrap_or_default();
         let r = req.into_inner();
-        let tenant_id = r
+        let body_tid = r
             .context
             .as_ref()
             .map(|c| c.tenant_id.clone())
             .unwrap_or_default();
-        if tenant_id.is_empty() {
-            return Err(Status::invalid_argument(
-                "tier1/audit: tenant_id required in TenantContext",
-            ));
-        }
+        let tenant_id =
+            k1s0_tier1_common::auth::enforce_tenant_boundary(&claims, &body_tid, "Audit.Query")?;
         let from_ms = r
             .from
             .as_ref()
@@ -189,17 +197,20 @@ impl AuditService for AuditServer {
         &self,
         req: Request<ExportAuditRequest>,
     ) -> Result<Response<Self::ExportStream>, Status> {
+        // NFR-E-AC-003 二重防御: claims と body の tenant_id 一致を検査。
+        let claims = req
+            .extensions()
+            .get::<k1s0_tier1_common::auth::AuthClaims>()
+            .cloned()
+            .unwrap_or_default();
         let r = req.into_inner();
-        let tenant_id = r
+        let body_tid = r
             .context
             .as_ref()
             .map(|c| c.tenant_id.clone())
             .unwrap_or_default();
-        if tenant_id.is_empty() {
-            return Err(Status::invalid_argument(
-                "tier1/audit: tenant_id required in TenantContext",
-            ));
-        }
+        let tenant_id =
+            k1s0_tier1_common::auth::enforce_tenant_boundary(&claims, &body_tid, "Audit.Export")?;
         let from_ms = r
             .from
             .as_ref()
@@ -243,17 +254,23 @@ impl AuditService for AuditServer {
         &self,
         req: Request<VerifyChainRequest>,
     ) -> Result<Response<VerifyChainResponse>, Status> {
+        // NFR-E-AC-003 二重防御: claims と body の tenant_id 一致を検査。
+        let claims = req
+            .extensions()
+            .get::<k1s0_tier1_common::auth::AuthClaims>()
+            .cloned()
+            .unwrap_or_default();
         let r = req.into_inner();
-        let tenant_id = r
+        let body_tid = r
             .context
             .as_ref()
             .map(|c| c.tenant_id.clone())
             .unwrap_or_default();
-        if tenant_id.is_empty() {
-            return Err(Status::invalid_argument(
-                "tier1/audit: tenant_id required in TenantContext",
-            ));
-        }
+        let tenant_id = k1s0_tier1_common::auth::enforce_tenant_boundary(
+            &claims,
+            &body_tid,
+            "Audit.VerifyChain",
+        )?;
         let from_ms = r
             .from
             .as_ref()

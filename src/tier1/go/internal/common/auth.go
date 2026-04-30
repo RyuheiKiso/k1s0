@@ -142,6 +142,32 @@ func AuthFromContext(ctx context.Context) (*AuthInfo, bool) {
 	return v, ok
 }
 
+// EnforceTenantBoundary は handler 段で JWT 由来 tenant_id (context の AuthInfo) と
+// proto body の tenant_id を比較し、一致しなければ PermissionDenied を返す。
+// AuthInfo が context に無い場合（auth=off の dev 環境）は body 由来をそのまま採用。
+//
+// NFR-E-AC-003 二重防御:
+//   - gRPC 直接経路: AuthInterceptor が req body から tenant_id を抽出し JWT と比較
+//     （auth.go の interceptor 内 cross-tenant 検査）
+//   - HTTP/JSON gateway 経路: invokeWithInterceptors() が req=nil で interceptor を
+//     呼ぶため上記検査が silently skipped → handler 段で本関数を呼んで二重防御
+//
+// 戻り値は最終的に handler が adapter に渡すべき正規 tenant_id（JWT が優先）。
+// 不正一致時の error は status.PermissionDenied（HTTP 403）。
+func EnforceTenantBoundary(ctx context.Context, bodyTenantID string, rpc string) (string, error) {
+	if bodyTenantID == "" {
+		return "", status.Error(grpccodes.InvalidArgument, "tier1: tenant_id required in TenantContext ("+rpc+")")
+	}
+	if info, ok := AuthFromContext(ctx); ok && info != nil && info.TenantID != "" {
+		if info.TenantID != bodyTenantID {
+			return "", status.Errorf(grpccodes.PermissionDenied,
+				"tier1: cross-tenant request rejected (%s): jwt=%q body=%q",
+				rpc, info.TenantID, bodyTenantID)
+		}
+	}
+	return bodyTenantID, nil
+}
+
 // AuthInterceptorConfig は AuthInterceptor の挙動を制御する。
 type AuthInterceptorConfig struct {
 	// Mode は AuthModeOff / AuthModeHMAC / AuthModeJWKS のいずれか。
