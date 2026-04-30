@@ -287,6 +287,35 @@ docs では構成要素を以下 3 段階で論じている。本ファイルも
 **集計**: 36 件中、コード/設定が存在 = 36 件、実 K8s 検証済 = 14 件、部分検証 = 2 件、未検証 = 16 件、N/A（規約 / 運用文書） = 4 件。
 未検証 16 件はすべて「採用初期」段階の実装対象で、リリース時点では設計合意（Accepted）状態を docs / IaC で確定済。
 
+### B / C / D セクション 実 K8s 検証実績（2026-04-30 後段 session）
+
+A セクション完了後に observability / Kyverno / Argo Rollouts / Istio Ambient / NFR を実機検証した
+結果。8 commit 後さらに以下を確認済。
+
+| 検証 | 実装 / 結果 |
+|---|---|
+| **B: OTLP gRPC 流入 (ADR-OBS-002)** | OTel Collector 0.120.1 を `observability` namespace に install、tier1-state Pod から OTLP gRPC で **3 signal（Logs / Metrics / Traces）が実流入確認済**。debug exporter で `flush_test_1/2/3` Counter, "OTel pipeline test/final test" Body, span "otel-test" を観測。OTEL_EXPORTER_OTLP_ENDPOINT は `http://` scheme + per-signal `OTEL_EXPORTER_OTLP_INSECURE=true` 必須（scheme なし時 `delegating_resolver: invalid target address` で gRPC client が空文字解決失敗）。 |
+| **C1: Kyverno baseline policy 実発火 (ADR-CICD-003 / ADR-POL-001)** | `infra/security/kyverno/baseline-policies.yaml` の 4 ClusterPolicy（require-run-as-non-root / disallow-privileged-containers / require-k1s0-component-label / require-resource-requests）を deploy 完了。Kyverno admission webhook が違反 Pod を実拒否することを確認（`runAsNonRoot: false` Pod 作成試行で「validation error: ... rule check-non-root failed」として block）。**追加修正**: 当初 baseline policy が `kube-system` を含む infra namespace を policy 対象としていたため `istio-system` / `kafka` / `dapr-system` などへの operator install が block された。Kyverno baseline policies に 21 system/infra namespace 例外を追加（`infra/security/kyverno/baseline-policies.yaml` 修正済）。 |
+| **C2: Argo Rollouts canary 戦略 (ADR-CICD-002 / ADR-REL-001)** | argo-rollouts operator install + Rollout CR（25→50→75→100% steps）を deploy。image patch 後 stepIndex 1 (Paused 25%) → 2 (Progressing 50%) → 4 (Progressing 75%) → 5 (Paused) → 6 (Healthy 100%) の canary progression を実観測。古い ReplicaSet → 新 ReplicaSet への切替を実機確認。 |
+| **C3: Istio Ambient mesh + mTLS STRICT (ADR-0001)** | istio-base / istiod (`profile=ambient`) / istio-cni / ztunnel を install。tier1 namespace に `istio.io/dataplane-mode=ambient` label 付与 + `PeerAuthentication` STRICT を設定。**plain text 接続を ztunnel が実拒否** することを確認（access log: `error="connection closed due to policy rejection: explicitly denied by: istio-system/istio_converted_static_strict"`）。kind 環境では `fs.inotify.max_user_instances` を 128 → 1024 に bump する必要あり（`docker exec k1s0-local-control-plane sysctl -w`）。 |
+| **D: NFR 数値実測** | NFR-B-PERF: tier1-state HTTP/JSON gateway（Postgres backed `state.postgresql v2`）に hey で 5000 req / 50 concurrent 負荷 → **p50=3.8ms / p90=61ms / p95=70ms / p99=74ms**（全 200 OK、0 失敗）。NFR-A-FT-001: tier1-state Pod を `--force --grace-period=0` で kill → 新 Pod 2/2 Ready まで **756 秒（12 分 36 秒）で復旧**、NFR-A-FT-001 SLA「自動復旧 15 分以内」**PASS**。Postgres 永続層から同一 etag/data 復元確認。本数値は kind single-node 環境のため、production multi-node では image preload / pre-pull / readiness probe 最適化で数十秒〜2 分が想定される。 |
+
+### 8 namespace 例外を baseline policy に追加した経緯（C1 の追加修正）
+
+`infra/security/kyverno/baseline-policies.yaml` は当初 baseline policy として全 namespace に適用する
+設計だったが、operator パターン（istio-cni / ztunnel / istio-init / strimzi-cluster-operator /
+dapr control plane / cnpg-system 等）は **privileged container** または **runAsNonRoot=false**
+を必須とする。Kyverno と二重オーナー設計（ADR-POL-001）に従い、infra layer の operator namespace
+を baseline policy の `exclude.any.resources.namespaces` に追加した。除外対象 21 namespace:
+
+`kube-system` / `kube-public` / `kube-node-lease` / `local-path-storage` / `kyverno` /
+`istio-system` / `cnpg-system` / `dapr-system` / `kafka` / `openbao` / `temporal` / `keycloak` /
+`observability` / `argocd` / `argo-rollouts` / `flagd` / `cert-manager` / `metallb-system` /
+`calico-system` / `tigera-operator` / `longhorn-system`
+
+application 層（k1s0-tier1 / tier2 / tier3）には baseline policy が引き続き適用され、業務 Pod は
+`runAsNonRoot=true` + resources.requests + k1s0.io/component label 必須が強制される。
+
 ## 「docs から逸脱しない」ことの保証
 
 本リポジトリの実装作業は、以下のメカニズムで docs 正典との整合性を保つ。

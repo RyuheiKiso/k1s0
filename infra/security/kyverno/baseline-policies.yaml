@@ -22,6 +22,31 @@ spec:
           - resources:
               kinds:
                 - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - local-path-storage
+                - kyverno
+                - istio-system
+                - cnpg-system
+                - dapr-system
+                - kafka
+                - openbao
+                - temporal
+                - keycloak
+                - observability
+                - argocd
+                - argo-rollouts
+                - flagd
+                - cert-manager
+                - metallb-system
+                - calico-system
+                - tigera-operator
+                - longhorn-system
       validate:
         message: "Pod は runAsNonRoot: true を指定すること（ADR-POL-001 baseline）"
         pattern:
@@ -50,6 +75,31 @@ spec:
           - resources:
               kinds:
                 - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - local-path-storage
+                - kyverno
+                - istio-system
+                - cnpg-system
+                - dapr-system
+                - kafka
+                - openbao
+                - temporal
+                - keycloak
+                - observability
+                - argocd
+                - argo-rollouts
+                - flagd
+                - cert-manager
+                - metallb-system
+                - calico-system
+                - tigera-operator
+                - longhorn-system
       validate:
         message: "Privileged container は禁止（ADR-POL-001 baseline）"
         pattern:
@@ -108,6 +158,31 @@ spec:
           - resources:
               kinds:
                 - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kube-public
+                - kube-node-lease
+                - local-path-storage
+                - kyverno
+                - istio-system
+                - cnpg-system
+                - dapr-system
+                - kafka
+                - openbao
+                - temporal
+                - keycloak
+                - observability
+                - argocd
+                - argo-rollouts
+                - flagd
+                - cert-manager
+                - metallb-system
+                - calico-system
+                - tigera-operator
+                - longhorn-system
       validate:
         message: "Pod の全 container に resources.requests.cpu と resources.requests.memory を指定すること"
         pattern:
