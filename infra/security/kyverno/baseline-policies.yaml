@@ -49,6 +49,7 @@ spec:
                 - longhorn-system
                 - spire-system
                 - spire-server
+                - gitops
       validate:
         message: "Pod は runAsNonRoot: true を指定すること（ADR-POL-001 baseline）"
         pattern:
@@ -104,6 +105,7 @@ spec:
                 - longhorn-system
                 - spire-system
                 - spire-server
+                - gitops
       validate:
         message: "Privileged container は禁止（ADR-POL-001 baseline）"
         pattern:
@@ -189,6 +191,7 @@ spec:
                 - longhorn-system
                 - spire-system
                 - spire-server
+                - gitops
       validate:
         message: "Pod の全 container に resources.requests.cpu と resources.requests.memory を指定すること"
         pattern:
