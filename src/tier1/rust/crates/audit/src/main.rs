@@ -31,6 +31,7 @@ use k1s0_tier1_audit::archive::{ArchiveSink, InMemoryArchiveSink};
 use k1s0_tier1_audit::retention_loop::{self, RetentionLoopConfig};
 use k1s0_tier1_audit::server::AuditServer;
 use k1s0_tier1_audit::store::{AuditStore, InMemoryAuditStore};
+use k1s0_tier1_audit::verify_loop::{self, VerifyLoopConfig};
 // 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 use k1s0_tier1_common::idempotency::{IdempotencyCache, InMemoryIdempotencyCache};
 // 共通 gRPC interceptor Layer（auth / ratelimit / observability / audit auto-emit）。
@@ -123,6 +124,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         Some(retention_loop::spawn(store.clone(), sink, cfg))
     };
+
+    // FR-T1-AUDIT-002: 日次の hash chain 整合性検証 task を起動する。
+    // 不整合を検出すると ALERT ログを stderr に出し、外部監視（Grafana log alerting）で
+    // ピックアップされる前提。verify_chain_detail("", None, None) でグローバル走査するため、
+    // 1 テナント × 1 日分どころか全テナント全期間の検証を 1 pass で完了する（NFR-A-SLA 想定の
+    // 規模では 5 分以内に収まる、In-Memory 経路は秒未満）。
+    // K1S0_AUDIT_VERIFY_DISABLED=true で task 起動を抑止できる。
+    let verify_handle = if verify_loop::is_disabled(|k| std::env::var(k).ok()) {
+        eprintln!("tier1/audit: verify_chain loop disabled (K1S0_AUDIT_VERIFY_DISABLED=true)");
+        None
+    } else {
+        let cfg = VerifyLoopConfig::from_env(|k| std::env::var(k).ok());
+        eprintln!(
+            "tier1/audit: verify_chain loop started (interval={:?})",
+            cfg.interval
+        );
+        Some(verify_loop::spawn(store.clone(), cfg))
+    };
     // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
@@ -182,6 +201,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         h.abort();
     }
     if let Some(h) = retention_handle {
+        h.abort();
+    }
+    if let Some(h) = verify_handle {
         h.abort();
     }
     Ok(())

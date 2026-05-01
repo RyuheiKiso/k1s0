@@ -175,6 +175,11 @@ fn current_unix_ms() -> i64 {
         .unwrap_or(0)
 }
 
+/// `parse_duration` の crate-internal 公開ラッパ。verify_loop 等の他 module から再利用される。
+pub fn parse_duration_public(raw: &str) -> Option<Duration> {
+    parse_duration(raw)
+}
+
 /// `time.ParseDuration` 互換の解釈（"24h" / "30m" / "5s" / "100ms"）。
 /// 失敗は None。負値 / 0 / 単位なし数値も None として既定にフォールバックさせる。
 fn parse_duration(raw: &str) -> Option<Duration> {
