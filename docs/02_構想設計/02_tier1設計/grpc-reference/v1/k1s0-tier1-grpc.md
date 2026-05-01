@@ -246,7 +246,7 @@ proto 構文宣言（proto3）
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| tenant_id | [string](#string) |  | テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証） |
+| tenant_id | [string](#string) |  | テナント ID（UUID v4 文字列、tier1 が JWT クレームと突き合わせて検証、必須） tier1 全 RPC handler は tenant_id 不在時に InvalidArgument を返す。 この実装契約を AIP-203 REQUIRED で OpenAPI に伝搬する。 |
 | subject | [string](#string) |  | 呼出元の主体（workload_id または user_id、SPIFFE ID 互換） |
 | correlation_id | [string](#string) |  | 相関 ID（OTel traceparent と紐付けて全 tier 横断トレース） |
 

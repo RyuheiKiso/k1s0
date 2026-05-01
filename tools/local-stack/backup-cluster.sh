@@ -18,7 +18,8 @@
 set -euo pipefail
 
 readonly KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-k1s0-local}"
-readonly TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+readonly TIMESTAMP
 readonly DEFAULT_DEST="/tmp/k1s0-backup-${TIMESTAMP}"
 readonly DEST="${1:-${DEFAULT_DEST}}"
 
@@ -49,7 +50,7 @@ backup_gitea() {
     mkdir -p "${DEST}/gitea-data"
     # 注意: gitea は emptyDir に書いており kind が止まれば data 喪失。kubectl cp で必ず退避。
     kubectl cp -n gitops "${pod}:/data" "${DEST}/gitea-data/" 2>&1 | tail -5 || warn "gitea cp で部分失敗"
-    log "  → ${DEST}/gitea-data/ ($(du -sh ${DEST}/gitea-data 2>/dev/null | awk '{print $1}'))"
+    log "  → ${DEST}/gitea-data/ ($(du -sh "${DEST}"/gitea-data 2>/dev/null | awk '{print $1}'))"
 }
 
 backup_pg_state() {
@@ -93,10 +94,12 @@ backup_keycloak() {
     # H2 が live のため hot-copy（再起動時に H2 recovery 経由で復元される）。
     for f in keycloakdb.mv.db keycloakdb.trace.db; do
         if kubectl exec -n keycloak "${pod}" -- test -f "/opt/keycloak/data/h2/${f}" 2>/dev/null; then
-            kubectl exec -n keycloak "${pod}" -- cat "/opt/keycloak/data/h2/${f}" \
-                > "${DEST}/keycloak/h2/${f}" 2>/dev/null \
-                && log "  → ${f} ($(du -sh ${DEST}/keycloak/h2/${f} | awk '{print $1}'))" \
-                || warn "  ${f} 取得失敗"
+            if kubectl exec -n keycloak "${pod}" -- cat "/opt/keycloak/data/h2/${f}" \
+                > "${DEST}/keycloak/h2/${f}" 2>/dev/null; then
+                log "  → ${f} ($(du -sh "${DEST}"/keycloak/h2/${f} | awk '{print $1}'))"
+            else
+                warn "  ${f} 取得失敗"
+            fi
         fi
     done
 }
@@ -115,7 +118,7 @@ backup_openbao() {
     # raft snapshot は root token が要るため、ここでは filesystem 直 cp で代替。
     kubectl cp -n openbao "${pod}:/home/openbao" "${DEST}/openbao/home" 2>&1 | tail -3 \
         || warn "  openbao /home/openbao cp 失敗"
-    log "  → ${DEST}/openbao/home ($(du -sh ${DEST}/openbao/home 2>/dev/null | awk '{print $1}'))"
+    log "  → ${DEST}/openbao/home ($(du -sh "${DEST}"/openbao/home 2>/dev/null | awk '{print $1}'))"
 }
 
 # ---------- IMPORTANT ----------
@@ -132,6 +135,7 @@ with open(sys.argv[2], "w") as out:
     for r in data:
         out.write("|".join([r["name"], r["namespace"], r["chart"], r.get("app_version","")]) + "\n")
 PYEOF
+    # shellcheck disable=SC2034
     while IFS='|' read -r name ns chart appver; do
         [[ -z "${name}" ]] && continue
         local outdir="${DEST}/helm-releases/${ns}_${name}"
@@ -140,7 +144,7 @@ PYEOF
         helm get manifest "${name}" -n "${ns}" > "${outdir}/manifest.yaml" 2>/dev/null || true
         helm get metadata "${name}" -n "${ns}" -o json > "${outdir}/metadata.json" 2>/dev/null || true
     done < "${DEST}/helm-releases/_inventory.txt"
-    log "  → ${DEST}/helm-releases/ ($(wc -l < ${DEST}/helm-releases/_inventory.txt) releases)"
+    log "  → ${DEST}/helm-releases/ ($(wc -l < "${DEST}"/helm-releases/_inventory.txt) releases)"
 }
 
 backup_argocd_apps() {
@@ -252,4 +256,4 @@ log "出力先: ${DEST}"
 du -sh "${DEST}"/* 2>/dev/null | sort -h
 log ""
 log "次は restore-cluster.sh で復元するか、tar.gz アーカイブ化:"
-log "  tar -czf ${DEST}.tar.gz -C $(dirname ${DEST}) $(basename ${DEST})"
+log "  tar -czf ${DEST}.tar.gz -C $(dirname "${DEST}") $(basename "${DEST}")"

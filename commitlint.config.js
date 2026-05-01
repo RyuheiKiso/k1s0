@@ -105,6 +105,16 @@ module.exports = {
     },
   },
 
+  // 過去 PR で merge 済みだが新 commitlint rule に違反する legacy commits を例外化。
+  // 新規 commit には適用されない（subject の完全一致のみ判定するため）。
+  // 削除する場合は新規 commit が同じ subject を含まないことを確認してから削除する。
+  ignores: [
+    // 84b2cbcc2: docs(README) スコープが scope-enum 違反（README → docs に修正済の運用）
+    (message) => message.startsWith('docs(README): k1s0 の名称由来 "Keep It Simple, 0 Vendor Lock-in" を明記'),
+    // 32e2d6210: docs(README)+tools/banner マルチスコープ + body の Co-Authored-By 直前に空行欠落
+    (message) => message.startsWith('docs(README)+tools/banner: タイピング演出のバナー GIF を追加'),
+  ],
+
   // ヘルプメッセージ
   helpUrl: 'https://github.com/RyuheiKiso/k1s0/blob/main/CONTRIBUTING.md#commit-message-規約',
 };
