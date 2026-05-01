@@ -38,6 +38,9 @@ type Deps struct {
 	SecretsAdapter openbao.SecretsAdapter
 	// 動的 secret 用 adapter（FR-T1-SECRETS-002、nil 時は GetDynamic が Unimplemented）。
 	DynamicAdapter openbao.DynamicAdapter
+	// Transit 暗号化 adapter（FR-T1-SECRETS-003、nil 時は Encrypt / Decrypt /
+	// RotateKey が Unimplemented）。
+	TransitAdapter openbao.TransitAdapter
 	// Rotate の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL で同一 idempotency_key
 	// 再試行時に初回 response を返す）。nil の場合は dedup なし（後方互換 / 早期 dev）。
 	Idempotency common.IdempotencyCache
@@ -65,7 +68,119 @@ func translateErr(err error, rpc string) error {
 	if errors.Is(err, openbao.ErrSecretNotFound) {
 		return status.Errorf(codes.NotFound, "tier1/secrets: %s: secret not found", rpc)
 	}
+	// Transit Decrypt 系: 鍵不在は NotFound、ciphertext 改竄/AAD 不一致は InvalidArgument。
+	if errors.Is(err, openbao.ErrTransitKeyNotFound) {
+		return status.Errorf(codes.NotFound, "tier1/secrets: %s: transit key not found", rpc)
+	}
+	if errors.Is(err, openbao.ErrTransitCiphertextMalformed) {
+		return status.Errorf(codes.InvalidArgument, "tier1/secrets: %s: ciphertext malformed", rpc)
+	}
 	return status.Errorf(codes.Internal, "tier1/secrets: %s: %v", rpc, err)
+}
+
+// transitKeyName は <tenant_id>.<key_label> の形でテナント prefix を付与する。
+// FR-T1-SECRETS-003 受け入れ基準「鍵名は <tenant_id>.<key_label> で tier1 が
+// 自動プレフィックス」を満たすため、handler 段で必ず prefix を強制する。
+func transitKeyName(tenantID, keyLabel string) string {
+	return tenantID + "." + keyLabel
+}
+
+// Encrypt は AES-256-GCM で平文を暗号化する（FR-T1-SECRETS-003）。
+func (h *secretHandler) Encrypt(ctx context.Context, req *secretsv1.EncryptRequest) (*secretsv1.EncryptResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
+	}
+	// NFR-E-AC-003 二重防御: tenant_id 越境防止。
+	tenantID, err := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.Encrypt")
+	if err != nil {
+		return nil, err
+	}
+	// key_name 必須（空は鍵空間が確定しないため不正）。
+	if req.GetKeyName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: key_name required")
+	}
+	// plaintext 必須（空 plaintext は意味があり得ても、API 利用では明示的な空入力を弾く）。
+	if len(req.GetPlaintext()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: plaintext required (non-empty)")
+	}
+	if h.deps.TransitAdapter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Encrypt not yet wired to OpenBao Transit")
+	}
+	resp, err := h.deps.TransitAdapter.Encrypt(openbao.TransitEncryptRequest{
+		KeyName:   transitKeyName(tenantID, req.GetKeyName()),
+		Plaintext: req.GetPlaintext(),
+		AAD:       req.GetAad(),
+	})
+	if err != nil {
+		return nil, translateErr(err, "Encrypt")
+	}
+	return &secretsv1.EncryptResponse{
+		Ciphertext: resp.Ciphertext,
+		KeyVersion: int32(resp.KeyVersion),
+	}, nil
+}
+
+// Decrypt は AES-256-GCM で暗号文を復号する（FR-T1-SECRETS-003）。
+func (h *secretHandler) Decrypt(ctx context.Context, req *secretsv1.DecryptRequest) (*secretsv1.DecryptResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
+	}
+	// NFR-E-AC-003 二重防御。
+	tenantID, err := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.Decrypt")
+	if err != nil {
+		return nil, err
+	}
+	if req.GetKeyName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: key_name required")
+	}
+	if len(req.GetCiphertext()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: ciphertext required (non-empty)")
+	}
+	if h.deps.TransitAdapter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Decrypt not yet wired to OpenBao Transit")
+	}
+	resp, err := h.deps.TransitAdapter.Decrypt(openbao.TransitDecryptRequest{
+		KeyName:    transitKeyName(tenantID, req.GetKeyName()),
+		Ciphertext: req.GetCiphertext(),
+		AAD:        req.GetAad(),
+	})
+	if err != nil {
+		return nil, translateErr(err, "Decrypt")
+	}
+	return &secretsv1.DecryptResponse{
+		Plaintext:  resp.Plaintext,
+		KeyVersion: int32(resp.KeyVersion),
+	}, nil
+}
+
+// RotateKey は Transit 鍵を新版に上げる（FR-T1-SECRETS-003 受け入れ基準
+// 「鍵バージョン管理が自動」、「復号時は暗号文中のバージョン番号から適切な鍵を選択」）。
+func (h *secretHandler) RotateKey(ctx context.Context, req *secretsv1.RotateKeyRequest) (*secretsv1.RotateKeyResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
+	}
+	// NFR-E-AC-003 二重防御。
+	tenantID, err := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.RotateKey")
+	if err != nil {
+		return nil, err
+	}
+	if req.GetKeyName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: key_name required")
+	}
+	if h.deps.TransitAdapter == nil {
+		return nil, status.Error(codes.Unimplemented, "tier1/secrets: RotateKey not yet wired to OpenBao Transit")
+	}
+	resp, err := h.deps.TransitAdapter.RotateKey(openbao.TransitRotateKeyRequest{
+		KeyName: transitKeyName(tenantID, req.GetKeyName()),
+	})
+	if err != nil {
+		return nil, translateErr(err, "RotateKey")
+	}
+	return &secretsv1.RotateKeyResponse{
+		NewVersion:      int32(resp.NewVersion),
+		PreviousVersion: int32(resp.PreviousVersion),
+		RotatedAtMs:     resp.RotatedAtMs,
+	}, nil
 }
 
 // Get は単一 secret を OpenBao から取得する。

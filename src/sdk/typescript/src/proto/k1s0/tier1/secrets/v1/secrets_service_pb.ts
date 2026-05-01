@@ -476,3 +476,340 @@ export class GetDynamicSecretResponse extends Message<GetDynamicSecretResponse> 
   }
 }
 
+/**
+ * Encrypt リクエスト（FR-T1-SECRETS-003）。
+ *
+ * @generated from message k1s0.tier1.secrets.v1.EncryptRequest
+ */
+export class EncryptRequest extends Message<EncryptRequest> {
+  /**
+   * 呼出元コンテキスト（テナント境界の検証に必須）。
+   *
+   * @generated from field: k1s0.tier1.common.v1.TenantContext context = 1;
+   */
+  context?: TenantContext;
+
+  /**
+   * 鍵ラベル（tier1 が <tenant_id>.<key_label> で自動 prefix する）。
+   * 同一 tenant 内で鍵空間を分離するため、key_label は業務ドメイン名等で命名する。
+   *
+   * @generated from field: string key_name = 2;
+   */
+  keyName = "";
+
+  /**
+   * 暗号化対象の平文 bytes。
+   *
+   * @generated from field: bytes plaintext = 3;
+   */
+  plaintext = new Uint8Array(0);
+
+  /**
+   * AAD（Associated Authenticated Data）。GCM の追加認証データに渡す。
+   * 通常は tenant_id + RPC 名 等を JSON encoded で詰める運用想定。空でも良い。
+   *
+   * @generated from field: bytes aad = 4;
+   */
+  aad = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<EncryptRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.EncryptRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "context", kind: "message", T: TenantContext },
+    { no: 2, name: "key_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "plaintext", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 4, name: "aad", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EncryptRequest {
+    return new EncryptRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EncryptRequest {
+    return new EncryptRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EncryptRequest {
+    return new EncryptRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: EncryptRequest | PlainMessage<EncryptRequest> | undefined, b: EncryptRequest | PlainMessage<EncryptRequest> | undefined): boolean {
+    return proto3.util.equals(EncryptRequest, a, b);
+  }
+}
+
+/**
+ * Encrypt 応答。
+ *
+ * @generated from message k1s0.tier1.secrets.v1.EncryptResponse
+ */
+export class EncryptResponse extends Message<EncryptResponse> {
+  /**
+   * 暗号文。フォーマット: [version:4 BE][nonce:12][ciphertext+tag]。
+   * 鍵バージョン管理は ciphertext に埋め込まれ、Decrypt 時に自動的に解決される。
+   *
+   * @generated from field: bytes ciphertext = 1;
+   */
+  ciphertext = new Uint8Array(0);
+
+  /**
+   * 暗号化に使用した鍵バージョン（observability / audit 用）。
+   *
+   * @generated from field: int32 key_version = 2;
+   */
+  keyVersion = 0;
+
+  constructor(data?: PartialMessage<EncryptResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.EncryptResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "ciphertext", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "key_version", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): EncryptResponse {
+    return new EncryptResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): EncryptResponse {
+    return new EncryptResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): EncryptResponse {
+    return new EncryptResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: EncryptResponse | PlainMessage<EncryptResponse> | undefined, b: EncryptResponse | PlainMessage<EncryptResponse> | undefined): boolean {
+    return proto3.util.equals(EncryptResponse, a, b);
+  }
+}
+
+/**
+ * Decrypt リクエスト（FR-T1-SECRETS-003）。
+ *
+ * @generated from message k1s0.tier1.secrets.v1.DecryptRequest
+ */
+export class DecryptRequest extends Message<DecryptRequest> {
+  /**
+   * 呼出元コンテキスト（テナント境界の検証に必須）。
+   *
+   * @generated from field: k1s0.tier1.common.v1.TenantContext context = 1;
+   */
+  context?: TenantContext;
+
+  /**
+   * 鍵ラベル（Encrypt 時と同じ key_label を渡す）。
+   *
+   * @generated from field: string key_name = 2;
+   */
+  keyName = "";
+
+  /**
+   * 暗号文（Encrypt の出力をそのまま渡す）。
+   *
+   * @generated from field: bytes ciphertext = 3;
+   */
+  ciphertext = new Uint8Array(0);
+
+  /**
+   * AAD（Encrypt 時と同じ値が必須、GCM の整合性検証に使用）。
+   *
+   * @generated from field: bytes aad = 4;
+   */
+  aad = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<DecryptRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.DecryptRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "context", kind: "message", T: TenantContext },
+    { no: 2, name: "key_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "ciphertext", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 4, name: "aad", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DecryptRequest {
+    return new DecryptRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DecryptRequest {
+    return new DecryptRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DecryptRequest {
+    return new DecryptRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DecryptRequest | PlainMessage<DecryptRequest> | undefined, b: DecryptRequest | PlainMessage<DecryptRequest> | undefined): boolean {
+    return proto3.util.equals(DecryptRequest, a, b);
+  }
+}
+
+/**
+ * Decrypt 応答。
+ *
+ * @generated from message k1s0.tier1.secrets.v1.DecryptResponse
+ */
+export class DecryptResponse extends Message<DecryptResponse> {
+  /**
+   * 復号された平文。
+   *
+   * @generated from field: bytes plaintext = 1;
+   */
+  plaintext = new Uint8Array(0);
+
+  /**
+   * 復号に使用した鍵バージョン（旧版鍵で暗号化された場合の追跡用）。
+   *
+   * @generated from field: int32 key_version = 2;
+   */
+  keyVersion = 0;
+
+  constructor(data?: PartialMessage<DecryptResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.DecryptResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "plaintext", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "key_version", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DecryptResponse {
+    return new DecryptResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DecryptResponse {
+    return new DecryptResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DecryptResponse {
+    return new DecryptResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DecryptResponse | PlainMessage<DecryptResponse> | undefined, b: DecryptResponse | PlainMessage<DecryptResponse> | undefined): boolean {
+    return proto3.util.equals(DecryptResponse, a, b);
+  }
+}
+
+/**
+ * RotateKey リクエスト（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+ *
+ * @generated from message k1s0.tier1.secrets.v1.RotateKeyRequest
+ */
+export class RotateKeyRequest extends Message<RotateKeyRequest> {
+  /**
+   * 呼出元コンテキスト。
+   *
+   * @generated from field: k1s0.tier1.common.v1.TenantContext context = 1;
+   */
+  context?: TenantContext;
+
+  /**
+   * 鍵ラベル（tier1 が <tenant_id>.<key_label> で自動 prefix する）。
+   *
+   * @generated from field: string key_name = 2;
+   */
+  keyName = "";
+
+  constructor(data?: PartialMessage<RotateKeyRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.RotateKeyRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "context", kind: "message", T: TenantContext },
+    { no: 2, name: "key_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RotateKeyRequest {
+    return new RotateKeyRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RotateKeyRequest {
+    return new RotateKeyRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RotateKeyRequest {
+    return new RotateKeyRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RotateKeyRequest | PlainMessage<RotateKeyRequest> | undefined, b: RotateKeyRequest | PlainMessage<RotateKeyRequest> | undefined): boolean {
+    return proto3.util.equals(RotateKeyRequest, a, b);
+  }
+}
+
+/**
+ * RotateKey 応答。
+ *
+ * @generated from message k1s0.tier1.secrets.v1.RotateKeyResponse
+ */
+export class RotateKeyResponse extends Message<RotateKeyResponse> {
+  /**
+   * ローテーション後の新バージョン番号（既存版は保持される、Decrypt 引き続き可）。
+   *
+   * @generated from field: int32 new_version = 1;
+   */
+  newVersion = 0;
+
+  /**
+   * ローテーション直前の旧バージョン（最大 = new_version - 1）。
+   *
+   * @generated from field: int32 previous_version = 2;
+   */
+  previousVersion = 0;
+
+  /**
+   * ローテーション時刻（Unix epoch ミリ秒）。
+   *
+   * @generated from field: int64 rotated_at_ms = 3;
+   */
+  rotatedAtMs = protoInt64.zero;
+
+  constructor(data?: PartialMessage<RotateKeyResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "k1s0.tier1.secrets.v1.RotateKeyResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "new_version", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "previous_version", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "rotated_at_ms", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RotateKeyResponse {
+    return new RotateKeyResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RotateKeyResponse {
+    return new RotateKeyResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RotateKeyResponse {
+    return new RotateKeyResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RotateKeyResponse | PlainMessage<RotateKeyResponse> | undefined, b: RotateKeyResponse | PlainMessage<RotateKeyResponse> | undefined): boolean {
+    return proto3.util.equals(RotateKeyResponse, a, b);
+  }
+}
+

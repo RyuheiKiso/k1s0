@@ -100,10 +100,16 @@ func main() {
 	dynamicAdapter := newDynamicAdapter(openBaoClient)
 	// 30 秒 TTL の cache 付き secrets adapter（FR-T1-SECRETS-001）。
 	cachedSecrets := openbao.NewCachedSecretsAdapter(baseSecrets, 0)
+	// Transit 暗号化 adapter（FR-T1-SECRETS-003、AES-256-GCM）。
+	// production の OpenBao Transit Engine 結線は post-MVP（要 Logical() shim 追加）、
+	// dev / CI / release-initial は in-memory backend で AES-256-GCM の round-trip を成立させる。
+	transitAdapter := openbao.NewInMemoryTransit()
 	deps := secret.Deps{
 		SecretsAdapter: cachedSecrets,
 		// 動的 Secret adapter。
 		DynamicAdapter: dynamicAdapter,
+		// Transit 暗号化 adapter（in-memory AES-256-GCM）。
+		TransitAdapter: transitAdapter,
 		// 共通規約 §「冪等性と再試行」: 24h TTL の in-memory idempotency cache を有効化。
 		// production の multi-replica deploy では Valkey backed cache に置き換える想定だが、
 		// release-initial では in-memory backend で 1 Pod 内 dedup を提供する。

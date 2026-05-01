@@ -190,6 +190,87 @@ pub mod secrets_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn encrypt(
+            &mut self,
+            request: impl tonic::IntoRequest<super::EncryptRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EncryptResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.secrets.v1.SecretsService/Encrypt",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.secrets.v1.SecretsService", "Encrypt"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn decrypt(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DecryptRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DecryptResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.secrets.v1.SecretsService/Decrypt",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.secrets.v1.SecretsService", "Decrypt"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn rotate_key(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RotateKeyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RotateKeyResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.tier1.secrets.v1.SecretsService/RotateKey",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("k1s0.tier1.secrets.v1.SecretsService", "RotateKey"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -225,6 +306,21 @@ pub mod secrets_service_server {
             request: tonic::Request<super::RotateSecretRequest>,
         ) -> std::result::Result<
             tonic::Response<super::RotateSecretResponse>,
+            tonic::Status,
+        >;
+        async fn encrypt(
+            &self,
+            request: tonic::Request<super::EncryptRequest>,
+        ) -> std::result::Result<tonic::Response<super::EncryptResponse>, tonic::Status>;
+        async fn decrypt(
+            &self,
+            request: tonic::Request<super::DecryptRequest>,
+        ) -> std::result::Result<tonic::Response<super::DecryptResponse>, tonic::Status>;
+        async fn rotate_key(
+            &self,
+            request: tonic::Request<super::RotateKeyRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RotateKeyResponse>,
             tonic::Status,
         >;
     }
@@ -476,6 +572,144 @@ pub mod secrets_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = RotateSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.secrets.v1.SecretsService/Encrypt" => {
+                    #[allow(non_camel_case_types)]
+                    struct EncryptSvc<T: SecretsService>(pub Arc<T>);
+                    impl<
+                        T: SecretsService,
+                    > tonic::server::UnaryService<super::EncryptRequest>
+                    for EncryptSvc<T> {
+                        type Response = super::EncryptResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::EncryptRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SecretsService>::encrypt(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = EncryptSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.secrets.v1.SecretsService/Decrypt" => {
+                    #[allow(non_camel_case_types)]
+                    struct DecryptSvc<T: SecretsService>(pub Arc<T>);
+                    impl<
+                        T: SecretsService,
+                    > tonic::server::UnaryService<super::DecryptRequest>
+                    for DecryptSvc<T> {
+                        type Response = super::DecryptResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DecryptRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SecretsService>::decrypt(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = DecryptSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.tier1.secrets.v1.SecretsService/RotateKey" => {
+                    #[allow(non_camel_case_types)]
+                    struct RotateKeySvc<T: SecretsService>(pub Arc<T>);
+                    impl<
+                        T: SecretsService,
+                    > tonic::server::UnaryService<super::RotateKeyRequest>
+                    for RotateKeySvc<T> {
+                        type Response = super::RotateKeyResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::RotateKeyRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SecretsService>::rotate_key(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = RotateKeySvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
