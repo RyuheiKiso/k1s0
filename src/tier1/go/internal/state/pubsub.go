@@ -41,6 +41,12 @@ import (
 // 論理 topic 名と prefix 付与「後」の物理 topic 名 双方に適用できる。
 var pubsubTopicRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
+// pubsubMaxEventBytes は FR-T1-PUBSUB-005 受け入れ基準「イベントサイズ上限 1MB
+// （Kafka メッセージ上限に合わせる）」。Strimzi Kafka の既定 message.max.bytes は
+// 1 MiB（1_048_588 バイト）相当のため、handler 段でこの値で弾いて Kafka 側で
+// rejected を発生させない。
+const pubsubMaxEventBytes = 1 * 1024 * 1024
+
 // pubsubMetaKeyEventID / TraceID / PublishedAt / TenantID は FR-T1-PUBSUB-001 で
 // tier1 が自動付与する metadata キー名。subscriber 側 SDK は同名キーを取り出す。
 const (
@@ -170,6 +176,12 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 	if err := validatePubSubTopic(req.GetTopic()); err != nil {
 		return nil, err
 	}
+	// FR-T1-PUBSUB-005: イベントサイズ上限 1MB を handler で強制する。
+	// Kafka 側が rejected を返すのを待たず、ResourceExhausted（HTTP 429）として弾く。
+	if len(req.GetData()) > pubsubMaxEventBytes {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/pubsub: data size %d exceeds maximum %d (1 MiB)", len(req.GetData()), pubsubMaxEventBytes)
+	}
 	// FR-T1-PUBSUB-001 / 002: event_id / trace_id / published_at / tenant_id を metadata に自動付与する。
 	enriched := enrichPubSubMetadata(ctx, req.GetMetadata(), tid)
 	// 実 Publish 実行クロージャ。idempotency cache hit 時は呼ばれない。
@@ -240,6 +252,16 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 			results = append(results, &pubsubv1.BulkPublishEntry{
 				EntryIndex: int32(i),
 				ErrorCode:  "InvalidArgument: invalid topic name",
+			})
+			continue
+		}
+		// FR-T1-PUBSUB-005: 1 entry のサイズ上限を 1 MiB で強制する。entry レベルの
+		// 上限超過は entry 結果に格納し、後続 entry の処理は継続する（部分成功）。
+		if len(entry.GetData()) > pubsubMaxEventBytes {
+			results = append(results, &pubsubv1.BulkPublishEntry{
+				EntryIndex: int32(i),
+				ErrorCode: fmt.Sprintf("ResourceExhausted: data size %d exceeds maximum %d (1 MiB)",
+					len(entry.GetData()), pubsubMaxEventBytes),
 			})
 			continue
 		}

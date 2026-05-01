@@ -108,6 +108,12 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 	if req.GetKey() == "" {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: key required")
 	}
+	// FR-T1-STATE-005: 値サイズ上限 1MB を handler 段で強制する。
+	// 上限超過は ResourceExhausted（HTTP 429）で弾き、Valkey 側に到達させない。
+	if len(req.GetData()) > stateMaxValueBytes {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/state: value size %d exceeds maximum %d (1 MiB)", len(req.GetData()), stateMaxValueBytes)
+	}
 	// 実 Set 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doSet := func() (interface{}, error) {
 		areq := dapr.StateSetRequest{
@@ -185,6 +191,12 @@ const stateBulkGetMaxKeys = 100
 // stateTransactMaxOps は FR-T1-STATE-005 受け入れ基準「最大 10 操作 / トランザクション」。
 const stateTransactMaxOps = 10
 
+// stateMaxValueBytes は FR-T1-STATE-005 受け入れ基準「値サイズ上限 1MB をデフォルト」。
+// Component YAML で調整可能とあるが、release-initial では handler 段で固定値を強制する。
+// 上限超過は ResourceExhausted（HTTP 429 相当）で弾く。Valkey 側の RESP 制限（512MB）よりも
+// はるかに小さく設定し、Pod メモリ保護と downstream の Kafka / S3 経路保護を兼ねる。
+const stateMaxValueBytes = 1 * 1024 * 1024
+
 // BulkGet は複数キーの一括取得（adapter.BulkGet 経由）。
 func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest) (*statev1.BulkGetResponse, error) {
 	if req == nil {
@@ -250,10 +262,18 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 			"tier1/state: Transact operations count %d exceeds max %d", len(req.GetOperations()), stateTransactMaxOps)
 	}
 	ops := make([]dapr.TransactOp, 0, len(req.GetOperations()))
-	for _, op := range req.GetOperations() {
+	for i, op := range req.GetOperations() {
 		switch x := op.GetOp().(type) {
 		case *statev1.TransactOp_Set:
 			s := x.Set
+			// FR-T1-STATE-005: トランザクション内の Set にも 1 MiB 上限を強制する。
+			// 1 op の暴騰でトランザクション全体を rollback させても結局意味が無いので
+			// 入力検証段で弾く（部分書込ゼロを保証）。
+			if len(s.GetData()) > stateMaxValueBytes {
+				return nil, status.Errorf(codes.ResourceExhausted,
+					"tier1/state: Transact op[%d] value size %d exceeds maximum %d (1 MiB)",
+					i, len(s.GetData()), stateMaxValueBytes)
+			}
 			ops = append(ops, dapr.TransactOp{
 				Kind:         dapr.TransactOpSet,
 				Key:          s.GetKey(),

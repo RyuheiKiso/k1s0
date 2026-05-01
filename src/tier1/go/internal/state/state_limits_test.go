@@ -116,3 +116,78 @@ func TestTransact_Accepts10Ops(t *testing.T) {
 		t.Error("expected committed=true")
 	}
 }
+
+// TestSet_RejectsValueOver1MiB は FR-T1-STATE-005「値サイズ上限 1MB をデフォルト」を担保する。
+// 1 MiB + 1 byte の Data を投入し、ResourceExhausted で adapter まで届かないことを確認する。
+func TestSet_RejectsValueOver1MiB(t *testing.T) {
+	adapterCalled := false
+	a := &fakeStateAdapter{
+		setFn: func(_ context.Context, _ dapr.StateSetRequest) (dapr.StateSetResponse, error) {
+			adapterCalled = true
+			return dapr.StateSetResponse{}, nil
+		},
+	}
+	h := newHandler(a)
+	big := make([]byte, stateMaxValueBytes+1)
+	_, err := h.Set(context.Background(), &statev1.SetRequest{
+		Store:   "default",
+		Key:     "k",
+		Data:    big,
+		Context: makeTenantCtx("T"),
+	})
+	if got := status.Code(err); got != codes.ResourceExhausted {
+		t.Fatalf("status: got %v want ResourceExhausted", got)
+	}
+	if adapterCalled {
+		t.Error("adapter should not be reached when value exceeds 1 MiB")
+	}
+}
+
+// TestSet_AcceptsValueAt1MiB は境界値（ちょうど 1 MiB）が通ることを確認する。
+func TestSet_AcceptsValueAt1MiB(t *testing.T) {
+	a := &fakeStateAdapter{
+		setFn: func(_ context.Context, _ dapr.StateSetRequest) (dapr.StateSetResponse, error) {
+			return dapr.StateSetResponse{NewEtag: "v1"}, nil
+		},
+	}
+	h := newHandler(a)
+	at := make([]byte, stateMaxValueBytes)
+	_, err := h.Set(context.Background(), &statev1.SetRequest{
+		Store:   "default",
+		Key:     "k",
+		Data:    at,
+		Context: makeTenantCtx("T"),
+	})
+	if err != nil {
+		t.Fatalf("1 MiB should be accepted: %v", err)
+	}
+}
+
+// TestTransact_RejectsSetOpOver1MiB はトランザクション内の Set 操作にも 1 MiB 上限が
+// 適用されることを担保する。1 op だけ過大でも全体 ResourceExhausted で弾く（部分書込ゼロ）。
+func TestTransact_RejectsSetOpOver1MiB(t *testing.T) {
+	adapterCalled := false
+	a := &fakeStateAdapter{
+		transactFn: func(_ context.Context, _ dapr.StateTransactRequest) error {
+			adapterCalled = true
+			return nil
+		},
+	}
+	h := newHandler(a)
+	big := make([]byte, stateMaxValueBytes+1)
+	ops := []*statev1.TransactOp{
+		{Op: &statev1.TransactOp_Set{Set: &statev1.SetRequest{Key: "small", Data: []byte("ok")}}},
+		{Op: &statev1.TransactOp_Set{Set: &statev1.SetRequest{Key: "big", Data: big}}},
+	}
+	_, err := h.Transact(context.Background(), &statev1.TransactRequest{
+		Store:      "default",
+		Operations: ops,
+		Context:    makeTenantCtx("T"),
+	})
+	if got := status.Code(err); got != codes.ResourceExhausted {
+		t.Fatalf("status: got %v want ResourceExhausted", got)
+	}
+	if adapterCalled {
+		t.Error("adapter should not be reached when any Set op exceeds 1 MiB")
+	}
+}
