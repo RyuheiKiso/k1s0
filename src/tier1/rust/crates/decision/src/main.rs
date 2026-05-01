@@ -339,6 +339,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 評価 / 登録時の rich audit emit に使う共通 emitter を main 側で確保する。
     // CommonRuntime::from_env() が下流で呼ばれるが、emitter のみ先に組み立てる。
     let audit_emitter = k1s0_tier1_common::runtime::load_audit_emitter_from_env();
+
+    // FR-T1-DECISION-004: ConfigMap mount された JDM ファイル群を hot reload する。
+    // 環境変数 `DECISION_JDM_DIR` で監視ディレクトリを指定する（既定 /etc/k1s0/decisions）。
+    // 起動時にディレクトリ全件を register、以後 fs イベントで自動再登録する。
+    // 値が "off" の場合は hot reload 機能を無効化する（test / 単体起動経路）。
+    let _hot_reload_handle: Option<tokio::task::JoinHandle<()>> = {
+        let dir_env = std::env::var("DECISION_JDM_DIR")
+            .unwrap_or_else(|_| "/etc/k1s0/decisions".to_string());
+        if dir_env == "off" {
+            eprintln!("tier1/decision: hot-reload disabled (DECISION_JDM_DIR=off)");
+            None
+        } else {
+            let dir = std::path::PathBuf::from(dir_env);
+            // 起動時 load: 失敗ファイルは warn ログのみで継続。
+            match k1s0_tier1_decision::loader::load_initial(&registry, &dir, "hot-reload") {
+                Ok((ok, errors)) => {
+                    eprintln!(
+                        "tier1/decision: initial load loaded={} failed={} dir={}",
+                        ok,
+                        errors.len(),
+                        dir.display()
+                    );
+                    for (path, err) in &errors {
+                        eprintln!(
+                            "tier1/decision: initial load error path={} error={}",
+                            path.display(),
+                            err
+                        );
+                    }
+                }
+                Err(e) => {
+                    eprintln!(
+                        "tier1/decision: initial load failed dir={} error={}",
+                        dir.display(),
+                        e
+                    );
+                }
+            }
+            // watcher 起動: ディレクトリ未存在時は失敗するため warn して None で継続。
+            match k1s0_tier1_decision::loader::spawn_watcher(
+                registry.clone(),
+                dir.clone(),
+                "hot-reload".to_string(),
+            ) {
+                Ok(h) => {
+                    eprintln!(
+                        "tier1/decision: hot-reload watcher started dir={}",
+                        dir.display()
+                    );
+                    Some(h)
+                }
+                Err(e) => {
+                    eprintln!(
+                        "tier1/decision: hot-reload watcher start failed dir={} error={}",
+                        dir.display(),
+                        e
+                    );
+                    None
+                }
+            }
+        }
+    };
     let dec = DecisionServer {
         registry: registry.clone(),
         audit_emitter: audit_emitter.clone(),

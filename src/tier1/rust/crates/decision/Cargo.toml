@@ -51,7 +51,18 @@ tonic-reflection = "0.12"
 # FR-T1-DECISION-003: 評価入出力の hash を audit attributes に詰めるため。
 sha2 = "0.10"
 base64 = "0.22"
+# FR-T1-DECISION-004: ConfigMap mount 配下の JDM ファイル変更検知（ホットリロード）。
+# notify は inotify (Linux) / FSEvents (macOS) / ReadDirectoryChangesW (Windows) を抽象化する。
+# k1s0 production は K8s 上の Linux 限定だが、開発 / CI 経路は macOS / Windows でも回るよう、
+# default features (cross-platform backend) を有効にしておく。
+notify = "6"
+# JDM ファイル名や glob 走査用に標準 std::fs だけでは不足する場合の補助。リリース時点では
+# fs::read_dir で十分なため依存追加は最小限に留める。
 
 [lib]
 name = "k1s0_tier1_decision"
 path = "src/lib.rs"
+
+[dev-dependencies]
+# loader テストの一時ディレクトリ管理（自動 cleanup）。
+tempfile = "3"

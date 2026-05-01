@@ -10,3 +10,5 @@
 pub mod registry;
 // HTTP/JSON gateway 用 JsonRpc 実装。
 pub mod http;
+// FR-T1-DECISION-004: ConfigMap mount 配下の JDM ファイル変更検知（ホットリロード）。
+pub mod loader;
