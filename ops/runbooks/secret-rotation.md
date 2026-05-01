@@ -116,4 +116,4 @@ kubectl delete certificate <name> -n <ns>
 - [docs/05_実装/85_Identity設計/secrets-matrix.md](../../docs/05_実装/85_Identity設計/secrets-matrix.md)
 - [`.gitleaks.toml`](../../.gitleaks.toml) — 漏洩検出 rule
 - [`infra/security/openbao/policies/`](../../infra/security/openbao/policies/) — OpenBao policy
-- 関連 Runbook: [`incidents/RB-SEC-002-cert-expiry.md`](incidents/RB-SEC-002-cert-expiry.md), [`incidents/auth-abuse-detection.md`](incidents/auth-abuse-detection.md)（漏洩経路調査時に並行実行）
+- 関連 Runbook: [`incidents/RB-SEC-002-cert-expiry.md`](incidents/RB-SEC-002-cert-expiry.md), [`incidents/RB-AUTH-002-auth-abuse-detection.md`](incidents/RB-AUTH-002-auth-abuse-detection.md)（漏洩経路調査時に並行実行）

@@ -30,7 +30,7 @@ oncall/
 オンコール体制への接続点:
 
 1. **PagerDuty 経由**: `KafkaBrokerDown` / `PostgresPrimaryDown` 等の Alertmanager rule が PagerDuty 発火 → 当番 SRE が対応 Runbook を起動。
-2. **SEV1 確定経由**: [`runbooks/incidents/severity-decision-tree.md`](../runbooks/incidents/severity-decision-tree.md) で SEV1 確定 → [`escalation.md`](escalation.md) を実行。
+2. **SEV1 確定経由**: [`runbooks/incidents/RB-INC-001-severity-decision-tree.md`](../runbooks/incidents/RB-INC-001-severity-decision-tree.md) で SEV1 確定 → [`escalation.md`](escalation.md) を実行。
 3. **外部報告経由**: 顧客報告 / セキュリティリサーチャー通報 → [`escalation.md`](escalation.md) で IC 指名。
 
 ## 関連
