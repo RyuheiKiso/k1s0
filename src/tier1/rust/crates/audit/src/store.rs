@@ -105,6 +105,17 @@ pub trait AuditStore: Send + Sync {
         from_ms: Option<i64>,
         to_ms: Option<i64>,
     ) -> Result<VerifyOutcome, StoreError>;
+    /// FR-T1-AUDIT-003 retention runner からの warm→cold 移行完了後に呼ばれる削除。
+    /// `audit_id` 該当 entry を warm 層から物理削除する。
+    /// `tenant_id` で二重防御（テナント越境削除を防ぐ）。
+    /// 通常の RPC 経路からは呼ばれず、retention runner だけが使う特権操作。
+    /// 既定実装は「未対応」を意味する Backend エラーを返し、retention に参加しない store も許す。
+    fn delete_warm(&self, tenant_id: &str, audit_id: &str) -> Result<(), StoreError> {
+        let _ = (tenant_id, audit_id);
+        Err(StoreError::Backend(
+            "delete_warm not supported by this store".into(),
+        ))
+    }
 }
 
 /// VerifyChain の詳細検証結果。proto VerifyChainResponse と意味的対応。
@@ -339,6 +350,21 @@ impl AuditStore for InMemoryAuditStore {
             first_bad_sequence: 0,
             reason: String::new(),
         })
+    }
+
+    fn delete_warm(&self, tenant_id: &str, audit_id: &str) -> Result<(), StoreError> {
+        // FR-T1-AUDIT-003: warm 層 (in-memory store) から retention runner が削除する経路。
+        // hash chain の整合性は archive 層に export 済の entry に対してのみ削除するため、
+        // 「先頭から順に削除」が成立する運用なら chain は壊れない。
+        // 残存 entry の prev_id は変更しない（hash chain の数学的整合性は元のまま）。
+        let mut entries = self.entries.write().map_err(|_| StoreError::LockPoisoned)?;
+        let before = entries.len();
+        entries.retain(|e| !(e.tenant_id == tenant_id && e.audit_id == audit_id));
+        if entries.len() == before {
+            // 該当なしは「既に削除済」または「不正 audit_id」。冪等性のため Ok を返す。
+            return Ok(());
+        }
+        Ok(())
     }
 }
 
