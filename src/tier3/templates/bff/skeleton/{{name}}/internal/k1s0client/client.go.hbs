@@ -1,0 +1,51 @@
+// 本ファイルは {{name}} の Infrastructure 層 (k1s0 SDK ラッパー) placeholder。
+//
+// 設計参考:
+//   src/tier3/bff/internal/k1s0client/  (portal-bff / admin-bff の本実装)
+//
+// 役割:
+//   tier1 14 サービスへの薄いラッパー。SDK 型を上位 (graphql / rest / domain) に
+//   漏らさないため、本 package が境界となる。
+
+// Package k1s0client は {{name}} の k1s0 SDK 利用境界。
+package k1s0client
+
+import (
+	"context"
+
+	"github.com/k1s0/sdk-go/k1s0"
+)
+
+// Client は SDK Client を保持する薄いラッパー。
+type Client struct {
+	client *k1s0.Client
+}
+
+// New は dial して Client を返す。失敗時はエラーを伝搬する。
+func New(ctx context.Context, target, tenantID, subject string, useTLS bool) (*Client, error) {
+	c, err := k1s0.New(ctx, k1s0.Config{
+		Target:   target,
+		TenantID: tenantID,
+		Subject:  subject,
+		UseTLS:   useTLS,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Client{client: c}, nil
+}
+
+// Close は SDK Client を解放する (nil-safe)。
+func (c *Client) Close() error {
+	if c == nil || c.client == nil {
+		return nil
+	}
+	return c.client.Close()
+}
+
+// StateGet は採用組織の業務に置換するサンプルメソッド。
+// 採用初期 で State / PubSub / Decision 等の必要なメソッドを追加する
+// (src/tier3/bff/internal/k1s0client/ の各 *.go を参照)。
+func (c *Client) StateGet(ctx context.Context, store, key string) (data []byte, etag string, found bool, err error) {
+	return c.client.State().Get(ctx, store, key)
+}

@@ -1,9 +1,17 @@
 // 本ファイルは {{name}}（tier3 Web SPA）のルートコンポーネント。
 // {{description}}
 //
-// リリース時点 段階では tier1 への実通信を行わず、placeholder の health 値を表示する。
-// 採用初期 で `@k1s0/sdk-rpc` の HealthService.Check 呼び出しに置換する。
-import { useState, type CSSProperties } from "react";
+// scope (リリース時点 minimum):
+//   @k1s0/api-client 経由で BFF /api/state/get を 1 回叩く demo を表示する。
+//   採用初期 で TanStack Query / Apollo client / i18n の本格利用に置換する。
+//
+// 設計参考:
+//   src/tier3/web/apps/admin/src/App.tsx
+//   src/tier3/web/apps/portal/src/App.tsx
+import { useEffect, useState, type CSSProperties } from "react";
+import { createApiClient, type ApiClient } from "@k1s0/api-client";
+import { loadConfig } from "@k1s0/config";
+import { Card } from "@k1s0/ui";
 
 const containerStyle: CSSProperties = {
   fontFamily: "system-ui, sans-serif",
@@ -11,21 +19,39 @@ const containerStyle: CSSProperties = {
   maxWidth: 720,
 };
 
+// import.meta.env (Vite) から AppConfig を組み立てる。
+const config = loadConfig(import.meta.env as unknown as Record<string, unknown>);
+const client: ApiClient = createApiClient({ config });
+
 export function App(): JSX.Element {
-  const [health] = useState<string>(
-    "placeholder (採用初期 で @k1s0/sdk-rpc 経由の実 check に置換)"
-  );
+  const [status, setStatus] = useState<string>("loading...");
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const v = await client.stateGet("valkey-default", "{{name}}/last-call");
+        if (cancelled) return;
+        setStatus(v.found ? `etag=${v.etag}` : "not found");
+      } catch (e) {
+        if (cancelled) return;
+        setStatus(`error: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <main style={containerStyle}>
       <h1>{{name}}</h1>
       <p>{{description}}</p>
-      <section>
-        <h2>tier1 health</h2>
+      <Card title="BFF state.get demo">
         <p>
-          <code>{health}</code>
+          <code>{status}</code>
         </p>
-      </section>
+      </Card>
     </main>
   );
 }

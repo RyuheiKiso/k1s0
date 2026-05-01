@@ -1,0 +1,41 @@
+// 本ファイルは {{name}} の Application 層 (UseCase / orchestration) placeholder。
+//
+// docs 正典:
+//   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+//
+// Clean Architecture: Domain と Infrastructure の間。
+// Domain entity の操作と Infrastructure (Repository / k1s0 SDK) の orchestration を担当。
+// Infrastructure 実装には interface 経由でのみ依存する (依存方向: application → domain only)。
+
+// Package application は {{name}} の UseCase を集約する。
+package application
+
+import (
+	"context"
+
+	"github.com/k1s0/{{name}}/internal/domain"
+)
+
+// SampleRepository は Application が依存する Infrastructure の interface。
+// 実装は internal/infrastructure/ 以下に置く (Dependency Inversion)。
+type SampleRepository interface {
+	// Save は entity を永続化する。
+	Save(ctx context.Context, e *domain.SampleEntity) error
+}
+
+// SampleUseCase は採用組織の業務処理に置換するサンプル UseCase。
+type SampleUseCase struct {
+	repo SampleRepository
+}
+
+// NewSampleUseCase は UseCase を組み立てる (DI 経由で repo を注入)。
+func NewSampleUseCase(repo SampleRepository) *SampleUseCase {
+	return &SampleUseCase{repo: repo}
+}
+
+// Execute は entity を生成して Repository に保存する。
+// 採用組織は本メソッドを業務ロジックに置換する。
+func (u *SampleUseCase) Execute(ctx context.Context, id, status string) error {
+	e := domain.NewSampleEntity(id, status)
+	return u.repo.Save(ctx, e)
+}

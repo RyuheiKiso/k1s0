@@ -1,0 +1,81 @@
+// 本ファイルは {{name}} の GraphQL Resolver placeholder。
+//
+// 設計参考:
+//   src/tier3/bff/internal/graphql/server.go (portal-bff の本実装、substring/operationName
+//   ベースの最小 dispatcher で 14 サービスを露出)
+//
+// scope:
+//   リリース時点 では minimal な substring 一致で stateGet クエリのみ解決。
+//   採用初期 で gqlgen の resolver に置換する。
+
+// Package graphql は {{name}} の GraphQL endpoint を提供する。
+package graphql
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/k1s0/{{name}}/internal/k1s0client"
+)
+
+// graphqlRequest は POST /graphql の入力 JSON。
+type graphqlRequest struct {
+	Query         string         `json:"query"`
+	Variables     map[string]any `json:"variables,omitempty"`
+	OperationName string         `json:"operationName,omitempty"`
+}
+
+// graphqlResponse は GraphQL 標準応答 JSON。
+type graphqlResponse struct {
+	Data   any              `json:"data,omitempty"`
+	Errors []map[string]any `json:"errors,omitempty"`
+}
+
+// Resolver は GraphQL クエリを解決する。
+type Resolver struct {
+	client *k1s0client.Client
+}
+
+// NewResolver は Resolver を組み立てる。
+func NewResolver(client *k1s0client.Client) *Resolver {
+	return &Resolver{client: client}
+}
+
+// Handler は POST /graphql ハンドラを返す。
+func (r *Resolver) Handler() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var gReq graphqlRequest
+		if err := json.NewDecoder(req.Body).Decode(&gReq); err != nil {
+			http.Error(w, "invalid json: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		ctx, cancel := context.WithTimeout(req.Context(), 5*time.Second)
+		defer cancel()
+
+		var resp graphqlResponse
+		switch {
+		case strings.Contains(gReq.Query, "stateGet"):
+			store, _ := gReq.Variables["store"].(string)
+			key, _ := gReq.Variables["key"].(string)
+			data, etag, found, err := r.client.StateGet(ctx, store, key)
+			if err != nil {
+				resp.Errors = []map[string]any{{"message": err.Error()}}
+			} else if !found {
+				resp.Data = map[string]any{"stateGet": nil}
+			} else {
+				resp.Data = map[string]any{"stateGet": map[string]any{"data": string(data), "etag": etag}}
+			}
+		default:
+			resp.Errors = []map[string]any{{"message": "unsupported query"}}
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(resp)
+	}
+}

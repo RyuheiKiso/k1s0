@@ -1,0 +1,20 @@
+// 本ファイルは {{name}} Domain 層の単体テスト placeholder。
+// Domain 層は外部依存ゼロのため最も書きやすく、まずここから coverage を立てる。
+
+package domain
+
+import "testing"
+
+// SampleEntity factory が ID / Status を保持することを最低限確認する。
+func TestNewSampleEntity_RetainsFields(t *testing.T) {
+	e := NewSampleEntity("ORD-001", "PENDING")
+	if e == nil {
+		t.Fatal("entity should not be nil")
+	}
+	if e.ID != "ORD-001" {
+		t.Errorf("ID = %q, want ORD-001", e.ID)
+	}
+	if e.Status != "PENDING" {
+		t.Errorf("Status = %q, want PENDING", e.Status)
+	}
+}

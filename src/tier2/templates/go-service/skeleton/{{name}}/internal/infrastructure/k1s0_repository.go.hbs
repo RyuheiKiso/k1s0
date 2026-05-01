@@ -1,0 +1,47 @@
+// 本ファイルは {{name}} の Infrastructure 層 (Repository 実装) placeholder。
+//
+// docs 正典:
+//   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+//
+// 役割:
+//   Application 層の SampleRepository interface を k1s0 SDK 越しに実装する。
+//   SDK 型 (k1s0.Client / etc) を Domain / Application に漏らさないことが本層の責務。
+
+// Package infrastructure は {{name}} の外部システム接続実装を集約する。
+package infrastructure
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/k1s0/{{name}}/internal/application"
+	"github.com/k1s0/{{name}}/internal/domain"
+
+	"github.com/k1s0/sdk-go/k1s0"
+)
+
+// K1s0SampleRepository は SampleRepository を k1s0 State 経由で実装する。
+// store / key の組み立てルールは採用組織が決める (本 stub は employee/{ID} を例示)。
+type K1s0SampleRepository struct {
+	client *k1s0.Client
+	store  string
+}
+
+// NewK1s0SampleRepository は Repository を組み立てる (DI 経由で SDK Client を受ける)。
+func NewK1s0SampleRepository(client *k1s0.Client, store string) *K1s0SampleRepository {
+	return &K1s0SampleRepository{client: client, store: store}
+}
+
+// Save は entity を JSON で State に保存する。
+// 採用組織は ETag による楽観的排他制御 / outbox pattern を必要に応じて追加する。
+func (r *K1s0SampleRepository) Save(ctx context.Context, e *domain.SampleEntity) error {
+	data, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+	_, err = r.client.State().Save(ctx, r.store, "{{name}}/"+e.ID, data)
+	return err
+}
+
+// 静的アサート: Application 層の interface を満たすことを compile time に保証する。
+var _ application.SampleRepository = (*K1s0SampleRepository)(nil)

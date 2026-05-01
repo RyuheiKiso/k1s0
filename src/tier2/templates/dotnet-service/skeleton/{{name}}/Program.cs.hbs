@@ -2,6 +2,8 @@
 // {{description}}
 using K1s0.Sdk;
 using K1s0.Tier2.Common.Auth;
+using K1s0.Tier2.Common.Errors;
+using K1s0.Tier2.Common.Otel;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,11 +15,18 @@ builder.Services.AddSingleton(_ => new K1s0Client(new K1s0Config
     Subject = builder.Configuration.GetValue<string>("K1s0:Subject") ?? "{{name}}",
 }));
 
+// OTel 初期化 (OTEL_EXPORTER_OTLP_ENDPOINT 環境変数で OTLP gRPC を有効化)。
+builder.Services.AddK1s0Otel("{{name}}", "0.1.0",
+    Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "dev");
+
 // docs §共通規約「認証認可」: T2_AUTH_MODE=off/hmac/jwks の 3 mode を環境変数で切替。
 // production では jwks（Keycloak 等）を選び、開発時のみ off で立ち上げる。
 builder.Services.AddK1s0JwtBearer();
 
 var app = builder.Build();
+
+// DomainException → ErrorBody JSON 変換 (AuthN/Z より前段で例外捕捉)。
+app.UseK1s0DomainException();
 
 // 認証 / 認可 middleware を pipeline に組み込む（順序: Authentication → Authorization）。
 app.UseAuthentication();
