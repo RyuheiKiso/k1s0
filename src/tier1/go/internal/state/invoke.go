@@ -2,22 +2,37 @@
 //
 // 設計正典:
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/01_Service_Invoke_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/01_Service_Invoke_API.md
+//     - FR-T1-INVOKE-001: 同期サービス呼び出し（gRPC）
+//     - FR-T1-INVOKE-003: タイムアウト・リトライ制御
+//     - FR-T1-INVOKE-005: 認証トークン自動伝搬
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/00_tier1_API共通規約.md §「タイムアウトとデッドライン伝播」
 //
-// scope（リリース時点 placeholder）: adapter は ErrNotWired を返却。実 Dapr Service Invocation
-// 結線は plan 04-11。
+// 役割:
+//   - request.TimeoutMs を context.WithTimeout で適用し、未指定時は共通規約の既定値（3 秒）を使う
+//   - 呼出元 incoming context の Authorization / W3C Trace Context メタデータを
+//     outgoing context に転写する（FR-T1-INVOKE-005「呼出元 request の Authorization
+//     ヘッダが呼び出し先 request に自動付与される」）
+//   - Service Invocation 自体は呼出先サービスの副作用が不明なため tier1 facade では
+//     auto-retry を行わない（共通規約「クライアント SDK が retry を担う」）。retry
+//     ポリシーは呼出元 SDK 側の責務とする
 
 package state
 
-// 標準 / 内部パッケージ。
 import (
-	// context 伝搬。
+	// context 伝搬と timeout 制御。
 	"context"
+	// 既定 timeout の Duration 計算。
+	"time"
+
 	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// SDK 生成 stub の InvokeService 型。
 	serviceinvokev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/serviceinvoke/v1"
 	// gRPC エラーコード。
 	"google.golang.org/grpc/codes"
+	// 認証ヘッダ転写用の outgoing metadata。
+	"google.golang.org/grpc/metadata"
 	// gRPC ステータスエラー。
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +43,96 @@ type invokeHandler struct {
 	serviceinvokev1.UnimplementedInvokeServiceServer
 	// adapter 集合への参照。
 	deps Deps
+}
+
+// invokeDefaultTimeout は共通規約 §「タイムアウトとデッドライン伝播」の既定 3 秒。
+// request.TimeoutMs == 0 の場合に適用される。
+const invokeDefaultTimeout = 3 * time.Second
+
+// invokeMaxTimeout は呼出元から指定可能な最大 timeout。共通規約の既定 3 秒は
+// 短期サービス呼び出し向けで、Workflow.Start（30 秒）/ Binding.Send（10 秒）の
+// 別 API 経路と比較しても 60 秒を超える呼び出しは tier1 facade の責務外として弾く。
+const invokeMaxTimeout = 60 * time.Second
+
+// invokeForwardedHeaders は呼出元 → 呼出先に自動転写するヘッダ集合。
+// FR-T1-INVOKE-005「呼出元 request の Authorization ヘッダが呼び出し先 request に
+// 自動付与される」「W3C Trace Context が tier1 ファサードが自動で伝搬する」。
+//
+// gRPC metadata key は小文字正規化されているため、ここでも小文字で並べる。
+var invokeForwardedHeaders = []string{
+	// JWT Bearer 等の認証ヘッダ。
+	"authorization",
+	// W3C Trace Context（traceparent / tracestate）。
+	"traceparent",
+	"tracestate",
+	// Baggage（OpenTelemetry の業務情報伝搬）。
+	"baggage",
+}
+
+// applyInvokeTimeout は request.TimeoutMs を context.WithTimeout で適用する。
+//
+// 動作:
+//   - timeoutMs == 0: 既定 3 秒を適用
+//   - 0 < timeoutMs <= invokeMaxTimeout: 指定値を適用
+//   - timeoutMs > invokeMaxTimeout: InvalidArgument を返す（爆撃防止）
+//
+// 親 context にすでに deadline がある場合、context.WithTimeout は早い方を採用する。
+func applyInvokeTimeout(parent context.Context, timeoutMs int32) (context.Context, context.CancelFunc, error) {
+	// 不正値（負）は InvalidArgument。
+	if timeoutMs < 0 {
+		// nil cancel と error を返す。
+		return parent, func() {}, status.Errorf(codes.InvalidArgument, "tier1/serviceinvoke: timeout_ms must be >= 0, got %d", timeoutMs)
+	}
+	// 既定値の決定。
+	timeout := invokeDefaultTimeout
+	// 明示指定がある場合は上書き。
+	if timeoutMs > 0 {
+		// 過大値は弾く（DoS 防止）。
+		if time.Duration(timeoutMs)*time.Millisecond > invokeMaxTimeout {
+			return parent, func() {}, status.Errorf(codes.InvalidArgument, "tier1/serviceinvoke: timeout_ms %d exceeds maximum %d", timeoutMs, int32(invokeMaxTimeout/time.Millisecond))
+		}
+		// ms → Duration へ変換する。
+		timeout = time.Duration(timeoutMs) * time.Millisecond
+	}
+	// timeout を被せた child context を返す。
+	ctx, cancel := context.WithTimeout(parent, timeout)
+	// 呼出側 defer で cancel を呼ぶ前提。
+	return ctx, cancel, nil
+}
+
+// withForwardedAuthMetadata は incoming gRPC metadata から FR-T1-INVOKE-005 の
+// 転写対象ヘッダを取り出して outgoing context に詰め直す。
+//
+// 動作:
+//   - incoming context に metadata が存在しない（HTTP gateway 経由など）場合は
+//     parent をそのまま返す
+//   - 既存の outgoing metadata を尊重しつつ、不在キーのみ補完する（呼出側が
+//     明示的に上書きした場合は壊さない）
+func withForwardedAuthMetadata(parent context.Context) context.Context {
+	// incoming metadata を取り出す（gRPC 経路）。
+	in, ok := metadata.FromIncomingContext(parent)
+	if !ok || in.Len() == 0 {
+		// HTTP gateway 経路など metadata 不在の場合はそのまま返す。
+		return parent
+	}
+	// 既存の outgoing metadata を尊重するため Copy で結合する。
+	out, _ := metadata.FromOutgoingContext(parent)
+	if out == nil {
+		out = metadata.MD{}
+	}
+	// 転写対象キーを 1 つずつコピーする。
+	for _, key := range invokeForwardedHeaders {
+		// すでに outgoing 側に値があれば呼出側の意図を尊重して上書きしない。
+		if existing := out.Get(key); len(existing) > 0 {
+			continue
+		}
+		// incoming 側に値があればコピーする。
+		if vs := in.Get(key); len(vs) > 0 {
+			out.Set(key, vs...)
+		}
+	}
+	// 転写後 outgoing context を作って返す。
+	return metadata.NewOutgoingContext(parent, out)
 }
 
 // Invoke は任意サービスの任意メソッド呼出。
@@ -42,6 +147,22 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 	if err != nil {
 		return nil, err
 	}
+	// 必須入力（app_id / method）の事前検証。空のまま Dapr に流すと InvokeMethodWithCustomContent
+	// が plain error を返し codes.Internal に潰れるため handler 段で弾く。
+	if req.GetAppId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/serviceinvoke: app_id required")
+	}
+	if req.GetMethod() == "" {
+		return nil, status.Error(codes.InvalidArgument, "tier1/serviceinvoke: method required")
+	}
+	// FR-T1-INVOKE-003: TimeoutMs を context.WithTimeout で適用する。
+	ctx, cancel, terr := applyInvokeTimeout(ctx, req.GetTimeoutMs())
+	if terr != nil {
+		return nil, terr
+	}
+	defer cancel()
+	// FR-T1-INVOKE-005: 認証ヘッダを呼出先 request に自動転写する。
+	ctx = withForwardedAuthMetadata(ctx)
 	// adapter 入力に変換。
 	areq := dapr.InvokeRequest{
 		// 呼出先アプリ識別子。
@@ -54,7 +175,7 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 		ContentType: req.GetContentType(),
 		// テナント。
 		TenantID: tid,
-		// タイムアウト。
+		// タイムアウト（adapter には参考情報として渡すが、context deadline で上書きされる）。
 		TimeoutMs: req.GetTimeoutMs(),
 	}
 	// adapter 呼出。
@@ -96,6 +217,20 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 	if terr != nil {
 		return terr
 	}
+	if req.GetAppId() == "" {
+		return status.Error(codes.InvalidArgument, "tier1/serviceinvoke: app_id required")
+	}
+	if req.GetMethod() == "" {
+		return status.Error(codes.InvalidArgument, "tier1/serviceinvoke: method required")
+	}
+	// FR-T1-INVOKE-003: stream context にも timeout を適用する。
+	ctx, cancel, applyErr := applyInvokeTimeout(stream.Context(), req.GetTimeoutMs())
+	if applyErr != nil {
+		return applyErr
+	}
+	defer cancel()
+	// FR-T1-INVOKE-005: 認証ヘッダを転写する。
+	ctx = withForwardedAuthMetadata(ctx)
 	areq := dapr.InvokeRequest{
 		AppID:       req.GetAppId(),
 		Method:      req.GetMethod(),
@@ -104,7 +239,7 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 		TenantID:    tid,
 		TimeoutMs:   req.GetTimeoutMs(),
 	}
-	aresp, err := h.deps.InvokeAdapter.Invoke(stream.Context(), areq)
+	aresp, err := h.deps.InvokeAdapter.Invoke(ctx, areq)
 	if err != nil {
 		return translateInvokeErr(err, "InvokeStream")
 	}
@@ -145,3 +280,4 @@ func translateInvokeErr(err error, rpc string) error {
 	// 想定外エラーは Internal。
 	return status.Errorf(codes.Internal, "tier1/serviceinvoke: %s adapter error: %v", rpc, err)
 }
+

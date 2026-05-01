@@ -215,7 +215,11 @@ func startHTTPGatewayIfEnabled(addr string, deps state.Deps) *http.Server {
 	g.RegisterBindingRoutes(state.MakeHTTPBindingHandlers(state.NewBindingServiceServer(deps)))
 	g.RegisterLogRoutes(state.MakeHTTPLogHandlers(state.NewLogServiceServer(deps)))
 	g.RegisterTelemetryRoutes(state.MakeHTTPTelemetryHandlers(state.NewTelemetryServiceServer(deps)))
+	// 共通 /k1s0/serviceinvoke/invoke ルート（protojson body）。
 	g.RegisterInvokeRoutes(state.MakeHTTPInvokeHandlers(state.NewInvokeServiceServer(deps)))
+	// FR-T1-INVOKE-002: HTTP/1.1 互換プロキシ POST /invoke/<target>/<method>（raw body）。
+	// .NET Framework 4.x 等の gRPC 利用が困難なレガシークライアント向け。
+	g.RegisterInvokeProxyRoute(state.NewInvokeProxyAdapter(state.NewInvokeServiceServer(deps)))
 
 	srv := &http.Server{
 		Addr:              addr,
