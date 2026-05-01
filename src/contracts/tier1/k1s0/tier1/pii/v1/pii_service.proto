@@ -39,6 +39,14 @@ service PiiService {
       body: "*"
     };
   }
+  // 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+  // 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+  rpc Pseudonymize(PseudonymizeRequest) returns (PseudonymizeResponse) {
+    option (google.api.http) = {
+      post: "/k1s0/pii/pseudonymize"
+      body: "*"
+    };
+  }
 }
 
 // Classify リクエスト
@@ -83,4 +91,24 @@ message MaskResponse {
   string masked_text = 1;
   // 検出された PII 一覧（マスキング前の位置情報）
   repeated PiiFinding findings = 2;
+}
+
+// Pseudonymize リクエスト（FR-T1-PII-002）。
+message PseudonymizeRequest {
+  // 仮名化対象の PII 種別（NAME / EMAIL / PHONE / MYNUMBER / ADDRESS / CREDITCARD / IPV4 等）。
+  // 種別ごとに独立な仮名空間を持たせるため、HMAC 入力に prefix として混入する。
+  string field_type = 1;
+  // 仮名化対象の生値。
+  string value = 2;
+  // 仮名空間を分離する salt。本番運用では OpenBao 等で管理し、
+  // クライアントは salt 識別子のみを送る運用も許容する。空文字は不可。
+  string salt = 3;
+  // 呼出元コンテキスト（テナント境界の検証に必須）。
+  k1s0.tier1.common.v1.TenantContext context = 4;
+}
+
+// Pseudonymize 応答。
+message PseudonymizeResponse {
+  // 仮名化された値（URL-safe base64、padding 無し）。
+  string pseudonym = 1;
 }

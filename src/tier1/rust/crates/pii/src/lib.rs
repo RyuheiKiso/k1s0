@@ -13,3 +13,5 @@
 pub mod masker;
 // HTTP/JSON gateway 用 JsonRpc 実装。
 pub mod http;
+// FR-T1-PII-002: 決定論的仮名化（HMAC-SHA256）。
+pub mod pseudonymize;

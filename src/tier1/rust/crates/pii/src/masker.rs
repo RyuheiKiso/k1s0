@@ -16,6 +16,7 @@
 //   MYNUMBER : マイナンバー（連続 12 桁、緩い検出）
 //   CREDITCARD : 13〜19 桁数字（- や半角空白の区切り許容、緩い検出）
 //   IPV4     : ドット区切り 4 オクテット
+//   ADDRESS  : 日本の住所（郵便番号 〒NNN-NNNN または 都道府県 + 後続文字列）
 //   NAME     : 検出が困難なため保守的に「英字 First Last」のみ拾う（信頼度 0.4）
 //
 // 信頼度の指針:
@@ -48,6 +49,8 @@ pub enum PiiKind {
     CreditCard,
     /// IPv4 アドレス
     IPv4,
+    /// 住所（郵便番号 + 都道府県以降のヒューリスティック）
+    Address,
 }
 
 impl PiiKind {
@@ -60,6 +63,7 @@ impl PiiKind {
             PiiKind::MyNumber => "MYNUMBER",
             PiiKind::CreditCard => "CREDITCARD",
             PiiKind::IPv4 => "IPV4",
+            PiiKind::Address => "ADDRESS",
         }
     }
     /// マスク時の置換トークン。
@@ -71,6 +75,7 @@ impl PiiKind {
             PiiKind::MyNumber => "[MYNUMBER]",
             PiiKind::CreditCard => "[CREDITCARD]",
             PiiKind::IPv4 => "[IPV4]",
+            PiiKind::Address => "[ADDRESS]",
         }
     }
 }
@@ -135,6 +140,28 @@ static RULES: Lazy<Vec<Rule>> = Lazy::new(|| {
             kind: PiiKind::Name,
             re: Regex::new(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b").unwrap(),
             confidence: 0.4,
+        },
+        // 住所 (1): 日本の郵便番号「〒NNN-NNNN」または 7 桁通常表記。
+        // 続く文字列（都道府県 / 市区町村 / 番地）も含めて 80 文字までを拾う。
+        // 都道府県名で始まる住所も同 rule で拾うため、市町村のみの短縮表記は対象外（false negative 受容）。
+        Rule {
+            kind: PiiKind::Address,
+            re: Regex::new(
+                r"(?:〒\s*\d{3}-?\d{4}|\b\d{3}-\d{4}\b)[^\n,。]{0,80}",
+            )
+            .unwrap(),
+            confidence: 0.7,
+        },
+        // 住所 (2): 都道府県（47 + 1）で始まる「県/府/都/道 + 任意 + 市区町村 + 番地」。
+        // 47 prefecture を network of OR で列挙する。先頭が都道府県名なら「住所」として
+        // 抽出（false positive あり: 文中の都道府県言及を過拾。confidence 0.5 で運用閾値で抑制）。
+        Rule {
+            kind: PiiKind::Address,
+            re: Regex::new(
+                r"(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)[^\s,。\n]{2,60}",
+            )
+            .unwrap(),
+            confidence: 0.5,
         },
     ]
 });
@@ -230,6 +257,37 @@ mod tests {
         let m = Masker::new();
         let f = m.classify("server at 192.168.1.42:8080");
         assert!(f.iter().any(|x| x.kind == PiiKind::IPv4));
+    }
+
+    #[test]
+    fn classify_address_postal_code() {
+        let m = Masker::new();
+        let f = m.classify("住所 〒100-0001 東京都千代田区千代田1-1 です");
+        assert!(
+            f.iter().any(|x| x.kind == PiiKind::Address),
+            "postal code address must be detected, got: {:?}",
+            f
+        );
+    }
+
+    #[test]
+    fn classify_address_prefecture_only() {
+        let m = Masker::new();
+        let f = m.classify("配送先は神奈川県横浜市西区みなとみらい3-1");
+        assert!(
+            f.iter().any(|x| x.kind == PiiKind::Address),
+            "prefecture-prefixed address must be detected, got: {:?}",
+            f
+        );
+    }
+
+    #[test]
+    fn mask_address_replaces_with_token() {
+        let m = Masker::new();
+        let (out, findings) = m.mask("住所: 大阪府大阪市北区梅田1-2-3 連絡先");
+        assert!(findings.iter().any(|f| f.kind == PiiKind::Address));
+        assert!(out.contains("[ADDRESS]"), "address must be masked: {}", out);
+        assert!(!out.contains("梅田"), "address payload must be erased: {}", out);
     }
 
     #[test]

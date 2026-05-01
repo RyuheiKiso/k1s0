@@ -21,6 +21,8 @@ use k1s0_sdk_proto::k1s0::tier1::health::v1::health_service_server::HealthServic
 use k1s0_sdk_proto::k1s0::tier1::pii::v1::{
     // Request / Response 型。
     ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse, PiiFinding,
+    // FR-T1-PII-002 仮名化用の Request / Response 型。
+    PseudonymizeRequest, PseudonymizeResponse,
     // PiiService の trait と Server 型。
     pii_service_server::{PiiService, PiiServiceServer},
 };
@@ -33,8 +35,10 @@ use k1s0_tier1_common::http_gateway::{HttpGateway, JsonRpc, serve as serve_http}
 // 共通 runtime（環境変数から共通リソースを構築）。
 use k1s0_tier1_common::runtime::CommonRuntime;
 // PII 検出 logic の library 部。
-use k1s0_tier1_pii::http::{ClassifyRpc, MaskRpc, PiiHttpState};
+use k1s0_tier1_pii::http::{ClassifyRpc, MaskRpc, PiiHttpState, PseudonymizeRpc};
 use k1s0_tier1_pii::masker::{Finding, Masker};
+// FR-T1-PII-002: 仮名化純関数。
+use k1s0_tier1_pii::pseudonymize::{pseudonymize, PseudonymizeError};
 // 標準同期。
 use std::sync::Arc;
 // SIGTERM / SIGINT 受信。
@@ -100,6 +104,26 @@ impl PiiService for PiiServer {
             findings: proto_findings,
         }))
     }
+
+    // FR-T1-PII-002: 決定論的仮名化（HMAC-SHA256）。
+    async fn pseudonymize(
+        &self,
+        req: Request<PseudonymizeRequest>,
+    ) -> Result<Response<PseudonymizeResponse>, Status> {
+        let r = req.into_inner();
+        let pseudonym = pseudonymize(&r.field_type, &r.value, &r.salt).map_err(|e| match e {
+            PseudonymizeError::EmptySalt => {
+                Status::invalid_argument("tier1/pii: salt required")
+            }
+            PseudonymizeError::EmptyValue => {
+                Status::invalid_argument("tier1/pii: value required")
+            }
+            PseudonymizeError::EmptyFieldType => {
+                Status::invalid_argument("tier1/pii: field_type required")
+            }
+        })?;
+        Ok(Response::new(PseudonymizeResponse { pseudonym }))
+    }
 }
 
 // graceful shutdown シグナル待機。
@@ -148,7 +172,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     rt.audit_emitter.clone(),
                 )
                 .register(Arc::new(ClassifyRpc { state: pii_state.clone() }) as Arc<dyn JsonRpc>)
-                .register(Arc::new(MaskRpc { state: pii_state }) as Arc<dyn JsonRpc>);
+                .register(Arc::new(MaskRpc { state: pii_state.clone() }) as Arc<dyn JsonRpc>)
+                .register(Arc::new(PseudonymizeRpc {}) as Arc<dyn JsonRpc>);
                 let router = gateway.into_router();
                 eprintln!("tier1/pii: HTTP/JSON gateway listening on {}", http_addr);
                 let addr_for_task = http_addr.clone();

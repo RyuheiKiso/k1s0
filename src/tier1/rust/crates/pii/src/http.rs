@@ -16,6 +16,8 @@ use k1s0_tier1_common::http_gateway::JsonRpc;
 use serde_json::Value as JsonValue;
 // PII 検出 logic。
 use crate::masker::{Finding, Masker};
+// FR-T1-PII-002 仮名化純関数。
+use crate::pseudonymize::{pseudonymize, PseudonymizeError};
 // 標準同期。
 use std::sync::Arc;
 
@@ -85,6 +87,51 @@ impl JsonRpc for MaskRpc {
     }
 }
 
+/// `Pii.Pseudonymize` の HTTP 用 adapter（FR-T1-PII-002）。
+/// salt 由来の HMAC-SHA256 を URL-safe base64 で返す純関数 RPC。state は不要。
+pub struct PseudonymizeRpc {}
+
+#[async_trait::async_trait]
+impl JsonRpc for PseudonymizeRpc {
+    fn route(&self) -> &'static str {
+        "pii/pseudonymize"
+    }
+    fn full_method(&self) -> &'static str {
+        "/k1s0.tier1.pii.v1.PiiService/Pseudonymize"
+    }
+    async fn invoke(
+        &self,
+        _claims: &AuthClaims,
+        body: JsonValue,
+    ) -> Result<JsonValue, tonic::Status> {
+        // protojson camelCase: fieldType / value / salt の 3 必須キーを取り出す。
+        let field_type = body
+            .get("fieldType")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let value = body
+            .get("value")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let salt = body
+            .get("salt")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let pseudonym = pseudonymize(field_type, value, salt).map_err(|e| match e {
+            PseudonymizeError::EmptySalt => {
+                tonic::Status::invalid_argument("tier1/pii: salt required")
+            }
+            PseudonymizeError::EmptyValue => {
+                tonic::Status::invalid_argument("tier1/pii: value required")
+            }
+            PseudonymizeError::EmptyFieldType => {
+                tonic::Status::invalid_argument("tier1/pii: field_type required")
+            }
+        })?;
+        Ok(serde_json::json!({ "pseudonym": pseudonym }))
+    }
+}
+
 /// Finding 配列 → JSON 配列（protojson camelCase）。
 fn findings_to_json(findings: &[Finding]) -> Vec<JsonValue> {
     findings
@@ -125,6 +172,40 @@ mod tests {
             .unwrap();
         assert_eq!(resp["containsPii"], serde_json::json!(true));
         assert!(resp["findings"].as_array().unwrap().len() >= 1);
+    }
+
+    #[tokio::test]
+    async fn pseudonymize_returns_deterministic_value() {
+        let r = PseudonymizeRpc {};
+        let body = serde_json::json!({
+            "fieldType": "EMAIL",
+            "value": "alice@example.com",
+            "salt": "tenant-A",
+        });
+        let a = r
+            .invoke(&AuthClaims::default(), body.clone())
+            .await
+            .unwrap();
+        let b = r.invoke(&AuthClaims::default(), body).await.unwrap();
+        assert_eq!(a["pseudonym"], b["pseudonym"]);
+        assert_eq!(a["pseudonym"].as_str().unwrap().len(), 43);
+    }
+
+    #[tokio::test]
+    async fn pseudonymize_rejects_empty_salt() {
+        let r = PseudonymizeRpc {};
+        let err = r
+            .invoke(
+                &AuthClaims::default(),
+                serde_json::json!({
+                    "fieldType": "EMAIL",
+                    "value": "alice@example.com",
+                    "salt": "",
+                }),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
     }
 
     #[tokio::test]

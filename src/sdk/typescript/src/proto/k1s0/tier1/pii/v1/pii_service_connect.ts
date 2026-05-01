@@ -21,7 +21,7 @@
 
 // パッケージ命名規約: k1s0.tier1.<api>.v<n>
 
-import { ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse } from "./pii_service_pb.js";
+import { ClassifyRequest, ClassifyResponse, MaskRequest, MaskResponse, PseudonymizeRequest, PseudonymizeResponse } from "./pii_service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -52,6 +52,18 @@ export const PiiService = {
       name: "Mask",
       I: MaskRequest,
       O: MaskResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+     * 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+     *
+     * @generated from rpc k1s0.tier1.pii.v1.PiiService.Pseudonymize
+     */
+    pseudonymize: {
+      name: "Pseudonymize",
+      I: PseudonymizeRequest,
+      O: PseudonymizeResponse,
       kind: MethodKind.Unary,
     },
   }
