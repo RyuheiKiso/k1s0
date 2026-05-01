@@ -1,0 +1,109 @@
+# Argo Workflows: 月次 Chaos Game Day
+# 毎月最終水曜 14:00 JST に複数 Chaos 実験を順次実行する
+# 対応: docs/04_概要設計/55_運用ライフサイクル方式設計/08_Runbook設計方式.md §「Chaos Drill」
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: monthly-game-day
+  namespace: k1s0-chaos
+spec:
+  schedule: "0 5 * * 3"  # 毎週水曜 14:00 JST = 05:00 UTC、月次フィルタは workflow 内で
+  timezone: "Asia/Tokyo"
+  workflowSpec:
+    serviceAccountName: argo-workflows-litmus
+    entrypoint: monthly-game-day-pipeline
+    templates:
+      - name: monthly-game-day-pipeline
+        steps:
+          # Step 1: 月次フィルタ（最終水曜のみ実行）
+          - - name: check-last-wednesday
+              template: check-last-wed
+          # Step 2: Pod 削除実験 4 種を順次
+          - - name: tier1-facade-pod-delete
+              template: apply-chaos
+              arguments:
+                parameters:
+                  - name: chaos-engine
+                    value: tier1-facade-pod-delete
+                  - name: namespace
+                    value: k1s0
+            - name: cnpg-primary-pod-delete
+              template: apply-chaos
+              arguments:
+                parameters:
+                  - name: chaos-engine
+                    value: cnpg-primary-pod-delete
+                  - name: namespace
+                    value: cnpg-system
+          - - name: kafka-broker-pod-delete
+              template: apply-chaos
+              arguments:
+                parameters:
+                  - name: chaos-engine
+                    value: kafka-broker-pod-delete
+                  - name: namespace
+                    value: kafka
+          # Step 3: Network latency
+          - - name: tier1-tier2-network-latency
+              template: apply-chaos
+              arguments:
+                parameters:
+                  - name: chaos-engine
+                    value: tier1-tier2-network-latency
+                  - name: namespace
+                    value: k1s0
+          # Step 4: 結果レポートを Slack へ
+          - - name: report-results
+              template: post-slack
+      - name: check-last-wed
+        script:
+          image: bitnami/kubectl:1.30
+          command: [sh]
+          source: |
+            DAY=$(date +%d)
+            DOW=$(date +%u)  # 3 = 水曜
+            LAST_WED=$(date -d "$(date +%Y-%m-01) +1 month -1 day" +%d)
+            for d in $(seq ${LAST_WED} -1 1); do
+              CHK_DOW=$(date -d "$(date +%Y-%m-)${d}" +%u)
+              if [ "$CHK_DOW" = "3" ]; then
+                LAST_WED_DAY=$d
+                break
+              fi
+            done
+            if [ "$DAY" != "$LAST_WED_DAY" ]; then
+              echo "今日は最終水曜ではない（${DAY} != ${LAST_WED_DAY}）、実行スキップ"
+              exit 1
+            fi
+      - name: apply-chaos
+        inputs:
+          parameters:
+            - name: chaos-engine
+            - name: namespace
+        script:
+          image: bitnami/kubectl:1.30
+          command: [sh]
+          source: |
+            kubectl -n {{inputs.parameters.namespace}} \
+              apply -f /chaos/experiments/{{inputs.parameters.chaos-engine}}.yaml
+            # 5 分待って ChaosResult を確認
+            sleep 300
+            VERDICT=$(kubectl -n {{inputs.parameters.namespace}} \
+              get chaosresult -l name={{inputs.parameters.chaos-engine}} \
+              -o jsonpath='{.items[0].status.experimentStatus.verdict}')
+            echo "verdict=${VERDICT}"
+            [ "$VERDICT" = "Pass" ]
+      - name: post-slack
+        container:
+          image: curlimages/curl:8.7.1
+          command: [sh, -c]
+          args:
+            - |
+              curl -X POST -H 'Content-type: application/json' \
+                --data '{"text":"月次 Chaos Game Day 完了 — 結果は Grafana → k1s0 Chaos Drill ダッシュボード参照"}' \
+                ${SLACK_WEBHOOK_URL}
+          env:
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: slack-webhook
+                  key: ops-channel

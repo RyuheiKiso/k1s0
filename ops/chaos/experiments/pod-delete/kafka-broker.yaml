@@ -1,0 +1,62 @@
+# LitmusChaos v3.x: Kafka broker Pod 削除実験（FMEA-003 検証）
+# 対応 Runbook: RB-MSG-001（Kafka ブローカー障害対応）
+# 検証目的: Strimzi の自動 Pod 再起動 + partition 再同期が 5 分以内に完了すること
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: kafka-broker-pod-delete
+  namespace: kafka
+spec:
+  appinfo:
+    appns: kafka
+    applabel: "strimzi.io/cluster=k1s0-kafka,strimzi.io/kind=Kafka"
+    appkind: pod
+  chaosServiceAccount: litmus-admin
+  engineState: "active"
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "60"
+            # 3 broker のうち 1 個（33%）のみ削除（2 同時喪失で SEV1 になるため）
+            - name: PODS_AFFECTED_PERCENTAGE
+              value: "33"
+            - name: FORCE
+              value: "false"
+            - name: GRACE_PERIOD
+              value: "60"  # broker は graceful shutdown で 60s 確保
+        probe:
+          # KRaft quorum の健全性: 3 broker 中 2 が常に生存
+          - name: kafka-quorum-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                count(up{job="kafka-metrics", namespace="kafka"} == 1) >= 2
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 5
+              retry: 3
+          # Under-replicated partitions が 0 に戻ること（実験終了時に確認）
+          - name: kafka-replication-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                kafka_server_replicamanager_underreplicatedpartitions{namespace="kafka"} == 0
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: EOT
+            runProperties:
+              probeTimeout: 300  # 5 分以内に partition 再同期完了
+              interval: 10
+              retry: 30

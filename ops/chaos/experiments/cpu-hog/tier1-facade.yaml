@@ -1,0 +1,43 @@
+# LitmusChaos v3.x: tier1-facade CPU hog 実験
+# 検証目的: HPA が CPU 80% 閾値で 30s 以内に scale-out すること
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: tier1-facade-cpu-hog
+  namespace: k1s0
+spec:
+  appinfo:
+    appns: k1s0
+    applabel: "app=tier1-facade"
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  engineState: "active"
+  experiments:
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"  # 2 分間 CPU 飽和
+            - name: CPU_CORES
+              value: "1"
+            - name: PODS_AFFECTED_PERCENTAGE
+              value: "50"  # 半数の Pod のみ
+        probe:
+          # HPA が 60s 以内に scale-out すること
+          - name: hpa-scaleout-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                kube_horizontalpodautoscaler_status_current_replicas{
+                  horizontalpodautoscaler="tier1-facade-hpa"
+                } > 3
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: EOT
+            runProperties:
+              probeTimeout: 90
+              interval: 10
+              retry: 9

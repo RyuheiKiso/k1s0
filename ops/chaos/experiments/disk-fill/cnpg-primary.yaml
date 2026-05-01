@@ -1,0 +1,62 @@
+# LitmusChaos v3.x: CNPG Primary disk fill 実験
+# 検証目的: PVC 80% アラートが発火し、CNPG が WAL アーカイブを正常に MinIO に flush すること
+# 警告: 本実験は staging 環境のみで実行。本番環境では disk-fill 後の復旧時間が長い。
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: cnpg-primary-disk-fill
+  namespace: cnpg-system
+spec:
+  appinfo:
+    appns: cnpg-system
+    applabel: "cnpg.io/cluster=k1s0-postgres,role=primary"
+    appkind: pod
+  chaosServiceAccount: litmus-admin
+  engineState: "active"
+  experiments:
+    - name: disk-fill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "180"  # 3 分間 disk 圧迫
+            # PVC 全体の 80% まで埋める（残り 20% が空くまで）
+            - name: FILL_PERCENTAGE
+              value: "80"
+            - name: TARGET_CONTAINER
+              value: "postgres"
+            - name: DATA_BLOCK_SIZE
+              value: "256"
+            - name: EPHEMERAL_STORAGE_MEBIBYTES
+              value: "1024"
+        probe:
+          # PVC 80% アラート発火
+          - name: pvc-usage-alert-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                ALERTS{alertname="PostgresPVCAlmostFull"} == 1
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: EOT
+            runProperties:
+              probeTimeout: 180
+              interval: 10
+              retry: 18
+          # WAL archive が MinIO に転送されていること（被害軽減の確認）
+          - name: barman-wal-archive-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                cnpg_pg_archiver_failed_archive_count{cluster="k1s0-postgres"} == 0
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 10
+              retry: 3
