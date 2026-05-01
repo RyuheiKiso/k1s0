@@ -103,9 +103,11 @@ func main() {
 	// 不正値や未設定は既定（30 秒）にフォールバックする。
 	cachedSecrets := openbao.NewCachedSecretsAdapter(baseSecrets, parseSecretsCacheTTL(os.Getenv("K1S0_SECRETS_CACHE_TTL")))
 	// Transit 暗号化 adapter（FR-T1-SECRETS-003、AES-256-GCM）。
-	// production の OpenBao Transit Engine 結線は post-MVP（要 Logical() shim 追加）、
-	// dev / CI / release-initial は in-memory backend で AES-256-GCM の round-trip を成立させる。
-	transitAdapter := openbao.NewInMemoryTransit()
+	// production: OpenBao Transit Engine（OPENBAO_ADDR 設定時、TRANSIT_MOUNT で mount 指定）。
+	// dev / CI: in-memory backend（process 内のみ永続）。production 切替えは
+	// `openbao.NewProductionTransit` が SDK Logical() narrow を取得できなかった場合
+	// （fake 注入経路）に in-memory に自動 fallback する設計。
+	transitAdapter := newTransitAdapter(openBaoClient)
 	deps := secret.Deps{
 		SecretsAdapter: cachedSecrets,
 		// 動的 Secret adapter。
@@ -244,6 +246,27 @@ func parseSecretsCacheTTL(raw string) time.Duration {
 		return 0
 	}
 	return d
+}
+
+// newTransitAdapter は OPENBAO_ADDR の有無で production / in-memory backend を切り替えて
+// Transit 暗号化 adapter（FR-T1-SECRETS-003）を返す。
+//
+// production: OpenBao Transit Engine（mount は TRANSIT_MOUNT 環境変数、既定 "transit"）。
+// dev / CI:   process 内 in-memory（再起動でキー消失、dev / CI 専用）。
+//
+// production 経路では既存暗号文が Pod 再起動を跨いで復号可能（OpenBao server に鍵が
+// 永続化される）。in-memory は再起動で全鍵消失するため、機密データを cipher で
+// 永続保存する用途には使えない。
+func newTransitAdapter(client *openbao.Client) openbao.TransitAdapter {
+	// OPENBAO_ADDR が設定されていれば production 経路を使う。
+	if os.Getenv("OPENBAO_ADDR") != "" {
+		mount := os.Getenv("TRANSIT_MOUNT")
+		log.Printf("t1-secret: transit backend = OpenBao Transit Engine (production, mount=%q)", mount)
+		return openbao.NewProductionTransit(client, mount)
+	}
+	// 未設定時は in-memory backend に fallback する。
+	log.Printf("t1-secret: transit backend = in-memory AES-256-GCM (dev/CI mode, keys reset on restart)")
+	return openbao.NewInMemoryTransit()
 }
 
 // newDynamicAdapter は OPENBAO_ADDR の有無で production / in-memory backend を切り替えて
