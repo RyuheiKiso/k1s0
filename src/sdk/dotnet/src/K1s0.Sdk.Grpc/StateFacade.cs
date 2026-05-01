@@ -98,4 +98,85 @@ public sealed class StateFacade
         // deleted フラグを返却する。
         return resp.Deleted;
     }
+
+    // BulkGetAsync は複数キーの一括取得（FR-T1-STATE-003）。
+    // 1 回の呼出で最大 100 キー（tier1 側で強制）。返却 dictionary のエントリ Found=false は未存在。
+    public async Task<IDictionary<string, (byte[] Data, string Etag, bool Found)>> BulkGetAsync(
+        string store,
+        IEnumerable<string> keys,
+        CancellationToken ct = default)
+    {
+        var req = new BulkGetRequest
+        {
+            Store = store,
+            Context = _client.TenantContext(),
+        };
+        req.Keys.AddRange(keys);
+        var resp = await _client.RawState().BulkGetAsync(req, cancellationToken: ct);
+        var dict = new Dictionary<string, (byte[] Data, string Etag, bool Found)>(resp.Results.Count);
+        foreach (var kv in resp.Results)
+        {
+            dict[kv.Key] = (kv.Value.Data.ToByteArray(), kv.Value.Etag, !kv.Value.NotFound);
+        }
+        return dict;
+    }
+
+    // TransactAsync はトランザクション境界付き複数操作（FR-T1-STATE-005）。
+    // 全操作が成功するか全て失敗するの 2 値。最大 10 操作 / トランザクション。
+    public async Task<bool> TransactAsync(
+        string store,
+        IEnumerable<TransactOpInput> ops,
+        CancellationToken ct = default)
+    {
+        var req = new TransactRequest
+        {
+            Store = store,
+            Context = _client.TenantContext(),
+        };
+        foreach (var o in ops)
+        {
+            var pop = new TransactOp();
+            if (o.Kind == TransactOpKind.Set)
+            {
+                pop.Set = new SetRequest
+                {
+                    Store = store,
+                    Key = o.Key,
+                    Data = ByteString.CopyFrom(o.Data ?? Array.Empty<byte>()),
+                    ExpectedEtag = o.ExpectedEtag,
+                    TtlSec = o.TtlSec,
+                    IdempotencyKey = string.Empty,
+                };
+            }
+            else
+            {
+                pop.Delete = new DeleteRequest
+                {
+                    Store = store,
+                    Key = o.Key,
+                    ExpectedEtag = o.ExpectedEtag,
+                };
+            }
+            req.Operations.Add(pop);
+        }
+        var resp = await _client.RawState().TransactAsync(req, cancellationToken: ct);
+        return resp.Committed;
+    }
+}
+
+// Transact 内の操作種別。
+public enum TransactOpKind
+{
+    Set,
+    Delete,
+}
+
+// Transact の 1 操作。
+public sealed class TransactOpInput
+{
+    public TransactOpKind Kind { get; init; }
+    public string Key { get; init; } = string.Empty;
+    public byte[]? Data { get; init; }
+    public string ExpectedEtag { get; init; } = string.Empty;
+    public int TtlSec { get; init; }
 }

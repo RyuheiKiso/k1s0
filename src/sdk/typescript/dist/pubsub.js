@@ -35,5 +35,31 @@ export class PubSubFacade {
             context: this.client.tenantContext(),
         });
     }
+    /**
+     * bulkPublish は複数エントリの一括 Publish（FR-T1-PUBSUB-001）。
+     * 各エントリの結果を個別に返す（部分成功あり、全体エラーにはしない）。
+     */
+    async bulkPublish(topic, entries) {
+        const raw = this.client.rawPubSub();
+        const tctx = this.client.tenantContext();
+        // SDK の入力 → proto PublishRequest の配列に詰め替える。
+        const pe = entries.map((e) => ({
+            topic,
+            data: e.data,
+            contentType: e.contentType,
+            idempotencyKey: e.idempotencyKey ?? "",
+            metadata: e.metadata ?? {},
+            context: tctx,
+        }));
+        const resp = await raw.bulkPublish({
+            topic,
+            entries: pe,
+        });
+        return resp.results.map((r) => ({
+            entryIndex: r.entryIndex,
+            offset: r.offset,
+            errorCode: r.errorCode,
+        }));
+    }
 }
 //# sourceMappingURL=pubsub.js.map

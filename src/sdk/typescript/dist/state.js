@@ -57,5 +57,63 @@ export class StateFacade {
         // deleted フラグを返却する。
         return resp.deleted;
     }
+    // BulkGet は複数キーの一括取得（FR-T1-STATE-003）。
+    // 1 回の呼出で最大 100 キー（tier1 側で強制、超過は ResourceExhausted）。
+    // 返却は キー → { data, etag, found } の Map。found=false は未存在。
+    async bulkGet(store, keys) {
+        const raw = this.client.rawState();
+        const resp = await raw.bulkGet({
+            store,
+            keys,
+            context: this.client.tenantContext(),
+        });
+        const out = new Map();
+        for (const [k, r] of Object.entries(resp.results)) {
+            out.set(k, { data: r.data, etag: r.etag, found: !r.notFound });
+        }
+        return out;
+    }
+    // Transact はトランザクション境界付き複数操作（FR-T1-STATE-005）。
+    // 全操作が成功するか全て失敗するの 2 値。最大 10 操作 / トランザクション。
+    // ops は { kind: "set" | "delete", key, data?, expectedEtag?, ttlSec? } の配列。
+    async transact(store, ops) {
+        const raw = this.client.rawState();
+        // SDK の TransactOpInput を proto TransactOp（oneof）に詰め替える。
+        const operations = ops.map((o) => {
+            if (o.kind === "set") {
+                return {
+                    op: {
+                        case: "set",
+                        value: {
+                            store,
+                            key: o.key,
+                            data: o.data ?? new Uint8Array(),
+                            expectedEtag: o.expectedEtag ?? "",
+                            ttlSec: o.ttlSec ?? 0,
+                            idempotencyKey: "",
+                            context: undefined,
+                        },
+                    },
+                };
+            }
+            return {
+                op: {
+                    case: "delete",
+                    value: {
+                        store,
+                        key: o.key,
+                        expectedEtag: o.expectedEtag ?? "",
+                        context: undefined,
+                    },
+                },
+            };
+        });
+        const resp = await raw.transact({
+            store,
+            operations,
+            context: this.client.tenantContext(),
+        });
+        return resp.committed;
+    }
 }
 //# sourceMappingURL=state.js.map

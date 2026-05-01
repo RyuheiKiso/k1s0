@@ -1,6 +1,7 @@
 // 本ファイルは k1s0 .NET SDK の Secrets 動詞統一 facade。
 // `client.Secrets.GetAsync(...)` 形式で SecretsService への呼出を提供する。
 
+using Google.Protobuf;
 using K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1;
 
 namespace K1s0.Sdk;
@@ -94,6 +95,90 @@ public sealed class SecretsFacade
             IssuedAtMs = resp.IssuedAtMs,
         };
     }
+
+    /// BulkGetAsync はテナント配下の全シークレットを一括取得する（FR-T1-SECRETS-001）。
+    /// 戻り値は シークレット名 → BulkSecret の dictionary。
+    public async Task<IDictionary<string, BulkSecret>> BulkGetAsync(CancellationToken ct = default)
+    {
+        var req = new BulkGetSecretRequest
+        {
+            Context = _client.TenantContext(),
+        };
+        var resp = await _client.RawSecrets().BulkGetAsync(req, cancellationToken: ct);
+        var dict = new Dictionary<string, BulkSecret>(resp.Results.Count);
+        foreach (var kv in resp.Results)
+        {
+            dict[kv.Key] = new BulkSecret
+            {
+                Values = kv.Value.Values,
+                Version = kv.Value.Version,
+            };
+        }
+        return dict;
+    }
+
+    /// EncryptAsync は Transit Engine 経由の暗号化（FR-T1-SECRETS-003）。
+    /// keyName は tier1 が &lt;tenant_id&gt;.&lt;keyName&gt; で自動 prefix する。
+    /// aad は GCM 追加認証データ（同じ aad を Decrypt 時にも渡す必要あり）。
+    public async Task<(byte[] Ciphertext, int KeyVersion)> EncryptAsync(
+        string keyName,
+        byte[] plaintext,
+        byte[]? aad = null,
+        CancellationToken ct = default)
+    {
+        var req = new EncryptRequest
+        {
+            Context = _client.TenantContext(),
+            KeyName = keyName,
+            Plaintext = ByteString.CopyFrom(plaintext),
+            Aad = ByteString.CopyFrom(aad ?? Array.Empty<byte>()),
+        };
+        var resp = await _client.RawSecrets().EncryptAsync(req, cancellationToken: ct);
+        return (resp.Ciphertext.ToByteArray(), resp.KeyVersion);
+    }
+
+    /// DecryptAsync は Transit Engine 経由の復号（FR-T1-SECRETS-003）。
+    /// keyName / aad は Encrypt 時と同じ値を渡すこと（GCM 整合性検証で必須）。
+    public async Task<(byte[] Plaintext, int KeyVersion)> DecryptAsync(
+        string keyName,
+        byte[] ciphertext,
+        byte[]? aad = null,
+        CancellationToken ct = default)
+    {
+        var req = new DecryptRequest
+        {
+            Context = _client.TenantContext(),
+            KeyName = keyName,
+            Ciphertext = ByteString.CopyFrom(ciphertext),
+            Aad = ByteString.CopyFrom(aad ?? Array.Empty<byte>()),
+        };
+        var resp = await _client.RawSecrets().DecryptAsync(req, cancellationToken: ct);
+        return (resp.Plaintext.ToByteArray(), resp.KeyVersion);
+    }
+
+    /// RotateKeyAsync は Transit Engine の鍵をローテーションする（FR-T1-SECRETS-003）。
+    /// 既存版は保持され、その鍵で暗号化された ciphertext は引き続き Decrypt 可能。
+    public async Task<(int NewVersion, int PreviousVersion, long RotatedAtMs)> RotateKeyAsync(
+        string keyName,
+        CancellationToken ct = default)
+    {
+        var req = new RotateKeyRequest
+        {
+            Context = _client.TenantContext(),
+            KeyName = keyName,
+        };
+        var resp = await _client.RawSecrets().RotateKeyAsync(req, cancellationToken: ct);
+        return (resp.NewVersion, resp.PreviousVersion, resp.RotatedAtMs);
+    }
+}
+
+/// BulkGetAsync の 1 件分の結果（FR-T1-SECRETS-001）。
+public sealed class BulkSecret
+{
+    /// values（key=value マップ）。
+    public IDictionary<string, string> Values { get; init; } = new Dictionary<string, string>();
+    /// バージョン番号。
+    public int Version { get; init; }
 }
 
 /// 動的 Secret 発行（FR-T1-SECRETS-002）の応答を SDK 利用者向けに整理した型。

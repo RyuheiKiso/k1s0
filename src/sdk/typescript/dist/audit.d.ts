@@ -1,5 +1,5 @@
 import type { K1s0Client } from "./client.js";
-import { AuditEvent } from "./proto/k1s0/tier1/audit/v1/audit_service_pb.js";
+import { AuditEvent, ExportAuditChunk, ExportFormat } from "./proto/k1s0/tier1/audit/v1/audit_service_pb.js";
 /** AuditFacade は AuditService の動詞統一 facade。 */
 export declare class AuditFacade {
     private readonly client;
@@ -8,6 +8,14 @@ export declare class AuditFacade {
     record(actor: string, action: string, resource: string, outcome: string, attributes?: Record<string, string>, idempotencyKey?: string): Promise<string>;
     /** query は監査イベント検索（時刻範囲 + filter）。 */
     query(fromDate: Date, toDate: Date, filters?: Record<string, string>, limit?: number): Promise<AuditEvent[]>;
+    /**
+     * export は Audit のサーバストリーミング エクスポート（FR-T1-AUDIT-003）。
+     * 範囲 + フォーマット指定で逐次 chunk を AsyncIterable で返す。利用例:
+     *   for await (const c of facade.export(undefined, undefined, ExportFormat.NDJSON, 0)) { ... }
+     * fromDate / toDate に undefined を渡すと全範囲。
+     * chunkBytes が 0 ならサーバ既定（65536）、上限は 1 MiB。
+     */
+    export(fromDate: Date | undefined, toDate: Date | undefined, format?: ExportFormat, chunkBytes?: number): AsyncGenerator<ExportAuditChunk>;
     /**
      * verifyChain は監査ハッシュチェーンの整合性を検証する（FR-T1-AUDIT-002）。
      * fromDate / toDate に未指定（undefined）を渡すと全範囲を対象にする。

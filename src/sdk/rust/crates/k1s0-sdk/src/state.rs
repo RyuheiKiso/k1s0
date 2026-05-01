@@ -3,8 +3,10 @@
 
 use crate::client::Client;
 use crate::proto::k1s0::tier1::state::v1::{
-    DeleteRequest, GetRequest, SetRequest, state_service_client::StateServiceClient,
+    BulkGetRequest, DeleteRequest, GetRequest, SetRequest, TransactOp, TransactRequest,
+    transact_op::Op as TransactOpInner, state_service_client::StateServiceClient,
 };
+use std::collections::HashMap;
 use tonic::{Status, transport::Channel};
 
 /// StateFacade は StateService の動詞統一 facade。
@@ -93,4 +95,112 @@ impl StateFacade {
         // deleted フラグを返却する。
         Ok(resp.deleted)
     }
+
+    /// BulkGet は複数キーの一括取得（FR-T1-STATE-003）。
+    /// 1 回の呼出で最大 100 キー（tier1 側で強制、超過は ResourceExhausted）。
+    /// 返却 map のエントリ値は (data, etag, found) の tuple。found=false は未存在。
+    pub async fn bulk_get(
+        &mut self,
+        store: &str,
+        keys: &[String],
+    ) -> Result<HashMap<String, (Vec<u8>, String, bool)>, Status> {
+        let req = BulkGetRequest {
+            store: store.to_string(),
+            keys: keys.to_vec(),
+            context: Some(self.client.tenant_context()),
+        };
+        let resp = self.raw.bulk_get(req).await?.into_inner();
+        let mut out = HashMap::with_capacity(resp.results.len());
+        for (k, r) in resp.results.into_iter() {
+            // proto GetResponse の not_found を反転して found に揃える。
+            out.insert(k, (r.data, r.etag, !r.not_found));
+        }
+        Ok(out)
+    }
+
+    /// TransactOpInput は Transact の 1 操作（Set / Delete のいずれか）。
+    /// SDK 利用者は TransactOpInput を作って Vec で渡す。
+    pub fn op_set(
+        key: &str,
+        data: Vec<u8>,
+        expected_etag: &str,
+        ttl_sec: i32,
+    ) -> TransactOpInput {
+        TransactOpInput::Set {
+            key: key.to_string(),
+            data,
+            expected_etag: expected_etag.to_string(),
+            ttl_sec,
+        }
+    }
+
+    /// TransactOpInput::Delete を生成するヘルパ。
+    pub fn op_delete(key: &str, expected_etag: &str) -> TransactOpInput {
+        TransactOpInput::Delete {
+            key: key.to_string(),
+            expected_etag: expected_etag.to_string(),
+        }
+    }
+
+    /// Transact はトランザクション境界付き複数操作（FR-T1-STATE-005）。
+    /// 全操作が成功するか全て失敗するの 2 値。最大 10 操作 / トランザクション。
+    pub async fn transact(
+        &mut self,
+        store: &str,
+        ops: Vec<TransactOpInput>,
+    ) -> Result<bool, Status> {
+        // SDK の TransactOpInput を proto TransactOp に変換する。
+        let mut pops: Vec<TransactOp> = Vec::with_capacity(ops.len());
+        for o in ops.into_iter() {
+            match o {
+                TransactOpInput::Set { key, data, expected_etag, ttl_sec } => {
+                    pops.push(TransactOp {
+                        op: Some(TransactOpInner::Set(SetRequest {
+                            store: store.to_string(),
+                            key,
+                            data,
+                            expected_etag,
+                            ttl_sec,
+                            idempotency_key: String::new(),
+                            context: None,
+                        })),
+                    });
+                }
+                TransactOpInput::Delete { key, expected_etag } => {
+                    pops.push(TransactOp {
+                        op: Some(TransactOpInner::Delete(DeleteRequest {
+                            store: store.to_string(),
+                            key,
+                            expected_etag,
+                            context: None,
+                        })),
+                    });
+                }
+            }
+        }
+        let req = TransactRequest {
+            store: store.to_string(),
+            operations: pops,
+            context: Some(self.client.tenant_context()),
+        };
+        let resp = self.raw.transact(req).await?.into_inner();
+        Ok(resp.committed)
+    }
+}
+
+/// TransactOpInput は Transact 内の 1 操作の種別と必要パラメータ。
+#[derive(Debug, Clone)]
+pub enum TransactOpInput {
+    /// Set 操作（Key/Data/期待 ETag/TTL）。
+    Set {
+        key: String,
+        data: Vec<u8>,
+        expected_etag: String,
+        ttl_sec: i32,
+    },
+    /// Delete 操作（Key/期待 ETag）。
+    Delete {
+        key: String,
+        expected_etag: String,
+    },
 }

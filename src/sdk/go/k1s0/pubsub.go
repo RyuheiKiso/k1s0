@@ -76,6 +76,70 @@ func (p *PubSubClient) Publish(ctx context.Context, topic string, data []byte, c
 	return resp.GetOffset(), nil
 }
 
+// BulkPublishEntryInput は BulkPublish の 1 件分の入力。
+type BulkPublishEntryInput struct {
+	// データ本文。
+	Data []byte
+	// Content-Type（application/json / application/protobuf 等）。
+	ContentType string
+	// 冪等性キー（24h 重複抑止）。
+	IdempotencyKey string
+	// メタデータ（partition_key 等）。
+	Metadata map[string]string
+}
+
+// BulkPublishEntryResult は BulkPublish の 1 件分の結果。
+type BulkPublishEntryResult struct {
+	// 入力 entries 配列内のインデックス（0 起点）。
+	EntryIndex int32
+	// Kafka offset（成功時のみ意味を持つ）。
+	Offset int64
+	// 失敗時のエラーコード（成功時は空文字列）。
+	ErrorCode string
+}
+
+// BulkPublish は複数エントリの一括 Publish（FR-T1-PUBSUB-001）。
+// 各エントリの結果を個別に返す（部分成功あり、全体エラーにはしない）。
+func (p *PubSubClient) BulkPublish(ctx context.Context, topic string, entries []BulkPublishEntryInput) ([]BulkPublishEntryResult, error) {
+	// 親 client の TenantContext を継承する。
+	tctx := &commonv1.TenantContext{
+		TenantId: p.client.cfg.TenantID,
+		Subject:  p.client.cfg.Subject,
+	}
+	// proto entries を構築する（各 PublishRequest の Topic / Context は親で共通化）。
+	pe := make([]*pubsubv1.PublishRequest, 0, len(entries))
+	for _, e := range entries {
+		pe = append(pe, &pubsubv1.PublishRequest{
+			Topic:          topic,
+			Data:           e.Data,
+			ContentType:    e.ContentType,
+			IdempotencyKey: e.IdempotencyKey,
+			Metadata:       e.Metadata,
+			Context:        tctx,
+		})
+	}
+	// proto Request を構築する。
+	req := &pubsubv1.BulkPublishRequest{
+		Topic:   topic,
+		Entries: pe,
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, err := p.client.raw.PubSub.BulkPublish(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	// 結果を SDK 型に詰め替える。
+	out := make([]BulkPublishEntryResult, 0, len(resp.GetResults()))
+	for _, r := range resp.GetResults() {
+		out = append(out, BulkPublishEntryResult{
+			EntryIndex: r.GetEntryIndex(),
+			Offset:     r.GetOffset(),
+			ErrorCode:  r.GetErrorCode(),
+		})
+	}
+	return out, nil
+}
+
 // EventHandler は Subscribe で受信した各 Event を処理するコールバック。
 // 戻り値の error が non-nil なら Subscribe は中断される。
 type EventHandler func(event *pubsubv1.Event) error

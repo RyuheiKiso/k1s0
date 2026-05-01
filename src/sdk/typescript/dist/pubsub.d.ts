@@ -15,5 +15,25 @@ export declare class PubSubFacade {
      *    }
      */
     subscribe(topic: string, consumerGroup: string): AsyncIterable<Event>;
+    /**
+     * bulkPublish は複数エントリの一括 Publish（FR-T1-PUBSUB-001）。
+     * 各エントリの結果を個別に返す（部分成功あり、全体エラーにはしない）。
+     */
+    bulkPublish(topic: string, entries: BulkPublishEntryInput[]): Promise<Array<{
+        entryIndex: number;
+        offset: bigint;
+        errorCode: string;
+    }>>;
+}
+/** BulkPublishEntryInput は bulkPublish の 1 件分の入力。 */
+export interface BulkPublishEntryInput {
+    /** データ本文。 */
+    data: Uint8Array;
+    /** Content-Type（application/json / application/protobuf 等）。 */
+    contentType: string;
+    /** 冪等性キー（24h 重複抑止）。省略可。 */
+    idempotencyKey?: string;
+    /** メタデータ（partition_key 等）。省略可。 */
+    metadata?: Record<string, string>;
 }
 //# sourceMappingURL=pubsub.d.ts.map

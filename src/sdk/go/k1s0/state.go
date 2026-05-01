@@ -128,6 +128,105 @@ func (s *StateClient) Delete(ctx context.Context, store, key, expectedEtag strin
 	return e
 }
 
+// BulkGetItem は BulkGet の 1 キー分の結果（FR-T1-STATE-003）。
+type BulkGetItem struct {
+	// 値本文（Found=false の場合は nil）。
+	Data []byte
+	// ETag（Found=false の場合は空）。
+	Etag string
+	// キーが存在すれば true。
+	Found bool
+}
+
+// BulkGet は複数キーの一括取得（FR-T1-STATE-003）。
+// 1 回の呼び出しで最大 100 キー（tier1 側で強制、超過は ResourceExhausted）。
+// 部分失敗は個別 Found=false で返却し、全体エラーにはしない（仕様準拠）。
+func (s *StateClient) BulkGet(ctx context.Context, store string, keys []string) (map[string]BulkGetItem, error) {
+	// proto Request を構築する。
+	req := &statev1.BulkGetRequest{
+		Store:   store,
+		Keys:    keys,
+		Context: s.tenantContext(ctx),
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, e := s.client.raw.State.BulkGet(ctx, req)
+	if e != nil {
+		return nil, e
+	}
+	// proto map を SDK 型に詰め替える。
+	out := make(map[string]BulkGetItem, len(resp.GetResults()))
+	for k, r := range resp.GetResults() {
+		out[k] = BulkGetItem{
+			Data:  r.GetData(),
+			Etag:  r.GetEtag(),
+			Found: !r.GetNotFound(),
+		}
+	}
+	return out, nil
+}
+
+// TransactOpKind は Transact 内の操作種別を表す（Set / Delete のいずれか）。
+type TransactOpKind int
+
+const (
+	// TransactSet は Transact 内の Set 操作。
+	TransactSet TransactOpKind = iota
+	// TransactDelete は Transact 内の Delete 操作。
+	TransactDelete
+)
+
+// TransactOp は Transact 内の 1 操作（FR-T1-STATE-005）。
+type TransactOp struct {
+	// 操作種別（Set / Delete）。
+	Kind TransactOpKind
+	// 対象キー。
+	Key string
+	// 値本文（Set のみ意味を持つ）。
+	Data []byte
+	// 期待 ETag（楽観的排他、空なら無条件）。
+	ExpectedEtag string
+	// TTL 秒（Set のみ、0 で永続）。
+	TTLSec int32
+}
+
+// Transact はトランザクション境界付き複数操作（FR-T1-STATE-005）。
+// 全操作が成功するか全て失敗する 2 値。最大 10 操作 / トランザクション（tier1 側で強制）。
+func (s *StateClient) Transact(ctx context.Context, store string, ops []TransactOp) error {
+	// proto Op 列を構築する（SDK の TransactOp → proto TransactOp）。
+	pops := make([]*statev1.TransactOp, 0, len(ops))
+	for _, o := range ops {
+		switch o.Kind {
+		case TransactSet:
+			pops = append(pops, &statev1.TransactOp{
+				Op: &statev1.TransactOp_Set{Set: &statev1.SetRequest{
+					Store:        store,
+					Key:          o.Key,
+					Data:         o.Data,
+					ExpectedEtag: o.ExpectedEtag,
+					TtlSec:       o.TTLSec,
+				}},
+			})
+		case TransactDelete:
+			pops = append(pops, &statev1.TransactOp{
+				Op: &statev1.TransactOp_Delete{Delete: &statev1.DeleteRequest{
+					Store:        store,
+					Key:          o.Key,
+					ExpectedEtag: o.ExpectedEtag,
+				}},
+			})
+		}
+	}
+	// proto Request を構築する。
+	req := &statev1.TransactRequest{
+		Store:      store,
+		Operations: pops,
+		Context:    s.tenantContext(ctx),
+	}
+	// 生成 stub 経由で RPC 呼び出し。Committed=false 時は tier1 側で全 rollback 済み。
+	_, e := s.client.raw.State.Transact(ctx, req)
+	return e
+}
+
 // tenantContext は ctx の per-request override を優先しつつ TenantContext proto を生成する。
 // override 不在時は親 Client の Config から構築する（log.go の tenantContext と同方針）。
 func (s *StateClient) tenantContext(ctx context.Context) *commonv1.TenantContext {

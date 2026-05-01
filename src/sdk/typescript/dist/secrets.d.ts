@@ -21,6 +21,23 @@ export declare class SecretsFacade {
      * ttlSec=0 で既定 1 時間（3600）、上限 24 時間（86400）に clamp される。
      */
     getDynamic(engine: string, role: string, ttlSec?: number): Promise<DynamicSecret>;
+    bulkGet(): Promise<Map<string, {
+        values: Record<string, string>;
+        version: number;
+    }>>;
+    encrypt(keyName: string, plaintext: Uint8Array, aad?: Uint8Array): Promise<{
+        ciphertext: Uint8Array;
+        keyVersion: number;
+    }>;
+    decrypt(keyName: string, ciphertext: Uint8Array, aad?: Uint8Array): Promise<{
+        plaintext: Uint8Array;
+        keyVersion: number;
+    }>;
+    rotateKey(keyName: string): Promise<{
+        newVersion: number;
+        previousVersion: number;
+        rotatedAtMs: number;
+    }>;
 }
 /**
  * 動的 Secret 発行（FR-T1-SECRETS-002）の応答を SDK 利用者向けに整理した型。
