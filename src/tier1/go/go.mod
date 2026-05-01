@@ -17,6 +17,7 @@ go 1.25.0
 require (
 	github.com/dapr/go-sdk v1.11.0
 	github.com/go-jose/go-jose/v4 v4.1.3
+	github.com/google/uuid v1.6.0
 	github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
 	github.com/openbao/openbao/api/v2 v2.5.1
 	go.opentelemetry.io/otel v1.43.0
@@ -47,7 +48,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

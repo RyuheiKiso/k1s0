@@ -98,8 +98,10 @@ func main() {
 	// production（OPENBAO_ADDR が設定された経路）では Logical().Read を呼ぶ
 	// productionDynamic、dev / CI モードでは in-memory backend を使う。
 	dynamicAdapter := newDynamicAdapter(openBaoClient)
-	// 30 秒 TTL の cache 付き secrets adapter（FR-T1-SECRETS-001）。
-	cachedSecrets := openbao.NewCachedSecretsAdapter(baseSecrets, 0)
+	// FR-T1-SECRETS-001 受け入れ基準: キャッシュ TTL は Component YAML で調整可能。
+	// envvar K1S0_SECRETS_CACHE_TTL に値があれば time.ParseDuration で上書きし、
+	// 不正値や未設定は既定（30 秒）にフォールバックする。
+	cachedSecrets := openbao.NewCachedSecretsAdapter(baseSecrets, parseSecretsCacheTTL(os.Getenv("K1S0_SECRETS_CACHE_TTL")))
 	// Transit 暗号化 adapter（FR-T1-SECRETS-003、AES-256-GCM）。
 	// production の OpenBao Transit Engine 結線は post-MVP（要 Logical() shim 追加）、
 	// dev / CI / release-initial は in-memory backend で AES-256-GCM の round-trip を成立させる。
@@ -212,6 +214,36 @@ func startSecretsHTTPGatewayIfEnabled(addr string, deps secret.Deps) *http.Serve
 		}
 	}()
 	return srv
+}
+
+// parseSecretsCacheTTL は K1S0_SECRETS_CACHE_TTL 環境変数値を time.Duration に解釈する。
+// 空文字 / 解釈不能 / 負値 / 過大値は 0 を返す（cache.go の defaultSecretCacheTTL=30s が効く）。
+//
+// FR-T1-SECRETS-001 受け入れ基準: キャッシュ TTL は Component YAML で調整可能。
+// 過大値（1 時間超）は secret 漏洩時の暴露時間が伸びるため明示的に弾く。
+func parseSecretsCacheTTL(raw string) time.Duration {
+	// 空文字は 0 を返して既定値（30 秒）にフォールバックさせる。
+	if raw == "" {
+		return 0
+	}
+	// time.ParseDuration で解釈する。
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		// 解釈失敗を warn ログして 0 にフォールバック。
+		log.Printf("t1-secret: invalid K1S0_SECRETS_CACHE_TTL=%q (%v), falling back to default 30s", raw, err)
+		return 0
+	}
+	// 負値は明示拒否。
+	if d < 0 {
+		log.Printf("t1-secret: K1S0_SECRETS_CACHE_TTL must be >= 0 (got %v), falling back to default 30s", d)
+		return 0
+	}
+	// 過大値（1 時間超）はセキュリティ的に許容しない（漏洩時の暴露時間が伸びる）。
+	if d > time.Hour {
+		log.Printf("t1-secret: K1S0_SECRETS_CACHE_TTL=%v exceeds 1h ceiling, falling back to default 30s", d)
+		return 0
+	}
+	return d
 }
 
 // newDynamicAdapter は OPENBAO_ADDR の有無で production / in-memory backend を切り替えて

@@ -32,113 +32,106 @@ type featureHandler struct {
 }
 
 // EvaluateBoolean は boolean Flag 評価。
+//
+// FR-T1-FEATURE-001 受け入れ基準: 「評価失敗時はデフォルト値を返す（K1s0Error にしない、
+// 業務継続優先）」を満たすため、adapter エラーは zero-value + Reason="ERROR" でフォールバック。
+// PermissionDenied / InvalidArgument / Unauthenticated 系は業務ロジック誤りなので gRPC error 維持。
 func (h *featureHandler) EvaluateBoolean(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.BooleanResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
 		return nil, err
 	}
-	// adapter 入力。
-	areq := makeFlagReq(req)
-	// adapter 呼出。
-	aresp, err := h.deps.FeatureAdapter.EvaluateBoolean(ctx, areq)
-	// エラー翻訳。
+	aresp, err := h.deps.FeatureAdapter.EvaluateBoolean(ctx, makeFlagReq(req))
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateBoolean")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateBoolean")
+		}
+		return &featurev1.BooleanResponse{Value: false, Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.BooleanResponse{
-		// 評価値。
-		Value: aresp.Value,
-		// メタ情報。
+		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
 }
 
-// EvaluateString は string Flag 評価。
+// EvaluateString は string Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。
 func (h *featureHandler) EvaluateString(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.StringResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateString"); err != nil {
 		return nil, err
 	}
-	// adapter 入力構築 + 呼出。
 	aresp, err := h.deps.FeatureAdapter.EvaluateString(ctx, makeFlagReq(req))
-	// エラー翻訳。
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateString")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateString")
+		}
+		return &featurev1.StringResponse{Value: "", Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.StringResponse{
-		// 評価値。
-		Value: aresp.Value,
-		// メタ情報。
+		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
 }
 
-// EvaluateNumber は number Flag 評価。
+// EvaluateNumber は number Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。
 func (h *featureHandler) EvaluateNumber(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.NumberResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateNumber"); err != nil {
 		return nil, err
 	}
-	// adapter 呼出。
 	aresp, err := h.deps.FeatureAdapter.EvaluateNumber(ctx, makeFlagReq(req))
-	// エラー翻訳。
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateNumber")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateNumber")
+		}
+		return &featurev1.NumberResponse{Value: 0, Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.NumberResponse{
-		// 評価値。
-		Value: aresp.Value,
-		// メタ情報。
+		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
 }
 
-// EvaluateObject は object Flag 評価。
+// EvaluateObject は object Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。
 func (h *featureHandler) EvaluateObject(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.ObjectResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateObject"); err != nil {
 		return nil, err
 	}
-	// adapter 呼出。
 	aresp, err := h.deps.FeatureAdapter.EvaluateObject(ctx, makeFlagReq(req))
-	// エラー翻訳。
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateObject")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateObject")
+		}
+		return &featurev1.ObjectResponse{ValueJson: nil, Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.ObjectResponse{
-		// 評価値（JSON シリアライズ済 bytes）。
 		ValueJson: aresp.ValueJSON,
-		// メタ情報。
-		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
+		Metadata:  makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
+}
+
+// isClientFault は呼出側起因のエラー（InvalidArgument / Unauthenticated / PermissionDenied）
+// を判定する。これらは fail-soft しない（業務継続優先の対象外）。
+func isClientFault(err error) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	switch st.Code() {
+	case codes.InvalidArgument, codes.Unauthenticated, codes.PermissionDenied:
+		return true
+	default:
+		return false
+	}
 }
 
 // makeFlagReq は proto Request → adapter Request 変換ヘルパ。

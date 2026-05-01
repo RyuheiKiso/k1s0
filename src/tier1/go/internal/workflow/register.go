@@ -27,6 +27,9 @@ import (
 	"errors"
 	"sync"
 
+	// FR-T1-WORKFLOW-001 「Workflow 実行ごとに一意の workflow_id を返す」用 UUID v7 採番。
+	"github.com/google/uuid"
+
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 
@@ -43,6 +46,15 @@ import (
 	// gRPC ステータスエラー。
 	"google.golang.org/grpc/status"
 )
+
+// uuidNewV7 は UUID v7 採番のラッパ（テストで stub 可能なように関数変数）。
+var uuidNewV7 = func() (string, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+	return id.String(), nil
+}
 
 // Deps は WorkflowService handler が依存する adapter 集合。
 // cmd/workflow/main.go で 2 adapter（Temporal + Dapr Workflow）が必ず注入される。
@@ -196,12 +208,25 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 func (h *workflowHandler) startInternal(ctx context.Context, req *workflowv1.StartRequest, tenantID string) (*workflowv1.StartResponse, error) {
 	// backend hint を解決する（AUTO は Temporal にフォールバック）。
 	backend := pickBackend(req.GetBackend())
+	// FR-T1-WORKFLOW-001 「Workflow 実行ごとに一意の `workflow_id` を返す」。
+	// 呼出側が空のまま渡してきた場合は tier1 が UUID v7 で採番する。Dapr 経路では
+	// L2 物理分離（tenant prefix 付与）が必要なため、SDK 自動採番に任せると prefix が
+	// 効かない。Temporal 経路でも一貫性のため tier1 採番を行う。
+	workflowID := req.GetWorkflowId()
+	if workflowID == "" {
+		if id, err := uuidNewV7(); err == nil {
+			workflowID = id
+		} else {
+			// UUID 採番が失敗するのは crypto/rand 不能な極端ケース。
+			return nil, status.Errorf(codes.Internal, "tier1/workflow: failed to generate workflow_id: %v", err)
+		}
+	}
 	switch backend {
 	case workflowv1.WorkflowBackend_BACKEND_DAPR:
 		// Dapr Workflow 経路。
 		resp, err := h.deps.DaprAdapter.Start(ctx, daprwf.StartRequest{
 			WorkflowType: req.GetWorkflowType(),
-			WorkflowID:   req.GetWorkflowId(),
+			WorkflowID:   workflowID,
 			Input:        req.GetInput(),
 			Idempotent:   req.GetIdempotent(),
 			TenantID:     tenantID,
@@ -220,7 +245,7 @@ func (h *workflowHandler) startInternal(ctx context.Context, req *workflowv1.Sta
 		// Temporal 経路（BACKEND_TEMPORAL / BACKEND_AUTO は両方ここに来る）。
 		resp, err := h.deps.WorkflowAdapter.Start(ctx, temporal.StartRequest{
 			WorkflowType: req.GetWorkflowType(),
-			WorkflowID:   req.GetWorkflowId(),
+			WorkflowID:   workflowID,
 			Input:        req.GetInput(),
 			Idempotent:   req.GetIdempotent(),
 			TenantID:     tenantID,

@@ -179,6 +179,12 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 	return &statev1.DeleteResponse{Deleted: true}, nil
 }
 
+// stateBulkGetMaxKeys は FR-T1-STATE-003 受け入れ基準「1 回の呼び出しで最大 100 キーを処理」。
+const stateBulkGetMaxKeys = 100
+
+// stateTransactMaxOps は FR-T1-STATE-005 受け入れ基準「最大 10 操作 / トランザクション」。
+const stateTransactMaxOps = 10
+
 // BulkGet は複数キーの一括取得（adapter.BulkGet 経由）。
 func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest) (*statev1.BulkGetResponse, error) {
 	if req == nil {
@@ -195,6 +201,11 @@ func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest)
 	}
 	if len(req.GetKeys()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: keys required (non-empty)")
+	}
+	// FR-T1-STATE-003: 100 キーを超える要求は ResourceExhausted で弾く。
+	if len(req.GetKeys()) > stateBulkGetMaxKeys {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/state: BulkGet keys count %d exceeds max %d", len(req.GetKeys()), stateBulkGetMaxKeys)
 	}
 	areq := dapr.StateBulkGetRequest{
 		Store:    req.GetStore(),
@@ -232,6 +243,11 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 	}
 	if len(req.GetOperations()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: operations required (non-empty)")
+	}
+	// FR-T1-STATE-005: 10 操作を超えるトランザクションは ResourceExhausted で弾く。
+	if len(req.GetOperations()) > stateTransactMaxOps {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/state: Transact operations count %d exceeds max %d", len(req.GetOperations()), stateTransactMaxOps)
 	}
 	ops := make([]dapr.TransactOp, 0, len(req.GetOperations()))
 	for _, op := range req.GetOperations() {
