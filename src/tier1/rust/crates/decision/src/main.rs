@@ -332,6 +332,9 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // DS-SW-COMP-109: 共通 OTel 初期化。OTEL_EXPORTER_OTLP_ENDPOINT が設定済なら OTLP gRPC
+    // 直送、未設定なら fmt layer のみ。Guard は main 関数の生存期間中保持する。
+    let _otel_guard = k1s0_tier1_otel::init("t1-decision", "k1s0-tier1");
     let listen = listen_addr();
     let addr = listen.parse()?;
     eprintln!("tier1/decision: gRPC server listening on {}", listen);

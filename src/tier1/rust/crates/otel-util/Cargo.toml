@@ -1,0 +1,43 @@
+# t1 共通 k1s0-otel lib crate（DS-SW-COMP-109、リリース時点 確定）。
+#
+# docs 正典:
+#   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/05_モジュール依存関係.md
+#     - DS-SW-COMP-109 k1s0-otel の役割（tracer / meter / logger / propagator 集約）
+#   docs/05_実装/60_観測性設計/10_OTel_Collector配置/01_OTel_Collector配置.md
+#     - OTEL_EXPORTER_OTLP_ENDPOINT を既定値として参照する Rust crate
+#   docs/05_実装/00_ディレクトリ設計/20_tier1レイアウト/04_rust_workspace配置.md
+#     - workspace member の 1 つとして配置（otel-util/）
+#
+# 役割:
+#   tier1 Rust 3 Pod（audit / decision / pii）共通の OpenTelemetry 初期化を集約する。
+#   - OTEL_EXPORTER_OTLP_ENDPOINT が設定済み: OTLP gRPC exporter で Collector 直送
+#   - 未設定: tracing-subscriber の fmt layer のみ（stdout JSON Lines、fluentbit 経由 Loki 集約前提）
+#   呼出側は Pod 起動時に init(pod_name, namespace) を 1 度呼び、戻り値の InitGuard を Pod
+#   の生存期間と同じ寿命で保持する（Drop で OTLP provider を flush + shutdown）。
+
+[package]
+name = "k1s0-tier1-otel"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 tier1 common OpenTelemetry initialization (DS-SW-COMP-109)"
+
+[lib]
+name = "k1s0_tier1_otel"
+path = "src/lib.rs"
+
+[dependencies]
+# tracing コアと subscriber（fmt / EnvFilter 含む）。
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "std", "registry", "json"] }
+# OpenTelemetry SDK と OTLP gRPC exporter（tonic 0.12 互換版）。
+opentelemetry = { version = "0.27", default-features = false, features = ["trace"] }
+opentelemetry_sdk = { version = "0.27", default-features = false, features = ["trace", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", default-features = false, features = ["grpc-tonic", "trace"] }
+opentelemetry-semantic-conventions = { version = "0.27", features = ["semconv_experimental"] }
+# tracing → opentelemetry のブリッジ（tracing span を OTel span に変換）。
+tracing-opentelemetry = { version = "0.28", default-features = false }
+# 非同期ランタイム（OTLP gRPC exporter は tokio 必須）。
+tokio = { workspace = true }

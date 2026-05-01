@@ -33,6 +33,8 @@ k1s0-sdk-proto = { workspace = true }
 k1s0-tier1-health = { workspace = true }
 # 共通 interceptor / runtime helper。
 k1s0-tier1-common = { workspace = true }
+# DS-SW-COMP-109: tracing-subscriber + OTLP 共通初期化。
+k1s0-tier1-otel = { workspace = true }
 # HTTP gateway 用 async_trait デシュガー。
 async-trait = "0.1"
 # tonic / tokio / prost は workspace 共通設定を継承。
