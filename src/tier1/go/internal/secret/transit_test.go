@@ -5,7 +5,6 @@
 //   - 異テナントの ciphertext を Decrypt しようとすると失敗する（鍵空間分離）
 //   - Encrypt → Decrypt の round-trip
 //   - RotateKey 後の旧版 ciphertext も Decrypt 可能
-//   - Adapter 未注入時は Unimplemented
 //   - tenant_id 不一致は PermissionDenied（NFR-E-AC-003 二重防御）
 //
 // テスト方針:
@@ -123,20 +122,6 @@ func TestRotateKey_OldVersionStillDecryptable(t *testing.T) {
 	}
 	if !bytes.Equal(dec1.GetPlaintext(), []byte("v1")) {
 		t.Errorf("plaintext mismatch")
-	}
-}
-
-// Adapter 未注入時は Unimplemented を返す。
-func TestEncrypt_NotWired(t *testing.T) {
-	h := &secretHandler{deps: Deps{}}
-	_, err := h.Encrypt(context.Background(), &secretsv1.EncryptRequest{
-		Context:   &commonv1.TenantContext{TenantId: "T"},
-		KeyName:   "k",
-		Plaintext: []byte("p"),
-	})
-	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.Unimplemented {
-		t.Errorf("expected Unimplemented, got %v", err)
 	}
 }
 

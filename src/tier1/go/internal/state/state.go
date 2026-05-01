@@ -4,10 +4,9 @@
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/02_State_API.md
 //   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md
 //
-// scope（リリース時点 placeholder）:
-//   adapter.StateAdapter に委譲するが、adapter は ErrNotWired を返すため
-//   全 RPC で codes.Unimplemented を返却する。
-//   実 Dapr State Management（Valkey）結線は plan 04-04。
+// 役割（plan 04-04 結線済）:
+//   adapter.StateAdapter に委譲する。adapter は production / dev / CI のいずれでも
+//   実装で動く（production: Dapr SDK / dev / CI: in-memory backend）。
 
 package state
 
@@ -15,7 +14,9 @@ package state
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
-	// Dapr adapter（ErrNotWired 判定用）。
+	// errors.Is で sentinel エラー判定。
+	"errors"
+	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
@@ -25,14 +26,13 @@ import (
 	"google.golang.org/grpc/codes"
 	// gRPC ステータスエラー。
 	"google.golang.org/grpc/status"
-	// errors.Is で sentinel エラー判定。
-	"errors"
 )
 
 // stateHandler は StateService の handler 実装。
-// Unimplemented を埋め込むことで、proto 側に新 RPC が追加されてもコンパイル可能。
+// proto 生成型の UnimplementedStateServiceServer を埋め込むことで、proto 側に新 RPC が
+// 追加されてもコンパイル可能（forward compatibility）。本 Pod は 5 RPC を全て override 済。
 type stateHandler struct {
-	// 将来追加 RPC のため埋め込み（本リリース時点は全 5 RPC を override 済）。
+	// 将来追加 RPC のための forward compat 埋め込み。
 	statev1.UnimplementedStateServiceServer
 	// adapter 集合への参照。
 	deps Deps
@@ -268,17 +268,12 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 }
 
 // translateErr は adapter エラーを gRPC ステータスエラーに翻訳する。
-// ErrNotWired は Unimplemented に、ETag mismatch / 既存キー衝突は AlreadyExists（Conflict）に、
-// それ以外は Internal に翻訳する。
+// ETag mismatch / 既存キー衝突は AlreadyExists（Conflict）に、それ以外は Internal に翻訳する。
 // docs §「エラー型 K1s0Error」: AlreadyExists / Conflict は ETag 不一致・冪等性キー衝突を表す。
-func translateErr(err error, rpc string, plan string) error {
-	// ErrNotWired は計画に従い Unimplemented とする。
-	if errors.Is(err, dapr.ErrNotWired) {
-		// 呼出 RPC 名と計画 ID を含めたメッセージを返却する。
-		return status.Errorf(codes.Unimplemented, "tier1/state: %s not yet wired to Dapr backend (%s)", rpc, plan)
-	}
+//
+// plan 引数は呼出側互換性のため残置（旧 ErrNotWired メッセージで使用していた）。
+func translateErr(err error, rpc string, _ string) error {
 	// ETag 不一致 / First-Write 違反（既存キーへの無 ETag 書込）は AlreadyExists（Conflict）。
-	// docs §「エラー型 K1s0Error」: AlreadyExists / Conflict — ETag 不一致、冪等性キー衝突。
 	if errors.Is(err, dapr.ErrEtagMismatch) {
 		return status.Errorf(codes.AlreadyExists,
 			"tier1/state: %s: etag mismatch or first-write conflict", rpc)

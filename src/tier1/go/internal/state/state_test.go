@@ -127,20 +127,6 @@ func TestStateHandler_Get_NilRequest(t *testing.T) {
 	}
 }
 
-// Get 時に adapter が ErrNotWired を返した場合、Unimplemented に翻訳されることを検証する。
-func TestStateHandler_Get_NotWired(t *testing.T) {
-	a := &fakeStateAdapter{
-		getFn: func(_ context.Context, _ dapr.StateGetRequest) (dapr.StateGetResponse, error) {
-			return dapr.StateGetResponse{}, dapr.ErrNotWired
-		},
-	}
-	h := newHandler(a)
-	_, err := h.Get(context.Background(), &statev1.GetRequest{Store: "s", Key: "k", Context: makeTenantCtx("T")})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status code: got %v want Unimplemented", got)
-	}
-}
-
 // Get 時の adapter エラーが Internal に翻訳されることを検証する。
 func TestStateHandler_Get_AdapterError(t *testing.T) {
 	a := &fakeStateAdapter{

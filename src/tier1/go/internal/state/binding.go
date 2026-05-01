@@ -62,9 +62,6 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		}
 		aresp, err := h.deps.BindingAdapter.Invoke(ctx, areq)
 		if err != nil {
-			if isNotWired(err) {
-				return nil, status.Error(codes.Unimplemented, "tier1/binding: Invoke not yet wired to Dapr backend (plan 04-12)")
-			}
 			// dapr が返す gRPC status を尊重する（PermissionDenied / FailedPrecondition 等）
 			if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
 				return nil, status.Errorf(st.Code(), "tier1/binding: Invoke adapter error: %s", st.Message())

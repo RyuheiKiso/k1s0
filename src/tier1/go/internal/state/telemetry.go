@@ -86,9 +86,6 @@ func (h *telemetryHandler) EmitMetric(ctx context.Context, req *telemetryv1.Emit
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Telemetry.EmitMetric"); err != nil {
 		return nil, err
 	}
-	if h.deps.MetricEmitter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitMetric not yet wired to OTel Collector")
-	}
 	// 必須入力（各 metric の name）を事前検証。OTel SDK は空 instrument 名を
 	// rejecting し plain error を返すため、handler 段で InvalidArgument に
 	// 変換しないと codes.Internal に潰れて HTTP 500 になる。
@@ -114,9 +111,6 @@ func (h *telemetryHandler) EmitSpan(ctx context.Context, req *telemetryv1.EmitSp
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Telemetry.EmitSpan"); err != nil {
 		return nil, err
-	}
-	if h.deps.TraceEmitter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/telemetry: EmitSpan not yet wired to OTel Collector")
 	}
 	for i, s := range req.GetSpans() {
 		if err := h.deps.TraceEmitter.Emit(ctx, convertSpan(s)); err != nil {

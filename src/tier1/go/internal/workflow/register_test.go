@@ -80,16 +80,8 @@ func TestWorkflowHandler_Start_OK(t *testing.T) {
 	}
 }
 
-// Start: adapter 未注入で Unimplemented。
-func TestWorkflowHandler_Start_NoAdapter(t *testing.T) {
-	h := &workflowHandler{deps: Deps{}}
-	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X", Context: makeTenantCtx("T")})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status: got %v want Unimplemented", got)
-	}
-}
-
 // NFR-E-AC-003: tenant_id 未設定時に InvalidArgument を返す。
+// adapter 呼出前に短絡するため Deps{} で OK（adapter は呼ばれない）。
 func TestWorkflowHandler_Start_RequiresTenant(t *testing.T) {
 	h := &workflowHandler{deps: Deps{}}
 	_, err := h.Start(context.Background(), &workflowv1.StartRequest{WorkflowType: "X"})

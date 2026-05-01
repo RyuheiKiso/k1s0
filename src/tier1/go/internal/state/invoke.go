@@ -209,9 +209,6 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 	if req == nil {
 		return status.Error(codes.InvalidArgument, "tier1/serviceinvoke: nil request")
 	}
-	if h.deps.InvokeAdapter == nil {
-		return status.Error(codes.Unimplemented, "tier1/serviceinvoke: InvokeStream not yet wired to Dapr backend")
-	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	tid, terr := requireTenantIDFromCtx(stream.Context(), req.GetContext(), "Invoke.InvokeStream")
 	if terr != nil {
@@ -266,11 +263,6 @@ func (h *invokeHandler) InvokeStream(req *serviceinvokev1.InvokeRequest, stream 
 
 // translateInvokeErr は ServiceInvoke 用のエラー翻訳。
 func translateInvokeErr(err error, rpc string) error {
-	// ErrNotWired は Unimplemented に翻訳する。
-	if isNotWired(err) {
-		// メッセージに RPC 名と plan ID を含める。
-		return status.Errorf(codes.Unimplemented, "tier1/serviceinvoke: %s not yet wired to Dapr backend (plan 04-11)", rpc)
-	}
 	// dapr が返す gRPC status を尊重する。serviceinvoke は対象 service が gRPC で
 	// status を返すケース（NotFound / PermissionDenied / Unavailable 等）が多く、
 	// それらを Internal に潰すと client は適切な再試行判定ができない。

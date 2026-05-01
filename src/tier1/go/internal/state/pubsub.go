@@ -192,9 +192,6 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 	if req == nil {
 		return status.Error(codes.InvalidArgument, "tier1/pubsub: nil request")
 	}
-	if h.deps.PubSubAdapter == nil {
-		return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired")
-	}
 	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	tid, terr := requireTenantIDFromCtx(stream.Context(), req.GetContext(), "PubSub.Subscribe")
 	if terr != nil {
@@ -208,9 +205,6 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 		TenantID:      tid,
 	})
 	if err != nil {
-		if isNotWired(err) {
-			return status.Error(codes.Unimplemented, "tier1/pubsub: Subscribe not yet wired to Dapr backend")
-		}
 		return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe failed: %v", err)
 	}
 	defer func() { _ = sub.Close() }()
@@ -253,11 +247,6 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 
 // translatePubSubErr は PubSub 用エラー翻訳。
 func translatePubSubErr(err error, rpc string) error {
-	// ErrNotWired → Unimplemented。
-	if isNotWired(err) {
-		// 翻訳メッセージ。
-		return status.Errorf(codes.Unimplemented, "tier1/pubsub: %s not yet wired to Dapr backend (plan 04-05)", rpc)
-	}
 	// dapr / Kafka adapter が返す gRPC status code を尊重する（FailedPrecondition →
 	// 409 / InvalidArgument → 400 / Unavailable → 503 等を HTTP layer に正しく伝える）。
 	if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {

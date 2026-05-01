@@ -6,8 +6,9 @@
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/04_Secrets_API.md
 //
 // 役割（plan 04-06 結線済）:
-//   SecretsService の 3 RPC（Get / BulkGet / Rotate）を OpenBao adapter 越しに実装する。
-//   adapter 未注入時は Unimplemented を返す（fail-soft）。
+//   SecretsService の 7 RPC（Get / BulkGet / Rotate / GetDynamic / Encrypt / Decrypt /
+//   RotateKey）を OpenBao adapter 越しに実装する。adapter は cmd/secret/main.go で
+//   必ず注入される（production: 実 OpenBao / dev: in-memory KVv2 backend）。
 
 // Package secret は t1-secret Pod が登録する SecretsService の handler を提供する。
 package secret
@@ -32,14 +33,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Deps は SecretsService handler が依存する adapter 集合。
+// Deps は SecretsService handler が依存する adapter 集合。cmd/secret/main.go で必ず
+// 全フィールド非 nil で構築される。
 type Deps struct {
-	// 静的 secret 用 adapter（nil 時は Get / BulkGet / Rotate が Unimplemented）。
+	// 静的 secret 用 adapter（FR-T1-SECRETS-001）。
 	SecretsAdapter openbao.SecretsAdapter
-	// 動的 secret 用 adapter（FR-T1-SECRETS-002、nil 時は GetDynamic が Unimplemented）。
+	// 動的 secret 用 adapter（FR-T1-SECRETS-002）。
 	DynamicAdapter openbao.DynamicAdapter
-	// Transit 暗号化 adapter（FR-T1-SECRETS-003、nil 時は Encrypt / Decrypt /
-	// RotateKey が Unimplemented）。
+	// Transit 暗号化 adapter（FR-T1-SECRETS-003、AES-256-GCM）。
 	TransitAdapter openbao.TransitAdapter
 	// Rotate の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL で同一 idempotency_key
 	// 再試行時に初回 response を返す）。nil の場合は dedup なし（後方互換 / 早期 dev）。
@@ -53,7 +54,7 @@ type secretHandler struct {
 }
 
 // Register は SecretsService を gRPC server に登録する hook を返す。
-// 後方互換のため deps なしの呼び出しも許容する（未注入 = Unimplemented 返却）。
+// cmd/secret/main.go から非 nil な Deps と共に呼び出される。
 func Register(deps Deps) func(*grpc.Server) {
 	return func(srv *grpc.Server) {
 		secretsv1.RegisterSecretsServiceServer(srv, &secretHandler{deps: deps})
@@ -62,9 +63,6 @@ func Register(deps Deps) func(*grpc.Server) {
 
 // translateErr は OpenBao SDK のエラーを gRPC status code に翻訳する。
 func translateErr(err error, rpc string) error {
-	if errors.Is(err, openbao.ErrNotWired) {
-		return status.Errorf(codes.Unimplemented, "tier1/secrets: %s not yet wired to OpenBao", rpc)
-	}
 	if errors.Is(err, openbao.ErrSecretNotFound) {
 		return status.Errorf(codes.NotFound, "tier1/secrets: %s: secret not found", rpc)
 	}
@@ -103,9 +101,6 @@ func (h *secretHandler) Encrypt(ctx context.Context, req *secretsv1.EncryptReque
 	if len(req.GetPlaintext()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: plaintext required (non-empty)")
 	}
-	if h.deps.TransitAdapter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Encrypt not yet wired to OpenBao Transit")
-	}
 	resp, err := h.deps.TransitAdapter.Encrypt(openbao.TransitEncryptRequest{
 		KeyName:   transitKeyName(tenantID, req.GetKeyName()),
 		Plaintext: req.GetPlaintext(),
@@ -136,9 +131,6 @@ func (h *secretHandler) Decrypt(ctx context.Context, req *secretsv1.DecryptReque
 	if len(req.GetCiphertext()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: ciphertext required (non-empty)")
 	}
-	if h.deps.TransitAdapter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Decrypt not yet wired to OpenBao Transit")
-	}
 	resp, err := h.deps.TransitAdapter.Decrypt(openbao.TransitDecryptRequest{
 		KeyName:    transitKeyName(tenantID, req.GetKeyName()),
 		Ciphertext: req.GetCiphertext(),
@@ -166,9 +158,6 @@ func (h *secretHandler) RotateKey(ctx context.Context, req *secretsv1.RotateKeyR
 	}
 	if req.GetKeyName() == "" {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: key_name required")
-	}
-	if h.deps.TransitAdapter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: RotateKey not yet wired to OpenBao Transit")
 	}
 	resp, err := h.deps.TransitAdapter.RotateKey(openbao.TransitRotateKeyRequest{
 		KeyName: transitKeyName(tenantID, req.GetKeyName()),
@@ -198,9 +187,6 @@ func (h *secretHandler) Get(ctx context.Context, req *secretsv1.GetSecretRequest
 		// InvalidArgument で返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: name required")
 	}
-	if h.deps.SecretsAdapter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Get not yet wired to OpenBao")
-	}
 	ar := openbao.SecretGetRequest{
 		Name:     req.GetName(),
 		TenantID: tenantID,
@@ -227,11 +213,6 @@ func (h *secretHandler) BulkGet(ctx context.Context, req *secretsv1.BulkGetSecre
 	if req == nil {
 		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: nil request")
-	}
-	// adapter 未注入時は未結線扱い。
-	if h.deps.SecretsAdapter == nil {
-		// Unimplemented 返却。
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: BulkGet not yet wired to OpenBao")
 	}
 	// NFR-E-AC-003 二重防御: JWT 由来 tenant_id と body の一致を handler 段でも検証。
 	tenantID, terr := common.EnforceTenantBoundary(ctx, req.GetContext().GetTenantId(), "Secrets.BulkGet")
@@ -284,11 +265,6 @@ func (h *secretHandler) Rotate(ctx context.Context, req *secretsv1.RotateSecretR
 	if req.GetName() == "" {
 		// InvalidArgument で返却する。
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: name required")
-	}
-	// adapter 未注入時は未結線扱い。
-	if h.deps.SecretsAdapter == nil {
-		// Unimplemented を返却する。
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: Rotate not yet wired to OpenBao")
 	}
 	// 実 rotate 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doRotate := func() (interface{}, error) {
@@ -347,10 +323,6 @@ func (h *secretHandler) GetDynamic(ctx context.Context, req *secretsv1.GetDynami
 	}
 	if req.GetRole() == "" {
 		return nil, status.Error(codes.InvalidArgument, "tier1/secrets: role required")
-	}
-	// adapter 未注入時は未結線扱い（Unimplemented）。
-	if h.deps.DynamicAdapter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/secrets: GetDynamic not yet wired to OpenBao Database Engine")
 	}
 	// adapter 入力に変換する。
 	ar := openbao.DynamicSecretRequest{

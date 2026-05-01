@@ -15,11 +15,11 @@
 //   の handler 実装を gRPC server に登録する。各 handler は internal/adapter/dapr/ への
 //   委譲を基本とし、Log / Telemetry のみ OTel パイプライン直結のため Dapr adapter を経由しない。
 //
-// scope（リリース時点 最小骨格）:
-//   - 5 Dapr 系 handler（State / PubSub / Invoke / Binding / Feature）は adapter ErrNotWired
-//     を Unimplemented に翻訳して返す。実 Dapr backend 結線は plan 04-04 〜 04-13。
-//   - Log / Telemetry 2 handler は Unimplemented を直接返す。実 OTel Collector / Loki / Mimir
-//     結線は plan 04-13。
+// 役割（plan 04-04 〜 04-13 結線済）:
+//   - 5 Dapr 系 handler（State / PubSub / Invoke / Binding / Feature）は adapter 経由で
+//     Dapr SDK（production）または in-memory backend（dev / CI）に委譲する。
+//   - Log / Telemetry 2 handler は internal/otel.Bundle 越しに OTel Logs / Metrics / Traces
+//     へ流す（OTLP gRPC or stdout JSON Lines fallback）。
 //   - FeatureAdminService（RegisterFlag / GetFlag / ListFlags）は in-memory FlagRegistry
 //     と組合せて 同 Pod に登録（feature_admin.go）。HTTP/JSON gateway も同形で 7 RPC を露出する。
 
@@ -28,7 +28,7 @@ package state
 
 // 標準 / 内部パッケージを import する。
 import (
-	// Dapr adapter（本リリース時点 placeholder）。
+	// Dapr adapter（plan 04-04 〜 04-13 結線済）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
@@ -62,7 +62,7 @@ type Deps struct {
 	// FeatureAdminService 用 in-memory registry（FlagDefinition の登録 / 取得 / 一覧）。
 	// nil 時は handler 側で 0 値の registry を生成する（dev / 旧コード互換）。
 	FeatureRegistry *FlagRegistry
-	// OTel Logs パイプライン（Loki 経由）への emitter。nil 時は LogService が Unimplemented を返す。
+	// OTel Logs パイプライン（Loki 経由）への emitter。cmd/state/main.go で必ず注入される。
 	LogEmitter otel.LogEmitter
 	// OTel Metrics パイプライン（Mimir 経由）への emitter。
 	MetricEmitter otel.MetricEmitter

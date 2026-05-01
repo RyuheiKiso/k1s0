@@ -167,11 +167,6 @@ func makeFlagMeta(variant, reason string) *featurev1.FlagMetadata {
 
 // translateFeatureErr は Feature 用エラー翻訳。
 func translateFeatureErr(err error, rpc string) error {
-	// ErrNotWired → Unimplemented。
-	if isNotWired(err) {
-		// 翻訳メッセージ。
-		return status.Errorf(codes.Unimplemented, "tier1/feature: %s not yet wired to flagd (plan 04-13)", rpc)
-	}
 	// dapr が返す gRPC status を尊重する（例: configuration store 未設定 →
 	// FailedPrecondition、permission 系 → PermissionDenied）。`status.FromError` は
 	// gRPC status を保持していれば true を返し、保持していなければ Unknown 扱い。

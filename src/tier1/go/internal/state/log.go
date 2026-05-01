@@ -8,7 +8,7 @@
 // 役割（plan 04-13 結線済）:
 //   SDK 側 facade からの gRPC 入口で proto LogEntry を受け取り、
 //   internal/otel.LogEmitter 越しに OTel Logs パイプラインへ流す。
-//   nil emitter（test 上などで未注入）の場合は Unimplemented を返す（fail-soft）。
+//   LogEmitter は cmd/state/main.go で必ず注入される（OTLP 未設定時は stdout fallback）。
 
 package state
 
@@ -62,10 +62,6 @@ func (h *logHandler) Send(ctx context.Context, req *logv1.SendLogRequest) (*logv
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Log.Send"); err != nil {
 		return nil, err
 	}
-	if h.deps.LogEmitter == nil {
-		// emitter 未注入 → 未結線扱い。
-		return nil, status.Error(codes.Unimplemented, "tier1/log: Send not yet wired to OTel Collector")
-	}
 	if err := h.deps.LogEmitter.Emit(ctx, convertLogEntry(req.GetEntry())); err != nil {
 		return nil, status.Errorf(codes.Internal, "tier1/log: emit failed: %v", err)
 	}
@@ -80,9 +76,6 @@ func (h *logHandler) BulkSend(ctx context.Context, req *logv1.BulkSendLogRequest
 	// FR-T1-LOG-003 / NFR-E-AC-003: tenant_id 必須強制。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Log.BulkSend"); err != nil {
 		return nil, err
-	}
-	if h.deps.LogEmitter == nil {
-		return nil, status.Error(codes.Unimplemented, "tier1/log: BulkSend not yet wired to OTel Collector")
 	}
 	// 各エントリを順次 emit。1 件失敗で全体失敗とせず、最後にエラー件数を集計する方針も
 	// 取れるが、現状は最初のエラーで即返却（gRPC 慣用）。
