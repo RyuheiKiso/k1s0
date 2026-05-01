@@ -29,3 +29,5 @@ pub mod retention;
 pub mod archive;
 // FR-T1-AUDIT-003 retention runner（warm→cold 移行 + cold→expired 削除）。
 pub mod archival;
+// FR-T1-AUDIT-003 retention runner を t1-audit Pod 内で周期実行する常駐 task。
+pub mod retention_loop;

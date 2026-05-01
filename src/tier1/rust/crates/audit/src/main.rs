@@ -27,6 +27,8 @@ use k1s0_sdk_proto::k1s0::tier1::audit::v1::audit_service_server::AuditServiceSe
 // 共通 HealthService 実装。
 use k1s0_tier1_health::Service as HealthSvc;
 // store / server 層（lib.rs 経由）。
+use k1s0_tier1_audit::archive::{ArchiveSink, InMemoryArchiveSink};
+use k1s0_tier1_audit::retention_loop::{self, RetentionLoopConfig};
 use k1s0_tier1_audit::server::AuditServer;
 use k1s0_tier1_audit::store::{AuditStore, InMemoryAuditStore};
 // 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
@@ -99,7 +101,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 共通規約 §「冪等性と再試行」: 24h TTL（既定）の重複抑止 cache を有効化。
     let idempotency: Arc<dyn IdempotencyCache> =
         Arc::new(InMemoryIdempotencyCache::new(std::time::Duration::ZERO));
-    let server = AuditServer { store, idempotency };
+    let server = AuditServer {
+        store: store.clone(),
+        idempotency,
+    };
+
+    // FR-T1-AUDIT-003: warm→cold 移行 + cold→expired 削除を担う retention task を起動する。
+    // production の MinIO 結線は post-MVP（aws-sdk-s3 越しの ArchiveSink 実装で別 PR）、
+    // release-initial では in-memory sink で機構（tenant 列挙 → 移行 → 削除 audit 発火）を
+    // 実動作させ、Postgres backed warm 層と組合わせて単 Pod 内で完結する。
+    // K1S0_AUDIT_RETENTION_DISABLED=true で task 起動を抑止できる（test / 単体検証）。
+    let retention_handle = if retention_loop::is_disabled(|k| std::env::var(k).ok()) {
+        eprintln!("tier1/audit: retention loop disabled (K1S0_AUDIT_RETENTION_DISABLED=true)");
+        None
+    } else {
+        let cfg = RetentionLoopConfig::from_env(|k| std::env::var(k).ok());
+        let sink: Arc<dyn ArchiveSink> = Arc::new(InMemoryArchiveSink::new());
+        eprintln!(
+            "tier1/audit: retention loop started (interval={:?}, max_per_tier={})",
+            cfg.interval, cfg.max_per_tier
+        );
+        Some(retention_loop::spawn(store.clone(), sink, cfg))
+    };
     // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
@@ -156,6 +179,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .serve_with_shutdown(addr, shutdown_signal())
         .await?;
     if let Some(h) = http_handle {
+        h.abort();
+    }
+    if let Some(h) = retention_handle {
         h.abort();
     }
     Ok(())

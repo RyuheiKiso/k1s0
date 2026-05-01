@@ -96,6 +96,15 @@ pub trait AuditStoreDeleter: AuditStore {
     fn delete(&self, tenant_id: &str, audit_id: &str) -> Result<(), StoreError>;
 }
 
+/// 全 `AuditStore` 実装に対して `AuditStoreDeleter` を `delete_warm` 経由で提供する blanket impl。
+/// `delete_warm` は trait の既定実装で「未対応」を返すため、retention runner は
+/// 実装側が override しているケースのみ実際に warm を削除する（既定 store は no-op）。
+impl<S: AuditStore + ?Sized> AuditStoreDeleter for S {
+    fn delete(&self, tenant_id: &str, audit_id: &str) -> Result<(), StoreError> {
+        self.delete_warm(tenant_id, audit_id)
+    }
+}
+
 impl RetentionRunner {
     /// 単発実行。warm→cold 移行 → cold→expired 削除 → expired audit 発火 を順に行う。
     ///

@@ -13,13 +13,7 @@ use crate::retention::{RetentionPolicy, RetentionTier};
 use crate::store::{AppendInput, AuditStore, InMemoryAuditStore, QueryInput};
 use std::sync::Arc;
 
-/// AuditStoreDeleter blanket impl は AuditStore::delete_warm を呼ぶ adapter。
-/// in-memory / postgres 両 store がこれを満たす。
-impl<S: AuditStore + ?Sized> AuditStoreDeleter for S {
-    fn delete(&self, tenant_id: &str, audit_id: &str) -> Result<(), crate::store::StoreError> {
-        self.delete_warm(tenant_id, audit_id)
-    }
-}
+// AuditStoreDeleter blanket impl は archival.rs（production）に移動済。test 側では import のみ。
 
 /// テスト用ヘルパ: 指定 timestamp で 1 件 append。
 fn append_at(store: &InMemoryAuditStore, tenant: &str, ts_ms: i64, actor: &str) -> String {

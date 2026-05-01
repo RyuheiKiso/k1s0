@@ -116,6 +116,14 @@ pub trait AuditStore: Send + Sync {
             "delete_warm not supported by this store".into(),
         ))
     }
+
+    /// FR-T1-AUDIT-003 retention runner が「全テナントを巡回して 1 年経過分を MinIO に
+    /// エクスポート」するために、warm 層に一度でも appended されたテナント ID 集合を返す。
+    /// 既定実装は空集合（retention に参加しない store では loop が no-op になる）。
+    /// in-memory / Postgres 各実装で具体的な distinct クエリを上書き提供する。
+    fn list_tenants(&self) -> Result<Vec<String>, StoreError> {
+        Ok(Vec::new())
+    }
 }
 
 /// VerifyChain の詳細検証結果。proto VerifyChainResponse と意味的対応。
@@ -365,6 +373,19 @@ impl AuditStore for InMemoryAuditStore {
             return Ok(());
         }
         Ok(())
+    }
+
+    fn list_tenants(&self) -> Result<Vec<String>, StoreError> {
+        // entries を走査して distinct tenant_id を昇順で返す。append-only / 普通は数十テナントの
+        // 想定なので O(N) でも十分。BTreeSet で重複排除 + 自動 sort。
+        let entries = self.entries.read().map_err(|_| StoreError::LockPoisoned)?;
+        let mut set = std::collections::BTreeSet::new();
+        for e in entries.iter() {
+            if !e.tenant_id.is_empty() {
+                set.insert(e.tenant_id.clone());
+            }
+        }
+        Ok(set.into_iter().collect())
     }
 }
 
