@@ -72,6 +72,11 @@ async fn shutdown_signal() {
 
 /// `DECISION_JDM_DIR` 配下の JDM を起動時にロードし、watcher を起動する。
 /// 値が "off" の場合は hot reload を無効化する（test / 単体起動経路）。
+///
+/// `K1S0_DECISION_SYSTEM_TENANT` で ConfigMap loader が使う tenant_id を設定する。
+/// production では「factory-default rules を所属させるシステム名前空間」として運用し、
+/// 各テナントから直接 evaluate しても見えない（NFR-E-AC-003 越境防止）。未設定時は
+/// "" (auth=off / dev 経路の既定) を使う。
 fn start_hot_reload(registry: &Arc<RuleRegistry>) -> Option<tokio::task::JoinHandle<()>> {
     let dir_env = std::env::var("DECISION_JDM_DIR")
         .unwrap_or_else(|_| "/etc/k1s0/decisions".to_string());
@@ -80,14 +85,16 @@ fn start_hot_reload(registry: &Arc<RuleRegistry>) -> Option<tokio::task::JoinHan
         return None;
     }
     let dir = std::path::PathBuf::from(dir_env);
+    let system_tenant = std::env::var("K1S0_DECISION_SYSTEM_TENANT").unwrap_or_default();
     // 起動時 load: 失敗ファイルは warn ログのみで継続。
-    match k1s0_tier1_decision::loader::load_initial(registry, &dir, "hot-reload") {
+    match k1s0_tier1_decision::loader::load_initial(registry, &dir, &system_tenant, "hot-reload") {
         Ok((ok, errors)) => {
             eprintln!(
-                "tier1/decision: initial load loaded={} failed={} dir={}",
+                "tier1/decision: initial load loaded={} failed={} dir={} system_tenant={:?}",
                 ok,
                 errors.len(),
-                dir.display()
+                dir.display(),
+                system_tenant
             );
             for (path, err) in &errors {
                 eprintln!(
@@ -109,6 +116,7 @@ fn start_hot_reload(registry: &Arc<RuleRegistry>) -> Option<tokio::task::JoinHan
     match k1s0_tier1_decision::loader::spawn_watcher(
         registry.clone(),
         dir.clone(),
+        system_tenant,
         "hot-reload".to_string(),
     ) {
         Ok(h) => {

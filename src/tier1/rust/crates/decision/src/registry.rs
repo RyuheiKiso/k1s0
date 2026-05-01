@@ -8,14 +8,23 @@
 //     - "JDM（JSON Decision Model）を標準フォーマット"
 //
 // 役割:
-//   - rule_id × rule_version → JDM DecisionContent の保管（in-memory）
+//   - tenant_id × rule_id × rule_version → JDM DecisionContent の保管（in-memory）
 //   - 登録時に JDM を `serde_json::from_slice::<DecisionContent>` で検証
 //   - 評価は ZEN Engine の DecisionEngine + Decision.evaluate_with_opts に委譲
 //   - 評価トレースは ADR-RULE-001 必須要件（"include_trace オプションで公開"）
 //
+// テナント分離（NFR-E-AC-003）:
+//   全公開 API は `tenant_id` を必須引数として受け取り、内部 HashMap のキーに
+//   含める。doc IDL `RegisterRuleRequest` が「rule_id は tenant 内で一意」と
+//   明記しているため、別テナント同名 rule_id は別エントリとして共存する。
+//   tenant_id="" は「システム/デフォルト」名前空間として扱い、ConfigMap loader が
+//   起動時にロードしたルールはここに入る（個別テナントから直接 evaluate しても
+//   ヒットしない、明示的に system tenant として呼ばれた場合のみ可視）。
+//
 // バージョニング:
-//   バージョン文字列は registry が "v<N>" 連番で自動採番する。空 string 評価は
-//   "latest"（最後に登録された version）に解決。
+//   バージョン文字列は registry が "v<N>" 連番で自動採番する。tenant 内で
+//   独立に採番されるため、tenant-A の v3 と tenant-B の v1 は無関係。
+//   空 string 評価は対象 tenant の "latest"（最後に登録された version）に解決。
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -31,7 +40,11 @@ use zen_engine::{DecisionEngine, EvaluationOptions};
 // runtime 起動コストは数百 μs（ADR-RULE-001 の p99 < 50ms 予算内）に収まる。
 
 /// 内部 ID と version を 1 セットで保持するキー。
-type RuleKey = (String, String);
+/// (tenant_id, rule_id, rule_version) のタプルで、tenant 越境を構造的に防ぐ。
+type RuleKey = (String, String, String);
+
+/// 「最新 version」インデックスのキー。(tenant_id, rule_id) で latest を引く。
+type LatestKey = (String, String);
 
 /// registry のエラー型。
 #[derive(Debug)]
@@ -40,8 +53,12 @@ pub enum RegistryError {
     InvalidJson(String),
     /// JDM 構造不正（ZEN Engine の評価でグラフ構造異常）。
     InvalidRule(String),
-    /// rule 未登録。
-    NotFound { rule_id: String, rule_version: String },
+    /// rule 未登録（tenant 単位で一意なので tenant_id も合わせて報告する）。
+    NotFound {
+        tenant_id: String,
+        rule_id: String,
+        rule_version: String,
+    },
     /// expression / 評価グラフ実行失敗。
     EvalFailed(String),
     /// lock 失敗。
@@ -54,10 +71,15 @@ impl std::fmt::Display for RegistryError {
             RegistryError::InvalidJson(s) => write!(f, "invalid json: {}", s),
             RegistryError::InvalidRule(s) => write!(f, "invalid rule: {}", s),
             RegistryError::NotFound {
+                tenant_id,
                 rule_id,
                 rule_version,
             } => {
-                write!(f, "rule not found: {}/{}", rule_id, rule_version)
+                write!(
+                    f,
+                    "rule not found: tenant={} {}/{}",
+                    tenant_id, rule_id, rule_version
+                )
             }
             RegistryError::EvalFailed(s) => write!(f, "eval failed: {}", s),
             RegistryError::LockPoisoned => write!(f, "lock poisoned"),
@@ -97,6 +119,9 @@ pub struct EvalOutcome {
 /// register の入力。
 #[derive(Debug, Clone, Default)]
 pub struct RegisterInput {
+    /// 登録テナント。同 rule_id でも tenant が違えば独立 entry として共存する
+    /// （NFR-E-AC-003 の構造的テナント越境防止）。
+    pub tenant_id: String,
     pub rule_id: String,
     pub jdm_document: Vec<u8>,
     pub commit_hash: String,
@@ -114,10 +139,10 @@ pub struct RegisterOutcome {
 
 /// JDM ルール registry。
 pub struct RuleRegistry {
-    /// rule_id × rule_version → 登録済 JDM。
+    /// (tenant_id, rule_id, rule_version) → 登録済 JDM。
     rules: RwLock<HashMap<RuleKey, Arc<CompiledRule>>>,
-    /// rule_id → 最新 rule_version。空 rule_version 解決に使う。
-    latest: RwLock<HashMap<String, String>>,
+    /// (tenant_id, rule_id) → 最新 rule_version。空 rule_version 解決に使う。
+    latest: RwLock<HashMap<LatestKey, String>>,
 }
 
 impl Default for RuleRegistry {
@@ -150,15 +175,18 @@ impl RuleRegistry {
     }
 
     /// JDM 文書を登録し、自動採番された rule_version を返す。
-    /// 既存 rule_id への登録なら次の連番（"v2", "v3", ...）、新規なら "v1"。
+    /// 既存 (tenant_id, rule_id) への登録なら次の連番（"v2", "v3", ...）、新規なら "v1"。
+    /// バージョン採番は tenant 単位に独立するため、tenant-A の v3 と tenant-B の v1 は無関係。
     pub fn register(&self, input: RegisterInput) -> Result<RegisterOutcome, RegistryError> {
         let content = Self::compile(&input.jdm_document)?;
         let new_version = {
             let rules = self.rules.read().map_err(|_| RegistryError::LockPoisoned)?;
             let max_n: u32 = rules
                 .keys()
-                .filter(|(rid, _)| rid == &input.rule_id)
-                .filter_map(|(_, ver)| ver.strip_prefix('v').and_then(|s| s.parse::<u32>().ok()))
+                .filter(|(tid, rid, _)| tid == &input.tenant_id && rid == &input.rule_id)
+                .filter_map(|(_, _, ver)| {
+                    ver.strip_prefix('v').and_then(|s| s.parse::<u32>().ok())
+                })
                 .max()
                 .unwrap_or(0);
             format!("v{}", max_n + 1)
@@ -182,57 +210,77 @@ impl RuleRegistry {
             raw_jdm_json: input.jdm_document,
             meta,
         });
-        let key = (input.rule_id.clone(), new_version.clone());
+        let key = (
+            input.tenant_id.clone(),
+            input.rule_id.clone(),
+            new_version.clone(),
+        );
         let mut rules = self.rules.write().map_err(|_| RegistryError::LockPoisoned)?;
         rules.insert(key, compiled);
         let mut latest = self
             .latest
             .write()
             .map_err(|_| RegistryError::LockPoisoned)?;
-        latest.insert(input.rule_id, new_version.clone());
+        latest.insert(
+            (input.tenant_id, input.rule_id),
+            new_version.clone(),
+        );
         Ok(RegisterOutcome {
             rule_version: new_version,
             effective_at_ms: now_ms,
         })
     }
 
-    fn resolve_version(&self, rule_id: &str, rule_version: &str) -> Result<String, RegistryError> {
+    fn resolve_version(
+        &self,
+        tenant_id: &str,
+        rule_id: &str,
+        rule_version: &str,
+    ) -> Result<String, RegistryError> {
         if !rule_version.is_empty() {
             return Ok(rule_version.to_string());
         }
         let latest = self.latest.read().map_err(|_| RegistryError::LockPoisoned)?;
         latest
-            .get(rule_id)
+            .get(&(tenant_id.to_string(), rule_id.to_string()))
             .cloned()
             .ok_or_else(|| RegistryError::NotFound {
+                tenant_id: tenant_id.to_string(),
                 rule_id: rule_id.to_string(),
                 rule_version: "(latest)".to_string(),
             })
     }
 
     /// 登録済 rule の RuleMeta 一覧を登録時刻昇順で返す。
-    pub fn list_versions(&self, rule_id: &str) -> Result<Vec<RuleMeta>, RegistryError> {
+    /// `tenant_id` を必須とし、当該 tenant 配下の rule のみを返す（情報漏洩防止）。
+    pub fn list_versions(
+        &self,
+        tenant_id: &str,
+        rule_id: &str,
+    ) -> Result<Vec<RuleMeta>, RegistryError> {
         let rules = self.rules.read().map_err(|_| RegistryError::LockPoisoned)?;
         let mut metas: Vec<RuleMeta> = rules
             .iter()
-            .filter(|((rid, _), _)| rid == rule_id)
+            .filter(|((tid, rid, _), _)| tid == tenant_id && rid == rule_id)
             .map(|(_, c)| c.meta.clone())
             .collect();
         metas.sort_by_key(|m| m.registered_at_ms);
         Ok(metas)
     }
 
-    /// 特定 rule_id × rule_version の元 JDM JSON と meta を返す（GetRule 用）。
+    /// 特定 (tenant_id, rule_id, rule_version) の元 JDM JSON と meta を返す（GetRule 用）。
     pub fn get_jdm_with_meta(
         &self,
+        tenant_id: &str,
         rule_id: &str,
         rule_version: &str,
     ) -> Result<(Vec<u8>, RuleMeta), RegistryError> {
-        let resolved = self.resolve_version(rule_id, rule_version)?;
+        let resolved = self.resolve_version(tenant_id, rule_id, rule_version)?;
         let rules = self.rules.read().map_err(|_| RegistryError::LockPoisoned)?;
         let rule = rules
-            .get(&(rule_id.to_string(), resolved.clone()))
+            .get(&(tenant_id.to_string(), rule_id.to_string(), resolved.clone()))
             .ok_or(RegistryError::NotFound {
+                tenant_id: tenant_id.to_string(),
                 rule_id: rule_id.to_string(),
                 rule_version: resolved,
             })?;
@@ -240,20 +288,23 @@ impl RuleRegistry {
     }
 
     /// JDM ルールを ZEN Engine で評価する。include_trace=true の時は trace を JSON で詰める。
+    /// `tenant_id` で名前空間を限定するため、別 tenant の同名 rule_id は見えない。
     pub async fn evaluate(
         &self,
+        tenant_id: &str,
         rule_id: &str,
         rule_version: &str,
         input_json: &[u8],
         include_trace: bool,
     ) -> Result<EvalOutcome, RegistryError> {
-        let resolved = self.resolve_version(rule_id, rule_version)?;
+        let resolved = self.resolve_version(tenant_id, rule_id, rule_version)?;
         let compiled = {
             let rules = self.rules.read().map_err(|_| RegistryError::LockPoisoned)?;
             rules
-                .get(&(rule_id.to_string(), resolved.clone()))
+                .get(&(tenant_id.to_string(), rule_id.to_string(), resolved.clone()))
                 .cloned()
                 .ok_or(RegistryError::NotFound {
+                    tenant_id: tenant_id.to_string(),
                     rule_id: rule_id.to_string(),
                     rule_version: resolved,
                 })?

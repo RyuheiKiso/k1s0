@@ -54,10 +54,11 @@ fn load_initial_registers_all_jdm_files() {
     // 関係ないファイルは無視される。
     std::fs::write(dir.path().join("note.txt"), b"x").unwrap();
     let registry = RuleRegistry::new();
-    let (ok, errors) = load_initial(&registry, dir.path(), "loader-test").unwrap();
+    // loader はシステム名前空間 "system" にロードする想定で監査する。
+    let (ok, errors) = load_initial(&registry, dir.path(), "system", "loader-test").unwrap();
     assert_eq!(ok, 2, "rule-a + rule-b should succeed");
     assert_eq!(errors.len(), 1, "invalid.json should fail");
-    let metas_a = registry.list_versions("rule-a").unwrap();
+    let metas_a = registry.list_versions("system", "rule-a").unwrap();
     assert_eq!(metas_a.len(), 1);
     assert!(
         metas_a[0].commit_hash.starts_with("mtime-"),
@@ -69,7 +70,7 @@ fn load_initial_registers_all_jdm_files() {
 fn load_initial_returns_zero_for_missing_dir() {
     let path = std::path::PathBuf::from("/nonexistent/dir/path");
     let registry = RuleRegistry::new();
-    let (ok, errors) = load_initial(&registry, &path, "test").unwrap();
+    let (ok, errors) = load_initial(&registry, &path, "system", "test").unwrap();
     assert_eq!(ok, 0);
     assert_eq!(errors.len(), 0);
 }
@@ -80,12 +81,12 @@ fn re_register_same_file_bumps_version() {
     let path = dir.path().join("payment.json");
     std::fs::write(&path, minimal_jdm()).unwrap();
     let registry = RuleRegistry::new();
-    let v1 = load_one(&registry, &path, "test").unwrap();
+    let v1 = load_one(&registry, &path, "system", "test").unwrap();
     assert_eq!(v1, "v1");
     // 再 register（ホットリロードのシミュレーション）。
-    let v2 = load_one(&registry, &path, "test").unwrap();
+    let v2 = load_one(&registry, &path, "system", "test").unwrap();
     assert_eq!(v2, "v2");
-    let metas = registry.list_versions("payment").unwrap();
+    let metas = registry.list_versions("system", "payment").unwrap();
     assert_eq!(metas.len(), 2);
 }
 
@@ -96,8 +97,13 @@ async fn watcher_picks_up_new_file_within_short_window() {
     // を成立させ、新 rule_id が registry に乗ることだけを確認する。
     let dir = tempfile::tempdir().unwrap();
     let registry = Arc::new(RuleRegistry::new());
-    let _handle =
-        spawn_watcher(registry.clone(), dir.path().to_path_buf(), "watcher-test".into()).unwrap();
+    let _handle = spawn_watcher(
+        registry.clone(),
+        dir.path().to_path_buf(),
+        "system".into(),
+        "watcher-test".into(),
+    )
+    .unwrap();
     // 監視開始後にファイル作成。
     let path = dir.path().join("hot-rule.json");
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -106,7 +112,7 @@ async fn watcher_picks_up_new_file_within_short_window() {
     let mut found = false;
     for _ in 0..40 {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        if let Ok(metas) = registry.list_versions("hot-rule") {
+        if let Ok(metas) = registry.list_versions("system", "hot-rule") {
             if !metas.is_empty() {
                 found = true;
                 break;
@@ -114,4 +120,32 @@ async fn watcher_picks_up_new_file_within_short_window() {
         }
     }
     assert!(found, "watcher should pick up new file within 4 seconds");
+}
+
+/// NFR-E-AC-003: loader が system_tenant_id="system" でロードした rule は、
+/// クライアント tenant ("tenant-A") から evaluate しても見えない（構造的越境防止）。
+#[tokio::test]
+async fn loader_rules_isolated_from_client_tenants() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("admin-rule.json"), minimal_jdm()).unwrap();
+    let registry = RuleRegistry::new();
+    let (ok, _errors) = load_initial(&registry, dir.path(), "system", "test").unwrap();
+    assert_eq!(ok, 1);
+    // tenant-A から evaluate → NotFound。
+    let err = registry
+        .evaluate("tenant-A", "admin-rule", "v1", br#"{}"#, false)
+        .await
+        .unwrap_err();
+    match err {
+        crate::registry::RegistryError::NotFound { tenant_id, .. } => {
+            assert_eq!(tenant_id, "tenant-A")
+        }
+        other => panic!("expected NotFound for cross-tenant, got {:?}", other),
+    }
+    // system tenant 名で呼ぶと取れる（admin 管理経路のみ参照可）。
+    let outcome = registry
+        .evaluate("system", "admin-rule", "v1", br#"{}"#, false)
+        .await
+        .unwrap();
+    assert!(!outcome.output_json.is_empty());
 }

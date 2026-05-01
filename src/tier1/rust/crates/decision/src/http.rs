@@ -42,9 +42,12 @@ impl JsonRpc for EvaluateRpc {
     }
     async fn invoke(
         &self,
-        _claims: &AuthClaims,
+        claims: &AuthClaims,
         body: JsonValue,
     ) -> Result<JsonValue, tonic::Status> {
+        // NFR-E-AC-003: HTTP/JSON gateway 経路は K1s0Layer で claims.tenant_id を確定済。
+        // body 経由の context.tenantId が来た場合は claims と一致を要求する。
+        let tenant_id = http_resolve_tenant(claims, &body, "Decision.Evaluate")?;
         let rule_id = pick_str(&body, "ruleId").unwrap_or_default();
         let rule_version = pick_str(&body, "ruleVersion").unwrap_or_default();
         let input_json = pick_bytes(&body, "inputJson")?;
@@ -55,7 +58,7 @@ impl JsonRpc for EvaluateRpc {
         let outcome = self
             .state
             .registry
-            .evaluate(&rule_id, &rule_version, &input_json, include_trace)
+            .evaluate(&tenant_id, &rule_id, &rule_version, &input_json, include_trace)
             .await
             .map_err(|e| registry_err_to_status(e, "Evaluate"))?;
         Ok(serde_json::json!({
@@ -81,9 +84,10 @@ impl JsonRpc for BatchEvaluateRpc {
     }
     async fn invoke(
         &self,
-        _claims: &AuthClaims,
+        claims: &AuthClaims,
         body: JsonValue,
     ) -> Result<JsonValue, tonic::Status> {
+        let tenant_id = http_resolve_tenant(claims, &body, "Decision.BatchEvaluate")?;
         let rule_id = pick_str(&body, "ruleId").unwrap_or_default();
         let rule_version = pick_str(&body, "ruleVersion").unwrap_or_default();
         let inputs = body
@@ -97,7 +101,7 @@ impl JsonRpc for BatchEvaluateRpc {
             let outcome = self
                 .state
                 .registry
-                .evaluate(&rule_id, &rule_version, &bytes, false)
+                .evaluate(&tenant_id, &rule_id, &rule_version, &bytes, false)
                 .await
                 .map_err(|e| registry_err_to_status(e, "BatchEvaluate"))?;
             outputs.push(base64_encode(&outcome.output_json));
@@ -124,6 +128,7 @@ impl JsonRpc for RegisterRuleRpc {
         claims: &AuthClaims,
         body: JsonValue,
     ) -> Result<JsonValue, tonic::Status> {
+        let tenant_id = http_resolve_tenant(claims, &body, "Decision.RegisterRule")?;
         let rule_id = pick_str(&body, "ruleId").unwrap_or_default();
         let jdm = pick_bytes(&body, "jdmDocument")?;
         let commit_hash = pick_str(&body, "commitHash").unwrap_or_default();
@@ -145,6 +150,7 @@ impl JsonRpc for RegisterRuleRpc {
             .state
             .registry
             .register(RegisterInput {
+                tenant_id,
                 rule_id,
                 jdm_document: jdm,
                 commit_hash,
@@ -174,14 +180,15 @@ impl JsonRpc for ListVersionsRpc {
     }
     async fn invoke(
         &self,
-        _claims: &AuthClaims,
+        claims: &AuthClaims,
         body: JsonValue,
     ) -> Result<JsonValue, tonic::Status> {
+        let tenant_id = http_resolve_tenant(claims, &body, "Decision.ListVersions")?;
         let rule_id = pick_str(&body, "ruleId").unwrap_or_default();
         let metas = self
             .state
             .registry
-            .list_versions(&rule_id)
+            .list_versions(&tenant_id, &rule_id)
             .map_err(|e| registry_err_to_status(e, "ListVersions"))?;
         let versions: Vec<JsonValue> = metas
             .iter()
@@ -214,15 +221,16 @@ impl JsonRpc for GetRuleRpc {
     }
     async fn invoke(
         &self,
-        _claims: &AuthClaims,
+        claims: &AuthClaims,
         body: JsonValue,
     ) -> Result<JsonValue, tonic::Status> {
+        let tenant_id = http_resolve_tenant(claims, &body, "Decision.GetRule")?;
         let rule_id = pick_str(&body, "ruleId").unwrap_or_default();
         let rule_version = pick_str(&body, "ruleVersion").unwrap_or_default();
         let (jdm, meta) = self
             .state
             .registry
-            .get_jdm_with_meta(&rule_id, &rule_version)
+            .get_jdm_with_meta(&tenant_id, &rule_id, &rule_version)
             .map_err(|e| registry_err_to_status(e, "GetRule"))?;
         Ok(serde_json::json!({
             "jdmDocument": base64_encode(&jdm),
@@ -242,6 +250,23 @@ fn pick_str(body: &JsonValue, camel: &str) -> Option<String> {
     body.get(camel)
         .or_else(|| body.get(camel_to_snake(camel)))
         .and_then(|v| v.as_str().map(String::from))
+}
+
+/// HTTP gateway 経由の tenant 確定。`claims.tenant_id` と body.context.tenantId
+/// が両方与えられている場合は一致を要求。片方のみの場合はそれを採用、両方とも
+/// 空の場合は "" を採用（auth=off / dev 経路）。
+/// 一致違反は PermissionDenied で reject（NFR-E-AC-003 の二重防御）。
+fn http_resolve_tenant(
+    claims: &AuthClaims,
+    body: &JsonValue,
+    rpc: &str,
+) -> Result<String, tonic::Status> {
+    let body_tid = body
+        .get("context")
+        .and_then(|c| c.get("tenantId").or_else(|| c.get("tenant_id")))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    k1s0_tier1_common::auth::enforce_tenant_boundary(claims, body_tid, rpc)
 }
 
 /// camelCase → snake_case 単純変換（"ruleId" → "rule_id"）。
@@ -341,9 +366,13 @@ fn registry_err_to_status(e: RegistryError, rpc: &str) -> tonic::Status {
         RegistryError::InvalidJson(msg) | RegistryError::InvalidRule(msg) => {
             tonic::Status::invalid_argument(format!("tier1/decision: {}: {}", rpc, msg))
         }
-        RegistryError::NotFound { rule_id, rule_version } => tonic::Status::not_found(format!(
-            "tier1/decision: {}: rule {}/{} not found",
-            rpc, rule_id, rule_version
+        RegistryError::NotFound {
+            tenant_id,
+            rule_id,
+            rule_version,
+        } => tonic::Status::not_found(format!(
+            "tier1/decision: {}: rule tenant={} {}/{} not found",
+            rpc, tenant_id, rule_id, rule_version
         )),
         RegistryError::EvalFailed(msg) => {
             tonic::Status::internal(format!("tier1/decision: {}: eval failed: {}", rpc, msg))
@@ -394,6 +423,9 @@ mod tests {
     /// InvalidArgument で事前検証する。registry に空 bytes が渡って
     /// "EOF while parsing a value at line 1 column 0" の codes.Internal に
     /// 潰れる経路を防ぐ。
+    ///
+    /// claims に tenant_id を入れて tenant 境界検証を通過させ、その後の input 検証が
+    /// 走ることを確認する（NFR-E-AC-003 二重防御 + 入力検証の両立）。
     #[tokio::test]
     async fn register_rule_rejects_empty_rule_id() {
         use crate::registry::RuleRegistry;
@@ -403,9 +435,12 @@ mod tests {
             registry: Arc::new(RuleRegistry::new()),
         };
         let rpc = RegisterRuleRpc { state };
-        let claims = AuthClaims::default();
-        // 空 body → ruleId required
-        let body = serde_json::json!({});
+        let claims = AuthClaims {
+            tenant_id: "t".into(),
+            ..Default::default()
+        };
+        // body は context.tenantId のみ → ruleId required で reject。
+        let body = serde_json::json!({ "context": { "tenantId": "t" } });
         let err = rpc.invoke(&claims, body).await.unwrap_err();
         assert_eq!(err.code(), tonic::Code::InvalidArgument);
         assert!(
@@ -424,9 +459,13 @@ mod tests {
             registry: Arc::new(RuleRegistry::new()),
         };
         let rpc = RegisterRuleRpc { state };
-        let claims = AuthClaims::default();
-        // ruleId only → jdmDocument required
-        let body = serde_json::json!({ "ruleId": "my-rule" });
+        let claims = AuthClaims {
+            tenant_id: "t".into(),
+            ..Default::default()
+        };
+        // tenant + ruleId のみ → jdmDocument required で reject。
+        let body =
+            serde_json::json!({ "context": { "tenantId": "t" }, "ruleId": "my-rule" });
         let err = rpc.invoke(&claims, body).await.unwrap_err();
         assert_eq!(err.code(), tonic::Code::InvalidArgument);
         assert!(
@@ -434,5 +473,30 @@ mod tests {
             "error should mention 'jdmDocument required', got: {}",
             err.message()
         );
+    }
+
+    /// NFR-E-AC-003 (HTTP gateway 経路): claims (JWT) と body.context.tenantId が不一致
+    /// なら PermissionDenied で reject される。
+    #[tokio::test]
+    async fn register_rule_rejects_cross_tenant_via_http() {
+        use crate::registry::RuleRegistry;
+        use k1s0_tier1_common::auth::AuthClaims;
+        use std::sync::Arc;
+        let state = DecisionHttpState {
+            registry: Arc::new(RuleRegistry::new()),
+        };
+        let rpc = RegisterRuleRpc { state };
+        let claims = AuthClaims {
+            tenant_id: "tenant-A".into(),
+            ..Default::default()
+        };
+        // body 側で tenant-B を偽装 → reject。
+        let body = serde_json::json!({
+            "context": { "tenantId": "tenant-B" },
+            "ruleId": "shared",
+            "jdmDocument": "QQ==",
+        });
+        let err = rpc.invoke(&claims, body).await.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::PermissionDenied);
     }
 }

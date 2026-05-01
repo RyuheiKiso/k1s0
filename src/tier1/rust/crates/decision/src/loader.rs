@@ -112,17 +112,24 @@ pub fn is_jdm_file(path: &Path) -> bool {
 
 /// `load_one` は 1 つの JDM ファイルを読み込み、registry に register する。
 ///
+/// `system_tenant_id` は ConfigMap 由来 rule を所属させる「システム名前空間」。
+/// 環境変数 `K1S0_DECISION_SYSTEM_TENANT` 由来で、production では各テナントから
+/// 直接 evaluate しても見えない（テナント越境防止 NFR-E-AC-003）。空文字も許容
+/// するが、その場合は claims.tenant_id="" の dev 経路だけが evaluate できる。
+///
 /// 失敗時はエラーを上層に返すが、呼出側 (load_initial / on_change_event) は
 /// 個別ファイルのエラーを warn ログ化して継続する想定。
 pub fn load_one(
     registry: &RuleRegistry,
     path: &Path,
+    system_tenant_id: &str,
     registered_by: &str,
 ) -> Result<String, LoaderError> {
     let rule_id = path_to_rule_id(path)
         .ok_or_else(|| LoaderError::Io(std::io::Error::other("invalid file name")))?;
     let bytes = std::fs::read(path)?;
     let outcome = registry.register(RegisterInput {
+        tenant_id: system_tenant_id.to_string(),
         rule_id: rule_id.clone(),
         jdm_document: bytes,
         // commit_hash は ConfigMap 由来では K8s 側が知っている範囲外なので、
@@ -145,6 +152,7 @@ pub fn load_one(
 pub fn load_initial(
     registry: &RuleRegistry,
     dir: &Path,
+    system_tenant_id: &str,
     registered_by: &str,
 ) -> Result<(usize, Vec<(PathBuf, String)>), LoaderError> {
     let mut ok = 0usize;
@@ -165,7 +173,7 @@ pub fn load_initial(
         if !is_jdm_file(&path) {
             continue;
         }
-        match load_one(registry, &path, registered_by) {
+        match load_one(registry, &path, system_tenant_id, registered_by) {
             Ok(_) => ok += 1,
             Err(e) => errors.push((path, e.to_string())),
         }
@@ -183,6 +191,7 @@ pub fn load_initial(
 pub fn spawn_watcher(
     registry: Arc<RuleRegistry>,
     dir: PathBuf,
+    system_tenant_id: String,
     registered_by: String,
 ) -> Result<tokio::task::JoinHandle<()>, LoaderError> {
     // notify 4 の watcher は同期 channel に Event を送る。tokio 側で受け取るため
@@ -202,7 +211,9 @@ pub fn spawn_watcher(
         let _watcher = watcher;
         while let Some(ev_res) = rx.recv().await {
             match ev_res {
-                Ok(event) => handle_event(&registry, &event, &registered_by).await,
+                Ok(event) => {
+                    handle_event(&registry, &event, &system_tenant_id, &registered_by).await
+                }
                 Err(e) => eprintln!("tier1/decision: watcher error: {}", e),
             }
         }
@@ -211,7 +222,12 @@ pub fn spawn_watcher(
 }
 
 /// `handle_event` は notify Event を処理し、対象ファイルを registry に再登録する。
-async fn handle_event(registry: &RuleRegistry, event: &Event, registered_by: &str) {
+async fn handle_event(
+    registry: &RuleRegistry,
+    event: &Event,
+    system_tenant_id: &str,
+    registered_by: &str,
+) {
     // 関心のあるイベント種別のみ拾う（Create / Modify / Remove）。
     // ConfigMap 更新は内部的に「symlink swap → 旧 dir 削除 → 新 dir 出現」の
     // 連続イベントとして観測されるため、Create / Modify を等価に扱う。
@@ -223,7 +239,7 @@ async fn handle_event(registry: &RuleRegistry, event: &Event, registered_by: &st
         if !is_jdm_file(path) {
             continue;
         }
-        match load_one(registry, path, registered_by) {
+        match load_one(registry, path, system_tenant_id, registered_by) {
             Ok(version) => {
                 if let Some(rule_id) = path_to_rule_id(path) {
                     eprintln!(

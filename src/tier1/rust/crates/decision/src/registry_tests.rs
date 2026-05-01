@@ -27,17 +27,22 @@ fn simple_jdm() -> Vec<u8> {
     .into_bytes()
 }
 
+/// テスト用 RegisterInput を 1 行で組み立てる helper。
+fn input(tenant: &str, rule_id: &str) -> RegisterInput {
+    RegisterInput {
+        tenant_id: tenant.into(),
+        rule_id: rule_id.into(),
+        jdm_document: simple_jdm(),
+        ..Default::default()
+    }
+}
+
 #[tokio::test]
 async fn register_and_evaluate() {
     let r = RuleRegistry::new();
-    r.register(RegisterInput {
-        rule_id: "tax-calc".into(),
-        jdm_document: simple_jdm(),
-        ..Default::default()
-    })
-    .unwrap();
+    r.register(input("tenant-A", "tax-calc")).unwrap();
     let outcome = r
-        .evaluate("tax-calc", "v1", br#"{"amount": 100}"#, false)
+        .evaluate("tenant-A", "tax-calc", "v1", br#"{"amount": 100}"#, false)
         .await
         .unwrap();
     let out: JsonValue = serde_json::from_slice(&outcome.output_json).unwrap();
@@ -47,14 +52,9 @@ async fn register_and_evaluate() {
 #[tokio::test]
 async fn evaluate_with_trace() {
     let r = RuleRegistry::new();
-    r.register(RegisterInput {
-        rule_id: "rid".into(),
-        jdm_document: simple_jdm(),
-        ..Default::default()
-    })
-    .unwrap();
+    r.register(input("t", "rid")).unwrap();
     let outcome = r
-        .evaluate("rid", "v1", br#"{"amount": 50}"#, true)
+        .evaluate("t", "rid", "v1", br#"{"amount": 50}"#, true)
         .await
         .unwrap();
     // ZEN Engine は trace を node 単位の HashMap で返す。最低 1 件含まれることを確認。
@@ -66,14 +66,9 @@ async fn evaluate_with_trace() {
 #[tokio::test]
 async fn evaluate_resolves_latest_when_version_empty() {
     let r = RuleRegistry::new();
-    r.register(RegisterInput {
-        rule_id: "rid".into(),
-        jdm_document: simple_jdm(),
-        ..Default::default()
-    })
-    .unwrap();
+    r.register(input("t", "rid")).unwrap();
     let outcome = r
-        .evaluate("rid", "", br#"{"amount": 100}"#, false)
+        .evaluate("t", "rid", "", br#"{"amount": 100}"#, false)
         .await
         .unwrap();
     let out: JsonValue = serde_json::from_slice(&outcome.output_json).unwrap();
@@ -83,19 +78,9 @@ async fn evaluate_resolves_latest_when_version_empty() {
 #[test]
 fn list_versions_returns_registered() {
     let r = RuleRegistry::new();
-    r.register(RegisterInput {
-        rule_id: "rid".into(),
-        jdm_document: simple_jdm(),
-        ..Default::default()
-    })
-    .unwrap();
-    r.register(RegisterInput {
-        rule_id: "rid".into(),
-        jdm_document: simple_jdm(),
-        ..Default::default()
-    })
-    .unwrap();
-    let v = r.list_versions("rid").unwrap();
+    r.register(input("t", "rid")).unwrap();
+    r.register(input("t", "rid")).unwrap();
+    let v = r.list_versions("t", "rid").unwrap();
     assert_eq!(v.len(), 2);
     assert!(v.iter().any(|m| m.rule_version == "v1"));
     assert!(v.iter().any(|m| m.rule_version == "v2"));
@@ -106,6 +91,7 @@ fn register_invalid_json_returns_error() {
     let r = RuleRegistry::new();
     let e = r
         .register(RegisterInput {
+            tenant_id: "t".into(),
             rule_id: "rid".into(),
             jdm_document: b"not-json".to_vec(),
             ..Default::default()
@@ -125,6 +111,7 @@ fn register_empty_graph_returns_invalid_rule() {
         .into_bytes();
     let e = r
         .register(RegisterInput {
+            tenant_id: "t".into(),
             rule_id: "rid".into(),
             jdm_document: empty,
             ..Default::default()
@@ -140,7 +127,7 @@ fn register_empty_graph_returns_invalid_rule() {
 async fn evaluate_unknown_rule_returns_not_found() {
     let r = RuleRegistry::new();
     let e = r
-        .evaluate("missing", "v1", br#"{}"#, false)
+        .evaluate("t", "missing", "v1", br#"{}"#, false)
         .await
         .unwrap_err();
     match e {
@@ -169,6 +156,7 @@ async fn evaluate_supports_boolean_logic() {
         ]
     }).to_string().into_bytes();
     r.register(RegisterInput {
+        tenant_id: "t".into(),
         rule_id: "flags".into(),
         jdm_document: rule,
         ..Default::default()
@@ -176,6 +164,7 @@ async fn evaluate_supports_boolean_logic() {
     .unwrap();
     let resp = r
         .evaluate(
+            "t",
             "flags",
             "v1",
             br#"{"amount": 150, "score": 0.9, "verified": true}"#,
@@ -191,15 +180,70 @@ async fn evaluate_supports_boolean_logic() {
 #[test]
 fn get_jdm_returns_serialized_rule() {
     let r = RuleRegistry::new();
-    r.register(RegisterInput {
-        rule_id: "rid".into(),
-        jdm_document: simple_jdm(),
-        ..Default::default()
-    })
-    .unwrap();
-    let (bytes, meta) = r.get_jdm_with_meta("rid", "v1").unwrap();
+    r.register(input("t", "rid")).unwrap();
+    let (bytes, meta) = r.get_jdm_with_meta("t", "rid", "v1").unwrap();
     let v: JsonValue = serde_json::from_slice(&bytes).unwrap();
     // 元の JDM が保持されていることを確認。
     assert!(v.get("nodes").is_some());
     assert_eq!(meta.rule_version, "v1");
+}
+
+/// NFR-E-AC-003: tenant-A で登録した rule_id を tenant-B から evaluate しても
+/// NotFound にならなければならない（rule_id は tenant 内で一意、別 tenant の
+/// 同名 rule_id は構造的に分離される）。
+#[tokio::test]
+async fn evaluate_isolates_rules_between_tenants() {
+    let r = RuleRegistry::new();
+    r.register(input("tenant-A", "shared-name")).unwrap();
+    let err = r
+        .evaluate(
+            "tenant-B",
+            "shared-name",
+            "",
+            br#"{"amount": 100}"#,
+            false,
+        )
+        .await
+        .unwrap_err();
+    match err {
+        RegistryError::NotFound { tenant_id, rule_id, .. } => {
+            assert_eq!(tenant_id, "tenant-B");
+            assert_eq!(rule_id, "shared-name");
+        }
+        other => panic!("expected NotFound for cross-tenant, got {:?}", other),
+    }
+}
+
+/// NFR-E-AC-003: 同じ rule_id を複数 tenant で登録しても、各 tenant 配下で v1 から
+/// 独立採番される（tenant-A の v3 と tenant-B の v1 は別物）。
+#[test]
+fn version_numbering_is_per_tenant() {
+    let r = RuleRegistry::new();
+    let oa1 = r.register(input("tenant-A", "shared")).unwrap();
+    let oa2 = r.register(input("tenant-A", "shared")).unwrap();
+    let ob1 = r.register(input("tenant-B", "shared")).unwrap();
+    assert_eq!(oa1.rule_version, "v1");
+    assert_eq!(oa2.rule_version, "v2");
+    assert_eq!(ob1.rule_version, "v1");
+    // list_versions も tenant 単位。
+    let a_versions = r.list_versions("tenant-A", "shared").unwrap();
+    let b_versions = r.list_versions("tenant-B", "shared").unwrap();
+    assert_eq!(a_versions.len(), 2);
+    assert_eq!(b_versions.len(), 1);
+}
+
+/// NFR-E-AC-003: get_jdm_with_meta も tenant 境界で分離される。
+#[test]
+fn get_jdm_isolates_between_tenants() {
+    let r = RuleRegistry::new();
+    r.register(input("tenant-A", "rid")).unwrap();
+    // tenant-A は読み出せる。
+    let (_jdm, meta) = r.get_jdm_with_meta("tenant-A", "rid", "v1").unwrap();
+    assert_eq!(meta.rule_version, "v1");
+    // tenant-B からは NotFound。
+    let err = r.get_jdm_with_meta("tenant-B", "rid", "v1").unwrap_err();
+    match err {
+        RegistryError::NotFound { tenant_id, .. } => assert_eq!(tenant_id, "tenant-B"),
+        other => panic!("expected NotFound, got {:?}", other),
+    }
 }

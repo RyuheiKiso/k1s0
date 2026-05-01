@@ -26,7 +26,9 @@ use k1s0_sdk_proto::k1s0::tier1::decision::v1::{
 // FR-T1-DECISION-003: 評価ごとに rule_id / rule_version / input_hash / output_hash 付き
 // audit を rich に発火するための型。
 use k1s0_tier1_common::audit::{AuditEmitter, AuditRecord, outcome_from_code};
-use k1s0_tier1_common::auth::AuthClaims;
+use k1s0_tier1_common::auth::{enforce_tenant_boundary, AuthClaims};
+// proto 共通の TenantContext から body 側 tenant_id を抽出するため import。
+use k1s0_sdk_proto::k1s0::tier1::common::v1::TenantContext;
 // 内部 registry。
 use crate::registry::{RegisterInput, RegistryError, RuleMeta, RuleRegistry};
 // tonic ランタイム / 型。
@@ -83,15 +85,28 @@ pub fn claims_from_req<T>(req: &Request<T>) -> AuthClaims {
         .unwrap_or_default()
 }
 
+/// 共通の tenant 境界検証 helper。`claims_from_req` で取り出した claims と body の
+/// `TenantContext.tenant_id` を `enforce_tenant_boundary` で照合し、確定 tenant_id を返す。
+/// claims が空（auth=off）の場合は body 側を採用する（AuditServer と同じ挙動）。
+pub fn resolve_tenant<T>(req: &Request<T>, body_ctx: Option<&TenantContext>, rpc: &str) -> Result<String, Status> {
+    let claims = claims_from_req(req);
+    let body_tid = body_ctx.map(|c| c.tenant_id.clone()).unwrap_or_default();
+    enforce_tenant_boundary(&claims, &body_tid, rpc)
+}
+
 /// RegistryError → tonic::Status 翻訳。NotFound / InvalidJson 系を gRPC code に正しく落とす。
 pub fn registry_err_to_status(e: RegistryError, rpc: &str) -> Status {
     match e {
         RegistryError::InvalidJson(msg) | RegistryError::InvalidRule(msg) => {
             Status::invalid_argument(format!("tier1/decision: {}: {}", rpc, msg))
         }
-        RegistryError::NotFound { rule_id, rule_version } => Status::not_found(format!(
-            "tier1/decision: {}: rule {}/{} not found",
-            rpc, rule_id, rule_version
+        RegistryError::NotFound {
+            tenant_id,
+            rule_id,
+            rule_version,
+        } => Status::not_found(format!(
+            "tier1/decision: {}: rule tenant={} {}/{} not found",
+            rpc, tenant_id, rule_id, rule_version
         )),
         RegistryError::EvalFailed(msg) => {
             Status::internal(format!("tier1/decision: {}: eval failed: {}", rpc, msg))
@@ -110,12 +125,20 @@ impl DecisionService for DecisionServer {
     ) -> Result<Response<EvaluateResponse>, Status> {
         // claims を audit attributes に詰めるため、into_inner の前に取り出す。
         let claims = claims_from_req(&req);
+        // NFR-E-AC-003: claims (JWT) と body.context.tenant_id の不一致を構造的に拒否する。
+        let tenant_id = resolve_tenant(&req, req.get_ref().context.as_ref(), "Decision.Evaluate")?;
         let r = req.into_inner();
         // 評価実行。FR-T1-DECISION-003 の audit 連携用に rule_id / rule_version /
         // input/output hash を保持する。
         let outcome_result = self
             .registry
-            .evaluate(&r.rule_id, &r.rule_version, &r.input_json, r.include_trace)
+            .evaluate(
+                &tenant_id,
+                &r.rule_id,
+                &r.rule_version,
+                &r.input_json,
+                r.include_trace,
+            )
             .await;
         // 評価成否を audit attributes に詰めて発火する（FR-T1-DECISION-003）。
         let mut attrs = std::collections::BTreeMap::new();
@@ -170,6 +193,8 @@ impl DecisionService for DecisionServer {
     ) -> Result<Response<BatchEvaluateResponse>, Status> {
         // 監査用に claims を取り出す。
         let claims = claims_from_req(&req);
+        // NFR-E-AC-003: tenant_id 越境防止。
+        let tenant_id = resolve_tenant(&req, req.get_ref().context.as_ref(), "Decision.BatchEvaluate")?;
         let r = req.into_inner();
         // 結果バッファと size 集計を初期化。
         let mut outputs: Vec<Vec<u8>> = Vec::with_capacity(r.inputs_json.len());
@@ -179,7 +204,7 @@ impl DecisionService for DecisionServer {
             total_input_bytes += input.len();
             let outcome = self
                 .registry
-                .evaluate(&r.rule_id, &r.rule_version, input, false)
+                .evaluate(&tenant_id, &r.rule_id, &r.rule_version, input, false)
                 .await
                 .map_err(|e| registry_err_to_status(e, "BatchEvaluate"))?;
             total_output_bytes += outcome.output_json.len();
@@ -221,6 +246,9 @@ impl DecisionAdminService for DecisionAdminServer {
     ) -> Result<Response<RegisterRuleResponse>, Status> {
         // 監査用に claims を取り出してから本体を進める。
         let claims = claims_from_req(&req);
+        // NFR-E-AC-003: tenant_id 越境防止。RegisterRule は新規登録なので fallback 無し
+        // （body 由来 tenant に登録される、claims と一致しない場合は拒否）。
+        let tenant_id = resolve_tenant(&req, req.get_ref().context.as_ref(), "Decision.RegisterRule")?;
         let r = req.into_inner();
         let registered_by = r
             .context
@@ -233,6 +261,7 @@ impl DecisionAdminService for DecisionAdminServer {
         let outcome = self
             .registry
             .register(RegisterInput {
+                tenant_id: tenant_id.clone(),
                 rule_id: r.rule_id,
                 jdm_document: r.jdm_document,
                 commit_hash: r.commit_hash,
@@ -270,10 +299,12 @@ impl DecisionAdminService for DecisionAdminServer {
         &self,
         req: Request<ListVersionsRequest>,
     ) -> Result<Response<ListVersionsResponse>, Status> {
+        // NFR-E-AC-003: 当該 tenant 配下の rule のみ列挙する（情報漏洩防止）。
+        let tenant_id = resolve_tenant(&req, req.get_ref().context.as_ref(), "Decision.ListVersions")?;
         let r = req.into_inner();
         let metas = self
             .registry
-            .list_versions(&r.rule_id)
+            .list_versions(&tenant_id, &r.rule_id)
             .map_err(|e| registry_err_to_status(e, "ListVersions"))?;
         Ok(Response::new(ListVersionsResponse {
             versions: metas.iter().map(rule_meta_to_proto).collect(),
@@ -284,10 +315,12 @@ impl DecisionAdminService for DecisionAdminServer {
         &self,
         req: Request<GetRuleRequest>,
     ) -> Result<Response<GetRuleResponse>, Status> {
+        // NFR-E-AC-003: 別 tenant の rule を読み出せないよう必須検証。
+        let tenant_id = resolve_tenant(&req, req.get_ref().context.as_ref(), "Decision.GetRule")?;
         let r = req.into_inner();
         let (jdm, meta) = self
             .registry
-            .get_jdm_with_meta(&r.rule_id, &r.rule_version)
+            .get_jdm_with_meta(&tenant_id, &r.rule_id, &r.rule_version)
             .map_err(|e| registry_err_to_status(e, "GetRule"))?;
         Ok(Response::new(GetRuleResponse {
             jdm_document: jdm,
