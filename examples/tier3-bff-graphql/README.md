@@ -14,9 +14,14 @@ tier3 BFF（Backend For Frontend）レイヤの典型的な実装パタンを示
 
 | 段階 | 提供範囲 |
 |---|---|
-| リリース時点 | 本 README のみ（構造規定） |
-| 採用初期 | `cmd/example-bff/main.go` + GraphQL schema + DataLoader + 認証ミドルウェア |
+| リリース時点 | 最小完動: `cmd/portal-bff/main.go` (HTTP GraphQL minimal + tier1 SDK State.Get) + `Dockerfile` + `catalog-info.yaml` + `go.mod` |
+| 採用初期 | `internal/{graphql,k1s0client,auth}` 層分離 + gqlgen schema/resolver + DataLoader + Keycloak OIDC ミドルウェア |
 | 採用後の運用拡大時 | persisted queries / federation / subscription |
+
+`go run ./cmd/portal-bff -listen :8080 -tier1-target localhost:50001` で起動できる。
+`POST /graphql` に `{"query": "query { stateGet(store: $s, key: $k) { data etag } }",
+"variables": {"store": "valkey-default", "key": "..."}}` を送ると tier1 facade
+の State.Get を呼び出す (substring 一致での簡易ルータ、採用初期で gqlgen に置換)。
 
 ## 想定構成（採用初期）
 
