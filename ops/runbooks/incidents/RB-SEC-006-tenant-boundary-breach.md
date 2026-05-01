@@ -1,21 +1,39 @@
-# テナント越境検知・封じ込め Runbook
+---
+runbook_id: RB-SEC-006
+title: テナント越境検知・封じ込め
+category: SEC
+severity: SEV1
+owner: 起案者
+automation: manual
+alertmanager_rule: k1s0_tenant_boundary_breach (Loki) / k1s0_cross_tenant_db_query (Falco)
+fmea_id: 間接対応
+estimated_recovery: 封じ込め 2h
+last_updated: 2026-05-02
+---
 
-> **severity**: SEV1
-> **owner**: security-sre
-> **estimated_mttr**: 2h（封じ込め）
-> **last_updated**: 2026-04-28
+# RB-SEC-006: テナント越境検知・封じ込め
 
-## 1. 検出 (Detection)
+本 Runbook は JWT `tenant_id` 偽造、ABAC バイパス、PostgreSQL RLS バイパス、設定ミス等によるテナント境界違反検知時の封じ込めを定める。
+NFR-E-AC-003 / NFR-G-AC-001 に対応する。テナント越境は採用検討の前提を崩す重大事象であり SEV1 即時。
 
-以下のシグナルが起動トリガーとなる（NFR-E-AC-003 関連）。
+## 1. 前提条件
 
-- Loki アラート `k1s0_tenant_boundary_breach`: JWT の `tenant_id` クレームと
-  アクセス先リソースの `tenant_id` の不一致を tier1 が `K1s0Error.Forbidden` で拒否した
-  イベントが **3 min で 5 件以上**
-- Falco ルール `k1s0_cross_tenant_db_query`: PostgreSQL でテナント境界を超えた
-  SELECT が発行された場合（Row-Level Security バイパスの疑い）
-- Kyverno ポリシー違反: `tenant_id` ラベル欠落 Pod のデプロイ試行
-- 外部からの越境アクセス報告（採用組織のユーザーから）
+- 実行者は `security-sre` ClusterRole + Keycloak admin + PostgreSQL pgaudit 読取権限を保持。
+- 必要ツール: `kubectl` / `kcadm.sh` / `psql` / `logcli`。
+- kubectl context が `k1s0-prod`。
+- Keycloak / Istio AuthorizationPolicy / Kyverno ClusterPolicy が起動中。
+- pgaudit 拡張が CNPG cluster で有効化されていること（`infra/data/cloudnativepg/cluster.yaml` の `postgresql.parameters.shared_preload_libraries` に `pgaudit` 含有）。
+
+## 2. 対象事象
+
+以下のシグナルが起動トリガー（NFR-E-AC-003 関連）:
+
+- Loki アラート `k1s0_tenant_boundary_breach`: JWT の `tenant_id` クレームとアクセス先リソースの `tenant_id` の不一致を tier1 が `K1s0Error.Forbidden` で拒否したイベントが **3 分で 5 件以上**。
+- Falco ルール `k1s0_cross_tenant_db_query`: PostgreSQL でテナント境界を超えた SELECT が発行された場合（Row-Level Security バイパスの疑い）。
+- Kyverno ポリシー違反: `tenant_id` ラベル欠落 Pod のデプロイ試行。
+- 外部からの越境アクセス報告（採用組織のユーザーから）。
+
+検知シグナル:
 
 ```bash
 # 直近の Forbidden ログを確認
@@ -25,129 +43,170 @@ logcli query '{namespace="k1s0-tier1", job="audit"}
   --since=30m | sort | uniq -c | sort -rn | head -30
 ```
 
-## 2. 初動 (Immediate Action)
+通知経路: PagerDuty `security-sre` → Slack `#incident-sev1` → CTO + 採用組織セキュリティ担当へ即時連絡。
 
-**目標: 検知後 2 時間以内に越境経路を封じ込める。**
+## 3. 初動手順（5 分以内）
 
-### Step 1: 越境パターンの特定（〜30 分）
+最初の 5 分で SEV1 を確定し、越境パターン（A/B/C/D）の仮説を立てる。
 
-1. 越境の種別を確認する。
+```bash
+# 直近 5 分の越境イベント数を確認
+logcli query '{namespace="k1s0-tier1", job="audit"}
+  |= "Forbidden" |= "tenant"' \
+  --since=5m | wc -l
+```
 
-   | パターン | 説明 | 緊急度 |
-   |---|---|---|
-   | A: JWT クレーム偽造 | `tenant_id` クレームが改ざんされた JWT | 最高 |
-   | B: ABAC バイパス | 認可ロジックのバグで tenant_id 検証をスキップ | 高 |
-   | C: DB RLS バイパス | PostgreSQL Row-Level Security が機能していない | 高 |
-   | D: 設定ミス | 誤った namespace / ラベルで他テナントデータにアクセス | 中 |
+```bash
+# 影響テナント ペア
+logcli query '{namespace="k1s0-tier1", job="audit"}
+  |= "cross_tenant" | json
+  | line_format "{{.source_tenant}} -> {{.target_tenant}}"' \
+  --since=30m | sort | uniq -c | sort -rn | head -10
+```
 
-2. 越境した tenant_id ペアを特定する。
+ステークホルダー通知（必須）:
 
-   ```bash
-   logcli query '{namespace="k1s0-tier1", job="audit"}
-     |= "cross_tenant" | json
-     | line_format "{{.source_tenant}} -> {{.target_tenant}} ({{.user_id}})"' \
-     --since=2h | sort | uniq
-   ```
+- SEV1 即時宣言、Slack `#incident-sev1` に「テナント越境検知、封じ込め開始」を投稿。
+- [`oncall/escalation.md`](../../oncall/escalation.md) を起動、CTO + 採用組織セキュリティ担当に連絡。
+- PII 閲覧の可能性があれば [`RB-SEC-005-pii-leak-detection.md`](RB-SEC-005-pii-leak-detection.md) を並行起動。
 
-3. SPIFFE ID で対象 Pod の ID を確認する。
+## 4. 原因特定手順
 
-   ```bash
-   kubectl get pod -n k1s0-tier1 -o jsonpath='{range .items[*]}
-   {.metadata.name}{"\t"}{.metadata.annotations.spiffe\.io/spiffe-id}{"\n"}{end}'
-   ```
+```bash
+# JWT 検証コードの全コードパスを trace（src/tier1/auth-go の grep）
+grep -rn "tenant_id" src/tier1/auth-go/
+
+# PostgreSQL RLS ポリシー定義を確認
+kubectl exec -it k1s0-pg-0 -n k1s0-data -- psql -U postgres -c "
+  SELECT schemaname, tablename, policyname, permissive, roles, qual
+  FROM pg_policies WHERE tablename LIKE 'tenant_%';"
+
+# Istio AuthorizationPolicy の jwt フィルターが全 API パスに適用されているか
+kubectl get authorizationpolicy -A -o yaml | grep -E "jwt|tenant"
+```
+
+越境パターン分類（初動と並行で確定）:
+
+| パターン | 説明 | 緊急度 | 対応 |
+|---|---|---|---|
+| A: JWT クレーム偽造 | `tenant_id` クレームが改ざんされた JWT | 最高 | Keycloak signing key rotate |
+| B: ABAC バイパス | 認可ロジックのバグで tenant_id 検証をスキップ | 高 | サービススケールダウン + コード修正 |
+| C: DB RLS バイパス | PostgreSQL Row-Level Security が機能していない | 高 | RLS ポリシー修正 + 再 enable |
+| D: 設定ミス | 誤った namespace / ラベルで他テナントデータにアクセス | 中 | ラベル修正 + Kyverno 強化 |
+
+エスカレーション: 原因が確定しなくても封じ込めを優先。原因調査は封じ込め後に時間をかけて実施。
+
+## 5. 復旧手順
+
+### Step 1: 越境した tenant_id ペアと SPIFFE ID の特定（〜30 分）
+
+```bash
+# 越境した tenant_id ペア
+logcli query '{namespace="k1s0-tier1", job="audit"}
+  |= "cross_tenant" | json
+  | line_format "{{.source_tenant}} -> {{.target_tenant}} ({{.user_id}})"' \
+  --since=2h | sort | uniq
+
+# SPIFFE ID で対象 Pod の ID を確認
+kubectl get pod -n k1s0-tier1 -o jsonpath='{range .items[*]}
+{.metadata.name}{"\t"}{.metadata.annotations.spiffe\.io/spiffe-id}{"\n"}{end}'
+```
 
 ### Step 2: 侵害 Pod / サービスの隔離（〜1 時間）
 
-4. パターン A（JWT 偽造）の場合: Keycloak でセッションを即時無効化する。
+パターン A（JWT 偽造）の場合: Keycloak でセッションを即時無効化:
 
-   ```bash
-   # 対象 client の全セッションを無効化
-   kcadm.sh delete clients/<client-id>/user-sessions -r k1s0
-   # JWT 署名鍵をローテーション（OIDC discovery で全クライアントが新鍵を取得）
-   kcadm.sh create realms/k1s0/keys -s enabled=true -s providerId=rsa-generated
-   ```
+```bash
+# 対象 client の全セッションを無効化
+kcadm.sh delete clients/<client-id>/user-sessions -r k1s0
+# JWT 署名鍵をローテーション（OIDC discovery で全クライアントが新鍵を取得）
+kcadm.sh create realms/k1s0/keys -s enabled=true -s providerId=rsa-generated
+```
 
-5. パターン B/C（バグ起因）の場合: 影響サービスをスケールダウンする。
+パターン B/C（バグ起因）の場合: 影響サービスをスケールダウン:
 
-   ```bash
-   kubectl scale deployment/<breached-service> --replicas=0 -n k1s0-tier1
-   # Istio AuthorizationPolicy でさらに制限
-   kubectl apply -f - <<EOF
-   apiVersion: security.istio.io/v1
-   kind: AuthorizationPolicy
-   metadata:
-     name: deny-all-<breached-service>
-     namespace: k1s0-tier1
-   spec:
-     selector:
-       matchLabels:
-         app: <breached-service>
-     action: DENY
-     rules:
-     - {}
-   EOF
-   ```
+```bash
+kubectl scale deployment/<breached-service> --replicas=0 -n k1s0-tier1
+# Istio AuthorizationPolicy でさらに制限
+kubectl apply -f - <<EOF
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-<breached-service>
+  namespace: k1s0-tier1
+spec:
+  selector:
+    matchLabels:
+      app: <breached-service>
+  action: DENY
+  rules:
+  - {}
+EOF
+```
 
-6. パターン D（設定ミス）の場合: 誤ったラベルを修正し、Pod を再起動する。
+パターン D（設定ミス）の場合: 誤ったラベルを修正し、Pod を再起動:
 
-   ```bash
-   kubectl patch deployment/<service> -n k1s0-tier1 \
-     --type='json' \
-     -p='[{"op":"replace","path":"/spec/template/metadata/labels/tenant_id",
-           "value":"<correct-tenant-id>"}]'
-   ```
+```bash
+kubectl patch deployment/<service> -n k1s0-tier1 \
+  --type='json' \
+  -p='[{"op":"replace","path":"/spec/template/metadata/labels/tenant_id",
+        "value":"<correct-tenant-id>"}]'
+```
 
 ### Step 3: 影響範囲の確定（〜2 時間）
 
-7. 越境によって閲覧・変更された可能性があるデータを特定する。
+```bash
+# PostgreSQL の監査ログ（pgaudit）から対象 tenant のクエリを抽出
+kubectl exec -it k1s0-pg-0 -n k1s0-data -- psql -U postgres -c "
+  SELECT log_time, command_tag, database_name, object_name, statement
+  FROM pgaudit_log
+  WHERE log_time > NOW() - INTERVAL '3 hours'
+    AND statement LIKE '%<target-tenant-id>%'
+  ORDER BY log_time DESC LIMIT 100;"
+```
 
-   ```bash
-   # PostgreSQL の監査ログ（pgaudit）から対象 tenant のクエリを抽出
-   kubectl exec -it k1s0-pg-0 -n k1s0-data -- psql -U postgres -c "
-     SELECT log_time, command_tag, database_name, object_name, statement
-     FROM pgaudit_log
-     WHERE log_time > NOW() - INTERVAL '3 hours'
-       AND statement LIKE '%<target-tenant-id>%'
-     ORDER BY log_time DESC LIMIT 100;"
-   ```
+PII が閲覧された可能性がある場合は [`RB-SEC-005-pii-leak-detection.md`](RB-SEC-005-pii-leak-detection.md) を並行起動。
 
-8. PII が閲覧された可能性がある場合は `pii-leak-detection.md` を並行起動する。
+### Step 4: 段階的復旧
 
-## 3. 復旧 (Recovery)
+1. バグ修正 PR をホットフィックスブランチで作成し、4-eyes レビュー後に緊急デプロイ。
+2. Kyverno ポリシーで `tenant_id` ラベルの必須化を強制:
 
-1. バグ修正 PR をホットフィックスブランチで作成し、4-eyes レビュー後に緊急デプロイする。
-2. Kyverno ポリシーで `tenant_id` ラベルの必須化を強制する。
+```bash
+kubectl get clusterpolicy k1s0-require-tenant-label -o yaml | grep -A5 "spec:"
+```
 
-   ```bash
-   kubectl get clusterpolicy k1s0-require-tenant-label -o yaml | grep -A5 "spec:"
-   ```
+3. 影響テナントの採用組織担当者に越境の事実と影響データを報告。
+4. 修正後、Litmus Chaos で越境試行のテストを実行して修正を確認。
 
-3. 影響テナントの採用組織担当者に越境の事実と影響データを報告する。
-4. 修正後、Litmus Chaos で越境試行のテストを実行して修正を確認する。
+## 6. 検証手順
 
-## 4. 原因調査 (Root Cause Analysis)
+復旧完了の判定基準:
 
-- JWT 検証コードの全コードパスを trace し、`tenant_id` 検証がスキップされる条件を探す。
-- PostgreSQL RLS ポリシー定義を確認する。
+- Loki アラート `k1s0_tenant_boundary_breach` が 24h 間継続して未発火。
+- Falco アラート `k1s0_cross_tenant_db_query` が 24h 間 0 件。
+- pgaudit ログで `tenant_id` ミスマッチクエリが 24h 間 0 件。
+- 影響テナントのアクセストークンが全て無効化済み（Keycloak audit log で確認）。
+- バグ修正 PR がマージ・デプロイ済み（パターン B/C の場合）。
+- Kyverno ClusterPolicy `k1s0-require-tenant-label` が有効で全 namespace で `enforce` モード。
+- Litmus Chaos の越境試行テストが PASS（CI で自動実行）。
+- 採用組織担当者に書面通知済み（影響テナントの場合）。
 
-  ```bash
-  kubectl exec -it k1s0-pg-0 -n k1s0-data -- psql -U postgres -c "
-    SELECT schemaname, tablename, policyname, permissive, roles, qual
-    FROM pg_policies WHERE tablename LIKE 'tenant_%';"
-  ```
+## 7. 予防策
 
-- Istio AuthorizationPolicy の `jwt` フィルターが全 API パスに適用されているか確認する。
+- ポストモーテム作成（24h 以内、`postmortems/<YYYY-MM-DD>-RB-SEC-006.md`）。
+- NFR-E-AC-003 に基づく Litmus Chaos 越境テストの CI 組み込み PR（`tools/test/tenant-isolation-chaos/`）。
+- 越境試行を Grafana ダッシュボードに可視化する（`cross_tenant_attempts` メトリクス）。
+- PII 閲覧が確認された場合: [`RB-COMP-002-pii-regulatory-disclosure.md`](RB-COMP-002-pii-regulatory-disclosure.md) を起動。
+- JWT 検証コードのレビュー観点を PR テンプレに追加。
+- 月次 Chaos Drill 対象に「JWT tenant_id 改ざん試行」シナリオを追加。
 
-## 5. 事後処理 (Post-incident)
+## 8. 関連 Runbook
 
-- ポストモーテム作成（24h 以内）
-- NFR-E-AC-003 に基づく Litmus Chaos 越境テストの CI 組み込み PR
-- 越境試行を Grafana ダッシュボードに可視化する（`cross_tenant_attempts` メトリクス）
-- PII 閲覧が確認された場合: `pii-regulatory-disclosure.md` を起動する
-
-## 関連
-
-- 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-AC-003)
-- 関連設計書: docs/03_要件定義/30_非機能要件/G_データ保護とプライバシー.md (NFR-G-AC-001)
-- 関連 ADR: ADR-SEC-001 (Keycloak), ADR-SEC-002 (OpenBao), ADR-SEC-003 (SPIRE)
-- 関連 Runbook: pii-leak-detection.md, ../../oncall/escalation.md, auth-abuse-detection.md
+- 関連設計書: [`docs/03_要件定義/30_非機能要件/E_セキュリティ.md`](../../../docs/03_要件定義/30_非機能要件/E_セキュリティ.md) (NFR-E-AC-003)、[`G_データ保護とプライバシー.md`](../../../docs/03_要件定義/30_非機能要件/G_データ保護とプライバシー.md) (NFR-G-AC-001)
+- 関連 ADR: [ADR-SEC-001 (Keycloak)](../../../docs/02_構想設計/adr/ADR-SEC-001-keycloak.md), [ADR-SEC-002 (OpenBao)](../../../docs/02_構想設計/adr/ADR-SEC-002-openbao.md), [ADR-SEC-003 (SPIRE)](../../../docs/02_構想設計/adr/ADR-SEC-003-spire.md)
+- 連鎖 Runbook:
+  - [`RB-SEC-005-pii-leak-detection.md`](RB-SEC-005-pii-leak-detection.md) — PII 閲覧の場合
+  - [`RB-AUTH-002-auth-abuse-detection.md`](RB-AUTH-002-auth-abuse-detection.md) — 内部 actor / Secret 大量読取が並行発生した場合
+  - [`RB-COMP-002-pii-regulatory-disclosure.md`](RB-COMP-002-pii-regulatory-disclosure.md) — 規制報告が必要な場合
+- エスカレーション: [`../../oncall/escalation.md`](../../oncall/escalation.md)
