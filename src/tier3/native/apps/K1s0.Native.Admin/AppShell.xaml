@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  K1s0.Native.Admin の Shell ナビゲーション定義。
+  リリース時点 minimum: AdminPage 単一画面のみ。
+  リリース時点 で TenantList / FeatureFlag 管理画面を Tab 形式で追加する。
+-->
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:pages="clr-namespace:K1s0.Native.Admin.Pages"
+       Shell.FlyoutBehavior="Disabled"
+       Title="k1s0 Admin"
+       x:Class="K1s0.Native.Admin.AppShell">
+  <ShellContent ContentTemplate="{DataTemplate pages:AdminPage}" Route="AdminPage" />
+</Shell>
