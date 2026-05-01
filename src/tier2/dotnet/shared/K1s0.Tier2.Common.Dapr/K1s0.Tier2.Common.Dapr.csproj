@@ -1,0 +1,25 @@
+<!--
+  tier2 .NET 共通 Dapr Client セットアップ csproj。
+
+  docs 正典:
+    src/tier2/go/shared/dapr/client.go (Go 側 NewClient と同形の役割)
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+
+  scope:
+    各 Api / Infrastructure 層が `services.AddK1s0DaprClient()` 1 行で
+    Dapr.Client を DI 登録できる。Dapr port は環境変数 DAPR_HTTP_PORT /
+    DAPR_GRPC_PORT (Dapr sidecar が自動 inject) を既定で使う。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.Common.Dapr</RootNamespace>
+    <AssemblyName>K1s0.Tier2.Common.Dapr</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Dapr.Client" />
+  </ItemGroup>
+</Project>

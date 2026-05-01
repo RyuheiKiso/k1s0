@@ -1,0 +1,23 @@
+<!--
+  tier2 .NET 共通 業務エラー型 csproj。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/02_dotnet_solution配置.md
+    docs/04_概要設計/30_共通機能方式設計/  （E-T2-* エラー体系）
+
+  scope:
+    tier2 Go の `shared/errors` (Category / DomainError / HTTPStatus()) と対称な
+    .NET 実装。各 Api 層が `app.UseK1s0DomainException()` 1 行で DomainException を
+    JSON エラーレスポンスに自動変換できるように middleware 拡張も提供する。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.Common.Errors</RootNamespace>
+    <AssemblyName>K1s0.Tier2.Common.Errors</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ASP.NET Core の middleware を使うため。 -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

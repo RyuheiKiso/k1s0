@@ -28,10 +28,14 @@
     <!-- Dapr / k1s0 SDK（本リポジトリ内 ProjectReference は CPM 対象外） -->
     <PackageVersion Include="Dapr.Client" Version="1.14.0" />
 
-    <!-- OpenTelemetry -->
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
+    <!--
+      OpenTelemetry — GHSA-4625-4j76-fww9 (CVE-2026-42191, moderate) は 1.8.0〜1.15.2 が
+      該当。Patched は 1.15.3。tier2 .NET shared (K1s0.Tier2.Common.Otel) で利用するため、
+      advisory 解消版に固定する。
+    -->
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
 
     <!-- Testing -->
     <PackageVersion Include="xunit" Version="2.9.2" />

@@ -1,0 +1,28 @@
+<!--
+  tier2 .NET 共通 OpenTelemetry セットアップ csproj。
+
+  docs 正典:
+    src/tier2/go/shared/otel/init.go (Go 側 Init と同形の挙動を提供)
+    docs/05_実装/60_観測性設計/
+
+  scope:
+    各 Api 層が `services.AddK1s0Otel(...)` 1 行で OTel SDK を初期化できる。
+    OTEL_EXPORTER_OTLP_ENDPOINT 環境変数で OTLP gRPC エクスポータを有効化し、
+    未設定時は no-op (dev / unit test 向け)。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>K1s0.Tier2.Common.Otel</RootNamespace>
+    <AssemblyName>K1s0.Tier2.Common.Otel</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- IServiceCollection 拡張のため。 -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+  </ItemGroup>
+</Project>
