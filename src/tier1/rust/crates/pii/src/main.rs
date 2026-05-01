@@ -36,7 +36,7 @@ use k1s0_tier1_common::http_gateway::{HttpGateway, JsonRpc, serve as serve_http}
 use k1s0_tier1_common::runtime::CommonRuntime;
 // PII 検出 logic の library 部。
 use k1s0_tier1_pii::http::{ClassifyRpc, MaskRpc, PiiHttpState, PseudonymizeRpc};
-use k1s0_tier1_pii::masker::{Finding, Masker};
+use k1s0_tier1_pii::masker::{byte_to_char_index, Finding, Masker};
 // FR-T1-PII-002: 仮名化純関数。
 use k1s0_tier1_pii::pseudonymize::{pseudonymize, PseudonymizeError};
 // 標準同期。
@@ -63,15 +63,18 @@ struct PiiServer {
 }
 
 // Finding を proto PiiFinding に詰め替える純関数。
-fn to_proto_finding(f: &Finding) -> PiiFinding {
+//
+// proto contract（pii_service.proto: PiiFinding.start / end）は「文字単位」
+// すなわち UTF-8 byte ではなく Unicode scalar value 数を要求する。Masker 内部は
+// regex の find_iter() が返す byte offset を保持しているため、proto に詰める
+// タイミングで byte_to_char_index() で char index に変換する。
+fn to_proto_finding(text: &str, f: &Finding) -> PiiFinding {
     PiiFinding {
         // 種別文字列は kind.as_str() で確定（proto string 仕様）。
         r#type: f.kind.as_str().to_string(),
-        // proto は int32 仕様、内部は usize（byte offset）。
-        // proto 仕様コメントは「文字単位」と書いているが、UTF-8 multibyte 環境での
-        // char index 計算は heavy なので byte offset を返す（呼び出し側合意のうえで運用）。
-        start: f.start as i32,
-        end: f.end as i32,
+        // 内部 byte offset → proto 仕様の char index に射影。
+        start: byte_to_char_index(text, f.start) as i32,
+        end: byte_to_char_index(text, f.end) as i32,
         confidence: f.confidence,
     }
 }
@@ -83,9 +86,10 @@ impl PiiService for PiiServer {
         &self,
         req: Request<ClassifyRequest>,
     ) -> Result<Response<ClassifyResponse>, Status> {
-        let text = &req.into_inner().text;
-        let findings = self.masker.classify(text);
-        let proto_findings: Vec<PiiFinding> = findings.iter().map(to_proto_finding).collect();
+        let text = req.into_inner().text;
+        let findings = self.masker.classify(&text);
+        let proto_findings: Vec<PiiFinding> =
+            findings.iter().map(|f| to_proto_finding(&text, f)).collect();
         // findings が空でなければ contains_pii=true。
         let contains = !proto_findings.is_empty();
         Ok(Response::new(ClassifyResponse {
@@ -96,9 +100,12 @@ impl PiiService for PiiServer {
 
     // マスキング。
     async fn mask(&self, req: Request<MaskRequest>) -> Result<Response<MaskResponse>, Status> {
-        let text = &req.into_inner().text;
-        let (masked, findings) = self.masker.mask(text);
-        let proto_findings: Vec<PiiFinding> = findings.iter().map(to_proto_finding).collect();
+        let text = req.into_inner().text;
+        let (masked, findings) = self.masker.mask(&text);
+        // findings は **マスキング前** の text に対する byte offset。proto 仕様は char
+        // 単位なので、入力テキスト（masking 前）を基準に char index へ射影する。
+        let proto_findings: Vec<PiiFinding> =
+            findings.iter().map(|f| to_proto_finding(&text, f)).collect();
         Ok(Response::new(MaskResponse {
             masked_text: masked,
             findings: proto_findings,
@@ -216,18 +223,42 @@ mod tests {
     use super::*;
 
     #[test]
-    fn to_proto_finding_maps_fields() {
+    fn to_proto_finding_ascii_text_keeps_byte_offsets() {
         use k1s0_tier1_pii::masker::PiiKind;
+        // "abc alice@k1s0.io xyz" は ASCII のみで byte == char。
+        let text = "abc alice@k1s0.io xyz";
         let f = Finding {
             kind: PiiKind::Email,
-            start: 5,
-            end: 25,
+            start: 4,
+            end: 17,
             confidence: 0.9,
         };
-        let p = to_proto_finding(&f);
+        let p = to_proto_finding(text, &f);
         assert_eq!(p.r#type, "EMAIL");
-        assert_eq!(p.start, 5);
-        assert_eq!(p.end, 25);
-        assert!((p.confidence - 0.9).abs() < 1e-9);
+        assert_eq!(p.start, 4);
+        assert_eq!(p.end, 17);
+    }
+
+    #[test]
+    fn to_proto_finding_japanese_text_returns_char_indices() {
+        // proto contract（PiiFinding.start/end は char 単位）の回帰テスト。
+        // multibyte 入り text に対し、内部 byte offset が proto 仕様の char 単位に
+        // 射影されることを確認する。
+        use k1s0_tier1_pii::masker::PiiKind;
+        let text = "問い合わせ先: alice@example.com まで";
+        let masker = Masker::default();
+        let findings = masker.classify(text);
+        assert_eq!(findings.len(), 1);
+        let inner = &findings[0];
+        // 内部 byte offset で payload が一致すること（実装の整合性）。
+        assert_eq!(&text[inner.start..inner.end], "alice@example.com");
+        let p = to_proto_finding(text, inner);
+        assert_eq!(p.r#type, "EMAIL");
+        // proto 仕様（char 単位）で復元できること。
+        let chars: Vec<char> = text.chars().collect();
+        let restored: String = chars[p.start as usize..p.end as usize].iter().collect();
+        assert_eq!(restored, "alice@example.com");
+        // multibyte が含まれるので proto.start は byte offset と必ず異なる。
+        assert!(p.start as usize != inner.start);
     }
 }

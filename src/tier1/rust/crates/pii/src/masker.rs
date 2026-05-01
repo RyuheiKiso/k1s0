@@ -27,8 +27,10 @@
 // 設計上の決定:
 //   - regex は once_cell::Lazy で静的コンパイル（プロセス起動時に 1 回だけコンパイル）
 //   - 純関数（&self も &mut self も持たない、Masker は副作用なし）
-//   - 検出位置は **char index** ではなく **byte offset** で返す（regex 標準に整合）。
-//     proto は char index 仕様だが char/byte 変換は呼び出し層で実施する想定。
+//   - 検出位置は内部表現として **byte offset** を持つ（regex 標準に整合、`mask` で
+//     `replace_range` に直接渡せる）。proto / HTTP gateway 経由でクライアントに返す
+//     `start` / `end` は contract（pii_service.proto）が「文字単位」と規定するため、
+//     `byte_to_char_index` で UTF-8 char index に変換してから詰め替える。
 
 // 必要な依存。
 use once_cell::sync::Lazy;
@@ -165,6 +167,26 @@ static RULES: Lazy<Vec<Rule>> = Lazy::new(|| {
         },
     ]
 });
+
+/// `text` の `byte_offset` を、その byte 位置以前に存在する Unicode scalar value 数
+/// （= proto 仕様で言う「文字単位の位置」）に変換する。
+///
+/// - `byte_offset == text.len()` のとき末尾扱いで全 char 数を返す。
+/// - `byte_offset` が char boundary 上に乗っていない場合は、その byte の手前の最後の
+///   char boundary までの char 数を返す（regex の match offset は必ず char boundary
+///   なので通常パスでは発生しないが、safety net として用意する）。
+pub fn byte_to_char_index(text: &str, byte_offset: usize) -> usize {
+    if byte_offset == 0 {
+        return 0;
+    }
+    if byte_offset >= text.len() {
+        return text.chars().count();
+    }
+    // char_indices は (byte_pos, char) を返す。target を超えた最初の要素の index がそのまま char index。
+    text.char_indices()
+        .position(|(b, _)| b >= byte_offset)
+        .unwrap_or_else(|| text.chars().count())
+}
 
 /// PII 検出器。Lazy 初期化された RULES を参照するだけのステートレス struct。
 #[derive(Debug, Default, Clone, Copy)]
@@ -335,5 +357,46 @@ mod tests {
         // proto string 値の整合性回帰テスト。
         assert_eq!(PiiKind::Email.as_str(), "EMAIL");
         assert_eq!(PiiKind::MyNumber.mask_token(), "[MYNUMBER]");
+    }
+
+    #[test]
+    fn byte_to_char_index_ascii() {
+        let s = "hello@example.com";
+        assert_eq!(byte_to_char_index(s, 0), 0);
+        assert_eq!(byte_to_char_index(s, 5), 5);
+        assert_eq!(byte_to_char_index(s, s.len()), s.chars().count());
+    }
+
+    #[test]
+    fn byte_to_char_index_japanese() {
+        // 「あ」は UTF-8 で 3 byte。`連絡 alice@k1s0.io まで` のような multibyte 入り文字列で
+        // proto 仕様（char index）に正しく射影されるかを確認する。
+        let s = "連絡 alice@k1s0.io まで";
+        // `連絡 ` は 連(3)+絡(3)+space(1) = 7 byte で 3 char。alice の `a` は 7 byte 目。
+        let byte_a = s.find('a').unwrap();
+        assert_eq!(byte_a, 7);
+        assert_eq!(byte_to_char_index(s, byte_a), 3);
+        // email 末尾 "io" の "o" 終端の byte index → char index 13（連絡 alice@k1s0.io）。
+        let byte_o_end = s.find("io").unwrap() + 2;
+        assert_eq!(byte_to_char_index(s, byte_o_end), 16);
+    }
+
+    #[test]
+    fn classify_finding_byte_offsets_align_with_chars() {
+        // multibyte 入り入力でも regex match の byte offset が char boundary 上にあり、
+        // byte_to_char_index で proto 仕様に整合させられることを確認する。
+        let m = Masker::new();
+        let s = "問い合わせ先: alice@example.com まで";
+        let f = m.classify(s);
+        assert_eq!(f.len(), 1);
+        let f0 = &f[0];
+        // 入力 byte offset で復元できること（masker 内部表現の正しさ）。
+        assert_eq!(&s[f0.start..f0.end], "alice@example.com");
+        // char index 換算後も "alice" の位置と一致すること（contract 検証）。
+        let start_char = byte_to_char_index(s, f0.start);
+        let end_char = byte_to_char_index(s, f0.end);
+        let chars: Vec<char> = s.chars().collect();
+        let restored: String = chars[start_char..end_char].iter().collect();
+        assert_eq!(restored, "alice@example.com");
     }
 }

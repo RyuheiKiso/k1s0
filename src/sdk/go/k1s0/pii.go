@@ -36,3 +36,19 @@ func (p *PiiClient) Mask(ctx context.Context, text string) (maskedText string, f
 	}
 	return resp.GetMaskedText(), resp.GetFindings(), nil
 }
+
+// Pseudonymize は FR-T1-PII-002（決定論的仮名化）の facade。
+// 同一 salt + 同一 fieldType + 同一 value で同一の URL-safe base64 仮名値を返す。
+// salt が空 / value が空 / fieldType が空 のいずれかは server 側で InvalidArgument。
+func (p *PiiClient) Pseudonymize(ctx context.Context, fieldType, value, salt string) (pseudonym string, err error) {
+	resp, e := p.client.raw.Pii.Pseudonymize(ctx, &piiv1.PseudonymizeRequest{
+		FieldType: fieldType,
+		Value:     value,
+		Salt:      salt,
+		Context:   p.client.tenantContext(ctx),
+	})
+	if e != nil {
+		return "", e
+	}
+	return resp.GetPseudonym(), nil
+}
