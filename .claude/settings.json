@@ -11,7 +11,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "python .claude/hooks/docs-read-guard.py",
+            "command": "python \"${CLAUDE_PROJECT_DIR:-$PWD}/.claude/hooks/docs-read-guard.py\"",
             "timeout": 5
           }
         ]
