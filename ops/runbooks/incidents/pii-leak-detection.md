@@ -41,7 +41,7 @@ kubectl get job -n k1s0-security -l app=pii-scanner -o wide
      --since=24h | sort | uniq -c | sort -rn | head -20
    ```
 
-4. SEV1 を宣言し、`escalation-contacts.md` に従って CTO・法務・CPO に連絡する。
+4. SEV1 を宣言し、`../../oncall/escalation.md` に従って CTO・法務・CPO に連絡する。
 
 ### Step 2: 通信封じ込め（〜1 時間）
 
@@ -146,4 +146,4 @@ kubectl get job -n k1s0-security -l app=pii-scanner -o wide
 - 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-SIR-002, NFR-E-ENC-003)
 - 関連設計書: docs/03_要件定義/30_非機能要件/G_データ保護とプライバシー.md (NFR-G-CLS-002)
 - 関連 ADR: ADR-SEC-001 (Keycloak), ADR-SEC-002 (OpenBao), ADR-SEC-003 (SPIRE)
-- 関連 Runbook: pii-regulatory-disclosure.md, escalation-contacts.md
+- 関連 Runbook: pii-regulatory-disclosure.md, ../../oncall/escalation.md

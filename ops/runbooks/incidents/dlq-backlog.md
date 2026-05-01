@@ -143,4 +143,4 @@ kafka_consumergroup_lag{namespace="kafka", topic=~".*\\.dlq"} == 0
 
 - 関連設計書: `infra/data/kafka/kafka-cluster.yaml`、`infra/dapr/components/pubsub/kafka.yaml`
 - 関連 ADR: `docs/02_構想設計/adr/ADR-DATA-002`
-- 関連 Runbook: `ops/runbooks/incidents/kafka-broker-down.md`
+- 関連 Runbook: `ops/runbooks/incidents/RB-MSG-001-kafka-broker-failover.md`

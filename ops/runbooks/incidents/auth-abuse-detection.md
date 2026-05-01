@@ -122,7 +122,7 @@ logcli query '{namespace="k1s0-security", job="openbao"}
 
 ### Step 4: SEV1 昇格の判断（〜30 分）
 
-9. 以下の条件に 1 つでも該当する場合は SEV1 に昇格し、`escalation-contacts.md` を起動する。
+9. 以下の条件に 1 つでも該当する場合は SEV1 に昇格し、`../../oncall/escalation.md` を起動する。
 
    - 管理者アカウント（`realm-admin` ロール）の侵害が疑われる
    - OpenBao の root token または unseal share の漏えいが疑われる
@@ -160,4 +160,4 @@ logcli query '{namespace="k1s0-security", job="openbao"}
 
 - 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-MON-002, NFR-E-AC-004, NFR-E-AC-005)
 - 関連 ADR: ADR-SEC-001 (Keycloak), ADR-SEC-002 (OpenBao), ADR-SEC-003 (SPIRE)
-- 関連 Runbook: secret-rotation.md, escalation-contacts.md, tenant-boundary-breach.md
+- 関連 Runbook: secret-rotation.md, ../../oncall/escalation.md, tenant-boundary-breach.md

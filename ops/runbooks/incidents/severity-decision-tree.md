@@ -106,4 +106,4 @@
 - 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-SIR-001)
 - 関連設計書: docs/03_要件定義/30_非機能要件/I_SLI_SLO_エラーバジェット.md
 - 関連 ADR: ADR-SEC-001 (Keycloak), ADR-SEC-002 (OpenBao)
-- 関連 Runbook: escalation-contacts.md, error-code-alert-policy.md
+- 関連 Runbook: ../../oncall/escalation.md, error-code-alert-policy.md

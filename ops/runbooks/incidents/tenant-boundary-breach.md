@@ -150,4 +150,4 @@ logcli query '{namespace="k1s0-tier1", job="audit"}
 - 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-AC-003)
 - 関連設計書: docs/03_要件定義/30_非機能要件/G_データ保護とプライバシー.md (NFR-G-AC-001)
 - 関連 ADR: ADR-SEC-001 (Keycloak), ADR-SEC-002 (OpenBao), ADR-SEC-003 (SPIRE)
-- 関連 Runbook: pii-leak-detection.md, escalation-contacts.md, auth-abuse-detection.md
+- 関連 Runbook: pii-leak-detection.md, ../../oncall/escalation.md, auth-abuse-detection.md

@@ -126,4 +126,4 @@
 - 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-SIR-003)
 - 関連設計書: docs/03_要件定義/30_非機能要件/G_データ保護とプライバシー.md (NFR-G-CLS-001)
 - 関連 ADR: ADR-SEC-002 (OpenBao), ADR-SEC-003 (SPIRE)
-- 関連 Runbook: escalation-contacts.md, pii-regulatory-disclosure.md
+- 関連 Runbook: ../../oncall/escalation.md, pii-regulatory-disclosure.md

@@ -124,4 +124,4 @@ T+30d  [法定] 個人情報保護委員会への確報提出（締切）
 - 関連設計書: docs/03_要件定義/30_非機能要件/E_セキュリティ.md (NFR-E-SIR-002)
 - 関連設計書: docs/03_要件定義/30_非機能要件/G_データ保護とプライバシー.md (NFR-G-CLS-001, NFR-G-CLS-002)
 - 関連 ADR: ADR-SEC-001 (Keycloak), ADR-SEC-002 (OpenBao)
-- 関連 Runbook: pii-leak-detection.md, escalation-contacts.md, legal-disclosure.md
+- 関連 Runbook: pii-leak-detection.md, ../../oncall/escalation.md, legal-disclosure.md
