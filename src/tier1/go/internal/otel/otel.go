@@ -33,6 +33,8 @@ import (
 	// shutdown timeout 制御。
 	"time"
 
+	// OTel global accessor（TracerProvider / MeterProvider / Propagator の登録に使う）。
+	otelapi "go.opentelemetry.io/otel"
 	// OTel Logs SDK と gRPC exporter。
 	otlploggrpc "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	// OTel Metrics SDK 用 OTLP gRPC exporter。
@@ -40,6 +42,8 @@ import (
 	// OTel Traces SDK 用 OTLP gRPC exporter。
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	otlptracegrpc "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	// W3C Trace Context propagator（FR-T1-LOG-002 / FR-T1-TELEMETRY-002 自動継承）。
+	"go.opentelemetry.io/otel/propagation"
 	// OTel SDK Logger Provider 構築。
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	// OTel SDK Meter Provider 構築。
@@ -47,6 +51,19 @@ import (
 	// OTel SDK Tracer Provider 構築。
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
+
+// installGlobalPropagator は W3C Trace Context propagator をグローバル登録する。
+// FR-T1-LOG-002 受け入れ基準「HTTP / gRPC サーバ側では traceparent ヘッダから自動継承」、
+// FR-T1-TELEMETRY-002 を満たすため、全 Pod 起動経路で 1 度だけ呼ぶ。
+//
+// 受信時: ObservabilityInterceptor が `propagation.HeaderCarrier` 越しに Extract する。
+// 送信時: 下流 RPC を呼ぶ adapter が同 propagator で Inject すれば自動連携する。
+//
+// Baggage は OTel デファクトでセットで登録される運用が一般的だが、k1s0 共通契約は
+// traceparent / tracestate のみが必須（baggage は別 context propagation 路線で検討）。
+func installGlobalPropagator() {
+	otelapi.SetTextMapPropagator(propagation.TraceContext{})
+}
 
 // Bundle は Log / Metric / Trace の 3 emitter と shutdown 関数を 1 つに束ねる。
 // cmd 側は本構造体のフィールドを Deps に注入して使う。
@@ -75,6 +92,9 @@ func NewBundle(ctx context.Context) Bundle {
 	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	// 空文字は OTLP 無効として扱う。
 	if endpoint == "" {
+		// stdout 経路でも propagator のグローバル登録は必要（tier2 caller の trace
+		// context を受け継いだ span を ObservabilityInterceptor 側で発行できるように）。
+		installGlobalPropagator()
 		// shutdown は no-op（stdout は flush 不要）。
 		return Bundle{
 			LogEmitter:    stdoutBundle.LogEmitter,
@@ -88,6 +108,8 @@ func NewBundle(ctx context.Context) Bundle {
 	// 構築失敗は stderr に記録して stdout 経路で返す（fail-soft、起動を妨げない）。
 	if err != nil {
 		log.Printf("tier1/otel: OTLP gRPC init failed (%v), falling back to stdout JSON Lines", err)
+		// stdout 経路でも propagator のグローバル登録は必要。
+		installGlobalPropagator()
 		// stdout 経路を返す。
 		return Bundle{
 			LogEmitter:    stdoutBundle.LogEmitter,
@@ -96,6 +118,13 @@ func NewBundle(ctx context.Context) Bundle {
 			Shutdown:      func(_ context.Context) error { return nil },
 		}
 	}
+	// FR-T1-LOG-002 / FR-T1-TELEMETRY-002: TracerProvider / MeterProvider をグローバル登録する。
+	// ObservabilityInterceptor は otelapi.GetTracerProvider() で取得するため、ここで設定しないと
+	// span が exporter に到達せず、Tempo / Mimir 経路で観測できない（fail-silent）。
+	otelapi.SetTracerProvider(traceProvider)
+	otelapi.SetMeterProvider(metricProvider)
+	// W3C Trace Context propagator も必ず登録（gRPC metadata の traceparent 自動継承に必要）。
+	installGlobalPropagator()
 	// OTLP backed emitter を構築する（既存の OTel SDK ラッパー constructor を使う）。
 	logEmitter := NewLogEmitter(logProvider.Logger("tier1"))
 	metricEmitter := NewMetricEmitter(metricProvider.Meter("tier1"))

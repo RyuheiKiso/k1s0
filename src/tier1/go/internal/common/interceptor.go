@@ -37,17 +37,20 @@ import (
 	// 経過時間計測。
 	"time"
 
-	// OTel global accessor（TracerProvider / MeterProvider）。
+	// OTel global accessor（TracerProvider / MeterProvider / Propagator）。
 	otelapi "go.opentelemetry.io/otel"
 	// OTel attribute / span / metric 型。
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
+	// gRPC metadata を TextMapCarrier として propagator.Extract に渡すため。
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	// gRPC server / status / metadata。
 	"google.golang.org/grpc"
 	grpccodes "google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	// 共通型 TenantContext を含む proto のラッパ抽象は本ファイル内で定義する
@@ -213,11 +216,45 @@ func methodNameFromFullMethod(fullMethod string) string {
 	return fullMethod
 }
 
+// metadataCarrier は gRPC metadata を OTel TextMapCarrier として読み書きするためのアダプタ。
+// FR-T1-LOG-002 受け入れ基準「gRPC サーバ側では traceparent ヘッダから自動継承」を
+// 実現するために propagator.Extract に渡す軽量ラッパ。
+//
+// gRPC metadata key は小文字に正規化されているため、Get / Keys は小文字のまま扱う。
+type metadataCarrier struct {
+	md metadata.MD
+}
+
+// Get は metadata key の最初の値を返す（無ければ空文字）。
+func (c metadataCarrier) Get(key string) string {
+	values := c.md.Get(key)
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
+}
+
+// Set は metadata に key/value を上書き設定する（incoming context に対しては未使用）。
+func (c metadataCarrier) Set(key, value string) {
+	c.md.Set(key, value)
+}
+
+// Keys は metadata の全 key を返す。
+func (c metadataCarrier) Keys() []string {
+	keys := make([]string, 0, len(c.md))
+	for k := range c.md {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // ObservabilityInterceptor は per-API trace span 発行と RED モデルメトリクス記録を行う
 // Unary Server Interceptor を返す。tier1 facade の全 Pod で同一インスタンスを使う想定。
 //
 // 振る舞い:
-//   - ctx に W3C Trace Context propagation 済の span を新規開始する
+//   - 受信した gRPC metadata の traceparent / tracestate から W3C Trace Context を Extract する
+//     （FR-T1-LOG-002 / FR-T1-TELEMETRY-002 「traceparent ヘッダから自動継承」）
+//   - 抽出した parent span context を ctx に乗せた上で child span を新規開始する
 //   - span 名は full method（"/k1s0.tier1.<api>.v1.<Service>/<Method>"）を採用
 //   - 属性: tenant_id / rpc.method / rpc.system="grpc"
 //   - handler 完了後、duration histogram と request counter を記録
@@ -229,6 +266,14 @@ func ObservabilityInterceptor() grpc.UnaryServerInterceptor {
 		// Tracer は per-request で取り直す。Pod 起動時に otel.Init() が global provider を
 		// 後設定するシーケンスでも、interceptor が常に最新 provider 経由で span を発行できる。
 		tracer := otelapi.GetTracerProvider().Tracer(tracerName)
+		// FR-T1-LOG-002: incoming gRPC metadata の traceparent / tracestate から
+		// W3C Trace Context を抽出して ctx に注入する。propagator が未設定の場合は
+		// otelapi.GetTextMapPropagator() が NoopTextMapPropagator を返すため、
+		// extract は no-op となり既存挙動を壊さない。
+		var propagator propagation.TextMapPropagator = otelapi.GetTextMapPropagator()
+		if md, ok := metadata.FromIncomingContext(ctx); ok {
+			ctx = propagator.Extract(ctx, metadataCarrier{md: md})
+		}
 		// API / メソッド名を full method から抽出する。
 		apiName := apiNameFromMethod(info.FullMethod)
 		methodName := methodNameFromFullMethod(info.FullMethod)
@@ -238,7 +283,8 @@ func ObservabilityInterceptor() grpc.UnaryServerInterceptor {
 		if labelTenant == "" {
 			labelTenant = "unknown"
 		}
-		// span 開始。span 名は full method を踏襲。
+		// span 開始。span 名は full method を踏襲。Extract 済 ctx から parent
+		// SpanContext が取れる場合、tracer.Start は child span として連結する。
 		ctx, span := tracer.Start(ctx, info.FullMethod,
 			trace.WithSpanKind(trace.SpanKindServer),
 			trace.WithAttributes(
