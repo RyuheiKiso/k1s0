@@ -1,0 +1,31 @@
+<!--
+  K1s0.Legacy.PayrollWrapper: 既存 .NET Framework 4.8 給与計算ライブラリを .NET 8 で
+  ラップし、k1s0 基盤上で完全な Pod として動作させるための参照実装。
+
+  docs 正典:
+    docs/05_実装/00_ディレクトリ設計/40_tier3レイアウト/05_レガシーラップ配置.md
+    docs/02_構想設計/adr/ADR-MIG-001-net-framework-sidecar.md
+
+  scope（リリース時点 minimum）:
+    - 既存 .dll は third_party/ から PrivateAssets で参照する想定。
+      本リポジトリには「既存ロジックの擬似シム (Legacy/PayrollLegacy.cs)」
+      のみ含め、実運用では <Reference Include="PayrollLib"> へ置き換える。
+    - tier1 アクセスは BFF REST 経由（HttpClient）。リリース時点 で
+      K1s0.Sdk.Grpc 経由の gRPC 直接呼出に切替予定。
+
+  運用上の意義:
+    Sidecar (Windows Node 必須) パターンから本 Wrapper (Linux Node 可) パターンへ
+    移行することで Windows Node 依存から脱出できる。.NET Framework 固有 API
+    (WCF Server / WPF / Forms / System.Web) を使っている場合は再実装必要。
+-->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>K1s0.Legacy.PayrollWrapper</RootNamespace>
+    <AssemblyName>K1s0.Legacy.PayrollWrapper</AssemblyName>
+    <UserSecretsId>k1s0-legacy-payroll-wrapper</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+</Project>
