@@ -206,8 +206,8 @@ mod tests {
             .unwrap()
             .into_inner();
         assert!(!resp.audit_id.is_empty());
-        // SHA-256 hex は 64 文字。
-        assert_eq!(resp.audit_id.len(), 64);
+        // FR-T1-AUDIT-001: SHA-256 を URL-safe base64（padding なし）で表現 → 43 文字。
+        assert_eq!(resp.audit_id.len(), 43);
     }
 
     #[tokio::test]

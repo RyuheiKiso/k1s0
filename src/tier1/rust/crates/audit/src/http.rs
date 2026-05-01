@@ -293,7 +293,8 @@ mod tests {
             }
         });
         let resp = rpc.invoke(&claims_for("T1"), body).await.unwrap();
-        assert_eq!(resp["auditId"].as_str().unwrap().len(), 64);
+        // FR-T1-AUDIT-001: SHA-256 + URL-safe base64 (no padding) → 32 byte → 43 文字。
+        assert_eq!(resp["auditId"].as_str().unwrap().len(), 43);
     }
 
     #[tokio::test]
