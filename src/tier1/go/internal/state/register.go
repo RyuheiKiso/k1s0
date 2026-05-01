@@ -85,6 +85,10 @@ type Deps struct {
 // 冪等性 cache（共通規約 §「冪等性と再試行」）は in-memory 24h TTL backend で
 // 既定有効化する。production の multi-replica deploy では Valkey backed cache に
 // 置き換える想定だが、release-initial では 1 Pod 内 dedup を提供する。
+//
+// FR-T1-FEATURE-001 受け入れ基準「評価 p99 < 10ms（キャッシュヒット時）」と
+// FR-T1-FEATURE-004「評価結果のキャッシュ（30 秒 TTL）」を満たすため、
+// FeatureAdapter は CachedFeatureAdapter で wrap する（既定 TTL 30 秒）。
 func NewDepsFromClient(client *dapr.Client) Deps {
 	// 各 adapter を Client 共有で生成する。
 	return Deps{
@@ -96,8 +100,9 @@ func NewDepsFromClient(client *dapr.Client) Deps {
 		BindingAdapter: dapr.NewBindingAdapter(client),
 		// Service Invocation（tier1 内部 gRPC 呼出含む）。
 		InvokeAdapter: dapr.NewInvokeAdapter(client),
-		// Feature Flag（flagd）。
-		FeatureAdapter: dapr.NewFeatureAdapter(client),
+		// Feature Flag（flagd）。30 秒 TTL の in-memory cache で wrap する。
+		// production では env K1S0_FEATURE_CACHE_TTL で TTL を上書きする運用を想定。
+		FeatureAdapter: dapr.NewCachedFeatureAdapter(dapr.NewFeatureAdapter(client), 0),
 		// FeatureAdminService 用 in-memory registry。
 		FeatureRegistry: NewFlagRegistry(),
 		// 24h TTL の in-memory dedup cache（共通規約 §「冪等性と再試行」）。

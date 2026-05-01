@@ -107,6 +107,16 @@ func main() {
 
 	// 5 公開 API の handler が依存する adapter 集合を構築する。
 	deps := state.NewDepsFromClient(daprClient)
+	// FR-T1-FEATURE-001 / 004: env で flag 評価キャッシュ TTL を上書き可能にする。
+	// 値 "0" / 不正値 / 未設定は CachedFeatureAdapter 側の既定 30 秒にフォールバック。
+	if raw := os.Getenv("K1S0_FEATURE_CACHE_TTL"); raw != "" {
+		if d, err := time.ParseDuration(raw); err == nil && d > 0 {
+			deps.FeatureAdapter = dapr.NewCachedFeatureAdapter(dapr.NewFeatureAdapter(daprClient), d)
+			log.Printf("t1-state: feature flag cache TTL = %v (env override)", d)
+		} else {
+			log.Printf("t1-state: invalid K1S0_FEATURE_CACHE_TTL=%q (%v), using default 30s", raw, err)
+		}
+	}
 	// FR-T1-INVOKE-004: env から CB 設定を読み込み既定 registry を上書きする。
 	// observer は metric publish callback（後段で deps.MetricEmitter 注入後に再差替）。
 	cbConfig := common.LoadCBConfigFromEnv(os.Getenv, log.Printf)
