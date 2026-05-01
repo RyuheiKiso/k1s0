@@ -1,0 +1,23 @@
+# =============================================================================
+# infra/dapr/control-plane — Dapr operator + control-plane components
+#
+# Dapr 本体は umbrella Helm chart（dapr/dapr）として `values.yaml` から install
+# される。本ディレクトリの 5 サブ（operator / placement / sentry / injector /
+# scheduler）は、Helm value override や Sync Wave annotation など component 固有の
+# 補助設定を分離して保管する場として用意する（具体差分は plan 04-XX で追加）。
+#
+# crd/ は CRD-only 先行 install のための kustomize stub（本体 install 前に
+# Dapr が定義する Component / Subscription / Configuration CRD を投入する用途）。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - crd
+  - operator
+  - placement
+  - sentry
+  - injector
+  - scheduler

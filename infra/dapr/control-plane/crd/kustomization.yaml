@@ -1,0 +1,7 @@
+# Dapr CRD 先行 install。Helm chart の Hook で同梱されるが、Argo CD で
+# Sync Wave -10 に固定して他 Application より先に投入する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-10"

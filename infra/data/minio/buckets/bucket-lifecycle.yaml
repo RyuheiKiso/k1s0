@@ -1,0 +1,82 @@
+# =============================================================================
+# MinIO bucket lifecycle policy
+#
+# 監査ログ・バックアップは 90 日経過で archive tier（lifecycle transition）に移動、
+# 7 年経過で expire（NFR-G-PRIVACY-* に従う）。
+# 観測ログ（Loki）は 30 日で expire。
+#
+# 本 ConfigMap は MinIO mc client から自動適用される（plan 04-XX の Job で実装）。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-bucket-lifecycle
+  namespace: k1s0-data
+data:
+  k1s0-audit-export.json: |
+    {
+      "Rules": [
+        {
+          "ID": "audit-7y",
+          "Status": "Enabled",
+          "Filter": {"Prefix": ""},
+          "Expiration": {"Days": 2555}
+        }
+      ]
+    }
+  k1s0-pg-backup.json: |
+    {
+      "Rules": [
+        {
+          "ID": "backup-90d-archive",
+          "Status": "Enabled",
+          "Filter": {"Prefix": ""},
+          "Transitions": [{"Days": 90, "StorageClass": "GLACIER"}],
+          "Expiration": {"Days": 2555}
+        }
+      ]
+    }
+  k1s0-loki.json: |
+    {
+      "Rules": [
+        {
+          "ID": "loki-30d",
+          "Status": "Enabled",
+          "Filter": {"Prefix": ""},
+          "Expiration": {"Days": 30}
+        }
+      ]
+    }
+  k1s0-tempo.json: |
+    {
+      "Rules": [
+        {
+          "ID": "tempo-14d",
+          "Status": "Enabled",
+          "Filter": {"Prefix": ""},
+          "Expiration": {"Days": 14}
+        }
+      ]
+    }
+  k1s0-pyroscope.json: |
+    {
+      "Rules": [
+        {
+          "ID": "pyroscope-14d",
+          "Status": "Enabled",
+          "Filter": {"Prefix": ""},
+          "Expiration": {"Days": 14}
+        }
+      ]
+    }
+  k1s0-mimir.json: |
+    {
+      "Rules": [
+        {
+          "ID": "mimir-1y",
+          "Status": "Enabled",
+          "Filter": {"Prefix": ""},
+          "Expiration": {"Days": 365}
+        }
+      ]
+    }

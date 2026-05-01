@@ -27,11 +27,11 @@ prod では以下のいずれかから選択する（環境別 overlay で切替
 |---|---|---|
 | node 数 | 1 control-plane + 0 worker | 3 control-plane（HA） + 3+ worker |
 | etcd | スタックド（control-plane と同居） | 外部 etcd cluster（オプション） |
-| CNI | kindnet | Calico（ADR-NET-001） |
+| CNI | kindnet | Cilium eBPF（ADR-NET-001） |
 | storage | hostPath | StorageClass（CSI provisioner） |
 | LB | MetalLB（dev 用 IPAddressPool） | 環境別 LB（CCM / cloud LB） |
 
 ## 関連設計
 
 - IMP-DEV-POL-006 — ローカル開発と production の同等性
-- ADR-NET-001 — Calico CNI
+- ADR-NET-001 — Cilium CNI

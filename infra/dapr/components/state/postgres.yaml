@@ -26,7 +26,8 @@ spec:
     # CloudNativePG が公開する Service。Cluster name = k1s0-postgres、ns = cnpg-system
     - name: connectionString
       secretKeyRef:
-        name: k1s0-postgres-app
+        # CNPG が auto-generate する `<cluster-name>-app` Secret（tier1-state Cluster）
+        name: tier1-state-app
         key: dsn
     # 接続プール上限（per-Pod）
     - name: connectionMaxIdleTime

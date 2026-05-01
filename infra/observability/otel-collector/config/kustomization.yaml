@@ -1,0 +1,7 @@
+# Collector の agent / gateway 別の Helm values は親 ../ に配置済み:
+#   - ../values.yaml          : agent (DaemonSet)
+#   - ../values-gateway.yaml  : gateway (Deployment)
+# 本 stub は Sync Wave 用。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

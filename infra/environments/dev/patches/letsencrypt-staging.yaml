@@ -1,0 +1,16 @@
+# dev 用 cert-manager patch: 既定 ClusterIssuer を letsencrypt-prod から
+# letsencrypt-staging へ切替（rate limit 緩和）。
+#
+# spec.acme.privateKeySecretRef.name の参照を staging に向け、tier3 web 等が
+# Certificate CR で `issuerRef.name: letsencrypt-prod` と書いていても
+# letsencrypt-staging に解釈されるよう、prod CI 系のみで上書き。
+#
+# 実装方法: Annotation で primary を切替える ConfigMap patch。
+# k1s0-security ns 内の cert-manager controller が pickup する。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-manager-default-issuer
+  namespace: k1s0-security
+data:
+  default-cluster-issuer: letsencrypt-staging

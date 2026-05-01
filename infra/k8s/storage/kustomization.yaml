@@ -1,15 +1,17 @@
 # =============================================================================
 # infra/k8s/storage/kustomization.yaml
 #
-# 4 種 StorageClass（Longhorn block / file / 高速 SSD / archive 等）を上位
-# overlay から「ディレクトリ参照」可能にするための kustomize base。
+# 2 種 StorageClass（longhorn-retain / longhorn-delete）を Longhorn 配下に
+# 投入する base。Longhorn 本体（CSI driver、UI、backup target）は longhorn/
+# サブディレクトリで Helm values が管理される。
 #
 # 関連設計:
-#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
-#     - `kubectl apply -k infra/k8s/storage/` で StorageClass を一括投入
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md:104
+#     - 2 種固定: longhorn-retain（Prod 永続）/ longhorn-delete（一時/テスト/キャッシュ）
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
   - storage-classes.yaml
+  - longhorn

@@ -1,0 +1,60 @@
+# =============================================================================
+# Grafana Datasource ConfigMap（Loki / Tempo / Mimir / Pyroscope）
+#
+# 本 ConfigMap は Grafana sidecar が `grafana_datasource: "1"` ラベルで pickup し、
+# Grafana の datasource provisioning 経由で自動登録する。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: k1s0-obs
+  labels:
+    grafana_datasource: "1"
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        uid: loki-k1s0
+        access: proxy
+        url: http://loki-gateway.k1s0-obs.svc:80
+        jsonData:
+          derivedFields:
+            - name: TraceID
+              datasourceUid: tempo-k1s0
+              matcherRegex: 'trace_id=([a-fA-F0-9]+)'
+              url: '$${__value.raw}'
+        editable: false
+      - name: Tempo
+        type: tempo
+        uid: tempo-k1s0
+        access: proxy
+        url: http://tempo-query-frontend.k1s0-obs.svc:3100
+        jsonData:
+          tracesToLogs:
+            datasourceUid: loki-k1s0
+            tags: [k1s0_io_tier, k8s_namespace_name, k8s_pod_name]
+          serviceMap:
+            datasourceUid: mimir-k1s0
+        editable: false
+      - name: Mimir
+        type: prometheus
+        uid: mimir-k1s0
+        access: proxy
+        url: http://mimir-nginx.k1s0-obs.svc:80/prometheus
+        isDefault: true
+        editable: false
+      - name: Pyroscope
+        type: grafana-pyroscope-datasource
+        uid: pyroscope-k1s0
+        access: proxy
+        url: http://pyroscope.k1s0-obs.svc:4040
+        editable: false
+      - name: Hubble
+        type: prometheus
+        uid: hubble-k1s0
+        access: proxy
+        url: http://hubble-relay.kube-system.svc:80
+        editable: false

@@ -17,7 +17,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
   name: k1s0-tier1-alerts
-  namespace: monitoring
+  namespace: k1s0-obs
   labels:
     app.kubernetes.io/part-of: k1s0
     k1s0.io/tier: tier1

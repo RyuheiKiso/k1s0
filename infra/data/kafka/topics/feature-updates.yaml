@@ -1,0 +1,19 @@
+# Feature Flag 更新トピック（flagd → tier1-feature 配信）。
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: feature-updates
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    k1s0.io/topic-role: feature
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    # 直近の Flag state のみで十分なため compact
+    cleanup.policy: compact
+    min.insync.replicas: 2
+    compression.type: zstd
+    min.compaction.lag.ms: 60000
+    segment.bytes: 268435456

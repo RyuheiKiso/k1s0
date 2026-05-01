@@ -1,0 +1,38 @@
+# CoreDNS Corefile（kubeadm 標準を上書き）。
+# k1s0.internal を local zone として宣言し、SPIFFE trust domain
+# (spiffe://k1s0.internal) の DNS 解決と整合させる。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health {
+          lameduck 5s
+        }
+        ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+          pods insecure
+          fallthrough in-addr.arpa ip6.arpa
+          ttl 30
+        }
+        # k1s0.internal は SPIFFE trust domain と整合する内部 zone。
+        # 内部サービスを <name>.k1s0.internal で解決可能にする（plan 03-XX で
+        # 個別 A レコードを追加）。
+        forward . /etc/resolv.conf {
+          max_concurrent 1000
+        }
+        cache 30
+        loop
+        reload
+        loadbalance
+        prometheus :9153
+    }
+    k1s0.internal:53 {
+        errors
+        cache 30
+        forward . 10.96.0.10
+    }

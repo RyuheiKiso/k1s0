@@ -9,7 +9,7 @@ mimir:
       storage:
         backend: s3
         s3:
-          endpoint: minio.minio.svc.cluster.local:9000
+          endpoint: minio.k1s0-data.svc.cluster.local:9000
           bucket_name: k1s0-events
           insecure: true
           access_key_id: ${ACCESS_KEY_ID}

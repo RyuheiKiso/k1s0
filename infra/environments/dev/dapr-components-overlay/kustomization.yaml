@@ -1,0 +1,15 @@
+# dev 用 Dapr Components overlay。base ../../../dapr/components から継承し、
+# state-store / pubsub の接続情報を dev 向けに patch する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../dapr/components
+patches:
+  - path: state-store.patch.yaml
+    target:
+      kind: Component
+      name: postgres
+  - path: pubsub.patch.yaml
+    target:
+      kind: Component
+      name: kafka-pubsub

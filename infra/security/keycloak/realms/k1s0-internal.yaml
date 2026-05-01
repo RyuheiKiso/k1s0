@@ -1,0 +1,40 @@
+# =============================================================================
+# k1s0-internal realm（社内向け）
+#
+# 用途: SRE / 開発者 / Backstage / Argo CD / Grafana / ArgoCD UI の認証統合。
+#       Backstage SSO、Argo CD OIDC、Grafana OIDC、kubectl OIDC token を全て
+#       本 realm 配下の clients でまかなう。
+#
+# 重要: k1s0-tenant realm とは cross-auth 厳禁。client は本 realm と
+#       k1s0-tenant の両方に登録できない。
+# =============================================================================
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: k1s0-internal
+  namespace: k1s0-security
+spec:
+  keycloakCRName: keycloak
+  realm:
+    realm: k1s0-internal
+    enabled: true
+    displayName: "k1s0 Internal (SRE / Engineering)"
+    sslRequired: external
+    accessTokenLifespan: 900
+    ssoSessionIdleTimeout: 1800
+    ssoSessionMaxLifespan: 36000
+    bruteForceProtected: true
+    failureFactor: 5
+    permanentLockout: false
+    waitIncrementSeconds: 60
+    quickLoginCheckMilliSeconds: 1000
+    minimumQuickLoginWaitSeconds: 60
+    maxFailureWaitSeconds: 900
+    eventsEnabled: true
+    eventsListeners:
+      - jboss-logging
+    adminEventsEnabled: true
+    adminEventsDetailsEnabled: true
+    passwordPolicy: "length(12) and digits(1) and upperCase(1) and lowerCase(1) and specialChars(1) and notUsername"
+    requiredCredentials:
+      - password

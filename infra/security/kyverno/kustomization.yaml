@@ -14,4 +14,7 @@ kind: Kustomization
 
 resources:
   - baseline-policies.yaml
+  - image-verify.yaml
+  - require-network-policy.yaml          # IMP-DIR-INFRA-076 必須 5 の 1
+  - restrict-external-image-pull.yaml    # IMP-DIR-INFRA-076 必須 5 の 1
   - block-non-canonical-helm-releases.yaml  # ADR-POL-002 drift 防止

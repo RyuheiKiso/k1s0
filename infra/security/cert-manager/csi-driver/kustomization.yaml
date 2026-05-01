@@ -1,0 +1,11 @@
+# cert-manager-csi-driver は Pod 起動時に X.509 証明書を mount する CSI driver。
+# Helm install 例:
+#   helm upgrade --install cert-manager-csi-driver jetstack/cert-manager-csi-driver \
+#       -n k1s0-security -f values.yaml --version v0.10.1
+#
+# 本 stub は Sync Wave 用（cert-manager 本体の後）。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-5"

@@ -1,0 +1,70 @@
+# =============================================================================
+# tier2 Domain Service 用 PostgreSQL Cluster（IMP-DIR-INFRA-075）
+#
+# 用途: tier2 ドメインサービス（DDD bounded context 単位）の集約・read model 保管。
+#       tier1-state とは独立した backup・instance リソース。
+# =============================================================================
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: tier2-domain
+  namespace: k1s0-data
+  labels:
+    app.kubernetes.io/name: tier2-domain
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/component: postgres-cluster
+    k1s0.io/cluster-role: tier2-domain
+spec:
+  instances: 3
+  primaryUpdateStrategy: unsupervised
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  storage:
+    size: 100Gi
+    storageClass: longhorn-retain
+  walStorage:
+    size: 50Gi
+    storageClass: longhorn-retain
+  bootstrap:
+    initdb:
+      database: tier2_domain
+      owner: tier2_domain
+      secret:
+        name: tier2-domain-credentials
+  postgresql:
+    parameters:
+      max_connections: "150"
+      shared_buffers: "1GB"
+      effective_cache_size: "3GB"
+      maintenance_work_mem: "256MB"
+      work_mem: "16MB"
+      wal_compression: "on"
+      log_min_duration_statement: "500"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://k1s0-pg-backup/tier2-domain
+      endpointURL: http://minio.k1s0-data.svc.cluster.local:9000
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-minio-credentials
+          key: access-key
+        secretAccessKey:
+          name: cnpg-minio-credentials
+          key: secret-key
+      wal:
+        compression: gzip
+      data:
+        compression: gzip
+    retentionPolicy: "30d"
+  monitoring:
+    enablePodMonitor: true
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname

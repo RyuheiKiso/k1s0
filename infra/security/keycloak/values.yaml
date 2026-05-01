@@ -34,7 +34,8 @@ ingress:
 postgresql:
   enabled: false
 externalDatabase:
-  host: k1s0-postgres-rw.cnpg-system.svc.cluster.local
+  # Keycloak は tier2-domain Cluster を共有（auth は tier2 ドメインの一部）
+  host: tier2-domain-rw.k1s0-data.svc.cluster.local
   port: 5432
   user: keycloak
   database: keycloak

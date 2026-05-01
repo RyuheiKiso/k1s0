@@ -1,59 +1,44 @@
-# k1s0 production StorageClass 定義。
-# 環境別の CSI provisioner（vSphere CSI / AWS EBS / GCP PD / Azure Disk / 等）は
-# infra/environments/<env>/k8s-overlay/storage-classes.yaml で provisioner を上書きする。
+# =============================================================================
+# k1s0 production StorageClass 定義（ADR-STOR-001 / Longhorn 前提）。
 #
-# 本ファイルは provisioner プレースホルダで型を定義。
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md:104
+#     - 2 種固定: longhorn-retain（Prod 永続）/ longhorn-delete（一時/テスト/キャッシュ）
+#
+# 用途:
+#   longhorn-retain: PG/Kafka/MinIO/Valkey 等の State store。PVC delete 時にも
+#                    PV を保持し、誤削除からの復旧経路を残す。
+#   longhorn-delete: テスト Pod / dev 環境 / キャッシュ用。PVC delete で PV も即削除。
+# =============================================================================
 ---
-# 既定 StorageClass（ReadWriteOnce ブロック、SSD 想定）
+# 既定 StorageClass: longhorn-retain（Prod 永続用）
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: k1s0-default
+  name: longhorn-retain
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
-provisioner: PLACEHOLDER_csi_provisioner
+provisioner: driver.longhorn.io
 parameters:
-  type: ssd
+  numberOfReplicas: "3"
+  staleReplicaTimeout: "2880"
+  fromBackup: ""
+  fsType: ext4
 reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true
 ---
-# 高 IOPS（DB / etcd）
+# 一時/テスト用 StorageClass: longhorn-delete
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: k1s0-high-iops
-provisioner: PLACEHOLDER_csi_provisioner
+  name: longhorn-delete
+provisioner: driver.longhorn.io
 parameters:
-  type: io2
-  iopsPerGB: "50"
-reclaimPolicy: Retain
-volumeBindingMode: WaitForFirstConsumer
-allowVolumeExpansion: true
----
-# RWX（共有ファイルシステム、CephFS / NFS / EFS 等）
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: k1s0-shared
-provisioner: PLACEHOLDER_rwx_csi_provisioner
-parameters:
-  type: shared
-reclaimPolicy: Retain
+  numberOfReplicas: "2"
+  staleReplicaTimeout: "30"
+  fromBackup: ""
+  fsType: ext4
+reclaimPolicy: Delete
 volumeBindingMode: Immediate
-allowVolumeExpansion: true
-mountOptions:
-  - hard
-  - intr
----
-# Backup 用（低速 / 大容量）
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: k1s0-backup
-provisioner: PLACEHOLDER_csi_provisioner
-parameters:
-  type: hdd
-reclaimPolicy: Retain
-volumeBindingMode: WaitForFirstConsumer
 allowVolumeExpansion: true

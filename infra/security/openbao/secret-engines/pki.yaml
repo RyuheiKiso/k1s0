@@ -1,0 +1,31 @@
+# =============================================================================
+# PKI secret engine（短命証明書発行、plan 04-XX）
+#
+# cert-manager の k1s0-internal-ca を上位 CA として、OpenBao が中間 CA / leaf を
+# 動的発行する。Dapr Sentry / mTLS 用途で SVID 補完。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-engine-pki
+  namespace: k1s0-security
+data:
+  config.json: |
+    {
+      "engine": "pki",
+      "path": "pki",
+      "max_lease_ttl": "8760h",
+      "intermediate_ca": {
+        "common_name": "OpenBao Intermediate CA",
+        "csr_path": "pki/intermediate/generate/internal",
+        "signed_by_clusterissuer": "k1s0-internal-ca"
+      },
+      "roles": [
+        {
+          "name": "tier1-mtls",
+          "allowed_domains": ["k1s0.internal", "*.k1s0-tier1.svc.cluster.local"],
+          "allow_subdomains": true,
+          "max_ttl": "24h"
+        }
+      ]
+    }

@@ -1,0 +1,12 @@
+# Cilium 早期適用用 stub。`kubectl apply -k infra/k8s/bootstrap/` から呼ばれ、
+# kubeadm-init 直後（kube-proxy 不在の状態）で Cilium DaemonSet を投入する。
+#
+# Helm install の実体は ops/scripts/bootstrap-cluster.sh が `helm upgrade --install
+# cilium cilium/cilium -n kube-system -f infra/k8s/networking/cilium-values.yaml` で
+# 行う。本 kustomization は Argo CD 同期前に最低限の API を成立させるための
+# Namespace 化（Cilium 専用 ns は不要、kube-system に同居）と監視整合のため空で残す。
+#
+# 参照値: infra/k8s/networking/cilium-values.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

@@ -55,12 +55,12 @@ config:
         sinks:
           - type: OpenTelemetry
             openTelemetry:
-              host: otel-collector-gateway.observability.svc.cluster.local
+              host: otel-collector-gateway.k1s0-obs.svc.cluster.local
               port: 4317
               protocol: grpc
       tracing:
         provider:
-          host: otel-collector-gateway.observability.svc.cluster.local
+          host: otel-collector-gateway.k1s0-obs.svc.cluster.local
           port: 4317
           type: OpenTelemetry
         samplingRate: 100

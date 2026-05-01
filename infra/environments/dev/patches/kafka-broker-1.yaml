@@ -4,7 +4,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
   name: dual-role
-  namespace: kafka
+  namespace: k1s0-data
 spec:
   # controller + broker の単一 replica（KRaft で min 1 を許容、quorum は無効化）
   replicas: 1

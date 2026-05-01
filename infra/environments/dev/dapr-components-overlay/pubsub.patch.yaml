@@ -1,0 +1,12 @@
+# dev は KafkaUser CR の mTLS が未投入のため authType=plain で接続する patch。
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: k1s0-tier1
+spec:
+  metadata:
+    - name: brokers
+      value: k1s0-kafka-kafka-bootstrap.k1s0-data.svc.cluster.local:9092
+    - name: authType
+      value: none

@@ -1,0 +1,15 @@
+# k1s0-data の backend (CNPG / Kafka / MinIO / Valkey) は tier1 / tier2 から接続可能。
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-tier1-tier2
+  namespace: k1s0-data
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "spiffe://k1s0.internal/ns/k1s0-tier1/sa/*"
+              - "spiffe://k1s0.internal/ns/k1s0-tier2/sa/*"
+              - "spiffe://k1s0.internal/ns/k1s0-dapr/sa/*"

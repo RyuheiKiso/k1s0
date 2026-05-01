@@ -1,0 +1,17 @@
+# =============================================================================
+# infra/security/openbao/
+#
+# OpenBao 本体は Helm chart（values.yaml）。auth-methods / secret-engines / policies
+# は Init Job（plan 04-XX）が起動時に CLI で投入する。本ディレクトリは Init Job
+# の input source として使われる ConfigMap / Job manifest を保管する。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/06_セキュリティ層配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster
+  - auth-methods
+  - secret-engines
+  - policies

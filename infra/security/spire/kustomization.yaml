@@ -1,0 +1,16 @@
+# =============================================================================
+# infra/security/spire/
+#
+# SPIRE 本体は Helm chart（values.yaml）。registration / agent / CSI driver の
+# 個別 CR は本ディレクトリのサブで管理。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/06_セキュリティ層配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - server
+  - agent
+  - registration
+  - csi-driver

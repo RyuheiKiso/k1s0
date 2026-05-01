@@ -16,3 +16,5 @@ kind: Kustomization
 
 resources:
   - cluster-issuer.yaml
+  - csi-driver
+  - approvers

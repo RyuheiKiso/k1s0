@@ -1,13 +1,38 @@
-# staging 用 CNPG Cluster patch: 3 instance HA → 2 instance（HA 維持しつつコスト圧縮）。
+# staging 用 CNPG Cluster patch: 3 Cluster を 2 instance + storage 半減で HA 維持
+# つつコスト圧縮（DS-OPS-ENV-007 の本番同等性、staging→prod 構造ガード）。
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: k1s0-postgres
-  namespace: cnpg-system
+  name: tier1-state
+  namespace: k1s0-data
 spec:
-  # primary 1 + standby 1（HA 維持、failover 検証可能）
   instances: 2
   storage:
     size: 50Gi
   walStorage:
     size: 25Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: tier2-domain
+  namespace: k1s0-data
+spec:
+  instances: 2
+  storage:
+    size: 50Gi
+  walStorage:
+    size: 25Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: audit
+  namespace: k1s0-data
+spec:
+  instances: 2
+  storage:
+    size: 250Gi
+  walStorage:
+    size: 50Gi

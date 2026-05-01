@@ -1,0 +1,6 @@
+# MirrorMaker 2 は DR / 災害復旧 cluster へのレプリケーションを担う。
+# 本リリース時点では未配置（plan 06-XX で multi-cluster 対応時に追加）。
+# spec の整合性のためディレクトリと kustomization stub のみ用意する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

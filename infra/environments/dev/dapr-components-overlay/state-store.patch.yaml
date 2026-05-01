@@ -1,0 +1,11 @@
+# dev は OpenBao 動的シークレット未稼働のため、connectionString を平文 host で
+# 直接指定する patch。prod は base のまま（secretKeyRef 経由）。
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: postgres
+  namespace: k1s0-tier1
+spec:
+  metadata:
+    - name: connectionString
+      value: "host=tier1-state-rw.k1s0-data.svc.cluster.local port=5432 user=tier1_state password=devpassword dbname=tier1_state sslmode=disable"

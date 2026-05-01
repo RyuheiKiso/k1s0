@@ -1,0 +1,7 @@
+# Strimzi Kafka Operator は Helm install されるため、本 kustomization は
+# Argo CD Sync Wave 強制（Wave -10）のためだけのスタブ。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-10"

@@ -1,0 +1,20 @@
+# =============================================================================
+# infra/security/keycloak/
+#
+# Keycloak 本体は Helm chart（values.yaml）で展開。realm / client / identity-
+# provider は Realm CR（keycloak operator）として個別ファイルで管理する。
+#
+# realm 2 分離: k1s0-internal（運用者・SRE・Backstage 等の社内認証）
+#               k1s0-tenant（外部テナント認証、cross-auth 禁止）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/06_セキュリティ層配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - operator
+  - instance
+  - realms
+  - clients
+  - identity-providers

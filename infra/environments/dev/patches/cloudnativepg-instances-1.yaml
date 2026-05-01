@@ -1,15 +1,39 @@
-# dev 用 CNPG Cluster patch: 3 instance HA → 1 instance（単一ノード kind 起動可能化）。
+# dev 用 CNPG Cluster patch: 3 Cluster 全てを 1 instance + 5Gi storage に縮退。
+# kustomize patch は同 kind/name を name セレクタで個別ターゲットする。
 # 設計: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: k1s0-postgres
-  namespace: cnpg-system
+  name: tier1-state
+  namespace: k1s0-data
 spec:
-  # primary 1 のみ（standby 0、HA は dev では維持しない）
   instances: 1
-  # PVC を最小化（prod 100Gi → dev 5Gi）
   storage:
     size: 5Gi
   walStorage:
     size: 1Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: tier2-domain
+  namespace: k1s0-data
+spec:
+  instances: 1
+  storage:
+    size: 5Gi
+  walStorage:
+    size: 1Gi
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: audit
+  namespace: k1s0-data
+spec:
+  instances: 1
+  storage:
+    size: 10Gi
+  walStorage:
+    size: 2Gi

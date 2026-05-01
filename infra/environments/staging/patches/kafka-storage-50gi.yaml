@@ -3,7 +3,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
   name: dual-role
-  namespace: kafka
+  namespace: k1s0-data
 spec:
   # broker 数は HA 維持（KRaft quorum を保つ）
   replicas: 3

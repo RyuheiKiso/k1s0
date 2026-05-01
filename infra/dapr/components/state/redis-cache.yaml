@@ -21,9 +21,11 @@ spec:
   type: state.valkey
   version: v1
   metadata:
-    # Valkey replication primary（infra/data/valkey/values.yaml の Service 名）
+    # Valkey Cluster mode の bootstrap node（infra/data/valkey/ で 6 node Cluster
+    # mode、master 3 + replica 3）。Dapr state.valkey は Cluster bootstrap node 経由
+    # で接続し、自動的に slot map を取得する。
     - name: valkeyHost
-      value: valkey-primary.k1s0-data.svc.cluster.local:6379
+      value: valkey-headless.k1s0-data.svc.cluster.local:6379
     # 認証情報（OpenBao 経由）
     - name: valkeyPassword
       secretKeyRef:

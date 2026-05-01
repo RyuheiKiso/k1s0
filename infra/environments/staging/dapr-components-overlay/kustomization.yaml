@@ -1,0 +1,10 @@
+# staging は prod 同等構成。Component の patch は不要だが、env ラベル統一の
+# ため overlay を経由する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../dapr/components
+labels:
+  - pairs:
+      k1s0.io/env: staging
+    includeSelectors: true

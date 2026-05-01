@@ -1,0 +1,19 @@
+# =============================================================================
+# infra/mesh/envoy-gateway/
+#
+# Envoy Gateway 本体は Helm（values.yaml）。本 kustomization は GatewayClass /
+# Gateway / HTTPRoute を base 化する。
+#
+# local-stack/ サブは tools/local-stack/ から参照される dev 専用 Gateway 定義
+# のため、prod overlay には含めない。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/03_サービスメッシュ配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gatewayclass-envoy.yaml
+  - gateway-public.yaml
+  - gateway-internal.yaml
+  - httproute

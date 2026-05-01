@@ -1,0 +1,11 @@
+# =============================================================================
+# infra/observability/grafana/
+#
+# Grafana 本体は Helm（values.yaml）。datasources / dashboards は ConfigMap で
+# 宣言し、Grafana sidecar が pickup する。
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - datasources
+  - dashboards

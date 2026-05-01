@@ -1,0 +1,19 @@
+# =============================================================================
+# Barman ObjectStore 設定（CNPG が MinIO バックアップに使う共通 endpoint 定義）
+#
+# 各 Cluster は spec.backup.barmanObjectStore で個別に bucket prefix を指定する。
+# 本ファイルは将来 Barman Plugin 経由で切替可能になった場合の参照定数として残す
+# （現状は Cluster 内 inline の barmanObjectStore で完結している）。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: barman-object-store-defaults
+  namespace: k1s0-data
+data:
+  # CNPG 経由で MinIO に backup する時の共通エンドポイント。
+  # Cluster 個別の destinationPath は cluster/*.yaml で個別指定。
+  endpointURL: http://minio.k1s0-data.svc.cluster.local:9000
+  region: us-east-1
+  walCompression: gzip
+  dataCompression: gzip

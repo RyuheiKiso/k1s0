@@ -22,7 +22,7 @@ spec:
     samplingRate: "1.0"
     otel:
       # gateway OTel Collector（infra/observability/otel-collector/）
-      endpointAddress: otel-collector-gateway.k1s0-observability.svc.cluster.local:4317
+      endpointAddress: otel-collector-gateway.k1s0-obs.svc.cluster.local:4317
       isSecure: false
       protocol: grpc
   # mTLS は Dapr Sentry が SPIFFE SVID を発行する形に統一（ADR-SEC-002 と整合）
@@ -32,7 +32,7 @@ spec:
     allowedClockSkew: 15m
     # Dapr 1.14+ の Configuration CRD で mTLS の必須フィールド。
     # Sentry サービスは infra/dapr/control-plane/ により dapr-system に展開される。
-    sentryAddress: dapr-sentry.dapr-system.svc.cluster.local:443
+    sentryAddress: dapr-sentry.k1s0-dapr.svc.cluster.local:443
     # SPIFFE TrustDomain。accessControl と一致させて k1s0.local を採用する。
     controlPlaneTrustDomain: k1s0.local
   # API access control（tier1 facade のみが呼び出せる）

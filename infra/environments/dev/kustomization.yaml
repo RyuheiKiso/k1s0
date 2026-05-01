@@ -6,49 +6,62 @@
 #
 # 設計正典:
 #   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md
-#     - dev は「リソース最小化、Let's Encrypt staging、保持期間短縮」
 #   docs/04_概要設計/55_運用ライフサイクル方式設計/03_環境構成管理方式.md
 #     - DS-OPS-ENV-007（本番同等性、staging→prod は同構成・規模差のみ）
 #
 # 利用:
 #   kubectl apply -k infra/environments/dev/
 #   または tools/local-stack/up.sh から呼出（推奨）
-#
-# 注: kustomize の load-restriction（外部ファイル直接参照禁止）に対応するため、
-#     `resources:` は **ディレクトリ参照** で記述する（各 base に kustomization.yaml
-#     を配置済）。直接 `*.yaml` パスを書かないこと。
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # 共通 namespace ラベル（Pod Security Standards / Istio Ambient 連携用）
-# kustomize v5 で `commonLabels` は deprecated。後継の `labels` を使う。
 labels:
   - pairs:
       app.kubernetes.io/part-of: k1s0
       k1s0.io/env: dev
     includeSelectors: true
 
-# infra base から「ディレクトリ参照」でリソースを継承する。
-# 各 base には kustomization.yaml が配置されている。
+# infra base の 19 サブ全て（spec IMP-DIR-INFRA-078）+ dapr-components-overlay
 resources:
-  # k8s 基盤（namespace / storage class）
+  # k8s 基盤
   - ../../k8s/namespaces
+  - ../../k8s/networking
   - ../../k8s/storage
-  # mTLS 強制（PeerAuthentication）
+  # mesh
   - ../../mesh/istio-ambient
-  # admission policy（Kyverno baseline）
-  - ../../security/kyverno
-  # cert-manager ClusterIssuer（dev は letsencrypt-staging を patches/ で primary 化）
-  - ../../security/cert-manager
-  # CNPG クラスタ（Postgres 16）
+  - ../../mesh/envoy-gateway
+  # dapr
+  - ../../dapr/control-plane
+  - ../../dapr/subscriptions
+  # data
   - ../../data/cloudnativepg
-  # Kafka クラスタ（KRaft）
   - ../../data/kafka
-  # flagd（Feature Flag）
+  - ../../data/minio
+  - ../../data/valkey
+  # security
+  - ../../security/cert-manager
+  - ../../security/keycloak
+  - ../../security/openbao
+  - ../../security/spire
+  - ../../security/kyverno
+  # observability
+  - ../../observability
+  # scaling / feature management / platform
+  - ../../scaling/keda
   - ../../feature-management/flagd
+  # env 別 Dapr Component overlay
+  - ./dapr-components-overlay
 
-# dev 用 patch（リソース規模を最小化）
+# dev 用 kustomize strategic merge patch（CR が base に存在するもののみ）
 patches:
   - path: patches/cloudnativepg-instances-1.yaml
   - path: patches/kafka-broker-1.yaml
+
+# Helm values overlay 用 patch は `values/<component>/values.yaml` に配置し、
+# Argo CD ApplicationSet / Helmfile 側で参照する。リリース時点ではドキュメント
+# として patches/ 配下にも残し、kustomize build からは外す:
+#   - patches/valkey-cluster-disabled.yaml      → values/valkey/ で適用
+#   - patches/letsencrypt-staging.yaml          → values/cert-manager/ で適用
+#   - patches/observability-retention-7d.yaml   → values/{loki,tempo,mimir}/ で適用

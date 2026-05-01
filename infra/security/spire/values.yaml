@@ -8,7 +8,8 @@
 global:
   spire:
     clusterName: k1s0-prod
-    trustDomain: k1s0.example.com
+    # trust domain は spec 通り `k1s0.internal`（IMP-DIR-INFRA-076）
+    trustDomain: k1s0.internal
     caSubject:
       commonName: SPIFFE k1s0 prod CA
       country: JP
@@ -23,11 +24,11 @@ spire-server:
     type: ClusterIP
   controllerManager:
     enabled: true
-  # データストアは PostgreSQL（CNPG の k1s0-postgres-rw を共有）
+  # データストアは PostgreSQL（CNPG の audit Cluster を共有）
   dataStore:
     sql:
       databaseType: postgres
-      host: k1s0-postgres-rw.cnpg-system.svc.cluster.local
+      host: audit-rw.k1s0-data.svc.cluster.local
       port: 5432
       databaseName: spire
       username: spire

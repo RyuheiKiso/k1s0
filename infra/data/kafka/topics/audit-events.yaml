@@ -1,0 +1,20 @@
+# 監査イベントトピック。tier1-audit-pii Dapr app が consumer。
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/05_データ層配置.md
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: audit-events
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    k1s0.io/topic-role: audit
+spec:
+  partitions: 12
+  replicas: 3
+  config:
+    # 監査ログは 7 年保管、log compaction なし
+    retention.ms: 220752000000  # 7 years
+    cleanup.policy: delete
+    min.insync.replicas: 2
+    compression.type: zstd
+    segment.bytes: 1073741824

@@ -30,30 +30,15 @@ spec:
                 - kube-public
                 - kube-node-lease
                 - local-path-storage
-                - kyverno
                 - istio-system
-                - cnpg-system
-                - dapr-system
-                - kafka
-                - openbao
-                - temporal
-                - keycloak
-                - observability
-                - argocd
-                - argo-rollouts
-                - flagd
-                - cert-manager
-                - metallb-system
-                - calico-system
-                - tigera-operator
-                - longhorn-system
-                - spire-system
-                - spire-server
-                - gitops
-                - registry
-                - minio
-                - valkey
                 - envoy-gateway-system
+                - capi-system
+                - k1s0-data
+                - k1s0-dapr
+                - k1s0-mesh
+                - k1s0-security
+                - k1s0-obs
+                - k1s0-platform-tools
       validate:
         message: "Pod は runAsNonRoot: true を指定すること（ADR-POL-001 baseline）"
         pattern:
@@ -90,30 +75,15 @@ spec:
                 - kube-public
                 - kube-node-lease
                 - local-path-storage
-                - kyverno
                 - istio-system
-                - cnpg-system
-                - dapr-system
-                - kafka
-                - openbao
-                - temporal
-                - keycloak
-                - observability
-                - argocd
-                - argo-rollouts
-                - flagd
-                - cert-manager
-                - metallb-system
-                - calico-system
-                - tigera-operator
-                - longhorn-system
-                - spire-system
-                - spire-server
-                - gitops
-                - registry
-                - minio
-                - valkey
                 - envoy-gateway-system
+                - capi-system
+                - k1s0-data
+                - k1s0-dapr
+                - k1s0-mesh
+                - k1s0-security
+                - k1s0-obs
+                - k1s0-platform-tools
       validate:
         message: "Privileged container は禁止（ADR-POL-001 baseline）"
         pattern:
@@ -145,8 +115,7 @@ spec:
                 - Pod
                 - Service
               namespaces:
-                - "k1s0-*"
-                - "tier*"
+                - "k1s0-tier*"
       validate:
         message: "k1s0.io/component label を付与すること（k1s0 Tagging Convention）"
         pattern:
@@ -180,30 +149,15 @@ spec:
                 - kube-public
                 - kube-node-lease
                 - local-path-storage
-                - kyverno
                 - istio-system
-                - cnpg-system
-                - dapr-system
-                - kafka
-                - openbao
-                - temporal
-                - keycloak
-                - observability
-                - argocd
-                - argo-rollouts
-                - flagd
-                - cert-manager
-                - metallb-system
-                - calico-system
-                - tigera-operator
-                - longhorn-system
-                - spire-system
-                - spire-server
-                - gitops
-                - registry
-                - minio
-                - valkey
                 - envoy-gateway-system
+                - capi-system
+                - k1s0-data
+                - k1s0-dapr
+                - k1s0-mesh
+                - k1s0-security
+                - k1s0-obs
+                - k1s0-platform-tools
       validate:
         message: "Pod の全 container に resources.requests.cpu と resources.requests.memory を指定すること"
         pattern:

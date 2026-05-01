@@ -1,0 +1,21 @@
+# =============================================================================
+# tail-based sampling processor（OTel Collector gateway 段で適用）
+#
+# 既に values-gateway.yaml の processors.tail_sampling として inline 定義済み。
+# 本 ConfigMap は値の参照ドキュメントとして配置（ConfigMapGenerator では使わ
+# ない）。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-processor-sampling
+  namespace: k1s0-obs
+data:
+  config.yaml: |
+    # 実体は infra/observability/otel-collector/values-gateway.yaml の
+    # processors.tail_sampling.policies で定義:
+    #   - errors（status_code=ERROR は 100% 採取）
+    #   - slow-requests（latency >= 1000ms は 100% 採取）
+    #   - probabilistic（その他は 5% sampling）
+    #
+    # 変更時は values-gateway.yaml と本ファイルの両方を同期させること。

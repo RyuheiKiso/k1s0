@@ -1,0 +1,46 @@
+# =============================================================================
+# Alertmanager（PrometheusRule の発火を受信し、PagerDuty / Slack / メールに分岐）
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/07_観測性配置.md:135-141
+#     - Sev1/2 → pagerduty、Sev3 → slack-oncall、Sev4 → mailto-sre
+#
+# helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+# helm upgrade --install alertmanager prometheus-community/alertmanager \
+#     -n k1s0-obs -f values.yaml --version 1.13.0
+# =============================================================================
+
+replicaCount: 3
+image:
+  repository: prom/alertmanager
+  tag: v0.27.0
+
+# Pod anti-affinity（HA 3）
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: alertmanager
+        topologyKey: kubernetes.io/hostname
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Alertmanager config 本体は ConfigMap で外部化する（infra/observability/
+# alertmanager/config/alertmanager.yaml）。
+configMapOverrideName: alertmanager-config
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: longhorn-retain
+
+# 監視（メタモニタリング）
+serviceMonitor:
+  enabled: true

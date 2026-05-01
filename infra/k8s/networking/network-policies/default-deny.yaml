@@ -1,0 +1,103 @@
+# 全 k1s0-* namespace に default-deny の NetworkPolicy を一括適用する。
+# Ingress と Egress の両方を deny し、各 namespace の専用 NetworkPolicy / Cilium-
+# NetworkPolicy / Istio AuthorizationPolicy で必要な通信のみ追加で許可する設計。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+#     - L3/L4 は NetworkPolicy、L7 は Istio AuthorizationPolicy（2 層防御）
+#   docs/02_構想設計/adr/ADR-POL-001-kyverno-dual-owner.md
+#
+# 適用範囲: k1s0-* 機能層・tier 層すべて。third-party operator namespace（istio-system /
+# envoy-gateway-system / capi-system）は operator 自身が必要な通信を内部許可するため除外。
+---
+# k1s0-tier1
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-tier1
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# k1s0-tier2
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-tier2
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-tier3
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-tier3
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-data
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-data
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-dapr
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-dapr
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-mesh
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-mesh
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-security
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-obs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-obs
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# k1s0-platform-tools
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-platform-tools
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]

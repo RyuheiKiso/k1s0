@@ -1,0 +1,19 @@
+# =============================================================================
+# KV v2 secret engine（k1s0 アプリの static secret 保管）
+#
+# Init Job が `bao secrets enable -path=kv -version=2 kv` を実行。
+# tier 別 path: kv/data/k1s0/{tier1,tier2,tier3}/<environment>/<key>
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-engine-kv
+  namespace: k1s0-security
+data:
+  config.json: |
+    {
+      "engine": "kv",
+      "version": 2,
+      "path": "kv",
+      "description": "k1s0 application static secrets (tier1/2/3 + ci)"
+    }

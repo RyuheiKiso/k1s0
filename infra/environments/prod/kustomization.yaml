@@ -7,18 +7,10 @@
 #
 # 設計正典:
 #   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md
-#   docs/04_概要設計/55_運用ライフサイクル方式設計/03_環境構成管理方式.md
-#
-# 利用: Argo CD ApplicationSet が target として Sync（手動承認必須、DS-OPS-ENV-007）。
-#
-# 注: kustomize の load-restriction（外部ファイル直接参照禁止）に対応するため、
-#     `resources:` は **ディレクトリ参照** で記述する（各 base に kustomization.yaml
-#     を配置済）。
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# kustomize v5 で `commonLabels` は deprecated。後継の `labels` を使う。
 labels:
   - pairs:
       app.kubernetes.io/part-of: k1s0
@@ -26,14 +18,34 @@ labels:
     includeSelectors: true
 
 resources:
+  # k8s 基盤
   - ../../k8s/namespaces
+  - ../../k8s/networking
   - ../../k8s/storage
+  # mesh
   - ../../mesh/istio-ambient
-  - ../../security/kyverno
-  - ../../security/cert-manager
+  - ../../mesh/envoy-gateway
+  # dapr
+  - ../../dapr/control-plane
+  - ../../dapr/subscriptions
+  # data
   - ../../data/cloudnativepg
   - ../../data/kafka
+  - ../../data/minio
+  - ../../data/valkey
+  # security
+  - ../../security/cert-manager
+  - ../../security/keycloak
+  - ../../security/openbao
+  - ../../security/spire
+  - ../../security/kyverno
+  # observability
+  - ../../observability
+  # scaling / feature management / platform
+  - ../../scaling/keda
   - ../../feature-management/flagd
+  # env 別 Dapr Component overlay（prod は base そのまま）
+  - ./dapr-components-overlay
 
-# prod は base がそのまま表現するため patches は空（必要時のみ追加）。
+# prod は base がそのまま表現するため patches は空。
 # patches: []

@@ -41,7 +41,8 @@ grafana.ini:
     root_url: https://grafana.k1s0.example.com
   database:
     type: postgres
-    host: k1s0-postgres-rw.cnpg-system.svc.cluster.local:5432
+    # Grafana は tier2-domain Cluster を共有（観測 metadata は domain 同層扱い）
+    host: tier2-domain-rw.k1s0-data.svc.cluster.local:5432
     name: grafana
     user: grafana
     password: $__file{/etc/secrets/grafana/db-password}
@@ -76,22 +77,22 @@ datasources:
       - name: Loki
         type: loki
         access: proxy
-        url: http://loki-gateway.observability.svc:80
+        url: http://loki-gateway.k1s0-obs.svc:80
         isDefault: false
       - name: Tempo
         type: tempo
         access: proxy
-        url: http://tempo-query-frontend.observability.svc:3100
+        url: http://tempo-query-frontend.k1s0-obs.svc:3100
         isDefault: false
       - name: Mimir
         type: prometheus
         access: proxy
-        url: http://mimir-nginx.observability.svc:80/prometheus
+        url: http://mimir-nginx.k1s0-obs.svc:80/prometheus
         isDefault: true
       - name: Pyroscope
         type: phlare
         access: proxy
-        url: http://pyroscope.observability.svc:4040
+        url: http://pyroscope.k1s0-obs.svc:4040
 
 # Grafana sidecar が ConfigMap label を pickup してダッシュボードを動的読込。
 sidecar:

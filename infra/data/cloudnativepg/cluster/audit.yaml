@@ -1,0 +1,72 @@
+# =============================================================================
+# Audit WORM Cluster（IMP-DIR-INFRA-075、PII / 監査ログの長期保存先）
+#
+# 用途: tier1-audit-pii Dapr app（k1s0-tier1）が `audit-events` Kafka topic 経由で
+#       受信した監査イベントを INSERT-only で保管。
+#       長期保管要件のため retention 7y、shared_buffers は OLTP より控えめ。
+# =============================================================================
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: audit
+  namespace: k1s0-data
+  labels:
+    app.kubernetes.io/name: audit
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/component: postgres-cluster
+    k1s0.io/cluster-role: audit
+spec:
+  instances: 3
+  primaryUpdateStrategy: unsupervised
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  storage:
+    size: 500Gi
+    storageClass: longhorn-retain
+  walStorage:
+    size: 100Gi
+    storageClass: longhorn-retain
+  bootstrap:
+    initdb:
+      database: audit
+      owner: audit
+      secret:
+        name: audit-credentials
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "512MB"
+      effective_cache_size: "2GB"
+      maintenance_work_mem: "256MB"
+      work_mem: "8MB"
+      wal_compression: "on"
+      log_min_duration_statement: "1000"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://k1s0-pg-backup/audit
+      endpointURL: http://minio.k1s0-data.svc.cluster.local:9000
+      s3Credentials:
+        accessKeyId:
+          name: cnpg-minio-credentials
+          key: access-key
+        secretAccessKey:
+          name: cnpg-minio-credentials
+          key: secret-key
+      wal:
+        compression: gzip
+      data:
+        compression: gzip
+    # 監査ログは 7 年保管（法規制要件 / NFR-G-PRIVACY-* と整合）
+    retentionPolicy: "2555d"
+  monitoring:
+    enablePodMonitor: true
+  affinity:
+    enablePodAntiAffinity: true
+    topologyKey: kubernetes.io/hostname

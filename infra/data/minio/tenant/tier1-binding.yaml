@@ -1,0 +1,50 @@
+# =============================================================================
+# tier1 Binding API 用 MinIO Tenant
+#
+# 用途: Dapr binding.aws.s3 components の永続化先。tier1 facade からの
+#       帳票出力 / 監査 zip / artifacts 取込 endpoint。
+#
+# Tenant 分離（IMP-DIR-INFRA-075）により、audit-archive / observability と
+# IO・credentials を物理的に隔離する。
+# =============================================================================
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: tier1-binding
+  namespace: k1s0-data
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/minio-role: tier1-binding
+spec:
+  configuration:
+    name: tier1-binding-env-configuration
+  pools:
+    - name: pool-0
+      servers: 4
+      volumesPerServer: 4
+      size: 100Gi
+      storageClassName: longhorn-retain
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  v1.min.io/tenant: tier1-binding
+              topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 4Gi
+  buckets:
+    - name: k1s0-tier1-inbound
+    - name: k1s0-tier1-outbound
+    - name: k1s0-artifacts
+  mountPath: /export
+  requestAutoCert: false  # cert-manager 連携で plan 04-XX に有効化
+  metrics:
+    enabled: true
+    port: 9000
+    protocol: http

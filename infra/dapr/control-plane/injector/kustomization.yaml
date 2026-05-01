@@ -1,0 +1,7 @@
+# Dapr sidecar injector: Pod に dapr.io/enabled annotation が付いていれば daprd
+# sidecar を注入。MutatingWebhook。HA 3 replica。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-6"

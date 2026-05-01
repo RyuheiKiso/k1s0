@@ -10,8 +10,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Prometheus operator (kube-prometheus-stack) を前提にした PrometheusRule CRD を配置する。
-# namespace は monitoring を期待（kube-prometheus-stack の既定）。
+# Prometheus operator CRD（monitoring.coreos.com/v1 PrometheusRule）を配置する。
+# namespace は LGTM スタック（Mimir / Grafana / Loki / Tempo / Pyroscope / OTel Collector）と
+# 統一した `observability`（infra/k8s/namespaces/namespaces.yaml）。Mimir ruler が
+# storage_backend (S3 / MinIO) 経由で同期する想定で、Prometheus Operator controller
+# 自体は不要（CRD 定義のみで Mimir 側が pickup）。
 resources:
   - k1s0-tier1-alerts.yaml
   - k1s0-tier2-alerts.yaml

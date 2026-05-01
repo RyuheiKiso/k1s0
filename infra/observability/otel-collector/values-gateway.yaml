@@ -36,6 +36,41 @@ config:
       check_interval: 1s
       limit_percentage: 80
       spike_limit_percentage: 25
+    # k8s メタ属性付与（namespace / tier / component label を自動添付）
+    k8sattributes:
+      auth_type: serviceAccount
+      passthrough: false
+      filter:
+        node_from_env_var: KUBE_NODE_NAME
+      extract:
+        metadata:
+          - k8s.namespace.name
+          - k8s.deployment.name
+          - k8s.pod.name
+          - k8s.node.name
+        labels:
+          - tag_name: k1s0.tier
+            key: k1s0.io/tier
+            from: pod
+          - tag_name: k1s0.layer
+            key: k1s0.io/layer
+            from: pod
+    # PII redact（IMP-DIR-INFRA-077 必須 3 processor の 1）
+    transform/pii-redact:
+      error_mode: ignore
+      log_statements:
+        - context: log
+          statements:
+            - replace_pattern(body, "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "<REDACTED:email>")
+            - replace_pattern(body, "0\\d{1,4}-\\d{1,4}-\\d{3,4}", "<REDACTED:tel>")
+            - replace_pattern(body, "\\b(?:\\d[ -]*?){13,19}\\b", "<REDACTED:cc>")
+            - replace_pattern(body, "\\b\\d{4}[ -]?\\d{4}[ -]?\\d{4}\\b", "<REDACTED:mynumber>")
+      trace_statements:
+        - context: span
+          statements:
+            - set(attributes["user.email"], "<REDACTED>") where attributes["user.email"] != nil
+            - set(attributes["user.phone"], "<REDACTED>") where attributes["user.phone"] != nil
+            - set(attributes["http.request.body"], "<REDACTED>") where attributes["http.request.body"] != nil
     tail_sampling:
       decision_wait: 10s
       num_traces: 100000
@@ -57,18 +92,18 @@ config:
   exporters:
     # Tempo へ traces 転送
     otlp/tempo:
-      endpoint: tempo-distributor.observability.svc.cluster.local:4317
+      endpoint: tempo-distributor.k1s0-obs.svc.cluster.local:4317
       tls:
         insecure: true
     # Loki へ logs 転送
     loki:
-      endpoint: http://loki-gateway.observability.svc.cluster.local:80/loki/api/v1/push
+      endpoint: http://loki-gateway.k1s0-obs.svc.cluster.local:80/loki/api/v1/push
     # Mimir へ metrics 転送（Prometheus remote write 互換）
     prometheusremotewrite:
-      endpoint: http://mimir-nginx.observability.svc.cluster.local:80/api/v1/push
+      endpoint: http://mimir-nginx.k1s0-obs.svc.cluster.local:80/api/v1/push
     # Pyroscope へ profiles 転送
     otlp/pyroscope:
-      endpoint: pyroscope-distributor.observability.svc.cluster.local:4040
+      endpoint: pyroscope-distributor.k1s0-obs.svc.cluster.local:4040
       tls:
         insecure: true
 
@@ -76,15 +111,15 @@ config:
     pipelines:
       traces:
         receivers: [otlp]
-        processors: [memory_limiter, tail_sampling, batch]
+        processors: [memory_limiter, k8sattributes, transform/pii-redact, tail_sampling, batch]
         exporters: [otlp/tempo]
       metrics:
         receivers: [otlp]
-        processors: [memory_limiter, batch]
+        processors: [memory_limiter, k8sattributes, batch]
         exporters: [prometheusremotewrite]
       logs:
         receivers: [otlp]
-        processors: [memory_limiter, batch]
+        processors: [memory_limiter, k8sattributes, transform/pii-redact, batch]
         exporters: [loki]
 
 # Service: ClusterIP（同 namespace の agent からのみ受信）

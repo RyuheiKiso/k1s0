@@ -1,0 +1,40 @@
+# =============================================================================
+# k1s0-tier1/2/3 namespace の Pod は内部 registry（Harbor / 自前 registry）からの
+# pull のみ許可。外部 registry（docker.io / quay.io / gcr.io / public.ecr.aws）から
+# の image pull を deny。
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/06_セキュリティ層配置.md:160
+#         （IMP-DIR-INFRA-076 必須 5 ポリシーの 1 つ）
+#
+# 機能層（k1s0-data, k1s0-dapr, k1s0-mesh 等）は OSS Helm chart 由来 image を
+# 公開 registry から pull する必要があるため除外。tier アプリのみ強制。
+# =============================================================================
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-external-image-pull
+  annotations:
+    policies.kyverno.io/title: Restrict external image pull
+    policies.kyverno.io/category: ADR-POL-001 / Supply Chain
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: only-internal-registry
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces:
+                - "k1s0-tier1"
+                - "k1s0-tier2"
+                - "k1s0-tier3"
+      validate:
+        message: "tier アプリの image は内部 registry（registry.k1s0-platform-tools.svc.cluster.local:5000 / harbor.k1s0.example.com）からのみ pull 可能"
+        pattern:
+          spec:
+            =(initContainers):
+              - image: "registry.k1s0-platform-tools.svc.cluster.local:5000/* | harbor.k1s0.example.com/*"
+            containers:
+              - image: "registry.k1s0-platform-tools.svc.cluster.local:5000/* | harbor.k1s0.example.com/*"

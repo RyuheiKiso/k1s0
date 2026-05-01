@@ -7,7 +7,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: gitea-data
-  namespace: gitops
+  namespace: k1s0-platform-tools
   labels:
     app: gitea
     k1s0.io/component: gitops-server
@@ -23,7 +23,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gitea
-  namespace: gitops
+  namespace: k1s0-platform-tools
   labels:
     app: gitea
     k1s0.io/component: gitops-server
@@ -57,8 +57,8 @@ spec:
               if [ ! -f /data/gitea/conf/app.ini ]; then
                 cat > /data/gitea/conf/app.ini <<EOF
               [server]
-              DOMAIN = gitea.gitops.svc.cluster.local
-              ROOT_URL = http://gitea.gitops.svc.cluster.local:3000/
+              DOMAIN = gitea.k1s0-platform-tools.svc.cluster.local
+              ROOT_URL = http://gitea.k1s0-platform-tools.svc.cluster.local:3000/
               HTTP_PORT = 3000
               DISABLE_SSH = true
               [database]
