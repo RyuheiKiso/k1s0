@@ -27,6 +27,8 @@ import (
 
 	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
+	// FR-T1-INVOKE-004 Circuit Breaker。
+	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	// SDK 生成 stub の InvokeService 型。
 	serviceinvokev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/serviceinvoke/v1"
 	// gRPC エラーコード。
@@ -43,6 +45,12 @@ type invokeHandler struct {
 	serviceinvokev1.UnimplementedInvokeServiceServer
 	// adapter 集合への参照。
 	deps Deps
+}
+
+// invokeCBRetryAfterMs は Open 状態で caller に返す retry_after_ms（共通規約 §「エラー型」）。
+// Circuit Breaker の half-open 待機時間を ms に変換した値で返す。
+func (h *invokeHandler) invokeCBRetryAfterMs(cb *common.CircuitBreaker) int64 {
+	return cb.HalfOpenAfter().Milliseconds()
 }
 
 // invokeDefaultTimeout は共通規約 §「タイムアウトとデッドライン伝播」の既定 3 秒。
@@ -163,6 +171,14 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 	defer cancel()
 	// FR-T1-INVOKE-005: 認証ヘッダを呼出先 request に自動転写する。
 	ctx = withForwardedAuthMetadata(ctx)
+	// FR-T1-INVOKE-004: Circuit Breaker（appId 単位）が closed/half-open のときのみ呼出許可。
+	// open のときは即座に Unavailable + retry_after_ms を返し、下流障害の連鎖を切る。
+	cb := h.cbForTarget(req.GetAppId())
+	if cb != nil && !cb.Allow() {
+		return nil, status.Errorf(codes.Unavailable,
+			"tier1/serviceinvoke: circuit breaker open for app_id=%q (retry_after_ms=%d)",
+			req.GetAppId(), h.invokeCBRetryAfterMs(cb))
+	}
 	// adapter 入力に変換。
 	areq := dapr.InvokeRequest{
 		// 呼出先アプリ識別子。
@@ -180,10 +196,22 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 	}
 	// adapter 呼出。
 	aresp, err := h.deps.InvokeAdapter.Invoke(ctx, areq)
-	// エラー翻訳。
+	// エラー翻訳と CB 更新。
 	if err != nil {
+		// FR-T1-INVOKE-004: Unavailable / DeadlineExceeded のみ failure としてカウントする。
+		// PermissionDenied 等の業務エラーで CB を開けると過剰反応になる。
+		if cb != nil && isCBFailure(err) {
+			cb.RecordFailure()
+		} else if cb != nil {
+			// 業務エラーは breaker から見て「成功」（=down じゃない）として記録する。
+			cb.RecordSuccess()
+		}
 		// 翻訳 helper（state.go 定義）を invoke 用にカスタマイズ。
 		return nil, translateInvokeErr(err, "Invoke")
+	}
+	// 成功を CB に記録。
+	if cb != nil {
+		cb.RecordSuccess()
 	}
 	// proto 応答に変換して返却する。
 	return &serviceinvokev1.InvokeResponse{
@@ -194,6 +222,31 @@ func (h *invokeHandler) Invoke(ctx context.Context, req *serviceinvokev1.InvokeR
 		// HTTP ステータス相当。
 		Status: aresp.Status,
 	}, nil
+}
+
+// cbForTarget は appId 単位の CircuitBreaker を取得する。Registry 未注入時は nil を返す。
+func (h *invokeHandler) cbForTarget(appID string) *common.CircuitBreaker {
+	if h.deps.InvokeCircuitBreakers == nil {
+		return nil
+	}
+	return h.deps.InvokeCircuitBreakers.Get(appID)
+}
+
+// isCBFailure は Circuit Breaker から見て「下流障害」と扱うエラーかを判定する。
+// Unavailable / DeadlineExceeded のみが対象。InvalidArgument / PermissionDenied 等の
+// 呼出側起因エラーで CB を開けると業務ロジック誤りで全呼出が遮断される過剰反応になる。
+func isCBFailure(err error) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		// gRPC status を持たない plain error は Unavailable と同等として扱う。
+		return true
+	}
+	switch st.Code() {
+	case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted, codes.Internal:
+		return true
+	default:
+		return false
+	}
 }
 
 // chunkSize は InvokeStream で応答 bytes を分割するときのデフォルトチャンクサイズ（4 KiB）。

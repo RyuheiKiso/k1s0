@@ -71,6 +71,12 @@ type Deps struct {
 	// PubSub.Publish の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL の dedup）。
 	// nil 時は dedup 無効（後方互換、release-initial / dev 経路）。
 	Idempotency common.IdempotencyCache
+	// FR-T1-INVOKE-004: ServiceInvoke handler の Circuit Breaker レジストリ。
+	// nil 時は CB 機能を無効化（後方互換）。NewDepsFromClient で既定値が注入される。
+	InvokeCircuitBreakers *common.CircuitBreakerRegistry
+	// FR-T1-FEATURE-003: Circuit Breaker override store（flag 強制 false 化）。
+	// nil 時は override 機能無効（後方互換）。NewDepsFromClient で既定値が注入される。
+	FeatureOverrides *FeatureFlagOverrideStore
 }
 
 // NewDepsFromClient は単一の Dapr Client から 5 つのアダプタを構築する。
@@ -96,6 +102,13 @@ func NewDepsFromClient(client *dapr.Client) Deps {
 		FeatureRegistry: NewFlagRegistry(),
 		// 24h TTL の in-memory dedup cache（共通規約 §「冪等性と再試行」）。
 		Idempotency: common.NewInMemoryIdempotencyCache(0),
+		// FR-T1-INVOKE-004: appId 単位の Circuit Breaker レジストリを既定値で初期化する。
+		// 既定値は DefaultCBConfig（5 連続失敗 / 30 秒 half-open / 1 probe）。
+		// production では cmd/state/main.go が LoadCBConfigFromEnv で env 上書きしたものを注入する。
+		InvokeCircuitBreakers: common.NewCircuitBreakerRegistry(common.DefaultCBConfig(), nil),
+		// FR-T1-FEATURE-003: 空 override store を初期化する。
+		// production では FeatureCircuitBreakerEvaluator がここに override を書き込む。
+		FeatureOverrides: NewFeatureFlagOverrideStore(),
 	}
 }
 

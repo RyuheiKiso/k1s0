@@ -178,6 +178,13 @@ func NewFeatureAdminServiceServer(reg *FlagRegistry) featurev1.FeatureAdminServi
 	return &featureAdminHandler{registry: reg}
 }
 
+// featureMaxVariants は FR-T1-FEATURE-004 受け入れ基準「variant 数は最大 10」。
+const featureMaxVariants = 10
+
+// featureFractionalSumExpected は FR-T1-FEATURE-004 受け入れ基準
+// 「variant 配分の合計は 100%」。
+const featureFractionalSumExpected = 100
+
 // validateFlagDefinition は登録時の最小検証を行う。
 func validateFlagDefinition(def *featurev1.FlagDefinition, approvalID string) error {
 	// nil 防御。
@@ -213,7 +220,71 @@ func validateFlagDefinition(def *featurev1.FlagDefinition, approvalID string) er
 		return status.Error(codes.FailedPrecondition,
 			"tier1/feature: PERMISSION flag requires approval_id from Product Council")
 	}
+	// FR-T1-FEATURE-004: variants map の数を 10 までに制限する。
+	if n := len(def.GetVariants()); n > featureMaxVariants {
+		return status.Errorf(codes.InvalidArgument,
+			"tier1/feature: variants count %d exceeds maximum %d", n, featureMaxVariants)
+	}
+	// FR-T1-FEATURE-004: TargetingRule の fractional split の検証。
+	// 各 rule の fractional は (variants 全部が定義済か) と (weight 合計 = 100) を確認する。
+	if err := validateFractionalSplits(def); err != nil {
+		return err
+	}
 	// 全検証 pass。
+	return nil
+}
+
+// validateFractionalSplits は FR-T1-FEATURE-004 「variant 配分の合計は 100%」を検証する。
+//
+// 動作:
+//   - 各 TargetingRule.Fractional 配列について:
+//       - 個数が 0 / 未指定なら fractional 無効として skip（純粋 if/else ルール）
+//       - 個数が 10 を超えると InvalidArgument
+//       - 各 entry の variant 名が def.Variants に存在することを必須とする
+//       - weight の合計が 100 であることを必須とする
+//   - rule が 0 個でも fractional 検証は skip
+func validateFractionalSplits(def *featurev1.FlagDefinition) error {
+	// FlagDefinition.Targeting は []*TargetingRule を直接返す（proto field "targeting"）。
+	rules := def.GetTargeting()
+	if len(rules) == 0 {
+		return nil
+	}
+	for i, rule := range rules {
+		fr := rule.GetFractional()
+		if len(fr) == 0 {
+			// fractional split 無し（pure if/else ルール）は skip。
+			continue
+		}
+		if len(fr) > featureMaxVariants {
+			return status.Errorf(codes.InvalidArgument,
+				"tier1/feature: targeting_rules[%d].fractional count %d exceeds maximum %d",
+				i, len(fr), featureMaxVariants)
+		}
+		var sum int32
+		for j, entry := range fr {
+			if entry.GetVariant() == "" {
+				return status.Errorf(codes.InvalidArgument,
+					"tier1/feature: targeting_rules[%d].fractional[%d].variant required", i, j)
+			}
+			// variant 名が variants map に存在することを必須とする。
+			if _, ok := def.GetVariants()[entry.GetVariant()]; !ok {
+				return status.Errorf(codes.InvalidArgument,
+					"tier1/feature: targeting_rules[%d].fractional[%d] references unknown variant %q",
+					i, j, entry.GetVariant())
+			}
+			// weight は 0〜100 の範囲。
+			if entry.GetWeight() < 0 || entry.GetWeight() > 100 {
+				return status.Errorf(codes.InvalidArgument,
+					"tier1/feature: targeting_rules[%d].fractional[%d].weight must be in [0, 100], got %d",
+					i, j, entry.GetWeight())
+			}
+			sum += entry.GetWeight()
+		}
+		if sum != featureFractionalSumExpected {
+			return status.Errorf(codes.InvalidArgument,
+				"tier1/feature: targeting_rules[%d].fractional weights must sum to 100, got %d", i, sum)
+		}
+	}
 	return nil
 }
 

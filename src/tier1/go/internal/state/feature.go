@@ -36,12 +36,19 @@ type featureHandler struct {
 // FR-T1-FEATURE-001 受け入れ基準: 「評価失敗時はデフォルト値を返す（K1s0Error にしない、
 // 業務継続優先）」を満たすため、adapter エラーは zero-value + Reason="ERROR" でフォールバック。
 // PermissionDenied / InvalidArgument / Unauthenticated 系は業務ロジック誤りなので gRPC error 維持。
+//
+// FR-T1-FEATURE-003: Circuit Breaker override が立っている flag は adapter を呼ばずに
+// 強制値を返す（Reason="CIRCUIT_BREAKER"）。
 func (h *featureHandler) EvaluateBoolean(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.BooleanResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
 		return nil, err
+	}
+	// FR-T1-FEATURE-003: 先に override store を確認する。override 中は adapter を呼ばない。
+	if v, reason, ok := h.overrideForFlag(req.GetFlagKey()); ok {
+		return &featurev1.BooleanResponse{Value: v, Metadata: makeFlagMeta("default", reason)}, nil
 	}
 	aresp, err := h.deps.FeatureAdapter.EvaluateBoolean(ctx, makeFlagReq(req))
 	if err != nil {
@@ -54,6 +61,15 @@ func (h *featureHandler) EvaluateBoolean(ctx context.Context, req *featurev1.Eva
 		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
+}
+
+// overrideForFlag は Circuit Breaker override store を確認するヘルパ。
+// store 未注入時は (false, "", false) を返す（後方互換）。
+func (h *featureHandler) overrideForFlag(flagKey string) (bool, string, bool) {
+	if h.deps.FeatureOverrides == nil {
+		return false, "", false
+	}
+	return h.deps.FeatureOverrides.Lookup(flagKey)
 }
 
 // EvaluateString は string Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。

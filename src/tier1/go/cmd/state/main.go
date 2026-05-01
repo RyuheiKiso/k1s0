@@ -107,6 +107,10 @@ func main() {
 
 	// 5 公開 API の handler が依存する adapter 集合を構築する。
 	deps := state.NewDepsFromClient(daprClient)
+	// FR-T1-INVOKE-004: env から CB 設定を読み込み既定 registry を上書きする。
+	// observer は metric publish callback（後段で deps.MetricEmitter 注入後に再差替）。
+	cbConfig := common.LoadCBConfigFromEnv(os.Getenv, log.Printf)
+	deps.InvokeCircuitBreakers = common.NewCircuitBreakerRegistry(cbConfig, nil)
 	// OTel Log / Metric / Trace の 3 emitter を環境変数判定で stdout / OTLP gRPC のどちらかで構築する。
 	// docs 正典 DS-SW-COMP-037（"stdout JSON Lines / OTel Collector / Loki 集約"）と
 	// DS-SW-COMP-038（Metrics Emitter）の両経路を満たす:
@@ -125,6 +129,11 @@ func main() {
 	deps.LogEmitter = bundle.LogEmitter
 	deps.MetricEmitter = bundle.MetricEmitter
 	deps.TraceEmitter = bundle.TraceEmitter
+
+	// FR-T1-INVOKE-004: CB 状態変更を Gauge metric として publish する observer を再差替する。
+	// MetricEmitter が deps に揃った後に observer を bind することで、起動順序の依存を最小化する。
+	cbObserver := makeCBStateObserver(bundle.MetricEmitter)
+	deps.InvokeCircuitBreakers = common.NewCircuitBreakerRegistry(cbConfig, cbObserver)
 
 	// HTTP/JSON 互換 gateway を別 goroutine で起動する（共通規約 §「HTTP/JSON 互換」）。
 	// flag が空文字 / "off" なら HTTP server を起動しない（純 gRPC 運用への切替）。
@@ -261,4 +270,31 @@ func newDaprClient(ctx context.Context, flagAddr string) (*dapr.Client, error) {
 	}
 	// 実 Dapr sidecar に接続する。
 	return dapr.New(ctx, dapr.Config{SidecarAddress: addr})
+}
+
+// makeCBStateObserver は MetricEmitter 越しに CB 状態を Gauge として publish する observer を返す。
+//
+// FR-T1-INVOKE-004 受け入れ基準「Circuit Breaker の状態（closed / open / half-open）を
+// Prometheus で可視化」のため、tier1_invoke_circuit_breaker_state metric を Counter ではなく
+// Gauge で publish する。値は 0=closed / 1=open / 2=half-open。Prometheus の rate() 系では
+// なく direct value 監視に使う（Grafana の State Timeline panel と整合）。
+//
+// emitter が nil の場合（dev / 試験 fake）は no-op を返す。
+func makeCBStateObserver(emitter otel.MetricEmitter) common.CBStateObserver {
+	if emitter == nil {
+		return nil
+	}
+	return func(name string, state common.CBState) {
+		// 観測 callback は CB の lock 内で呼ばれる契約のため、軽量な処理に限定する。
+		// emitter.Record はシンプルな atomic 操作のみで完了する想定。
+		_ = emitter.Record(context.Background(), otel.MetricEntry{
+			Name:  "tier1_invoke_circuit_breaker_state",
+			Kind:  otel.MetricKindGauge,
+			Value: float64(state),
+			Labels: map[string]string{
+				"target":     name,
+				"state_text": state.String(),
+			},
+		})
+	}
 }
