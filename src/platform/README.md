@@ -21,7 +21,7 @@ platform/
 │       ├── K1s0.DependencyDirection.Analyzer/      # 本体（DiagnosticAnalyzer）
 │       ├── K1s0.DependencyDirection.Analyzer.Package/  # NuGet packaging
 │       └── tests/                                  # xUnit + Microsoft.CodeAnalysis.Testing
-└── backstage-plugins/                              # Backstage 開発者ポータル plugin（ADR-DEVEX-002）
+└── backstage-plugins/                              # Backstage 開発者ポータル plugin（ADR-BS-001）
     ├── k1s0-catalog/                               # k1s0.io/* annotation 専用 catalog plugin
     └── k1s0-scaffolder/                            # k1s0-scaffold の Backstage Custom Action
 ```
@@ -64,6 +64,6 @@ CLI と Backstage UI 経路（custom action `k1s0:scaffold-engine`）が**同一
 ## 関連設計
 
 - [ADR-DEV-001](../../docs/02_構想設計/adr/ADR-DEV-001-paved-road.md) — Paved Road
-- [ADR-DEVEX-002](../../docs/02_構想設計/adr/) — Backstage 採用
+- [ADR-BS-001](../../docs/02_構想設計/adr/) — Backstage 採用
 - [IMP-CODEGEN-SCF-030](../../docs/05_実装/20_コード生成設計/) — Scaffold CLI
 - [IMP-DIR-ROOT-002](../../docs/05_実装/00_ディレクトリ設計/10_ルートレイアウト/05_依存方向ルール.md) — 依存方向強制

@@ -1,4 +1,4 @@
-# Backstage カタログ登録（ADR-DEVEX-002 / ADR-DEVEX-004）。
+# Backstage カタログ登録（ADR-BS-001 / ADR-DEV-001）。
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:

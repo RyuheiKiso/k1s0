@@ -61,5 +61,5 @@ multi-tenant 拡張等は採用初期で順次拡張される。
 ## 関連 ADR / 要件
 
 - ADR-DEV-001（Paved Road）
-- ADR-DEVEX-004（Golden Path 採用）
+- ADR-DEV-001（Golden Path 採用）
 - DX-GP-* 系要件（Developer Experience / Golden Path）

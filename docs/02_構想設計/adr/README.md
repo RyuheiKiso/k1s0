@@ -1,6 +1,6 @@
 # ADR 索引（軽量版）
 
-本 README は `docs/02_構想設計/adr/` 配下の Architecture Decision Record を、ファイル本体に最短距離で到達するための軽量索引である。k1s0 では ADR を技術選定と決定根拠の一次記録として扱い、`ADR-DOMAIN-NNN-short-name.md` 形式のファイルをリリース時点で 37 件蓄積している。新規参画者・外部レビュワー・監査担当がディレクトリを直接辿って目的の ADR を探す際、ファイル名のみでは何が書いてあるか把握しづらいため、本 README が「ファイル名 + 1 行要約」の段で探索を支援する。
+本 README は `docs/02_構想設計/adr/` 配下の Architecture Decision Record を、ファイル本体に最短距離で到達するための軽量索引である。k1s0 では ADR を技術選定と決定根拠の一次記録として扱い、`ADR-DOMAIN-NNN-short-name.md` 形式のファイルをリリース時点で 45 件蓄積している。新規参画者・外部レビュワー・監査担当がディレクトリを直接辿って目的の ADR を探す際、ファイル名のみでは何が書いてあるか把握しづらいため、本 README が「ファイル名 + 1 行要約」の段で探索を支援する。
 
 本索引は軽量版であり、各 ADR の決定内容要約・却下された代替案・影響章・改訂履歴といった詳細情報は扱わない。それらは概要設計側の詳細索引 [../../04_概要設計/90_付録/02_ADR索引.md](../../04_概要設計/90_付録/02_ADR索引.md) が担う。両索引は重複ではなく役割分担の関係にある。本 README は「ADR 本体に辿り着く入口」、詳細索引は「ADR 本体を読まずに要点を掴むための要約集」として機能する。概要設計の読者は詳細索引から先に見て、そこから本 README 経由で ADR 本体に飛ぶ導線を想定している。
 
@@ -106,8 +106,31 @@ DX の思想と計測基盤、ローカル開発のホスト Docker ランタイ
 - [ADR-STOR-001](./ADR-STOR-001-longhorn.md) — Longhorn をブロックストレージに採用
 - [ADR-STOR-002](./ADR-STOR-002-metallb.md) — MetalLB を L4 LoadBalancer に採用
 - [ADR-MIG-001](./ADR-MIG-001-net-framework-sidecar.md) — .NET Framework 資産を sidecar で段階移行
-- [ADR-MIG-002](./ADR-MIG-002-api-gateway.md) — 既存 API Gateway を Istio Gateway へ段階切替
+- [ADR-MIG-002](./ADR-MIG-002-api-gateway.md) — 既存 API Gateway を Envoy Gateway へ段階切替
 - [ADR-BS-001](./ADR-BS-001-backstage.md) — Backstage を開発者ポータル基盤に採用
+
+### Kubernetes 基盤・ネットワーク（3 件）
+
+vanilla K8s 上のクラスタ ブートストラップ・互換性維持・データプレーン CNI を確定する領域。tier1〜tier3 すべての前提となる。
+
+- [ADR-INFRA-001](./ADR-INFRA-001-kubernetes-cluster-bootstrap.md) — Kubernetes クラスタを kubeadm + Cluster API で構築する
+- [ADR-CNCF-001](./ADR-CNCF-001-cncf-conformance.md) — vanilla Kubernetes（CNCF Conformance 互換）を維持する
+- [ADR-NET-001](./ADR-NET-001-cni-selection.md) — production CNI に Cilium、kind 検証用に Calico を使い分ける
+
+### 分散ランタイム・スケール（2 件）
+
+tier1 ファサード層の分散ランタイムと event 駆動スケールを束ねる領域。アプリ層の建付けを規定する。
+
+- [ADR-DAPR-001](./ADR-DAPR-001-dapr-operator.md) — 分散ランタイムに Dapr Operator を採用する
+- [ADR-SCALE-001](./ADR-SCALE-001-keda-event-driven-autoscaling.md) — Event-driven autoscaling に KEDA を採用する
+
+### tier3 アーキテクチャ（3 件）
+
+Web SPA / Native アプリの集約戦略と実装方式を確定する領域。client 多様性と採用組織の人材プールを橋渡しする。
+
+- [ADR-TIER3-001](./ADR-TIER3-001-bff-pattern.md) — tier3 client ごとに専用 BFF を配置する
+- [ADR-TIER3-002](./ADR-TIER3-002-spa-plus-bff.md) — tier3 Web を React + Vite SPA + Go BFF で構成する
+- [ADR-TIER3-003](./ADR-TIER3-003-dotnet-maui-native.md) — tier3 Native アプリに .NET MAUI を採用する
 
 ## 詳細索引への誘導
 

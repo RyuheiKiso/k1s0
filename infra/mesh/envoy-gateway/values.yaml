@@ -1,4 +1,4 @@
-# 本ファイルは Envoy Gateway（ADR-CNCF-004）の Helm values 設定。
+# 本ファイルは Envoy Gateway（ADR-MIG-002）の Helm values 設定。
 # Istio Ambient と並走する ingress 層を Gateway API 標準準拠で運用する。
 # helm install eg oci://docker.io/envoyproxy/gateway-helm --namespace envoy-gateway-system \
 #   --create-namespace --version v1.2.0 -f values.yaml
