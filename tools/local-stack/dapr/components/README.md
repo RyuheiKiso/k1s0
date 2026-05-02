@@ -11,9 +11,14 @@
 | `bindings-http.yaml` | bindings.http | output binding テンプレート | 任意 HTTP |
 | `bindings-cron.yaml` | bindings.cron | input binding テンプレート | — |
 | `secretstore-openbao.yaml` | secretstores.hashicorp.vault | tier1/tier2 の secret 取り出し | OpenBao dev (`openbao.openbao`) |
-| `configstore-flagd.yaml` | configuration.flagd | 機能フラグ参照（OpenFeature 連携） | flagd (`flagd.flagd`) |
 
 namespace は `default` に固定。サービスごとに別 namespace に置く運用が必要になった時点で kustomize overlay へ昇格する。
+
+flagd（FR-T1-FEATURE-001）は Dapr Component 経由ではなく、tier1 facade が OpenFeature
+gRPC SDK で `flagd.flagd.svc.cluster.local:8013` に直結する。Dapr 1.17.5 には
+`configuration.flagd` component type は存在せず、誤って Component を配備すると
+**namespace 内の全 Dapr enabled Pod が daprd 起動時に fatal で死ぬ**ため絶対に置かない。
+ADR-FM-001（flagd / OpenFeature 採用）と整合する直結経路を維持する。
 
 ## tier1 / tier2 / tier3 からの参照
 
