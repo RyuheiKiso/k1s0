@@ -1,4 +1,4 @@
-# imp 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T14:42:47+09:00)
+# imp 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T16:46:01+09:00)
 # 走査: docs/05_実装, パターン: IMP-[A-Z]+-[A-Z]+-[0-9]+
 # 列挙 ID 数: 718
 # 走査範囲: docs / impl(src infra deploy tools examples) / tests(tests + src 内 test ファイル)
@@ -270,7 +270,7 @@ IMP-DEV-POL-002 | 5 | 0 | 0 | 0 | docs-only (impl 不在)
 IMP-DEV-POL-003 | 5 | 0 | 0 | 0 | docs-only (impl 不在)
 IMP-DEV-POL-004 | 7 | 0 | 0 | 0 | docs-only (impl 不在)
 IMP-DEV-POL-005 | 3 | 0 | 0 | 0 | docs-only (impl 不在)
-IMP-DEV-POL-006 | 14 | 6 | 0 | 0 | 2-stage (docs+impl, no test/ship evidence)
+IMP-DEV-POL-006 | 13 | 6 | 0 | 0 | 2-stage (docs+impl, no test/ship evidence)
 IMP-DEV-POL-007 | 5 | 0 | 0 | 0 | docs-only (impl 不在)
 IMP-DEV-SO-030 | 11 | 0 | 0 | 0 | docs-only (impl 不在)
 IMP-DEV-SO-031 | 4 | 0 | 0 | 0 | docs-only (impl 不在)

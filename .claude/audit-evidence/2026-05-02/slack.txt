@@ -1,5 +1,5 @@
-# slack 軸 集計（生成: 2026-05-02T14:28:23+09:00）
-# 走査範囲: 1236 ファイル（src infra deploy tools tests examples）
+# slack 軸 集計（生成: 2026-05-02T16:32:06+09:00）
+# 走査範囲: 1237 ファイル（src infra deploy tools tests examples）
 # 除外: 依存物 + 生成コード（_grpc.pb.go / *.pb.cs / generated/ / gen/ 等）
 
 go-unimplemented: 1
