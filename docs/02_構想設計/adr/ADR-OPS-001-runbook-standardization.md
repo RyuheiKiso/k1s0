@@ -148,3 +148,6 @@ Runbook 形式の選定は採用検討組織が「10 年保守する」前提で
 - ADR-CICD-001（Argo CD GitOps）— Runbook 自動化の配信経路
 - NFR-A-REC-002 / NFR-A-CONT-001 / NFR-C-NOP-001 / NFR-C-OPS-001 — 関連要件
 - 関連 ADR（採用検討中）: ADR-OPS-002（Chaos Engineering ツール選定、別 PR で起票）
+- ADR-TEST-004（LitmusChaos 採用）— Chaos Drill 四半期実施で使用するツール
+- ADR-TEST-005（Upgrade drill + DR drill）— 四半期 Chaos Drill とローテーション枠を共有
+- ADR-TEST-006（観測性 E2E）— Runbook `runbook_url` ラベル必須要件を検証 4 で機械検証

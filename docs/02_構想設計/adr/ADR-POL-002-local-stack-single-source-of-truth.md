@@ -202,4 +202,6 @@ ADR-POL-001（Kyverno dual-ownership）は Platform 所有 namespace と Tenant 
 - [tools/local-stack/up.sh](../../../tools/local-stack/up.sh)
 - IMP-DEV-POL-006: ローカルは kind/k3d + Dapr Local で本番再現
 - IMP-DEV-DC-014: ローカル Kubernetes と Dapr Local の統合
+- [ADR-TEST-002: E2E テストを kind cluster + tools/local-stack + reusable workflow で自動化](./ADR-TEST-002-e2e-automation-via-local-stack.md) — `--role e2e` で SoT を E2E に拡張
+- [ADR-TEST-003: CNCF Conformance を Sonobuoy + kind multi-node + Calico で月次実行](./ADR-TEST-003-cncf-conformance-sonobuoy.md) — `--role conformance` で SoT を Conformance に拡張
 - 監査ログ: 2026-04-30 セッション（drift 31 helm release / 16 PVC / 6 カテゴリ・15 種類）

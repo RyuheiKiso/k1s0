@@ -113,7 +113,8 @@ k1s0 は採用検討組織のオンプレ K8s クラスタ上に展開される 
 - ADR-NET-001（CNI 選定）— vanilla K8s 上の CNI 選定
 - ADR-DEV-001（Paved Road）— 採用組織のスキル流用性思想
 - ADR-CICD-003（Kyverno）— admission webhook の標準実装
-- IMP-CI-CONF-* — CNCF Conformance テスト CI
+- IMP-CI-CONF-* — CNCF Conformance テスト CI（ADR-TEST-003 で本体決定確定）
+- ADR-TEST-003（CNCF Conformance を Sonobuoy + kind multi-node + Calico で月次実行）— 本 ADR の「移行・対応事項」を充足
 
 ## 参考文献
 

@@ -93,6 +93,10 @@ tier1 の State API（Relational Store）、Temporal のワークフロー永続
 - PITR 復元訓練を四半期で実施（OR-INC-006）
 - Major Version upgrade 手順書を Runbook 化（NFR-C-NOP-003）
 
+## 関連 ADR
+
+- ADR-TEST-005（Upgrade drill + DR drill）— barman-cloud restore は経路 C で四半期 drill 実施対象、PostgreSQL major upgrade は月次 drill 対象
+
 ## 参考文献
 
 - CloudNativePG 公式: cloudnative-pg.io

@@ -92,8 +92,12 @@ AGPL 回避のため、MinIO のコードを直接組込んだり、MinIO のフ
 - MinIO Operator の Helm Chart バージョン固定、Argo CD で管理
 - Bucket ごとの Lifecycle / Object Lock / Versioning テンプレートを Backstage Software Template 化
 - SSE-S3 の鍵ローテーション手順を Runbook 化
-- Velero バックアップの保管先として MinIO を設定、復元訓練を四半期実施
+- barman-cloud（PostgreSQL）/ etcdctl snapshot / Keycloak Realm Export の保管先として MinIO を設定、復元訓練を四半期実施（ADR-TEST-005 経路 A/B/C/D）。Velero 等の汎用 K8s resource backup ツールは不採用（ADR-TEST-005、既存コンポーネント別バックアップで完結し SoT 二重化を回避）
 - AGPL 分離の証跡（分離図、通信プロトコル記録）を半期監査に提出
+
+## 関連 ADR
+
+- ADR-TEST-005（Upgrade drill + DR drill）— MinIO は barman-cloud / etcdctl snapshot / Realm Export の DR backup target、Velero 等の追加 backup 層は不採用
 
 ## 参考文献
 
