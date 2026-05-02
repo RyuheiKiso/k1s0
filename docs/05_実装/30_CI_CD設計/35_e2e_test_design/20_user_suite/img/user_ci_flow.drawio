@@ -1,0 +1,94 @@
+<mxfile>
+  <diagram name="user_ci_flow">
+    <mxGraphModel dx="1100" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="user suite CI 経路（pr.yml smoke / nightly.yml full / _reusable-e2e-user.yml 委譲）" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1020" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="trigger_pr" value="trigger: PR 毎 (push / 再起動)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="240" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="pr_yml" value="pr.yml&#10;path-filter で smoke 起動判定&#10;.github/path-filter/filters.yaml で&#10;tests/e2e/user/smoke + src/sdk/* + src/tier1/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="135" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="trigger_nightly" value="trigger: cron 03:00 JST + workflow_dispatch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="280" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="nightly_yml" value="nightly.yml&#10;cron 18:00 UTC = 03:00 JST&#10;workflow_dispatch で手動起動可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="135" width="280" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="reusable" value="_reusable-e2e-user.yml&#10;workflow_call inputs: mode (smoke / full)&#10;runs-on: ubuntu-latest (14GB / 4 vCPU)&#10;steps: setup go → install kind → make e2e-user-{mode} → upload artifact" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="220" y="265" width="500" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="make_smoke" value="make e2e-user-smoke&#10;up.sh --role user-e2e&#10;tests/e2e/user/smoke/&#10;5 分以内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="395" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="make_full" value="make e2e-user-full&#10;up.sh --role user-e2e + 任意 stack&#10;tests/e2e/user/{smoke + examples}&#10;30〜45 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="640" y="395" width="240" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="artifact" value="artifact: result.json + stdout.log + screenshots&#10;14 日 retention (actions/upload-artifact@v4)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="500" width="400" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="trigger_pr" target="pr_yml">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="trigger_nightly" target="nightly_yml">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="pr_yml" target="reusable">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="240"/>
+              <mxPoint x="345" y="240"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="nightly_yml" target="reusable">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="240"/>
+              <mxPoint x="595" y="240"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="mode=smoke" style="endArrow=classic;html=1;rounded=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="reusable" target="make_smoke">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="345" y="385"/>
+              <mxPoint x="180" y="385"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="mode=full" style="endArrow=classic;html=1;rounded=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="reusable" target="make_full">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="595" y="385"/>
+              <mxPoint x="760" y="385"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="make_smoke" target="artifact">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="490"/>
+              <mxPoint x="450" y="490"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="make_full" target="artifact">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="490"/>
+              <mxPoint x="650" y="490"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

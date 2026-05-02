@@ -1,0 +1,58 @@
+<mxfile>
+  <diagram name="user_stack">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="user suite stack（16GB host OK / kind + minimum stack + 任意 stack opt-in）" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="820" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_app_tests" value="tests/e2e/user/{smoke, examples}/  ←  Go test + 利用者は test-fixtures (4 言語) 経由" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="65" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_min_stack" value="Minimum Stack（必須）&#10;Dapr + tier1 facade + Keycloak + 1 backend（CNPG / MinIO / Valkey から選択）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="115" width="740" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2b_opt_stack" value="任意 Stack（test ごと opt-in、同時 2 件まで）&#10;Workflow / Decision / Strimzi / Argo CD / Grafana LGTM 縮小版" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;dashed=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="175" width="740" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3_cni" value="CNI: Calico — ADR-NET-001 (kind multi-node = Calico)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="235" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_lb" value="LB: extraPortMappings (kind 既定、port forward)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="285" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l5_csi" value="CSI: local-path-provisioner (kind 既定、PVC 1 replica)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="335" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l6_k8s" value="K8s: kind v1.30 系 (control-plane 1 + worker 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="385" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_host" value="ホスト: WSL2 16GB（kind container ≈ 4GB / 必須 stack 1.7GB / 利用者 dev 4GB / 余裕 6GB）&#10;devcontainer 内で起動可能 / Actions runner (ubuntu-latest 14GB) でも動作" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="435" width="740" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="380" y="500" width="460" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="395" y="503" width="430" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app" value="アプリ層 (Stack)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="395" y="525" width="160" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_net" value="ネットワーク層 (CNI / LB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="565" y="525" width="260" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_data" value="データ層 (CSI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="395" y="555" width="160" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_infra" value="インフラ層 (K8s / Host) / 点線 = opt-in" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="565" y="555" width="260" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

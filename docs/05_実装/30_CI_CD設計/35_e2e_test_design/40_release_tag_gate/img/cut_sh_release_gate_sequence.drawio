@@ -1,0 +1,94 @@
+<mxfile>
+  <diagram name="cut_sh_release_gate_sequence">
+    <mxGraphModel dx="1100" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="800" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="800" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="tools/release/cut.sh release tag ゲート シーケンス（★ = 本 ADR で追加 step）" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1020" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="entry" value="tools/release/cut.sh v1.2.3" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="65" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="step 1: git status クリーン確認" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="115" width="400" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="step 2: version SemVer 形式確認 (vX.Y.Z または vX.Y.Z-pre)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="160" width="400" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="step 3: tag が既存でないか確認 (force 上書き禁止)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="205" width="400" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="★ step 4: owner full PASS 鮮度検証&#10;owner-e2e-results.md 最新 entry の判定 == PASS かつ 30 日以内かを assert&#10;OWNER_E2E_FRESHNESS_DAYS env で 1〜90 日に override 可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="250" width="400" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="★ step 5: owner full sha256 抽出 + 整合検証&#10;entry の artifact sha256 と tests/.owner-e2e/&lt;日付&gt;/full-result.tar.zst の sha256sum を比較" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="325" width="400" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="s6" value="step 6: make qualify-release 強制実行&#10;L0–L5 + L7 + L9 + L10 全層 (ADR-TEST-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="390" width="400" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s7" value="step 7: qualify report tar.zst 化 + sha256 計算" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="450" width="400" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s8" value="★ step 8: tag メッセージに sha256 を埋め込む&#10;qualify-report-sha256: ... / owner-e2e-result-sha256: ... / owner-e2e-result-date: YYYY-MM-DD" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="495" width="400" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="s9" value="step 9: git tag -a &lt;version&gt; -m &quot;&lt;埋め込み message&gt;&quot;&#10;push は手動 (cut.sh は tag 作成までで止め、別操作)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="350" y="560" width="400" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="exit" value="tag 作成完了 / 採用検討者は git show &lt;tag&gt; で sha256 + 実走日を直読" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="620" width="400" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="entry" target="s1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s6" target="s7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s7" target="s8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s8" target="s9">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="s9" target="exit">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="680" width="460" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="615" y="685" width="430" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_existing" value="既存 step (ADR-TEST-001)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="710" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_new" value="本 ADR で追加 (★)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="825" y="710" width="220" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_dashed" value="点線枠 = 入口 / 出口" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="615" y="745" width="430" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

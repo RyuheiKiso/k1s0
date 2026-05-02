@@ -1,0 +1,127 @@
+<mxfile>
+  <diagram name="four_lang_symmetric_api">
+    <mxGraphModel dx="1200" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="test-fixtures 4 言語対称 API（5 領域 × 4 言語）" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdr_blank" value="領域 ＼ 言語" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="65" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdr_go" value="Go" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="65" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdr_rust" value="Rust" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="65" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdr_dotnet" value=".NET" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="65" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdr_ts" value="TypeScript" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="65" width="220" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1_label" value="領域 1&#10;Setup / Teardown" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="105" width="200" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1_go" value="Setup(t, Options{...}) Fixture&#10;t.Cleanup() で teardown" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="105" width="220" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1_rust" value="setup(Options{..}).await&#10;tokio + Drop trait" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="480" y="105" width="220" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1_dotnet" value="K1s0Fixture : IAsyncLifetime&#10;InitializeAsync / DisposeAsync" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="700" y="105" width="220" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1_ts" value="await fixtures.setup({...})&#10;Vitest beforeAll / afterAll" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="105" width="220" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2_label" value="領域 2&#10;SDK client init" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2_go" value="fx.NewSDKClient(t, &quot;tenant-a&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="170" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2_rust" value="fx.new_sdk_client(&quot;tenant-a&quot;).await?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="480" y="170" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2_dotnet" value="await fx.NewSDKClientAsync(&quot;tenant-a&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="700" y="170" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2_ts" value="await fx.newSDKClient('tenant-a')" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="170" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3_label" value="領域 3&#10;Mock builder&#10;(fluent chain)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="225" width="200" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3_go" value="fx.MockBuilder.Audit().&#10;  WithTenant(&quot;t&quot;).&#10;  WithEntries(10).Build(t)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="225" width="220" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3_rust" value="fx.mock_builder().audit()&#10;  .with_tenant(&quot;t&quot;)&#10;  .with_entries(10).build()?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="480" y="225" width="220" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3_dotnet" value="fx.MockBuilder.Audit()&#10;  .WithTenant(&quot;t&quot;)&#10;  .WithEntries(10).Build()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="700" y="225" width="220" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3_ts" value="fx.mockBuilder.audit()&#10;  .withTenant('t')&#10;  .withEntries(10).build()" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="225" width="220" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="d4_label" value="領域 4&#10;Wait / Assertion" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d4_go" value="fx.WaitFor(t, &quot;tier1-state&quot;, 30s)&#10;testify/require" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="300" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d4_rust" value="fx.wait_for(&quot;tier1-state&quot;, 30s).await?&#10;assert! macro" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="480" y="300" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d4_dotnet" value="await fx.WaitForAsync(&quot;tier1-state&quot;, 30s)&#10;Xunit.Assert" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="700" y="300" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d4_ts" value="await fx.waitFor('tier1-state', 30000)&#10;Vitest expect" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="300" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d5_label" value="領域 5&#10;Playwright fixture&#10;(TypeScript のみ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="355" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d5_go" value="（提供しない、owner/tier3-web は&#10;chromedp で独立経路）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;verticalAlign=middle;fontColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="355" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d5_rust" value="（提供しない）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;verticalAlign=middle;fontColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="355" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d5_dotnet" value="（提供しない）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;verticalAlign=middle;fontColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="355" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="d5_ts" value="await fx.browserContext({tenant, user})&#10;@playwright/test 統合" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="355" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="命名規約: 関数名は責務名 (Setup / NewSDKClient / MockBuilder / WaitFor / browserContext) を共通化、case 変換は言語イディオム&#10;wire 形式 (Protobuf bytes) は 4 言語間で同一、tests/contract/cross-lang-fixtures/ で機械検証 (採用初期)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="1080" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="680" y="500" width="460" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="695" y="503" width="430" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app" value="アプリ層 (test-fixtures API)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="695" y="525" width="200" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_na" value="（点線・灰色 = 提供しない領域）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="905" y="525" width="220" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_meta" value="ヘッダ濃灰 = メタ情報枠" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="695" y="552" width="200" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_dashed" value="点線太枠 = 補足散文" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="905" y="552" width="220" height="22" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
