@@ -216,7 +216,7 @@ cd tests/e2e && go test ./scenarios/... -v -timeout=30m
 - nightly workflow の GitHub Actions runner リソース消費（4 core / 14 GB / 30〜45 分）が継続的に発生し、Actions free tier の月間制限を消費する。Public repo では無制限だが、private repo に切り替える場合は予算管理が必要
 - kind cluster + 全スタック helm install で nightly 所要時間 15〜30 分が固定費として発生、E2E シナリオが増えるごとに workflow 時間が長期化する。Phase 1 で「シナリオ並列実行」の最適化が要る
 - E2E failure の検出が最大 24 時間遅延する（前日夜の break が翌朝発覚）。緊急修正時は `workflow_dispatch` の手動起動 + ローカル `make verify-e2e` で代替する Runbook 化が必要
-- kind cluster の CNI が Calico / 本番が Cilium（ADR-NET-001）と異なるため、ネットワーク層 fidelity 不足が L4 standard E2E では検出されない。これは ADR-TEST-003（CNCF Conformance / Sonobuoy）で別途扱うが、L4 / L5 の責務分界を `docs/governance/QUALIFY-POLICY.md` で明文化する必要
+- kind cluster の CNI が Calico / 本番が Cilium（ADR-NET-001）と異なるため、ネットワーク層 fidelity 不足が L4 standard E2E では検出されない。これは ADR-TEST-003（CNCF Conformance / Sonobuoy）で別途扱うが、L4 / L5 の責務分界を `docs/05_実装/30_CI_CD設計/30_quality_gate/02_test_layer_responsibility.md` で明文化する必要
 - `tools/local-stack/up.sh --role e2e` のメンテが起案者 / SRE に集中、`infra/environments/dev/` の overlay と整合し続ける継続コストが発生
 
 ### 移行・対応事項
@@ -228,10 +228,10 @@ cd tests/e2e && go test ./scenarios/... -v -timeout=30m
 - `tests/e2e/helpers/cluster_setup.go` で `tools/local-stack/up.sh --role e2e` の `--verify` 結果を取り込み、cluster ready の判定を実装
 - `tests/e2e/.artifacts/` のディレクトリ構造を整備し、`actions/upload-artifact` の retention-days 14 と整合
 - `Makefile` に `verify-e2e` target を追加（`tools/local-stack/up.sh --role e2e && cd tests/e2e && go test ./scenarios/... -v -timeout=30m`）
-- `docs/governance/QUALIFY-POLICY.md` を ADR-TEST-003（CNCF Conformance / Sonobuoy）起票時に同時整備し、「L4 standard E2E は kind / Calico、L5 conformance は別 cluster で本番 fidelity」の責務分界を散文で明文化
+- `docs/05_実装/30_CI_CD設計/30_quality_gate/02_test_layer_responsibility.md` を ADR-TEST-003（CNCF Conformance / Sonobuoy）起票時に同時整備し、「L4 standard E2E は kind / Calico、L5 conformance は別 cluster で本番 fidelity」の責務分界を散文で明文化
 - `tests/e2e/README.md` を本 ADR の決定に合わせて改訂（既存記述「kind cluster 上で `infra/environments/dev/` を apply」を `tools/local-stack/up.sh --role e2e` 経路に置き換え）
 - ADR-POL-002 の「帰結」セクションに「E2E 用 `--role e2e` も local-stack SoT 配下とする」を追記する relate-back 作業
-- 採用初期で nightly workflow の monthly 結果を `docs/governance/E2E-RESULTS.md` で月次サマリ公開（採用検討者向け）
+- 採用初期で nightly workflow の monthly 結果を `docs/40_運用ライフサイクル/e2e-results.md` で月次サマリ公開（採用検討者向け）
 
 ## 参考資料
 
