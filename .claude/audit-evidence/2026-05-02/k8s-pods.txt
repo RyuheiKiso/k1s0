@@ -1,94 +1,94 @@
-NAMESPACE              NAME                                                      READY   STATUS    RESTARTS       AGE     IP               NODE                       NOMINATED NODE   READINESS GATES
-argo-rollouts          argo-rollouts-7c76d4f9b9-6xmjf                            1/1     Running   1 (9h ago)     42h     10.244.144.84    k1s0-local-worker2         <none>           <none>
-argocd                 argocd-application-controller-0                           1/1     Running   0              42h     10.244.164.20    k1s0-local-worker          <none>           <none>
-argocd                 argocd-applicationset-controller-5bffd56d95-4js85         1/1     Running   0              42h     10.244.7.17      k1s0-local-worker3         <none>           <none>
-argocd                 argocd-dex-server-5bb7c954f8-g79d6                        1/1     Running   0              42h     10.244.144.82    k1s0-local-worker2         <none>           <none>
-argocd                 argocd-redis-5b898758b9-5htfn                             1/1     Running   0              42h     10.244.7.16      k1s0-local-worker3         <none>           <none>
-argocd                 argocd-repo-server-b548df69f-hrlcz                        1/1     Running   0              42h     10.244.144.83    k1s0-local-worker2         <none>           <none>
-argocd                 argocd-server-6689d68dcc-bldjl                            1/1     Running   0              42h     10.244.164.19    k1s0-local-worker          <none>           <none>
-backstage              backstage-7647bbdd9f-xsp4n                                1/1     Running   0              35h     10.244.7.27      k1s0-local-worker3         <none>           <none>
-calico-system          calico-kube-controllers-54d66d99b7-ps25r                  1/1     Running   0              42h     10.244.144.68    k1s0-local-worker2         <none>           <none>
-calico-system          calico-node-dnqrp                                         1/1     Running   0              42h     172.18.0.2       k1s0-local-worker3         <none>           <none>
-calico-system          calico-node-hk5rv                                         1/1     Running   0              42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-calico-system          calico-node-kg8wt                                         1/1     Running   0              42h     172.18.0.3       k1s0-local-worker          <none>           <none>
-calico-system          calico-node-tdwd2                                         1/1     Running   0              42h     172.18.0.5       k1s0-local-worker2         <none>           <none>
-calico-system          calico-typha-68c974df4d-jcptd                             1/1     Running   0              42h     172.18.0.3       k1s0-local-worker          <none>           <none>
-calico-system          calico-typha-68c974df4d-w54sg                             1/1     Running   0              42h     172.18.0.2       k1s0-local-worker3         <none>           <none>
-calico-system          csi-node-driver-5drdn                                     2/2     Running   0              42h     10.244.164.1     k1s0-local-worker          <none>           <none>
-calico-system          csi-node-driver-6hjtg                                     2/2     Running   0              42h     10.244.130.129   k1s0-local-control-plane   <none>           <none>
-calico-system          csi-node-driver-clpdt                                     2/2     Running   0              42h     10.244.7.2       k1s0-local-worker3         <none>           <none>
-calico-system          csi-node-driver-l5jf9                                     2/2     Running   0              42h     10.244.144.69    k1s0-local-worker2         <none>           <none>
-cert-manager           cert-manager-5485c768c6-l8r9r                             1/1     Running   44 (19m ago)   42h     10.244.144.67    k1s0-local-worker2         <none>           <none>
-cert-manager           cert-manager-cainjector-64c79cff6b-wzbcf                  1/1     Running   0              42h     10.244.144.70    k1s0-local-worker2         <none>           <none>
-cert-manager           cert-manager-webhook-5dcdc8c6fd-x6hcd                     1/1     Running   0              42h     10.244.7.3       k1s0-local-worker3         <none>           <none>
-cnpg-system            cnpg-cloudnative-pg-5bbc9865bc-6vhvg                      1/1     Running   1 (9h ago)     42h     10.244.144.85    k1s0-local-worker2         <none>           <none>
-cnpg-system            k1s0-postgres-1                                           1/1     Running   0              42h     10.244.164.23    k1s0-local-worker          <none>           <none>
-dapr-system            dapr-operator-6f5866876c-768tt                            1/1     Running   1 (9h ago)     42h     10.244.164.9     k1s0-local-worker          <none>           <none>
-dapr-system            dapr-placement-server-0                                   1/1     Running   0              42h     10.244.7.7       k1s0-local-worker3         <none>           <none>
-dapr-system            dapr-scheduler-server-0                                   1/1     Running   0              42h     10.244.144.74    k1s0-local-worker2         <none>           <none>
-dapr-system            dapr-scheduler-server-1                                   1/1     Running   0              42h     10.244.7.8       k1s0-local-worker3         <none>           <none>
-dapr-system            dapr-scheduler-server-2                                   1/1     Running   0              42h     10.244.164.11    k1s0-local-worker          <none>           <none>
-dapr-system            dapr-sentry-bb8c9778f-zws2s                               1/1     Running   0              42h     10.244.144.72    k1s0-local-worker2         <none>           <none>
-dapr-system            dapr-sidecar-injector-5f57955576-zjp6k                    1/1     Running   0              42h     10.244.164.8     k1s0-local-worker          <none>           <none>
-default                dapr-smoke-db968f9fc-fkn9z                                2/2     Running   7 (10m ago)    7h51m   10.244.7.28      k1s0-local-worker3         <none>           <none>
-default                tier1-state-5748bfcc7c-xqs8j                              2/2     Running   0              7h17m   10.244.7.39      k1s0-local-worker3         <none>           <none>
-envoy-gateway-system   envoy-gateway-5cc8d7fdfd-hp7h6                            1/1     Running   1 (9h ago)     42h     10.244.7.19      k1s0-local-worker3         <none>           <none>
-flagd                  flagd-6879b647c7-c2jwl                                    1/1     Running   0              7h21m   10.244.164.49    k1s0-local-worker          <none>           <none>
-gitops                 gitea-85799f78dd-s6hp4                                    1/1     Running   0              42h     10.244.164.24    k1s0-local-worker          <none>           <none>
-istio-system           istio-cni-node-b27g2                                      1/1     Running   0              42h     10.244.7.9       k1s0-local-worker3         <none>           <none>
-istio-system           istio-cni-node-c7z9j                                      1/1     Running   0              42h     10.244.130.130   k1s0-local-control-plane   <none>           <none>
-istio-system           istio-cni-node-kr72b                                      1/1     Running   0              42h     10.244.144.76    k1s0-local-worker2         <none>           <none>
-istio-system           istio-cni-node-srf7f                                      1/1     Running   0              42h     10.244.164.12    k1s0-local-worker          <none>           <none>
-istio-system           istiod-b5f4ff99d-cnnff                                    1/1     Running   0              42h     10.244.144.77    k1s0-local-worker2         <none>           <none>
-istio-system           ztunnel-5qs6l                                             1/1     Running   0              42h     10.244.164.13    k1s0-local-worker          <none>           <none>
-istio-system           ztunnel-cfxbd                                             1/1     Running   0              42h     10.244.7.10      k1s0-local-worker3         <none>           <none>
-istio-system           ztunnel-j6n54                                             1/1     Running   0              42h     10.244.130.131   k1s0-local-control-plane   <none>           <none>
-istio-system           ztunnel-q8qhn                                             1/1     Running   0              42h     10.244.144.78    k1s0-local-worker2         <none>           <none>
-kafka                  k1s0-kafka-dual-role-0                                    1/1     Running   0              8h      10.244.144.96    k1s0-local-worker2         <none>           <none>
-kafka                  k1s0-kafka-entity-operator-cffcc4749-d8s9t                2/2     Running   0              8h      10.244.144.97    k1s0-local-worker2         <none>           <none>
-kafka                  strimzi-cluster-operator-8549b444d7-rbvcc                 1/1     Running   0              8h      10.244.144.94    k1s0-local-worker2         <none>           <none>
-kube-system            coredns-7c65d6cfc9-5w6p7                                  1/1     Running   0              42h     10.244.144.65    k1s0-local-worker2         <none>           <none>
-kube-system            coredns-7c65d6cfc9-bw8bq                                  1/1     Running   0              42h     10.244.7.1       k1s0-local-worker3         <none>           <none>
-kube-system            etcd-k1s0-local-control-plane                             1/1     Running   0              42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-kube-system            kube-apiserver-k1s0-local-control-plane                   1/1     Running   0              42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-kube-system            kube-controller-manager-k1s0-local-control-plane          1/1     Running   1 (9h ago)     42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-kube-system            kube-proxy-bvlhw                                          1/1     Running   0              42h     172.18.0.3       k1s0-local-worker          <none>           <none>
-kube-system            kube-proxy-kglkl                                          1/1     Running   0              42h     172.18.0.5       k1s0-local-worker2         <none>           <none>
-kube-system            kube-proxy-kh86d                                          1/1     Running   0              42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-kube-system            kube-proxy-lhf5l                                          1/1     Running   0              42h     172.18.0.2       k1s0-local-worker3         <none>           <none>
-kube-system            kube-scheduler-k1s0-local-control-plane                   1/1     Running   1 (9h ago)     42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-kyverno                kyverno-admission-controller-676b5c7794-nq82f             1/1     Running   1 (9h ago)     42h     10.244.7.4       k1s0-local-worker3         <none>           <none>
-kyverno                kyverno-background-controller-6f7557887f-9fw76            1/1     Running   1 (9h ago)     42h     10.244.164.5     k1s0-local-worker          <none>           <none>
-kyverno                kyverno-cleanup-controller-5b994695df-25b6m               1/1     Running   1 (9h ago)     42h     10.244.164.6     k1s0-local-worker          <none>           <none>
-kyverno                kyverno-reports-controller-6d8f55d4bb-cn26z               1/1     Running   1 (9h ago)     42h     10.244.164.4     k1s0-local-worker          <none>           <none>
-local-path-storage     local-path-provisioner-6fdc965494-q9t7q                   1/1     Running   0              42h     10.244.144.66    k1s0-local-worker2         <none>           <none>
-metallb-system         controller-74b6dc8f85-pvbsq                               1/1     Running   0              42h     10.244.164.3     k1s0-local-worker          <none>           <none>
-metallb-system         speaker-24gj4                                             1/1     Running   0              42h     172.18.0.4       k1s0-local-control-plane   <none>           <none>
-metallb-system         speaker-qvkzs                                             1/1     Running   0              42h     172.18.0.2       k1s0-local-worker3         <none>           <none>
-metallb-system         speaker-swc5z                                             1/1     Running   0              42h     172.18.0.3       k1s0-local-worker          <none>           <none>
-metallb-system         speaker-whz86                                             1/1     Running   0              42h     172.18.0.5       k1s0-local-worker2         <none>           <none>
-minio                  minio-55476d5ffd-7bhbr                                    1/1     Running   0              42h     10.244.7.24      k1s0-local-worker3         <none>           <none>
-observability          grafana-65df85f655-mfnlx                                  1/1     Running   0              42h     10.244.164.62    k1s0-local-worker          <none>           <none>
-observability          loki-0                                                    2/2     Running   0              42h     10.244.144.99    k1s0-local-worker2         <none>           <none>
-observability          otel-collector-opentelemetry-collector-5fbc55f498-mkzww   1/1     Running   0              41h     10.244.144.93    k1s0-local-worker2         <none>           <none>
-observability          prometheus-server-6b69bd867c-2w7h2                        2/2     Running   0              42h     10.244.164.61    k1s0-local-worker          <none>           <none>
-observability          tempo-0                                                   1/1     Running   0              42h     10.244.7.41      k1s0-local-worker3         <none>           <none>
-openbao                openbao-0                                                 1/1     Running   0              42h     10.244.144.92    k1s0-local-worker2         <none>           <none>
-registry               registry-66bc56cfb4-gh9kf                                 1/1     Running   0              42h     10.244.144.81    k1s0-local-worker2         <none>           <none>
-spire-server           spire-server-0                                            2/2     Running   1 (9h ago)     42h     10.244.7.13      k1s0-local-worker3         <none>           <none>
-spire-system           spire-agent-5m9nx                                         1/1     Running   0              42h     172.18.0.5       k1s0-local-worker2         <none>           <none>
-spire-system           spire-agent-fchpx                                         1/1     Running   0              42h     172.18.0.2       k1s0-local-worker3         <none>           <none>
-spire-system           spire-agent-fsqfd                                         1/1     Running   0              42h     172.18.0.3       k1s0-local-worker          <none>           <none>
-spire-system           spire-spiffe-csi-driver-2j22q                             2/2     Running   0              42h     10.244.164.7     k1s0-local-worker          <none>           <none>
-spire-system           spire-spiffe-csi-driver-9xqk6                             2/2     Running   0              42h     10.244.7.5       k1s0-local-worker3         <none>           <none>
-spire-system           spire-spiffe-csi-driver-lqm9g                             2/2     Running   0              42h     10.244.144.71    k1s0-local-worker2         <none>           <none>
-temporal               elasticsearch-master-0                                    1/1     Running   0              42h     10.244.7.21      k1s0-local-worker3         <none>           <none>
-temporal               temporal-admintools-6b84c99564-ncs7f                      1/1     Running   0              42h     10.244.7.20      k1s0-local-worker3         <none>           <none>
-temporal               temporal-cassandra-0                                      1/1     Running   0              42h     10.244.164.26    k1s0-local-worker          <none>           <none>
-temporal               temporal-frontend-55d6cd9998-98k24                        1/1     Running   0              42h     10.244.164.27    k1s0-local-worker          <none>           <none>
-temporal               temporal-history-6f8dff7d9b-fh8pv                         1/1     Running   0              42h     10.244.144.87    k1s0-local-worker2         <none>           <none>
-temporal               temporal-matching-86c4576cb5-p785s                        1/1     Running   0              42h     10.244.7.22      k1s0-local-worker3         <none>           <none>
-temporal               temporal-web-77ffcf578d-prt84                             1/1     Running   0              42h     10.244.164.25    k1s0-local-worker          <none>           <none>
-temporal               temporal-worker-9f5fb9486-g7mlm                           1/1     Running   0              42h     10.244.164.28    k1s0-local-worker          <none>           <none>
-tigera-operator        tigera-operator-76c4976dd7-7c98h                          1/1     Running   1 (9h ago)     42h     172.18.0.2       k1s0-local-worker3         <none>           <none>
-valkey                 valkey-primary-0                                          1/1     Running   0              42h     10.244.144.91    k1s0-local-worker2         <none>           <none>
+NAMESPACE              NAME                                                      READY   STATUS    RESTARTS       AGE   IP               NODE                       NOMINATED NODE   READINESS GATES
+argo-rollouts          argo-rollouts-7c76d4f9b9-6xmjf                            1/1     Running   1 (10h ago)    43h   10.244.144.84    k1s0-local-worker2         <none>           <none>
+argocd                 argocd-application-controller-0                           1/1     Running   0              43h   10.244.164.20    k1s0-local-worker          <none>           <none>
+argocd                 argocd-applicationset-controller-5bffd56d95-4js85         1/1     Running   0              43h   10.244.7.17      k1s0-local-worker3         <none>           <none>
+argocd                 argocd-dex-server-5bb7c954f8-g79d6                        1/1     Running   0              43h   10.244.144.82    k1s0-local-worker2         <none>           <none>
+argocd                 argocd-redis-5b898758b9-5htfn                             1/1     Running   0              43h   10.244.7.16      k1s0-local-worker3         <none>           <none>
+argocd                 argocd-repo-server-b548df69f-hrlcz                        1/1     Running   0              43h   10.244.144.83    k1s0-local-worker2         <none>           <none>
+argocd                 argocd-server-6689d68dcc-bldjl                            1/1     Running   0              43h   10.244.164.19    k1s0-local-worker          <none>           <none>
+backstage              backstage-7647bbdd9f-xsp4n                                1/1     Running   0              36h   10.244.7.27      k1s0-local-worker3         <none>           <none>
+calico-system          calico-kube-controllers-54d66d99b7-ps25r                  1/1     Running   0              43h   10.244.144.68    k1s0-local-worker2         <none>           <none>
+calico-system          calico-node-dnqrp                                         1/1     Running   0              43h   172.18.0.2       k1s0-local-worker3         <none>           <none>
+calico-system          calico-node-hk5rv                                         1/1     Running   0              43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+calico-system          calico-node-kg8wt                                         1/1     Running   0              43h   172.18.0.3       k1s0-local-worker          <none>           <none>
+calico-system          calico-node-tdwd2                                         1/1     Running   0              43h   172.18.0.5       k1s0-local-worker2         <none>           <none>
+calico-system          calico-typha-68c974df4d-jcptd                             1/1     Running   0              43h   172.18.0.3       k1s0-local-worker          <none>           <none>
+calico-system          calico-typha-68c974df4d-w54sg                             1/1     Running   0              43h   172.18.0.2       k1s0-local-worker3         <none>           <none>
+calico-system          csi-node-driver-5drdn                                     2/2     Running   0              43h   10.244.164.1     k1s0-local-worker          <none>           <none>
+calico-system          csi-node-driver-6hjtg                                     2/2     Running   0              43h   10.244.130.129   k1s0-local-control-plane   <none>           <none>
+calico-system          csi-node-driver-clpdt                                     2/2     Running   0              43h   10.244.7.2       k1s0-local-worker3         <none>           <none>
+calico-system          csi-node-driver-l5jf9                                     2/2     Running   0              43h   10.244.144.69    k1s0-local-worker2         <none>           <none>
+cert-manager           cert-manager-5485c768c6-l8r9r                             1/1     Running   45 (32m ago)   43h   10.244.144.67    k1s0-local-worker2         <none>           <none>
+cert-manager           cert-manager-cainjector-64c79cff6b-wzbcf                  1/1     Running   0              43h   10.244.144.70    k1s0-local-worker2         <none>           <none>
+cert-manager           cert-manager-webhook-5dcdc8c6fd-x6hcd                     1/1     Running   0              43h   10.244.7.3       k1s0-local-worker3         <none>           <none>
+cnpg-system            cnpg-cloudnative-pg-5bbc9865bc-6vhvg                      1/1     Running   1 (10h ago)    43h   10.244.144.85    k1s0-local-worker2         <none>           <none>
+cnpg-system            k1s0-postgres-1                                           1/1     Running   0              43h   10.244.164.23    k1s0-local-worker          <none>           <none>
+dapr-system            dapr-operator-6f5866876c-768tt                            1/1     Running   1 (10h ago)    43h   10.244.164.9     k1s0-local-worker          <none>           <none>
+dapr-system            dapr-placement-server-0                                   1/1     Running   0              43h   10.244.7.7       k1s0-local-worker3         <none>           <none>
+dapr-system            dapr-scheduler-server-0                                   1/1     Running   0              43h   10.244.144.74    k1s0-local-worker2         <none>           <none>
+dapr-system            dapr-scheduler-server-1                                   1/1     Running   0              43h   10.244.7.8       k1s0-local-worker3         <none>           <none>
+dapr-system            dapr-scheduler-server-2                                   1/1     Running   0              43h   10.244.164.11    k1s0-local-worker          <none>           <none>
+dapr-system            dapr-sentry-bb8c9778f-zws2s                               1/1     Running   0              43h   10.244.144.72    k1s0-local-worker2         <none>           <none>
+dapr-system            dapr-sidecar-injector-5f57955576-zjp6k                    1/1     Running   0              43h   10.244.164.8     k1s0-local-worker          <none>           <none>
+default                dapr-smoke-db968f9fc-fkn9z                                2/2     Running   8 (7m5s ago)   8h    10.244.7.28      k1s0-local-worker3         <none>           <none>
+default                tier1-state-5748bfcc7c-xqs8j                              2/2     Running   0              8h    10.244.7.39      k1s0-local-worker3         <none>           <none>
+envoy-gateway-system   envoy-gateway-5cc8d7fdfd-hp7h6                            1/1     Running   1 (10h ago)    43h   10.244.7.19      k1s0-local-worker3         <none>           <none>
+flagd                  flagd-6879b647c7-c2jwl                                    1/1     Running   0              8h    10.244.164.49    k1s0-local-worker          <none>           <none>
+gitops                 gitea-85799f78dd-s6hp4                                    1/1     Running   0              43h   10.244.164.24    k1s0-local-worker          <none>           <none>
+istio-system           istio-cni-node-b27g2                                      1/1     Running   0              43h   10.244.7.9       k1s0-local-worker3         <none>           <none>
+istio-system           istio-cni-node-c7z9j                                      1/1     Running   0              43h   10.244.130.130   k1s0-local-control-plane   <none>           <none>
+istio-system           istio-cni-node-kr72b                                      1/1     Running   0              43h   10.244.144.76    k1s0-local-worker2         <none>           <none>
+istio-system           istio-cni-node-srf7f                                      1/1     Running   0              43h   10.244.164.12    k1s0-local-worker          <none>           <none>
+istio-system           istiod-b5f4ff99d-cnnff                                    1/1     Running   0              43h   10.244.144.77    k1s0-local-worker2         <none>           <none>
+istio-system           ztunnel-5qs6l                                             1/1     Running   0              43h   10.244.164.13    k1s0-local-worker          <none>           <none>
+istio-system           ztunnel-cfxbd                                             1/1     Running   0              43h   10.244.7.10      k1s0-local-worker3         <none>           <none>
+istio-system           ztunnel-j6n54                                             1/1     Running   0              43h   10.244.130.131   k1s0-local-control-plane   <none>           <none>
+istio-system           ztunnel-q8qhn                                             1/1     Running   0              43h   10.244.144.78    k1s0-local-worker2         <none>           <none>
+kafka                  k1s0-kafka-dual-role-0                                    1/1     Running   0              9h    10.244.144.96    k1s0-local-worker2         <none>           <none>
+kafka                  k1s0-kafka-entity-operator-cffcc4749-d8s9t                2/2     Running   0              9h    10.244.144.97    k1s0-local-worker2         <none>           <none>
+kafka                  strimzi-cluster-operator-8549b444d7-rbvcc                 1/1     Running   0              9h    10.244.144.94    k1s0-local-worker2         <none>           <none>
+kube-system            coredns-7c65d6cfc9-5w6p7                                  1/1     Running   0              43h   10.244.144.65    k1s0-local-worker2         <none>           <none>
+kube-system            coredns-7c65d6cfc9-bw8bq                                  1/1     Running   0              43h   10.244.7.1       k1s0-local-worker3         <none>           <none>
+kube-system            etcd-k1s0-local-control-plane                             1/1     Running   0              43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+kube-system            kube-apiserver-k1s0-local-control-plane                   1/1     Running   0              43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+kube-system            kube-controller-manager-k1s0-local-control-plane          1/1     Running   1 (10h ago)    43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+kube-system            kube-proxy-bvlhw                                          1/1     Running   0              43h   172.18.0.3       k1s0-local-worker          <none>           <none>
+kube-system            kube-proxy-kglkl                                          1/1     Running   0              43h   172.18.0.5       k1s0-local-worker2         <none>           <none>
+kube-system            kube-proxy-kh86d                                          1/1     Running   0              43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+kube-system            kube-proxy-lhf5l                                          1/1     Running   0              43h   172.18.0.2       k1s0-local-worker3         <none>           <none>
+kube-system            kube-scheduler-k1s0-local-control-plane                   1/1     Running   1 (10h ago)    43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+kyverno                kyverno-admission-controller-676b5c7794-nq82f             1/1     Running   1 (10h ago)    43h   10.244.7.4       k1s0-local-worker3         <none>           <none>
+kyverno                kyverno-background-controller-6f7557887f-9fw76            1/1     Running   1 (10h ago)    43h   10.244.164.5     k1s0-local-worker          <none>           <none>
+kyverno                kyverno-cleanup-controller-5b994695df-25b6m               1/1     Running   1 (10h ago)    43h   10.244.164.6     k1s0-local-worker          <none>           <none>
+kyverno                kyverno-reports-controller-6d8f55d4bb-cn26z               1/1     Running   1 (10h ago)    43h   10.244.164.4     k1s0-local-worker          <none>           <none>
+local-path-storage     local-path-provisioner-6fdc965494-q9t7q                   1/1     Running   0              43h   10.244.144.66    k1s0-local-worker2         <none>           <none>
+metallb-system         controller-74b6dc8f85-pvbsq                               1/1     Running   0              43h   10.244.164.3     k1s0-local-worker          <none>           <none>
+metallb-system         speaker-24gj4                                             1/1     Running   0              43h   172.18.0.4       k1s0-local-control-plane   <none>           <none>
+metallb-system         speaker-qvkzs                                             1/1     Running   0              43h   172.18.0.2       k1s0-local-worker3         <none>           <none>
+metallb-system         speaker-swc5z                                             1/1     Running   0              43h   172.18.0.3       k1s0-local-worker          <none>           <none>
+metallb-system         speaker-whz86                                             1/1     Running   0              43h   172.18.0.5       k1s0-local-worker2         <none>           <none>
+minio                  minio-55476d5ffd-7bhbr                                    1/1     Running   0              43h   10.244.7.24      k1s0-local-worker3         <none>           <none>
+observability          grafana-65df85f655-mfnlx                                  1/1     Running   0              43h   10.244.164.62    k1s0-local-worker          <none>           <none>
+observability          loki-0                                                    2/2     Running   0              43h   10.244.144.99    k1s0-local-worker2         <none>           <none>
+observability          otel-collector-opentelemetry-collector-5fbc55f498-mkzww   1/1     Running   0              43h   10.244.144.93    k1s0-local-worker2         <none>           <none>
+observability          prometheus-server-6b69bd867c-2w7h2                        2/2     Running   0              43h   10.244.164.61    k1s0-local-worker          <none>           <none>
+observability          tempo-0                                                   1/1     Running   0              43h   10.244.7.41      k1s0-local-worker3         <none>           <none>
+openbao                openbao-0                                                 1/1     Running   0              43h   10.244.144.92    k1s0-local-worker2         <none>           <none>
+registry               registry-66bc56cfb4-gh9kf                                 1/1     Running   0              43h   10.244.144.81    k1s0-local-worker2         <none>           <none>
+spire-server           spire-server-0                                            2/2     Running   1 (10h ago)    43h   10.244.7.13      k1s0-local-worker3         <none>           <none>
+spire-system           spire-agent-5m9nx                                         1/1     Running   0              43h   172.18.0.5       k1s0-local-worker2         <none>           <none>
+spire-system           spire-agent-fchpx                                         1/1     Running   0              43h   172.18.0.2       k1s0-local-worker3         <none>           <none>
+spire-system           spire-agent-fsqfd                                         1/1     Running   0              43h   172.18.0.3       k1s0-local-worker          <none>           <none>
+spire-system           spire-spiffe-csi-driver-2j22q                             2/2     Running   0              43h   10.244.164.7     k1s0-local-worker          <none>           <none>
+spire-system           spire-spiffe-csi-driver-9xqk6                             2/2     Running   0              43h   10.244.7.5       k1s0-local-worker3         <none>           <none>
+spire-system           spire-spiffe-csi-driver-lqm9g                             2/2     Running   0              43h   10.244.144.71    k1s0-local-worker2         <none>           <none>
+temporal               elasticsearch-master-0                                    1/1     Running   0              43h   10.244.7.21      k1s0-local-worker3         <none>           <none>
+temporal               temporal-admintools-6b84c99564-ncs7f                      1/1     Running   0              43h   10.244.7.20      k1s0-local-worker3         <none>           <none>
+temporal               temporal-cassandra-0                                      1/1     Running   0              43h   10.244.164.26    k1s0-local-worker          <none>           <none>
+temporal               temporal-frontend-55d6cd9998-98k24                        1/1     Running   0              43h   10.244.164.27    k1s0-local-worker          <none>           <none>
+temporal               temporal-history-6f8dff7d9b-fh8pv                         1/1     Running   0              43h   10.244.144.87    k1s0-local-worker2         <none>           <none>
+temporal               temporal-matching-86c4576cb5-p785s                        1/1     Running   0              43h   10.244.7.22      k1s0-local-worker3         <none>           <none>
+temporal               temporal-web-77ffcf578d-prt84                             1/1     Running   0              43h   10.244.164.25    k1s0-local-worker          <none>           <none>
+temporal               temporal-worker-9f5fb9486-g7mlm                           1/1     Running   0              43h   10.244.164.28    k1s0-local-worker          <none>           <none>
+tigera-operator        tigera-operator-76c4976dd7-7c98h                          1/1     Running   1 (10h ago)    43h   172.18.0.2       k1s0-local-worker3         <none>           <none>
+valkey                 valkey-primary-0                                          1/1     Running   0              43h   10.244.144.91    k1s0-local-worker2         <none>           <none>

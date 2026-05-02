@@ -1,4 +1,4 @@
-# fr 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T17:08:51+09:00)
+# fr 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T18:12:48+09:00)
 # 走査: docs/03_要件定義, パターン: FR-T1-[A-Z]+-[0-9]+
 # 列挙 ID 数: 50
 # 走査範囲: docs / impl(src infra deploy tools examples) / tests(tests + src 内 test ファイル)

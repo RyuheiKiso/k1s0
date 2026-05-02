@@ -1,6 +1,6 @@
-# adr 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T17:58:38+09:00)
+# adr 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T18:46:22+09:00)
 # 走査: docs/02_構想設計/adr, パターン: ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)
-# 列挙 ID 数: 46
+# 列挙 ID 数: 47
 # 走査範囲: docs / impl(src infra deploy tools examples) / tests(tests + src 内 test ファイル)
 # SHIP_STATUS 動作証跡: docs/SHIP_STATUS.md 内で検証済 / 実機 / round-trip 等のキーワード共起
 # 判定列は空欄。Claude は分類材料のみ提示、PASS / PARTIAL / FAIL の判定は人間が AUDIT.md で行う
@@ -10,8 +10,8 @@ id | docs_refs | impl_refs | test_refs | ship_verified_kw | classification_mater
 ADR-0001 | 62 | 4 | 1 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-0002 | 30 | 0 | 1 | 19 | docs-only (impl 不在)
 ADR-0003 | 78 | 1 | 1 | 19 | 3-stage-candidate (docs+impl+evidence)
-ADR-BS-001 | 47 | 11 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
-ADR-CICD-001 | 55 | 27 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
+ADR-BS-001 | 48 | 11 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
+ADR-CICD-001 | 56 | 27 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-CICD-002 | 32 | 20 | 0 | 2 | 3-stage-candidate (docs+impl+evidence)
 ADR-CICD-003 | 61 | 4 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-CNCF-001 | 11 | 2 | 0 | 0 | 2-stage (docs+impl, no test/ship evidence)
@@ -32,9 +32,10 @@ ADR-INFRA-001 | 9 | 2 | 0 | 0 | 2-stage (docs+impl, no test/ship evidence)
 ADR-MIG-001 | 25 | 6 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-MIG-002 | 18 | 12 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-NET-001 | 9 | 5 | 0 | 0 | 2-stage (docs+impl, no test/ship evidence)
-ADR-OBS-001 | 50 | 13 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
+ADR-OBS-001 | 51 | 13 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-OBS-002 | 25 | 6 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
-ADR-OBS-003 | 18 | 1 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
+ADR-OBS-003 | 19 | 1 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
+ADR-OPS-001 | 5 | 0 | 1 | 0 | docs-only (impl 不在)
 ADR-POL-001 | 20 | 14 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-POL-002 | 9 | 31 | 0 | 2 | 3-stage-candidate (docs+impl+evidence)
 ADR-REL-001 | 19 | 2 | 0 | 2 | 3-stage-candidate (docs+impl+evidence)
@@ -56,11 +57,11 @@ ADR-TIER3-003 | 7 | 1 | 0 | 0 | 2-stage (docs+impl, no test/ship evidence)
 
 # ADR orphan 検出
 # code-orphan (コード参照あり ∩ ADR ファイル無し): 0 件
-# docs-orphan (docs 引用あり ∩ ADR ファイル無し): 41 件
+# docs-orphan (docs 引用あり ∩ ADR ファイル無し): 40 件
 # code-orphan 詳細: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-02/orphans-adr.txt
 # docs-orphan 詳細: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-02/docs-orphans-adr.txt
 
 ## 分類別集計
 -       9 2-stage (docs+impl, no test/ship evidence)
 -      34 3-stage-candidate (docs+impl+evidence)
--       3 docs-only (impl 不在)
+-       4 docs-only (impl 不在)

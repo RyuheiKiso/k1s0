@@ -350,6 +350,28 @@ else
   check "coverage-adr docs-only に cite-only orphan 混入: ${contaminated_ids} (Test 14/18 と同根の grep 逆戻り)" 1
 fi
 
+# === Test 21: PR-A-1 で起票した ADR-OPS-001 が docs-orphan から外れている ===
+# 不変式: 2026-05-02 の docs-orphan 41 件のうち ADR-OPS-001 (Runbook 標準化) は
+#         本 commit で新規 ADR 起票により解消済。docs-orphans-adr.txt に登場しないこと。
+#   失敗時:
+#     (a) ADR ファイル ADR-OPS-001-runbook-standardization.md が削除された → ADR 復活が必要
+#     (b) docs/ 走査範囲が変わり cite が見えなくなった → coverage.sh の docs orphan セクション確認
+#     (c) ファイル名 regex がマッチせず ID 抽出失敗 → coverage.sh L42 / 222 の正規表現確認
+echo
+echo "--- Test 21: ADR-OPS-001 起票による docs-orphan 解消 ---"
+adr_ops_file="${REPO_ROOT}/docs/02_構想設計/adr/ADR-OPS-001-runbook-standardization.md"
+docs_orphans="${EVIDENCE_DIR}/docs-orphans-adr.txt"
+if [[ -f "${adr_ops_file}" ]]; then
+  check "ADR-OPS-001 ファイル存在" 0
+else
+  check "ADR-OPS-001 ファイル不在 (削除 regression)" 1
+fi
+if grep -q "^ADR-OPS-001$" "${docs_orphans}" 2>/dev/null; then
+  check "ADR-OPS-001 が docs-orphan に再出現 (起票解消の regression)" 1
+else
+  check "docs-orphan に ADR-OPS-001 なし (PR-A-1 起票で解消維持)" 0
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

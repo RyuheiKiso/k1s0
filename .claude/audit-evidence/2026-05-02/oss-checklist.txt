@@ -1,4 +1,4 @@
-# OSS 完成度チェックリスト (生成: 2026-05-02T17:29:39+09:00)
+# OSS 完成度チェックリスト (生成: 2026-05-02T18:33:18+09:00)
 # 採点基準: OSSF Scorecard / CNCF Sandbox / OpenSSF Best Practices Badge
 # 判定値: Met / Unmet / Unknown(public repo + scorecard-cli が前提) / N/A
 
@@ -107,8 +107,8 @@
 
 ## Maintained (Scorecard 項目) - git log 直近 30 日 / 90 日
 
-- commits_last_30_days: 750
-- commits_last_90_days: 1684 (Scorecard Maintained 閾値)
+- commits_last_30_days: 752
+- commits_last_90_days: 1686 (Scorecard Maintained 閾値)
 - unique_contributors_all_time: 3
 - [Maintained] Met (90 日以内に commit あり)
 
