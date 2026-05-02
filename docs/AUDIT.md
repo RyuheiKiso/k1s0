@@ -25,11 +25,11 @@
 - 「採用検討者が信頼できる水準」は OSSF Scorecard 7/10 + CNCF Sandbox 最低要件 + OpenSSF Best Practices Passing の合算で判定する。**「完璧」は到達不能な目標として採らない**
 - 生証跡 `.claude/audit-evidence/<date>/` は **git 管理対象**。再生成なしに第三者が AUDIT.md の主張を verify できる
 
-## サマリ（最新実行: 2026-05-02 #7）
+## サマリ（最新実行: 2026-05-02 #8）
 
 | 軸 | 判定材料（数値・走査範囲） | 主な変化 |
 |---|---|---|
-| **A 網羅** | ADR **49**（ファイル 46 + cite-only 3）/ **code-orphan 0 / docs-orphan 41** / 実装参照 0 件 **3 件**（ADR-0002 規約 / DEP-001 / DX-001） ・ FR 50 / 3-stage 22 (44%) ・ NFR 155 / coverage 3-stage 8 (5%) → trace **reach 140 (90%)** / unreached 15 ・ DS 1416 / coverage 3-stage 16 (1%) → trace **reach 1168 (82%)** / unreached 248 ・ IMP 718 / coverage 3-stage 1 (0.1%) → trace **reach 712 (99%)** / unreached 6 | 同一値で再現性確認、ADR ID 内訳の表記精度向上（ファイル 46 + cite-only 3 = 49 を明示） |
+| **A 網羅** | ADR **46**（ファイル ↔ ID 1:1）/ **code-orphan 0 / docs-orphan 41** / 実装参照 0 件 **3 件**（ADR-0002 規約 / DEP-001 / DX-001） ・ FR 50 / 3-stage 22 (44%) ・ NFR 155 / coverage 3-stage 8 (5%) → trace **reach 140 (90%)** / unreached 15 ・ DS 1416 / coverage 3-stage 16 (1%) → trace **reach 1168 (82%)** / unreached 248 ・ IMP 718 / coverage 3-stage 1 (0.1%) → trace **reach 712 (99%)** / unreached 6 | **coverage.sh ADR ID 列挙を「adr/ 配下 grep」から「ファイル名抽出」に構造修正**（ID 数 49 → 46、cite-only 3 件 DEV-003/DIR-004/SUP-002 が docs-only に誤分類されていた #7 発覚 bug を解消、以後 ids-adr.txt は ADR ファイルと厳密 1:1）。docs-only 6 → 3、その他は不変 |
 | **B 手抜き** | **1237 ファイル走査** / 22 パターン / 真の手抜き **0 件** / 許容残置 2 件 (false-positive、コメント内擬似コード) / gitkeep-only ディレクトリ 23 件中 documented **9** / undocumented **14** | 同一値で再現性確認、本文側 (B 軸セクション) の旧表記「1236 ファイル」を 1237 に統一 |
 | **C k8s** | local cluster (`kind-k1s0-local`) / 36 namespaces / **93 Running / 93 total = 100%** ・ production-equivalent (managed K8s) 検証: **未実施 (保留)** | 同一値で再現性確認 |
 | **D OSS** | Met **31** / Unmet **0** / Unknown 3 (Branch-Protection / Code-Review / Vulnerabilities — 全て public 化 + scorecard-cli 必須) ・ CII Best Practices Passing 17 項目: 機械判定 Met **10** / Manual-Required 5 / Unmet 0 ・ Dangerous-Workflow **Met** (危険な pull_request_target + PR HEAD checkout 0 件) ・ 直近 30 日 **750 commits** / 90 日 **1684 commits** | 再現性確認、commit 数の自然増（30 日 745→750 / 90 日 1679→1684） |
@@ -38,15 +38,15 @@
 
 ## A 軸: 要求網羅
 
-### A-1: ADR 監査（49 件）
+### A-1: ADR 監査（46 件）
 
 | 状態 | 件数 | 詳細 |
 |---|---|---|
-| 計上 ADR ファイル | **46** | docs/02_構想設計/adr/ 配下（実体 .md 数） |
-| 計上 ADR ID（coverage） | **49** | ADR ファイル 46 件（旧形式 4 桁通し番号 3 件 ADR-0001/0002/0003 + 新形式カテゴリ別 43 件）+ cite-only 3 件（DEV-003 / DIR-004 / SUP-002、`docs/02_構想設計/adr/` 配下の他 ADR 本文・README から引用されているが ADR ファイル不在 → docs-orphan に同時計上）= 49。2026-05-02 #6 で regex 拡張により旧形式 3 件を初検出、#7 で内訳の表記精度を訂正（旧記述「新形式 46 件」は ADR ファイル総数 46 を流用した誤記） |
+| 計上 ADR ファイル | **46** | docs/02_構想設計/adr/ 配下（実体 .md 数）— 旧形式 4 桁通し番号 3 件（ADR-0001/0002/0003）+ 新形式カテゴリ別 43 件 |
+| 計上 ADR ID（coverage） | **46** | ADR ファイルから抽出（ファイル ↔ ID 1:1）。#8 で coverage.sh の ADR ID 列挙を「adr/ 配下 grep」から「ファイル名抽出」に構造修正、cite-only ID（README や他 ADR から引用されているが ADR ファイル不在）は本行に混入させず docs-orphan 行で別途集計（過去の grep ベース列挙では 49 件、cite-only 3 件 DEV-003/DIR-004/SUP-002 が「docs-only (impl 不在)」に誤分類されていた） |
 | 実装参照あり ADR | **43** | コードから ID で参照されているもの（3-stage 34 + 2-stage 9） |
 | **code-orphan**（コード参照あり / ADR 不在） | **0** | 過去 11 → 8 → 0、3 件統合 + 8 件新規起票で全件解消 |
-| **docs-orphan**（docs 引用あり / ADR 不在、2026-05-02 #6 新設検出） | **41** | docs/ 全体走査で発見、過去のリファクタで ID を docs に残したまま ADR を統合 / 削除 / 改名した形跡。詳細は下記 #### docs-orphan 41 件 |
+| **docs-orphan**（docs 引用あり / ADR 不在、2026-05-02 #6 新設検出） | **41** | docs/ 全体走査で発見、過去のリファクタで ID を docs に残したまま ADR を統合 / 削除 / 改名した形跡。詳細は下記 #### docs-orphan 41 件。再分類済の DEV-003 / DIR-004 / SUP-002 はここに残置（regression test Test 19 で監視） |
 | **実装参照 0 件**（ADR 起票済 / コード未参照） | **3** | ADR-0002（規約系）/ ADR-DEP-001（Renovate）/ ADR-DX-001（DX メトリクス）。詳細は下記 |
 
 #### 解消済み統合（過去）
@@ -130,7 +130,7 @@
 | NFR-* | 155 | 8 (5%) | 5 (3%) | 142 (92%) | 2026-05-02 #6 |
 | DS-* | 1416 | 16 (1%) | 11 (1%) | 1389 (98%) | 2026-05-02 #6 |
 | IMP-* | 718 | 1 (0.1%) | 58 (8%) | 659 (92%) | 2026-05-02 #6 |
-| ADR-* | **49** | **34 (69%)** | 9 (18%) | **6 (12%)** | 2026-05-02 #6 |
+| ADR-* | **46** | **34 (74%)** | 9 (20%) | **3 (7%)** | 2026-05-02 #8 |
 
 #### trace 結果（NFR / DS / IMP の間接 reach 補正）
 
@@ -429,3 +429,4 @@ local kind PASS は production PASS の代理にならない。以下が product
 | 2026-05-02 (#5) | 構造改善 — 信頼性の確立 | **Claude 記入 PASS を AUDIT.md から全削除**（protocol 違反の自己解消）/ **生証跡を git 管理化**（第三者 verify 可能）/ **trace.sh 軸新設**（NFR/DS/IMP の間接 reach、reach 90%/81%/98%）/ **k8s.sh kind/production 分離**（cluster_class 明示）/ **slack.sh gitkeep 整合自動検査**（documented 9 / undocumented 14）/ **oss.sh CII + Dangerous-Workflow ローカル採点**（Met 20 → 31 / Unknown 4 → 3）/ **trace.sh 350× 高速化**（batch grep）/ **audit-protocol skill 厳格化**（自己点検 12 項目） |
 | 2026-05-02 (#6) | 監査ツール側バグ 2 件解消 — 信頼性の更なる強化 | **ADR ID_REGEX 旧形式取りこぼし解消**（`ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)` 拡張、ADR-0001/0002/0003 を初検出、ID 数 46 → 49）/ **docs-side ADR orphan 検出機能新設**（41 件発覚、過去のリファクタで ID を docs に残したまま ADR を統合 / 削除 / 改名した形跡）/ **AUDIT.md「実装参照 0 件 5 件」を再分類**（DEV-003 / DIR-004 / SUP-002 を docs-orphan に振り替え、真の impl 不在は 3 件）/ **coverage.sh self-detection 不具合解消**（`--exclude-dir=audit`）/ **判定基準正典 audit_criteria.md / audit-protocol skill に orphan 2 系統 (code/docs) 明記** / **regression test 4 件追加** (Test 13-16) / trace 数値補正: DS reach 1148 → **1168 (82%)**, IMP reach 705 → **712 (99%)**（ADR-0001/2/3 が cocited 経路に追加されたため） |
 | 2026-05-02 (#7) | 再現性確認 + 既存不整合の訂正 | **`/audit all` 再実行で全軸の決定論的動作を確認**（commit 数 30/90 日 = 745→750 / 1679→1684 の自然増以外、全数値が #6 と完全一致）/ **AUDIT.md 内既存不整合 2 件訂正**: ① ADR ID 内訳の表記精度（L46「新形式 46 件」→ ADR ファイル 46 件 (旧 3 + 新 43) + cite-only 3 件 = 49 を明示、ファイル総数 46 を新形式 ID 数として誤って流用していた）／ ② B 軸セクション本文の走査範囲（L167 / L186「1236 ファイル」→ 1237 に統一、サマリ L33 と証跡 `slack-scope.txt` の `total_files: 1237` に整合）/ **regression test 1 件追加**（`tests/audit/test_audit_lib.sh` Test 17 — AUDIT.md 内の走査範囲数値が `slack-scope.txt` の `total_files` に整合する不変式、再発防止）/ 真の手抜き 0 / code-orphan 0 / docs-orphan 41 / kind 100% Running を継続維持 |
+| 2026-05-02 (#8) | coverage.sh の ADR ID 列挙を構造修正 — semantic 混在の解消 | **`tools/audit/lib/coverage.sh` の ADR ID 列挙ロジック修正**（adr/ 配下 grep → ADR ファイル名抽出、ID 数 49 → **46**、ファイル ↔ ID 1:1 厳密化）/ 過去 (~#7) の grep ベース列挙では cite-only 3 件 (DEV-003 / DIR-004 / SUP-002) が ids-adr.txt に混入し、coverage の分類で「docs-only (impl 不在)」と誤判定されていた（実態は ADR ファイル不在 = docs-orphan、概念混在）。本修正により `coverage-adr.txt` の docs-only が **6 → 3** に収束（ADR-0002 規約 / DEP-001 / DX-001 のみ、AUDIT.md narrative の手動再分類が不要に）/ docs-orphan 41 件 / code-orphan 0 件は不変、再分類済 ID は引き続き `docs-orphans-adr.txt` に登場 / **regression test 4 件追加・更新** (`tests/audit/test_audit_lib.sh` Test 14 を 1:1 厳密等号に強化、Test 18 ids-adr ↔ ADR file per-ID 検査、Test 19 docs-orphan に DEV-003/DIR-004/SUP-002 残存検査、Test 20 docs-only に cite-only orphan 混入なし — 計 31 assertion 全 PASS) / trace 数値（NFR/DS/IMP reach）は ADR ファイル集合不変のため影響なし、k8s / OSS / B 軸も不変 |

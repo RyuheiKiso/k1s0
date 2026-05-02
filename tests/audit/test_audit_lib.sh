@@ -193,18 +193,24 @@ for old in ADR-0001 ADR-0002 ADR-0003; do
   fi
 done
 
-# === Test 14: ids-adr.txt が ADR ファイル数と整合 ===
-# 不変式: 新規 ADR ファイルを 1 つ追加したら ids-adr.txt が必ず +1 される。
-#         adr/ 配下の自己参照 ID も含まれるので id_count >= file_count を assert。
+# === Test 14: ids-adr.txt が ADR ファイル数と完全一致 (1:1 不変式) ===
+# 不変式: ADR ファイル ↔ ids-adr.txt の ID 集合は 1:1 対応。
+#   PR-B (#8) で coverage.sh の ADR ID 列挙を「adr/ 配下 grep」から「ファイル名抽出」に変更。
+#   過去 (~#7): grep 列挙だと cite-only ID (DEV-003 / DIR-004 / SUP-002) が混入し
+#               id_count = file_count + cite-only count となっていた (49 vs 46)。
+#   現在: 厳密等号で 1:1 対応を強制。新規 ADR ファイル 1 件追加で id_count も +1 される。
+# 失敗時の調査:
+#   (a) adr/ 配下に ADR-* 命名規則外のファイルが追加された → 命名 or regex 確認
+#   (b) coverage.sh の ADR ID 列挙が grep に逆戻り → ls + grep -oE でファイル名抽出か確認
 echo
-echo "--- Test 14: coverage.sh ADR ID 列挙完全性 ---"
+echo "--- Test 14: coverage.sh ADR ID 列挙 1:1 完全性 ---"
 adr_file_count=$(ls "${REPO_ROOT}/docs/02_構想設計/adr/ADR-"*.md 2>/dev/null | wc -l | tr -d ' ')
 adr_id_count=$(wc -l < "${adr_ids}" 2>/dev/null | tr -d ' ')
 adr_id_count="${adr_id_count:-0}"
-if [[ "${adr_id_count}" -ge "${adr_file_count}" ]]; then
-  check "ids-adr.txt count ${adr_id_count} >= ADR file count ${adr_file_count}" 0
+if [[ "${adr_id_count}" -eq "${adr_file_count}" ]]; then
+  check "ids-adr.txt count == ADR file count (${adr_id_count} == ${adr_file_count}, 1:1 不変式)" 0
 else
-  check "ids-adr.txt count ${adr_id_count} >= ADR file count ${adr_file_count}" 1
+  check "ids-adr.txt count != ADR file count (${adr_id_count} vs ${adr_file_count}、cite-only 混入 regression)" 1
 fi
 
 # === Test 15: coverage.sh docs-side orphan 検出 ===
@@ -273,6 +279,75 @@ if [[ -f "${audit_md}" && -f "${scope_file}" ]]; then
   fi
 else
   check "Test 17 前提ファイル存在 (AUDIT.md / slack-scope.txt)" 1
+fi
+
+# === Test 18: ids-adr.txt の各 ID に対応する ADR ファイルが必ず存在する ===
+# 不変式: ids-adr.txt の任意の ID `${id}` について `${id}-*.md` が adr/ 配下に存在。
+#   Test 14 (count 一致) を補強する individual-level の検査。
+#   count が偶然一致しても集合が一致しないケース（A 1 件抜け + B 1 件混入）を捕捉。
+echo
+echo "--- Test 18: ids-adr.txt と ADR ファイルの集合一致 (per-ID 検査) ---"
+all_present=0
+missing_ids=""
+while IFS= read -r id; do
+  [[ -z "${id}" ]] && continue
+  if ! ls "${REPO_ROOT}/docs/02_構想設計/adr/${id}-"*.md >/dev/null 2>&1 \
+     && ! ls "${REPO_ROOT}/docs/02_構想設計/adr/${id}.md" >/dev/null 2>&1; then
+    all_present=1
+    missing_ids="${missing_ids} ${id}"
+  fi
+done < "${adr_ids}"
+if [[ "${all_present}" -eq 0 ]]; then
+  check "ids-adr.txt 全 ID が adr/ にファイル存在 (cite-only 混入 regression)" 0
+else
+  check "ids-adr.txt に ADR ファイル不在の ID あり: ${missing_ids} (cite-only 混入 regression)" 1
+fi
+
+# === Test 19: docs-orphans-adr.txt に再分類済の cite-only ID が含まれる ===
+# 不変式: 過去 (#6 / #7) に「実装参照 0 件」から docs-orphan に再分類した
+#         ADR-DEV-003 / ADR-DIR-004 / ADR-SUP-002 の 3 件は docs-orphan に登場し続ける。
+#   失敗時:
+#     (a) これらの ID が新規に ADR 起票された → docs-orphan から外れて ids-adr.txt に
+#         移動、test 修正と AUDIT.md 解消済セクション追記が必要
+#     (b) docs 全体走査が壊れた → coverage.sh の docs-orphan セクション確認
+echo
+echo "--- Test 19: docs-orphan の再分類 ID 残存検査 ---"
+docs_orphans="${EVIDENCE_DIR}/docs-orphans-adr.txt"
+for orphan_id in ADR-DEV-003 ADR-DIR-004 ADR-SUP-002; do
+  if grep -q "^${orphan_id}$" "${docs_orphans}" 2>/dev/null; then
+    check "docs-orphan に ${orphan_id} 含有 (#6/#7 再分類維持)" 0
+  else
+    if ls "${REPO_ROOT}/docs/02_構想設計/adr/${orphan_id}-"*.md >/dev/null 2>&1; then
+      # ADR ファイル新規起票で解消済 → 良い変化、AUDIT.md 解消済記載が必要
+      echo "  NOTE: ${orphan_id} は ADR ファイル起票で解消済。AUDIT.md 解消済セクションを更新せよ"
+      check "docs-orphan に ${orphan_id} 含有 (#6/#7 再分類維持) — ADR 起票で解消" 0
+    else
+      check "docs-orphan に ${orphan_id} なし (docs/ 全体走査破損 regression)" 1
+    fi
+  fi
+done
+
+# === Test 20: coverage-adr.txt の docs-only に cite-only orphan が混入していない ===
+# 過去 bug (#7 で発覚): adr/ 配下を grep で ID 列挙していたため、cite-only の DEV-003 等が
+#   ids-adr.txt に混入し、coverage の分類で「docs-only (impl 不在)」と誤分類されていた。
+#   実態は ADR ファイル不在 = docs-orphan で、概念が異なる。
+# 不変式: coverage-adr.txt の docs-only 行に DEV-003 / DIR-004 / SUP-002 が含まれない。
+#   失敗時: coverage.sh の ADR ID 列挙が grep に逆戻り、Test 14 / Test 18 と同根
+echo
+echo "--- Test 20: coverage-adr docs-only に cite-only orphan が混入していない ---"
+cov_adr="${EVIDENCE_DIR}/coverage-adr.txt"
+contaminated=0
+contaminated_ids=""
+for orphan_id in ADR-DEV-003 ADR-DIR-004 ADR-SUP-002; do
+  if awk -F'|' -v id="${orphan_id}" '$1 ~ id && /docs-only/ {found=1} END {exit !found}' "${cov_adr}" 2>/dev/null; then
+    contaminated=1
+    contaminated_ids="${contaminated_ids} ${orphan_id}"
+  fi
+done
+if [[ "${contaminated}" -eq 0 ]]; then
+  check "coverage-adr docs-only に cite-only orphan なし (誤分類 regression)" 0
+else
+  check "coverage-adr docs-only に cite-only orphan 混入: ${contaminated_ids} (Test 14/18 と同根の grep 逆戻り)" 1
 fi
 
 # === 集計 ===

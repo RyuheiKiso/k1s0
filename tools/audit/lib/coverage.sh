@@ -55,8 +55,20 @@ IDS_OUT="${EVIDENCE_DIR}/ids-${KIND}.txt"
 COVERAGE_OUT="${EVIDENCE_DIR}/coverage-${KIND}.txt"
 
 # docs 内 ID 列挙
+# ADR は「ADR ファイル ↔ ID の 1:1 対応」を不変式とする（ファイル名から抽出）。
+# 過去 bug (#7 で発覚): adr/ 配下を grep で列挙していたため、README.md や他 ADR
+# から cite された存在しない ID (例: DEV-003 / DIR-004 / SUP-002) が混入し、
+# coverage-adr.txt で「docs-only (impl 不在)」と誤分類されていた（実態は ADR ファイル
+# 不在 = docs-orphan）。cite-only ID は docs-orphan 検出（本 script 末尾の ADR セクション）
+# で別途集計する。
+# FR/NFR/DS/IMP は ID とファイルが 1:1 ではないため従来通り grep で列挙。
 if [[ -d "${REPO_ROOT}/${DOCS_PATH}" ]]; then
-  grep -rohE "${ID_REGEX}" "${REPO_ROOT}/${DOCS_PATH}" 2>/dev/null | sort -u > "${IDS_OUT}" || true
+  if [[ "${KIND}" == "adr" ]]; then
+    ls "${REPO_ROOT}/${DOCS_PATH}/" 2>/dev/null \
+      | grep -oE "${ID_REGEX}" | sort -u > "${IDS_OUT}" || true
+  else
+    grep -rohE "${ID_REGEX}" "${REPO_ROOT}/${DOCS_PATH}" 2>/dev/null | sort -u > "${IDS_OUT}" || true
+  fi
 else
   : > "${IDS_OUT}"
 fi
