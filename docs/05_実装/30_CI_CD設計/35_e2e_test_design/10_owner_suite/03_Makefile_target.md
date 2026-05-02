@@ -1,6 +1,6 @@
 # 03. owner suite Makefile target
 
-本ファイルは ADR-TEST-008 で確定した `make e2e-owner-*` 8 target の実装契約を実装段階の正典として固定する。各 target の起動経路（`tools/local-stack/up.sh --role owner-e2e` 連携）、cluster ライフサイクル（起動 / 部分実行 / cleanup）、go test 引数、artifact 出力先を ID として採番する。
+本ファイルは ADR-TEST-008 で確定した `make e2e-owner-*` 8 target の実装契約を実装段階の正典として固定する。各 target の起動経路（`tools/e2e/owner/up.sh` 専用スクリプト連携）、cluster ライフサイクル（起動 / 部分実行 / cleanup）、go test 引数、artifact 出力先を ID として採番する。
 
 ## 本ファイルの位置付け
 
@@ -27,10 +27,11 @@ ADR-TEST-008 で「make e2e-owner-* 系列の 8 target を Makefile に追加す
 owner suite の cluster は以下の 3 段階で扱う。
 
 ```text
-1. 起動: tools/local-stack/up.sh --role owner-e2e
+1. 起動: tools/e2e/owner/up.sh
    → multipass × 5 起動 + kubeadm init/join + Cilium/Longhorn/MetalLB/フルスタック install
+   （フルスタック install は tools/local-stack/install/<component>/ を helper として再利用）
 2. 部分実行: make e2e-owner-{部位} → 既存 cluster で go test 実行（cluster は触らない）
-3. 終了: tools/local-stack/down.sh --role owner-e2e
+3. 終了: tools/e2e/owner/down.sh
    → multipass delete × 5（VM ごと削除）
 ```
 
@@ -88,16 +89,16 @@ tests/.owner-e2e/<YYYY-MM-DD>/
 
 ## 部分実行時の前提確認
 
-`make e2e-owner-{部位}` 実行時、Makefile target が **cluster 存在確認** を行い、未起動なら exit 1 で `up.sh --role owner-e2e` を案内する。これは「cluster がない状態で test を走らせて謎の失敗で 5 分浪費する」事故の予防策である。
+`make e2e-owner-{部位}` 実行時、Makefile target が **cluster 存在確認** を行い、未起動なら exit 1 で `tools/e2e/owner/up.sh` を案内する。これは「cluster がない状態で test を走らせて謎の失敗で 5 分浪費する」事故の予防策である。
 
 ```makefile
 e2e-owner-platform:
-	@./tools/local-stack/check.sh --role owner-e2e || \
-	  (echo "[error] owner-e2e cluster が起動していません。先に './tools/local-stack/up.sh --role owner-e2e' を実行してください。" && exit 1)
+	@./tools/e2e/owner/check.sh || \
+	  (echo "[error] owner cluster が起動していません。先に './tools/e2e/owner/up.sh' を実行してください。" && exit 1)
 	@cd tests/e2e/owner && go test -tags=owner_e2e -timeout=10m -v -json -count=1 ./platform/... | tee ../../.owner-e2e/$(shell date +%Y-%m-%d)/platform/result.json
 ```
 
-`tools/local-stack/check.sh` は kubeconfig context が `k1s0-owner-e2e` であること + 全 5 VM が Running + 全 node が Ready を確認する。
+`tools/e2e/owner/check.sh` は kubeconfig context が `k1s0-owner-e2e` であること + 全 5 VM が Running + 全 node が Ready を確認する。
 
 ## IMP ID
 

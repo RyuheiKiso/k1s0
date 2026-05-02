@@ -68,8 +68,8 @@ retention 管理の Runbook は `ops/runbooks/RB-CI-002-owner-e2e-artifact-rotat
 ```bash
 # Makefile の概略
 e2e-owner-full:
-	@./tools/local-stack/up.sh --role owner-e2e
-	@trap './tools/local-stack/down.sh --role owner-e2e' EXIT; \
+	@./tools/e2e/owner/up.sh
+	@trap './tools/e2e/owner/down.sh' EXIT; \
 	  cd tests/e2e/owner && \
 	  go test -tags=owner_e2e -timeout=120m -v -json -count=1 ./... \
 	    | tee ../../.owner-e2e/$(shell date +%Y-%m-%d)/full-result.json

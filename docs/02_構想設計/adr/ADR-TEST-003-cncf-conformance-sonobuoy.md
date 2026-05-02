@@ -55,7 +55,7 @@ cluster の CNI 選択（kind multi-node に限定）:
 - DNS: CoreDNS（kind 同梱）
 - 追加コンポーネント: なし（Conformance テストは vanilla K8s 機能のみ検証、フルスタック（Argo CD / Istio / Dapr 等）の起動は **不要**）
 
-L4 E2E 用の cluster 構成（フルスタック）と `--role conformance`（本 ADR、vanilla のみ）は責務が異なることを `tools/local-stack/README.md` で明文化する。L4 用の `--role` は ADR-TEST-008 で `--role owner-e2e` / `--role user-e2e` として再確定済。
+L4 E2E 用の cluster 構成（フルスタック）と `--role conformance`（本 ADR、vanilla のみ）は責務が異なることを `tools/local-stack/README.md` で明文化する。L4 用の起動経路は ADR-TEST-008 で `tools/e2e/owner/up.sh` / `tools/e2e/user/up.sh` の専用スクリプトとして再確定済（`--role` 引数空間とは物理分離）。
 
 ### 2. Sonobuoy 実行
 
@@ -235,7 +235,7 @@ ADR-CNCF-001 の「移行・対応事項」で cite されている IMP-CI-CONF-
 
 ### 移行・対応事項
 
-- `tools/local-stack/up.sh` に `--role conformance` を追加し、kind cluster（control-plane 1 + worker 3）+ Calico CNI のみを起動する経路を整備（フルスタックは起動しない、L4 E2E 用 role は ADR-TEST-008 で `--role owner-e2e` / `--role user-e2e` として正典化、本 role と区別される）
+- `tools/local-stack/up.sh` に `--role conformance` を追加し、kind cluster（control-plane 1 + worker 3）+ Calico CNI のみを起動する経路を整備（フルスタックは起動しない、L4 E2E 用は ADR-TEST-008 で `tools/e2e/{owner,user}/up.sh` の専用スクリプトとして正典化、本 role と物理分離）
 - `tools/qualify/conformance/run.sh` を新設し、Sonobuoy 実行 → retrieve → results 整形 → cleanup を冪等 shell script として実装
 - `.github/workflows/_reusable-conformance.yml` を新設し、`workflow_call` で `timeout_minutes` を inputs として受け取る構造で実装
 - `.github/workflows/conformance.yml` を新設し、`schedule: 0 18 1 * *`（月初 03:00 JST）+ `workflow_dispatch` で `_reusable-conformance.yml` を呼ぶ
@@ -250,7 +250,7 @@ ADR-CNCF-001 の「移行・対応事項」で cite されている IMP-CI-CONF-
 ## 参考資料
 
 - ADR-TEST-001（Test Pyramid + testcontainers）— L5 conformance が Test Pyramid の orthogonal 軸として位置づけられる根拠
-- ADR-TEST-008（e2e owner / user 二分構造）— L4 と L5 の責務分界、`tools/local-stack/up.sh --role owner-e2e/user-e2e/conformance` の対比を本 ADR と整合
+- ADR-TEST-008（e2e owner / user 二分構造）— L4 と L5 の責務分界、L4 = `tools/e2e/{owner,user}/up.sh` 専用スクリプト / L5 = `tools/local-stack/up.sh --role conformance` の物理分離を本 ADR と整合
 - ADR-CNCF-001（vanilla K8s + CNCF Conformance 維持）— 本 ADR が「移行・対応事項」を充足
 - ADR-NET-001（CNI 選定）— kind multi-node = Calico の整合
 - ADR-INFRA-001（kubeadm + Cluster API）— production cluster 構成、kind との fidelity 差認識

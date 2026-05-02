@@ -289,5 +289,5 @@ k1s0-test-fixtures = "1.2.3"
 - ADR-TEST-011（release tag ゲート代替保証、別 commit で起票予定）— SDK と test-fixtures の version 同期の release tag 経路
 - ADR-TIER1-001（Go + Rust ハイブリッド）— 4 言語対称性の根拠
 - ADR-DIR-* 系列（src/sdk 配置）— 4 言語 SDK の配置経路
-- ADR-POL-002（local-stack を構成 SoT に統一）— fixtures Setup が `tools/local-stack/up.sh --role user-e2e` を呼ぶ整合
+- ADR-POL-002（local-stack を構成 SoT に統一）— fixtures Setup が `tools/e2e/user/up.sh` を呼び、その内部で `tools/local-stack/install/<component>/` の helm values / manifests を install helper として再利用する整合
 - 関連 ADR（採用検討中）: ADR-TEST-007（テスト属性タグ + 実行フェーズ分離）— `@user-fixtures` タグの導入余地

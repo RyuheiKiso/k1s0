@@ -214,7 +214,7 @@ helpers は `tests/e2e/owner/` 内に閉じ、`src/sdk/<lang>/test-fixtures/`（
 
 - `tests/e2e/owner/observability/` ディレクトリを新設、5 検証 skeleton（test 関数枠 + Skip）+ helpers/ 5 client + baselines/ ディレクトリを配置
 - `Makefile` に `e2e-owner-observability` target を追加（ADR-TEST-008 の `make e2e-owner-*` 系列に追加）
-- `tools/local-stack/up.sh --role owner-e2e` で Grafana LGTM スタック（Prometheus / Loki / Tempo / Mimir / Grafana / Alertmanager）+ OTel Collector が起動することを検証（既存 ADR-OBS-001 / 002 のフルスタック起動経路を踏襲）
+- `tools/e2e/owner/up.sh` で Grafana LGTM スタック（Prometheus / Loki / Tempo / Mimir / Grafana / Alertmanager）+ OTel Collector が起動することを検証（既存 ADR-OBS-001 / 002 のフルスタック起動経路を `tools/local-stack/install/<component>/` 経由で再利用）
 - `tools/audit/run.sh` に baseline 更新 commit 件数の集計ロジックを追加し、AUDIT.md で報告
 - `docs/40_運用ライフサイクル/owner-e2e-results.md` の月次サマリ template に「観測性 5 検証 PASS 数」を追加（ADR-TEST-008 で新設される doc に追記）
 - `ADR-OBS-001 / 002 / 003` の「関連 ADR」セクションに本 ADR を追加（cross-reference 整備）

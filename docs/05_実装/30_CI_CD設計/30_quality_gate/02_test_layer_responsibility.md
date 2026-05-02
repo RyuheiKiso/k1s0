@@ -2,7 +2,7 @@
 
 本ファイルは ADR-TEST-003（CNCF Conformance / Sonobuoy）で決定された L5 conformance 層と、ADR-TEST-008（e2e owner / user 二分構造）で決定された L4 standard E2E 層の責務分界を、実装段階の運用契約として固定する。`01_quality_gate.md` で扱う 4 ゲート（fmt / lint / unit-test / coverage）が L0–L2（Test Pyramid 下層、ADR-TEST-001）の品質を保証する一方、本ファイルは **K8s cluster を使う 2 つの上位層** の cluster 構成・実行頻度・本番 fidelity 目標を区別する。
 
-> **L4 の実装段階**: ADR-TEST-008 で L4 を owner（multipass + kubeadm + 本番再現フルスタック、48GB host 専用）と user（kind + minimum stack、16GB host OK）に二分する設計を確定済。本ファイルでは ADR-TEST-008 の決定を実装段階の運用契約に展開する。実装（`tests/e2e/{owner,user}/` ディレクトリ + `tools/local-stack/up.sh --role owner-e2e/user-e2e`）は ADR の移行・対応事項に従って配置する。
+> **L4 の実装段階**: ADR-TEST-008 で L4 を owner（multipass + kubeadm + 本番再現フルスタック、48GB host 専用）と user（kind + minimum stack、16GB host OK）に二分する設計を確定済。本ファイルでは ADR-TEST-008 の決定を実装段階の運用契約に展開する。実装（`tests/e2e/{owner,user}/` ディレクトリ + `tools/e2e/{owner,user}/up.sh` の専用スクリプト）は ADR の移行・対応事項に従って配置する。`tools/local-stack/up.sh --role` の cone profile 引数空間と e2e cluster orchestration は物理分離する。
 
 ## なぜ層を分けるのか
 
@@ -19,7 +19,7 @@ L4 standard E2E は ADR-TEST-008 で **owner suite**（multipass × 5 + kubeadm 
 | 軸 | L4-owner（OSS 完成度検証） | L4-user（自アプリ動作確認） | L5 conformance |
 |----|----------------------------|------------------------------|----------------|
 | 起源 ADR | ADR-TEST-008 + ADR-TEST-009 / 010 / 011 | ADR-TEST-008 + ADR-TEST-010 | ADR-TEST-003 |
-| cluster 起動 | `tools/local-stack/up.sh --role owner-e2e` | `tools/local-stack/up.sh --role user-e2e` | `tools/local-stack/up.sh --role conformance` |
+| cluster 起動 | `tools/e2e/owner/up.sh` | `tools/e2e/user/up.sh` | `tools/local-stack/up.sh --role conformance` |
 | node 構成 | multipass × 5（3CP HA + 2W）+ kubeadm | kind（CP1 + W1） | kind（control-plane 1 + worker 3） |
 | host RAM 要件 | 48GB host 専用 | 16GB host OK | Actions runner 14GB |
 | CNI / CSI / LB | Cilium / Longhorn / MetalLB | Calico / local-path / extraPortMappings | Calico / local-path / extraPortMappings |
@@ -46,7 +46,7 @@ L4 standard E2E は ADR-TEST-008 で **owner suite**（multipass × 5 + kubeadm 
 
 ## ローカル再現と CI の同一経路
 
-L4-owner / L4-user / L5 とも **同一の `tools/local-stack/up.sh` を `--role` 引数（owner-e2e / user-e2e / conformance）で切り替える** 設計のため、開発者が devcontainer 内で実行する経路と CI workflow が呼ぶ経路が機械的に一致する。これは ADR-POL-002（local-stack を構成 SoT に統一）の延長で、cluster 構成が割れない構造的担保である。
+L4-owner / L4-user は専用スクリプト（`tools/e2e/owner/up.sh` / `tools/e2e/user/up.sh`）で起動し、L5 は `tools/local-stack/up.sh --role conformance` で起動する。各層の起動経路は別エントリで物理分離されているため、開発者が devcontainer 内で実行する経路と CI workflow が呼ぶ経路が機械的に一致する。helm values / manifests のレベルでは ADR-POL-002（local-stack を構成 SoT に統一）の SoT を尊重し、`tools/e2e/{owner,user}/up.sh` は内部で `tools/local-stack/install/<component>/` を install helper として再利用する。これにより orchestration（起動順序 / cluster ライフサイクル）は層ごとに独立、構成（何を install するか）は SoT に集約という責務分離を成立させる。
 
 `Makefile` には `verify-conformance`（L5）を追加済、L4 用は ADR-TEST-008 で `make e2e-owner-{full,platform,observability,security,ha-dr,upgrade,sdk-roundtrip,tier3-web,perf}` / `make e2e-user-{smoke,full}` の 10 target を追加する設計を確定済。実装は ADR-TEST-008 の移行・対応事項に従って Makefile を改訂する。
 

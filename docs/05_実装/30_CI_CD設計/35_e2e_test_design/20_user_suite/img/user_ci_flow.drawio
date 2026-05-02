@@ -25,10 +25,10 @@
         <mxCell id="reusable" value="_reusable-e2e-user.yml&#10;workflow_call inputs: mode (smoke / full)&#10;runs-on: ubuntu-latest (14GB / 4 vCPU)&#10;steps: setup go → install kind → make e2e-user-{mode} → upload artifact" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="220" y="265" width="500" height="100" as="geometry"/>
         </mxCell>
-        <mxCell id="make_smoke" value="make e2e-user-smoke&#10;up.sh --role user-e2e&#10;tests/e2e/user/smoke/&#10;5 分以内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="make_smoke" value="make e2e-user-smoke&#10;tools/e2e/user/up.sh&#10;tests/e2e/user/smoke/&#10;5 分以内" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="395" width="240" height="80" as="geometry"/>
         </mxCell>
-        <mxCell id="make_full" value="make e2e-user-full&#10;up.sh --role user-e2e + 任意 stack&#10;tests/e2e/user/{smoke + examples}&#10;30〜45 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="make_full" value="make e2e-user-full&#10;tools/e2e/user/up.sh + 任意 stack&#10;tests/e2e/user/{smoke + examples}&#10;30〜45 分" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="640" y="395" width="240" height="80" as="geometry"/>
         </mxCell>
         <mxCell id="artifact" value="artifact: result.json + stdout.log + screenshots&#10;14 日 retention (actions/upload-artifact@v4)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">

@@ -38,7 +38,7 @@ owner → user / user → owner の test 移動が必要になった場合、以
 
 1. 移動先の `go.mod` で必要な依存（testcontainers / chromedp / k6 等）を確認、不足なら追加
 2. 移動先の helpers / fixtures を import するように test code を書き換え（owner = `tests/e2e/owner/helpers/`、user = `src/sdk/<lang>/test-fixtures/` 経由）
-3. 起動経路（`tools/local-stack/up.sh --role`）の前提を移動先に合わせる（owner-e2e role の前提はフルスタック、user-e2e role は minimum）
+3. 起動経路（owner = `tools/e2e/owner/up.sh` / user = `tools/e2e/user/up.sh`）の前提を移動先に合わせる（owner はフルスタック、user は minimum stack）
 4. CI 経路の確認（owner 移動後は `pr.yml` / `nightly.yml` から外れる、user 移動後は逆）
 5. `02_test_layer_responsibility.md` に移動の根拠を追記（判定基準のどれが決め手か明記）
 
