@@ -1,0 +1,74 @@
+# =============================================================================
+# 本ファイルは k1s0 reusable workflow の Conformance 用（6 本目）。
+# 設計正典:
+#   ADR-TEST-003（CNCF Conformance を Sonobuoy + kind multi-node + Calico で月次実行）
+#   ADR-CNCF-001（vanilla K8s + CNCF Conformance 維持）
+# 関連 ID: IMP-CI-CONF-001〜005
+#
+# Sonobuoy certified-conformance を kind multi-node + Calico CNI 上で月次実行する。
+# results.tar.gz + summary.md を 90 日間 artifact 保存し、別途 git LFS で
+# tests/.conformance/<YYYY-MM>/ に 12 ヶ月分版管理（IMP-CI-CONF-004）。
+# =============================================================================
+name: _reusable-conformance
+
+on:
+  workflow_call:
+    inputs:
+      timeout_minutes:
+        description: "全体タイムアウト分（kind 起動 5 分 + Sonobuoy 実行 60-120 分 + retrieve 5 分）"
+        required: false
+        type: number
+        default: 180
+      sonobuoy_version:
+        description: "Sonobuoy CLI バージョン（IMP-CI-CONF-001 と整合）"
+        required: false
+        type: string
+        default: "v0.57.3"
+
+concurrency:
+  # Conformance は同時実行を許容しない（kind cluster 名衝突 + Sonobuoy 状態共有）
+  group: conformance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: install sonobuoy
+        # ADR-TEST-002 portable 制約: SHA 検証は採用初期で導入（CI image にバージョン pin する経路）
+        run: |
+          curl -L "https://github.com/vmware-tanzu/sonobuoy/releases/download/${{ inputs.sonobuoy_version }}/sonobuoy_${{ inputs.sonobuoy_version#v }}_linux_amd64.tar.gz" | tar xz
+          sudo mv sonobuoy /usr/local/bin/sonobuoy
+          sonobuoy version
+
+      - name: install kind
+        # GitHub Actions runner には kind が pre-install されていない場合があるため明示
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+
+      - name: run conformance
+        # tools/qualify/conformance/run.sh が cluster 起動 → Sonobuoy → retrieve →
+        # cleanup の全工程を冪等実行する。failed test ありは exit 1。
+        run: ./tools/qualify/conformance/run.sh
+
+      - name: upload conformance artifacts
+        # 月次 results.tar.gz + summary.md を 90 日間保存（git LFS 版管理は別工程）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonobuoy-results-${{ github.run_id }}
+          path: tests/.conformance/
+          retention-days: 90
+          if-no-files-found: warn
