@@ -58,6 +58,74 @@ apply_cert_manager() {
     kubectl apply -f "${MANIFESTS}/20-cert-manager/cluster-issuer-selfsigned.yaml"
 }
 
+patch_kind_storageclasses() {
+    # ADR-POL-002 / ADR-INFRA-001 / ADR-NET-001 整合の kind 環境向け StorageClass 整備。
+    # 正典 (infra/k8s/storage/storage-classes.yaml) は Longhorn 前提で、kind 環境では
+    # Longhorn を install しないため `k1s0-default` 等の SC が `PLACEHOLDER_csi_provisioner`
+    # で残り、observability (grafana / loki / prometheus / tempo) の PVC が unbound になる。
+    #
+    # 本関数は kind 環境のみで `k1s0-{default,high-iops,backup,shared}` の provisioner を
+    # `rancher.io/local-path` に書き換える。provisioner は immutable のため delete + recreate。
+    # SoT 整合: 本処理は helm release ではなく StorageClass の手当てなので、Kyverno
+    # block-non-canonical-helm-releases policy / known-releases.sh の対象外。
+    #
+    # 採用判断 (Layer 1): C 案 (up.sh で patch) は ADR-POL-002 三層防御と整合し、
+    # kind rebuild 時の再現性も確保する。production では本関数は no-op (実 cluster
+    # の SC は CSI provisioner で正規に bind される前提)。
+    has_layer storageclass-kind-patch || true  # 既定で常に実行する (kind 環境向け)
+
+    # production cluster (CSI driver 設置済) では本処理が必要ない。
+    # kind cluster かどうかを cluster name で判定する (kind は kind-* prefix)。
+    local current_ctx
+    current_ctx="$(kubectl config current-context 2>/dev/null || echo unknown)"
+    if [[ "${current_ctx}" != "kind-${KIND_CLUSTER_NAME}" ]]; then
+        log "kind cluster ではないため StorageClass patch をスキップ (current context: ${current_ctx})"
+        return 0
+    fi
+
+    log "kind 環境向け StorageClass 整備 (k1s0-* の provisioner を rancher.io/local-path に置換)"
+    local sc patched=0
+    for sc in k1s0-default k1s0-high-iops k1s0-backup k1s0-shared; do
+        local current_provisioner
+        current_provisioner="$(kubectl get sc "${sc}" -o jsonpath='{.provisioner}' 2>/dev/null || echo NONE)"
+        if [[ "${current_provisioner}" == NONE ]]; then
+            continue
+        fi
+        if [[ "${current_provisioner}" =~ PLACEHOLDER ]]; then
+            log "  ${sc}: ${current_provisioner} → rancher.io/local-path に置換"
+            kubectl delete sc "${sc}" --ignore-not-found=true >/dev/null
+            kubectl apply -f - <<EOF >/dev/null
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ${sc}
+  annotations:
+    k1s0.io/kind-replacement: "true"
+    k1s0.io/source-of-truth: "tools/local-stack/lib/apply-layers.sh:patch_kind_storageclasses"
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+EOF
+            patched=$((patched + 1))
+        fi
+    done
+
+    # default StorageClass を k1s0-default に集約 (standard との重複 default を解消)
+    if kubectl get sc standard -o jsonpath='{.metadata.annotations.storageclass\.kubernetes\.io/is-default-class}' 2>/dev/null | grep -q "true"; then
+        log "  standard SC の is-default-class アノテーションを除去 (k1s0-default に default を集約)"
+        kubectl annotate sc standard storageclass.kubernetes.io/is-default-class- --overwrite >/dev/null 2>&1 || true
+    fi
+    if [[ "$(kubectl get sc k1s0-default -o jsonpath='{.metadata.annotations.storageclass\.kubernetes\.io/is-default-class}' 2>/dev/null || echo)" != "true" ]]; then
+        log "  k1s0-default を default StorageClass に設定"
+        kubectl annotate sc k1s0-default storageclass.kubernetes.io/is-default-class=true --overwrite >/dev/null 2>&1 || true
+    fi
+
+    # 既に Pending 状態の PVC がある場合は再 bind を促す (PVC を削除はしない、provisioner が次回 retry で bind)
+    if [[ "${patched}" -gt 0 ]]; then
+        log "  ${patched} 件の SC を置換。Pending PVC は次回 provisioner retry で bind される"
+    fi
+}
+
 apply_metallb() {
     has_layer metallb || return 0
     log "MetalLB install (${METALLB_VERSION})"

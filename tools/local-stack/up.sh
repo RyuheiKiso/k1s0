@@ -220,6 +220,7 @@ start_cluster
 apply_cni
 apply_cert_manager
 apply_metallb
+patch_kind_storageclasses
 apply_istio
 apply_kyverno
 apply_spire
