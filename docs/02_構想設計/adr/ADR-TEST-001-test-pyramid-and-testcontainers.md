@@ -54,13 +54,15 @@ CI 時間予算（PR 5 分 / main 10 分 / 夜間バッチ 30 分）は IMP-CI-R
 | SAST | Semgrep / gosec / clippy | リリース時点 |
 | SCA | Trivy + Grype 並列実行 | リリース時点 |
 | DAST | OWASP ZAP | 採用後の運用拡大時 |
-| Chaos | （ツール選定は別 ADR-TEST-004 で決定、構想設計と概要設計で記載が分かれているため本 ADR では確定しない） | 採用後の運用拡大時 |
+| Chaos | LitmusChaos（ADR-TEST-004 で確定、CNCF Incubating + Apache 2.0、`infra/chaos/` 配下に CRD 配置、週次 CronChaosEngine） | 採用後の運用拡大時 |
 
-CI 時間予算（IMP-CI-RWF-010 / IMP-CI-QG-065 と整合）:
+CI 時間予算（IMP-CI-RWF-010 / IMP-CI-QG-065 と整合、4 段フェーズ分離は ADR-TEST-007 で確定）:
 
-- PR 時: UT + 契約 + 結合 + SAST/SCA = 合計 5 分以内
+- PR 時（タグなし）: UT + 契約 + 結合 + SAST/SCA = 合計 5 分以内
 - main 時: PR 構成 + Build = 合計 10 分以内
-- 夜間バッチ: E2E + Chaos（採用後）+ DAST（採用後）= 合計 2〜3 時間（朝会前完了）
+- nightly（@slow + @nightly タグ）: E2E + 観測性 E2E = 合計 30〜45 分（朝会前完了）
+- weekly（@security タグ）: nightly + DAST = 合計 1〜2 時間
+- release tag（全タグ）: nightly + Chaos + Upgrade drill + DR drill + Conformance = 合計 2〜4 時間（release qualify）
 
 **結合テストの実装手段は testcontainers を標準とし、mock/stub のみによる結合層は許容しない。** Docker daemon 依存は CI runner では Docker-in-Docker（DinD）または `/var/run/docker.sock` の bind mount で吸収する（既存 reusable workflow で対応済）。ローカル開発では devcontainer の `docker-outside-of-docker` Feature 経由で host docker daemon に接続する（ADR-DEV-002）。
 
