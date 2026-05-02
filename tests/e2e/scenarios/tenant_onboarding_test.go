@@ -72,7 +72,7 @@ func runStateRoundTrip(t *testing.T, ctx context.Context) {
 		// gRPC 接続先（例: localhost:50001）
 		Target: target,
 		// テスト専用 tenant_id（本番 namespace を汚染しない E2E 専用 prefix）
-		TenantID: "e2e-tenant-onboarding",
+		TenantID: "demo-tenant",
 		// 主体識別子（監査ログで test 起源を識別する）
 		Subject: "e2e-test/tenant-onboarding",
 		// dev 用に平文（kind 内部通信、TLS は採用初期で SPIRE / cert-manager 経由）

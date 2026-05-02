@@ -43,30 +43,40 @@ func TestPayrollFullFlow(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
-	// tier1 公開 gRPC endpoint を env var から取得
+	// 各 service が別 Pod / 別 Service に分かれているため Client を別個に作成する。
+	// State / Secrets / その他は tier1-facade-state Pod（K1S0_TIER1_TARGET）、Audit は
+	// tier1-audit Pod（K1S0_TIER1_AUDIT_TARGET）。本番では Envoy Gateway / Service Mesh が
+	// 単一 endpoint で routing するが、local kind 環境では各 Service を個別 port-forward する。
 	target := os.Getenv("K1S0_TIER1_TARGET")
-	if target == "" {
+	auditTarget := os.Getenv("K1S0_TIER1_AUDIT_TARGET")
+	if target == "" || auditTarget == "" {
 		// endpoint 未指定なら gRPC 検証を Skip（kind 接続のみ確認する経路）
-		t.Skip("K1S0_TIER1_TARGET 未設定: kubectl port-forward で tier1 endpoint を露出してから K1S0_TIER1_TARGET=localhost:50001 で再実行")
+		t.Skip("K1S0_TIER1_TARGET / K1S0_TIER1_AUDIT_TARGET 未設定: kubectl port-forward で各 service を露出してから再実行")
 	}
 
-	// k1s0 SDK Client を初期化
+	// State / Secrets 用 Client（tier1-facade-state Pod 直結）
 	client, err := k1s0.New(ctx, k1s0.Config{
-		// gRPC 接続先
-		Target: target,
-		// E2E 専用 tenant_id（本番 namespace を汚染しない）
-		TenantID: "e2e-tenant-payroll",
-		// 主体識別子（監査ログで test 起源を識別）
-		Subject: "e2e-test/payroll-full-flow",
-		// dev 用に平文（kind 内部、TLS は採用初期で SPIRE 経由）
-		UseTLS: false,
+		Target:   target,
+		TenantID: "demo-tenant",
+		Subject:  "e2e-test/payroll-full-flow",
+		UseTLS:   false,
 	})
-	// 接続失敗は Fatal（endpoint があったのに接続できないのは bug）
 	if err != nil {
-		t.Fatalf("k1s0.New(target=%s): %v", target, err)
+		t.Fatalf("k1s0.New(state target=%s): %v", target, err)
 	}
-	// test 終了時に gRPC connection を解放
 	defer func() { _ = client.Close() }()
+
+	// Audit 用 Client（tier1-audit Pod 直結）
+	auditClient, err := k1s0.New(ctx, k1s0.Config{
+		Target:   auditTarget,
+		TenantID: "demo-tenant",
+		Subject:  "e2e-test/payroll-full-flow",
+		UseTLS:   false,
+	})
+	if err != nil {
+		t.Fatalf("k1s0.New(audit target=%s): %v", auditTarget, err)
+	}
+	defer func() { _ = auditClient.Close() }()
 
 	// 各 service の動作確認用 input
 	const (
@@ -117,7 +127,7 @@ func TestPayrollFullFlow(t *testing.T) {
 	})
 
 	// Step 3: Audit.Record — 「payroll 計算開始」を監査ログに記録
-	startAuditID, err := client.Audit().Record(
+	startAuditID, err := auditClient.Audit().Record(
 		ctx,
 		"e2e-test/payroll-full-flow",
 		"e2e.payroll.start",
@@ -155,7 +165,7 @@ func TestPayrollFullFlow(t *testing.T) {
 	})
 
 	// Step 5: Audit.Record — 「payroll 計算完了」
-	endAuditID, err := client.Audit().Record(
+	endAuditID, err := auditClient.Audit().Record(
 		ctx,
 		"e2e-test/payroll-full-flow",
 		"e2e.payroll.complete",
@@ -200,7 +210,7 @@ func TestPayrollFullFlow(t *testing.T) {
 		queryStart := time.Now().UTC().Add(-90 * time.Second)
 		queryEnd := time.Now().UTC().Add(1 * time.Second)
 		// run_id でフィルタして本 test の 2 record だけを取得
-		events, err := client.Audit().Query(ctx, queryStart, queryEnd, map[string]string{"run_id": runID}, 10)
+		events, err := auditClient.Audit().Query(ctx, queryStart, queryEnd, map[string]string{"run_id": runID}, 10)
 		if err != nil {
 			t.Fatalf("Audit.Query: %v", err)
 		}
@@ -211,7 +221,7 @@ func TestPayrollFullFlow(t *testing.T) {
 		t.Logf("Audit.Query: %d events 取得（run_id=%s、start + complete chain 確認）", len(events), runID)
 
 		// hash chain 整合性検証
-		chainResult, err := client.Audit().VerifyChain(ctx, queryStart, queryEnd)
+		chainResult, err := auditClient.Audit().VerifyChain(ctx, queryStart, queryEnd)
 		if err != nil {
 			t.Fatalf("Audit.VerifyChain: %v", err)
 		}

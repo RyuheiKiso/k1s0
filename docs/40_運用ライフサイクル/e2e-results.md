@@ -10,7 +10,26 @@
 
 ## 月次サマリ
 
-### 2026-05（リリース時点 / 初月、初回 local 実走確認 — TestTenantOnboarding 完全 PASS）
+### 2026-05（リリース時点 / 初月、3 シナリオ完全 PASS — `tests/e2e/scenarios/` の全 e2e 実走確認）
+
+- **3 シナリオ全 PASS**（2026-05-02 23:48 JST 実走、`go test ./scenarios/...` 0.076s 完了）:
+  - **TestTenantOnboarding** 2/2 サブテスト PASS（dapr-system 4 Running Pod / State.Save→Get→Delete cycle）
+  - **TestAuditPiiFlow** 5 段階全 PASS（Pii.Classify findings=1 / Pii.Mask `[EMAIL]` masking / Audit.Record audit_id 取得 / Audit.Query 1 events / Audit.VerifyChain valid=true checked=1）
+  - **TestPayrollFullFlow** 7 段階全 PASS（Secrets.Get Unimplemented 許容 / State.Save etag=v4 / Audit.Record(start) / State.Get 45 bytes 一致 / Audit.Record(complete) / State.Delete / Audit.Query 2 events + VerifyChain valid=true checked=3）
+- **環境構築経路（再現可能、本書 entry の追補）**:
+  - kind cluster + Calico + cert-manager + Dapr 1.17.5（前述）
+  - tier1-state image build + kind load + helm install（前述）
+  - tier1-audit / tier1-pii image build（`docker build -f src/tier1/rust/Dockerfile.{audit,pii} -t ghcr.io/k1s0/k1s0/tier1-{audit,pii}:latest ./src/`）
+  - kind load + helm install tier1-rust-service（pods.{decision,他}.enabled=false で個別 deploy）
+  - 3 並列 port-forward: tier1-state→50001 / tier1-audit→50002 / tier1-pii→50003
+  - 環境変数: K1S0_TIER1_TARGET=localhost:50001 / K1S0_TIER1_AUDIT_TARGET=localhost:50002 / K1S0_TIER1_PII_TARGET=localhost:50003
+- **発見 + 解決した bug 2 件**:
+  1. dapr port 衝突 → ff3ba6532 で chart に `dapr.io/grpc-port: 50101` annotation 追加（root fix）
+  2. test の TenantID と JWT default の cross-tenant 拒否 → tenant_id を `demo-tenant` に統一（dev/CI mode の正規 tenant）
+- **設計上の発見（採用初期で本格対応）**:
+  - SDK Client は単一 endpoint 設計、tier1 サービスは Pod ごとに別 Service。本番では Envoy Gateway 経由の単一 endpoint で全 service routing する想定だが、local kind では個別 Client（State 用 / Audit 用 / Pii 用）を分けて作成する経路が現実解
+  - K1S0_TIER1_AUDIT_TARGET / K1S0_TIER1_PII_TARGET 環境変数を test に導入し、Pod 別 Client の構造を明示化
+- **未実走**: Workflow.Start / Decision.Evaluate / PubSub.Publish / Log.Send / Telemetry.EmitMetric / ServiceInvoke.Invoke / Binding.Invoke / Feature.Get の 8 service。これらは tier1-workflow Pod / tier1-decision Pod / tier1-state Pod 内 Router 経由で別途実装可能（SHIP_STATUS line 207-208 で実 cluster 検証実績あり）。採用初期で payroll_workflow_full_test.go / audit_pii_decision_test.go 等として拡張
 
 - **状態**: kind cluster（k8s v1.31.4、3-worker HA）+ Dapr 1.17.5 + tier1-state（dev/CI mode）で **TestTenantOnboarding が完全 PASS**（2026-05-02 23:38 JST 実走）
 - **PASS した検証（2 サブテスト）**:

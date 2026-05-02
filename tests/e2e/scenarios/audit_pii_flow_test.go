@@ -39,30 +39,42 @@ func TestAuditPiiFlow(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// tier1 公開 gRPC endpoint を env var から取得
-	target := os.Getenv("K1S0_TIER1_TARGET")
-	if target == "" {
+	// 各 service は別 Pod / 別 Service に分かれているため Client を別個に作成する。
+	// 本番では Envoy Gateway / Service Mesh が単一 endpoint で routing するが、
+	// local kind 環境では各 Service を個別 port-forward する設計（採用初期で本格化）。
+	piiTarget := os.Getenv("K1S0_TIER1_PII_TARGET")
+	auditTarget := os.Getenv("K1S0_TIER1_AUDIT_TARGET")
+	if piiTarget == "" || auditTarget == "" {
 		// endpoint 未指定なら gRPC 検証部を Skip（kind 接続のみ検証）
-		t.Skip("K1S0_TIER1_TARGET 未設定: kubectl port-forward で tier1 endpoint を露出してから K1S0_TIER1_TARGET=localhost:50001 で再実行")
+		t.Skip("K1S0_TIER1_PII_TARGET / K1S0_TIER1_AUDIT_TARGET 未設定: kubectl port-forward で各 service を露出（例: tier1-pii=localhost:50003, tier1-audit=localhost:50002）してから再実行")
 	}
 
-	// k1s0 SDK Client を初期化（dev 用に平文 gRPC、テスト用 tenant_id を付与）
-	client, err := k1s0.New(ctx, k1s0.Config{
-		// gRPC 接続先
-		Target: target,
-		// E2E 専用 tenant_id（本番 namespace を汚染しない）
-		TenantID: "e2e-tenant-audit-pii",
-		// 主体識別子（監査ログで test 起源を識別）
-		Subject: "e2e-test/audit-pii-flow",
-		// dev 用に平文（kind 内部、TLS は採用初期で SPIRE 経由）
-		UseTLS: false,
+	// PII service Client を作成（単一 endpoint = tier1-pii Pod 直結）
+	piiClient, err := k1s0.New(ctx, k1s0.Config{
+		Target:   piiTarget,
+		TenantID: "demo-tenant",
+		Subject:  "e2e-test/audit-pii-flow",
+		UseTLS:   false,
 	})
-	// 接続失敗は Fatal（endpoint があったのに接続できないのは bug）
 	if err != nil {
-		t.Fatalf("k1s0.New(target=%s): %v", target, err)
+		t.Fatalf("k1s0.New(pii target=%s): %v", piiTarget, err)
 	}
-	// test 終了時に gRPC connection を解放
-	defer func() { _ = client.Close() }()
+	defer func() { _ = piiClient.Close() }()
+
+	// Audit service Client を作成（tier1-audit Pod 直結）
+	auditClient, err := k1s0.New(ctx, k1s0.Config{
+		Target:   auditTarget,
+		TenantID: "demo-tenant",
+		Subject:  "e2e-test/audit-pii-flow",
+		UseTLS:   false,
+	})
+	if err != nil {
+		t.Fatalf("k1s0.New(audit target=%s): %v", auditTarget, err)
+	}
+	defer func() { _ = auditClient.Close() }()
+
+	// 互換性のため client 変数を piiClient のエイリアスとし、後段の client.Pii() を有効化
+	client := piiClient
 
 	// テスト用 PII を含む文字列（実在の email では衝突するため example.com を使う）
 	const piiText = "contact: alice@example.com please reach out"
@@ -102,7 +114,7 @@ func TestAuditPiiFlow(t *testing.T) {
 	// Step 3: Audit.Record — 監査ログ書き込み（hash chain WORM、append-only）
 	queryStart := time.Now().UTC().Add(-1 * time.Second) // Query の from に使う基準時刻
 	idempotencyKey := fmt.Sprintf("e2e-audit-pii-%d", time.Now().UnixNano())
-	auditID, err := client.Audit().Record(
+	auditID, err := auditClient.Audit().Record(
 		ctx,
 		"e2e-test/audit-pii-flow", // actor
 		"e2e.audit_pii_flow",      // action
@@ -128,7 +140,7 @@ func TestAuditPiiFlow(t *testing.T) {
 	var queriedEvents int
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		events, qerr := client.Audit().Query(
+		events, qerr := auditClient.Audit().Query(
 			ctx,
 			queryStart,
 			time.Now().UTC().Add(1*time.Second),
@@ -152,7 +164,7 @@ func TestAuditPiiFlow(t *testing.T) {
 	t.Logf("Audit.Query: %d events（filter test_run=%s）", queriedEvents, idempotencyKey)
 
 	// Step 5: Audit.VerifyChain — hash chain 整合性を test 範囲で検証
-	chainResult, err := client.Audit().VerifyChain(ctx, queryStart, time.Now().UTC().Add(1*time.Second))
+	chainResult, err := auditClient.Audit().VerifyChain(ctx, queryStart, time.Now().UTC().Add(1*time.Second))
 	if err != nil {
 		t.Fatalf("Audit.VerifyChain: %v", err)
 	}
