@@ -28,7 +28,7 @@ loki:
       ruler: k1s0-events
       admin: k1s0-events
     s3:
-      endpoint: http://minio.minio.svc.cluster.local:9000
+      endpoint: http://minio.k1s0-data.svc.cluster.local:9000
       region: us-east-1
       accessKeyId: ${ACCESS_KEY_ID}
       secretAccessKey: ${SECRET_ACCESS_KEY}
@@ -42,7 +42,7 @@ loki:
     storage:
       type: s3
       s3:
-        endpoint: http://minio.minio.svc.cluster.local:9000
+        endpoint: http://minio.k1s0-data.svc.cluster.local:9000
         bucketnames: k1s0-events
 
 # scalable 構成（read 3 / write 3 / backend 3 の HA）

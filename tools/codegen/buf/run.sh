@@ -112,6 +112,17 @@ buf_generate_with_retry "tier1" --template buf.gen.yaml src/contracts/tier1
 echo "[info] buf generate (internal → tier1 Go + Rust core のみ)"
 buf_generate_with_retry "internal" --template buf.gen.internal.yaml src/contracts/internal
 
+# tier1 公開 FileDescriptorSet（バイナリ proto）を再生成する。
+# tonic-reflection が実行時に gRPC reflection で publish するスキーマソース。
+# `buf generate` のテンプレートからは出力されないため、本ラッパで明示的に
+# `buf build -o` を呼んで src/sdk/rust/crates/k1s0-sdk-proto/src/gen/tier1.descriptor.binpb
+# を更新する。これを忘れると Rust 3 Pod (audit / decision / pii) の reflection 経由
+# スキーマが proto 変更に追従せず、grpcurl / schemathesis が "no known field" エラーを
+# 返す（リリース直前に同事象を発見、本ステップで構造的に再発防止）。
+DESCRIPTOR_OUT="src/sdk/rust/crates/k1s0-sdk-proto/src/gen/tier1.descriptor.binpb"
+echo "[info] buf build (FILE_DESCRIPTOR_SET → ${DESCRIPTOR_OUT})"
+buf build src/contracts/tier1 -o "${DESCRIPTOR_OUT}"
+
 if [[ "${CHECK}" == "1" ]]; then
     echo "[info] 生成物の差分を確認"
     # buf.gen.yaml / buf.gen.internal.yaml が出力する全 path を網羅監視。
@@ -125,6 +136,8 @@ if [[ "${CHECK}" == "1" ]]; then
         # tier1 内部 gRPC（buf.gen.internal.yaml、ADR-TIER1-003 で言語不可視）
         'src/tier1/go/internal/proto/v1'
         'src/tier1/rust/crates/proto-gen/src'
+        # FILE_DESCRIPTOR_SET（buf build の出力、reflection 用）
+        'src/sdk/rust/crates/k1s0-sdk-proto/src/gen/tier1.descriptor.binpb'
     )
     # 1) 既追跡ファイルの変更検出
     if ! git diff --exit-code -- "${gen_paths[@]}"; then

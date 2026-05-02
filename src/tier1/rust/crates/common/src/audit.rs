@@ -10,13 +10,17 @@
 //   gRPC 経由（k1s0_audit Pod 結線）の 2 種類を切替可能。
 
 // 標準同期。
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 // 認証クレーム（actor 用）。
 use crate::auth::AuthClaims;
 
 /// 監査記録 1 件分のイベント。
-#[derive(Debug, Clone)]
+///
+/// `attributes` は RPC 固有の追加コンテキスト（FR-T1-DECISION-003 の
+/// `decision_table_name` / `rule_version` / `input_hash` / `output_hash` 等）。
+/// 個人情報を含み得るフィールド（input/output）は呼出側で hash 化または PII Mask を適用してから入れる。
+#[derive(Debug, Clone, Default)]
 pub struct AuditRecord {
     /// テナント。
     pub tenant_id: String,
@@ -30,6 +34,8 @@ pub struct AuditRecord {
     pub outcome: String,
     /// gRPC ステータスコード（int 化）。
     pub code: i32,
+    /// RPC 固有の追加 attributes（PII セーフな値のみ保持）。
+    pub attributes: BTreeMap<String, String>,
 }
 
 /// audit 発火器の trait。
@@ -55,8 +61,8 @@ pub struct LogAuditEmitter;
 #[async_trait::async_trait]
 impl AuditEmitter for LogAuditEmitter {
     async fn emit(&self, rec: AuditRecord) {
-        // RFC8259 JSON line。
-        let json = serde_json::json!({
+        // RFC8259 JSON line。attributes は空時は省略する。
+        let mut json = serde_json::json!({
             "tenant_id": rec.tenant_id,
             "actor": rec.actor,
             "action": rec.action,
@@ -64,6 +70,15 @@ impl AuditEmitter for LogAuditEmitter {
             "outcome": rec.outcome,
             "code": rec.code,
         });
+        if !rec.attributes.is_empty() {
+            // BTreeMap → serde_json::Map で deterministic 順を保つ。
+            let map = rec
+                .attributes
+                .iter()
+                .map(|(k, v)| (k.clone(), serde_json::Value::String(v.clone())))
+                .collect::<serde_json::Map<_, _>>();
+            json["attributes"] = serde_json::Value::Object(map);
+        }
         eprintln!("k1s0.audit {}", json);
     }
 }
@@ -141,6 +156,7 @@ pub fn build_record(
         resource: resource.to_string(),
         outcome: outcome_from_code(code).to_string(),
         code: code as i32,
+        attributes: BTreeMap::new(),
     }
 }
 
@@ -173,6 +189,7 @@ mod tests {
             resource: "r".into(),
             outcome: "SUCCESS".into(),
             code: 0,
+            attributes: BTreeMap::new(),
         })
         .await;
     }

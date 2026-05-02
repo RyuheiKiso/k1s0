@@ -15,7 +15,9 @@ use k1s0_tier1_common::http_gateway::JsonRpc;
 // JSON 値型。
 use serde_json::Value as JsonValue;
 // PII 検出 logic。
-use crate::masker::{Finding, Masker};
+use crate::masker::{byte_to_char_index, Finding, Masker};
+// FR-T1-PII-002 仮名化純関数。
+use crate::pseudonymize::{pseudonymize, PseudonymizeError};
 // 標準同期。
 use std::sync::Arc;
 
@@ -50,7 +52,7 @@ impl JsonRpc for ClassifyRpc {
             .and_then(|v| v.as_str())
             .unwrap_or_default();
         let findings = self.state.masker.classify(text);
-        Ok(classify_response(&findings))
+        Ok(classify_response(text, &findings))
     }
 }
 
@@ -78,22 +80,73 @@ impl JsonRpc for MaskRpc {
             .and_then(|v| v.as_str())
             .unwrap_or_default();
         let (masked, findings) = self.state.masker.mask(text);
+        // findings は **入力 text** 上の byte offset を保持しているため、入力 text を
+        // 基準に proto 仕様の char index へ射影する（masked 後ではない点に注意）。
         Ok(serde_json::json!({
             "maskedText": masked,
-            "findings": findings_to_json(&findings),
+            "findings": findings_to_json(text, &findings),
         }))
     }
 }
 
+/// `Pii.Pseudonymize` の HTTP 用 adapter（FR-T1-PII-002）。
+/// salt 由来の HMAC-SHA256 を URL-safe base64 で返す純関数 RPC。state は不要。
+pub struct PseudonymizeRpc {}
+
+#[async_trait::async_trait]
+impl JsonRpc for PseudonymizeRpc {
+    fn route(&self) -> &'static str {
+        "pii/pseudonymize"
+    }
+    fn full_method(&self) -> &'static str {
+        "/k1s0.tier1.pii.v1.PiiService/Pseudonymize"
+    }
+    async fn invoke(
+        &self,
+        _claims: &AuthClaims,
+        body: JsonValue,
+    ) -> Result<JsonValue, tonic::Status> {
+        // protojson camelCase: fieldType / value / salt の 3 必須キーを取り出す。
+        let field_type = body
+            .get("fieldType")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let value = body
+            .get("value")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let salt = body
+            .get("salt")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+        let pseudonym = pseudonymize(field_type, value, salt).map_err(|e| match e {
+            PseudonymizeError::EmptySalt => {
+                tonic::Status::invalid_argument("tier1/pii: salt required")
+            }
+            PseudonymizeError::EmptyValue => {
+                tonic::Status::invalid_argument("tier1/pii: value required")
+            }
+            PseudonymizeError::EmptyFieldType => {
+                tonic::Status::invalid_argument("tier1/pii: field_type required")
+            }
+        })?;
+        Ok(serde_json::json!({ "pseudonym": pseudonym }))
+    }
+}
+
 /// Finding 配列 → JSON 配列（protojson camelCase）。
-fn findings_to_json(findings: &[Finding]) -> Vec<JsonValue> {
+///
+/// proto contract（PiiFinding.start / end）は char 単位であるため、内部 byte offset を
+/// `byte_to_char_index` で射影する。Multibyte 入り text に対し client が誤った位置を
+/// 受け取らないよう、`text` を基準に変換する。
+fn findings_to_json(text: &str, findings: &[Finding]) -> Vec<JsonValue> {
     findings
         .iter()
         .map(|f| {
             serde_json::json!({
                 "type": f.kind.as_str(),
-                "start": f.start as i32,
-                "end": f.end as i32,
+                "start": byte_to_char_index(text, f.start) as i32,
+                "end": byte_to_char_index(text, f.end) as i32,
                 "confidence": f.confidence,
             })
         })
@@ -101,9 +154,9 @@ fn findings_to_json(findings: &[Finding]) -> Vec<JsonValue> {
 }
 
 /// Classify 応答を整形する。
-fn classify_response(findings: &[Finding]) -> JsonValue {
+fn classify_response(text: &str, findings: &[Finding]) -> JsonValue {
     serde_json::json!({
-        "findings": findings_to_json(findings),
+        "findings": findings_to_json(text, findings),
         "containsPii": !findings.is_empty(),
     })
 }
@@ -128,6 +181,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn pseudonymize_returns_deterministic_value() {
+        let r = PseudonymizeRpc {};
+        let body = serde_json::json!({
+            "fieldType": "EMAIL",
+            "value": "alice@example.com",
+            "salt": "tenant-A",
+        });
+        let a = r
+            .invoke(&AuthClaims::default(), body.clone())
+            .await
+            .unwrap();
+        let b = r.invoke(&AuthClaims::default(), body).await.unwrap();
+        assert_eq!(a["pseudonym"], b["pseudonym"]);
+        assert_eq!(a["pseudonym"].as_str().unwrap().len(), 43);
+    }
+
+    #[tokio::test]
+    async fn pseudonymize_rejects_empty_salt() {
+        let r = PseudonymizeRpc {};
+        let err = r
+            .invoke(
+                &AuthClaims::default(),
+                serde_json::json!({
+                    "fieldType": "EMAIL",
+                    "value": "alice@example.com",
+                    "salt": "",
+                }),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+    }
+
+    #[tokio::test]
     async fn mask_returns_masked_text() {
         let s = PiiHttpState::default();
         let r = MaskRpc { state: s };
@@ -141,5 +228,28 @@ mod tests {
         let masked = resp["maskedText"].as_str().unwrap();
         // 元 email が plaintext で残らない。
         assert!(!masked.contains("user@example.com"));
+    }
+
+    #[tokio::test]
+    async fn classify_returns_char_indexed_offsets_for_multibyte_text() {
+        // proto contract（PiiFinding.start/end は char 単位）の HTTP 経路の回帰テスト。
+        let s = PiiHttpState::default();
+        let r = ClassifyRpc { state: s };
+        let text = "問い合わせ先: alice@example.com まで";
+        let resp = r
+            .invoke(
+                &AuthClaims::default(),
+                serde_json::json!({ "text": text }),
+            )
+            .await
+            .unwrap();
+        let findings = resp["findings"].as_array().unwrap();
+        assert_eq!(findings.len(), 1);
+        let f = &findings[0];
+        let start = f["start"].as_i64().unwrap() as usize;
+        let end = f["end"].as_i64().unwrap() as usize;
+        let chars: Vec<char> = text.chars().collect();
+        let restored: String = chars[start..end].iter().collect();
+        assert_eq!(restored, "alice@example.com");
     }
 }

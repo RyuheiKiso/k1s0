@@ -1,0 +1,15 @@
+# 各 role の .hcl policy を ConfigMap として束ねる。OpenBao Init Job（plan 04-XX）
+# が本 ConfigMap を mount して `bao policy write` で投入する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: k1s0-security
+
+configMapGenerator:
+  - name: openbao-policies
+    files:
+      - tier1-facade.hcl
+      - tier2-service.hcl
+      - tier3-bff.hcl
+      - ci-runner.hcl
+generatorOptions:
+  disableNameSuffixHash: true

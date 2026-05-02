@@ -1,0 +1,47 @@
+# =============================================================================
+# 監査ログ長期保管用 MinIO Tenant
+#
+# 用途: tier1-audit-pii Dapr app による audit-events の export。
+#       PG audit Cluster の base backup + WAL アーカイブ先（k1s0-pg-backup/audit）。
+#       MinIO Lifecycle で 90 日後に Glacier-tier 相当へ移行（buckets/bucket-lifecycle.yaml）。
+# =============================================================================
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: audit-archive
+  namespace: k1s0-data
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/minio-role: audit-archive
+spec:
+  configuration:
+    name: audit-archive-env-configuration
+  pools:
+    - name: pool-0
+      servers: 4
+      volumesPerServer: 4
+      size: 500Gi
+      storageClassName: longhorn-retain
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  v1.min.io/tenant: audit-archive
+              topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 4Gi
+  buckets:
+    - name: k1s0-audit-export
+    - name: k1s0-pg-backup
+  mountPath: /export
+  requestAutoCert: false
+  metrics:
+    enabled: true
+    port: 9000
+    protocol: http

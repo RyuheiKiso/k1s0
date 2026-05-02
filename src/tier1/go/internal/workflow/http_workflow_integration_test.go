@@ -1,9 +1,10 @@
 // 本ファイルは Workflow API の HTTP/JSON gateway 経由 e2e テスト。
 //
-// 注意:
-//   release-initial では adapter (Temporal / Dapr Workflow) が未注入のため、handler は
-//   Unimplemented を返す。本テストは tenant_id 防御 + ルート登録の確認に絞る
-//   （実 backend 結合は別テストで代表）。
+// 役割:
+//   tenant_id 防御 + ルート登録 + JSON parse 検証の確認に絞る。adapter 未注入時の
+//   挙動は handler の契約上想定しない（cmd/workflow/main.go で必ず注入される）ため、
+//   本テストの Deps{} は tenant_id / JSON 検証が adapter 呼出より前に短絡することの
+//   検証に使う。実 backend 結合は別テストで代表する。
 
 package workflow
 
@@ -18,7 +19,9 @@ import (
 
 func startWorkflowHTTPGateway(t *testing.T) (*httptest.Server, func()) {
 	t.Helper()
-	deps := Deps{} // adapter 未注入、各 RPC は Unimplemented を返す
+	// adapter 未注入の Deps を渡すが、本テストの assertion は tenant_id / JSON
+	// validation で adapter 呼出より前に短絡するため adapter nil でも到達しない。
+	deps := Deps{}
 	g := common.NewHTTPGateway()
 	g.RegisterWorkflowRoutes(MakeHTTPHandlers(NewWorkflowServiceServer(deps)))
 	srv := httptest.NewServer(g.Handler())
@@ -64,21 +67,3 @@ func TestHTTPGateway_Workflow_InvalidJSON_400(t *testing.T) {
 	}
 }
 
-// adapter 未注入時、tenant_id 付きで Start を呼ぶと 503 (Unavailable / Unimplemented) を返す。
-// docs §「HTTP Status ↔ K1s0Error」では Unimplemented は明示マッピング外だが、
-// 既定で 500 系（Internal）に倒れる。本テストでは「panic しない / 4xx を返さない」ことを確認する。
-func TestHTTPGateway_Workflow_UnwiredBackend_NotPanic(t *testing.T) {
-	srv, cleanup := startWorkflowHTTPGateway(t)
-	defer cleanup()
-	resp, err := http.Post(srv.URL+"/k1s0/workflow/start", "application/json",
-		strings.NewReader(`{"workflow_type":"X","workflow_id":"id1","context":{"tenant_id":"T"}}`))
-	if err != nil {
-		t.Fatalf("POST: %v", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-	// adapter 未注入時 handler は Unimplemented を返し、HTTP gateway はそれを 500 にマップする
-	// （httpStatusFromGRPC は Unimplemented を default ケースで 500 扱い）。
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Fatalf("status = %d want 500 (Unimplemented falls through to 500)", resp.StatusCode)
-	}
-}

@@ -1,0 +1,7 @@
+# ztunnel は Istio Ambient の dataplane（DaemonSet、L4 mTLS を担う）。
+# istioctl install profile=ambient で同梱されるため、本 stub は Sync Wave -8 のみ。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-8"

@@ -15,11 +15,11 @@
 //   の handler 実装を gRPC server に登録する。各 handler は internal/adapter/dapr/ への
 //   委譲を基本とし、Log / Telemetry のみ OTel パイプライン直結のため Dapr adapter を経由しない。
 //
-// scope（リリース時点 最小骨格）:
-//   - 5 Dapr 系 handler（State / PubSub / Invoke / Binding / Feature）は adapter ErrNotWired
-//     を Unimplemented に翻訳して返す。実 Dapr backend 結線は plan 04-04 〜 04-13。
-//   - Log / Telemetry 2 handler は Unimplemented を直接返す。実 OTel Collector / Loki / Mimir
-//     結線は plan 04-13。
+// 役割（plan 04-04 〜 04-13 結線済）:
+//   - 5 Dapr 系 handler（State / PubSub / Invoke / Binding / Feature）は adapter 経由で
+//     Dapr SDK（production）または in-memory backend（dev / CI）に委譲する。
+//   - Log / Telemetry 2 handler は internal/otel.Bundle 越しに OTel Logs / Metrics / Traces
+//     へ流す（OTLP gRPC or stdout JSON Lines fallback）。
 //   - FeatureAdminService（RegisterFlag / GetFlag / ListFlags）は in-memory FlagRegistry
 //     と組合せて 同 Pod に登録（feature_admin.go）。HTTP/JSON gateway も同形で 7 RPC を露出する。
 
@@ -28,7 +28,7 @@ package state
 
 // 標準 / 内部パッケージを import する。
 import (
-	// Dapr adapter（本リリース時点 placeholder）。
+	// Dapr adapter（plan 04-04 〜 04-13 結線済）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
@@ -62,7 +62,7 @@ type Deps struct {
 	// FeatureAdminService 用 in-memory registry（FlagDefinition の登録 / 取得 / 一覧）。
 	// nil 時は handler 側で 0 値の registry を生成する（dev / 旧コード互換）。
 	FeatureRegistry *FlagRegistry
-	// OTel Logs パイプライン（Loki 経由）への emitter。nil 時は LogService が Unimplemented を返す。
+	// OTel Logs パイプライン（Loki 経由）への emitter。cmd/state/main.go で必ず注入される。
 	LogEmitter otel.LogEmitter
 	// OTel Metrics パイプライン（Mimir 経由）への emitter。
 	MetricEmitter otel.MetricEmitter
@@ -71,6 +71,12 @@ type Deps struct {
 	// PubSub.Publish の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL の dedup）。
 	// nil 時は dedup 無効（後方互換、release-initial / dev 経路）。
 	Idempotency common.IdempotencyCache
+	// FR-T1-INVOKE-004: ServiceInvoke handler の Circuit Breaker レジストリ。
+	// nil 時は CB 機能を無効化（後方互換）。NewDepsFromClient で既定値が注入される。
+	InvokeCircuitBreakers *common.CircuitBreakerRegistry
+	// FR-T1-FEATURE-003: Circuit Breaker override store（flag 強制 false 化）。
+	// nil 時は override 機能無効（後方互換）。NewDepsFromClient で既定値が注入される。
+	FeatureOverrides *FeatureFlagOverrideStore
 }
 
 // NewDepsFromClient は単一の Dapr Client から 5 つのアダプタを構築する。
@@ -79,6 +85,10 @@ type Deps struct {
 // 冪等性 cache（共通規約 §「冪等性と再試行」）は in-memory 24h TTL backend で
 // 既定有効化する。production の multi-replica deploy では Valkey backed cache に
 // 置き換える想定だが、release-initial では 1 Pod 内 dedup を提供する。
+//
+// FR-T1-FEATURE-001 受け入れ基準「評価 p99 < 10ms（キャッシュヒット時）」と
+// FR-T1-FEATURE-004「評価結果のキャッシュ（30 秒 TTL）」を満たすため、
+// FeatureAdapter は CachedFeatureAdapter で wrap する（既定 TTL 30 秒）。
 func NewDepsFromClient(client *dapr.Client) Deps {
 	// 各 adapter を Client 共有で生成する。
 	return Deps{
@@ -90,12 +100,20 @@ func NewDepsFromClient(client *dapr.Client) Deps {
 		BindingAdapter: dapr.NewBindingAdapter(client),
 		// Service Invocation（tier1 内部 gRPC 呼出含む）。
 		InvokeAdapter: dapr.NewInvokeAdapter(client),
-		// Feature Flag（flagd）。
-		FeatureAdapter: dapr.NewFeatureAdapter(client),
+		// Feature Flag（flagd）。30 秒 TTL の in-memory cache で wrap する。
+		// production では env K1S0_FEATURE_CACHE_TTL で TTL を上書きする運用を想定。
+		FeatureAdapter: dapr.NewCachedFeatureAdapter(dapr.NewFeatureAdapter(client), 0),
 		// FeatureAdminService 用 in-memory registry。
 		FeatureRegistry: NewFlagRegistry(),
 		// 24h TTL の in-memory dedup cache（共通規約 §「冪等性と再試行」）。
 		Idempotency: common.NewInMemoryIdempotencyCache(0),
+		// FR-T1-INVOKE-004: appId 単位の Circuit Breaker レジストリを既定値で初期化する。
+		// 既定値は DefaultCBConfig（5 連続失敗 / 30 秒 half-open / 1 probe）。
+		// production では cmd/state/main.go が LoadCBConfigFromEnv で env 上書きしたものを注入する。
+		InvokeCircuitBreakers: common.NewCircuitBreakerRegistry(common.DefaultCBConfig(), nil),
+		// FR-T1-FEATURE-003: 空 override store を初期化する。
+		// production では FeatureCircuitBreakerEvaluator がここに override を書き込む。
+		FeatureOverrides: NewFeatureFlagOverrideStore(),
 	}
 }
 

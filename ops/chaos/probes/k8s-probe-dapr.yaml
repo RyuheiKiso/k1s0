@@ -1,0 +1,22 @@
+# LitmusChaos v3.x: Dapr sidecar k8s probe 共通定義
+# tier1 / tier2 が Dapr サイドカー経由で動作している場合の Pod ready 監視
+apiVersion: litmuschaos.io/v1alpha1
+kind: Probe
+metadata:
+  name: dapr-sidecar-ready-probe
+  namespace: k1s0
+spec:
+  type: k8sProbe
+  k8sProbe/inputs:
+    group: ""
+    version: v1
+    resource: pods
+    namespace: k1s0
+    fieldSelector: "status.phase=Running"
+    labelSelector: "dapr.io/enabled=true"
+    operation: present
+  mode: Continuous
+  runProperties:
+    probeTimeout: 5
+    interval: 5
+    retry: 3

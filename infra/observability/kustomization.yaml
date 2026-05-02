@@ -1,0 +1,19 @@
+# =============================================================================
+# infra/observability/
+#
+# LGTM (Loki / Grafana / Tempo / Mimir) + Pyroscope + OTel Collector + Alertmanager
+# + alerts (PrometheusRule)。
+#
+# 各 backend は Helm chart で展開し、本 kustomization は CR / ConfigMap / 補助
+# resources を base 化する。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/07_観測性配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - alerts
+  - alertmanager
+  - otel-collector
+  - grafana

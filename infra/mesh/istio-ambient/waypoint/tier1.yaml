@@ -1,0 +1,21 @@
+# =============================================================================
+# tier1 namespace 用 Waypoint Proxy（L7 ポリシー適用点）
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/03_サービスメッシュ配置.md:79-82
+#         （リリース時点 k1s0-tier1 のみ、後続で tier2/tier3 拡大）
+#
+# Gateway API の Gateway リソースとして宣言。GatewayClass=istio-waypoint。
+# =============================================================================
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint
+  namespace: k1s0-tier1
+  labels:
+    istio.io/waypoint-for: service
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - name: mesh
+      port: 15008
+      protocol: HBONE

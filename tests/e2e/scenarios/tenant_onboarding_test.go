@@ -12,5 +12,5 @@ import "testing"
 func TestTenantOnboarding(t *testing.T) {
 	// 採用初期 で helpers.SetupCluster(t) / AuthenticateAsAdmin / CreateTenant /
 	// RegisterUser / AuthenticateAsUser / GetDashboard を実装する。
-	t.Skip("TODO(release-initial): tenant onboarding e2e flow を実装する")
+	t.Skip("PHASE: release-initial — tenant onboarding e2e flow を採用初期で実装する（SHIP_STATUS §採用初期へのロードマップ）")
 }

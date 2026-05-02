@@ -107,6 +107,20 @@ func main() {
 
 	// 5 公開 API の handler が依存する adapter 集合を構築する。
 	deps := state.NewDepsFromClient(daprClient)
+	// FR-T1-FEATURE-001 / 004: env で flag 評価キャッシュ TTL を上書き可能にする。
+	// 値 "0" / 不正値 / 未設定は CachedFeatureAdapter 側の既定 30 秒にフォールバック。
+	if raw := os.Getenv("K1S0_FEATURE_CACHE_TTL"); raw != "" {
+		if d, err := time.ParseDuration(raw); err == nil && d > 0 {
+			deps.FeatureAdapter = dapr.NewCachedFeatureAdapter(dapr.NewFeatureAdapter(daprClient), d)
+			log.Printf("t1-state: feature flag cache TTL = %v (env override)", d)
+		} else {
+			log.Printf("t1-state: invalid K1S0_FEATURE_CACHE_TTL=%q (%v), using default 30s", raw, err)
+		}
+	}
+	// FR-T1-INVOKE-004: env から CB 設定を読み込み既定 registry を上書きする。
+	// observer は metric publish callback（後段で deps.MetricEmitter 注入後に再差替）。
+	cbConfig := common.LoadCBConfigFromEnv(os.Getenv, log.Printf)
+	deps.InvokeCircuitBreakers = common.NewCircuitBreakerRegistry(cbConfig, nil)
 	// OTel Log / Metric / Trace の 3 emitter を環境変数判定で stdout / OTLP gRPC のどちらかで構築する。
 	// docs 正典 DS-SW-COMP-037（"stdout JSON Lines / OTel Collector / Loki 集約"）と
 	// DS-SW-COMP-038（Metrics Emitter）の両経路を満たす:
@@ -125,6 +139,23 @@ func main() {
 	deps.LogEmitter = bundle.LogEmitter
 	deps.MetricEmitter = bundle.MetricEmitter
 	deps.TraceEmitter = bundle.TraceEmitter
+
+	// FR-T1-INVOKE-004: CB 状態変更を Gauge metric として publish する observer を再差替する。
+	// MetricEmitter が deps に揃った後に observer を bind することで、起動順序の依存を最小化する。
+	cbObserver := makeCBStateObserver(bundle.MetricEmitter)
+	deps.InvokeCircuitBreakers = common.NewCircuitBreakerRegistry(cbConfig, cbObserver)
+
+	// FR-T1-FEATURE-003: Feature Flag Circuit Breaker rule の評価器を起動する。
+	// FEATURE_CB_RULES_FILE と PROMETHEUS_URL が両方設定されている時のみ有効化する。
+	// 評価結果は deps.FeatureOverrides（NewDepsFromClient で初期化済の override store）に
+	// 強制 false を書き込み、featureHandler が次回評価でその値を返す。
+	// shutdown 時に Stop で評価ループを終わらせる。
+	featureCBEvaluator := startFeatureCBEvaluatorIfEnabled(deps, bundle.LogEmitter)
+	defer func() {
+		if featureCBEvaluator != nil {
+			featureCBEvaluator.Stop()
+		}
+	}()
 
 	// HTTP/JSON 互換 gateway を別 goroutine で起動する（共通規約 §「HTTP/JSON 互換」）。
 	// flag が空文字 / "off" なら HTTP server を起動しない（純 gRPC 運用への切替）。
@@ -215,7 +246,11 @@ func startHTTPGatewayIfEnabled(addr string, deps state.Deps) *http.Server {
 	g.RegisterBindingRoutes(state.MakeHTTPBindingHandlers(state.NewBindingServiceServer(deps)))
 	g.RegisterLogRoutes(state.MakeHTTPLogHandlers(state.NewLogServiceServer(deps)))
 	g.RegisterTelemetryRoutes(state.MakeHTTPTelemetryHandlers(state.NewTelemetryServiceServer(deps)))
+	// 共通 /k1s0/serviceinvoke/invoke ルート（protojson body）。
 	g.RegisterInvokeRoutes(state.MakeHTTPInvokeHandlers(state.NewInvokeServiceServer(deps)))
+	// FR-T1-INVOKE-002: HTTP/1.1 互換プロキシ POST /invoke/<target>/<method>（raw body）。
+	// .NET Framework 4.x 等の gRPC 利用が困難なレガシークライアント向け。
+	g.RegisterInvokeProxyRoute(state.NewInvokeProxyAdapter(state.NewInvokeServiceServer(deps)))
 
 	srv := &http.Server{
 		Addr:              addr,
@@ -257,4 +292,62 @@ func newDaprClient(ctx context.Context, flagAddr string) (*dapr.Client, error) {
 	}
 	// 実 Dapr sidecar に接続する。
 	return dapr.New(ctx, dapr.Config{SidecarAddress: addr})
+}
+
+// startFeatureCBEvaluatorIfEnabled は FR-T1-FEATURE-003 の Circuit Breaker 評価ループを
+// 起動する。FEATURE_CB_RULES_FILE と PROMETHEUS_URL の両方が設定されている時のみ起動し、
+// 片方でも欠けていれば nil を返して機能を無効化する（fail-soft、業務継続優先）。
+//
+// rules ファイル parse 失敗は fatal（誤設定を本番に持ち込まない）。
+func startFeatureCBEvaluatorIfEnabled(deps state.Deps, audit otel.LogEmitter) *state.FeatureCircuitBreakerEvaluator {
+	rulesPath := os.Getenv("FEATURE_CB_RULES_FILE")
+	promURL := os.Getenv("PROMETHEUS_URL")
+	if rulesPath == "" || rulesPath == "off" || promURL == "" {
+		log.Printf("t1-state: feature CB evaluator disabled (rules_file=%q, prometheus_url=%q)", rulesPath, promURL)
+		return nil
+	}
+	rules, err := state.LoadFeatureCBRulesFromFile(rulesPath)
+	if err != nil {
+		// 誤設定は fatal。release 経路で「壊れた rules で起動継続」を許容しない。
+		log.Fatalf("t1-state: feature CB rules load failed: %v", err)
+	}
+	if len(rules) == 0 {
+		log.Printf("t1-state: feature CB rules file %q is empty, evaluator not started", rulesPath)
+		return nil
+	}
+	source := state.NewPrometheusMetricSource(promURL, nil)
+	// FR-T1-FEATURE-003 受け入れ基準値: 30 秒（NewFeatureCircuitBreakerEvaluator 既定）。
+	evaluator := state.NewFeatureCircuitBreakerEvaluator(source, deps.FeatureOverrides, 0)
+	evaluator.SetRules(rules)
+	evaluator.SetAuditEmitter(audit)
+	evaluator.Start(context.Background())
+	log.Printf("t1-state: feature CB evaluator started (rules=%d, prometheus_url=%s)", len(rules), promURL)
+	return evaluator
+}
+
+// makeCBStateObserver は MetricEmitter 越しに CB 状態を Gauge として publish する observer を返す。
+//
+// FR-T1-INVOKE-004 受け入れ基準「Circuit Breaker の状態（closed / open / half-open）を
+// Prometheus で可視化」のため、tier1_invoke_circuit_breaker_state metric を Counter ではなく
+// Gauge で publish する。値は 0=closed / 1=open / 2=half-open。Prometheus の rate() 系では
+// なく direct value 監視に使う（Grafana の State Timeline panel と整合）。
+//
+// emitter が nil の場合（dev / 試験 fake）は no-op を返す。
+func makeCBStateObserver(emitter otel.MetricEmitter) common.CBStateObserver {
+	if emitter == nil {
+		return nil
+	}
+	return func(name string, state common.CBState) {
+		// 観測 callback は CB の lock 内で呼ばれる契約のため、軽量な処理に限定する。
+		// emitter.Record はシンプルな atomic 操作のみで完了する想定。
+		_ = emitter.Record(context.Background(), otel.MetricEntry{
+			Name:  "tier1_invoke_circuit_breaker_state",
+			Kind:  otel.MetricKindGauge,
+			Value: float64(state),
+			Labels: map[string]string{
+				"target":     name,
+				"state_text": state.String(),
+			},
+		})
+	}
 }

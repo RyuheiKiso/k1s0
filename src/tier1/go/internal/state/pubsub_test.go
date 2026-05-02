@@ -111,20 +111,6 @@ func TestPubSubHandler_Publish_NilRequest(t *testing.T) {
 	}
 }
 
-// adapter が ErrNotWired を返した場合 → Unimplemented。
-func TestPubSubHandler_Publish_NotWired(t *testing.T) {
-	a := &fakePubSubAdapter{
-		publishFn: func(_ context.Context, _ dapr.PublishRequest) (dapr.PublishResponse, error) {
-			return dapr.PublishResponse{}, dapr.ErrNotWired
-		},
-	}
-	h := newPubSubHandler(a)
-	_, err := h.Publish(context.Background(), &pubsubv1.PublishRequest{Topic: "t", Data: []byte("d"), Context: makeTenantCtx("T")})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status code: got %v want Unimplemented", got)
-	}
-}
-
 // adapter が一般エラーを返した場合 → Internal。
 func TestPubSubHandler_Publish_AdapterError(t *testing.T) {
 	a := &fakePubSubAdapter{
@@ -236,10 +222,13 @@ func TestPubSubService_Subscribe_OverGRPC(t *testing.T) {
 	}
 }
 
-// Subscribe: adapter が ErrNotWired を返した時 Unimplemented に翻訳される。
-func TestPubSubService_Subscribe_NotWired(t *testing.T) {
+// Subscribe: adapter が一般エラー（subscribeFn nil 経由）を返した時 Internal に翻訳される。
+func TestPubSubService_Subscribe_AdapterError(t *testing.T) {
 	lis := bufconn.Listen(bufSize)
-	a := &fakePubSubAdapter{} // subscribeFn nil → ErrNotWired
+	// fakePubSubAdapter.subscribeFn が nil の時、fake は便宜上 dapr.ErrNotWired を返すが、
+	// production / dev では adapter は必ず注入されるため handler は ErrNotWired を特別扱いせず
+	// generic な Internal にフォールバックする。
+	a := &fakePubSubAdapter{}
 	srv := grpc.NewServer()
 	pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: Deps{PubSubAdapter: a}})
 	go func() { _ = srv.Serve(lis) }()
@@ -257,8 +246,8 @@ func TestPubSubService_Subscribe_NotWired(t *testing.T) {
 	client := pubsubv1.NewPubSubServiceClient(conn)
 	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t", Context: makeTenantCtx("T")})
 	_, err := stream.Recv()
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status: got %v want Unimplemented", got)
+	if got := status.Code(err); got != codes.Internal {
+		t.Fatalf("status: got %v want Internal", got)
 	}
 }
 

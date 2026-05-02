@@ -1,0 +1,15 @@
+# =============================================================================
+# infra/data/minio/
+#
+# 3 Tenant 分離（tier1-binding / audit-archive / observability）+ operator + buckets。
+# Helm values（同階層 `values.yaml`）は MinIO Operator install 用。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/05_データ層配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - operator
+  - tenant
+  - buckets

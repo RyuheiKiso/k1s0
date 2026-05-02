@@ -1,0 +1,16 @@
+# Istio GatewayClass（Ambient Waypoint Proxy 用）。
+# infra/mesh/istio-ambient/waypoint/ 配下から参照する。
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: istio
+spec:
+  controllerName: istio.io/gateway-controller
+---
+# Istio Waypoint 専用の GatewayClass（k8s namespace ごとの L7 ポリシー適用点）
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: istio-waypoint
+spec:
+  controllerName: istio.io/mesh-controller

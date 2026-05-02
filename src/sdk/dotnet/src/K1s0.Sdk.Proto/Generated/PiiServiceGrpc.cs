@@ -72,6 +72,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1 {
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskRequest> __Marshaller_k1s0_tier1_pii_v1_MaskRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskResponse> __Marshaller_k1s0_tier1_pii_v1_MaskResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest> __Marshaller_k1s0_tier1_pii_v1_PseudonymizeRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse> __Marshaller_k1s0_tier1_pii_v1_PseudonymizeResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.ClassifyRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.ClassifyResponse> __Method_Classify = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.ClassifyRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.ClassifyResponse>(
@@ -88,6 +92,14 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1 {
         "Mask",
         __Marshaller_k1s0_tier1_pii_v1_MaskRequest,
         __Marshaller_k1s0_tier1_pii_v1_MaskResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse> __Method_Pseudonymize = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Pseudonymize",
+        __Marshaller_k1s0_tier1_pii_v1_PseudonymizeRequest,
+        __Marshaller_k1s0_tier1_pii_v1_PseudonymizeResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -119,6 +131,19 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1 {
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskResponse> Mask(global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+      /// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse> Pseudonymize(global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -248,6 +273,58 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_Mask, null, options, request);
       }
+      /// <summary>
+      /// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+      /// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse Pseudonymize(global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Pseudonymize(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+      /// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse Pseudonymize(global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Pseudonymize, null, options, request);
+      }
+      /// <summary>
+      /// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+      /// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse> PseudonymizeAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return PseudonymizeAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+      /// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse> PseudonymizeAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Pseudonymize, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override PiiServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -263,7 +340,8 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1 {
     {
       return grpc::ServerServiceDefinition.CreateBuilder()
           .AddMethod(__Method_Classify, serviceImpl.Classify)
-          .AddMethod(__Method_Mask, serviceImpl.Mask).Build();
+          .AddMethod(__Method_Mask, serviceImpl.Mask)
+          .AddMethod(__Method_Pseudonymize, serviceImpl.Pseudonymize).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -275,6 +353,7 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1 {
     {
       serviceBinder.AddMethod(__Method_Classify, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.ClassifyRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.ClassifyResponse>(serviceImpl.Classify));
       serviceBinder.AddMethod(__Method_Mask, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.MaskResponse>(serviceImpl.Mask));
+      serviceBinder.AddMethod(__Method_Pseudonymize, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Pii.V1.PseudonymizeResponse>(serviceImpl.Pseudonymize));
     }
 
   }

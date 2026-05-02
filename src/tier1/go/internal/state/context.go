@@ -3,8 +3,9 @@
 //
 // 注: docs 正典 では Policy Enforcer（internal/policy/enforcer.go）が gRPC interceptor で
 //     JWT 検証 → ctx.Value(key.TenantID) に格納する設計（DS-SW-COMP-... ）。
-//     本リリース時点 では interceptor 未実装のため、proto 内 context フィールドから
-//     直接 tenant_id を取得する暫定実装としている。plan 04-02 で interceptor 化する。
+//     本リリース時点 では interceptor 未結線のため、proto 内 context フィールドから
+//     直接 tenant_id を取得する最小実装としている（plan 04-02 で interceptor 化する予定、
+//     実装場所は docs/SHIP_STATUS.md §採用初期へのロードマップで管理）。
 //
 // テナント境界（NFR-E-AC-003 / FR-T1-LOG-003）:
 //   tenant_id が空のリクエストは「越境防止」を担保できないため InvalidArgument で

@@ -34,10 +34,11 @@ members = [
     "crates/health",
     # 3 Pod 共通の interceptor / idempotency / HTTP gateway。
     "crates/common",
-]
-# 残る補助 crate（otel-util / policy / proto）は内容実装に伴い members に追加する（plan 04-08 〜）。
-exclude = [
+    # DS-SW-COMP-109（k1s0-otel）: tracing-subscriber + OTLP gRPC exporter 共通初期化。
     "crates/otel-util",
+]
+# 残る補助 crate（policy / proto）は内容実装に伴い members に追加する（policy は DS-SW-COMP-110「採用初期/1c」）。
+exclude = [
     "crates/policy",
     "crates/proto",
 ]
@@ -74,3 +75,5 @@ k1s0-tier1-proto-gen = { path = "crates/proto-gen", version = "0.1" }
 k1s0-tier1-health = { path = "crates/health", version = "0.1" }
 # 3 Pod 共通の interceptor / idempotency / HTTP gateway。
 k1s0-tier1-common = { path = "crates/common", version = "0.1" }
+# DS-SW-COMP-109: tracing-subscriber + OTLP gRPC exporter 共通初期化。
+k1s0-tier1-otel = { path = "crates/otel-util", version = "0.1" }

@@ -21,7 +21,7 @@ spec:
               namespaces: ["k1s0-tier1", "k1s0-tier2", "k1s0-tier3"]
       verifyImages:
         - imageReferences:
-            - "registry.registry.svc.cluster.local:5000/*"
+            - "registry.k1s0-platform-tools.svc.cluster.local:5000/*"
           attestors:
             - count: 1
               entries:

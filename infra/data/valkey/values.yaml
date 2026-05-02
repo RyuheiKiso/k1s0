@@ -1,59 +1,46 @@
 # Valkey（ADR-DATA-004、Redis 互換 OSS）の production-grade Helm values。
-# helm repo add bitnami https://charts.bitnami.com/bitnami
-# helm upgrade --install valkey bitnami/valkey -n valkey -f values.yaml --version 5.5.1
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/05_データ層配置.md
+#   - Cluster モード 6 node（master 3 + replica 3）。
+#   - Dapr State Store(短 TTL)、tier3 BFF セッションキャッシュ、tier1/2 分散ロック。
 #
-# dev 用最小構成は tools/local-stack/manifests/75-valkey/values.yaml を参照（standalone）。
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+# helm upgrade --install valkey bitnami/valkey-cluster -n k1s0-data \
+#     -f values.yaml --version 12.0.5
+#
+# dev 用最小構成は tools/local-stack/manifests/75-valkey/values.yaml（standalone）。
 
-# replication モード（primary 1 + replica 2、Sentinel で自動フェイルオーバ）。
-architecture: replication
+# Cluster モード（master 3 + replica 3 = 6 node）。
+cluster:
+  enabled: true
+  nodes: 6
+  replicas: 1
+  init: true
+  externalAccess:
+    enabled: false
 
 # 認証を有効化。!! placeholder !! prod では OpenBao 動的パスワード（plan 04-06）。
 auth:
   enabled: true
-  # password は existingSecret 経由で注入する。
   existingSecret: k1s0-valkey-credentials
   existingSecretPasswordKey: password
 
-# primary 設定（書き込み node、prod 1 台）。
-primary:
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: ""
-  resources:
-    requests:
-      cpu: 200m
-      memory: 512Mi
-    limits:
-      cpu: 1
-      memory: 2Gi
-  # podAntiAffinity で primary / replica が同一 node に乗らない。
-  podAntiAffinityPreset: hard
-
-# replica 設定（読み取り node、prod 2 台）。
-replica:
-  replicaCount: 2
-  persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: ""
-  resources:
-    requests:
-      cpu: 200m
-      memory: 512Mi
-    limits:
-      cpu: 1
-      memory: 2Gi
-  # 各 replica が別 node に分散。
-  podAntiAffinityPreset: hard
-
-# Sentinel を有効化（自動フェイルオーバ）。
-sentinel:
+# 各 node の永続化設定。Cluster mode では全 node 同設定。
+persistence:
   enabled: true
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
+  size: 10Gi
+  storageClass: longhorn-retain
+
+# リソース要求（Cluster mode は全 node 共通）。
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+# Pod anti-affinity（同一 node に複数 valkey が乗らない）。
+podAntiAffinityPreset: hard
 
 # Prometheus 監視（ServiceMonitor 自動生成）。
 metrics:
@@ -64,7 +51,7 @@ metrics:
 # Pod Disruption Budget（k8s upgrade 時に quorum を保つ）。
 pdb:
   create: true
-  minAvailable: 2
+  minAvailable: 4
 
 # TLS は cert-manager 連携で plan 05-XX に有効化。
 tls:

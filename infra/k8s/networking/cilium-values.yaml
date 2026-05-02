@@ -1,0 +1,76 @@
+# Cilium CNI（ADR-NET-001、prod CNI provider）の Helm values。
+# helm repo add cilium https://helm.cilium.io/
+# helm upgrade --install cilium cilium/cilium -n kube-system -f cilium-values.yaml --version 1.16.5
+#
+# 採用根拠:
+#   - eBPF dataplane（kube-proxy 不要）で iptables 退化に追従
+#   - L7 NetworkPolicy（CiliumNetworkPolicy）で Istio AmbientMesh と二層防御を構成
+#   - Hubble UI が観測性 LGTM スタックの補完として L4/L7 トラフィック可視化に使える
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+#
+# kind dev では kindnet を使うため本 values は prod のみ参照。
+
+# kube-proxy 置換（純粋 eBPF mode）。kubeadm-init 時に `--skip-phases=addon/kube-proxy`
+# を指定済（infra/k8s/bootstrap/kubeadm-init-config.yaml）。
+kubeProxyReplacement: true
+
+# クラスタ Pod CIDR
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList:
+      - 192.168.0.0/16
+    clusterPoolIPv4MaskSize: 24
+
+# 暗号化（mTLS は Istio Ambient に任せ、Cilium は L3/L4 の transparent encryption は無効）
+encryption:
+  enabled: false
+
+# CiliumNetworkPolicy CRD 有効化（L7 ポリシー: HTTP method / path / gRPC method）
+policyEnforcementMode: default
+hostFirewall:
+  enabled: true
+
+# Hubble（observability に Grafana datasource を後段で結線）
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+  metrics:
+    enabled:
+      - dns
+      - drop
+      - tcp
+      - flow
+      - port-distribution
+      - icmp
+      - http
+    serviceMonitor:
+      enabled: true
+
+# Operator（policy 計算 / ipam pool 管理）
+operator:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Cilium agent（DaemonSet）
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+# IPv6 は無効（k1s0 prod は v4 のみ）
+ipv6:
+  enabled: false
+
+# Service Mesh（Istio Ambient と二重にならないよう sidecar injector は無効）
+sidecarIstioProxyImage: ""

@@ -1,0 +1,18 @@
+# =============================================================================
+# infra/dapr/components/
+#
+# Dapr Component CRD（state / pubsub / secrets / binding / configuration / workflow）。
+# 環境別差分は infra/environments/<env>/dapr-components-overlay/ で patch する。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - state
+  - pubsub
+  - secrets
+  - binding
+  - configuration
+  - workflow

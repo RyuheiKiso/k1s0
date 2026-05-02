@@ -1,0 +1,54 @@
+# tier2 ドメインサービス（identity / payment / workflow）の Kafka User。
+# 各 bounded context は自身の domain-events.<context> topic への publish と、
+# 他 context の subscribe を ACL で個別に許可する。
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tier2-identity
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  authentication: {type: tls}
+  authorization:
+    type: simple
+    acls:
+      - resource: {type: topic, name: domain-events.identity, patternType: literal}
+        operations: [Write, Read, Describe]
+      - resource: {type: group, name: k1s0-tier2-identity, patternType: prefix}
+        operations: [Read]
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tier2-payment
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  authentication: {type: tls}
+  authorization:
+    type: simple
+    acls:
+      - resource: {type: topic, name: domain-events.payment, patternType: literal}
+        operations: [Write, Read, Describe]
+      - resource: {type: group, name: k1s0-tier2-payment, patternType: prefix}
+        operations: [Read]
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tier2-workflow
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  authentication: {type: tls}
+  authorization:
+    type: simple
+    acls:
+      - resource: {type: topic, name: domain-events.workflow, patternType: literal}
+        operations: [Write, Read, Describe]
+      - resource: {type: group, name: k1s0-tier2-workflow, patternType: prefix}
+        operations: [Read]

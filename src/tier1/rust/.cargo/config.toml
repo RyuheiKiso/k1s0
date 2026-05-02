@@ -1,0 +1,24 @@
+# tier1 Rust workspace ローカルビルド設定。
+#
+# 目的:
+#   crates/decision の zen-engine 依存に含まれる rquickjs（C ソース埋込）の build.rs が
+#   cc-rs 経由で `cc --target=x86_64-unknown-linux-gnu ...` を呼ぶ。開発環境によっては
+#   `cc` が zig-bootstrap の clang ラッパで提供されており、rustc 形式 triple を
+#   `UnknownOperatingSystem` として拒否する。これを repo 側で吸収する。
+#
+# 設計:
+#   tools/build/cc-zigshim.sh が下層 cc の zig 判定 → 透過 / 変換を一元処理する。
+#   非 zig 環境（CI ubuntu-24.04 / Apple Clang / GNU gcc）では透過するため挙動に影響なし。
+#
+# 設計正典:
+#   docs/05_実装/10_ビルド設計/10_Rust_Cargo_workspace/01_Rust_Cargo_workspace.md
+#   docs/02_構想設計/adr/ADR-RULE-001-zen-engine.md
+#
+# 注意:
+#   - relative = true は本ファイルからの相対パス。../../../tools/build/cc-zigshim.sh は
+#     repo ルート tools/build/cc-zigshim.sh を指す。
+#   - force = false（既定）。ユーザが CC_x86_64_unknown_linux_gnu を明示設定している
+#     場合はそちらを尊重する。
+
+[env]
+CC_x86_64_unknown_linux_gnu = { value = "../../../tools/build/cc-zigshim.sh", relative = true }

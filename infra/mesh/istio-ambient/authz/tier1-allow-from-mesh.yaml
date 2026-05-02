@@ -1,0 +1,20 @@
+# =============================================================================
+# tier1 namespace の Pod は同 mesh 内（Ambient + Waypoint 経由）からのみ受信可能
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/03_サービスメッシュ配置.md
+#
+# L4 では NetworkPolicy（infra/k8s/networking/network-policies/default-deny.yaml）
+# で deny し、L7 で本 AuthorizationPolicy が SPIFFE ID 単位の許可を実施する 2 層防御。
+# =============================================================================
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-mesh
+  namespace: k1s0-tier1
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            # 同 mesh 内（k1s0.internal trust domain）からの mTLS 通信のみ許可
+            principals: ["spiffe://k1s0.internal/*"]

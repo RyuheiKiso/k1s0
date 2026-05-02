@@ -10,3 +10,7 @@
 pub mod registry;
 // HTTP/JSON gateway 用 JsonRpc 実装。
 pub mod http;
+// FR-T1-DECISION-004: ConfigMap mount 配下の JDM ファイル変更検知（ホットリロード）。
+pub mod loader;
+// DecisionService / DecisionAdminService の trait 実装本体（main.rs 500 行制限のため分離）。
+pub mod service;

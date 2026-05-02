@@ -1,8 +1,11 @@
 # Dapr pub-sub: Kafka (Strimzi)
+# name は docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md
+# の正典 `kafka-pubsub` に揃える（旧 `k1s0-pubsub` は tier1 facade のハードコードと
+# 齟齬があり Publish が "pubsub <X> is not found" で失敗していた）。
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: k1s0-pubsub
+  name: kafka-pubsub
   namespace: default
 spec:
   type: pubsub.kafka

@@ -30,6 +30,8 @@
 use crate::store::{
     AppendInput, AuditEntry, AuditStore, QueryInput, StoreError, VerifyOutcome, canonical_bytes,
 };
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine as _;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -125,7 +127,8 @@ impl AuditStore for PostgresAuditStore {
                 let mut hasher = Sha256::new();
                 hasher.update(prev_id.as_bytes());
                 hasher.update(&canon);
-                let audit_id = hex::encode(hasher.finalize());
+                // FR-T1-AUDIT-001: ハッシュは SHA-256, base64 エンコード（URL-safe, padding なし）。
+                let audit_id = URL_SAFE_NO_PAD.encode(hasher.finalize());
                 let attrs_json = serde_json::to_value(&input.attributes)
                     .map_err(|e| StoreError::Backend(format!("attributes serialize: {}", e)))?;
                 client
@@ -293,7 +296,8 @@ impl AuditStore for PostgresAuditStore {
                     let mut hasher = Sha256::new();
                     hasher.update(prev.as_bytes());
                     hasher.update(&canon);
-                    let computed = hex::encode(hasher.finalize());
+                    // verify は append と同一のエンコード（URL-safe base64 padding なし）で比較する。
+                    let computed = URL_SAFE_NO_PAD.encode(hasher.finalize());
                     if computed != row_audit_id {
                         return Ok(VerifyOutcome {
                             valid: false,

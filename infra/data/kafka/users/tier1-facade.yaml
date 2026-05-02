@@ -1,0 +1,30 @@
+# tier1-facade Dapr app（pubsub publisher）の Kafka 認証 User。
+# audit-events / feature-updates / domain-events.* への publish 権限。
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tier1-facade-pubsub
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: audit-events
+          patternType: literal
+        operations: [Write, Describe]
+      - resource:
+          type: topic
+          name: feature-updates
+          patternType: literal
+        operations: [Write, Describe]
+      - resource:
+          type: topic
+          name: domain-events.
+          patternType: prefix
+        operations: [Write, Describe]

@@ -10,5 +10,19 @@ export declare class LogFacade {
     warn: (body: string, attrs?: Record<string, string>) => Promise<void>;
     error: (body: string, attrs?: Record<string, string>) => Promise<void>;
     debug: (body: string, attrs?: Record<string, string>) => Promise<void>;
+    /**
+     * bulkSend は LogEntry の一括送信（FR-T1-LOG-* 共通、send の高スループット版）。
+     * 各 entry の timestamp が省略されていれば呼出時刻を自動設定する。
+     * 戻り値は { accepted, rejected }（rejected は PII / schema 違反による却下件数）。
+     */
+    bulkSend(entries: Array<{
+        severity: Severity;
+        body: string;
+        attributes?: Record<string, string>;
+        timestamp?: Date;
+    }>): Promise<{
+        accepted: number;
+        rejected: number;
+    }>;
 }
 //# sourceMappingURL=log.d.ts.map

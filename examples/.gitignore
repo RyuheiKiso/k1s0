@@ -1,4 +1,5 @@
 # Go ビルド成果物
+example-facade
 example-service
 portal-bff
 *.exe

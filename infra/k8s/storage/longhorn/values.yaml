@@ -1,0 +1,49 @@
+# Longhorn（ADR-STOR-001）の Helm values。
+# helm repo add longhorn https://charts.longhorn.io
+# helm upgrade --install longhorn longhorn/longhorn -n k1s0-platform-tools \
+#     --create-namespace -f values.yaml --version 1.7.2
+#
+# 採用根拠（ADR-STOR-001）:
+#   - 各 node の local block storage を logical volume として束ね、replica で冗長化
+#   - PVC を任意 node に attach できる（pod migration 対応）
+#   - スナップショット / バックアップを S3 互換ストレージ（MinIO）へ
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+
+# Default StorageClass は別途 longhorn-retain / longhorn-delete を `infra/k8s/storage/
+# storage-classes.yaml` で定義するため、Helm chart 側の default は無効化。
+persistence:
+  defaultClass: false
+  defaultClassReplicaCount: 3
+  reclaimPolicy: Retain
+  recurringJobSelector:
+    enable: false
+
+# CSI driver
+csi:
+  attacherReplicaCount: 3
+  provisionerReplicaCount: 3
+  resizerReplicaCount: 3
+  snapshotterReplicaCount: 3
+
+defaultSettings:
+  # bracker storage を MinIO に向ける（infra/data/minio/ Tenant `audit-archive` 配下に
+  # `longhorn-backup` bucket）
+  backupTarget: s3://longhorn-backup@us-east-1/
+  backupTargetCredentialSecret: longhorn-backup-credentials
+  defaultDataPath: /var/lib/longhorn
+  replicaSoftAntiAffinity: true
+  replicaAutoBalance: best-effort
+  storageOverProvisioningPercentage: 100
+  storageMinimalAvailablePercentage: 10
+  upgradeChecker: false
+  defaultReplicaCount: 3
+  guaranteedEngineManagerCPU: 12
+  guaranteedReplicaManagerCPU: 12
+
+ingress:
+  enabled: false  # UI は Istio Gateway 経由で公開（plan 05-XX）
+
+metrics:
+  serviceMonitor:
+    enabled: true

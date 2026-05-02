@@ -1,0 +1,66 @@
+# LitmusChaos v3.x: tier1-facade Pod 削除実験
+# 対応 Runbook: RB-API-001（tier1 API レイテンシ劣化）
+# 検証目的: tier1-facade の HPA + PodDisruptionBudget が機能していること
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: tier1-facade-pod-delete
+  namespace: k1s0
+spec:
+  appinfo:
+    appns: k1s0
+    applabel: "app=tier1-facade"
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  engineState: "active"
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            # 60 秒間にわたり 10 秒ごとに Pod を削除
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "10"
+            # 削除する Pod の割合（PERCENTAGE）と FORCE 設定
+            - name: PODS_AFFECTED_PERCENTAGE
+              value: "33"
+            - name: FORCE
+              value: "false"
+            - name: GRACE_PERIOD
+              value: "30"
+        probe:
+          # SLO probe: tier1-facade の /healthz が継続的に 200 を返すこと
+          - name: tier1-facade-http-probe
+            type: httpProbe
+            httpProbe/inputs:
+              url: http://tier1-facade.k1s0.svc:8080/healthz
+              insecureSkipVerify: false
+              method:
+                get:
+                  criteria: "=="
+                  responseCode: "200"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 2
+              retry: 3
+              probePollingInterval: 2
+          # SLO probe: p99 latency が 500ms 以下を維持
+          - name: tier1-facade-latency-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                histogram_quantile(0.99,
+                  sum(rate(grpc_server_handling_seconds_bucket{namespace="k1s0", app="tier1-facade"}[2m]))
+                  by (le)) < 0.5
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 5
+              retry: 2

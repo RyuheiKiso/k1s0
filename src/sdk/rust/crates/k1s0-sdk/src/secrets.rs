@@ -3,7 +3,8 @@
 
 use crate::client::Client;
 use crate::proto::k1s0::tier1::secrets::v1::{
-    GetDynamicSecretRequest, GetSecretRequest, RotateSecretRequest,
+    BulkGetSecretRequest, DecryptRequest, EncryptRequest, GetDynamicSecretRequest,
+    GetSecretRequest, RotateKeyRequest, RotateSecretRequest,
     secrets_service_client::SecretsServiceClient,
 };
 use std::collections::HashMap;
@@ -94,5 +95,75 @@ impl SecretsFacade {
         let resp = self.raw.rotate(req).await?.into_inner();
         // (new_version, previous_version) を返却する。
         Ok((resp.new_version, resp.previous_version))
+    }
+
+    /// BulkGet はテナント配下の全シークレットを一括取得する（FR-T1-SECRETS-001）。
+    /// 戻り値は シークレット名 → (values, version) の HashMap。
+    pub async fn bulk_get(
+        &mut self,
+    ) -> Result<HashMap<String, (HashMap<String, String>, i32)>, Status> {
+        let req = BulkGetSecretRequest {
+            context: Some(self.client.tenant_context()),
+        };
+        let resp = self.raw.bulk_get(req).await?.into_inner();
+        let mut out = HashMap::with_capacity(resp.results.len());
+        for (name, sec) in resp.results.into_iter() {
+            out.insert(name, (sec.values, sec.version));
+        }
+        Ok(out)
+    }
+
+    /// Encrypt は Transit Engine 経由の暗号化（FR-T1-SECRETS-003）。
+    /// key_name は tier1 が <tenant_id>.<key_name> で自動 prefix する。
+    /// aad は GCM 追加認証データ（同じ aad を Decrypt 時にも渡す必要あり）。
+    /// 戻り値は (ciphertext, key_version)。
+    pub async fn encrypt(
+        &mut self,
+        key_name: &str,
+        plaintext: Vec<u8>,
+        aad: Vec<u8>,
+    ) -> Result<(Vec<u8>, i32), Status> {
+        let req = EncryptRequest {
+            context: Some(self.client.tenant_context()),
+            key_name: key_name.to_string(),
+            plaintext,
+            aad,
+        };
+        let resp = self.raw.encrypt(req).await?.into_inner();
+        Ok((resp.ciphertext, resp.key_version))
+    }
+
+    /// Decrypt は Transit Engine 経由の復号（FR-T1-SECRETS-003）。
+    /// key_name / aad は Encrypt 時と同じ値を渡すこと。
+    /// 戻り値は (plaintext, key_version)。
+    pub async fn decrypt(
+        &mut self,
+        key_name: &str,
+        ciphertext: Vec<u8>,
+        aad: Vec<u8>,
+    ) -> Result<(Vec<u8>, i32), Status> {
+        let req = DecryptRequest {
+            context: Some(self.client.tenant_context()),
+            key_name: key_name.to_string(),
+            ciphertext,
+            aad,
+        };
+        let resp = self.raw.decrypt(req).await?.into_inner();
+        Ok((resp.plaintext, resp.key_version))
+    }
+
+    /// RotateKey は Transit Engine の鍵をローテーションする（FR-T1-SECRETS-003）。
+    /// 既存版は保持され、その鍵で暗号化された ciphertext は引き続き Decrypt 可能。
+    /// 戻り値は (new_version, previous_version, rotated_at_ms)。
+    pub async fn rotate_key(
+        &mut self,
+        key_name: &str,
+    ) -> Result<(i32, i32, i64), Status> {
+        let req = RotateKeyRequest {
+            context: Some(self.client.tenant_context()),
+            key_name: key_name.to_string(),
+        };
+        let resp = self.raw.rotate_key(req).await?.into_inner();
+        Ok((resp.new_version, resp.previous_version, resp.rotated_at_ms))
     }
 }

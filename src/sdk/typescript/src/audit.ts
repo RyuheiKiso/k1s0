@@ -2,7 +2,11 @@
 import { createPromiseClient } from "@connectrpc/connect";
 import type { K1s0Client } from "./client.js";
 import { AuditService } from "./proto/k1s0/tier1/audit/v1/audit_service_connect.js";
-import { AuditEvent } from "./proto/k1s0/tier1/audit/v1/audit_service_pb.js";
+import {
+  AuditEvent,
+  ExportAuditChunk,
+  ExportFormat,
+} from "./proto/k1s0/tier1/audit/v1/audit_service_pb.js";
 import { Timestamp } from "@bufbuild/protobuf";
 
 /** AuditFacade は AuditService の動詞統一 facade。 */
@@ -54,6 +58,35 @@ export class AuditFacade {
       context: this.client.tenantContext(),
     });
     return resp.events;
+  }
+
+  /**
+   * export は Audit のサーバストリーミング エクスポート（FR-T1-AUDIT-003）。
+   * 範囲 + フォーマット指定で逐次 chunk を AsyncIterable で返す。利用例:
+   *   for await (const c of facade.export(undefined, undefined, ExportFormat.NDJSON, 0)) { ... }
+   * fromDate / toDate に undefined を渡すと全範囲。
+   * chunkBytes が 0 ならサーバ既定（65536）、上限は 1 MiB。
+   */
+  async *export(
+    fromDate: Date | undefined,
+    toDate: Date | undefined,
+    format: ExportFormat = ExportFormat.NDJSON,
+    chunkBytes = 0,
+  ): AsyncGenerator<ExportAuditChunk> {
+    const raw = createPromiseClient(AuditService, this.client.transport);
+    const stream = raw.export({
+      from: fromDate ? Timestamp.fromDate(fromDate) : undefined,
+      to: toDate ? Timestamp.fromDate(toDate) : undefined,
+      format,
+      chunkBytes,
+      context: this.client.tenantContext(),
+    });
+    for await (const chunk of stream) {
+      yield chunk;
+      if (chunk.isLast) {
+        break;
+      }
+    }
   }
 
   /**

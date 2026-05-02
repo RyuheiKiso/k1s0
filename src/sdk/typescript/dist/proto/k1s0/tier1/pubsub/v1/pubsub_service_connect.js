@@ -46,6 +46,7 @@ export const PubSubService = {
         },
         /**
          * サブスクリプション（tier2/tier3 側は HTTP コールバック登録 / gRPC ストリームのいずれか）
+         * server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
          *
          * @generated from rpc k1s0.tier1.pubsub.v1.PubSubService.Subscribe
          */

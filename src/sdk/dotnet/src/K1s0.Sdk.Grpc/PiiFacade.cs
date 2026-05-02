@@ -21,4 +21,15 @@ public sealed class PiiFacade
         var resp = await _client.Raw.Pii.MaskAsync(new MaskRequest { Text = text, Context = _client.TenantContext() }, cancellationToken: ct);
         return (resp.MaskedText, resp.Findings.ToList());
     }
+
+    /// PseudonymizeAsync: FR-T1-PII-002 決定論的仮名化。
+    /// 同一 salt + 同一 fieldType + 同一 value で同一の URL-safe base64 仮名値を返す。
+    /// fieldType / value / salt が空のいずれかは server 側で InvalidArgument を返す。
+    public async Task<string> PseudonymizeAsync(string fieldType, string value, string salt, CancellationToken ct = default)
+    {
+        var resp = await _client.Raw.Pii.PseudonymizeAsync(
+            new PseudonymizeRequest { FieldType = fieldType, Value = value, Salt = salt, Context = _client.TenantContext() },
+            cancellationToken: ct);
+        return resp.Pseudonym;
+    }
 }

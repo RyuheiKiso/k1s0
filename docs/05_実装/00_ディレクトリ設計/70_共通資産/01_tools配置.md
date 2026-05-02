@@ -29,6 +29,8 @@ tools/
 │       ├── platform-cli-dev/
 │       ├── infra-ops/
 │       └── docs-writer/
+├── banner/
+│       └── generate_banner.py
 ├── local-stack/
 │   ├── README.md
 │   ├── kind/

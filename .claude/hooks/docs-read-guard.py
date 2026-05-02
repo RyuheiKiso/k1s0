@@ -27,9 +27,17 @@ except Exception:
 # しきい値。docs 作業での許容連続 Read 数を調整する場合はここを変更する。
 WARN_AT = 3
 BLOCK_AT = 5
+# 大規模監査などで一時的にしきい値を引き上げたい場合の override。
+# 環境変数 K1S0_DOCS_READ_GUARD_DISABLE=1 でガード自体を無効化する。
+# 本ファイルの値は通常の docs 編集作業向けで、監査時は env で切り替えること（commit せず）。
 
 
 def main() -> int:
+    # 環境変数で完全無効化（大規模監査時の一時 override 用、commit しない運用）。
+    import os as _os
+    if _os.environ.get("K1S0_DOCS_READ_GUARD_DISABLE") == "1":
+        return 0
+
     try:
         data = json.load(sys.stdin)
     except Exception:

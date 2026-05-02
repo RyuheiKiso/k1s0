@@ -1,0 +1,14 @@
+# staging 用 Kafka KafkaNodePool patch: prod 同等の broker 3、storage は 50Gi。
+# kafka-storage-50gi.yaml と統合した形で broker 数を明示する。
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  namespace: k1s0-data
+spec:
+  replicas: 3  # prod 同等の HA 維持
+  storage:
+    type: persistent-claim
+    size: 50Gi
+    deleteClaim: false
+    class: ""

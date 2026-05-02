@@ -113,5 +113,89 @@ pub struct GetDynamicSecretResponse {
     #[prost(int64, tag="4")]
     pub issued_at_ms: i64,
 }
+/// Encrypt リクエスト（FR-T1-SECRETS-003）。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EncryptRequest {
+    /// 呼出元コンテキスト（テナント境界の検証に必須）。
+    #[prost(message, optional, tag="1")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 鍵ラベル（tier1 が <tenant_id>.<key_label> で自動 prefix する）。
+    /// 同一 tenant 内で鍵空間を分離するため、key_label は業務ドメイン名等で命名する。
+    #[prost(string, tag="2")]
+    pub key_name: ::prost::alloc::string::String,
+    /// 暗号化対象の平文 bytes。
+    #[prost(bytes="vec", tag="3")]
+    pub plaintext: ::prost::alloc::vec::Vec<u8>,
+    /// AAD（Associated Authenticated Data）。GCM の追加認証データに渡す。
+    /// 通常は tenant_id + RPC 名 等を JSON encoded で詰める運用想定。空でも良い。
+    #[prost(bytes="vec", tag="4")]
+    pub aad: ::prost::alloc::vec::Vec<u8>,
+}
+/// Encrypt 応答。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EncryptResponse {
+    /// 暗号文。フォーマット: [version:4 BE][nonce:12][ciphertext+tag]。
+    /// 鍵バージョン管理は ciphertext に埋め込まれ、Decrypt 時に自動的に解決される。
+    #[prost(bytes="vec", tag="1")]
+    pub ciphertext: ::prost::alloc::vec::Vec<u8>,
+    /// 暗号化に使用した鍵バージョン（observability / audit 用）。
+    #[prost(int32, tag="2")]
+    pub key_version: i32,
+}
+/// Decrypt リクエスト（FR-T1-SECRETS-003）。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DecryptRequest {
+    /// 呼出元コンテキスト（テナント境界の検証に必須）。
+    #[prost(message, optional, tag="1")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 鍵ラベル（Encrypt 時と同じ key_label を渡す）。
+    #[prost(string, tag="2")]
+    pub key_name: ::prost::alloc::string::String,
+    /// 暗号文（Encrypt の出力をそのまま渡す）。
+    #[prost(bytes="vec", tag="3")]
+    pub ciphertext: ::prost::alloc::vec::Vec<u8>,
+    /// AAD（Encrypt 時と同じ値が必須、GCM の整合性検証に使用）。
+    #[prost(bytes="vec", tag="4")]
+    pub aad: ::prost::alloc::vec::Vec<u8>,
+}
+/// Decrypt 応答。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DecryptResponse {
+    /// 復号された平文。
+    #[prost(bytes="vec", tag="1")]
+    pub plaintext: ::prost::alloc::vec::Vec<u8>,
+    /// 復号に使用した鍵バージョン（旧版鍵で暗号化された場合の追跡用）。
+    #[prost(int32, tag="2")]
+    pub key_version: i32,
+}
+/// RotateKey リクエスト（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RotateKeyRequest {
+    /// 呼出元コンテキスト。
+    #[prost(message, optional, tag="1")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+    /// 鍵ラベル（tier1 が <tenant_id>.<key_label> で自動 prefix する）。
+    #[prost(string, tag="2")]
+    pub key_name: ::prost::alloc::string::String,
+}
+/// RotateKey 応答。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RotateKeyResponse {
+    /// ローテーション後の新バージョン番号（既存版は保持される、Decrypt 引き続き可）。
+    #[prost(int32, tag="1")]
+    pub new_version: i32,
+    /// ローテーション直前の旧バージョン（最大 = new_version - 1）。
+    #[prost(int32, tag="2")]
+    pub previous_version: i32,
+    /// ローテーション時刻（Unix epoch ミリ秒）。
+    #[prost(int64, tag="3")]
+    pub rotated_at_ms: i64,
+}
 include!("k1s0.tier1.secrets.v1.tonic.rs");
 // @@protoc_insertion_point(module)

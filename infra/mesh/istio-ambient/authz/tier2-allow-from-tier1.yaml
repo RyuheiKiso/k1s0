@@ -1,0 +1,12 @@
+# tier2 ドメインサービスは tier1 facade 経由のみアクセス可能。
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-tier1
+  namespace: k1s0-tier2
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["spiffe://k1s0.internal/ns/k1s0-tier1/sa/*"]

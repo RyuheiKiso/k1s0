@@ -234,4 +234,95 @@ export class MaskResponse extends Message {
         return proto3.util.equals(MaskResponse, a, b);
     }
 }
+/**
+ * Pseudonymize リクエスト（FR-T1-PII-002）。
+ *
+ * @generated from message k1s0.tier1.pii.v1.PseudonymizeRequest
+ */
+export class PseudonymizeRequest extends Message {
+    /**
+     * 仮名化対象の PII 種別（NAME / EMAIL / PHONE / MYNUMBER / ADDRESS / CREDITCARD / IPV4 等）。
+     * 種別ごとに独立な仮名空間を持たせるため、HMAC 入力に prefix として混入する。
+     *
+     * @generated from field: string field_type = 1;
+     */
+    fieldType = "";
+    /**
+     * 仮名化対象の生値。
+     *
+     * @generated from field: string value = 2;
+     */
+    value = "";
+    /**
+     * 仮名空間を分離する salt。本番運用では OpenBao 等で管理し、
+     * クライアントは salt 識別子のみを送る運用も許容する。空文字は不可。
+     *
+     * @generated from field: string salt = 3;
+     */
+    salt = "";
+    /**
+     * 呼出元コンテキスト（テナント境界の検証に必須）。
+     *
+     * @generated from field: k1s0.tier1.common.v1.TenantContext context = 4;
+     */
+    context;
+    constructor(data) {
+        super();
+        proto3.util.initPartial(data, this);
+    }
+    static runtime = proto3;
+    static typeName = "k1s0.tier1.pii.v1.PseudonymizeRequest";
+    static fields = proto3.util.newFieldList(() => [
+        { no: 1, name: "field_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+        { no: 2, name: "value", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+        { no: 3, name: "salt", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+        { no: 4, name: "context", kind: "message", T: TenantContext },
+    ]);
+    static fromBinary(bytes, options) {
+        return new PseudonymizeRequest().fromBinary(bytes, options);
+    }
+    static fromJson(jsonValue, options) {
+        return new PseudonymizeRequest().fromJson(jsonValue, options);
+    }
+    static fromJsonString(jsonString, options) {
+        return new PseudonymizeRequest().fromJsonString(jsonString, options);
+    }
+    static equals(a, b) {
+        return proto3.util.equals(PseudonymizeRequest, a, b);
+    }
+}
+/**
+ * Pseudonymize 応答。
+ *
+ * @generated from message k1s0.tier1.pii.v1.PseudonymizeResponse
+ */
+export class PseudonymizeResponse extends Message {
+    /**
+     * 仮名化された値（URL-safe base64、padding 無し）。
+     *
+     * @generated from field: string pseudonym = 1;
+     */
+    pseudonym = "";
+    constructor(data) {
+        super();
+        proto3.util.initPartial(data, this);
+    }
+    static runtime = proto3;
+    static typeName = "k1s0.tier1.pii.v1.PseudonymizeResponse";
+    static fields = proto3.util.newFieldList(() => [
+        { no: 1, name: "pseudonym", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    ]);
+    static fromBinary(bytes, options) {
+        return new PseudonymizeResponse().fromBinary(bytes, options);
+    }
+    static fromJson(jsonValue, options) {
+        return new PseudonymizeResponse().fromJson(jsonValue, options);
+    }
+    static fromJsonString(jsonString, options) {
+        return new PseudonymizeResponse().fromJsonString(jsonString, options);
+    }
+    static equals(a, b) {
+        return proto3.util.equals(PseudonymizeResponse, a, b);
+    }
+}
 //# sourceMappingURL=pii_service_pb.js.map

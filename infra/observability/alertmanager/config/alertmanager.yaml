@@ -1,0 +1,90 @@
+# =============================================================================
+# Alertmanager 主設定。route ツリーで severity ラベルに応じて receiver を分岐。
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/07_観測性配置.md
+#   - SEV1/SEV2 → pagerduty
+#   - SEV3 → slack-oncall
+#   - SEV4 → mailto-sre
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: k1s0-obs
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_from: "alertmanager@k1s0.example.com"
+      smtp_smarthost: "smtp.k1s0.example.com:587"
+
+    # 共通テンプレート
+    templates:
+      - /etc/alertmanager/templates/*.tmpl
+
+    # ルートツリー: severity ラベルで分岐
+    route:
+      receiver: slack-oncall  # 既定 receiver
+      group_by: [alertname, severity, tier]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      routes:
+        - matchers:
+            - severity = "SEV1"
+          receiver: pagerduty
+          group_wait: 0s        # 即時通知
+          continue: true        # SEV1 は slack にも複製
+        - matchers:
+            - severity = "SEV1"
+          receiver: slack-incident
+        - matchers:
+            - severity = "SEV2"
+          receiver: pagerduty
+          group_wait: 30s
+          continue: true
+        - matchers:
+            - severity = "SEV2"
+          receiver: slack-oncall
+        - matchers:
+            - severity = "SEV3"
+          receiver: slack-oncall
+        - matchers:
+            - severity = "SEV4"
+          receiver: mailto-sre
+
+    # 受信先定義
+    receivers:
+      - name: pagerduty
+        pagerduty_configs:
+          - service_key_file: /etc/alertmanager/secrets/pagerduty-service-key
+            description: "{{ .GroupLabels.alertname }} ({{ .GroupLabels.tier }})"
+            severity: "{{ .CommonLabels.severity }}"
+            client: k1s0
+            client_url: "https://grafana.k1s0.example.com"
+      - name: slack-oncall
+        slack_configs:
+          - api_url_file: /etc/alertmanager/secrets/slack-webhook-oncall
+            channel: "#alerts-oncall"
+            title: "[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
+            text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\n{{ end }}"
+            send_resolved: true
+      - name: slack-incident
+        slack_configs:
+          - api_url_file: /etc/alertmanager/secrets/slack-webhook-incident
+            channel: "#incident-alert"
+            title: "[SEV1] {{ .GroupLabels.alertname }}"
+            text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ .Annotations.description }}\nRunbook: {{ .Annotations.runbook_url }}\n{{ end }}"
+            send_resolved: true
+      - name: mailto-sre
+        email_configs:
+          - to: "sre@k1s0.example.com"
+            send_resolved: true
+
+    # 抑止: 同一 namespace で SEV1 が出ている時は SEV2 以下を抑制
+    inhibit_rules:
+      - source_matchers:
+          - severity = "SEV1"
+        target_matchers:
+          - severity =~ "SEV2|SEV3|SEV4"
+        equal: [namespace, alertname]

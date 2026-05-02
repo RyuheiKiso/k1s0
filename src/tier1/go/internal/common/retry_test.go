@@ -36,10 +36,10 @@ func TestDefaultRetry(t *testing.T) {
 		t.Errorf("MaxDelay = %v, want 400ms", cfg.MaxDelay)
 		// if 分岐を閉じる。
 	}
-	// JitterRatio: ±50%（thundering herd 回避）。
-	if cfg.JitterRatio != 0.5 {
+	// JitterRatio: ±20%（共通規約 §「冪等性と再試行」"jitter ±20%" に整合）。
+	if cfg.JitterRatio != 0.2 {
 		// fail。
-		t.Errorf("JitterRatio = %v, want 0.5", cfg.JitterRatio)
+		t.Errorf("JitterRatio = %v, want 0.2", cfg.JitterRatio)
 		// if 分岐を閉じる。
 	}
 	// テスト関数を閉じる。

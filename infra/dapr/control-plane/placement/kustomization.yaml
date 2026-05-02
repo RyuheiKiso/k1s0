@@ -1,0 +1,7 @@
+# Dapr placement: Actor を配置する node を Raft consensus で決定。HA 3 replica。
+# Helm value override は ../values.yaml の `dapr_placement:` セクション。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-7"

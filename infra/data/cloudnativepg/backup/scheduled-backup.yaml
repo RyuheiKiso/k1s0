@@ -1,0 +1,39 @@
+# =============================================================================
+# 各 Cluster の定期バックアップスケジュール（CNPG ScheduledBackup CRD）
+#
+# tier1-state / tier2-domain は 1 日 2 回（00:00, 12:00 UTC）、audit は 1 日 1 回
+# （01:00 UTC）の base backup。WAL は archiveTimeout=5min で連続転送。
+# =============================================================================
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: tier1-state-daily
+  namespace: k1s0-data
+spec:
+  schedule: "0 0,12 * * *"
+  cluster:
+    name: tier1-state
+  backupOwnerReference: cluster
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: tier2-domain-daily
+  namespace: k1s0-data
+spec:
+  schedule: "0 0,12 * * *"
+  cluster:
+    name: tier2-domain
+  backupOwnerReference: cluster
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: audit-daily
+  namespace: k1s0-data
+spec:
+  schedule: "0 1 * * *"
+  cluster:
+    name: audit
+  backupOwnerReference: cluster

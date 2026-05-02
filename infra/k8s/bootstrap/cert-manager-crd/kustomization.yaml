@@ -1,0 +1,13 @@
+# cert-manager の CRD のみを Helm install 前に投入する。
+# cert-manager 本体（infra/security/cert-manager/）は Argo CD で展開されるが、
+# CRD が存在しない状態で ClusterIssuer apply を試みると order error になるため、
+# CRD は bootstrap stage で Helm 経由で先行 install する。
+#
+# 実体は ops/scripts/bootstrap-cluster.sh が以下を実行:
+#   helm upgrade --install cert-manager-crd jetstack/cert-manager-crd \
+#       -n k1s0-security --create-namespace --version v1.16.2
+#
+# 本 kustomization は順序を遵守させる Wave annotation のためだけに存在。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

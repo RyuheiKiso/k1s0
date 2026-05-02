@@ -92,15 +92,6 @@ func TestLogHandler_Send_OK(t *testing.T) {
 	}
 }
 
-// emitter 未注入時に Unimplemented を返す。
-func TestLogHandler_Send_NoEmitter(t *testing.T) {
-	h := &logHandler{deps: Deps{}}
-	_, err := h.Send(context.Background(), &logv1.SendLogRequest{Entry: &logv1.LogEntry{Body: "x"}, Context: makeTenantCtx("T")})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status: got %v want Unimplemented", got)
-	}
-}
-
 // emitter エラーが Internal に翻訳される。
 func TestLogHandler_Send_EmitterError(t *testing.T) {
 	emitter := &fakeLogEmitter{err: errors.New("loki down")}
@@ -172,17 +163,6 @@ func TestTelemetryHandler_EmitMetric_OK(t *testing.T) {
 	}
 	if emitter.calls[0].Value != 12.5 {
 		t.Fatalf("metric 0 value mismatch")
-	}
-}
-
-func TestTelemetryHandler_EmitMetric_NoEmitter(t *testing.T) {
-	h := &telemetryHandler{deps: Deps{}}
-	_, err := h.EmitMetric(context.Background(), &telemetryv1.EmitMetricRequest{
-		Metrics: []*telemetryv1.Metric{{Name: "x"}},
-		Context: makeTenantCtx("T"),
-	})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status: got %v want Unimplemented", got)
 	}
 }
 

@@ -74,6 +74,18 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest> __Marshaller_k1s0_tier1_secrets_v1_RotateSecretRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> __Marshaller_k1s0_tier1_secrets_v1_RotateSecretResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest> __Marshaller_k1s0_tier1_secrets_v1_EncryptRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse> __Marshaller_k1s0_tier1_secrets_v1_EncryptResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest> __Marshaller_k1s0_tier1_secrets_v1_DecryptRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse> __Marshaller_k1s0_tier1_secrets_v1_DecryptResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest> __Marshaller_k1s0_tier1_secrets_v1_RotateKeyRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse> __Marshaller_k1s0_tier1_secrets_v1_RotateKeyResponse = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse> __Method_Get = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetSecretResponse>(
@@ -106,6 +118,30 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
         "Rotate",
         __Marshaller_k1s0_tier1_secrets_v1_RotateSecretRequest,
         __Marshaller_k1s0_tier1_secrets_v1_RotateSecretResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse> __Method_Encrypt = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Encrypt",
+        __Marshaller_k1s0_tier1_secrets_v1_EncryptRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_EncryptResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse> __Method_Decrypt = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "Decrypt",
+        __Marshaller_k1s0_tier1_secrets_v1_DecryptRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_DecryptResponse);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse> __Method_RotateKey = new grpc::Method<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "RotateKey",
+        __Marshaller_k1s0_tier1_secrets_v1_RotateKeyRequest,
+        __Marshaller_k1s0_tier1_secrets_v1_RotateKeyResponse);
 
     /// <summary>Service descriptor</summary>
     public static global::Google.Protobuf.Reflection.ServiceDescriptor Descriptor
@@ -165,6 +201,48 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       /// <returns>The response to send back to the client (wrapped by a task).</returns>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse> Rotate(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+      /// 鍵名は tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する。
+      /// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse> Encrypt(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// Transit 復号（FR-T1-SECRETS-003）。
+      /// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+      /// ローテーション後の旧版 ciphertext も自動で復号できる。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse> Decrypt(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      /// <summary>
+      /// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+      /// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+      /// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+      /// </summary>
+      /// <param name="request">The request received from the client.</param>
+      /// <param name="context">The context of the server-side call handler being invoked.</param>
+      /// <returns>The response to send back to the client (wrapped by a task).</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse> RotateKey(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -406,6 +484,174 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_Rotate, null, options, request);
       }
+      /// <summary>
+      /// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+      /// 鍵名は tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する。
+      /// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse Encrypt(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Encrypt(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+      /// 鍵名は tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する。
+      /// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse Encrypt(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Encrypt, null, options, request);
+      }
+      /// <summary>
+      /// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+      /// 鍵名は tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する。
+      /// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse> EncryptAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return EncryptAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+      /// 鍵名は tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する。
+      /// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse> EncryptAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Encrypt, null, options, request);
+      }
+      /// <summary>
+      /// Transit 復号（FR-T1-SECRETS-003）。
+      /// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+      /// ローテーション後の旧版 ciphertext も自動で復号できる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse Decrypt(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return Decrypt(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Transit 復号（FR-T1-SECRETS-003）。
+      /// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+      /// ローテーション後の旧版 ciphertext も自動で復号できる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse Decrypt(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_Decrypt, null, options, request);
+      }
+      /// <summary>
+      /// Transit 復号（FR-T1-SECRETS-003）。
+      /// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+      /// ローテーション後の旧版 ciphertext も自動で復号できる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse> DecryptAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return DecryptAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Transit 復号（FR-T1-SECRETS-003）。
+      /// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+      /// ローテーション後の旧版 ciphertext も自動で復号できる。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse> DecryptAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_Decrypt, null, options, request);
+      }
+      /// <summary>
+      /// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+      /// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+      /// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse RotateKey(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RotateKey(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+      /// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+      /// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The response received from the server.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse RotateKey(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_RotateKey, null, options, request);
+      }
+      /// <summary>
+      /// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+      /// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+      /// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
+      /// <param name="deadline">An optional deadline for the call. The call will be cancelled if deadline is hit.</param>
+      /// <param name="cancellationToken">An optional token for canceling the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse> RotateKeyAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return RotateKeyAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      /// <summary>
+      /// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+      /// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+      /// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+      /// </summary>
+      /// <param name="request">The request to send to the server.</param>
+      /// <param name="options">The options for the call.</param>
+      /// <returns>The call object.</returns>
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse> RotateKeyAsync(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_RotateKey, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override SecretsServiceClient NewInstance(ClientBaseConfiguration configuration)
@@ -423,7 +669,10 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
           .AddMethod(__Method_Get, serviceImpl.Get)
           .AddMethod(__Method_BulkGet, serviceImpl.BulkGet)
           .AddMethod(__Method_GetDynamic, serviceImpl.GetDynamic)
-          .AddMethod(__Method_Rotate, serviceImpl.Rotate).Build();
+          .AddMethod(__Method_Rotate, serviceImpl.Rotate)
+          .AddMethod(__Method_Encrypt, serviceImpl.Encrypt)
+          .AddMethod(__Method_Decrypt, serviceImpl.Decrypt)
+          .AddMethod(__Method_RotateKey, serviceImpl.RotateKey).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -437,6 +686,9 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
       serviceBinder.AddMethod(__Method_BulkGet, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.BulkGetSecretResponse>(serviceImpl.BulkGet));
       serviceBinder.AddMethod(__Method_GetDynamic, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse>(serviceImpl.GetDynamic));
       serviceBinder.AddMethod(__Method_Rotate, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse>(serviceImpl.Rotate));
+      serviceBinder.AddMethod(__Method_Encrypt, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse>(serviceImpl.Encrypt));
+      serviceBinder.AddMethod(__Method_Decrypt, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse>(serviceImpl.Decrypt));
+      serviceBinder.AddMethod(__Method_RotateKey, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest, global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse>(serviceImpl.RotateKey));
     }
 
   }

@@ -1,0 +1,8 @@
+# CloudNativePG Operator の Sync Wave を Argo CD に強制（Wave -10）。
+# Operator が Cluster CRD を担当するため、CRD 投入が完了する前に Cluster CR を
+# apply してしまう順序問題を防ぐ。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-10"

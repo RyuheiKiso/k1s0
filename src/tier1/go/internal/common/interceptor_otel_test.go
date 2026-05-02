@@ -15,12 +15,14 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"google.golang.org/grpc"
 	grpccodes "google.golang.org/grpc/codes"
+	grpcmetadata "google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -155,5 +157,54 @@ func TestObservabilityInterceptor_RecordsMetrics(t *testing.T) {
 	}
 	if len(want) > 0 {
 		t.Errorf("missing counter attrs: %v", want)
+	}
+}
+
+// FR-T1-LOG-002 / FR-T1-TELEMETRY-002 受け入れ基準「gRPC サーバ側では traceparent
+// ヘッダから自動継承」を担保するテスト。incoming gRPC metadata に W3C traceparent を
+// 付けてから interceptor を呼び、tier1 ファサードが新規発行する span が受信側 trace_id を
+// 引き継いでいることを確認する。これが壊れると tier2 caller の trace が tier1 で途切れ、
+// Tempo / Loki から横断追跡できなくなる。
+func TestObservabilityInterceptor_InheritsTraceparent(t *testing.T) {
+	exporter := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
+	defer func() { _ = tp.Shutdown(context.Background()) }()
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() { otel.SetTracerProvider(otel.GetTracerProvider()) })
+	// FR-T1-LOG-002: W3C TraceContext propagator の global 登録は本来 otel.NewBundle が
+	// 行うが、本ユニットテストでは bundle を起動しないため明示的にセットする。
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	t.Cleanup(func() { otel.SetTextMapPropagator(otel.GetTextMapPropagator()) })
+
+	// 既知の trace-id / parent-span-id を持つ traceparent ヘッダを incoming metadata に乗せる。
+	// 形式: "00-<trace-id 32 hex>-<parent-id 16 hex>-<flags 2 hex>"。
+	const wantTraceID = "0123456789abcdef0123456789abcdef"
+	const parentSpanID = "fedcba9876543210"
+	traceparent := "00-" + wantTraceID + "-" + parentSpanID + "-01"
+	md := grpcmetadata.New(map[string]string{"traceparent": traceparent})
+	ctx := grpcmetadata.NewIncomingContext(context.Background(), md)
+
+	icpt := ObservabilityInterceptor()
+	info := &grpc.UnaryServerInfo{FullMethod: "/k1s0.tier1.state.v1.StateService/Get"}
+	_, err := icpt(ctx, &fakeRequest{ctx: &fakeTenantContext{tenantID: "T1"}}, info, func(ctx context.Context, req interface{}) (interface{}, error) {
+		return "ok", nil
+	})
+	if err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	spans := exporter.GetSpans()
+	if len(spans) != 1 {
+		t.Fatalf("expected 1 span, got %d", len(spans))
+	}
+	got := spans[0]
+	// trace_id が caller の値を引き継いでいることを確認する。
+	if got.SpanContext.TraceID().String() != wantTraceID {
+		t.Errorf("span.TraceID = %q; want %q (FR-T1-LOG-002 inheritance broken)",
+			got.SpanContext.TraceID().String(), wantTraceID)
+	}
+	// parent span の span_id が caller の parent-id を指していることを確認する。
+	if got.Parent.SpanID().String() != parentSpanID {
+		t.Errorf("span.Parent.SpanID = %q; want %q (parent linkage broken)",
+			got.Parent.SpanID().String(), parentSpanID)
 	}
 }

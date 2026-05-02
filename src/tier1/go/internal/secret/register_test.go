@@ -110,16 +110,6 @@ func TestSecretHandler_Get_AdapterError(t *testing.T) {
 	}
 }
 
-// adapter 未注入時は Unimplemented。
-func TestSecretHandler_Get_NoAdapter(t *testing.T) {
-	h := &secretHandler{deps: Deps{}}
-	// NFR-E-AC-003: TenantContext は必須。
-	_, err := h.Get(context.Background(), &secretsv1.GetSecretRequest{Name: "x", Context: &commonv1.TenantContext{TenantId: "tenant-A"}})
-	if got := status.Code(err); got != codes.Unimplemented {
-		t.Fatalf("status: got %v want Unimplemented", got)
-	}
-}
-
 // Version 指定時に adapter req.Version に伝搬する。
 func TestSecretHandler_Get_WithVersion(t *testing.T) {
 	var observed int

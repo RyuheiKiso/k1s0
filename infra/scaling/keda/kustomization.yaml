@@ -1,0 +1,7 @@
+# KEDA 本体は Helm（values.yaml）。本 stub は Sync Wave 用。
+# ScaledObject CR は各アプリ側（src/tier1/etc）で個別宣言する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []
+commonAnnotations:
+  argocd.argoproj.io/sync-wave: "-5"

@@ -37,8 +37,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PiiService_Classify_FullMethodName = "/k1s0.tier1.pii.v1.PiiService/Classify"
-	PiiService_Mask_FullMethodName     = "/k1s0.tier1.pii.v1.PiiService/Mask"
+	PiiService_Classify_FullMethodName     = "/k1s0.tier1.pii.v1.PiiService/Classify"
+	PiiService_Mask_FullMethodName         = "/k1s0.tier1.pii.v1.PiiService/Mask"
+	PiiService_Pseudonymize_FullMethodName = "/k1s0.tier1.pii.v1.PiiService/Pseudonymize"
 )
 
 // PiiServiceClient is the client API for PiiService service.
@@ -51,6 +52,9 @@ type PiiServiceClient interface {
 	Classify(ctx context.Context, in *ClassifyRequest, opts ...grpc.CallOption) (*ClassifyResponse, error)
 	// マスキング（テキスト → 置換後テキスト + findings）
 	Mask(ctx context.Context, in *MaskRequest, opts ...grpc.CallOption) (*MaskResponse, error)
+	// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+	// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+	Pseudonymize(ctx context.Context, in *PseudonymizeRequest, opts ...grpc.CallOption) (*PseudonymizeResponse, error)
 }
 
 type piiServiceClient struct {
@@ -81,6 +85,16 @@ func (c *piiServiceClient) Mask(ctx context.Context, in *MaskRequest, opts ...gr
 	return out, nil
 }
 
+func (c *piiServiceClient) Pseudonymize(ctx context.Context, in *PseudonymizeRequest, opts ...grpc.CallOption) (*PseudonymizeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PseudonymizeResponse)
+	err := c.cc.Invoke(ctx, PiiService_Pseudonymize_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PiiServiceServer is the server API for PiiService service.
 // All implementations should embed UnimplementedPiiServiceServer
 // for forward compatibility.
@@ -91,6 +105,9 @@ type PiiServiceServer interface {
 	Classify(context.Context, *ClassifyRequest) (*ClassifyResponse, error)
 	// マスキング（テキスト → 置換後テキスト + findings）
 	Mask(context.Context, *MaskRequest) (*MaskResponse, error)
+	// 仮名化（FR-T1-PII-002）。HMAC-SHA256(salt, value) を URL-safe base64 で返す。
+	// 同一 salt + 同一入力で同一出力（決定論的）。salt は OpenBao 等で管理し直接露出しない。
+	Pseudonymize(context.Context, *PseudonymizeRequest) (*PseudonymizeResponse, error)
 }
 
 // UnimplementedPiiServiceServer should be embedded to have
@@ -105,6 +122,9 @@ func (UnimplementedPiiServiceServer) Classify(context.Context, *ClassifyRequest)
 }
 func (UnimplementedPiiServiceServer) Mask(context.Context, *MaskRequest) (*MaskResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Mask not implemented")
+}
+func (UnimplementedPiiServiceServer) Pseudonymize(context.Context, *PseudonymizeRequest) (*PseudonymizeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pseudonymize not implemented")
 }
 func (UnimplementedPiiServiceServer) testEmbeddedByValue() {}
 
@@ -162,6 +182,24 @@ func _PiiService_Mask_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PiiService_Pseudonymize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PseudonymizeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PiiServiceServer).Pseudonymize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PiiService_Pseudonymize_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PiiServiceServer).Pseudonymize(ctx, req.(*PseudonymizeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PiiService_ServiceDesc is the grpc.ServiceDesc for PiiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -176,6 +214,10 @@ var PiiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Mask",
 			Handler:    _PiiService_Mask_Handler,
+		},
+		{
+			MethodName: "Pseudonymize",
+			Handler:    _PiiService_Pseudonymize_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

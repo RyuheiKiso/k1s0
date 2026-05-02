@@ -1,0 +1,54 @@
+# LitmusChaos v3.x: tier1-tier2 間 ネットワーク遅延実験（FMEA-008 検証）
+# 対応 Runbook: RB-API-001（tier1 API レイテンシ劣化）
+# 検証目的: 50ms ネットワーク遅延を注入しても SLO（p99 < 500ms）が維持されること
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: tier1-tier2-network-latency
+  namespace: k1s0
+spec:
+  appinfo:
+    appns: k1s0
+    applabel: "app=tier1-facade"
+    appkind: deployment
+  chaosServiceAccount: litmus-admin
+  engineState: "active"
+  experiments:
+    - name: pod-network-latency
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"  # 2 分間遅延注入
+            # 50ms 遅延 + 5ms ジッター
+            - name: NETWORK_LATENCY
+              value: "50"
+            - name: JITTER
+              value: "5"
+            # tier2 facade 宛ての通信のみ対象
+            - name: DESTINATION_HOSTS
+              value: "tier2-facade.k1s0-tier2.svc.cluster.local"
+            - name: PODS_AFFECTED_PERCENTAGE
+              value: "100"
+            - name: CONTAINER_RUNTIME
+              value: "containerd"
+            - name: SOCKET_PATH
+              value: "/run/containerd/containerd.sock"
+        probe:
+          # 遅延中も SLO p99 < 500ms 維持
+          - name: tier1-slo-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                histogram_quantile(0.99,
+                  sum(rate(grpc_server_handling_seconds_bucket{namespace="k1s0", app="tier1-facade"}[2m]))
+                  by (le)) < 0.5
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 5
+              retry: 3

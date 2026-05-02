@@ -1,0 +1,65 @@
+# =============================================================================
+# Database secret engine（CNPG への動的シークレット発行、plan 04-06）
+#
+# CNPG cluster ごとに別 Connection を登録し、TTL 付きのアプリ用 user を
+# 都度生成する。dev placeholder secret はこの engine が稼働後に廃止される。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-engine-database
+  namespace: k1s0-security
+data:
+  config.json: |
+    {
+      "engine": "database",
+      "path": "database",
+      "connections": [
+        {
+          "name": "tier1-state",
+          "plugin_name": "postgresql-database-plugin",
+          "connection_url": "postgresql://{{username}}:{{password}}@tier1-state-rw.k1s0-data.svc.cluster.local:5432/tier1_state?sslmode=require",
+          "username": "vault_admin",
+          "password_secret_ref": "tier1-state-vault-admin",
+          "allowed_roles": ["tier1-facade"]
+        },
+        {
+          "name": "tier2-domain",
+          "plugin_name": "postgresql-database-plugin",
+          "connection_url": "postgresql://{{username}}:{{password}}@tier2-domain-rw.k1s0-data.svc.cluster.local:5432/tier2_domain?sslmode=require",
+          "username": "vault_admin",
+          "password_secret_ref": "tier2-domain-vault-admin",
+          "allowed_roles": ["tier2-service"]
+        },
+        {
+          "name": "audit",
+          "plugin_name": "postgresql-database-plugin",
+          "connection_url": "postgresql://{{username}}:{{password}}@audit-rw.k1s0-data.svc.cluster.local:5432/audit?sslmode=require",
+          "username": "vault_admin",
+          "password_secret_ref": "audit-vault-admin",
+          "allowed_roles": ["tier1-facade"]
+        }
+      ],
+      "roles": [
+        {
+          "name": "tier1-facade",
+          "db_name": "tier1-state",
+          "creation_statements": [
+            "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'",
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\""
+          ],
+          "default_ttl": "1h",
+          "max_ttl": "24h"
+        },
+        {
+          "name": "tier2-service",
+          "db_name": "tier2-domain",
+          "creation_statements": [
+            "CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'",
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"{{name}}\""
+          ],
+          "default_ttl": "1h",
+          "max_ttl": "24h"
+        }
+      ]
+    }

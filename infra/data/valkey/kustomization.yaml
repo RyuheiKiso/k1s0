@@ -1,0 +1,14 @@
+# =============================================================================
+# infra/data/valkey/
+#
+# Valkey Cluster mode 6 node（master 3 + replica 3）の補助 CR を配置。
+# StatefulSet 本体は Helm chart（values.yaml）で展開される。
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/05_データ層配置.md
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster
+  - config

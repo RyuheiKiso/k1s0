@@ -1,7 +1,7 @@
 // 本ファイルは k1s0 TypeScript SDK の Audit 動詞統一 facade。
 import { createPromiseClient } from "@connectrpc/connect";
 import { AuditService } from "./proto/k1s0/tier1/audit/v1/audit_service_connect.js";
-import { AuditEvent } from "./proto/k1s0/tier1/audit/v1/audit_service_pb.js";
+import { AuditEvent, ExportFormat, } from "./proto/k1s0/tier1/audit/v1/audit_service_pb.js";
 import { Timestamp } from "@bufbuild/protobuf";
 /** AuditFacade は AuditService の動詞統一 facade。 */
 export class AuditFacade {
@@ -37,6 +37,29 @@ export class AuditFacade {
             context: this.client.tenantContext(),
         });
         return resp.events;
+    }
+    /**
+     * export は Audit のサーバストリーミング エクスポート（FR-T1-AUDIT-003）。
+     * 範囲 + フォーマット指定で逐次 chunk を AsyncIterable で返す。利用例:
+     *   for await (const c of facade.export(undefined, undefined, ExportFormat.NDJSON, 0)) { ... }
+     * fromDate / toDate に undefined を渡すと全範囲。
+     * chunkBytes が 0 ならサーバ既定（65536）、上限は 1 MiB。
+     */
+    async *export(fromDate, toDate, format = ExportFormat.NDJSON, chunkBytes = 0) {
+        const raw = createPromiseClient(AuditService, this.client.transport);
+        const stream = raw.export({
+            from: fromDate ? Timestamp.fromDate(fromDate) : undefined,
+            to: toDate ? Timestamp.fromDate(toDate) : undefined,
+            format,
+            chunkBytes,
+            context: this.client.tenantContext(),
+        });
+        for await (const chunk of stream) {
+            yield chunk;
+            if (chunk.isLast) {
+                break;
+            }
+        }
     }
     /**
      * verifyChain は監査ハッシュチェーンの整合性を検証する（FR-T1-AUDIT-002）。

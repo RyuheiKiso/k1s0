@@ -1,14 +1,14 @@
 # =============================================================================
 # infra/k8s/networking/kustomization.yaml
 #
-# Calico / MetalLB の Helm values は同階層の `*-values.yaml` で別途配信される。
-# 本 kustomization は `kubectl apply -k infra/k8s/networking/` を docs 通りに
-# 成立させるための空 base（apply 可能な追加 YAML が増えたら resources に追記）。
+# Cilium / MetalLB の Helm values は同階層の `*-values.yaml` で別途配信される。
+# 本 kustomization は GatewayClass と全 ns 適用 NetworkPolicy を base 化する。
 #
 # 関連設計:
 #   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-resources: []
+resources:
+  - gatewayclasses
+  - network-policies

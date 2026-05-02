@@ -1,10 +1,30 @@
-// k1s0 SDK ラッパー（BFF 内部から tier1 / tier2 を呼ぶ境界）。
+// k1s0 SDK ラッパー（BFF 内部から tier1 を呼ぶ境界）。
 //
-// テナント上書き:
-//   1 SDK Client インスタンスを複数エンドユーザの request 間で共有する。
-//   各 request の tenant_id / subject は auth middleware が context へ attach 済なので、
-//   SDK 呼出前に context-helpers から取り出して k1s0.WithTenant で SDK ctx に伝搬する。
-//   これにより static cfg.TenantID で全 request を上書きしてしまう越境（NFR-E-AC-003 違反）を防ぐ。
+// 役割:
+//   tier3 BFF（portal-bff / admin-bff）が tier1 の 14 公開サービスを統一的に呼ぶための
+//   Infrastructure 層相当。SDK の高水準 facade を per-request テナント上書きと組み合わせて
+//   ラップし、各サービスの薄いメソッドを *Client 上に提供する。
+//
+// テナント上書きの動機（NFR-E-AC-003）:
+//   1 SDK Client インスタンスを複数エンドユーザの request 間で共有する。各 request の
+//   tenant_id / subject は auth middleware が context へ attach 済なので、SDK 呼出前に
+//   context-helpers から取り出して k1s0.WithTenant で SDK ctx に伝搬する。これにより
+//   static cfg.TenantID で全 request を上書きしてしまう越境を防ぐ。
+//
+// ファイル構成:
+//   client.go     — Client struct / コンストラクタ / Close / withTenantFromRequest（本ファイル）
+//   state.go      — StateGet / StateSave / StateDelete
+//   pubsub.go     — PubSubPublish
+//   secrets.go    — SecretsGet / SecretsRotate
+//   decision.go   — DecisionEvaluate
+//   workflow.go   — WorkflowStart
+//   invoke.go     — InvokeCall
+//   audit.go      — AuditRecord / AuditQuery
+//   log.go        — LogSend
+//   telemetry.go  — TelemetryEmitMetric
+//   pii.go        — PiiClassify / PiiMask
+//   feature.go    — FeatureEvaluateBoolean
+//   binding.go    — BindingInvoke
 
 // Package k1s0client は tier1 / tier2 への呼出を集約する Infrastructure 層相当。
 package k1s0client
@@ -13,7 +33,7 @@ package k1s0client
 import (
 	// context 伝搬。
 	"context"
-	// 文字列整形。
+	// エラー整形。
 	"fmt"
 	// timeout。
 	"time"
@@ -71,16 +91,4 @@ func withTenantFromRequest(ctx context.Context) context.Context {
 	}
 	subject := auth.SubjectFromContext(ctx)
 	return k1s0.WithTenant(ctx, tenantID, subject)
-}
-
-// StateGet は k1s0 State から指定キーを取得する。
-// auth middleware の tenant_id を SDK へ伝搬する。
-func (c *Client) StateGet(ctx context.Context, store, key string) (data []byte, etag string, found bool, err error) {
-	return c.client.State().Get(withTenantFromRequest(ctx), store, key)
-}
-
-// StateSave は k1s0 State にキーを保存する。
-// auth middleware の tenant_id を SDK へ伝搬する。
-func (c *Client) StateSave(ctx context.Context, store, key string, data []byte) (string, error) {
-	return c.client.State().Save(withTenantFromRequest(ctx), store, key, data)
 }

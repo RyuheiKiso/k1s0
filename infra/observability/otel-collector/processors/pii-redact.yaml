@@ -1,0 +1,40 @@
+# =============================================================================
+# OTel Collector の attributes/transform processor で PII を redact する。
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/07_観測性配置.md:87
+#         （IMP-DIR-INFRA-077 必須 3 processor の 1）
+#
+# 対象: log message body / span attributes 中の email / 電話番号 / クレジットカード
+#       / マイナンバー類似パターンを `<REDACTED>` に置換。
+#
+# Loki / Tempo へ exporter する手前で適用する（OTel Collector の processor pipeline
+# の transform / attributes ステージ）。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-processor-pii-redact
+  namespace: k1s0-obs
+data:
+  config.yaml: |
+    processors:
+      transform/pii-redact:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              # email
+              - replace_pattern(body, "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "<REDACTED:email>")
+              # 電話番号（日本: 0X-XXXX-XXXX, 0XXX-XX-XXXX 等）
+              - replace_pattern(body, "0\\d{1,4}-\\d{1,4}-\\d{3,4}", "<REDACTED:tel>")
+              # クレジットカード（13-19 桁、空白/ハイフン挟み許容）
+              - replace_pattern(body, "\\b(?:\\d[ -]*?){13,19}\\b", "<REDACTED:cc>")
+              # マイナンバー（12 桁）
+              - replace_pattern(body, "\\b\\d{4}[ -]?\\d{4}[ -]?\\d{4}\\b", "<REDACTED:mynumber>")
+        trace_statements:
+          - context: span
+            statements:
+              # span attributes 内の "user.email" / "user.phone" を redact
+              - set(attributes["user.email"], "<REDACTED>") where attributes["user.email"] != nil
+              - set(attributes["user.phone"], "<REDACTED>") where attributes["user.phone"] != nil
+              - set(attributes["http.request.body"], "<REDACTED>") where attributes["http.request.body"] != nil

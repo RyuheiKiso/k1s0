@@ -60,6 +60,10 @@ type Client struct {
 	// dynamic credential 取得用 narrow client（production: SDK の Logical()、test: fake）。
 	// 動的 Secret 発行（FR-T1-SECRETS-002）の OpenBao Database Engine 経路で使う。
 	dynamicReader dynamicReader
+	// Transit Engine 用 narrow client（production: SDK の Logical()、test: fake）。
+	// FR-T1-SECRETS-003 の Encrypt / Decrypt / RotateKey で transit/encrypt/<key> 等の
+	// path に対する Write を行う。
+	transitWriter transitWriter
 	// SDK Client インスタンス（Close 用、fake 注入時は nil）。
 	closer interface{ Close() }
 }
@@ -103,6 +107,8 @@ func New(_ context.Context, cfg Config) (*Client, error) {
 		lister: newProductionLister(sdkClient, mount),
 		// 動的 Secret（Database Engine）の Read 経路。SDK の Logical() を narrow に切り出す。
 		dynamicReader: sdkClient.Logical(),
+		// Transit Engine 用 Logical() narrow（同 SDK の Logical() を再利用）。
+		transitWriter: sdkClient.Logical(),
 		// SDK Client は Close() を持たない（HTTP client は GC 任せ）ため closer は nil。
 	}, nil
 }
@@ -143,6 +149,12 @@ func (c *Client) listerFor() Lister {
 // fake / in-memory 注入時は nil（caller 側で ErrNotWired にフォールバック）。
 func (c *Client) dynamicReaderFor() dynamicReader {
 	return c.dynamicReader
+}
+
+// transitWriterFor は内部 Transit Engine 用 narrow client を返す。
+// productionTransit から呼び出される。fake / in-memory 注入時は nil。
+func (c *Client) transitWriterFor() transitWriter {
+	return c.transitWriter
 }
 
 // Ping は OpenBao への到達性を軽量 RPC で確認する。

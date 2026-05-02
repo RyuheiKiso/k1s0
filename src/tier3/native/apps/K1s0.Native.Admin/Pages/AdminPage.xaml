@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- 管理者向けトップページ。直近 N 時間の監査イベントを一覧表示する。 -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:K1s0.Native.Admin.ViewModels"
+             xmlns:svc="clr-namespace:K1s0.Native.Admin.Services"
+             x:DataType="vm:AdminViewModel"
+             x:Class="K1s0.Native.Admin.Pages.AdminPage">
+  <VerticalStackLayout Padding="20" Spacing="12">
+    <Label Text="k1s0 Admin" FontSize="28" FontAttributes="Bold" />
+    <Label Text="{Binding StatusMessage}" />
+    <HorizontalStackLayout Spacing="8">
+      <Label Text="Hours" VerticalOptions="Center" />
+      <Entry Text="{Binding Hours}" Keyboard="Numeric" WidthRequest="80" />
+      <Label Text="Limit" VerticalOptions="Center" />
+      <Entry Text="{Binding Limit}" Keyboard="Numeric" WidthRequest="80" />
+    </HorizontalStackLayout>
+    <Button Text="Query Audit Logs" Command="{Binding QueryCommand}" IsEnabled="{Binding IsNotBusy}" />
+    <CollectionView ItemsSource="{Binding Items}" HeightRequest="500">
+      <CollectionView.ItemTemplate>
+        <DataTemplate x:DataType="svc:AuditEvent">
+          <VerticalStackLayout Padding="0,8,0,8" Spacing="2">
+            <Label FontAttributes="Bold">
+              <Label.FormattedText>
+                <FormattedString>
+                  <Span Text="{Binding Actor}" />
+                  <Span Text=" → " />
+                  <Span Text="{Binding Action}" />
+                  <Span Text=" " />
+                  <Span Text="{Binding Resource}" />
+                </FormattedString>
+              </Label.FormattedText>
+            </Label>
+            <Label FontSize="12" TextColor="#888">
+              <Label.FormattedText>
+                <FormattedString>
+                  <Span Text="outcome=" />
+                  <Span Text="{Binding Outcome}" />
+                  <Span Text=" / occurred_at_ms=" />
+                  <Span Text="{Binding OccurredAtMillis}" />
+                </FormattedString>
+              </Label.FormattedText>
+            </Label>
+          </VerticalStackLayout>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+  </VerticalStackLayout>
+</ContentPage>

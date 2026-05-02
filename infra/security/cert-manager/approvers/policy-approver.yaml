@@ -1,0 +1,70 @@
+# =============================================================================
+# cert-manager Policy Approver（CertificateRequest の自動承認制御）
+#
+# 役割: cert-manager-policy-approver-rbac を使い、各 namespace ごとに発行可能な
+#       CertificateRequest の subject / dnsNames / issuer を制限する。
+#       不正な subject を持つ CertificateRequest は denied として扱われる。
+# =============================================================================
+---
+apiVersion: policy.cert-manager.io/v1alpha1
+kind: CertificateRequestPolicy
+metadata:
+  name: k1s0-internal-tier1
+spec:
+  selector:
+    issuerRef:
+      name: k1s0-internal-ca
+      kind: ClusterIssuer
+    namespace:
+      matchNames:
+        - k1s0-tier1
+  allowed:
+    commonName:
+      value: "*.k1s0-tier1.svc.cluster.local"
+    dnsNames:
+      values:
+        - "*.k1s0-tier1.svc.cluster.local"
+        - "*.k1s0.internal"
+    subject:
+      organizations:
+        values: ["k1s0"]
+---
+apiVersion: policy.cert-manager.io/v1alpha1
+kind: CertificateRequestPolicy
+metadata:
+  name: k1s0-internal-tier2
+spec:
+  selector:
+    issuerRef:
+      name: k1s0-internal-ca
+      kind: ClusterIssuer
+    namespace:
+      matchNames:
+        - k1s0-tier2
+  allowed:
+    commonName:
+      value: "*.k1s0-tier2.svc.cluster.local"
+    dnsNames:
+      values:
+        - "*.k1s0-tier2.svc.cluster.local"
+        - "*.k1s0.internal"
+---
+apiVersion: policy.cert-manager.io/v1alpha1
+kind: CertificateRequestPolicy
+metadata:
+  name: k1s0-internal-tier3
+spec:
+  selector:
+    issuerRef:
+      name: k1s0-internal-ca
+      kind: ClusterIssuer
+    namespace:
+      matchNames:
+        - k1s0-tier3
+  allowed:
+    commonName:
+      value: "*.k1s0-tier3.svc.cluster.local"
+    dnsNames:
+      values:
+        - "*.k1s0-tier3.svc.cluster.local"
+        - "*.k1s0.internal"

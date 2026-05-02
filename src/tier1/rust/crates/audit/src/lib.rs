@@ -23,3 +23,13 @@ pub mod export;
 pub mod server;
 // HTTP/JSON gateway 用 JsonRpc 実装。
 pub mod http;
+// FR-T1-AUDIT-003 retention 階層: 90日 / 1年 / 7年の境界とtier判定ヘルパ。
+pub mod retention;
+// FR-T1-AUDIT-003 cold 層 (MinIO + Object Lock) の抽象 + in-memory 実装。
+pub mod archive;
+// FR-T1-AUDIT-003 retention runner（warm→cold 移行 + cold→expired 削除）。
+pub mod archival;
+// FR-T1-AUDIT-003 retention runner を t1-audit Pod 内で周期実行する常駐 task。
+pub mod retention_loop;
+// FR-T1-AUDIT-002 hash chain 整合性検証を t1-audit Pod 内で周期実行する常駐 task。
+pub mod verify_loop;

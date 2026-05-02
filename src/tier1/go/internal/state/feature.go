@@ -32,113 +32,122 @@ type featureHandler struct {
 }
 
 // EvaluateBoolean は boolean Flag 評価。
+//
+// FR-T1-FEATURE-001 受け入れ基準: 「評価失敗時はデフォルト値を返す（K1s0Error にしない、
+// 業務継続優先）」を満たすため、adapter エラーは zero-value + Reason="ERROR" でフォールバック。
+// PermissionDenied / InvalidArgument / Unauthenticated 系は業務ロジック誤りなので gRPC error 維持。
+//
+// FR-T1-FEATURE-003: Circuit Breaker override が立っている flag は adapter を呼ばずに
+// 強制値を返す（Reason="CIRCUIT_BREAKER"）。
 func (h *featureHandler) EvaluateBoolean(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.BooleanResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateBoolean"); err != nil {
 		return nil, err
 	}
-	// adapter 入力。
-	areq := makeFlagReq(req)
-	// adapter 呼出。
-	aresp, err := h.deps.FeatureAdapter.EvaluateBoolean(ctx, areq)
-	// エラー翻訳。
-	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateBoolean")
+	// FR-T1-FEATURE-003: 先に override store を確認する。override 中は adapter を呼ばない。
+	if v, reason, ok := h.overrideForFlag(req.GetFlagKey()); ok {
+		return &featurev1.BooleanResponse{Value: v, Metadata: makeFlagMeta("default", reason)}, nil
 	}
-	// 応答変換。
+	aresp, err := h.deps.FeatureAdapter.EvaluateBoolean(ctx, makeFlagReq(req))
+	if err != nil {
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateBoolean")
+		}
+		return &featurev1.BooleanResponse{Value: false, Metadata: makeFlagMeta("default", "ERROR")}, nil
+	}
 	return &featurev1.BooleanResponse{
-		// 評価値。
-		Value: aresp.Value,
-		// メタ情報。
+		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
 }
 
-// EvaluateString は string Flag 評価。
+// overrideForFlag は Circuit Breaker override store を確認するヘルパ。
+// store 未注入時は (false, "", false) を返す（後方互換）。
+func (h *featureHandler) overrideForFlag(flagKey string) (bool, string, bool) {
+	if h.deps.FeatureOverrides == nil {
+		return false, "", false
+	}
+	return h.deps.FeatureOverrides.Lookup(flagKey)
+}
+
+// EvaluateString は string Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。
 func (h *featureHandler) EvaluateString(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.StringResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateString"); err != nil {
 		return nil, err
 	}
-	// adapter 入力構築 + 呼出。
 	aresp, err := h.deps.FeatureAdapter.EvaluateString(ctx, makeFlagReq(req))
-	// エラー翻訳。
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateString")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateString")
+		}
+		return &featurev1.StringResponse{Value: "", Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.StringResponse{
-		// 評価値。
-		Value: aresp.Value,
-		// メタ情報。
+		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
 }
 
-// EvaluateNumber は number Flag 評価。
+// EvaluateNumber は number Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。
 func (h *featureHandler) EvaluateNumber(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.NumberResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateNumber"); err != nil {
 		return nil, err
 	}
-	// adapter 呼出。
 	aresp, err := h.deps.FeatureAdapter.EvaluateNumber(ctx, makeFlagReq(req))
-	// エラー翻訳。
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateNumber")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateNumber")
+		}
+		return &featurev1.NumberResponse{Value: 0, Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.NumberResponse{
-		// 評価値。
-		Value: aresp.Value,
-		// メタ情報。
+		Value:    aresp.Value,
 		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
 }
 
-// EvaluateObject は object Flag 評価。
+// EvaluateObject は object Flag 評価。FR-T1-FEATURE-001 業務継続優先で fail-soft。
 func (h *featureHandler) EvaluateObject(ctx context.Context, req *featurev1.EvaluateRequest) (*featurev1.ObjectResponse, error) {
-	// 入力 nil 防御。
 	if req == nil {
-		// 不正引数返却。
 		return nil, status.Error(codes.InvalidArgument, "tier1/feature: nil request")
 	}
-	// NFR-E-AC-003: tenant_id 越境防止のため必須検証。
 	if _, err := requireTenantIDFromCtx(ctx, req.GetContext(), "Feature.EvaluateObject"); err != nil {
 		return nil, err
 	}
-	// adapter 呼出。
 	aresp, err := h.deps.FeatureAdapter.EvaluateObject(ctx, makeFlagReq(req))
-	// エラー翻訳。
 	if err != nil {
-		// 翻訳して返却。
-		return nil, translateFeatureErr(err, "EvaluateObject")
+		if isClientFault(err) {
+			return nil, translateFeatureErr(err, "EvaluateObject")
+		}
+		return &featurev1.ObjectResponse{ValueJson: nil, Metadata: makeFlagMeta("default", "ERROR")}, nil
 	}
-	// 応答変換。
 	return &featurev1.ObjectResponse{
-		// 評価値（JSON シリアライズ済 bytes）。
 		ValueJson: aresp.ValueJSON,
-		// メタ情報。
-		Metadata: makeFlagMeta(aresp.Variant, aresp.Reason),
+		Metadata:  makeFlagMeta(aresp.Variant, aresp.Reason),
 	}, nil
+}
+
+// isClientFault は呼出側起因のエラー（InvalidArgument / Unauthenticated / PermissionDenied）
+// を判定する。これらは fail-soft しない（業務継続優先の対象外）。
+func isClientFault(err error) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+	switch st.Code() {
+	case codes.InvalidArgument, codes.Unauthenticated, codes.PermissionDenied:
+		return true
+	default:
+		return false
+	}
 }
 
 // makeFlagReq は proto Request → adapter Request 変換ヘルパ。
@@ -167,11 +176,6 @@ func makeFlagMeta(variant, reason string) *featurev1.FlagMetadata {
 
 // translateFeatureErr は Feature 用エラー翻訳。
 func translateFeatureErr(err error, rpc string) error {
-	// ErrNotWired → Unimplemented。
-	if isNotWired(err) {
-		// 翻訳メッセージ。
-		return status.Errorf(codes.Unimplemented, "tier1/feature: %s not yet wired to flagd (plan 04-13)", rpc)
-	}
 	// dapr が返す gRPC status を尊重する（例: configuration store 未設定 →
 	// FailedPrecondition、permission 系 → PermissionDenied）。`status.FromError` は
 	// gRPC status を保持していれば true を返し、保持していなければ Unknown 扱い。

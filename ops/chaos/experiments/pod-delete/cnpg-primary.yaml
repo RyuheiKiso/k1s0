@@ -1,0 +1,66 @@
+# LitmusChaos v3.x: CNPG Primary Pod 削除実験（FMEA-006 検証）
+# 対応 Runbook: RB-DB-002（PostgreSQL Primary 障害対応）
+# 検証目的: CNPG primaryUpdateStrategy=unsupervised の自動 failover が 30s 以内に動作すること
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: cnpg-primary-pod-delete
+  namespace: cnpg-system
+spec:
+  appinfo:
+    appns: cnpg-system
+    applabel: "cnpg.io/cluster=k1s0-postgres,role=primary"
+    appkind: pod
+  chaosServiceAccount: litmus-admin
+  engineState: "active"
+  experiments:
+    - name: pod-delete
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "30"
+            - name: CHAOS_INTERVAL
+              value: "30"
+            - name: PODS_AFFECTED_PERCENTAGE
+              value: "100"  # primary 1 個のみなので 100%
+            - name: FORCE
+              value: "false"
+            - name: GRACE_PERIOD
+              value: "30"
+        probe:
+          # CNPG cluster の currentPrimary が 60s 以内に切り替わること
+          - name: cnpg-failover-probe
+            type: cmdProbe
+            cmdProbe/inputs:
+              command: |
+                kubectl get cluster k1s0-postgres -n cnpg-system \
+                  -o jsonpath='{.status.currentPrimary}' \
+                  | grep -v "^$" || exit 1
+              source:
+                image: bitnami/kubectl:1.30
+                inheritInputs: true
+              comparator:
+                type: "string"
+                criteria: "contains"
+                value: "k1s0-postgres-"
+            mode: EOT
+            runProperties:
+              probeTimeout: 60
+              interval: 5
+              retry: 12
+          # PromProbe: cnpg_pg_up{role="primary"} == 1 が 60s 以内に観測されること
+          - name: cnpg-primary-up-probe
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://mimir-query-frontend.monitoring:8080
+              query: |
+                cnpg_pg_up{cluster="k1s0-postgres", role="primary"} == 1
+              comparator:
+                criteria: "=="
+                value: "1"
+            mode: EOT
+            runProperties:
+              probeTimeout: 60
+              interval: 5
+              retry: 12

@@ -1,0 +1,5 @@
+# Valkey Cluster mode の StatefulSet 本体は Helm chart（../values.yaml）で展開。
+# 本 kustomization は Cluster init Job / TLS Secret 等の追加 CR 配置用に予約。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

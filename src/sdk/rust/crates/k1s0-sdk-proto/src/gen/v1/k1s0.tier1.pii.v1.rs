@@ -61,5 +61,32 @@ pub struct MaskResponse {
     #[prost(message, repeated, tag="2")]
     pub findings: ::prost::alloc::vec::Vec<PiiFinding>,
 }
+/// Pseudonymize リクエスト（FR-T1-PII-002）。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PseudonymizeRequest {
+    /// 仮名化対象の PII 種別（NAME / EMAIL / PHONE / MYNUMBER / ADDRESS / CREDITCARD / IPV4 等）。
+    /// 種別ごとに独立な仮名空間を持たせるため、HMAC 入力に prefix として混入する。
+    #[prost(string, tag="1")]
+    pub field_type: ::prost::alloc::string::String,
+    /// 仮名化対象の生値。
+    #[prost(string, tag="2")]
+    pub value: ::prost::alloc::string::String,
+    /// 仮名空間を分離する salt。本番運用では OpenBao 等で管理し、
+    /// クライアントは salt 識別子のみを送る運用も許容する。空文字は不可。
+    #[prost(string, tag="3")]
+    pub salt: ::prost::alloc::string::String,
+    /// 呼出元コンテキスト（テナント境界の検証に必須）。
+    #[prost(message, optional, tag="4")]
+    pub context: ::core::option::Option<super::super::common::v1::TenantContext>,
+}
+/// Pseudonymize 応答。
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PseudonymizeResponse {
+    /// 仮名化された値（URL-safe base64、padding 無し）。
+    #[prost(string, tag="1")]
+    pub pseudonym: ::prost::alloc::string::String,
+}
 include!("k1s0.tier1.pii.v1.tonic.rs");
 // @@protoc_insertion_point(module)

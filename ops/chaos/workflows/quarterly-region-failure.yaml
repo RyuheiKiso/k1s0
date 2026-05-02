@@ -1,0 +1,89 @@
+# Argo Workflows: 四半期 リージョン障害シミュレーション
+# 4 / 7 / 10 / 1 月の最終金曜 16:00 JST に AZ 1 つ全 Node の network-loss を注入
+# 対応: docs/04_概要設計/55_運用ライフサイクル方式設計/06_FMEA分析方式.md FMEA-008（Network Partition）
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: quarterly-region-failure
+  namespace: k1s0-chaos
+spec:
+  schedule: "0 7 * * 5"  # 毎週金曜 16:00 JST、四半期フィルタは workflow 内
+  timezone: "Asia/Tokyo"
+  workflowSpec:
+    serviceAccountName: argo-workflows-litmus
+    entrypoint: quarterly-region-failure-pipeline
+    templates:
+      - name: quarterly-region-failure-pipeline
+        steps:
+          - - name: check-last-fri-of-quarter
+              template: check-quarter-end-fri
+          - - name: az-network-loss
+              template: az-network-partition
+          - - name: post-results
+              template: post-slack
+      - name: check-quarter-end-fri
+        script:
+          image: bitnami/kubectl:1.30
+          command: [sh]
+          source: |
+            MONTH=$(date +%m)
+            # 1, 4, 7, 10 月以外はスキップ
+            case ${MONTH} in
+              01|04|07|10) ;;
+              *) echo "対象四半期外、スキップ"; exit 1 ;;
+            esac
+            # 最終金曜判定
+            LAST_FRI=$(cal -h | awk 'NF{f=$1} END{print f}')  # 月最終日
+            DAY=$(date +%d)
+            # 月最終週の金曜のみ実行
+            if [ "$(date -d "+7 days" +%m)" = "${MONTH}" ]; then
+              echo "まだ最終週ではない、スキップ"; exit 1
+            fi
+      - name: az-network-partition
+        script:
+          image: bitnami/kubectl:1.30
+          command: [sh]
+          source: |
+            # AZ ラベル zone-a の全 Node に対し pod-network-loss を 5 分間注入
+            cat <<EOF | kubectl apply -f -
+            apiVersion: litmuschaos.io/v1alpha1
+            kind: ChaosEngine
+            metadata:
+              name: az-network-loss-$(date +%Y%m%d)
+              namespace: k1s0
+            spec:
+              appinfo:
+                appns: k1s0
+                applabel: "topology.kubernetes.io/zone=zone-a"
+                appkind: node
+              chaosServiceAccount: litmus-admin
+              experiments:
+                - name: node-network-loss
+                  spec:
+                    components:
+                      env:
+                        - name: TOTAL_CHAOS_DURATION
+                          value: "300"
+                        - name: NETWORK_PACKET_LOSS_PERCENTAGE
+                          value: "100"
+            EOF
+            sleep 360
+            VERDICT=$(kubectl -n k1s0 get chaosresult \
+              -l name=az-network-loss-$(date +%Y%m%d) \
+              -o jsonpath='{.items[0].status.experimentStatus.verdict}')
+            [ "$VERDICT" = "Pass" ]
+      - name: post-slack
+        container:
+          image: curlimages/curl:8.7.1
+          command: [sh, -c]
+          args:
+            - |
+              curl -X POST -H 'Content-type: application/json' \
+                --data '{"text":"四半期 Region Failure 演習完了 — 結果は ops/chaos/results/<date>.md 参照"}' \
+                ${SLACK_WEBHOOK_URL}
+          env:
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: slack-webhook
+                  key: ops-channel

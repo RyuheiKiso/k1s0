@@ -61,7 +61,7 @@ meshConfig:
   extensionProviders:
     - name: otel-tracing
       opentelemetry:
-        service: otel-collector-gateway.observability.svc.cluster.local
+        service: otel-collector-gateway.k1s0-obs.svc.cluster.local
         port: 4317
   # access log 有効化（L7 policy 適用時の audit）
   accessLogFile: /dev/stdout

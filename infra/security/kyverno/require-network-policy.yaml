@@ -1,0 +1,56 @@
+# =============================================================================
+# 全 k1s0-* namespace に NetworkPolicy が存在することを admission で強制
+# （IMP-DIR-INFRA-076 の必須 5 ポリシー）
+#
+# `infra/k8s/networking/network-policies/default-deny.yaml` で各 ns に default-
+# deny NetworkPolicy を投入する設計に呼応し、運用中に default-deny が削除され
+# た場合や、新規 namespace が default-deny 無しで作成されることを防ぐ。
+# =============================================================================
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-network-policy
+  annotations:
+    policies.kyverno.io/title: Require NetworkPolicy
+    policies.kyverno.io/category: ADR-POL-001 baseline
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-default-deny-on-namespace
+      match:
+        any:
+          - resources:
+              kinds: [Namespace]
+              names:
+                - "k1s0-*"
+      generate:
+        # 新規 k1s0-* namespace 作成時に default-deny NetworkPolicy を自動 generate
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        name: default-deny-all
+        namespace: "{{ request.object.metadata.name }}"
+        synchronize: true
+        data:
+          spec:
+            podSelector: {}
+            policyTypes:
+              - Ingress
+              - Egress
+    - name: prevent-deletion-of-default-deny
+      match:
+        any:
+          - resources:
+              kinds: [NetworkPolicy]
+              names: ["default-deny-all"]
+              namespaces:
+                - "k1s0-*"
+      preconditions:
+        all:
+          - key: "{{ request.operation }}"
+            operator: Equals
+            value: DELETE
+      validate:
+        message: "k1s0-* namespace の default-deny-all NetworkPolicy 削除は禁止"
+        deny: {}

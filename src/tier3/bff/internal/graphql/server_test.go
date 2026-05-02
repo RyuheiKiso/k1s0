@@ -23,8 +23,12 @@ import (
 	"testing"
 )
 
-// fakeStateClient は StateClient を満たす in-memory mock。
+// fakeStateClient は Facade を満たす in-memory mock。
+// 14 サービス分の no-op method は unimplementedFacade を embed して継承する。
+// State.Get のみテスト用に override する。
 type fakeStateClient struct {
+	// no-op の基底実装を embed する（State.Get 以外は zero value 応答）。
+	unimplementedFacade
 	gotStore  string
 	gotKey    string
 	respData  []byte
@@ -33,6 +37,7 @@ type fakeStateClient struct {
 	respErr   error
 }
 
+// StateGet を override し、呼出を記録して固定値を返す。
 func (f *fakeStateClient) StateGet(_ context.Context, store, key string) ([]byte, string, bool, error) {
 	f.gotStore = store
 	f.gotKey = key

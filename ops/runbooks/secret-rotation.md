@@ -6,7 +6,7 @@
 
 ## 関連設計
 
-- [docs/05_実装/85_Identity設計/30_OpenBao/secrets-matrix.md](../../docs/05_実装/85_Identity設計/secrets-matrix.md)
+- [docs/05_実装/85_Identity設計/secrets-matrix.md](../../docs/05_実装/85_Identity設計/secrets-matrix.md)
 - [ADR-SEC-002（OpenBao）](../../docs/02_構想設計/adr/ADR-SEC-002-openbao.md)
 - [`infra/security/openbao/policies/`](../../infra/security/openbao/policies/)
 
@@ -52,7 +52,7 @@
 
 **事後処理**:
 
-- postmortem を `ops/runbooks/postmortems/` に
+- postmortem を `ops/runbooks/postmortems/<YYYY-MM-DD>-RB-SEC-004-secret-leak.md` に起票（`docs-postmortem` Skill 経由、24 時間以内）
 - secret-matrix への追記（影響範囲拡張時）
 
 ### 2. Kafka SASL credentials
@@ -95,7 +95,7 @@ kubectl delete certificate <name> -n <ns>
 
 - Shamir 5/3 構成、過半数で unseal 可能
 - 紛失時はその share の保有者を変更 → 全 share を再分散
-- 詳細: `ops/runbooks/forensics/04_key-compromise.md`（plan 13-09）で詳述
+- 詳細: 採用後の運用拡大時で `ops/runbooks/forensics/` 配下に Forensics 専用 Runbook 群を整備予定（plan 13-09）。リリース時点では本 Runbook の Step 1〜4 に従い、5 share 中 3 share の保有者で Shamir 再分散を実施する。
 
 ## 漏洩発生時の即時対応
 
@@ -113,7 +113,7 @@ kubectl delete certificate <name> -n <ns>
 
 ## 関連
 
-- [docs/05_実装/85_Identity設計/30_OpenBao/secrets-matrix.md](../../docs/05_実装/85_Identity設計/secrets-matrix.md)
+- [docs/05_実装/85_Identity設計/secrets-matrix.md](../../docs/05_実装/85_Identity設計/secrets-matrix.md)
 - [`.gitleaks.toml`](../../.gitleaks.toml) — 漏洩検出 rule
 - [`infra/security/openbao/policies/`](../../infra/security/openbao/policies/) — OpenBao policy
-- [plan 13-05 secret scan / 13-09 Forensics Runbook](../../plan/13_セキュリティとサプライチェーン/)
+- 関連 Runbook: [`incidents/RB-SEC-002-cert-expiry.md`](incidents/RB-SEC-002-cert-expiry.md), [`incidents/RB-AUTH-002-auth-abuse-detection.md`](incidents/RB-AUTH-002-auth-abuse-detection.md)（漏洩経路調査時に並行実行）

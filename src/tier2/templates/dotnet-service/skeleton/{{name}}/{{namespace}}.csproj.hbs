@@ -19,5 +19,9 @@
     <ProjectReference Include="../../src/sdk/dotnet/src/K1s0.Sdk.Proto/K1s0.Sdk.Proto.csproj" />
     <!-- 共通規約「認証認可」を満たす JWT Bearer middleware（AddK1s0JwtBearer extension）。 -->
     <ProjectReference Include="../../src/tier2/dotnet/shared/K1s0.Tier2.Common.Auth/K1s0.Tier2.Common.Auth.csproj" />
+    <!-- 共通 業務エラー型 (DomainException + ErrorBody + UseK1s0DomainException middleware)。 -->
+    <ProjectReference Include="../../src/tier2/dotnet/shared/K1s0.Tier2.Common.Errors/K1s0.Tier2.Common.Errors.csproj" />
+    <!-- 共通 OpenTelemetry 初期化 (AddK1s0Otel extension)。 -->
+    <ProjectReference Include="../../src/tier2/dotnet/shared/K1s0.Tier2.Common.Otel/K1s0.Tier2.Common.Otel.csproj" />
   </ItemGroup>
 </Project>

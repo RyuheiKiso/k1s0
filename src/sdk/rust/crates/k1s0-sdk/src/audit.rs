@@ -1,8 +1,8 @@
 // 本ファイルは k1s0-sdk の Audit 動詞統一 facade。
 use crate::client::Client;
 use crate::proto::k1s0::tier1::audit::v1::{
-    AuditEvent, QueryAuditRequest, RecordAuditRequest, VerifyChainRequest,
-    audit_service_client::AuditServiceClient,
+    AuditEvent, ExportAuditChunk, ExportAuditRequest, ExportFormat, QueryAuditRequest,
+    RecordAuditRequest, VerifyChainRequest, audit_service_client::AuditServiceClient,
 };
 use prost_types::Timestamp;
 use std::collections::HashMap;
@@ -101,6 +101,52 @@ impl AuditFacade {
             .await?
             .into_inner();
         Ok(resp.events)
+    }
+
+    /// export は Audit のサーバストリーミング エクスポート（FR-T1-AUDIT-003）。
+    /// 各 chunk を逐次 callback に渡す。callback が Err を返すと export を中断する。
+    /// from_secs / to_secs に 0 を渡すと全範囲（tier1 側で未指定扱い）。
+    /// chunk_bytes が 0 ならサーバ既定（65536）、上限は 1 MiB。
+    pub async fn export<F>(
+        &mut self,
+        from_secs: i64,
+        to_secs: i64,
+        format: ExportFormat,
+        chunk_bytes: i32,
+        mut handler: F,
+    ) -> Result<(), Status>
+    where
+        F: FnMut(ExportAuditChunk) -> Result<(), Status>,
+    {
+        // 0 を None として送ると tier1 側で「未指定」扱いになる。
+        let from = if from_secs > 0 {
+            Some(Timestamp { seconds: from_secs, nanos: 0 })
+        } else {
+            None
+        };
+        let to = if to_secs > 0 {
+            Some(Timestamp { seconds: to_secs, nanos: 0 })
+        } else {
+            None
+        };
+        let req = ExportAuditRequest {
+            from,
+            to,
+            format: format as i32,
+            chunk_bytes,
+            context: Some(self.client.tenant_context()),
+        };
+        // ストリーミング呼出。
+        let mut stream = self.raw.export(req).await?.into_inner();
+        // 各 chunk を受信して handler に渡す。is_last=true で短絡終了。
+        while let Some(chunk) = stream.message().await? {
+            let is_last = chunk.is_last;
+            handler(chunk)?;
+            if is_last {
+                break;
+            }
+        }
+        Ok(())
     }
 
     /// verify_chain は監査ハッシュチェーンの整合性を検証する（FR-T1-AUDIT-002）。

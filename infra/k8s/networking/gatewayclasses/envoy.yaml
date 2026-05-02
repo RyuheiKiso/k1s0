@@ -1,0 +1,9 @@
+# Envoy GatewayClass（Gateway API standard、ADR-MIG-002 の南北 ingress 用）。
+# 本 GatewayClass を Gateway リソースから parametersRef なしで参照することで、
+# infra/mesh/envoy-gateway/ の Gateway-Public / Gateway-Internal が動作する。
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller

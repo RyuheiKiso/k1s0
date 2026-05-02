@@ -47,5 +47,5 @@ SSH key を直接置く運用（dev のみ）。
 ## 関連設計
 
 - ADR-CICD-001（Argo CD ApplicationSet）
-- ADR-CICD-003（Renovate + Image Updater の責任分界、本リリース時点 暫定）
+- ADR-CICD-003（Renovate + Image Updater の責任分界、本リリース時点 では最小実装、採用初期で詳細化）
 - IMP-REL-* — リリース設計

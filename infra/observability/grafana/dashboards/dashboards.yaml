@@ -1,0 +1,93 @@
+# =============================================================================
+# Grafana Dashboard provisioning（必須 6 dashboard、IMP-DIR-INFRA-077）
+#
+# 各 dashboard JSON は ../dashboards/json/ 配下（plan 04-XX で作成）に置き、
+# 本 ConfigMap が `grafana_dashboard: "1"` ラベルで Grafana sidecar に pickup
+# される。本 ConfigMap は dashboard provider 設定のみを宣言する。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-providers
+  namespace: k1s0-obs
+data:
+  providers.yaml: |
+    apiVersion: 1
+    providers:
+      - name: k1s0-default
+        orgId: 1
+        folder: k1s0
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 30
+        allowUiUpdates: false
+        options:
+          path: /var/lib/grafana/dashboards
+          foldersFromFilesStructure: true
+---
+# 必須 dashboard を sidecar が pickup する空 ConfigMap セット（JSON は plan 04-XX）。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-tier1-overview
+  namespace: k1s0-obs
+  labels:
+    grafana_dashboard: "1"
+data:
+  tier1-overview.json: |
+    { "title": "tier1 overview", "panels": [], "uid": "k1s0-tier1-overview" }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-tier2-services
+  namespace: k1s0-obs
+  labels:
+    grafana_dashboard: "1"
+data:
+  tier2-services.json: |
+    { "title": "tier2 services", "panels": [], "uid": "k1s0-tier2-services" }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-data-layer
+  namespace: k1s0-obs
+  labels:
+    grafana_dashboard: "1"
+data:
+  data-layer.json: |
+    { "title": "data layer (CNPG/Kafka/MinIO/Valkey)", "panels": [], "uid": "k1s0-data-layer" }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-sli-slo
+  namespace: k1s0-obs
+  labels:
+    grafana_dashboard: "1"
+data:
+  sli-slo.json: |
+    { "title": "SLI / SLO dashboard", "panels": [], "uid": "k1s0-sli-slo" }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-dapr-control-plane
+  namespace: k1s0-obs
+  labels:
+    grafana_dashboard: "1"
+data:
+  dapr-control-plane.json: |
+    { "title": "Dapr control plane", "panels": [], "uid": "k1s0-dapr-cp" }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-istio-ambient
+  namespace: k1s0-obs
+  labels:
+    grafana_dashboard: "1"
+data:
+  istio-ambient.json: |
+    { "title": "Istio Ambient", "panels": [], "uid": "k1s0-istio-ambient" }

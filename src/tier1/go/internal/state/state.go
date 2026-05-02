@@ -4,10 +4,9 @@
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/02_State_API.md
 //   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md
 //
-// scope（リリース時点 placeholder）:
-//   adapter.StateAdapter に委譲するが、adapter は ErrNotWired を返すため
-//   全 RPC で codes.Unimplemented を返却する。
-//   実 Dapr State Management（Valkey）結線は plan 04-04。
+// 役割（plan 04-04 結線済）:
+//   adapter.StateAdapter に委譲する。adapter は production / dev / CI のいずれでも
+//   実装で動く（production: Dapr SDK / dev / CI: in-memory backend）。
 
 package state
 
@@ -15,7 +14,9 @@ package state
 import (
 	// 全 RPC で context を伝搬する。
 	"context"
-	// Dapr adapter（ErrNotWired 判定用）。
+	// errors.Is で sentinel エラー判定。
+	"errors"
+	// Dapr adapter。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/adapter/dapr"
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
@@ -25,14 +26,13 @@ import (
 	"google.golang.org/grpc/codes"
 	// gRPC ステータスエラー。
 	"google.golang.org/grpc/status"
-	// errors.Is で sentinel エラー判定。
-	"errors"
 )
 
 // stateHandler は StateService の handler 実装。
-// Unimplemented を埋め込むことで、proto 側に新 RPC が追加されてもコンパイル可能。
+// proto 生成型の UnimplementedStateServiceServer を埋め込むことで、proto 側に新 RPC が
+// 追加されてもコンパイル可能（forward compatibility）。本 Pod は 5 RPC を全て override 済。
 type stateHandler struct {
-	// 将来追加 RPC のため埋め込み（本リリース時点は全 5 RPC を override 済）。
+	// 将来追加 RPC のための forward compat 埋め込み。
 	statev1.UnimplementedStateServiceServer
 	// adapter 集合への参照。
 	deps Deps
@@ -108,6 +108,12 @@ func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*state
 	if req.GetKey() == "" {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: key required")
 	}
+	// FR-T1-STATE-005: 値サイズ上限 1MB を handler 段で強制する。
+	// 上限超過は ResourceExhausted（HTTP 429）で弾き、Valkey 側に到達させない。
+	if len(req.GetData()) > stateMaxValueBytes {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/state: value size %d exceeds maximum %d (1 MiB)", len(req.GetData()), stateMaxValueBytes)
+	}
 	// 実 Set 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doSet := func() (interface{}, error) {
 		areq := dapr.StateSetRequest{
@@ -179,6 +185,18 @@ func (h *stateHandler) Delete(ctx context.Context, req *statev1.DeleteRequest) (
 	return &statev1.DeleteResponse{Deleted: true}, nil
 }
 
+// stateBulkGetMaxKeys は FR-T1-STATE-003 受け入れ基準「1 回の呼び出しで最大 100 キーを処理」。
+const stateBulkGetMaxKeys = 100
+
+// stateTransactMaxOps は FR-T1-STATE-005 受け入れ基準「最大 10 操作 / トランザクション」。
+const stateTransactMaxOps = 10
+
+// stateMaxValueBytes は FR-T1-STATE-005 受け入れ基準「値サイズ上限 1MB をデフォルト」。
+// Component YAML で調整可能とあるが、release-initial では handler 段で固定値を強制する。
+// 上限超過は ResourceExhausted（HTTP 429 相当）で弾く。Valkey 側の RESP 制限（512MB）よりも
+// はるかに小さく設定し、Pod メモリ保護と downstream の Kafka / S3 経路保護を兼ねる。
+const stateMaxValueBytes = 1 * 1024 * 1024
+
 // BulkGet は複数キーの一括取得（adapter.BulkGet 経由）。
 func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest) (*statev1.BulkGetResponse, error) {
 	if req == nil {
@@ -195,6 +213,11 @@ func (h *stateHandler) BulkGet(ctx context.Context, req *statev1.BulkGetRequest)
 	}
 	if len(req.GetKeys()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: keys required (non-empty)")
+	}
+	// FR-T1-STATE-003: 100 キーを超える要求は ResourceExhausted で弾く。
+	if len(req.GetKeys()) > stateBulkGetMaxKeys {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/state: BulkGet keys count %d exceeds max %d", len(req.GetKeys()), stateBulkGetMaxKeys)
 	}
 	areq := dapr.StateBulkGetRequest{
 		Store:    req.GetStore(),
@@ -233,11 +256,24 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 	if len(req.GetOperations()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "tier1/state: operations required (non-empty)")
 	}
+	// FR-T1-STATE-005: 10 操作を超えるトランザクションは ResourceExhausted で弾く。
+	if len(req.GetOperations()) > stateTransactMaxOps {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/state: Transact operations count %d exceeds max %d", len(req.GetOperations()), stateTransactMaxOps)
+	}
 	ops := make([]dapr.TransactOp, 0, len(req.GetOperations()))
-	for _, op := range req.GetOperations() {
+	for i, op := range req.GetOperations() {
 		switch x := op.GetOp().(type) {
 		case *statev1.TransactOp_Set:
 			s := x.Set
+			// FR-T1-STATE-005: トランザクション内の Set にも 1 MiB 上限を強制する。
+			// 1 op の暴騰でトランザクション全体を rollback させても結局意味が無いので
+			// 入力検証段で弾く（部分書込ゼロを保証）。
+			if len(s.GetData()) > stateMaxValueBytes {
+				return nil, status.Errorf(codes.ResourceExhausted,
+					"tier1/state: Transact op[%d] value size %d exceeds maximum %d (1 MiB)",
+					i, len(s.GetData()), stateMaxValueBytes)
+			}
 			ops = append(ops, dapr.TransactOp{
 				Kind:         dapr.TransactOpSet,
 				Key:          s.GetKey(),
@@ -268,17 +304,12 @@ func (h *stateHandler) Transact(ctx context.Context, req *statev1.TransactReques
 }
 
 // translateErr は adapter エラーを gRPC ステータスエラーに翻訳する。
-// ErrNotWired は Unimplemented に、ETag mismatch / 既存キー衝突は AlreadyExists（Conflict）に、
-// それ以外は Internal に翻訳する。
+// ETag mismatch / 既存キー衝突は AlreadyExists（Conflict）に、それ以外は Internal に翻訳する。
 // docs §「エラー型 K1s0Error」: AlreadyExists / Conflict は ETag 不一致・冪等性キー衝突を表す。
-func translateErr(err error, rpc string, plan string) error {
-	// ErrNotWired は計画に従い Unimplemented とする。
-	if errors.Is(err, dapr.ErrNotWired) {
-		// 呼出 RPC 名と計画 ID を含めたメッセージを返却する。
-		return status.Errorf(codes.Unimplemented, "tier1/state: %s not yet wired to Dapr backend (%s)", rpc, plan)
-	}
+//
+// plan 引数は呼出側互換性のため残置（旧 ErrNotWired メッセージで使用していた）。
+func translateErr(err error, rpc string, _ string) error {
 	// ETag 不一致 / First-Write 違反（既存キーへの無 ETag 書込）は AlreadyExists（Conflict）。
-	// docs §「エラー型 K1s0Error」: AlreadyExists / Conflict — ETag 不一致、冪等性キー衝突。
 	if errors.Is(err, dapr.ErrEtagMismatch) {
 		return status.Errorf(codes.AlreadyExists,
 			"tier1/state: %s: etag mismatch or first-write conflict", rpc)

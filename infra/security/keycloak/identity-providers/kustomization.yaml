@@ -1,0 +1,5 @@
+# テナント別 OIDC IdP（Microsoft Entra ID / Google Workspace 等）の連携。
+# プレースホルダ：実テナント連携時に各 IdP CR を本ディレクトリに追加する。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: []

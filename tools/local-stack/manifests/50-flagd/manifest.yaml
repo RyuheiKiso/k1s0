@@ -34,9 +34,27 @@ spec:
       labels:
         app: flagd
     spec:
+      # PodSecurity admission が flagd namespace で `restricted:latest` を要求するため、
+      # Pod / container 双方で nonroot / capabilities drop / seccomp を設定する。
+      # 旧 manifest は securityContext 未設定で v0.12.8 への rollout が
+      # 「violates PodSecurity restricted:latest」で詰まり旧 Pod が回り続けていた。
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: flagd
-          image: ghcr.io/open-feature/flagd:v0.11.6
+          # flagd v0.12.x で evaluation/v2 API が追加された。OpenFeature go-sdk-contrib
+          # flagd provider v0.5.1 は v2 を必須とするため、旧 v0.11.6 のままだと
+          # provider 初期化で `unimplemented: HTTP status 404 Not Found` を吐く。
+          image: ghcr.io/open-feature/flagd:v0.12.8
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           args:
             - "start"
             - "--uri"

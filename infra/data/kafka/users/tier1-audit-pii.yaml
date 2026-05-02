@@ -1,0 +1,25 @@
+# tier1-audit-pii Dapr app の Kafka 認証 User（mTLS 認証 + 最小権限 ACL）。
+# audit-events トピックの consume のみ許可、produce は deny。
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tier1-audit-pii
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: audit-events
+          patternType: literal
+        operations: [Read, Describe]
+      - resource:
+          type: group
+          name: k1s0-tier1-audit-pii
+          patternType: prefix
+        operations: [Read]

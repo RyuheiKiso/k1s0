@@ -23,6 +23,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// bindingMaxObjectSize は FR-T1-BINDING-001 受け入れ基準「オブジェクトサイズ上限 5GB」。
+// MinIO multipart upload を内部で使用する場合でも、handler 段で受信サイズの上限を
+// 弾いて Pod メモリ使用量を保護する。
+const bindingMaxObjectSize = 5 * 1024 * 1024 * 1024 // 5 GiB
+
 // bindingHandler は BindingService の handler 実装。
 type bindingHandler struct {
 	// 将来 RPC 用埋め込み。
@@ -51,6 +56,12 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 	if req.GetOperation() == "" {
 		return nil, status.Error(codes.InvalidArgument, "tier1/binding: operation required")
 	}
+	// FR-T1-BINDING-001: オブジェクトサイズ上限 5GB を handler で弾く。
+	// Pod メモリ保護と DoS 防止のため、adapter 呼出前に容量を検証する。
+	if len(req.GetData()) > bindingMaxObjectSize {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"tier1/binding: data size %d exceeds maximum %d (5 GiB)", len(req.GetData()), bindingMaxObjectSize)
+	}
 	// 実 Invoke 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doInvoke := func() (interface{}, error) {
 		areq := dapr.BindingRequest{
@@ -62,9 +73,6 @@ func (h *bindingHandler) Invoke(ctx context.Context, req *bindingv1.InvokeBindin
 		}
 		aresp, err := h.deps.BindingAdapter.Invoke(ctx, areq)
 		if err != nil {
-			if isNotWired(err) {
-				return nil, status.Error(codes.Unimplemented, "tier1/binding: Invoke not yet wired to Dapr backend (plan 04-12)")
-			}
 			// dapr が返す gRPC status を尊重する（PermissionDenied / FailedPrecondition 等）
 			if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown && st.Code() != codes.OK {
 				return nil, status.Errorf(st.Code(), "tier1/binding: Invoke adapter error: %s", st.Message())

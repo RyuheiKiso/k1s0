@@ -1,0 +1,22 @@
+# LitmusChaos v3.x: tier1 facade HTTP probe 共通定義
+# 各 ChaosEngine から `probeRef` で参照する想定の再利用 probe
+apiVersion: litmuschaos.io/v1alpha1
+kind: Probe
+metadata:
+  name: tier1-facade-http-probe
+  namespace: k1s0
+spec:
+  type: httpProbe
+  httpProbe/inputs:
+    url: http://tier1-facade.k1s0.svc:8080/healthz
+    insecureSkipVerify: false
+    method:
+      get:
+        criteria: "=="
+        responseCode: "200"
+  mode: Continuous
+  runProperties:
+    probeTimeout: 5
+    interval: 2
+    retry: 3
+    probePollingInterval: 2

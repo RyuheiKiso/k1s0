@@ -30,5 +30,5 @@ const k1s0Plugin = createPlugin({ id: K1S0_CATALOG_PLUGIN_ID });
 
 ## 関連
 
-- ADR-DEVEX-002（Backstage 採用根拠）
+- ADR-BS-001（Backstage 採用根拠）
 - 各 example の `catalog-info.yaml`

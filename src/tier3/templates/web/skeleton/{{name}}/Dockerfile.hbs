@@ -1,0 +1,32 @@
+# {{name}} の Dockerfile (静的 SPA 配信、nginx:alpine ベース)。
+#
+# 設計参考:
+#   src/tier3/web/apps/admin/Dockerfile
+#   src/tier3/web/apps/portal/Dockerfile
+#
+# multi-stage:
+#   stage 1 (builder): pnpm install + vite build
+#   stage 2 (runtime): nginx:alpine で /usr/share/nginx/html を配信、nonroot 化
+
+# stage 1: build。
+FROM node:20-alpine AS builder
+WORKDIR /workspace
+# pnpm を有効化 (Corepack 経由)。
+RUN corepack enable
+# 依存マニフェストだけ先にコピーして cache を効かせる。
+COPY package.json pnpm-lock.yaml* ./
+# 依存解決 (lock があれば --frozen-lockfile、無ければ install)。
+RUN if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install; fi
+# ソースコードを取り込んで vite build。
+COPY . .
+RUN pnpm build
+
+# stage 2: runtime (nginx:alpine、nonroot)。
+FROM nginx:alpine AS runtime
+# 静的ファイルを配信先に展開する。
+COPY --from=builder /workspace/dist /usr/share/nginx/html
+# 非 root user で動かす (nginx:alpine の既定 nginx user は uid=101)。
+USER 101:101
+EXPOSE 8080
+# 既定 nginx は 80 で listen するため、ConfigMap or argv で 8080 に切替する想定。
+CMD ["nginx", "-g", "daemon off;"]

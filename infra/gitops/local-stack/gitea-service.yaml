@@ -1,12 +1,12 @@
 # Gitea Service (ローカル開発用)
 # ADR-POL-002: up.sh apply_gitea から呼ばれる正規 Service マニフェスト。
-# argocd-repo-secret の url は `http://gitea.gitops.svc.cluster.local:3000` を参照する。
+# argocd-repo-secret の url は `http://gitea.k1s0-platform-tools.svc.cluster.local:3000` を参照する。
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: gitea
-  namespace: gitops
+  namespace: k1s0-platform-tools
   labels:
     app: gitea
     k1s0.io/component: gitops-server

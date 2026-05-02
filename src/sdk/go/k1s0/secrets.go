@@ -121,6 +121,96 @@ func (s *SecretsClient) GetDynamic(ctx context.Context, engine, role string, ttl
 	}, nil
 }
 
+// BulkSecret は BulkGet の 1 件分の結果（シークレット名 → values + version）。
+type BulkSecret struct {
+	// シークレット名。
+	Name string
+	// 値（key=value マップ）。
+	Values map[string]string
+	// バージョン番号。
+	Version int32
+}
+
+// BulkGet はテナント配下の全シークレットを一括取得する（FR-T1-SECRETS-001）。
+// tier1 側はテナント境界を自動付与し、当該テナントのシークレットのみ返す。
+func (s *SecretsClient) BulkGet(ctx context.Context) ([]BulkSecret, error) {
+	// proto Request を構築する。
+	req := &secretsv1.BulkGetSecretRequest{
+		Context: s.tenantContext(ctx),
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, e := s.client.raw.Secrets.BulkGet(ctx, req)
+	if e != nil {
+		return nil, e
+	}
+	// proto map を SDK 型のスライスに詰め替える。
+	out := make([]BulkSecret, 0, len(resp.GetResults()))
+	for name, sec := range resp.GetResults() {
+		out = append(out, BulkSecret{
+			Name:    name,
+			Values:  sec.GetValues(),
+			Version: sec.GetVersion(),
+		})
+	}
+	return out, nil
+}
+
+// Encrypt は Transit Engine 経由の暗号化（FR-T1-SECRETS-003）。
+// keyName は tier1 が <tenant_id>.<key_name> で自動 prefix する。
+// aad は GCM の追加認証データ（同じ aad を Decrypt 時にも渡す必要あり）。
+// 戻り値の ciphertext は version-prefixed nonce-embedded GCM 形式。
+func (s *SecretsClient) Encrypt(ctx context.Context, keyName string, plaintext, aad []byte) (ciphertext []byte, keyVersion int32, err error) {
+	// proto Request を構築する。
+	req := &secretsv1.EncryptRequest{
+		Context:   s.tenantContext(ctx),
+		KeyName:   keyName,
+		Plaintext: plaintext,
+		Aad:       aad,
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, e := s.client.raw.Secrets.Encrypt(ctx, req)
+	if e != nil {
+		return nil, 0, e
+	}
+	return resp.GetCiphertext(), resp.GetKeyVersion(), nil
+}
+
+// Decrypt は Transit Engine 経由の復号（FR-T1-SECRETS-003）。
+// keyName / aad は Encrypt 時と同じ値を渡すこと（GCM の整合性検証で必須）。
+// 戻り値の keyVersion は復号に使われた鍵バージョン（旧版鍵で暗号化された場合の追跡用）。
+func (s *SecretsClient) Decrypt(ctx context.Context, keyName string, ciphertext, aad []byte) (plaintext []byte, keyVersion int32, err error) {
+	// proto Request を構築する。
+	req := &secretsv1.DecryptRequest{
+		Context:    s.tenantContext(ctx),
+		KeyName:    keyName,
+		Ciphertext: ciphertext,
+		Aad:        aad,
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, e := s.client.raw.Secrets.Decrypt(ctx, req)
+	if e != nil {
+		return nil, 0, e
+	}
+	return resp.GetPlaintext(), resp.GetKeyVersion(), nil
+}
+
+// RotateKey は Transit Engine の鍵をローテーションする（FR-T1-SECRETS-003）。
+// 既存版は保持され、その鍵で暗号化された ciphertext は引き続き Decrypt 可能。
+// 新規 Encrypt は新版鍵を使う。戻り値は (新版, 旧版, ローテーション時刻 ms)。
+func (s *SecretsClient) RotateKey(ctx context.Context, keyName string) (newVersion, previousVersion int32, rotatedAtMs int64, err error) {
+	// proto Request を構築する。
+	req := &secretsv1.RotateKeyRequest{
+		Context: s.tenantContext(ctx),
+		KeyName: keyName,
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, e := s.client.raw.Secrets.RotateKey(ctx, req)
+	if e != nil {
+		return 0, 0, 0, e
+	}
+	return resp.GetNewVersion(), resp.GetPreviousVersion(), resp.GetRotatedAtMs(), nil
+}
+
 // tenantContext は ctx の per-request override を優先しつつ TenantContext proto を生成する。
 // override 不在時は親 Client の Config から構築する。
 func (s *SecretsClient) tenantContext(ctx context.Context) *commonv1.TenantContext {

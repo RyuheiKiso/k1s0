@@ -1,12 +1,18 @@
-# k1s0 production cluster の namespace 定義（17 layer 規約、IMP-DEV-POL-006 と整合）。
-# Pod Security Standards は restricted を既定、特権が必要な infra 系（istio-system 等）は
-# baseline / privileged に上書きする。
+# k1s0 production cluster の namespace 定義。
+# 正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+#       「k1s0-」プレフィックス必須。tier 層 k1s0-tier1/2/3、機能層 k1s0-{data,dapr,
+#       mesh,security,obs,platform-tools}。
+#
+# Pod Security Standards は restricted を既定。特権が必要な infra（Istio CNI / SPIRE
+# CSI / MetalLB speaker 等）は baseline / privileged に上書き。
+# Istio Ambient mode label は tier1/2/3 と k1s0-dapr / k1s0-obs に付与（spec 03_サービ
+# スメッシュ配置.md 74-83）。
 ---
-# tier 別 namespace（アプリ層）
+# tier アプリ層
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: tier1-facade
+  name: k1s0-tier1
   labels:
     pod-security.kubernetes.io/enforce: restricted
     pod-security.kubernetes.io/audit: restricted
@@ -17,7 +23,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: tier2-services
+  name: k1s0-tier2
   labels:
     pod-security.kubernetes.io/enforce: restricted
     k1s0.io/tier: tier2
@@ -26,128 +32,95 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: tier3-bff
+  name: k1s0-tier3
   labels:
     pod-security.kubernetes.io/enforce: restricted
     k1s0.io/tier: tier3
     istio.io/dataplane-mode: ambient
 ---
-# infra 系 namespace（17 layer の番号順）
+# 機能層: data backend 集約（CNPG / Kafka / MinIO / Valkey）
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: cert-manager
+  name: k1s0-data
   labels:
     pod-security.kubernetes.io/enforce: baseline
+    k1s0.io/layer: data
 ---
+# 機能層: Dapr control-plane + sidecar injector
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: metallb-system
+  name: k1s0-dapr
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    k1s0.io/layer: dapr
+    istio.io/dataplane-mode: ambient
+---
+# 機能層: Service Mesh user-facing（Envoy Gateway / Istio AuthorizationPolicy /
+# PeerAuthentication 等）。Istio operator 自身は istio-system に残す（hardcoded 依存）。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-mesh
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    k1s0.io/layer: mesh
+---
+# 機能層: セキュリティ系 control-plane（Keycloak / OpenBao / SPIRE / cert-manager /
+# Kyverno）。SPIRE と OpenBao は HostPath/StatefulSet で privileged 要件あり。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-security
   labels:
     pod-security.kubernetes.io/enforce: privileged
+    k1s0.io/layer: security
 ---
+# 機能層: 観測（LGTM + OTel + Alertmanager）
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-obs
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    k1s0.io/layer: obs
+    istio.io/dataplane-mode: ambient
+---
+# 機能層: プラットフォーム共通ツール（Argo CD / Backstage / flagd / KEDA / MetalLB
+# speaker / 内部 registry / Gitea local-stack）
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: k1s0-platform-tools
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    k1s0.io/layer: platform-tools
+---
+# サードパーティ operator hardcoded 依存 namespace
+# Istio CNI / istiod は namespace を hardcode するため istio-system を残す。
 apiVersion: v1
 kind: Namespace
 metadata:
   name: istio-system
   labels:
     pod-security.kubernetes.io/enforce: privileged
+    k1s0.io/layer: third-party-operator
 ---
+# Envoy Gateway operator は envoy-gateway-system を hardcode。
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: kyverno
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: spire-system
+  name: envoy-gateway-system
   labels:
     pod-security.kubernetes.io/enforce: privileged
+    k1s0.io/layer: third-party-operator
 ---
+# Cluster API operator は capi-system を hardcode。
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: dapr-system
+  name: capi-system
   labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: flagd
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: argocd
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: cnpg-system
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kafka
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: minio
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: valkey
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: openbao
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: backstage
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: observability
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: keycloak
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: keda
-  labels:
-    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce: privileged
+    k1s0.io/layer: third-party-operator

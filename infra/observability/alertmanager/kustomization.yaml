@@ -1,0 +1,14 @@
+# =============================================================================
+# infra/observability/alertmanager/
+#
+# 設計正典: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/07_観測性配置.md
+#
+# Helm install:
+#   helm upgrade --install alertmanager prometheus-community/alertmanager \
+#       -n k1s0-obs -f values.yaml
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - config
+  - receivers

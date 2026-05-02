@@ -19,7 +19,7 @@ spec:
   metadata:
     # Strimzi Kafka cluster bootstrap service（infra/data/kafka/kafka-cluster.yaml）
     - name: brokers
-      value: kafka-kafka-bootstrap.k1s0-data.svc.cluster.local:9092
+      value: k1s0-kafka-kafka-bootstrap.k1s0-data.svc.cluster.local:9093
     # mTLS 認証（Strimzi の TLS listener と整合、cert は SPIRE 発行）
     - name: authType
       value: mtls

@@ -32,4 +32,4 @@ go test ./scenarios/... -v -timeout=30m
 
 ## 雛形シナリオ
 
-`scenarios/tenant_onboarding_test.go` は「テナント作成 → ユーザ登録 → 初回ログイン」の最小フローをスケルトンで記述する。リリース時点 では実装は `t.Skip("TODO: ...")` で stub 化し、採用初期 で実装を完成させる。
+`scenarios/tenant_onboarding_test.go` は「テナント作成 → ユーザ登録 → 初回ログイン」の最小フローをスケルトンで記述する。リリース時点 では実装は `t.Skip("PHASE: release-initial — ...")` で stub 化し、採用初期 で実装を完成させる。

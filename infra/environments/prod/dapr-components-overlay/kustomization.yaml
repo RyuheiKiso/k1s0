@@ -1,0 +1,9 @@
+# prod は base そのまま。env ラベルだけ付与する overlay。
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../dapr/components
+labels:
+  - pairs:
+      k1s0.io/env: prod
+    includeSelectors: true

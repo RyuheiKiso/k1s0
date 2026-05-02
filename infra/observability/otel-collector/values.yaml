@@ -73,7 +73,7 @@ config:
   exporters:
     # gateway へ転送（同 namespace の otel-collector-gateway service）
     otlp:
-      endpoint: otel-collector-gateway.observability.svc.cluster.local:4317
+      endpoint: otel-collector-gateway.k1s0-obs.svc.cluster.local:4317
       tls:
         insecure: true
 

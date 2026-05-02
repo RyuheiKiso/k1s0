@@ -148,4 +148,66 @@ export declare class MaskResponse extends Message<MaskResponse> {
     static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MaskResponse;
     static equals(a: MaskResponse | PlainMessage<MaskResponse> | undefined, b: MaskResponse | PlainMessage<MaskResponse> | undefined): boolean;
 }
+/**
+ * Pseudonymize リクエスト（FR-T1-PII-002）。
+ *
+ * @generated from message k1s0.tier1.pii.v1.PseudonymizeRequest
+ */
+export declare class PseudonymizeRequest extends Message<PseudonymizeRequest> {
+    /**
+     * 仮名化対象の PII 種別（NAME / EMAIL / PHONE / MYNUMBER / ADDRESS / CREDITCARD / IPV4 等）。
+     * 種別ごとに独立な仮名空間を持たせるため、HMAC 入力に prefix として混入する。
+     *
+     * @generated from field: string field_type = 1;
+     */
+    fieldType: string;
+    /**
+     * 仮名化対象の生値。
+     *
+     * @generated from field: string value = 2;
+     */
+    value: string;
+    /**
+     * 仮名空間を分離する salt。本番運用では OpenBao 等で管理し、
+     * クライアントは salt 識別子のみを送る運用も許容する。空文字は不可。
+     *
+     * @generated from field: string salt = 3;
+     */
+    salt: string;
+    /**
+     * 呼出元コンテキスト（テナント境界の検証に必須）。
+     *
+     * @generated from field: k1s0.tier1.common.v1.TenantContext context = 4;
+     */
+    context?: TenantContext;
+    constructor(data?: PartialMessage<PseudonymizeRequest>);
+    static readonly runtime: typeof proto3;
+    static readonly typeName = "k1s0.tier1.pii.v1.PseudonymizeRequest";
+    static readonly fields: FieldList;
+    static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PseudonymizeRequest;
+    static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PseudonymizeRequest;
+    static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PseudonymizeRequest;
+    static equals(a: PseudonymizeRequest | PlainMessage<PseudonymizeRequest> | undefined, b: PseudonymizeRequest | PlainMessage<PseudonymizeRequest> | undefined): boolean;
+}
+/**
+ * Pseudonymize 応答。
+ *
+ * @generated from message k1s0.tier1.pii.v1.PseudonymizeResponse
+ */
+export declare class PseudonymizeResponse extends Message<PseudonymizeResponse> {
+    /**
+     * 仮名化された値（URL-safe base64、padding 無し）。
+     *
+     * @generated from field: string pseudonym = 1;
+     */
+    pseudonym: string;
+    constructor(data?: PartialMessage<PseudonymizeResponse>);
+    static readonly runtime: typeof proto3;
+    static readonly typeName = "k1s0.tier1.pii.v1.PseudonymizeResponse";
+    static readonly fields: FieldList;
+    static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PseudonymizeResponse;
+    static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PseudonymizeResponse;
+    static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PseudonymizeResponse;
+    static equals(a: PseudonymizeResponse | PlainMessage<PseudonymizeResponse> | undefined, b: PseudonymizeResponse | PlainMessage<PseudonymizeResponse> | undefined): boolean;
+}
 //# sourceMappingURL=pii_service_pb.d.ts.map

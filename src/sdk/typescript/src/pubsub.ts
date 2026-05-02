@@ -55,4 +55,46 @@ export class PubSubFacade {
       context: this.client.tenantContext(),
     });
   }
+
+  /**
+   * bulkPublish は複数エントリの一括 Publish（FR-T1-PUBSUB-001）。
+   * 各エントリの結果を個別に返す（部分成功あり、全体エラーにはしない）。
+   */
+  async bulkPublish(
+    topic: string,
+    entries: BulkPublishEntryInput[],
+  ): Promise<Array<{ entryIndex: number; offset: bigint; errorCode: string }>> {
+    const raw = this.client.rawPubSub();
+    const tctx = this.client.tenantContext();
+    // SDK の入力 → proto PublishRequest の配列に詰め替える。
+    const pe = entries.map((e) => ({
+      topic,
+      data: e.data,
+      contentType: e.contentType,
+      idempotencyKey: e.idempotencyKey ?? "",
+      metadata: e.metadata ?? {},
+      context: tctx,
+    }));
+    const resp = await raw.bulkPublish({
+      topic,
+      entries: pe,
+    });
+    return resp.results.map((r) => ({
+      entryIndex: r.entryIndex,
+      offset: r.offset,
+      errorCode: r.errorCode,
+    }));
+  }
+}
+
+/** BulkPublishEntryInput は bulkPublish の 1 件分の入力。 */
+export interface BulkPublishEntryInput {
+  /** データ本文。 */
+  data: Uint8Array;
+  /** Content-Type（application/json / application/protobuf 等）。 */
+  contentType: string;
+  /** 冪等性キー（24h 重複抑止）。省略可。 */
+  idempotencyKey?: string;
+  /** メタデータ（partition_key 等）。省略可。 */
+  metadata?: Record<string, string>;
 }

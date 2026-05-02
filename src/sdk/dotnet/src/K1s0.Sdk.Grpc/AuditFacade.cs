@@ -1,4 +1,5 @@
 // 本ファイルは k1s0 .NET SDK の Audit 動詞統一 facade。
+using System.Runtime.CompilerServices;
 using Google.Protobuf.WellKnownTypes;
 using K1s0.Sdk.Generated.K1s0.Tier1.Audit.V1;
 
@@ -52,6 +53,35 @@ public sealed class AuditFacade
         if (filters != null) foreach (var kv in filters) req.Filters.Add(kv.Key, kv.Value);
         var resp = await _client.Raw.Audit.QueryAsync(req, cancellationToken: ct);
         return resp.Events.ToList();
+    }
+
+    /// ExportAsync: Audit のサーバストリーミング エクスポート（FR-T1-AUDIT-003）。
+    /// 範囲 + フォーマット指定で逐次 chunk を IAsyncEnumerable&lt;ExportAuditChunk&gt; で返す。
+    /// 利用例:
+    ///   await foreach (var chunk in client.Audit.ExportAsync(null, null, ExportFormat.Ndjson)) { ... }
+    /// from / to に null を渡すと全範囲。chunkBytes が 0 ならサーバ既定（65536）、上限は 1 MiB。
+    public async IAsyncEnumerable<ExportAuditChunk> ExportAsync(
+        DateTime? from = null,
+        DateTime? to = null,
+        ExportFormat format = ExportFormat.Ndjson,
+        int chunkBytes = 0,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var req = new ExportAuditRequest
+        {
+            Format = format,
+            ChunkBytes = chunkBytes,
+            Context = _client.TenantContext(),
+        };
+        if (from.HasValue) req.From = Timestamp.FromDateTime(from.Value.ToUniversalTime());
+        if (to.HasValue) req.To = Timestamp.FromDateTime(to.Value.ToUniversalTime());
+        using var call = _client.Raw.Audit.Export(req, cancellationToken: ct);
+        while (await call.ResponseStream.MoveNext(ct))
+        {
+            var chunk = call.ResponseStream.Current;
+            yield return chunk;
+            if (chunk.IsLast) break;
+        }
     }
 
     /// VerifyChainAsync: ハッシュチェーンの整合性検証（FR-T1-AUDIT-002）。

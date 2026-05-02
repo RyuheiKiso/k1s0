@@ -16,6 +16,7 @@ import (
 
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
 	bindingv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/binding/v1"
+	commonv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/common/v1"
 	featurev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/feature/v1"
 	logv1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/log/v1"
 	serviceinvokev1 "github.com/k1s0/sdk-go/proto/v1/k1s0/tier1/serviceinvoke/v1"
@@ -211,4 +212,47 @@ func MakeHTTPInvokeHandlers(svc serviceinvokev1.InvokeServiceServer) common.Invo
 // NewInvokeServiceServer は HTTP gateway / 統合テスト用 exported helper。
 func NewInvokeServiceServer(deps Deps) serviceinvokev1.InvokeServiceServer {
 	return &invokeHandler{deps: deps}
+}
+
+// invokeProxyAdapter は POST /invoke/<target>/<method> 経路（FR-T1-INVOKE-002）の
+// adapter 実装。HTTPGateway.RegisterInvokeProxyRoute から呼ばれる。
+//
+// 役割: target / method / raw body を InvokeService.Invoke の proto に詰め直して
+// in-process gRPC handler を呼ぶ。tenantID は X-K1s0-Tenant-Id ヘッダ由来で、
+// AuthInterceptor が JWT 経由で上書きする経路と矛盾する場合は handler 段で弾かれる。
+type invokeProxyAdapter struct {
+	svc serviceinvokev1.InvokeServiceServer
+}
+
+// NewInvokeProxyAdapter は InvokeService 実装を proxy adapter に包む。
+// FR-T1-INVOKE-002 の HTTP/1.1 互換プロキシで使う。
+func NewInvokeProxyAdapter(svc serviceinvokev1.InvokeServiceServer) common.InvokeProxyHandler {
+	return &invokeProxyAdapter{svc: svc}
+}
+
+// ProxyInvoke は HTTPGateway 経由で呼ばれ、in-process で InvokeService.Invoke を呼ぶ。
+func (a *invokeProxyAdapter) ProxyInvoke(ctx context.Context, req common.InvokeProxyRequest) (common.InvokeProxyResponse, error) {
+	if a.svc == nil {
+		return common.InvokeProxyResponse{}, errSvcNotWired("serviceinvoke")
+	}
+	// proto に詰め直す。
+	pr := &serviceinvokev1.InvokeRequest{
+		AppId:       req.Target,
+		Method:      req.Method,
+		Data:        req.Body,
+		ContentType: req.ContentType,
+		TimeoutMs:   req.TimeoutMs,
+		Context: &commonv1.TenantContext{
+			TenantId: req.TenantID,
+		},
+	}
+	resp, err := a.svc.Invoke(ctx, pr)
+	if err != nil {
+		return common.InvokeProxyResponse{}, err
+	}
+	return common.InvokeProxyResponse{
+		Data:        resp.GetData(),
+		ContentType: resp.GetContentType(),
+		Status:      resp.GetStatus(),
+	}, nil
 }

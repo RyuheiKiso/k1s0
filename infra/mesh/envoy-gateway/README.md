@@ -1,6 +1,6 @@
 # infra/mesh/envoy-gateway — Envoy Gateway（南北 ingress）
 
-ADR-CNCF-004（Envoy Gateway 選定）/ ADR-DIR-002（infra 分離）/ IMP-DIR-INFRA-073（サービスメッシュ配置）に従い、
+ADR-MIG-002（Envoy Gateway 選定）/ ADR-DIR-002（infra 分離）/ IMP-DIR-INFRA-073（サービスメッシュ配置）に従い、
 クラスタ外部からの L7 ingress を Gateway API 標準準拠で運用する。Istio Ambient（東西 mTLS）と
 責務を分離し、Envoy Gateway は南北のみを担う。
 
@@ -58,7 +58,7 @@ prod では Argo CD ApplicationSet `tier-mesh`（plan 06-XX）から本ディレ
 
 ## ローカル開発との差分
 
-| 観点 | dev（`tools/local-stack/manifests/30-envoy-gateway/`、暫定） | prod（本ディレクトリ） |
+| 観点 | dev（`tools/local-stack/manifests/30-envoy-gateway/`、最小構成） | prod（本ディレクトリ） |
 |---|---|---|
 | Envoy Gateway controller replica | 1 | 3 + Pod AntiAffinity |
 | ホスト名 | `*.k1s0.local`（/etc/hosts） | `*.k1s0.internal`（社内 DNS） |
@@ -68,7 +68,7 @@ prod では Argo CD ApplicationSet `tier-mesh`（plan 06-XX）から本ディレ
 
 ## 関連設計
 
-- [ADR-CNCF-004](../../../docs/02_構想設計/adr/) — Envoy Gateway 選定
-- [ADR-MIG-002](../../../docs/02_構想設計/adr/ADR-MIG-002-istio-ambient-migration.md) — sidecar → ambient 移行
+- [ADR-MIG-002](../../../docs/02_構想設計/adr/ADR-MIG-002-api-gateway.md) — Envoy Gateway 選定
+- [ADR-0001](../../../docs/02_構想設計/adr/ADR-0001-istio-ambient-vs-sidecar.md) — sidecar → ambient 移行
 - [ADR-OBS-002](../../../docs/02_構想設計/adr/ADR-OBS-002-otel-pipeline.md) — Envoy Gateway から OTel exporter
 - [IMP-DIR-INFRA-073](../../../docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/03_サービスメッシュ配置.md)

@@ -1,0 +1,25 @@
+// 本ファイルは {{name}} の Domain 層 (entity / value object) placeholder。
+//
+// docs 正典:
+//   docs/05_実装/00_ディレクトリ設計/30_tier2レイアウト/04_サービス単位の内部構造.md
+//
+// Clean Architecture 4 層 (domain / application / infrastructure / api) の最内層。
+// 業務ルールのみを表現し、外部 (DB / HTTP / k1s0 SDK) には一切依存しない。
+
+// Package domain は {{name}} の業務 entity / value object を集約する。
+package domain
+
+// SampleEntity は採用組織の業務エンティティに置換するサンプル。
+// 実装時は entity ID / value object を「ドメインの言葉」で命名する。
+type SampleEntity struct {
+	// 業務 ID (例: 注文番号 / 申請番号、UUID も可)。
+	ID string
+	// 業務状態 (採用組織のドメインに合わせて enum 化)。
+	Status string
+}
+
+// NewSampleEntity は SampleEntity を生成する factory。
+// 実装時は不変条件 (例: ID 必須) を constructor で守る。
+func NewSampleEntity(id, status string) *SampleEntity {
+	return &SampleEntity{ID: id, Status: status}
+}

@@ -8,7 +8,14 @@
 // データモデル:
 //   各 audit event は AppendEntry として保持され、追記専用（更新・削除なし）。
 //   audit_id は前のエントリの audit_id（または "GENESIS"）と canonical event JSON を
-//   連結したものを SHA-256 で hash したものの hex 表現。
+//   連結したものを SHA-256 で hash したもの。
+//
+// ハッシュ表現（FR-T1-AUDIT-001）:
+//   要件「ハッシュは SHA-256, base64 エンコード」に従い、URL/ファイル名安全な
+//   base64（padding なし、44 文字 → 43 文字）で文字列化する。
+//   - 出力: `URL_SAFE_NO_PAD` Engine（'-'/'_' を使う、'='なし、43 文字）
+//   - 入力空間は SHA-256 の 32 byte = 256 bit、表記長が短い割に衝突は事実上ない
+//   - GENESIS（チェーン先頭）のみ生 string "GENESIS" を保持（区別子として可読性優先）
 //
 // ハッシュチェーン強度:
 //   過去のイベントの 1 byte を改ざんしても、それ以降の audit_id がすべて変わるため
@@ -22,6 +29,8 @@
 
 use std::sync::RwLock;
 
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -96,6 +105,25 @@ pub trait AuditStore: Send + Sync {
         from_ms: Option<i64>,
         to_ms: Option<i64>,
     ) -> Result<VerifyOutcome, StoreError>;
+    /// FR-T1-AUDIT-003 retention runner からの warm→cold 移行完了後に呼ばれる削除。
+    /// `audit_id` 該当 entry を warm 層から物理削除する。
+    /// `tenant_id` で二重防御（テナント越境削除を防ぐ）。
+    /// 通常の RPC 経路からは呼ばれず、retention runner だけが使う特権操作。
+    /// 既定実装は「未対応」を意味する Backend エラーを返し、retention に参加しない store も許す。
+    fn delete_warm(&self, tenant_id: &str, audit_id: &str) -> Result<(), StoreError> {
+        let _ = (tenant_id, audit_id);
+        Err(StoreError::Backend(
+            "delete_warm not supported by this store".into(),
+        ))
+    }
+
+    /// FR-T1-AUDIT-003 retention runner が「全テナントを巡回して 1 年経過分を MinIO に
+    /// エクスポート」するために、warm 層に一度でも appended されたテナント ID 集合を返す。
+    /// 既定実装は空集合（retention に参加しない store では loop が no-op になる）。
+    /// in-memory / Postgres 各実装で具体的な distinct クエリを上書き提供する。
+    fn list_tenants(&self) -> Result<Vec<String>, StoreError> {
+        Ok(Vec::new())
+    }
 }
 
 /// VerifyChain の詳細検証結果。proto VerifyChainResponse と意味的対応。
@@ -187,12 +215,13 @@ pub(crate) fn canonical_bytes(input: &AppendInput) -> Result<Vec<u8>, StoreError
     serde_json::to_vec(&canon).map_err(|e| StoreError::Serialize(e.to_string()))
 }
 
-/// hash_chain は prev_id + canonical_bytes から SHA-256 を計算し hex で返す。
+/// hash_chain は prev_id + canonical_bytes から SHA-256 を計算し base64（URL-safe / padding なし）で返す。
+/// FR-T1-AUDIT-001 要件「ハッシュは SHA-256, base64 エンコード」を満たす。
 fn hash_chain(prev_id: &str, canon: &[u8]) -> String {
     let mut h = Sha256::new();
     h.update(prev_id.as_bytes());
     h.update(canon);
-    hex::encode(h.finalize())
+    URL_SAFE_NO_PAD.encode(h.finalize())
 }
 
 impl AuditStore for InMemoryAuditStore {
@@ -330,200 +359,39 @@ impl AuditStore for InMemoryAuditStore {
             reason: String::new(),
         })
     }
+
+    fn delete_warm(&self, tenant_id: &str, audit_id: &str) -> Result<(), StoreError> {
+        // FR-T1-AUDIT-003: warm 層 (in-memory store) から retention runner が削除する経路。
+        // hash chain の整合性は archive 層に export 済の entry に対してのみ削除するため、
+        // 「先頭から順に削除」が成立する運用なら chain は壊れない。
+        // 残存 entry の prev_id は変更しない（hash chain の数学的整合性は元のまま）。
+        let mut entries = self.entries.write().map_err(|_| StoreError::LockPoisoned)?;
+        let before = entries.len();
+        entries.retain(|e| !(e.tenant_id == tenant_id && e.audit_id == audit_id));
+        if entries.len() == before {
+            // 該当なしは「既に削除済」または「不正 audit_id」。冪等性のため Ok を返す。
+            return Ok(());
+        }
+        Ok(())
+    }
+
+    fn list_tenants(&self) -> Result<Vec<String>, StoreError> {
+        // entries を走査して distinct tenant_id を昇順で返す。append-only / 普通は数十テナントの
+        // 想定なので O(N) でも十分。BTreeSet で重複排除 + 自動 sort。
+        let entries = self.entries.read().map_err(|_| StoreError::LockPoisoned)?;
+        let mut set = std::collections::BTreeSet::new();
+        for e in entries.iter() {
+            if !e.tenant_id.is_empty() {
+                set.insert(e.tenant_id.clone());
+            }
+        }
+        Ok(set.into_iter().collect())
+    }
 }
 
+
+// 単体テストは src/store_tests.rs に分離（src/CLAUDE.md「1 ファイル 500 行以内」遵守）。
+// `#[path]` で sibling として明示し、Rust 既定の sub-module 規約（store/store_tests.rs）を回避する。
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn make_input(ts: i64, actor: &str, tenant: &str) -> AppendInput {
-        AppendInput {
-            timestamp_ms: ts,
-            actor: actor.to_string(),
-            action: "READ".to_string(),
-            resource: "k1s0:tenant:T:resource:secret/db".to_string(),
-            outcome: "SUCCESS".to_string(),
-            attributes: Default::default(),
-            tenant_id: tenant.to_string(),
-        }
-    }
-
-    #[test]
-    fn append_returns_audit_id_and_chains() {
-        let s = InMemoryAuditStore::new();
-        let id1 = s.append(make_input(1, "u1", "T")).unwrap();
-        let id2 = s.append(make_input(2, "u2", "T")).unwrap();
-        // 異なる id が出る。
-        assert_ne!(id1, id2);
-        // 第 2 entry の prev_id は第 1 の audit_id。
-        let entries = s.entries.read().unwrap();
-        assert_eq!(entries[1].prev_id, id1);
-    }
-
-    #[test]
-    fn append_deterministic_hash() {
-        // 同一入力で同一 hash が出る（ただし prev_id が "GENESIS" の最初のみ）。
-        let a = InMemoryAuditStore::new();
-        let b = InMemoryAuditStore::new();
-        let id_a = a.append(make_input(100, "u", "T")).unwrap();
-        let id_b = b.append(make_input(100, "u", "T")).unwrap();
-        assert_eq!(id_a, id_b);
-    }
-
-    #[test]
-    fn query_filters_by_tenant() {
-        let s = InMemoryAuditStore::new();
-        s.append(make_input(1, "u1", "T1")).unwrap();
-        s.append(make_input(2, "u2", "T2")).unwrap();
-        s.append(make_input(3, "u3", "T1")).unwrap();
-        let r = s
-            .query(QueryInput {
-                tenant_id: "T1".to_string(),
-                ..Default::default()
-            })
-            .unwrap();
-        assert_eq!(r.len(), 2);
-        assert!(r.iter().all(|e| e.tenant_id == "T1"));
-    }
-
-    #[test]
-    fn query_filters_by_range_and_limit() {
-        let s = InMemoryAuditStore::new();
-        for i in 1..=10 {
-            s.append(make_input(i, "u", "T")).unwrap();
-        }
-        let r = s
-            .query(QueryInput {
-                tenant_id: "T".to_string(),
-                from_ms: Some(3),
-                to_ms: Some(7),
-                limit: 0, // → 100 default
-                ..Default::default()
-            })
-            .unwrap();
-        // 範囲 3..=7 の 5 件。
-        assert_eq!(r.len(), 5);
-        assert_eq!(r[0].timestamp_ms, 3);
-        assert_eq!(r[4].timestamp_ms, 7);
-
-        // limit を効かせる。
-        let r2 = s
-            .query(QueryInput {
-                tenant_id: "T".to_string(),
-                limit: 3,
-                ..Default::default()
-            })
-            .unwrap();
-        assert_eq!(r2.len(), 3);
-    }
-
-    #[test]
-    fn query_filters_by_attributes() {
-        let s = InMemoryAuditStore::new();
-        let mut a1 = make_input(1, "u1", "T");
-        a1.attributes.insert("ip".into(), "10.0.0.1".into());
-        let mut a2 = make_input(2, "u2", "T");
-        a2.attributes.insert("ip".into(), "10.0.0.2".into());
-        s.append(a1).unwrap();
-        s.append(a2).unwrap();
-        let r = s
-            .query(QueryInput {
-                tenant_id: "T".to_string(),
-                filters: [("ip".to_string(), "10.0.0.2".to_string())]
-                    .into_iter()
-                    .collect(),
-                ..Default::default()
-            })
-            .unwrap();
-        assert_eq!(r.len(), 1);
-        assert_eq!(r[0].timestamp_ms, 2);
-    }
-
-    #[test]
-    fn verify_chain_passes_after_appends() {
-        let s = InMemoryAuditStore::new();
-        for i in 1..=5 {
-            s.append(make_input(i, "u", "T")).unwrap();
-        }
-        s.verify_chain().expect("chain valid");
-    }
-
-    #[test]
-    fn verify_chain_detects_tamper() {
-        let s = InMemoryAuditStore::new();
-        s.append(make_input(1, "u", "T")).unwrap();
-        s.append(make_input(2, "u", "T")).unwrap();
-        // 1 件目の actor を直接書き換える（WORM 違反、検知されるべき）。
-        {
-            let mut entries = s.entries.write().unwrap();
-            entries[0].actor = "u-evil".to_string();
-        }
-        let r = s.verify_chain();
-        assert!(r.is_err(), "tamper should be detected");
-    }
-
-    /// VerifyChain RPC の詳細応答（proto VerifyChainResponse 互換）が、
-    /// 改ざんされた entry の **正確な sequence 番号 + 検知理由** を
-    /// 返すことを検証する。NFR-H-INT-001 / 002 の核心要件:
-    /// "完全性違反は検知可能 + 違反箇所が特定可能"。
-    #[test]
-    fn verify_chain_detail_returns_first_bad_sequence_with_reason() {
-        let s = InMemoryAuditStore::new();
-        s.append(make_input(1, "u1", "T")).unwrap();
-        s.append(make_input(2, "u2", "T")).unwrap();
-        s.append(make_input(3, "u3", "T")).unwrap();
-        // 改ざん前 detail: valid=true / checked=3 / first_bad=0
-        let ok = s.verify_chain_detail("T", None, None).unwrap();
-        assert!(ok.valid, "before tamper should be valid");
-        assert_eq!(ok.checked_count, 3);
-        assert_eq!(ok.first_bad_sequence, 0);
-        assert_eq!(ok.reason, "");
-        // 中央の 2 件目を改ざん。
-        {
-            let mut entries = s.entries.write().unwrap();
-            entries[1].action = "tampered".to_string();
-        }
-        let bad = s.verify_chain_detail("T", None, None).unwrap();
-        assert!(!bad.valid, "tamper must be reported invalid");
-        // checked_count は valid だった entry 数（1 件目）まで。
-        assert_eq!(
-            bad.checked_count, 1,
-            "checked_count should stop at the entry preceding the tamper"
-        );
-        // 2 件目で audit_id 不整合を検知するはず。
-        assert_eq!(
-            bad.first_bad_sequence, 2,
-            "first_bad_sequence must point to the tampered entry"
-        );
-        assert!(
-            bad.reason.contains("audit_id mismatch at sequence 2"),
-            "reason should describe the actual mismatch (got: {:?})",
-            bad.reason
-        );
-    }
-
-    /// 中央の entry を **削除** した場合、それ以降の prev_id chain が壊れて
-    /// 検知される。InMemory store は entries Vec を露出する WORM 違反テスト用 API
-    /// を持たないため、unsafe な write 直接編集を使う。
-    #[test]
-    fn verify_chain_detail_detects_deletion_via_prev_id_break() {
-        let s = InMemoryAuditStore::new();
-        s.append(make_input(1, "u1", "T")).unwrap();
-        s.append(make_input(2, "u2", "T")).unwrap();
-        s.append(make_input(3, "u3", "T")).unwrap();
-        // 2 件目を削除（→ 3 件目の prev_id が 1 件目の audit_id を指さない状態）。
-        {
-            let mut entries = s.entries.write().unwrap();
-            entries.remove(1);
-        }
-        let bad = s.verify_chain_detail("T", None, None).unwrap();
-        assert!(!bad.valid, "deletion must be reported invalid");
-        // 1 件目はそのまま valid、2 件目の位置（旧 3 件目）で prev_id mismatch。
-        assert_eq!(bad.first_bad_sequence, 2);
-        assert!(
-            bad.reason.contains("prev_id mismatch at sequence 2"),
-            "reason should say prev_id mismatch (got: {:?})",
-            bad.reason
-        );
-    }
-}
+#[path = "store_tests.rs"]
+mod store_tests;

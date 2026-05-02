@@ -16,6 +16,7 @@
 //   MYNUMBER : マイナンバー（連続 12 桁、緩い検出）
 //   CREDITCARD : 13〜19 桁数字（- や半角空白の区切り許容、緩い検出）
 //   IPV4     : ドット区切り 4 オクテット
+//   ADDRESS  : 日本の住所（郵便番号 〒NNN-NNNN または 都道府県 + 後続文字列）
 //   NAME     : 検出が困難なため保守的に「英字 First Last」のみ拾う（信頼度 0.4）
 //
 // 信頼度の指針:
@@ -26,8 +27,10 @@
 // 設計上の決定:
 //   - regex は once_cell::Lazy で静的コンパイル（プロセス起動時に 1 回だけコンパイル）
 //   - 純関数（&self も &mut self も持たない、Masker は副作用なし）
-//   - 検出位置は **char index** ではなく **byte offset** で返す（regex 標準に整合）。
-//     proto は char index 仕様だが char/byte 変換は呼び出し層で実施する想定。
+//   - 検出位置は内部表現として **byte offset** を持つ（regex 標準に整合、`mask` で
+//     `replace_range` に直接渡せる）。proto / HTTP gateway 経由でクライアントに返す
+//     `start` / `end` は contract（pii_service.proto）が「文字単位」と規定するため、
+//     `byte_to_char_index` で UTF-8 char index に変換してから詰め替える。
 
 // 必要な依存。
 use once_cell::sync::Lazy;
@@ -48,6 +51,8 @@ pub enum PiiKind {
     CreditCard,
     /// IPv4 アドレス
     IPv4,
+    /// 住所（郵便番号 + 都道府県以降のヒューリスティック）
+    Address,
 }
 
 impl PiiKind {
@@ -60,6 +65,7 @@ impl PiiKind {
             PiiKind::MyNumber => "MYNUMBER",
             PiiKind::CreditCard => "CREDITCARD",
             PiiKind::IPv4 => "IPV4",
+            PiiKind::Address => "ADDRESS",
         }
     }
     /// マスク時の置換トークン。
@@ -71,6 +77,7 @@ impl PiiKind {
             PiiKind::MyNumber => "[MYNUMBER]",
             PiiKind::CreditCard => "[CREDITCARD]",
             PiiKind::IPv4 => "[IPV4]",
+            PiiKind::Address => "[ADDRESS]",
         }
     }
 }
@@ -136,8 +143,50 @@ static RULES: Lazy<Vec<Rule>> = Lazy::new(|| {
             re: Regex::new(r"\b[A-Z][a-z]+ [A-Z][a-z]+\b").unwrap(),
             confidence: 0.4,
         },
+        // 住所 (1): 日本の郵便番号「〒NNN-NNNN」または 7 桁通常表記。
+        // 続く文字列（都道府県 / 市区町村 / 番地）も含めて 80 文字までを拾う。
+        // 都道府県名で始まる住所も同 rule で拾うため、市町村のみの短縮表記は対象外（false negative 受容）。
+        Rule {
+            kind: PiiKind::Address,
+            re: Regex::new(
+                r"(?:〒\s*\d{3}-?\d{4}|\b\d{3}-\d{4}\b)[^\n,。]{0,80}",
+            )
+            .unwrap(),
+            confidence: 0.7,
+        },
+        // 住所 (2): 都道府県（47 + 1）で始まる「県/府/都/道 + 任意 + 市区町村 + 番地」。
+        // 47 prefecture を network of OR で列挙する。先頭が都道府県名なら「住所」として
+        // 抽出（false positive あり: 文中の都道府県言及を過拾。confidence 0.5 で運用閾値で抑制）。
+        Rule {
+            kind: PiiKind::Address,
+            re: Regex::new(
+                r"(?:北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)[^\s,。\n]{2,60}",
+            )
+            .unwrap(),
+            confidence: 0.5,
+        },
     ]
 });
+
+/// `text` の `byte_offset` を、その byte 位置以前に存在する Unicode scalar value 数
+/// （= proto 仕様で言う「文字単位の位置」）に変換する。
+///
+/// - `byte_offset == text.len()` のとき末尾扱いで全 char 数を返す。
+/// - `byte_offset` が char boundary 上に乗っていない場合は、その byte の手前の最後の
+///   char boundary までの char 数を返す（regex の match offset は必ず char boundary
+///   なので通常パスでは発生しないが、safety net として用意する）。
+pub fn byte_to_char_index(text: &str, byte_offset: usize) -> usize {
+    if byte_offset == 0 {
+        return 0;
+    }
+    if byte_offset >= text.len() {
+        return text.chars().count();
+    }
+    // char_indices は (byte_pos, char) を返す。target を超えた最初の要素の index がそのまま char index。
+    text.char_indices()
+        .position(|(b, _)| b >= byte_offset)
+        .unwrap_or_else(|| text.chars().count())
+}
 
 /// PII 検出器。Lazy 初期化された RULES を参照するだけのステートレス struct。
 #[derive(Debug, Default, Clone, Copy)]
@@ -233,6 +282,37 @@ mod tests {
     }
 
     #[test]
+    fn classify_address_postal_code() {
+        let m = Masker::new();
+        let f = m.classify("住所 〒100-0001 東京都千代田区千代田1-1 です");
+        assert!(
+            f.iter().any(|x| x.kind == PiiKind::Address),
+            "postal code address must be detected, got: {:?}",
+            f
+        );
+    }
+
+    #[test]
+    fn classify_address_prefecture_only() {
+        let m = Masker::new();
+        let f = m.classify("配送先は神奈川県横浜市西区みなとみらい3-1");
+        assert!(
+            f.iter().any(|x| x.kind == PiiKind::Address),
+            "prefecture-prefixed address must be detected, got: {:?}",
+            f
+        );
+    }
+
+    #[test]
+    fn mask_address_replaces_with_token() {
+        let m = Masker::new();
+        let (out, findings) = m.mask("住所: 大阪府大阪市北区梅田1-2-3 連絡先");
+        assert!(findings.iter().any(|f| f.kind == PiiKind::Address));
+        assert!(out.contains("[ADDRESS]"), "address must be masked: {}", out);
+        assert!(!out.contains("梅田"), "address payload must be erased: {}", out);
+    }
+
+    #[test]
     fn mask_replaces_with_token() {
         let m = Masker::new();
         let (out, findings) = m.mask("ping alice@k1s0.io and 192.168.1.1 down");
@@ -277,5 +357,46 @@ mod tests {
         // proto string 値の整合性回帰テスト。
         assert_eq!(PiiKind::Email.as_str(), "EMAIL");
         assert_eq!(PiiKind::MyNumber.mask_token(), "[MYNUMBER]");
+    }
+
+    #[test]
+    fn byte_to_char_index_ascii() {
+        let s = "hello@example.com";
+        assert_eq!(byte_to_char_index(s, 0), 0);
+        assert_eq!(byte_to_char_index(s, 5), 5);
+        assert_eq!(byte_to_char_index(s, s.len()), s.chars().count());
+    }
+
+    #[test]
+    fn byte_to_char_index_japanese() {
+        // 「あ」は UTF-8 で 3 byte。`連絡 alice@k1s0.io まで` のような multibyte 入り文字列で
+        // proto 仕様（char index）に正しく射影されるかを確認する。
+        let s = "連絡 alice@k1s0.io まで";
+        // `連絡 ` は 連(3)+絡(3)+space(1) = 7 byte で 3 char。alice の `a` は 7 byte 目。
+        let byte_a = s.find('a').unwrap();
+        assert_eq!(byte_a, 7);
+        assert_eq!(byte_to_char_index(s, byte_a), 3);
+        // email 末尾 "io" の "o" 終端の byte index → char index 13（連絡 alice@k1s0.io）。
+        let byte_o_end = s.find("io").unwrap() + 2;
+        assert_eq!(byte_to_char_index(s, byte_o_end), 16);
+    }
+
+    #[test]
+    fn classify_finding_byte_offsets_align_with_chars() {
+        // multibyte 入り入力でも regex match の byte offset が char boundary 上にあり、
+        // byte_to_char_index で proto 仕様に整合させられることを確認する。
+        let m = Masker::new();
+        let s = "問い合わせ先: alice@example.com まで";
+        let f = m.classify(s);
+        assert_eq!(f.len(), 1);
+        let f0 = &f[0];
+        // 入力 byte offset で復元できること（masker 内部表現の正しさ）。
+        assert_eq!(&s[f0.start..f0.end], "alice@example.com");
+        // char index 換算後も "alice" の位置と一致すること（contract 検証）。
+        let start_char = byte_to_char_index(s, f0.start);
+        let end_char = byte_to_char_index(s, f0.end);
+        let chars: Vec<char> = s.chars().collect();
+        let restored: String = chars[start_char..end_char].iter().collect();
+        assert_eq!(restored, "alice@example.com");
     }
 }

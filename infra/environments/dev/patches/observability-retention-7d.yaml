@@ -1,0 +1,35 @@
+# dev 用 observability patch: ログ 7d / トレース 3d / メトリクス 30d に短縮。
+# 設計: docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md:124-130
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: k1s0-obs
+spec:
+  values:
+    limits_config:
+      retention_period: 168h  # 7d
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: k1s0-obs
+spec:
+  values:
+    compactor:
+      compaction:
+        block_retention: 72h  # 3d
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: mimir
+  namespace: k1s0-obs
+spec:
+  values:
+    compactor:
+      blocks_storage:
+        bucket_store:
+          ignore_blocks_within: 720h  # 30d

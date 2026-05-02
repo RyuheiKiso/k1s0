@@ -14,5 +14,11 @@ export declare class PiiFacade {
         maskedText: string;
         findings: PiiFinding[];
     }>;
+    /**
+     * pseudonymize は FR-T1-PII-002（決定論的仮名化）の facade。
+     * 同一 salt + 同一 fieldType + 同一 value で同一の URL-safe base64 仮名値を返す。
+     * salt / value / fieldType いずれかが空文字の場合は server 側で InvalidArgument を返す。
+     */
+    pseudonymize(fieldType: string, value: string, salt: string): Promise<string>;
 }
 //# sourceMappingURL=pii.d.ts.map

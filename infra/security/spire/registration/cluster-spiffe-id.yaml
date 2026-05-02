@@ -1,0 +1,51 @@
+# =============================================================================
+# ClusterSPIFFEID — workload identity 自動 attestation の規約
+#
+# 設計正典:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/06_セキュリティ層配置.md:121-135
+#
+# 全 k1s0-* namespace の Pod に SVID を発行する。spiffeID テンプレートは
+# `spiffe://k1s0.internal/ns/<namespace>/sa/<service-account>` 形式に統一する。
+# =============================================================================
+---
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: k1s0-default
+spec:
+  # 全 k1s0-* ns の workload に SVID を発行
+  namespaceSelector:
+    matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: In
+        values:
+          - k1s0-tier1
+          - k1s0-tier2
+          - k1s0-tier3
+          - k1s0-data
+          - k1s0-dapr
+          - k1s0-mesh
+          - k1s0-security
+          - k1s0-obs
+          - k1s0-platform-tools
+  spiffeIDTemplate: "spiffe://k1s0.internal/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}"
+  workloadSelectorTemplates:
+    - "k8s:ns:{{ .PodMeta.Namespace }}"
+    - "k8s:sa:{{ .PodSpec.ServiceAccountName }}"
+  # SVID TTL（Dapr Sentry の workloadCertTTL 24h と整合）
+  ttl: "24h"
+  # JWT-SVID も発行可能（OpenBao JWT auth method / OIDC discovery 用）
+  jwtTtl: "1h"
+  fallback: false
+---
+# OIDC discovery を OpenBao に提供するための専用 ID（必要時のみ使用）
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: openbao-oidc-discovery
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: openbao
+  spiffeIDTemplate: "spiffe://k1s0.internal/oidc-discovery"
+  ttl: "24h"

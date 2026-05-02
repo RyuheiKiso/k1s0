@@ -59,25 +59,49 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
             "X2lkGAIgASgJUgdsZWFzZUlkEhcKB3R0bF9zZWMYAyABKAVSBnR0bFNlYxIg",
             "Cgxpc3N1ZWRfYXRfbXMYBCABKANSCmlzc3VlZEF0TXMaOQoLVmFsdWVzRW50",
             "cnkSEAoDa2V5GAEgASgJUgNrZXkSFAoFdmFsdWUYAiABKAlSBXZhbHVlOgI4",
-            "ATKrBAoOU2VjcmV0c1NlcnZpY2USdgoDR2V0EicuazFzMC50aWVyMS5zZWNy",
-            "ZXRzLnYxLkdldFNlY3JldFJlcXVlc3QaKC5rMXMwLnRpZXIxLnNlY3JldHMu",
-            "djEuR2V0U2VjcmV0UmVzcG9uc2UiHILT5JMCFiIRL2sxczAvc2VjcmV0cy9n",
-            "ZXQ6ASoShgEKB0J1bGtHZXQSKy5rMXMwLnRpZXIxLnNlY3JldHMudjEuQnVs",
-            "a0dldFNlY3JldFJlcXVlc3QaLC5rMXMwLnRpZXIxLnNlY3JldHMudjEuQnVs",
-            "a0dldFNlY3JldFJlc3BvbnNlIiCC0+STAhoiFS9rMXMwL3NlY3JldHMvYnVs",
-            "a2dldDoBKhKSAQoKR2V0RHluYW1pYxIuLmsxczAudGllcjEuc2VjcmV0cy52",
-            "MS5HZXREeW5hbWljU2VjcmV0UmVxdWVzdBovLmsxczAudGllcjEuc2VjcmV0",
-            "cy52MS5HZXREeW5hbWljU2VjcmV0UmVzcG9uc2UiI4LT5JMCHSIYL2sxczAv",
-            "c2VjcmV0cy9nZXRkeW5hbWljOgEqEoIBCgZSb3RhdGUSKi5rMXMwLnRpZXIx",
-            "LnNlY3JldHMudjEuUm90YXRlU2VjcmV0UmVxdWVzdBorLmsxczAudGllcjEu",
-            "c2VjcmV0cy52MS5Sb3RhdGVTZWNyZXRSZXNwb25zZSIfgtPkkwIZIhQvazFz",
-            "MC9zZWNyZXRzL3JvdGF0ZToBKkL7AQoZY29tLmsxczAudGllcjEuc2VjcmV0",
-            "cy52MUITU2VjcmV0c1NlcnZpY2VQcm90b1ABWj9naXRodWIuY29tL2sxczAv",
-            "c2RrLWdvL3Byb3RvL3YxL2sxczAvdGllcjEvc2VjcmV0cy92MTtzZWNyZXRz",
-            "djGiAgNLVFOqAihLMXMwLlNkay5HZW5lcmF0ZWQuSzFzMC5UaWVyMS5TZWNy",
-            "ZXRzLlYxygIVSzFzMFxUaWVyMVxTZWNyZXRzXFYx4gIhSzFzMFxUaWVyMVxT",
-            "ZWNyZXRzXFYxXEdQQk1ldGFkYXRh6gIYSzFzMDo6VGllcjE6OlNlY3JldHM6",
-            "OlYxYgZwcm90bzM="));
+            "ASKaAQoORW5jcnlwdFJlcXVlc3QSPQoHY29udGV4dBgBIAEoCzIjLmsxczAu",
+            "dGllcjEuY29tbW9uLnYxLlRlbmFudENvbnRleHRSB2NvbnRleHQSGQoIa2V5",
+            "X25hbWUYAiABKAlSB2tleU5hbWUSHAoJcGxhaW50ZXh0GAMgASgMUglwbGFp",
+            "bnRleHQSEAoDYWFkGAQgASgMUgNhYWQiUgoPRW5jcnlwdFJlc3BvbnNlEh4K",
+            "CmNpcGhlcnRleHQYASABKAxSCmNpcGhlcnRleHQSHwoLa2V5X3ZlcnNpb24Y",
+            "AiABKAVSCmtleVZlcnNpb24inAEKDkRlY3J5cHRSZXF1ZXN0Ej0KB2NvbnRl",
+            "eHQYASABKAsyIy5rMXMwLnRpZXIxLmNvbW1vbi52MS5UZW5hbnRDb250ZXh0",
+            "Ugdjb250ZXh0EhkKCGtleV9uYW1lGAIgASgJUgdrZXlOYW1lEh4KCmNpcGhl",
+            "cnRleHQYAyABKAxSCmNpcGhlcnRleHQSEAoDYWFkGAQgASgMUgNhYWQiUAoP",
+            "RGVjcnlwdFJlc3BvbnNlEhwKCXBsYWludGV4dBgBIAEoDFIJcGxhaW50ZXh0",
+            "Eh8KC2tleV92ZXJzaW9uGAIgASgFUgprZXlWZXJzaW9uImwKEFJvdGF0ZUtl",
+            "eVJlcXVlc3QSPQoHY29udGV4dBgBIAEoCzIjLmsxczAudGllcjEuY29tbW9u",
+            "LnYxLlRlbmFudENvbnRleHRSB2NvbnRleHQSGQoIa2V5X25hbWUYAiABKAlS",
+            "B2tleU5hbWUigwEKEVJvdGF0ZUtleVJlc3BvbnNlEh8KC25ld192ZXJzaW9u",
+            "GAEgASgFUgpuZXdWZXJzaW9uEikKEHByZXZpb3VzX3ZlcnNpb24YAiABKAVS",
+            "D3ByZXZpb3VzVmVyc2lvbhIiCg1yb3RhdGVkX2F0X21zGAMgASgDUgtyb3Rh",
+            "dGVkQXRNczKoBwoOU2VjcmV0c1NlcnZpY2USdgoDR2V0EicuazFzMC50aWVy",
+            "MS5zZWNyZXRzLnYxLkdldFNlY3JldFJlcXVlc3QaKC5rMXMwLnRpZXIxLnNl",
+            "Y3JldHMudjEuR2V0U2VjcmV0UmVzcG9uc2UiHILT5JMCFiIRL2sxczAvc2Vj",
+            "cmV0cy9nZXQ6ASoShgEKB0J1bGtHZXQSKy5rMXMwLnRpZXIxLnNlY3JldHMu",
+            "djEuQnVsa0dldFNlY3JldFJlcXVlc3QaLC5rMXMwLnRpZXIxLnNlY3JldHMu",
+            "djEuQnVsa0dldFNlY3JldFJlc3BvbnNlIiCC0+STAhoiFS9rMXMwL3NlY3Jl",
+            "dHMvYnVsa2dldDoBKhKSAQoKR2V0RHluYW1pYxIuLmsxczAudGllcjEuc2Vj",
+            "cmV0cy52MS5HZXREeW5hbWljU2VjcmV0UmVxdWVzdBovLmsxczAudGllcjEu",
+            "c2VjcmV0cy52MS5HZXREeW5hbWljU2VjcmV0UmVzcG9uc2UiI4LT5JMCHSIY",
+            "L2sxczAvc2VjcmV0cy9nZXRkeW5hbWljOgEqEoIBCgZSb3RhdGUSKi5rMXMw",
+            "LnRpZXIxLnNlY3JldHMudjEuUm90YXRlU2VjcmV0UmVxdWVzdBorLmsxczAu",
+            "dGllcjEuc2VjcmV0cy52MS5Sb3RhdGVTZWNyZXRSZXNwb25zZSIfgtPkkwIZ",
+            "IhQvazFzMC9zZWNyZXRzL3JvdGF0ZToBKhJ6CgdFbmNyeXB0EiUuazFzMC50",
+            "aWVyMS5zZWNyZXRzLnYxLkVuY3J5cHRSZXF1ZXN0GiYuazFzMC50aWVyMS5z",
+            "ZWNyZXRzLnYxLkVuY3J5cHRSZXNwb25zZSIggtPkkwIaIhUvazFzMC9zZWNy",
+            "ZXRzL2VuY3J5cHQ6ASoSegoHRGVjcnlwdBIlLmsxczAudGllcjEuc2VjcmV0",
+            "cy52MS5EZWNyeXB0UmVxdWVzdBomLmsxczAudGllcjEuc2VjcmV0cy52MS5E",
+            "ZWNyeXB0UmVzcG9uc2UiIILT5JMCGiIVL2sxczAvc2VjcmV0cy9kZWNyeXB0",
+            "OgEqEoIBCglSb3RhdGVLZXkSJy5rMXMwLnRpZXIxLnNlY3JldHMudjEuUm90",
+            "YXRlS2V5UmVxdWVzdBooLmsxczAudGllcjEuc2VjcmV0cy52MS5Sb3RhdGVL",
+            "ZXlSZXNwb25zZSIigtPkkwIcIhcvazFzMC9zZWNyZXRzL3JvdGF0ZWtleToB",
+            "KkL7AQoZY29tLmsxczAudGllcjEuc2VjcmV0cy52MUITU2VjcmV0c1NlcnZp",
+            "Y2VQcm90b1ABWj9naXRodWIuY29tL2sxczAvc2RrLWdvL3Byb3RvL3YxL2sx",
+            "czAvdGllcjEvc2VjcmV0cy92MTtzZWNyZXRzdjGiAgNLVFOqAihLMXMwLlNk",
+            "ay5HZW5lcmF0ZWQuSzFzMC5UaWVyMS5TZWNyZXRzLlYxygIVSzFzMFxUaWVy",
+            "MVxTZWNyZXRzXFYx4gIhSzFzMFxUaWVyMVxTZWNyZXRzXFYxXEdQQk1ldGFk",
+            "YXRh6gIYSzFzMDo6VGllcjE6OlNlY3JldHM6OlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.CommonReflection.Descriptor, global::Google.Api.AnnotationsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -88,7 +112,13 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretRequest.Parser, new[]{ "Name", "Context", "GracePeriodSec", "Policy", "IdempotencyKey" }, new[]{ "Policy" }, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateSecretResponse.Parser, new[]{ "NewVersion", "PreviousVersion", "RotatedAtMs", "TtlSec" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretRequest.Parser, new[]{ "Context", "Engine", "Role", "TtlSec" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse.Parser, new[]{ "Values", "LeaseId", "TtlSec", "IssuedAtMs" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, })
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.GetDynamicSecretResponse.Parser, new[]{ "Values", "LeaseId", "TtlSec", "IssuedAtMs" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptRequest.Parser, new[]{ "Context", "KeyName", "Plaintext", "Aad" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.EncryptResponse.Parser, new[]{ "Ciphertext", "KeyVersion" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptRequest.Parser, new[]{ "Context", "KeyName", "Ciphertext", "Aad" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.DecryptResponse.Parser, new[]{ "Plaintext", "KeyVersion" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyRequest.Parser, new[]{ "Context", "KeyName" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse), global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.RotateKeyResponse.Parser, new[]{ "NewVersion", "PreviousVersion", "RotatedAtMs" }, null, null, null, null)
           }));
     }
     #endregion
@@ -2393,6 +2423,1700 @@ namespace K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1 {
           }
           case 32: {
             IssuedAtMs = input.ReadInt64();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// Encrypt リクエスト（FR-T1-SECRETS-003）。
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class EncryptRequest : pb::IMessage<EncryptRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<EncryptRequest> _parser = new pb::MessageParser<EncryptRequest>(() => new EncryptRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<EncryptRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.SecretsServiceReflection.Descriptor.MessageTypes[8]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EncryptRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EncryptRequest(EncryptRequest other) : this() {
+      context_ = other.context_ != null ? other.context_.Clone() : null;
+      keyName_ = other.keyName_;
+      plaintext_ = other.plaintext_;
+      aad_ = other.aad_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EncryptRequest Clone() {
+      return new EncryptRequest(this);
+    }
+
+    /// <summary>Field number for the "context" field.</summary>
+    public const int ContextFieldNumber = 1;
+    private global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext context_;
+    /// <summary>
+    /// 呼出元コンテキスト（テナント境界の検証に必須）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext Context {
+      get { return context_; }
+      set {
+        context_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "key_name" field.</summary>
+    public const int KeyNameFieldNumber = 2;
+    private string keyName_ = "";
+    /// <summary>
+    /// 鍵ラベル（tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する）。
+    /// 同一 tenant 内で鍵空間を分離するため、key_label は業務ドメイン名等で命名する。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string KeyName {
+      get { return keyName_; }
+      set {
+        keyName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "plaintext" field.</summary>
+    public const int PlaintextFieldNumber = 3;
+    private pb::ByteString plaintext_ = pb::ByteString.Empty;
+    /// <summary>
+    /// 暗号化対象の平文 bytes。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Plaintext {
+      get { return plaintext_; }
+      set {
+        plaintext_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "aad" field.</summary>
+    public const int AadFieldNumber = 4;
+    private pb::ByteString aad_ = pb::ByteString.Empty;
+    /// <summary>
+    /// AAD（Associated Authenticated Data）。GCM の追加認証データに渡す。
+    /// 通常は tenant_id + RPC 名 等を JSON encoded で詰める運用想定。空でも良い。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Aad {
+      get { return aad_; }
+      set {
+        aad_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as EncryptRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(EncryptRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Context, other.Context)) return false;
+      if (KeyName != other.KeyName) return false;
+      if (Plaintext != other.Plaintext) return false;
+      if (Aad != other.Aad) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (context_ != null) hash ^= Context.GetHashCode();
+      if (KeyName.Length != 0) hash ^= KeyName.GetHashCode();
+      if (Plaintext.Length != 0) hash ^= Plaintext.GetHashCode();
+      if (Aad.Length != 0) hash ^= Aad.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (context_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Context);
+      }
+      if (KeyName.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(KeyName);
+      }
+      if (Plaintext.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Plaintext);
+      }
+      if (Aad.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteBytes(Aad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (context_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Context);
+      }
+      if (KeyName.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(KeyName);
+      }
+      if (Plaintext.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Plaintext);
+      }
+      if (Aad.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteBytes(Aad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (context_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
+      }
+      if (KeyName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(KeyName);
+      }
+      if (Plaintext.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Plaintext);
+      }
+      if (Aad.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Aad);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(EncryptRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.context_ != null) {
+        if (context_ == null) {
+          Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+        }
+        Context.MergeFrom(other.Context);
+      }
+      if (other.KeyName.Length != 0) {
+        KeyName = other.KeyName;
+      }
+      if (other.Plaintext.Length != 0) {
+        Plaintext = other.Plaintext;
+      }
+      if (other.Aad.Length != 0) {
+        Aad = other.Aad;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
+            break;
+          }
+          case 18: {
+            KeyName = input.ReadString();
+            break;
+          }
+          case 26: {
+            Plaintext = input.ReadBytes();
+            break;
+          }
+          case 34: {
+            Aad = input.ReadBytes();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
+            break;
+          }
+          case 18: {
+            KeyName = input.ReadString();
+            break;
+          }
+          case 26: {
+            Plaintext = input.ReadBytes();
+            break;
+          }
+          case 34: {
+            Aad = input.ReadBytes();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// Encrypt 応答。
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class EncryptResponse : pb::IMessage<EncryptResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<EncryptResponse> _parser = new pb::MessageParser<EncryptResponse>(() => new EncryptResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<EncryptResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.SecretsServiceReflection.Descriptor.MessageTypes[9]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EncryptResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EncryptResponse(EncryptResponse other) : this() {
+      ciphertext_ = other.ciphertext_;
+      keyVersion_ = other.keyVersion_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EncryptResponse Clone() {
+      return new EncryptResponse(this);
+    }
+
+    /// <summary>Field number for the "ciphertext" field.</summary>
+    public const int CiphertextFieldNumber = 1;
+    private pb::ByteString ciphertext_ = pb::ByteString.Empty;
+    /// <summary>
+    /// 暗号文。フォーマット: [version:4 BE][nonce:12][ciphertext+tag]。
+    /// 鍵バージョン管理は ciphertext に埋め込まれ、Decrypt 時に自動的に解決される。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Ciphertext {
+      get { return ciphertext_; }
+      set {
+        ciphertext_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "key_version" field.</summary>
+    public const int KeyVersionFieldNumber = 2;
+    private int keyVersion_;
+    /// <summary>
+    /// 暗号化に使用した鍵バージョン（observability / audit 用）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int KeyVersion {
+      get { return keyVersion_; }
+      set {
+        keyVersion_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as EncryptResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(EncryptResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Ciphertext != other.Ciphertext) return false;
+      if (KeyVersion != other.KeyVersion) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Ciphertext.Length != 0) hash ^= Ciphertext.GetHashCode();
+      if (KeyVersion != 0) hash ^= KeyVersion.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Ciphertext.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteBytes(Ciphertext);
+      }
+      if (KeyVersion != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(KeyVersion);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Ciphertext.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteBytes(Ciphertext);
+      }
+      if (KeyVersion != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(KeyVersion);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Ciphertext.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Ciphertext);
+      }
+      if (KeyVersion != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(KeyVersion);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(EncryptResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Ciphertext.Length != 0) {
+        Ciphertext = other.Ciphertext;
+      }
+      if (other.KeyVersion != 0) {
+        KeyVersion = other.KeyVersion;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Ciphertext = input.ReadBytes();
+            break;
+          }
+          case 16: {
+            KeyVersion = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Ciphertext = input.ReadBytes();
+            break;
+          }
+          case 16: {
+            KeyVersion = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// Decrypt リクエスト（FR-T1-SECRETS-003）。
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class DecryptRequest : pb::IMessage<DecryptRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<DecryptRequest> _parser = new pb::MessageParser<DecryptRequest>(() => new DecryptRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<DecryptRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.SecretsServiceReflection.Descriptor.MessageTypes[10]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DecryptRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DecryptRequest(DecryptRequest other) : this() {
+      context_ = other.context_ != null ? other.context_.Clone() : null;
+      keyName_ = other.keyName_;
+      ciphertext_ = other.ciphertext_;
+      aad_ = other.aad_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DecryptRequest Clone() {
+      return new DecryptRequest(this);
+    }
+
+    /// <summary>Field number for the "context" field.</summary>
+    public const int ContextFieldNumber = 1;
+    private global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext context_;
+    /// <summary>
+    /// 呼出元コンテキスト（テナント境界の検証に必須）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext Context {
+      get { return context_; }
+      set {
+        context_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "key_name" field.</summary>
+    public const int KeyNameFieldNumber = 2;
+    private string keyName_ = "";
+    /// <summary>
+    /// 鍵ラベル（Encrypt 時と同じ key_label を渡す）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string KeyName {
+      get { return keyName_; }
+      set {
+        keyName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "ciphertext" field.</summary>
+    public const int CiphertextFieldNumber = 3;
+    private pb::ByteString ciphertext_ = pb::ByteString.Empty;
+    /// <summary>
+    /// 暗号文（Encrypt の出力をそのまま渡す）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Ciphertext {
+      get { return ciphertext_; }
+      set {
+        ciphertext_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "aad" field.</summary>
+    public const int AadFieldNumber = 4;
+    private pb::ByteString aad_ = pb::ByteString.Empty;
+    /// <summary>
+    /// AAD（Encrypt 時と同じ値が必須、GCM の整合性検証に使用）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Aad {
+      get { return aad_; }
+      set {
+        aad_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as DecryptRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(DecryptRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Context, other.Context)) return false;
+      if (KeyName != other.KeyName) return false;
+      if (Ciphertext != other.Ciphertext) return false;
+      if (Aad != other.Aad) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (context_ != null) hash ^= Context.GetHashCode();
+      if (KeyName.Length != 0) hash ^= KeyName.GetHashCode();
+      if (Ciphertext.Length != 0) hash ^= Ciphertext.GetHashCode();
+      if (Aad.Length != 0) hash ^= Aad.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (context_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Context);
+      }
+      if (KeyName.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(KeyName);
+      }
+      if (Ciphertext.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Ciphertext);
+      }
+      if (Aad.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteBytes(Aad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (context_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Context);
+      }
+      if (KeyName.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(KeyName);
+      }
+      if (Ciphertext.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Ciphertext);
+      }
+      if (Aad.Length != 0) {
+        output.WriteRawTag(34);
+        output.WriteBytes(Aad);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (context_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
+      }
+      if (KeyName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(KeyName);
+      }
+      if (Ciphertext.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Ciphertext);
+      }
+      if (Aad.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Aad);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(DecryptRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.context_ != null) {
+        if (context_ == null) {
+          Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+        }
+        Context.MergeFrom(other.Context);
+      }
+      if (other.KeyName.Length != 0) {
+        KeyName = other.KeyName;
+      }
+      if (other.Ciphertext.Length != 0) {
+        Ciphertext = other.Ciphertext;
+      }
+      if (other.Aad.Length != 0) {
+        Aad = other.Aad;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
+            break;
+          }
+          case 18: {
+            KeyName = input.ReadString();
+            break;
+          }
+          case 26: {
+            Ciphertext = input.ReadBytes();
+            break;
+          }
+          case 34: {
+            Aad = input.ReadBytes();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
+            break;
+          }
+          case 18: {
+            KeyName = input.ReadString();
+            break;
+          }
+          case 26: {
+            Ciphertext = input.ReadBytes();
+            break;
+          }
+          case 34: {
+            Aad = input.ReadBytes();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// Decrypt 応答。
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class DecryptResponse : pb::IMessage<DecryptResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<DecryptResponse> _parser = new pb::MessageParser<DecryptResponse>(() => new DecryptResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<DecryptResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.SecretsServiceReflection.Descriptor.MessageTypes[11]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DecryptResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DecryptResponse(DecryptResponse other) : this() {
+      plaintext_ = other.plaintext_;
+      keyVersion_ = other.keyVersion_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DecryptResponse Clone() {
+      return new DecryptResponse(this);
+    }
+
+    /// <summary>Field number for the "plaintext" field.</summary>
+    public const int PlaintextFieldNumber = 1;
+    private pb::ByteString plaintext_ = pb::ByteString.Empty;
+    /// <summary>
+    /// 復号された平文。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Plaintext {
+      get { return plaintext_; }
+      set {
+        plaintext_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "key_version" field.</summary>
+    public const int KeyVersionFieldNumber = 2;
+    private int keyVersion_;
+    /// <summary>
+    /// 復号に使用した鍵バージョン（旧版鍵で暗号化された場合の追跡用）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int KeyVersion {
+      get { return keyVersion_; }
+      set {
+        keyVersion_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as DecryptResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(DecryptResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Plaintext != other.Plaintext) return false;
+      if (KeyVersion != other.KeyVersion) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Plaintext.Length != 0) hash ^= Plaintext.GetHashCode();
+      if (KeyVersion != 0) hash ^= KeyVersion.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Plaintext.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteBytes(Plaintext);
+      }
+      if (KeyVersion != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(KeyVersion);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Plaintext.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteBytes(Plaintext);
+      }
+      if (KeyVersion != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(KeyVersion);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Plaintext.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Plaintext);
+      }
+      if (KeyVersion != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(KeyVersion);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(DecryptResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Plaintext.Length != 0) {
+        Plaintext = other.Plaintext;
+      }
+      if (other.KeyVersion != 0) {
+        KeyVersion = other.KeyVersion;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Plaintext = input.ReadBytes();
+            break;
+          }
+          case 16: {
+            KeyVersion = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Plaintext = input.ReadBytes();
+            break;
+          }
+          case 16: {
+            KeyVersion = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// RotateKey リクエスト（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class RotateKeyRequest : pb::IMessage<RotateKeyRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<RotateKeyRequest> _parser = new pb::MessageParser<RotateKeyRequest>(() => new RotateKeyRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<RotateKeyRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.SecretsServiceReflection.Descriptor.MessageTypes[12]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RotateKeyRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RotateKeyRequest(RotateKeyRequest other) : this() {
+      context_ = other.context_ != null ? other.context_.Clone() : null;
+      keyName_ = other.keyName_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RotateKeyRequest Clone() {
+      return new RotateKeyRequest(this);
+    }
+
+    /// <summary>Field number for the "context" field.</summary>
+    public const int ContextFieldNumber = 1;
+    private global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext context_;
+    /// <summary>
+    /// 呼出元コンテキスト。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext Context {
+      get { return context_; }
+      set {
+        context_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "key_name" field.</summary>
+    public const int KeyNameFieldNumber = 2;
+    private string keyName_ = "";
+    /// <summary>
+    /// 鍵ラベル（tier1 が &lt;tenant_id>.&lt;key_label> で自動 prefix する）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string KeyName {
+      get { return keyName_; }
+      set {
+        keyName_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as RotateKeyRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(RotateKeyRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Context, other.Context)) return false;
+      if (KeyName != other.KeyName) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (context_ != null) hash ^= Context.GetHashCode();
+      if (KeyName.Length != 0) hash ^= KeyName.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (context_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Context);
+      }
+      if (KeyName.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(KeyName);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (context_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Context);
+      }
+      if (KeyName.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(KeyName);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (context_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Context);
+      }
+      if (KeyName.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(KeyName);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(RotateKeyRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.context_ != null) {
+        if (context_ == null) {
+          Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+        }
+        Context.MergeFrom(other.Context);
+      }
+      if (other.KeyName.Length != 0) {
+        KeyName = other.KeyName;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
+            break;
+          }
+          case 18: {
+            KeyName = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (context_ == null) {
+              Context = new global::K1s0.Sdk.Generated.K1s0.Tier1.Common.V1.TenantContext();
+            }
+            input.ReadMessage(Context);
+            break;
+          }
+          case 18: {
+            KeyName = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// RotateKey 応答。
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class RotateKeyResponse : pb::IMessage<RotateKeyResponse>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<RotateKeyResponse> _parser = new pb::MessageParser<RotateKeyResponse>(() => new RotateKeyResponse());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<RotateKeyResponse> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::K1s0.Sdk.Generated.K1s0.Tier1.Secrets.V1.SecretsServiceReflection.Descriptor.MessageTypes[13]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RotateKeyResponse() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RotateKeyResponse(RotateKeyResponse other) : this() {
+      newVersion_ = other.newVersion_;
+      previousVersion_ = other.previousVersion_;
+      rotatedAtMs_ = other.rotatedAtMs_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RotateKeyResponse Clone() {
+      return new RotateKeyResponse(this);
+    }
+
+    /// <summary>Field number for the "new_version" field.</summary>
+    public const int NewVersionFieldNumber = 1;
+    private int newVersion_;
+    /// <summary>
+    /// ローテーション後の新バージョン番号（既存版は保持される、Decrypt 引き続き可）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int NewVersion {
+      get { return newVersion_; }
+      set {
+        newVersion_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "previous_version" field.</summary>
+    public const int PreviousVersionFieldNumber = 2;
+    private int previousVersion_;
+    /// <summary>
+    /// ローテーション直前の旧バージョン（最大 = new_version - 1）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int PreviousVersion {
+      get { return previousVersion_; }
+      set {
+        previousVersion_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "rotated_at_ms" field.</summary>
+    public const int RotatedAtMsFieldNumber = 3;
+    private long rotatedAtMs_;
+    /// <summary>
+    /// ローテーション時刻（Unix epoch ミリ秒）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long RotatedAtMs {
+      get { return rotatedAtMs_; }
+      set {
+        rotatedAtMs_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as RotateKeyResponse);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(RotateKeyResponse other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (NewVersion != other.NewVersion) return false;
+      if (PreviousVersion != other.PreviousVersion) return false;
+      if (RotatedAtMs != other.RotatedAtMs) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (NewVersion != 0) hash ^= NewVersion.GetHashCode();
+      if (PreviousVersion != 0) hash ^= PreviousVersion.GetHashCode();
+      if (RotatedAtMs != 0L) hash ^= RotatedAtMs.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (NewVersion != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(NewVersion);
+      }
+      if (PreviousVersion != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(PreviousVersion);
+      }
+      if (RotatedAtMs != 0L) {
+        output.WriteRawTag(24);
+        output.WriteInt64(RotatedAtMs);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (NewVersion != 0) {
+        output.WriteRawTag(8);
+        output.WriteInt32(NewVersion);
+      }
+      if (PreviousVersion != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(PreviousVersion);
+      }
+      if (RotatedAtMs != 0L) {
+        output.WriteRawTag(24);
+        output.WriteInt64(RotatedAtMs);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (NewVersion != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(NewVersion);
+      }
+      if (PreviousVersion != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(PreviousVersion);
+      }
+      if (RotatedAtMs != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(RotatedAtMs);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(RotateKeyResponse other) {
+      if (other == null) {
+        return;
+      }
+      if (other.NewVersion != 0) {
+        NewVersion = other.NewVersion;
+      }
+      if (other.PreviousVersion != 0) {
+        PreviousVersion = other.PreviousVersion;
+      }
+      if (other.RotatedAtMs != 0L) {
+        RotatedAtMs = other.RotatedAtMs;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            NewVersion = input.ReadInt32();
+            break;
+          }
+          case 16: {
+            PreviousVersion = input.ReadInt32();
+            break;
+          }
+          case 24: {
+            RotatedAtMs = input.ReadInt64();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            NewVersion = input.ReadInt32();
+            break;
+          }
+          case 16: {
+            PreviousVersion = input.ReadInt32();
+            break;
+          }
+          case 24: {
+            RotatedAtMs = input.ReadInt64();
             break;
           }
         }

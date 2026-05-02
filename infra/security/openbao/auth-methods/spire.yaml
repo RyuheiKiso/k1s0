@@ -1,0 +1,45 @@
+# =============================================================================
+# SPIRE auth method（SPIFFE SVID JWT を OpenBao token に変換）
+#
+# Kubernetes auth は Pod の SA token を使うが、より厳格な workload identity が
+# 必要な場合（cross-cluster / non-k8s workload）は SPIRE 発行の SVID JWT を
+# OpenBao の JWT auth method 経由で検証する。
+#
+# Init Job（plan 04-XX）が `bao auth enable jwt -path=spire` + role 設定を実行。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-auth-spire
+  namespace: k1s0-security
+data:
+  config.json: |
+    {
+      "auth_method": "jwt",
+      "path": "spire",
+      "config": {
+        "oidc_discovery_url": "https://oidc-discovery.k1s0.internal",
+        "oidc_discovery_ca_pem": "@/etc/openbao/spire-ca.pem",
+        "default_role": "default"
+      },
+      "roles": [
+        {
+          "name": "tier1-facade-spiffe",
+          "user_claim": "sub",
+          "bound_audiences": ["openbao"],
+          "bound_subject": "spiffe://k1s0.internal/ns/k1s0-tier1/sa/tier1-facade",
+          "policies": ["tier1-facade"],
+          "ttl": "1h"
+        },
+        {
+          "name": "tier2-service-spiffe",
+          "user_claim": "sub",
+          "bound_audiences": ["openbao"],
+          "bound_claims": {
+            "sub": "spiffe://k1s0.internal/ns/k1s0-tier2/sa/*"
+          },
+          "policies": ["tier2-service"],
+          "ttl": "1h"
+        }
+      ]
+    }

@@ -1,23 +1,16 @@
 # =============================================================================
 # infra/environments/staging/kustomization.yaml
 #
-# staging 環境用 overlay。原則 prod と同じ HA 構成を保ち、replica / リソースを 1/3 に
-# 縮小する（DS-OPS-ENV-007 の本番同等性、staging→prod 構造ガード）。
+# staging 環境用 overlay。原則 prod と同じ HA 構成を保ち、replica / リソースを
+# 1/3 に縮小する（DS-OPS-ENV-007 の本番同等性、staging→prod 構造ガード）。
 #
 # 設計正典:
 #   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/08_環境別パッチ配置.md
 #   docs/04_概要設計/55_運用ライフサイクル方式設計/03_環境構成管理方式.md
-#
-# 利用: Argo CD ApplicationSet（deploy/apps/application-sets/）が target としてSync。
-#
-# 注: kustomize の load-restriction（外部ファイル直接参照禁止）に対応するため、
-#     `resources:` は **ディレクトリ参照** で記述する（各 base に kustomization.yaml
-#     を配置済）。
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# kustomize v5 で `commonLabels` は deprecated。後継の `labels` を使う。
 labels:
   - pairs:
       app.kubernetes.io/part-of: k1s0
@@ -25,16 +18,37 @@ labels:
     includeSelectors: true
 
 resources:
+  # k8s 基盤
   - ../../k8s/namespaces
+  - ../../k8s/networking
   - ../../k8s/storage
+  # mesh
   - ../../mesh/istio-ambient
-  - ../../security/kyverno
-  - ../../security/cert-manager
+  - ../../mesh/envoy-gateway
+  # dapr
+  - ../../dapr/control-plane
+  - ../../dapr/subscriptions
+  # data
   - ../../data/cloudnativepg
   - ../../data/kafka
+  - ../../data/minio
+  - ../../data/valkey
+  # security
+  - ../../security/cert-manager
+  - ../../security/keycloak
+  - ../../security/openbao
+  - ../../security/spire
+  - ../../security/kyverno
+  # observability
+  - ../../observability
+  # scaling / feature management / platform
+  - ../../scaling/keda
   - ../../feature-management/flagd
+  # env 別 Dapr Component overlay
+  - ./dapr-components-overlay
 
-# staging は HA を維持しつつ規模を縮小する patch のみ
+# staging は HA 維持しつつ規模縮小
 patches:
   - path: patches/cloudnativepg-instances-2.yaml
+  - path: patches/kafka-broker-3.yaml
   - path: patches/kafka-storage-50gi.yaml

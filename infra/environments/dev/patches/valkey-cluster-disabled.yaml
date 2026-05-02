@@ -1,0 +1,22 @@
+# dev 用 Valkey patch: Cluster mode を無効化し standalone（master 1）に縮退。
+# kind 単一ノードで起動可能化。
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: valkey
+  namespace: k1s0-data
+spec:
+  values:
+    cluster:
+      enabled: false
+      nodes: 1
+    architecture: standalone
+    primary:
+      persistence:
+        size: 1Gi
+    replica:
+      replicaCount: 0
+    sentinel:
+      enabled: false
+    pdb:
+      create: false

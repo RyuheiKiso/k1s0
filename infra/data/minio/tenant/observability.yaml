@@ -1,0 +1,45 @@
+# =============================================================================
+# 観測スタック（Loki / Tempo / Mimir / Pyroscope）の object storage 用 MinIO Tenant
+# =============================================================================
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: observability
+  namespace: k1s0-data
+  labels:
+    app.kubernetes.io/part-of: k1s0
+    k1s0.io/minio-role: observability
+spec:
+  configuration:
+    name: observability-env-configuration
+  pools:
+    - name: pool-0
+      servers: 4
+      volumesPerServer: 4
+      size: 200Gi
+      storageClassName: longhorn-retain
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  v1.min.io/tenant: observability
+              topologyKey: kubernetes.io/hostname
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: 2
+          memory: 4Gi
+  buckets:
+    - name: k1s0-loki
+    - name: k1s0-tempo
+    - name: k1s0-mimir
+    - name: k1s0-pyroscope
+  mountPath: /export
+  requestAutoCert: false
+  metrics:
+    enabled: true
+    port: 9000
+    protocol: http

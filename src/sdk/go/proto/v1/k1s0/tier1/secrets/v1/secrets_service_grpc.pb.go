@@ -35,6 +35,9 @@ const (
 	SecretsService_BulkGet_FullMethodName    = "/k1s0.tier1.secrets.v1.SecretsService/BulkGet"
 	SecretsService_GetDynamic_FullMethodName = "/k1s0.tier1.secrets.v1.SecretsService/GetDynamic"
 	SecretsService_Rotate_FullMethodName     = "/k1s0.tier1.secrets.v1.SecretsService/Rotate"
+	SecretsService_Encrypt_FullMethodName    = "/k1s0.tier1.secrets.v1.SecretsService/Encrypt"
+	SecretsService_Decrypt_FullMethodName    = "/k1s0.tier1.secrets.v1.SecretsService/Decrypt"
+	SecretsService_RotateKey_FullMethodName  = "/k1s0.tier1.secrets.v1.SecretsService/RotateKey"
 )
 
 // SecretsServiceClient is the client API for SecretsService service.
@@ -55,6 +58,18 @@ type SecretsServiceClient interface {
 	// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
 	// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
 	Rotate(ctx context.Context, in *RotateSecretRequest, opts ...grpc.CallOption) (*RotateSecretResponse, error)
+	// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+	// 鍵名は tier1 が <tenant_id>.<key_label> で自動 prefix する。
+	// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+	Encrypt(ctx context.Context, in *EncryptRequest, opts ...grpc.CallOption) (*EncryptResponse, error)
+	// Transit 復号（FR-T1-SECRETS-003）。
+	// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+	// ローテーション後の旧版 ciphertext も自動で復号できる。
+	Decrypt(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*DecryptResponse, error)
+	// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+	// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+	// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+	RotateKey(ctx context.Context, in *RotateKeyRequest, opts ...grpc.CallOption) (*RotateKeyResponse, error)
 }
 
 type secretsServiceClient struct {
@@ -105,6 +120,36 @@ func (c *secretsServiceClient) Rotate(ctx context.Context, in *RotateSecretReque
 	return out, nil
 }
 
+func (c *secretsServiceClient) Encrypt(ctx context.Context, in *EncryptRequest, opts ...grpc.CallOption) (*EncryptResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EncryptResponse)
+	err := c.cc.Invoke(ctx, SecretsService_Encrypt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretsServiceClient) Decrypt(ctx context.Context, in *DecryptRequest, opts ...grpc.CallOption) (*DecryptResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DecryptResponse)
+	err := c.cc.Invoke(ctx, SecretsService_Decrypt_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretsServiceClient) RotateKey(ctx context.Context, in *RotateKeyRequest, opts ...grpc.CallOption) (*RotateKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RotateKeyResponse)
+	err := c.cc.Invoke(ctx, SecretsService_RotateKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SecretsServiceServer is the server API for SecretsService service.
 // All implementations should embed UnimplementedSecretsServiceServer
 // for forward compatibility.
@@ -123,6 +168,18 @@ type SecretsServiceServer interface {
 	// 成功時は new_version を返し、旧バージョンは grace_period_sec まで Get 可能。
 	// 失敗時は K1s0Error を返し OpenBao 側は不変（トランザクショナル）。
 	Rotate(context.Context, *RotateSecretRequest) (*RotateSecretResponse, error)
+	// Transit 暗号化（FR-T1-SECRETS-003）。AES-256-GCM 固定。
+	// 鍵名は tier1 が <tenant_id>.<key_label> で自動 prefix する。
+	// 鍵バージョンは ciphertext に埋め込まれ、Decrypt 時に自動的に正しい版で復号される。
+	Encrypt(context.Context, *EncryptRequest) (*EncryptResponse, error)
+	// Transit 復号（FR-T1-SECRETS-003）。
+	// ciphertext から鍵バージョンを取り出し、対応する鍵で復号する。
+	// ローテーション後の旧版 ciphertext も自動で復号できる。
+	Decrypt(context.Context, *DecryptRequest) (*DecryptResponse, error)
+	// Transit 鍵ローテーション（FR-T1-SECRETS-003 受け入れ基準「鍵バージョン管理が自動」）。
+	// 新バージョン鍵を生成して current にする。以降の Encrypt は新版で行うが、
+	// 旧版 ciphertext は引き続き Decrypt 可能（旧版鍵を保持）。
+	RotateKey(context.Context, *RotateKeyRequest) (*RotateKeyResponse, error)
 }
 
 // UnimplementedSecretsServiceServer should be embedded to have
@@ -143,6 +200,15 @@ func (UnimplementedSecretsServiceServer) GetDynamic(context.Context, *GetDynamic
 }
 func (UnimplementedSecretsServiceServer) Rotate(context.Context, *RotateSecretRequest) (*RotateSecretResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Rotate not implemented")
+}
+func (UnimplementedSecretsServiceServer) Encrypt(context.Context, *EncryptRequest) (*EncryptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Encrypt not implemented")
+}
+func (UnimplementedSecretsServiceServer) Decrypt(context.Context, *DecryptRequest) (*DecryptResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Decrypt not implemented")
+}
+func (UnimplementedSecretsServiceServer) RotateKey(context.Context, *RotateKeyRequest) (*RotateKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RotateKey not implemented")
 }
 func (UnimplementedSecretsServiceServer) testEmbeddedByValue() {}
 
@@ -236,6 +302,60 @@ func _SecretsService_Rotate_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SecretsService_Encrypt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EncryptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretsServiceServer).Encrypt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretsService_Encrypt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretsServiceServer).Encrypt(ctx, req.(*EncryptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretsService_Decrypt_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecryptRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretsServiceServer).Decrypt(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretsService_Decrypt_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretsServiceServer).Decrypt(ctx, req.(*DecryptRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretsService_RotateKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RotateKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretsServiceServer).RotateKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretsService_RotateKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretsServiceServer).RotateKey(ctx, req.(*RotateKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SecretsService_ServiceDesc is the grpc.ServiceDesc for SecretsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -258,6 +378,18 @@ var SecretsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Rotate",
 			Handler:    _SecretsService_Rotate_Handler,
+		},
+		{
+			MethodName: "Encrypt",
+			Handler:    _SecretsService_Encrypt_Handler,
+		},
+		{
+			MethodName: "Decrypt",
+			Handler:    _SecretsService_Decrypt_Handler,
+		},
+		{
+			MethodName: "RotateKey",
+			Handler:    _SecretsService_RotateKey_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

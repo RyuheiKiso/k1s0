@@ -1,0 +1,105 @@
+# =============================================================================
+# k1s0-internal realm 配下の OIDC clients
+#
+# 必須 clients（IMP-DIR-INFRA-076）:
+#   - tier3-web-portal: 開発者向け Backstage / 内部ポータル
+#   - tier3-web-admin:  運用者向け管理 UI
+#   - tier3-native-hub: ネイティブクライアント（kubectl OIDC、CLI ツール）
+#   - internal-gateway: tier1-facade への OIDC token 検証 client
+# =============================================================================
+---
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: tier3-web-portal
+  namespace: k1s0-security
+  labels:
+    app: keycloak
+    realm: k1s0-internal
+spec:
+  realmSelector:
+    matchLabels:
+      app: keycloak
+      realm: k1s0-internal
+  client:
+    clientId: tier3-web-portal
+    enabled: true
+    publicClient: false
+    protocol: openid-connect
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    redirectUris:
+      - "https://portal.k1s0.example.com/*"
+    webOrigins:
+      - "https://portal.k1s0.example.com"
+    fullScopeAllowed: false
+---
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: tier3-web-admin
+  namespace: k1s0-security
+  labels:
+    app: keycloak
+    realm: k1s0-internal
+spec:
+  realmSelector:
+    matchLabels:
+      app: keycloak
+      realm: k1s0-internal
+  client:
+    clientId: tier3-web-admin
+    enabled: true
+    publicClient: false
+    protocol: openid-connect
+    standardFlowEnabled: true
+    redirectUris:
+      - "https://admin.k1s0.example.com/*"
+    webOrigins:
+      - "https://admin.k1s0.example.com"
+    fullScopeAllowed: false
+---
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: tier3-native-hub
+  namespace: k1s0-security
+  labels:
+    app: keycloak
+    realm: k1s0-internal
+spec:
+  realmSelector:
+    matchLabels:
+      app: keycloak
+      realm: k1s0-internal
+  client:
+    clientId: tier3-native-hub
+    enabled: true
+    publicClient: true  # PKCE flow
+    protocol: openid-connect
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    redirectUris:
+      - "http://localhost:*"
+      - "k1s0://callback"
+---
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: internal-gateway
+  namespace: k1s0-security
+  labels:
+    app: keycloak
+    realm: k1s0-internal
+spec:
+  realmSelector:
+    matchLabels:
+      app: keycloak
+      realm: k1s0-internal
+  client:
+    clientId: internal-gateway
+    enabled: true
+    publicClient: false
+    protocol: openid-connect
+    bearerOnly: true
+    fullScopeAllowed: false

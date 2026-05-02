@@ -6,9 +6,10 @@
 //   docs/02_構想設計/adr/ADR-RULE-002-temporal.md
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/06_Workflow_API.md
 //
-// 役割（plan 04-07 結線済 / Temporal 経路）:
+// 役割（plan 04-07 結線済 / Temporal + Dapr Workflow）:
 //   WorkflowService の 6 RPC（Start / Signal / Query / Cancel / Terminate / GetStatus）を
-//   2 系統の adapter 越しに実装する。adapter 未注入時は Unimplemented を返す。
+//   2 系統の adapter 越しに実装する。両 adapter は cmd/workflow/main.go で必ず注入される
+//   （production: 実 SDK / dev: in-memory backend）。
 //
 // 短期 vs 長期 の振り分け（FR-T1-WORKFLOW-001）:
 //   StartRequest.backend で hint を受け取り、handler がルーティングする。
@@ -25,6 +26,9 @@ import (
 	"context"
 	"errors"
 	"sync"
+
+	// FR-T1-WORKFLOW-001 「Workflow 実行ごとに一意の workflow_id を返す」用 UUID v7 採番。
+	"github.com/google/uuid"
 
 	// 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 	"github.com/k1s0/k1s0/src/tier1/go/internal/common"
@@ -43,11 +47,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// uuidNewV7 は UUID v7 採番のラッパ（テストで stub 可能なように関数変数）。
+var uuidNewV7 = func() (string, error) {
+	id, err := uuid.NewV7()
+	if err != nil {
+		return "", err
+	}
+	return id.String(), nil
+}
+
 // Deps は WorkflowService handler が依存する adapter 集合。
+// cmd/workflow/main.go で 2 adapter（Temporal + Dapr Workflow）が必ず注入される。
 type Deps struct {
-	// Temporal adapter（長期向け、nil 時は当該 backend RPC で Unimplemented）。
+	// Temporal adapter（長期向け）。
 	WorkflowAdapter temporal.WorkflowAdapter
-	// Dapr Workflow adapter（短期向け、nil 時は当該 backend RPC で Unimplemented）。
+	// Dapr Workflow adapter（短期向け）。
 	DaprAdapter daprwf.WorkflowAdapter
 	// Workflow.Start の冪等性 cache（共通規約 §「冪等性と再試行」: 24h TTL）。
 	// nil の場合は dedup なし（既存挙動互換）。
@@ -162,16 +176,6 @@ func requireTenantIDFromCtx(goCtx context.Context, tenantID, rpc string) (string
 	return tenantID, nil
 }
 
-// notWiredBackend は backend ごとの未注入応答。
-func notWiredBackend(rpc string, backend workflowv1.WorkflowBackend) error {
-	switch backend {
-	case workflowv1.WorkflowBackend_BACKEND_DAPR:
-		return status.Errorf(codes.Unimplemented, "tier1/workflow: %s not yet wired to Dapr Workflow", rpc)
-	default:
-		return status.Errorf(codes.Unimplemented, "tier1/workflow: %s not yet wired to Temporal", rpc)
-	}
-}
-
 // Start はワークフロー開始。backend hint を解決し対応する adapter に委譲する。
 // 選択された backend は StartResponse.backend に返却する。同 workflow_id への後続
 // Signal / Query / Cancel / Terminate / GetStatus は本 routes 表で同 backend に
@@ -204,15 +208,25 @@ func (h *workflowHandler) Start(ctx context.Context, req *workflowv1.StartReques
 func (h *workflowHandler) startInternal(ctx context.Context, req *workflowv1.StartRequest, tenantID string) (*workflowv1.StartResponse, error) {
 	// backend hint を解決する（AUTO は Temporal にフォールバック）。
 	backend := pickBackend(req.GetBackend())
+	// FR-T1-WORKFLOW-001 「Workflow 実行ごとに一意の `workflow_id` を返す」。
+	// 呼出側が空のまま渡してきた場合は tier1 が UUID v7 で採番する。Dapr 経路では
+	// L2 物理分離（tenant prefix 付与）が必要なため、SDK 自動採番に任せると prefix が
+	// 効かない。Temporal 経路でも一貫性のため tier1 採番を行う。
+	workflowID := req.GetWorkflowId()
+	if workflowID == "" {
+		if id, err := uuidNewV7(); err == nil {
+			workflowID = id
+		} else {
+			// UUID 採番が失敗するのは crypto/rand 不能な極端ケース。
+			return nil, status.Errorf(codes.Internal, "tier1/workflow: failed to generate workflow_id: %v", err)
+		}
+	}
 	switch backend {
 	case workflowv1.WorkflowBackend_BACKEND_DAPR:
 		// Dapr Workflow 経路。
-		if h.deps.DaprAdapter == nil {
-			return nil, notWiredBackend("Start", backend)
-		}
 		resp, err := h.deps.DaprAdapter.Start(ctx, daprwf.StartRequest{
 			WorkflowType: req.GetWorkflowType(),
-			WorkflowID:   req.GetWorkflowId(),
+			WorkflowID:   workflowID,
 			Input:        req.GetInput(),
 			Idempotent:   req.GetIdempotent(),
 			TenantID:     tenantID,
@@ -229,12 +243,9 @@ func (h *workflowHandler) startInternal(ctx context.Context, req *workflowv1.Sta
 		}, nil
 	default:
 		// Temporal 経路（BACKEND_TEMPORAL / BACKEND_AUTO は両方ここに来る）。
-		if h.deps.WorkflowAdapter == nil {
-			return nil, notWiredBackend("Start", backend)
-		}
 		resp, err := h.deps.WorkflowAdapter.Start(ctx, temporal.StartRequest{
 			WorkflowType: req.GetWorkflowType(),
-			WorkflowID:   req.GetWorkflowId(),
+			WorkflowID:   workflowID,
 			Input:        req.GetInput(),
 			Idempotent:   req.GetIdempotent(),
 			TenantID:     tenantID,
@@ -263,9 +274,6 @@ func (h *workflowHandler) Signal(ctx context.Context, req *workflowv1.SignalRequ
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
-		if h.deps.DaprAdapter == nil {
-			return nil, notWiredBackend("Signal", backend)
-		}
 		if err := h.deps.DaprAdapter.Signal(ctx, daprwf.SignalRequest{
 			WorkflowID: req.GetWorkflowId(),
 			SignalName: req.GetSignalName(),
@@ -276,9 +284,6 @@ func (h *workflowHandler) Signal(ctx context.Context, req *workflowv1.SignalRequ
 			return nil, translateErr(err, "Signal")
 		}
 		return &workflowv1.SignalResponse{}, nil
-	}
-	if h.deps.WorkflowAdapter == nil {
-		return nil, notWiredBackend("Signal", backend)
 	}
 	if err := h.deps.WorkflowAdapter.Signal(ctx, temporal.SignalRequest{
 		WorkflowID: req.GetWorkflowId(),
@@ -304,9 +309,6 @@ func (h *workflowHandler) Query(ctx context.Context, req *workflowv1.QueryReques
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
-		if h.deps.DaprAdapter == nil {
-			return nil, notWiredBackend("Query", backend)
-		}
 		resp, err := h.deps.DaprAdapter.Query(ctx, daprwf.QueryRequest{
 			WorkflowID: req.GetWorkflowId(),
 			QueryName:  req.GetQueryName(),
@@ -318,9 +320,6 @@ func (h *workflowHandler) Query(ctx context.Context, req *workflowv1.QueryReques
 			return nil, translateErr(err, "Query")
 		}
 		return &workflowv1.QueryResponse{Result: resp.Result}, nil
-	}
-	if h.deps.WorkflowAdapter == nil {
-		return nil, notWiredBackend("Query", backend)
 	}
 	resp, err := h.deps.WorkflowAdapter.Query(ctx, temporal.QueryRequest{
 		WorkflowID: req.GetWorkflowId(),
@@ -347,9 +346,6 @@ func (h *workflowHandler) Cancel(ctx context.Context, req *workflowv1.CancelRequ
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
-		if h.deps.DaprAdapter == nil {
-			return nil, notWiredBackend("Cancel", backend)
-		}
 		if err := h.deps.DaprAdapter.Cancel(ctx, daprwf.CancelRequest{
 			WorkflowID: req.GetWorkflowId(),
 			Reason:     req.GetReason(),
@@ -359,9 +355,6 @@ func (h *workflowHandler) Cancel(ctx context.Context, req *workflowv1.CancelRequ
 			return nil, translateErr(err, "Cancel")
 		}
 		return &workflowv1.CancelResponse{}, nil
-	}
-	if h.deps.WorkflowAdapter == nil {
-		return nil, notWiredBackend("Cancel", backend)
 	}
 	if err := h.deps.WorkflowAdapter.Cancel(ctx, temporal.CancelRequest{
 		WorkflowID: req.GetWorkflowId(),
@@ -386,9 +379,6 @@ func (h *workflowHandler) Terminate(ctx context.Context, req *workflowv1.Termina
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
-		if h.deps.DaprAdapter == nil {
-			return nil, notWiredBackend("Terminate", backend)
-		}
 		if err := h.deps.DaprAdapter.Terminate(ctx, daprwf.TerminateRequest{
 			WorkflowID: req.GetWorkflowId(),
 			Reason:     req.GetReason(),
@@ -398,9 +388,6 @@ func (h *workflowHandler) Terminate(ctx context.Context, req *workflowv1.Termina
 			return nil, translateErr(err, "Terminate")
 		}
 		return &workflowv1.TerminateResponse{}, nil
-	}
-	if h.deps.WorkflowAdapter == nil {
-		return nil, notWiredBackend("Terminate", backend)
 	}
 	if err := h.deps.WorkflowAdapter.Terminate(ctx, temporal.TerminateRequest{
 		WorkflowID: req.GetWorkflowId(),
@@ -425,9 +412,6 @@ func (h *workflowHandler) GetStatus(ctx context.Context, req *workflowv1.GetStat
 	}
 	backend := h.resolveRoute(req.GetWorkflowId())
 	if backend == workflowv1.WorkflowBackend_BACKEND_DAPR {
-		if h.deps.DaprAdapter == nil {
-			return nil, notWiredBackend("GetStatus", backend)
-		}
 		resp, err := h.deps.DaprAdapter.GetStatus(ctx, daprwf.GetStatusRequest{
 			WorkflowID: req.GetWorkflowId(),
 			// NFR-E-AC-003。
@@ -440,9 +424,6 @@ func (h *workflowHandler) GetStatus(ctx context.Context, req *workflowv1.GetStat
 			Status: workflowv1.WorkflowStatus(resp.Status),
 			RunId:  resp.RunID,
 		}, nil
-	}
-	if h.deps.WorkflowAdapter == nil {
-		return nil, notWiredBackend("GetStatus", backend)
 	}
 	resp, err := h.deps.WorkflowAdapter.GetStatus(ctx, temporal.GetStatusRequest{
 		WorkflowID: req.GetWorkflowId(),

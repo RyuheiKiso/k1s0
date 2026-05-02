@@ -1,0 +1,40 @@
+# =============================================================================
+# k1s0-tenant realm（外部テナント向け）
+#
+# 用途: tier3-web-portal / tier3-native-hub にアクセスする顧客テナントの認証。
+#       テナント間隔離は Identity Provider 層で実施し、realm 内部での Group
+#       管理（Group Policy）でテナント X のユーザは Group X のみに所属させる。
+#
+# 重要: k1s0-internal realm とは cross-auth 厳禁。
+# =============================================================================
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: k1s0-tenant
+  namespace: k1s0-security
+spec:
+  keycloakCRName: keycloak
+  realm:
+    realm: k1s0-tenant
+    enabled: true
+    displayName: "k1s0 Tenant (Customer Authentication)"
+    sslRequired: external
+    accessTokenLifespan: 1800
+    ssoSessionIdleTimeout: 3600
+    ssoSessionMaxLifespan: 28800
+    bruteForceProtected: true
+    failureFactor: 5
+    permanentLockout: false
+    waitIncrementSeconds: 60
+    eventsEnabled: true
+    eventsListeners:
+      - jboss-logging
+    adminEventsEnabled: true
+    adminEventsDetailsEnabled: true
+    registrationAllowed: false
+    rememberMe: true
+    resetPasswordAllowed: true
+    verifyEmail: true
+    passwordPolicy: "length(10) and digits(1) and upperCase(1) and lowerCase(1) and notUsername"
+    requiredCredentials:
+      - password

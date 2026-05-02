@@ -27,8 +27,11 @@ use k1s0_sdk_proto::k1s0::tier1::audit::v1::audit_service_server::AuditServiceSe
 // 共通 HealthService 実装。
 use k1s0_tier1_health::Service as HealthSvc;
 // store / server 層（lib.rs 経由）。
+use k1s0_tier1_audit::archive::{ArchiveSink, InMemoryArchiveSink};
+use k1s0_tier1_audit::retention_loop::{self, RetentionLoopConfig};
 use k1s0_tier1_audit::server::AuditServer;
 use k1s0_tier1_audit::store::{AuditStore, InMemoryAuditStore};
+use k1s0_tier1_audit::verify_loop::{self, VerifyLoopConfig};
 // 共通 idempotency cache（共通規約 §「冪等性と再試行」）。
 use k1s0_tier1_common::idempotency::{IdempotencyCache, InMemoryIdempotencyCache};
 // 共通 gRPC interceptor Layer（auth / ratelimit / observability / audit auto-emit）。
@@ -68,6 +71,10 @@ async fn shutdown_signal() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // DS-SW-COMP-109: 起動直後に共通 OTel 初期化を行う。OTEL_EXPORTER_OTLP_ENDPOINT が
+    // 設定済なら OTLP gRPC exporter で Collector 直送、未設定なら fmt layer のみ。
+    // Guard は main 関数の生存期間中保持し、return 時に Drop で flush + shutdown される。
+    let _otel_guard = k1s0_tier1_otel::init("t1-audit", "k1s0-tier1");
     let listen = listen_addr();
     let addr = listen.parse()?;
     eprintln!("tier1/audit: gRPC server listening on {}", listen);
@@ -95,7 +102,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 共通規約 §「冪等性と再試行」: 24h TTL（既定）の重複抑止 cache を有効化。
     let idempotency: Arc<dyn IdempotencyCache> =
         Arc::new(InMemoryIdempotencyCache::new(std::time::Duration::ZERO));
-    let server = AuditServer { store, idempotency };
+    let server = AuditServer {
+        store: store.clone(),
+        idempotency,
+    };
+
+    // FR-T1-AUDIT-003: warm→cold 移行 + cold→expired 削除を担う retention task を起動する。
+    // production の MinIO 結線は post-MVP（aws-sdk-s3 越しの ArchiveSink 実装で別 PR）、
+    // release-initial では in-memory sink で機構（tenant 列挙 → 移行 → 削除 audit 発火）を
+    // 実動作させ、Postgres backed warm 層と組合わせて単 Pod 内で完結する。
+    // K1S0_AUDIT_RETENTION_DISABLED=true で task 起動を抑止できる（test / 単体検証）。
+    let retention_handle = if retention_loop::is_disabled(|k| std::env::var(k).ok()) {
+        eprintln!("tier1/audit: retention loop disabled (K1S0_AUDIT_RETENTION_DISABLED=true)");
+        None
+    } else {
+        let cfg = RetentionLoopConfig::from_env(|k| std::env::var(k).ok());
+        let sink: Arc<dyn ArchiveSink> = Arc::new(InMemoryArchiveSink::new());
+        eprintln!(
+            "tier1/audit: retention loop started (interval={:?}, max_per_tier={})",
+            cfg.interval, cfg.max_per_tier
+        );
+        Some(retention_loop::spawn(store.clone(), sink, cfg))
+    };
+
+    // FR-T1-AUDIT-002: 日次の hash chain 整合性検証 task を起動する。
+    // 不整合を検出すると ALERT ログを stderr に出し、外部監視（Grafana log alerting）で
+    // ピックアップされる前提。verify_chain_detail("", None, None) でグローバル走査するため、
+    // 1 テナント × 1 日分どころか全テナント全期間の検証を 1 pass で完了する（NFR-A-SLA 想定の
+    // 規模では 5 分以内に収まる、In-Memory 経路は秒未満）。
+    // K1S0_AUDIT_VERIFY_DISABLED=true で task 起動を抑止できる。
+    let verify_handle = if verify_loop::is_disabled(|k| std::env::var(k).ok()) {
+        eprintln!("tier1/audit: verify_chain loop disabled (K1S0_AUDIT_VERIFY_DISABLED=true)");
+        None
+    } else {
+        let cfg = VerifyLoopConfig::from_env(|k| std::env::var(k).ok());
+        eprintln!(
+            "tier1/audit: verify_chain loop started (interval={:?})",
+            cfg.interval
+        );
+        Some(verify_loop::spawn(store.clone(), cfg))
+    };
     // gRPC Server Reflection（Go Pod 側の reflection.Register と機能等価）。
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
@@ -154,6 +200,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(h) = http_handle {
         h.abort();
     }
+    if let Some(h) = retention_handle {
+        h.abort();
+    }
+    if let Some(h) = verify_handle {
+        h.abort();
+    }
     Ok(())
 }
 
@@ -206,8 +258,8 @@ mod tests {
             .unwrap()
             .into_inner();
         assert!(!resp.audit_id.is_empty());
-        // SHA-256 hex は 64 文字。
-        assert_eq!(resp.audit_id.len(), 64);
+        // FR-T1-AUDIT-001: SHA-256 を URL-safe base64（padding なし）で表現 → 43 文字。
+        assert_eq!(resp.audit_id.len(), 43);
     }
 
     #[tokio::test]

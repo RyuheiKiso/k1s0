@@ -46,19 +46,20 @@ examples/
 
 | example | リリース時点 | 採用初期 |
 |---|---|---|
-| tier1-rust-service | 最小実装 | 完動 |
-| tier1-go-facade | 最小実装 | 完動 |
-| tier3-web-portal | 最小実装 | 完動 |
-| tier2-dotnet-service | README のみ | 完動 |
-| tier2-go-service | README のみ | 完動 |
-| tier3-bff-graphql | README のみ | 完動 |
-| tier3-native-maui | README のみ | 完動 |
+| tier1-rust-service | 最小実装 (health stdout 1 行) | 完動 (tonic gRPC server / ZEN Engine 統合) |
+| tier1-go-facade | 最小完動 (gRPC server + health protocol + reflection + graceful shutdown) | 完動 (proto handler 登録 / Dapr Go SDK adapter / OTel interceptor) |
+| tier3-web-portal | 最小完動 (Vite + React + 1 page) | 完動 (TanStack Query / Apollo / i18n) |
+| tier2-dotnet-service | 最小完動 (ASP.NET Core minimal API + JWT + tier1 SDK State.Save) | 完動 (Pact 契約テスト / マルチテナント拡張) |
+| tier2-go-service | 最小完動 (HTTP + JWT + tier1 SDK State.Save) | 完動 (Pact 契約テスト / OutBox / Saga) |
+| tier3-bff-graphql | 最小完動 (HTTP GraphQL + tier1 SDK State.Get) | 完動 (gqlgen / DataLoader / persisted queries) |
+| tier3-native-maui | 最小完動 (MAUI App + ViewModel + tier1 SDK State 呼出) | 完動 (Windows / MacCatalyst 追加 / Native gRPC) |
 
-リリース時点で「README のみ」のものは、採用組織の POC で完動が必要になった時点で
-組織側が完成させる前提（Golden Path として参照可能な構造のみを提供する）。
+リリース時点で「最小完動」と分類されるものは、`go run` / `cargo run` / `dotnet run` / `pnpm dev`
+で起動でき、tier1 facade に対し最小 1 endpoint で疎通する。Pact / gqlgen / OTel interceptor /
+multi-tenant 拡張等は採用初期で順次拡張される。
 
 ## 関連 ADR / 要件
 
 - ADR-DEV-001（Paved Road）
-- ADR-DEVEX-004（Golden Path 採用）
+- ADR-DEV-001（Golden Path 採用）
 - DX-GP-* 系要件（Developer Experience / Golden Path）

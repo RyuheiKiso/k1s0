@@ -6,7 +6,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: flagd-config
-  namespace: flagd
+  namespace: k1s0-platform-tools
 data:
   flags.json: |
     {
@@ -25,7 +25,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: flagd
-  namespace: flagd
+  namespace: k1s0-platform-tools
   labels:
     app: flagd
     k1s0.io/component: flagd
@@ -47,12 +47,26 @@ spec:
                 matchLabels:
                   app: flagd
               topologyKey: kubernetes.io/hostname
+      # PodSecurity admission `restricted:latest` を満たすため、Pod レベルで
+      # runAsNonRoot / seccompProfile を設定する。container 側でも capabilities drop と
+      # allowPrivilegeEscalation:false を設定する（admission 上必須）。
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: flagd
-          image: ghcr.io/open-feature/flagd:v0.11.6
+          # flagd v0.12.x で evaluation/v2 API が追加された。tier1 facade は
+          # OpenFeature go-sdk-contrib flagd provider v0.5.1+ を使い v2 を要求するため、
+          # v0.11.x の支配下では provider 初期化が `HTTP status 404 Not Found` で失敗する。
+          image: ghcr.io/open-feature/flagd:v0.12.8
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           args:
             - "start"
             - "--uri"
@@ -94,7 +108,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: flagd
-  namespace: flagd
+  namespace: k1s0-platform-tools
   labels:
     app: flagd
     k1s0.io/component: flagd

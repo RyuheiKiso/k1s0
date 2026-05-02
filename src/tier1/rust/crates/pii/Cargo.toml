@@ -5,9 +5,11 @@
 #     - DS-SW-COMP-009（t1-pii Pod、純関数 / ステートレス / 副作用なし）
 #   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/10_Audit_Pii_API.md（PiiService 部）
 #
-# 役割（リリース時点 最小骨格）:
-#   tonic server を :50001 で起動し PiiService（Classify / Mask）を登録する。
-#   全 RPC は Status::unimplemented を返却。実 PII 検出ロジック実装は plan 04-10。
+# 役割:
+#   tonic server を :50001 で起動し PiiService（Classify / Mask / Pseudonymize）を登録する。
+#   regex ベースの PII 検出 / マスキングと、HMAC-SHA256 ベースの決定論的仮名化を
+#   提供する純関数 Pod（DS-SW-COMP-009 通り）。Pod 内 state は Lazy 初期化された
+#   regex ruleset のみ。
 
 [package]
 name = "k1s0-tier1-pii"
@@ -30,6 +32,8 @@ k1s0-sdk-proto = { workspace = true }
 k1s0-tier1-health = { workspace = true }
 # 共通 interceptor / runtime helper。
 k1s0-tier1-common = { workspace = true }
+# DS-SW-COMP-109: tracing-subscriber + OTLP 共通初期化。
+k1s0-tier1-otel = { workspace = true }
 # HTTP gateway 実装の async_trait デシュガー（JsonRpc trait impl 用）。
 async-trait = "0.1"
 # JsonRpc 戻り値の JSON 値型。
@@ -43,6 +47,11 @@ prost = { workspace = true }
 regex = "1"
 # 静的コンパイル regex の遅延初期化（lazy_static の後継、Rust 標準 LazyLock の代替）。
 once_cell = "1"
+# FR-T1-PII-002: 仮名化（HMAC-SHA256）。
+hmac = "0.12"
+sha2 = "0.10"
+# 仮名化結果の URL-safe base64 エンコード。
+base64 = "0.22"
 tonic-reflection = "0.12"
 
 # crate にライブラリも公開する（main.rs から masker module を参照、

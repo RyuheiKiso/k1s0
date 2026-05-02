@@ -1,0 +1,24 @@
+# tier1-feature Dapr app の Kafka 認証 User。feature-updates topic の consume のみ。
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: tier1-feature
+  namespace: k1s0-data
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+spec:
+  authentication:
+    type: tls
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: feature-updates
+          patternType: literal
+        operations: [Read, Describe]
+      - resource:
+          type: group
+          name: k1s0-tier1-feature
+          patternType: prefix
+        operations: [Read]

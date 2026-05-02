@@ -124,6 +124,24 @@ export declare class K1s0Client {
                 readonly O: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").RotateSecretResponse;
                 readonly kind: import("@bufbuild/protobuf").MethodKind.Unary;
             };
+            readonly encrypt: {
+                readonly name: "Encrypt";
+                readonly I: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").EncryptRequest;
+                readonly O: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").EncryptResponse;
+                readonly kind: import("@bufbuild/protobuf").MethodKind.Unary;
+            };
+            readonly decrypt: {
+                readonly name: "Decrypt";
+                readonly I: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").DecryptRequest;
+                readonly O: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").DecryptResponse;
+                readonly kind: import("@bufbuild/protobuf").MethodKind.Unary;
+            };
+            readonly rotateKey: {
+                readonly name: "RotateKey";
+                readonly I: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").RotateKeyRequest;
+                readonly O: typeof import("./proto/k1s0/tier1/secrets/v1/secrets_service_pb.js").RotateKeyResponse;
+                readonly kind: import("@bufbuild/protobuf").MethodKind.Unary;
+            };
         };
     }>;
 }

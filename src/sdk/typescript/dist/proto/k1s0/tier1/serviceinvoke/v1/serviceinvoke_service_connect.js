@@ -42,6 +42,7 @@ export const InvokeService = {
         },
         /**
          * ストリーミング呼出（大容量応答や段階出力のため、サーバ → クライアントの単方向ストリーム）
+         * server-streaming のため HTTP/JSON gateway 経由非対応（gRPC で直接呼出す運用）。
          *
          * @generated from rpc k1s0.tier1.serviceinvoke.v1.InvokeService.InvokeStream
          */

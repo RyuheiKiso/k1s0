@@ -1,18 +1,20 @@
 # =============================================================================
-# infra/data/kafka/kustomization.yaml
+# infra/data/kafka/
 #
-# Strimzi Kafka の Kafka / KafkaNodePool CR（KRaft、HA 3 broker）を上位 overlay
-# から「ディレクトリ参照」可能にするための kustomize base。
-#
+# Strimzi Kafka の operator + cluster + topics + users + mirror-maker を分離管理。
 # Strimzi operator 本体は Helm values（同階層 `strimzi-values.yaml`）で別途
 # デプロイされる前提。dev / staging overlay は `patches/` で broker 1〜2 / storage
 # 50Gi に縮退する。
 #
 # 関連設計:
+#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/05_データ層配置.md
 #   docs/02_構想設計/adr/ADR-DATA-002-kafka.md
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - kafka-cluster.yaml
+  - operator
+  - cluster
+  - topics
+  - users
+  - mirror-maker

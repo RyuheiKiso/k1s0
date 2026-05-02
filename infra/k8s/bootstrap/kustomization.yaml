@@ -1,15 +1,23 @@
 # =============================================================================
-# infra/k8s/bootstrap/kustomization.yaml
+# infra/k8s/bootstrap — kubeadm 直後に必要な最小 stack
 #
-# Cluster API + KubeadmControlPlane（HA 3）等のブートストラップリソース。
-# kubeadm-init-config.yaml は ClusterConfiguration（kubeadm 用設定）であり
-# 通常 `kubectl apply` では適用しないため、適用可能なものは cluster-api.yaml のみ。
+# kubeadm-init-config.yaml は kubeadm CLI 専用（`kubeadm init --config <file>`）で
+# kubectl apply の対象ではないため、本 kustomization の resources から外す。
 #
-# 関連設計:
-#   docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/02_k8sブートストラップ.md
+# 適用順:
+#   0. kubeadm init --config kubeadm-init-config.yaml （手動 / ops/scripts/...）
+#   1. cilium/      — CNI（kube-proxy 不在の状態を解消）
+#   2. coredns/     — Corefile を k1s0 zone 対応に書き換え
+#   3. cert-manager-crd/ — CRD のみ先行 install（本体は infra/security/cert-manager/）
+#   4. cluster-api.yaml — Cluster API + KubeadmControlPlane（CAPI 経由 cluster 拡張時）
+#
+# Argo CD は CRD 揃った後でないと sync できないため、本 stage は
+# ops/scripts/bootstrap-cluster.sh が `kubectl apply -k` で同期適用する。
 # =============================================================================
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
   - cluster-api.yaml
+  - cilium
+  - coredns
+  - cert-manager-crd

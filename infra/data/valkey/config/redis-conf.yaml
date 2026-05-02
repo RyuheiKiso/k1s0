@@ -1,0 +1,22 @@
+# Valkey 共通 redis.conf 上書き（ConfigMap 経由で全 node に注入）。
+# bitnami/valkey-cluster Helm chart は spec.commonConfiguration から参照する。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valkey-shared-config
+  namespace: k1s0-data
+data:
+  shared.conf: |
+    # k1s0 共通設定。Cluster mode の必須項目 + 性能チューニング。
+    cluster-enabled yes
+    cluster-require-full-coverage no
+    cluster-allow-reads-when-down yes
+    appendonly yes
+    appendfsync everysec
+    maxmemory-policy allkeys-lru
+    # tier3 セッションキャッシュ前提で 4GB のメモリ上限（resources.limits 未満に揃える）
+    maxmemory 1gb
+    # Pub/Sub は Dapr 経由のみ、direct subscribe は禁止
+    notify-keyspace-events ""
+    # 監視メトリクス（Prometheus exporter が pickup）
+    latency-monitor-threshold 100

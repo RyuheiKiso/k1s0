@@ -13,9 +13,13 @@ tier2 ドメイン共通サービスの .NET 8 / Clean Architecture 構造を示
 
 | 段階 | 提供範囲 |
 |---|---|
-| リリース時点 | 本 README のみ（構造規定） |
-| 採用初期 | `Example.Payroll.sln` + 4 プロジェクト + 最小ハンドラ + Pact 契約テスト |
+| リリース時点 | 最小完動: `Program.cs` (ASP.NET Core minimal API + JWT 認証 + tier1 SDK State.Save) + `ExampleDotnetService.csproj` + `Dockerfile` + `catalog-info.yaml` + `appsettings.json` |
+| 採用初期 | `Example.Payroll.sln` + 4 プロジェクト分離 (Api / Application / Domain / Infrastructure) + Pact 契約テスト |
 | 採用後の運用拡大時 | マルチテナント拡張・OutBox パタン・Saga（Dapr Workflow） |
+
+`dotnet run --project ExampleDotnetService.csproj` で起動できる。
+`/healthz` `/readyz` (認証不要) と `/sample-write` (`Authorization: Bearer ...` 必須、
+`T2_AUTH_MODE=off/hmac/jwks` で切替) を露出する。
 
 ## 想定構成（採用初期）
 

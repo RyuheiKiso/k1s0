@@ -67,6 +67,58 @@ func (l *LogClient) Debug(ctx context.Context, body string, attrs map[string]str
 	return l.Send(ctx, SeverityDebug, body, attrs)
 }
 
+// LogEntryInput は BulkSend の 1 件分の入力（SDK 利用者向け、proto LogEntry の薄ラッパ）。
+type LogEntryInput struct {
+	// 重大度（OTel SeverityNumber）。
+	Severity Severity
+	// 発生時刻。zero なら呼出時刻（UTC）が自動設定される。
+	Timestamp time.Time
+	// 本文。
+	Body string
+	// 構造化属性（OTel attributes）。
+	Attributes map[string]string
+}
+
+// BulkSendResult は BulkSend RPC の応答を SDK 利用者向けに整理した型。
+type BulkSendResult struct {
+	// 受理件数（OTel パイプラインに渡された件数）。
+	Accepted int32
+	// 拒否件数（PII フィルタや schema 違反で却下された件数）。
+	Rejected int32
+}
+
+// BulkSend は LogEntry の一括送信（FR-T1-LOG-* 共通、Send の高スループット版）。
+// 各 entry の Timestamp が zero なら呼出時刻を自動設定する。
+func (l *LogClient) BulkSend(ctx context.Context, entries []LogEntryInput) (BulkSendResult, error) {
+	// proto LogEntry 列を構築する。
+	now := time.Now().UTC()
+	pe := make([]*logv1.LogEntry, 0, len(entries))
+	for _, e := range entries {
+		// Timestamp 補完: zero は呼出時刻に置換する。
+		ts := e.Timestamp
+		if ts.IsZero() {
+			ts = now
+		}
+		pe = append(pe, &logv1.LogEntry{
+			Timestamp:  timestamppb.New(ts.UTC()),
+			Severity:   e.Severity,
+			Body:       e.Body,
+			Attributes: e.Attributes,
+		})
+	}
+	// proto Request を構築する。
+	req := &logv1.BulkSendLogRequest{
+		Entries: pe,
+		Context: l.client.tenantContext(ctx),
+	}
+	// 生成 stub 経由で RPC 呼び出し。
+	resp, err := l.client.raw.Log.BulkSend(ctx, req)
+	if err != nil {
+		return BulkSendResult{}, err
+	}
+	return BulkSendResult{Accepted: resp.GetAccepted(), Rejected: resp.GetRejected()}, nil
+}
+
 // tenantContext は ctx に WithTenant で attach された per-request override を優先し、
 // 未 attach の場合は client.cfg を fallback として TenantContext proto を構築する。
 //

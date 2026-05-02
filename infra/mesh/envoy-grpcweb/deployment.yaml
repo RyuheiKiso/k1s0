@@ -1,26 +1,19 @@
+# 本ファイルは k1s0-tier1 namespace に envoy-grpcweb プロキシを deploy する。
+# tier3 web (TS SDK / connect-es) → envoy-grpcweb → tier1 facade の grpc-web 翻訳経路。
+# 設計: docs/02_構想設計/01_アーキテクチャ/、SHIP_STATUS F2 検証で kind 環境向けに整備。
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    deployment.kubernetes.io/revision: "1"
-      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"envoy-grpcweb","k1s0.io/component":"grpcweb-proxy"},"name":"envoy-grpcweb","namespace":"k1s0-tier1"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"envoy-grpcweb"}},"template":{"metadata":{"labels":{"app":"envoy-grpcweb","k1s0.io/component":"grpcweb-proxy"}},"spec":{"containers":[{"args":["-c","/etc/envoy/envoy.yaml","--log-level","warn"],"image":"envoyproxy/envoy:v1.32.1","name":"envoy","ports":[{"containerPort":8080,"name":"http"}],"resources":{"limits":{"cpu":"200m","memory":"256Mi"},"requests":{"cpu":"50m","memory":"64Mi"}},"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}},"volumeMounts":[{"mountPath":"/etc/envoy","name":"cfg","readOnly":true}]}],"volumes":[{"configMap":{"name":"envoy-grpcweb-config"},"name":"cfg"}]}}}}
+  name: envoy-grpcweb
+  namespace: k1s0-tier1
   labels:
     app: envoy-grpcweb
     k1s0.io/component: grpcweb-proxy
-  name: envoy-grpcweb
-  namespace: k1s0-tier1
 spec:
-  progressDeadlineSeconds: 600
   replicas: 1
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: envoy-grpcweb
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -28,17 +21,17 @@ spec:
         k1s0.io/component: grpcweb-proxy
     spec:
       containers:
-      - args:
+      - name: envoy
+        image: envoyproxy/envoy:v1.32.1
+        imagePullPolicy: IfNotPresent
+        args:
         - -c
         - /etc/envoy/envoy.yaml
         - --log-level
         - warn
-        image: envoyproxy/envoy:v1.32.1
-        imagePullPolicy: IfNotPresent
-        name: envoy
         ports:
-        - containerPort: 8080
-          name: http
+        - name: http
+          containerPort: 8080
           protocol: TCP
         resources:
           limits:
@@ -56,35 +49,11 @@ spec:
           runAsUser: 65532
           seccompProfile:
             type: RuntimeDefault
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
         volumeMounts:
-        - mountPath: /etc/envoy
-          name: cfg
+        - name: cfg
+          mountPath: /etc/envoy
           readOnly: true
-      dnsPolicy: ClusterFirst
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30
       volumes:
-      - configMap:
-          defaultMode: 420
+      - name: cfg
+        configMap:
           name: envoy-grpcweb-config
-        name: cfg
-  availableReplicas: 1
-  conditions:
-  - lastTransitionTime: "2026-04-30T09:27:03Z"
-    lastUpdateTime: "2026-04-30T09:27:03Z"
-    message: Deployment has minimum availability.
-    reason: MinimumReplicasAvailable
-    type: Available
-  - lastTransitionTime: "2026-04-30T09:26:55Z"
-    lastUpdateTime: "2026-04-30T09:27:03Z"
-    message: ReplicaSet "envoy-grpcweb-657f5d86cb" has successfully progressed.
-    reason: NewReplicaSetAvailable
-    type: Progressing
-  observedGeneration: 1
-  readyReplicas: 1
-  replicas: 1
-  updatedReplicas: 1

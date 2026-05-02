@@ -1,0 +1,44 @@
+# =============================================================================
+# Kubernetes auth method（Pod の Service Account JWT を OpenBao token に変換）
+#
+# Init Job（plan 04-XX）が `bao auth enable kubernetes` + `bao write auth/kubernetes/
+# config token_reviewer_jwt=...` を実行する。本 ConfigMap は Init Job 入力。
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openbao-auth-kubernetes
+  namespace: k1s0-security
+data:
+  config.json: |
+    {
+      "auth_method": "kubernetes",
+      "config": {
+        "kubernetes_host": "https://kubernetes.default.svc.cluster.local:443",
+        "kubernetes_ca_cert": "@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+        "token_reviewer_jwt": "@/var/run/secrets/kubernetes.io/serviceaccount/token"
+      },
+      "roles": [
+        {
+          "name": "tier1-facade",
+          "bound_service_account_names": ["tier1-facade"],
+          "bound_service_account_namespaces": ["k1s0-tier1"],
+          "policies": ["tier1-facade"],
+          "ttl": "1h"
+        },
+        {
+          "name": "tier2-service",
+          "bound_service_account_names": ["tier2-*"],
+          "bound_service_account_namespaces": ["k1s0-tier2"],
+          "policies": ["tier2-service"],
+          "ttl": "1h"
+        },
+        {
+          "name": "tier3-bff",
+          "bound_service_account_names": ["tier3-bff"],
+          "bound_service_account_namespaces": ["k1s0-tier3"],
+          "policies": ["tier3-bff"],
+          "ttl": "1h"
+        }
+      ]
+    }
