@@ -31,7 +31,7 @@ curl -X POST http://localhost:3500/v1.0/state/k1s0-state \
   -d '[{"key": "test", "value": "v"}]'
 
 # pub-sub
-curl -X POST http://localhost:3500/v1.0/publish/k1s0-pubsub/orders \
+curl -X POST http://localhost:3500/v1.0/publish/kafka-pubsub/orders \
   -H 'Content-Type: application/json' \
   -d '{"orderId":"123"}'
 

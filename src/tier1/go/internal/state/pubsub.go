@@ -13,6 +13,8 @@ import (
 	"context"
 	// BulkPublish entry 失敗時の error_code 整形用。
 	"fmt"
+	// 環境変数で Dapr Component 名を上書きするため。
+	"os"
 	// topic 形式検証用の事前コンパイル正規表現。
 	"regexp"
 	// FR-T1-PUBSUB-001 「published_at」自動付与で RFC 3339 タイムスタンプを生成する。
@@ -46,6 +48,24 @@ var pubsubTopicRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 // 1 MiB（1_048_588 バイト）相当のため、handler 段でこの値で弾いて Kafka 側で
 // rejected を発生させない。
 const pubsubMaxEventBytes = 1 * 1024 * 1024
+
+// pubsubDefaultComponent は Dapr Component の既定 name。
+// docs/05_実装/00_ディレクトリ設計/50_infraレイアウト/04_Dapr_Component配置.md の正典
+// `name: kafka-pubsub` に整合する。本環境変数で上書き可能（K1S0_PUBSUB_COMPONENT）。
+//
+// 旧実装は `pubsub-kafka` をハードコードしていたため、Component name と齟齬があり実
+// クラスタで `pubsub pubsub-kafka is not found` で Publish が失敗していた。
+const pubsubDefaultComponent = "kafka-pubsub"
+
+// pubsubComponentName は実行時に Dapr Component name を解決する。
+// 環境変数 K1S0_PUBSUB_COMPONENT が空でなければそれを使い、空なら docs 正典の
+// `kafka-pubsub` にフォールバックする。Pod 起動時に flag/env 経由で上書きしやすい。
+func pubsubComponentName() string {
+	if v := os.Getenv("K1S0_PUBSUB_COMPONENT"); v != "" {
+		return v
+	}
+	return pubsubDefaultComponent
+}
 
 // pubsubMetaKeyEventID / TraceID / PublishedAt / TenantID は FR-T1-PUBSUB-001 で
 // tier1 が自動付与する metadata キー名。subscriber 側 SDK は同名キーを取り出す。
@@ -187,7 +207,7 @@ func (h *pubsubHandler) Publish(ctx context.Context, req *pubsubv1.PublishReques
 	// 実 Publish 実行クロージャ。idempotency cache hit 時は呼ばれない。
 	doPublish := func() (interface{}, error) {
 		areq := dapr.PublishRequest{
-			Component:      "pubsub-kafka",
+			Component:      pubsubComponentName(),
 			Topic:          req.GetTopic(),
 			Data:           req.GetData(),
 			ContentType:    req.GetContentType(),
@@ -269,7 +289,7 @@ func (h *pubsubHandler) BulkPublish(ctx context.Context, req *pubsubv1.BulkPubli
 		// tenant_id を自動付与する（entry ごとに event_id は別 UUID v7）。
 		entMeta := enrichPubSubMetadata(ctx, entry.GetMetadata(), entTid)
 		areq := dapr.PublishRequest{
-			Component:      "pubsub-kafka",
+			Component:      pubsubComponentName(),
 			Topic:          topic,
 			Data:           entry.GetData(),
 			ContentType:    entry.GetContentType(),
@@ -315,7 +335,7 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 	}
 	ctx := stream.Context()
 	sub, err := h.deps.PubSubAdapter.Subscribe(ctx, dapr.SubscribeAdapterRequest{
-		Component:     "pubsub-kafka",
+		Component:     pubsubComponentName(),
 		Topic:         req.GetTopic(),
 		ConsumerGroup: req.GetConsumerGroup(),
 		TenantID:      tid,
