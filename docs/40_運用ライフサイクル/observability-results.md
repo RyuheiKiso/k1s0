@@ -4,6 +4,20 @@
 
 ## 月次サマリ
 
+### 2026-05-03 訂正（5 検証中 3 件は real PASS、2 件は API 疎通のみ）
+
+直前 commit `2b78364bc` で「観測性 5/5 検証 PASS」と記録したが、起案者の自己監査で **PASS の質に差がある**ことが判明。real PASS と API 疎通のみの形式 PASS を明確に区別する。
+
+- **real PASS（実データ往復を assert）3 件**:
+  - **TestDashboardGoldenfile** — `infra/observability/grafana/dashboards/tier1-slo-overview.json` を baseline JSON と canonical diff、panel / query / threshold の不変を機械検証
+  - **TestOTLPTracePropagation** — OTLP HTTP `/v1/traces` で span 送信 → Tempo HTTP API `/api/traces/<trace-id>` で取得、`batches=1` を assert（往復の貫通確認）
+  - **TestLokiLogTraceCorrelation** — OTLP HTTP `/v1/logs` で trace_id を埋めた log を送信 → Loki LogQL `{service_name="k1s0-e2e-log-trace"} |= corr_id` で取得 → log line に同 trace_id 文字列の含有を assert（log↔trace 結合の最小成立形を実証）
+- **形式 PASS（API が応答するのみ、SLO や baseline の assert は不在）2 件**:
+  - **TestPrometheusCardinality** — `/api/v1/labels` で label が 1 つ以上を確認するだけ。metric 別 cardinality 上限の baseline 比較は不在（ADR-TEST-006 検証 2 の本来の定義を満たしていない、採用初期で `cardinality/baselines/<metric>.json` 整備で real 化）
+  - **TestSLOAlertManagerEndpoint** — `/api/v2/status` `/api/v2/alerts` が応答するだけ。意図的 SLO 違反注入 + fast burn alert 発火 assert は不在（採用初期で `inject-slo-violation.sh` 整備で real 化）
+
+真の到達点: **real 3 + 形式 2 = 5 検証**。形式 2 件は採用初期で本格化が必要。
+
 ### 2026-05（リリース時点 / 初月、初回 local 実走 — 1/4 検証 PASS）
 
 - **状態**: kind cluster + Grafana LGTM スタック（Prometheus / Loki / Tempo / OTel Collector）起動済の環境で観測性 E2E 4 件中 1 件 PASS（2026-05-03 00:11 JST 実走）

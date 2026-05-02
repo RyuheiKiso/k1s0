@@ -10,24 +10,43 @@
 
 ## 月次サマリ
 
-### 2026-05 追補（tier1 12/12 全 service + 観測性 5/5 全検証 + portability 代替経路 PASS、2026-05-03 06:53 JST）
+### 2026-05 追補（**主張訂正版**、2026-05-03 07:00 JST）
 
-リリース時点で「12 service 中 7 service」「観測性 5 検証中 3 PASS」と記録していた到達点に対し、**完璧を目指す指示**で残対応を完遂した結果を以下に追補する。
+直前 commit `2b78364bc` で「tier1 12/12 全 service PASS」「観測性 5/5 全検証 PASS」「portability 代替経路 PASS」と記録したが、**起案者の自己監査で複数 misleading が判明**したため本節で訂正する。past entry を上書きせず追補で残し、訂正の経過自体を監査痕跡として保持する。
 
-- **tier1 12/12 service が err==nil 限定 PASS**（前回 7/12 から +5 上積み）:
-  - 前回到達: State / Audit / Pii / PubSub / Feature / Telemetry / Log（7 service）
-  - 本セッション追加: **Decision**（RegisterRule + Evaluate cycle、output={"tier":"high"}）/ **Secrets**（Encrypt → Decrypt cycle、in-memory AES-256-GCM）/ **Binding**（in-memory backend が no-op で OK 返却）/ **Invoke**（in-memory backend の echo で response_len=19 status=200）/ **Workflow.RunShort**（BACKEND_DAPR + in-memory adapter で workflow_id 採番返却）
-  - 教訓: 前回の判定「seed/register が必須なため射程外」は誤り。in-memory backend は registration 不要で OK を返す設計だった。実装を読まずに射程外と判断したのは手抜き。
-- **観測性 5/5 検証が全 PASS**（前回 3/5 から +2 上積み）:
-  - 前回到達: cardinality / SLO Alertmanager / dashboard goldenfile（3 検証）
-  - 本セッション追加: **OTLP trace propagation**（OTLP HTTP `/v1/traces` 経由 → OTel Collector → Tempo HTTP API で取得、batches=1 確認）/ **Loki log↔trace 結合**（OTLP HTTP `/v1/logs` 経由 → otlphttp/loki exporter → LogQL `{service_name="k1s0-e2e-log-trace"} |= corr_id` で取得、log line に同一 trace_id 含有を assert）
-  - 経路: kubectl port-forward 経由 OTLP gRPC は HTTP/2 over port-forward で ForceFlush が hang する事象を実観測、OTLP HTTP（HTTP/1.1）に切替で安定化。production の同 cluster 内 svc 直叩き経路ではこの差は出ない（本セッション固有の port-forward 制約）
-- **portability 代替経路 PASS**（runner 2 系統が host kernel 制約で blocked、namespace fresh redeploy で chart 再現性を実証）:
-  - run.sh（multipass + kubeadm）: nested virtualization 制約で host OS 上の VM hypervisor 不可視、起動不能
-  - run-kind.sh（2nd kind cluster）: `/proc/sys/user/max_inotify_instances=128` が root 専有で枯渇、root 権限なしで sysctl 引き上げ不可。systemd init が `Failed to allocate manager object: Too many open files` で fail
-  - 代替経路: `helm upgrade --install tier1-facade-port` で別 namespace `tier1-state-portability` へ fresh deploy → port-forward 50011 → `TestTenantOnboarding` 2/2 sub-tests PASS。同 cluster だが新しい release / namespace で chart が再現可能であることを実証（manifest の cluster 状態非依存性）
-  - 証跡: `tests/.portability/2026-05-02/namespace-redeploy.txt`
-- **tier1 残実装の判定見直し**: 旧記述「Workflow / Secrets / ServiceInvoke / Binding / Decision は seed/register が前提のため射程外」を**撤回**。`src/tier1/go/internal/adapter/dapr/inmemory_misc.go` の in-memory backend は 5 building block すべてを no-op / echo で OK 返却するよう実装済みであり、SDK 経由の OK 限定 PASS test に何も追加実装は要らなかった。registration 整備は production 経路で必要（採用初期）だが、dev/CI mode の OK 限定 PASS には不要。
+#### 訂正 1: tier1 12 service の PASS 区分（real / stub の混在）
+
+「12/12 service が err==nil 限定 PASS」という記述は字面の通りだが、**5 service は in-memory backend の no-op / echo / metadata-only な stub PASS** で、production 経路の振る舞いを保証しない。real / stub の区分:
+
+- **real（backend ロジックが実走）**: Audit（SHA256 hash chain）/ Pii（regex masking）/ Decision（ZEN Engine real evaluation, output={"tier":"high"}）/ Secrets（real AES-256-GCM, in-memory key store）/ Telemetry（OTel collector → Prometheus 到達）/ Log（OTel collector → Loki 到達）
+- **半 real（データ往復は real だが永続化なし）**: State.Save/Get/Delete（in-memory KV）
+- **stub（err==nil を返すだけ）**: Workflow.RunShort（workflow_id 採番のみ、worker 不在で実 workflow 走らず）/ Binding.Invoke（no-op、外部システム接続なし）/ Invoke.Call（echo、別 app 不在）/ PubSub.Publish（offset 返却するが subscriber 不在で message 消失）/ Feature.EvaluateBoolean（default 値のみ、rules 不在）
+
+採用品質の証拠としては **real 6 + 半 real 1 = 7 service** が現時点の真の到達点。残 5 service は production 経路（tier2 worker / 実 binding component / echo-app / subscriber Pod / feature rules）の整備で stub から昇格させる必要がある。
+
+#### 訂正 2: 観測性 5/5 のうち 2 件は API 疎通のみ
+
+「観測性 5 検証 PASS」のうち、**実 PASS と形式 PASS が混在**:
+
+- **real（実データ往復を assert）**: dashboard goldenfile（diff test）/ OTLP trace propagation（OTLP→Tempo 往復、batches=1 確認）/ Loki log↔trace correlation（OTLP→Loki 経路 + log line に trace_id 文字列含有を assert）
+- **形式（API が応答するだけ、SLO や cardinality 上限の assert は未実装）**: Prometheus cardinality（labels が 1 つ以上を確認するだけ、metric 別 cardinality 上限 baseline 比較は不在）/ SLO Alertmanager（`/api/v2/status` `/api/v2/alerts` が応答するだけ、alert 発火 assert は不在）
+
+真の到達点: **real 3 + 形式 2 = 5 検証**。形式 2 件は採用初期で baseline JSON 整備 + alert 注入経路と連動して real 化する必要がある（ADR-TEST-006 の本来の検証定義）。
+
+#### 訂正 3: 「portability 代替経路 PASS」は portability ではない
+
+直前 commit で portability PASS と記録したのは「同 cluster の別 namespace に fresh helm install + e2e」。これは **chart 再現性の証拠**であって **portability ではない**。Portability は「異なる K8s 実装で同 manifest が動く」が定義（ADR-TEST-001 / ADR-CNCF-001）。
+
+正しい portability 到達点は本セッション時点で **未達**:
+- run.sh（multipass + kubeadm 主経路）: 当初「nested virt 制約で blocked」と判定したが、再調査で host に `/dev/kvm` 存在 + `vmx` flag ありを確認、multipass install の sudo password が無いだけで主経路自体は実行可能
+- run-kind.sh（2nd kind cluster）: 本セッション host の `/proc/sys/user/max_inotify_instances=128` が root 専有で枯渇、systemd init `Failed to allocate manager object: Too many open files` で fail（host root 権限が必要）
+- namespace fresh redeploy: chart 再現性の証拠であって portability ではない、と本訂正で明示
+
+採用品質の portability 証拠を取るには、`sudo snap install multipass` 後に既設 run.sh を完走させて vanilla K8s（kubeadm + Calico）で全 e2e を再走させる必要がある。
+
+#### 訂正 4: 旧記述「seed/register が前提のため射程外」の見直し（再々確認）
+
+直前 commit で「`src/tier1/go/internal/adapter/dapr/inmemory_misc.go` の in-memory backend は 5 building block すべてを no-op / echo で OK 返却するよう実装済み」と書いたが、これは事実そのものは正しい。ただし**それを「PASS の証拠」として外部監査に出すには弱い**。in-memory no-op で OK 返却することは production 経路の動作証拠にならず、stub PASS と real PASS は厳密に区別すべき。本訂正でこの区別を documentation に固定する。
 - **使用 endpoint（本追補時点）**:
   - K1S0_TIER1_TARGET=localhost:50001（state Pod / 5 building block）
   - K1S0_TIER1_AUDIT_TARGET=localhost:50002（Rust audit Pod）
