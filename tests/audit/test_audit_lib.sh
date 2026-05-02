@@ -244,6 +244,37 @@ else
   check "orphans-adr.txt ${code_orphan_count} 件 (新規 ADR cite なら起票必要 / lib self-detection なら --exclude-dir=audit 確認)" 1
 fi
 
+# === Test 17: AUDIT.md の走査範囲数値が slack-scope.txt の total_files と整合 ===
+# 過去 bug: #7 で AUDIT.md L33 サマリが 1237 に更新された一方、
+#           B 軸セクション本文 L167 / L186 が 1236 のまま取り残され、同一 doc 内で数値矛盾。
+# 不変式: AUDIT.md 内の active な「[0-9]+ ファイル走査」「走査範囲: **[0-9]+ ファイル**」表記は
+#         全て slack-scope.txt の total_files と同値（履歴記述「旧表記 1236」など括弧引用は除外）。
+# 失敗時の調査:
+#   (a) /audit slack 再実行後に AUDIT.md の B 軸セクション本文を更新したか
+#   (b) サマリ表だけ更新して section 本文の更新を漏らしていないか
+echo
+echo "--- Test 17: AUDIT.md 走査範囲数値の整合 ---"
+audit_md="${REPO_ROOT}/docs/AUDIT.md"
+scope_file="${EVIDENCE_DIR}/slack-scope.txt"
+if [[ -f "${audit_md}" && -f "${scope_file}" ]]; then
+  expected_scope=$(awk -F: '/^total_files:/ {gsub(/ /,"",$2); print $2}' "${scope_file}")
+  # active な走査範囲表記のみ抽出（「」で囲まれた歴史表記は除外）
+  audit_scope_numbers=$(grep -oE '\*\*[0-9]+ ファイル(走査)?\*\*' "${audit_md}" \
+    | grep -oE '[0-9]+' | sort -u)
+  audit_scope_count=$(echo "${audit_scope_numbers}" | wc -l | tr -d ' ')
+  if [[ -z "${audit_scope_numbers}" ]]; then
+    check "AUDIT.md に active な走査範囲表記なし (検出 regex の破損)" 1
+  elif [[ "${audit_scope_count}" -gt 1 ]]; then
+    check "AUDIT.md 内の走査範囲数値が複数値 (${audit_scope_numbers} | 期待: 単一値 ${expected_scope})" 1
+  elif [[ "${audit_scope_numbers}" == "${expected_scope}" ]]; then
+    check "AUDIT.md 走査範囲 = slack-scope.txt total_files (${expected_scope})" 0
+  else
+    check "AUDIT.md 走査範囲 (${audit_scope_numbers}) != slack-scope.txt total_files (${expected_scope})" 1
+  fi
+else
+  check "Test 17 前提ファイル存在 (AUDIT.md / slack-scope.txt)" 1
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

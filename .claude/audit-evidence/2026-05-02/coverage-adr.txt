@@ -1,4 +1,4 @@
-# adr 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T16:52:22+09:00)
+# adr 軸 ID 網羅 + 3 段確認証跡 (生成: 2026-05-02T17:29:07+09:00)
 # 走査: docs/02_構想設計/adr, パターン: ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)
 # 列挙 ID 数: 49
 # 走査範囲: docs / impl(src infra deploy tools examples) / tests(tests + src 内 test ファイル)
@@ -8,7 +8,7 @@
 id | docs_refs | impl_refs | test_refs | ship_verified_kw | classification_material
 ---|----------:|----------:|----------:|------------------|---|---
 ADR-0001 | 62 | 4 | 1 | 1 | 3-stage-candidate (docs+impl+evidence)
-ADR-0002 | 29 | 0 | 1 | 19 | docs-only (impl 不在)
+ADR-0002 | 30 | 0 | 1 | 19 | docs-only (impl 不在)
 ADR-0003 | 78 | 1 | 1 | 19 | 3-stage-candidate (docs+impl+evidence)
 ADR-BS-001 | 47 | 11 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
 ADR-CICD-001 | 55 | 27 | 0 | 1 | 3-stage-candidate (docs+impl+evidence)
