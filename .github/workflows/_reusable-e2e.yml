@@ -1,0 +1,106 @@
+# =============================================================================
+# 本ファイルは k1s0 reusable workflow の E2E 用（4 本構成への 5 本目追加）。
+# 設計正典:
+#   ADR-TEST-002（E2E 自動化を kind + tools/local-stack + reusable workflow で実装）
+#   docs/05_実装/30_CI_CD設計/10_reusable_workflow/01_reusable_workflow設計.md
+# 関連 ID: IMP-CI-RWF-010（4 本 reusable workflow への E2E 5 本目追加）
+#
+# E2E は kind cluster + tools/local-stack/up.sh で起動した本番再現スタック上で
+# tests/e2e/scenarios/ の Go test を実行する。failure 時に screenshot / HAR /
+# k6-summary / cluster-logs を artifact として 14 日保存する。
+#
+# 呼び出し元: nightly.yml（cron 03:00 JST）または workflow_dispatch。
+# =============================================================================
+name: _reusable-e2e
+
+on:
+  workflow_call:
+    inputs:
+      role:
+        description: "tools/local-stack/up.sh の --role 引数（既定: tier1-go-dev、e2e フルスタック）"
+        required: false
+        type: string
+        default: "tier1-go-dev"
+      timeout_minutes:
+        description: "全体タイムアウト分（kind 起動 15-20 分 + e2e 実行 15-20 分 + artifact 5 分）"
+        required: false
+        type: number
+        default: 60
+      run_observability:
+        description: "観測性 E2E（trace 貫通 / cardinality / log↔trace / SLO alert）も実行するか"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ inputs.role }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache-dependency-path: tests/e2e/go.sum
+
+      - name: setup kind + local-stack
+        # tools/local-stack/up.sh が role 別に kind cluster + 本番再現スタックを起動する。
+        # ADR-POL-002 の local-stack SoT を E2E にも拡張（ADR-TEST-002 の決定）。
+        run: ./tools/local-stack/up.sh --role ${{ inputs.role }}
+
+      - name: setup tier1 endpoint port-forward
+        # tier1-state を localhost:50001 に露出（E2E test の K1S0_TIER1_TARGET と整合）
+        # 採用初期で多 service 横断 port-forward を helper script 化する余地を残す。
+        run: |
+          kubectl port-forward -n tier1-state svc/tier1-state 50001:50001 &
+          # background で起動した port-forward の準備時間
+          sleep 5
+
+      - name: run e2e scenarios
+        working-directory: tests/e2e
+        env:
+          # tier1 公開 gRPC endpoint（前 step の port-forward）
+          K1S0_TIER1_TARGET: localhost:50001
+        run: go test ./scenarios/... -v -timeout=30m
+
+      - name: run observability e2e
+        if: inputs.run_observability
+        working-directory: tests/e2e
+        env:
+          # 採用初期で local-stack が露出する port に揃える
+          K1S0_TEMPO_OTLP_TARGET: localhost:4317
+          K1S0_TEMPO_HTTP_TARGET: http://localhost:3200
+          K1S0_PROMETHEUS_HTTP_TARGET: http://localhost:9090
+          K1S0_LOKI_HTTP_TARGET: http://localhost:3100
+          K1S0_ALERTMANAGER_HTTP_TARGET: http://localhost:9093
+        run: go test ./observability/... -v -timeout=15m
+
+      - name: collect cluster logs on failure
+        # failure 時のみ全 namespace の Pod log を artifact として保存する
+        if: failure()
+        run: |
+          mkdir -p tests/e2e/.artifacts/cluster-logs
+          for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}'); do
+            kubectl logs -n "$ns" --all-containers=true --prefix --tail=1000 -l '!job-name' > "tests/e2e/.artifacts/cluster-logs/$ns.log" 2>/dev/null || true
+          done
+
+      - name: upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-${{ github.run_id }}
+          path: tests/e2e/.artifacts/
+          retention-days: 14
+          if-no-files-found: ignore
