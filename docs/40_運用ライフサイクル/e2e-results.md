@@ -29,7 +29,13 @@
 - **設計上の発見（採用初期で本格対応）**:
   - SDK Client は単一 endpoint 設計、tier1 サービスは Pod ごとに別 Service。本番では Envoy Gateway 経由の単一 endpoint で全 service routing する想定だが、local kind では個別 Client（State 用 / Audit 用 / Pii 用）を分けて作成する経路が現実解
   - K1S0_TIER1_AUDIT_TARGET / K1S0_TIER1_PII_TARGET 環境変数を test に導入し、Pod 別 Client の構造を明示化
-- **未実走**: Workflow.Start / Decision.Evaluate / PubSub.Publish / Log.Send / Telemetry.EmitMetric / ServiceInvoke.Invoke / Binding.Invoke / Feature.Get の 8 service。これらは tier1-workflow Pod / tier1-decision Pod / tier1-state Pod 内 Router 経由で別途実装可能（SHIP_STATUS line 207-208 で実 cluster 検証実績あり）。採用初期で payroll_workflow_full_test.go / audit_pii_decision_test.go 等として拡張
+- **追加実走 PASS（tier1_extended_services_test.go）**: tier1-state Pod の 5 API Router で **4 service が err==nil 限定 PASS**
+  - PubSub.Publish: in-memory queue、offset=0
+  - Feature.EvaluateBoolean: in-memory backend、value=false variant=default
+  - Telemetry.EmitMetric: OTel pass-through OK
+  - Log.Info: OTel pass-through OK
+- **tier1 12 service 中 7 service が実走 OK 限定 PASS**: State / Audit / Pii / PubSub / Feature / Telemetry / Log
+- **未実走の 5 service**: Workflow / Secrets / ServiceInvoke / Binding / Decision。これらは seed/register（workflow type 登録 / secret 配置 / app 登録 / binding component / 決定ルール）が前提のため、本 OK 限定 PASS test では射程外。採用初期で seed 整備込みで payroll_workflow_full_test.go / decision_evaluate_test.go 等として本格化（SHIP_STATUS §9 と整合）
 
 - **状態**: kind cluster（k8s v1.31.4、3-worker HA）+ Dapr 1.17.5 + tier1-state（dev/CI mode）で **TestTenantOnboarding が完全 PASS**（2026-05-02 23:38 JST 実走）
 - **PASS した検証（2 サブテスト）**:
