@@ -6,10 +6,16 @@ module github.com/k1s0/k1s0/tests/e2e
 go 1.26.0
 
 require (
+	github.com/k1s0/sdk-go v0.0.0-00010101000000-000000000000
 	k8s.io/api v0.36.0
 	k8s.io/apimachinery v0.36.0
 	k8s.io/client-go v0.36.0
 )
+
+// 物理配置は src/sdk/go/ だが module 名は OSS 公開 path（github.com/k1s0/sdk-go）に
+// 揃える方針（docs/05_実装/10_ビルド設計/20_Go_module分離戦略/01_Go_module分離戦略.md）。
+// E2E module はリリース時点で local の sdk-go を直接参照する（OSS 公開後は Renovate で version pin に切替）。
+replace github.com/k1s0/sdk-go => ../../src/sdk/go
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -37,6 +43,9 @@ require (
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260427160629-7cedc36a6bc4 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
