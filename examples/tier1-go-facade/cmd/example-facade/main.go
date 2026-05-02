@@ -94,7 +94,7 @@ func main() {
 	errCh := make(chan error, 1)
 	// gRPC Serve は blocking なので別 goroutine で起動する。
 	go func() {
-		// 起動ログ（OTel logger 導入前の暫定）。
+		// 起動ログ（OTel logger 結線前の最小実装、`docs/05_実装/60_観測性設計/` 参照）。
 		log.Printf("example-facade: gRPC server listening on %s", *addr)
 		// Serve は shutdown 時 nil を返すか、内部エラー時に non-nil を返す。
 		errCh <- srv.Serve(lis)

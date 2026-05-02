@@ -11,8 +11,8 @@ export function StateExplorerPage() {
   // ApiClient はコンポーネント初回 render 時に lazy 構築する。
   // 旧実装は module top-level で `loadConfig(import.meta.env)` を呼んでいたため
   // VITE_BFF_URL 未設定の vitest 環境で App をロードした瞬間に throw し、
-  // 単純な smoke test も走らなかった（リリース時点 で React Context に移行する
-  // までの暫定的な分離措置）。
+  // 単純な smoke test も走らなかった（React Context への移行は IMP-DIR-INFRA-*
+  // 系の Web layer 設計刷新で扱う、本ファイルは現状の最小分離実装）。
   const apiClient = useMemo(() => {
     const config = loadConfig(import.meta.env);
     return createApiClient({ config });

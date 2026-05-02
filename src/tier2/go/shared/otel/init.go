@@ -64,7 +64,7 @@ func (c *Config) applyDefaults() {
 		// 5 秒を採用。
 		c.ShutdownTimeout = 5 * time.Second
 	}
-	// ServiceName 未設定時は実行ファイル名相当を仮置き。
+	// ServiceName 未設定時は "unknown-service" を fallback として設定する。
 	if c.ServiceName == "" {
 		// 取得できなければ "unknown-service" にフォールバック。
 		c.ServiceName = "unknown-service"

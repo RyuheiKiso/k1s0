@@ -43,7 +43,7 @@ public sealed class K1s0Service : IK1s0Service
         };
         // リリース時点 minimum: tenant ID は固定（リリース時点 で SecureStorage から取得）。
         req.Headers.Add("X-Tenant-Id", "tenant-admin");
-        // 認証は role=admin が必須。Bearer は SecureStorage 化までの暫定。
+        // 認証は role=admin が必須。Bearer は SecureStorage 結線前の最小実装（採用初期で SecureStorage 化、IMP-SEC-* 参照）。
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "admin-dev-token");
 
         using var res = await _http.SendAsync(req, ct).ConfigureAwait(false);

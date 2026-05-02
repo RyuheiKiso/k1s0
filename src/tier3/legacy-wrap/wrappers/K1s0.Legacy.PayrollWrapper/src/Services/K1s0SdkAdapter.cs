@@ -45,7 +45,7 @@ public sealed class K1s0SdkAdapter : IK1s0SdkAdapter
         {
             Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json"),
         };
-        // テナント / 認証ヘッダ。Bearer は環境変数 / SecureStorage から取る暫定。
+        // テナント / 認証ヘッダ。Bearer は環境変数 / SecureStorage 経由の最小実装（採用初期 SecureStorage 結線、IMP-SEC-* 参照）。
         req.Headers.Add("X-Tenant-Id", _tenantId);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "wrapper-dev-token");
         using var res = await _http.SendAsync(req, ct).ConfigureAwait(false);

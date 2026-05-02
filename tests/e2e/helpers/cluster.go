@@ -17,7 +17,7 @@ type Cluster struct {
 // Cluster handle を返す。実装は採用初期 で完成させる。
 func SetupCluster(t *testing.T) *Cluster {
 	t.Helper()
-	t.Skip("TODO(release-initial): kind cluster + infra/environments/dev/ apply を実装する")
+	t.Skip("PHASE: release-initial — kind cluster + infra/environments/dev/ apply を採用初期で実装する（SHIP_STATUS §採用初期へのロードマップ）")
 	return nil
 }
 
