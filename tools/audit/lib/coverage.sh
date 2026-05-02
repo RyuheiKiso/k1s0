@@ -209,29 +209,51 @@ done < "${IDS_OUT}"
 # 一時ファイル掃除
 rm -f "${SRC_TEST_FILES_TMP}" "${SHIP_VERIFIED_TMP}"
 
-# ADR の場合のみ orphan 検出（コード参照あり ∩ ADR ファイル無し）
+# ADR の場合のみ orphan 検出（2 系統: code-orphan / docs-orphan）
+# 判定基準: docs/00_format/audit_criteria.md §A 軸 orphan 定義
 if [[ "${KIND}" == "adr" ]]; then
+  # ADR ファイル ID 集合（旧形式 4 桁通し番号 + 新形式 カテゴリ別）
+  ADR_FILE_IDS_TMP="${EVIDENCE_DIR}/.adr-file-ids.tmp"
+  ls "${REPO_ROOT}/docs/02_構想設計/adr/" 2>/dev/null \
+    | grep -oE 'ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)' | sort -u > "${ADR_FILE_IDS_TMP}" || true
+
+  # code-orphan: src/infra/deploy/tools/examples で cite ∩ ADR ファイル無し
+  # 注意: --exclude-dir=audit で本ツール自身（tools/audit/lib/*.sh のパターン定義行）の
+  #       self-detection を防ぐ。slack.sh の audit/lib 除外と同じ構造防止策。
   ORPHANS_OUT="${EVIDENCE_DIR}/orphans-adr.txt"
   CODE_REFS_TMP="${EVIDENCE_DIR}/.adr-code-refs.tmp"
   if [[ ${#IMPL_PATHS_FULL[@]} -gt 0 ]]; then
     grep -rohE "${ID_REGEX}" "${IMPL_PATHS_FULL[@]}" \
       --exclude-dir=node_modules --exclude-dir=target --exclude-dir=vendor \
       --exclude-dir=dist --exclude-dir=generated --exclude-dir=gen --exclude-dir=.git \
+      --exclude-dir=audit \
       2>/dev/null | sort -u > "${CODE_REFS_TMP}" || true
   else
     : > "${CODE_REFS_TMP}"
   fi
-  ADR_FILE_IDS_TMP="${EVIDENCE_DIR}/.adr-file-ids.tmp"
-  ls "${REPO_ROOT}/docs/02_構想設計/adr/" 2>/dev/null \
-    | grep -oE 'ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)' | sort -u > "${ADR_FILE_IDS_TMP}" || true
   comm -23 "${CODE_REFS_TMP}" "${ADR_FILE_IDS_TMP}" > "${ORPHANS_OUT}" || true
   ORPHAN_COUNT="$(wc -l < "${ORPHANS_OUT}" | tr -d ' ')"
+
+  # docs-orphan: docs/ 全体で cite ∩ ADR ファイル無し
+  # （coverage の ID 列挙は adr/ 配下に限定されるため、docs 他階層からの cite を別途拾う。
+  #   採用検討者が docs を読んで存在しない ADR を探す事故を防ぐ）
+  DOCS_ORPHANS_OUT="${EVIDENCE_DIR}/docs-orphans-adr.txt"
+  DOCS_REFS_TMP="${EVIDENCE_DIR}/.adr-docs-refs.tmp"
+  grep -rohE "${ID_REGEX}" "${REPO_ROOT}/docs" \
+    --exclude-dir=.git \
+    2>/dev/null | sort -u > "${DOCS_REFS_TMP}" || true
+  comm -23 "${DOCS_REFS_TMP}" "${ADR_FILE_IDS_TMP}" > "${DOCS_ORPHANS_OUT}" || true
+  DOCS_ORPHAN_COUNT="$(wc -l < "${DOCS_ORPHANS_OUT}" | tr -d ' ')"
+
   {
     echo
     echo "# ADR orphan 検出"
-    echo "# コード参照あり ∩ ADR ファイル無し = ${ORPHAN_COUNT} 件"
+    echo "# code-orphan (コード参照あり ∩ ADR ファイル無し): ${ORPHAN_COUNT} 件"
+    echo "# docs-orphan (docs 引用あり ∩ ADR ファイル無し): ${DOCS_ORPHAN_COUNT} 件"
+    echo "# code-orphan 詳細: ${ORPHANS_OUT}"
+    echo "# docs-orphan 詳細: ${DOCS_ORPHANS_OUT}"
   } >> "${COVERAGE_OUT}"
-  rm -f "${CODE_REFS_TMP}" "${ADR_FILE_IDS_TMP}"
+  rm -f "${CODE_REFS_TMP}" "${DOCS_REFS_TMP}" "${ADR_FILE_IDS_TMP}"
 fi
 
 # 集計サマリ（分類別件数）

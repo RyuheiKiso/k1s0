@@ -207,6 +207,43 @@ else
   check "ids-adr.txt count ${adr_id_count} >= ADR file count ${adr_file_count}" 1
 fi
 
+# === Test 15: coverage.sh docs-side orphan 検出 ===
+# 過去 bug: ADR ID 列挙が docs/02_構想設計/adr/ 配下のみで、docs 他階層からの cite と
+#           ADR ファイル間の orphan を検出できなかった。docs/ 全体走査で 41 件発見した経緯
+echo
+echo "--- Test 15: coverage.sh docs-side orphan 検出 ---"
+docs_orphans="${EVIDENCE_DIR}/docs-orphans-adr.txt"
+[[ -f "${docs_orphans}" ]] \
+  && check "docs-orphans-adr.txt 生成" 0 \
+  || check "docs-orphans-adr.txt 生成" 1
+if grep -q '^# docs-orphan ' "${EVIDENCE_DIR}/coverage-adr.txt" 2>/dev/null; then
+  check "coverage-adr.txt に docs-orphan 件数行あり" 0
+else
+  check "coverage-adr.txt に docs-orphan 件数行あり" 1
+fi
+if grep -q '^# code-orphan ' "${EVIDENCE_DIR}/coverage-adr.txt" 2>/dev/null; then
+  check "coverage-adr.txt に code-orphan 件数行あり (既存 orphan 表記の維持)" 0
+else
+  check "coverage-adr.txt に code-orphan 件数行あり (既存 orphan 表記の維持)" 1
+fi
+
+# === Test 16: coverage.sh code-orphan が現在 0 件 (audit baseline) ===
+# 現在の baseline: code-orphan = 0（過去 11 → 8 → 0 と解消済）
+# 失敗時の調査:
+#   (a) 新規 ADR 参照がコードに入って ADR ファイル不在 → 該当 ADR を起票
+#   (b) tools/audit/lib/*.sh のコメント内 placeholder 文字列が誤検出
+#       → coverage.sh の orphan grep に --exclude-dir=audit が効いているか確認
+#         （過去 self-detection bug の regression）
+echo
+echo "--- Test 16: coverage.sh code-orphan baseline (0 件) ---"
+code_orphan_count=$(wc -l < "${EVIDENCE_DIR}/orphans-adr.txt" 2>/dev/null | tr -d ' ')
+code_orphan_count="${code_orphan_count:-0}"
+if [[ "${code_orphan_count}" -eq 0 ]]; then
+  check "orphans-adr.txt 0 件 (audit baseline)" 0
+else
+  check "orphans-adr.txt ${code_orphan_count} 件 (新規 ADR cite なら起票必要 / lib self-detection なら --exclude-dir=audit 確認)" 1
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="
