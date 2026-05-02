@@ -38,6 +38,12 @@ spec:
         dapr.io/app-id: {{ printf "tier1-%s" $podName | quote }}
         dapr.io/app-port: {{ $podCfg.grpcPort | quote }}
         dapr.io/app-protocol: "grpc"
+        # tier1 grpcPort=50001 と daprd default dapr-grpc-port=50001 の衝突を回避する。
+        # daprd sidecar の API gRPC listen port を 50101 に移し、tier1 application gRPC
+        # server (50001) との port 衝突を構造的に解消（Pod CrashLoopBackOff 防止）。
+        # tier2/tier3 SDK 内部で daprd を呼ぶ際は localhost:50101 を参照するか、Service
+        # `<app-id>-dapr` の 50001 経由。ADR-DAPR-001 / ADR-TIER1-001 と整合。
+        dapr.io/grpc-port: {{ $podCfg.daprSidecarGrpcPort | default 50101 | quote }}
         {{- with $.Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
