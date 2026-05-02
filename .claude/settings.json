@@ -15,6 +15,17 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "python \"${CLAUDE_PROJECT_DIR:-$PWD}/.claude/hooks/anti-shortcut.py\"",
+            "timeout": 5
+          }
+        ]
       }
     ]
   }
