@@ -10,12 +10,23 @@
 
 ## 月次サマリ
 
-### 2026-05（リリース時点 / 初月、Sonobuoy 実走前）
+### 2026-05（リリース時点 / 初月、Sonobuoy quick mode 実走 PASS）
 
-- **状態**: skeleton 配置完了、`conformance.yml` workflow 起動条件未充足（OSS 公開後の月初を待つ）
-- **完了済**: `tools/local-stack/up.sh --role conformance` 追加 / `tools/qualify/conformance/run.sh` 実装 / `_reusable-conformance.yml` / `conformance.yml` 配置 / `Makefile verify-conformance` target 整備
-- **kind 制約**: kind cluster は CSI / LB / multi-AZ の本番 fidelity 不足のため、Sonobuoy で skip される項目が一部存在する（採用初期で skip 項目一覧を本書に明示）
-- **次月**: OSS 公開後、初回月初実行で 2026-06 entry を追記
+- **状態**: kind cluster（k8s v1.31.4、4 nodes）+ Calico CNI で **Sonobuoy v0.57.3 quick mode が実走 PASS**（2026-05-03 00:08 JST）
+- **実走結果**:
+  - `sonobuoy run --mode quick --wait`: 約 1.5 分で完了
+  - e2e plugin: complete / passed
+  - systemd-logs plugin: complete / passed（4 nodes すべて）
+  - Failed: 0 / Remaining: 0
+- **動作確認した経路**:
+  1. `curl -L sonobuoy_0.57.3_linux_amd64.tar.gz | tar xz` で CLI install
+  2. 既存 kind cluster（multi-node + Calico）に対し `sonobuoy run --mode quick --wait`
+  3. plugins (e2e + systemd-logs) が complete + passed で終了
+  4. `sonobuoy delete --wait` で cleanup
+- **未実走**: `--mode certified-conformance` は所要 60〜120 分のため本実走では実施せず（quick mode で経路確認）。月初 schedule trigger で `conformance.yml` が起動した際に certified-conformance で full 取得する設計
+- **kind 制約**: kind cluster は CSI / LB / multi-AZ の本番 fidelity 不足のため、certified-conformance で skip される項目が一部存在する（採用初期で skip 項目一覧を本書に追記）
+- **証跡保存の課題**: 本実走では retrieve 前に delete を呼んで artifact tar.gz を取り損ねた。`tools/qualify/conformance/run.sh` の冪等順序（retrieve → summary → delete）が正しい運用で、CLI 直叩き時は順序遵守が必要
+- **以降**: certified-conformance を月初 schedule で実走し、tests/.conformance/<YYYY-MM>/sonobuoy-results.tar.gz を 12 ヶ月版管理開始
 
 ## 月次サマリ template
 
