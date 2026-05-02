@@ -206,5 +206,5 @@ diff -r /tmp/scaffold-out /tmp/expected/
 
 ## 対応 ADR / DS-SW-COMP / 要件
 
-- ADR-DEVEX-003（テスト戦略標準化）
+- ADR-TEST-001（Test Pyramid + testcontainers でテスト戦略を正典化、ADR-DEVEX-003 を吸収）
 - DX-GP-\* / NFR-A-AVL-\*
