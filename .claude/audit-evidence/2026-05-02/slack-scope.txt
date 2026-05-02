@@ -1,0 +1,6 @@
+# slack 軸 走査範囲
+scanned_paths: src infra deploy tools tests examples
+excluded_dirs_regex: /(vendor|node_modules|target|dist|generated|gen|Generated|\.git|build|\.next|obj|bin|audit/lib)/
+excluded_files_regex: (_grpc\.pb\.go|\.pb\.go|\.pb\.cs|\.pb\.rs|pnpm-lock\.yaml|package-lock\.json|Cargo\.lock|yarn\.lock|go\.sum)$
+total_files: 1236
+filelist: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-02/.slack-filelist.txt

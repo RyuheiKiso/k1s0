@@ -156,6 +156,72 @@ if [[ "${gitkeep_only_count}" -gt 0 ]]; then
   } >> "${LOC_OUT}"
 fi
 
+# .gitkeep-only ディレクトリと SHIP_STATUS の「設計のみ」「採用後の運用拡大時」「意図的に空」「雛形あり」明示の自動突合せ
+#   - 突合せ済 → documented（許容）
+#   - 突合せ無 → undocumented（要 SHIP_STATUS 加筆 or 実装、AUDIT.md で PARTIAL/FAIL 候補）
+GITKEEP_INTEGRITY_OUT="${EVIDENCE_DIR}/slack-gitkeep-integrity.txt"
+SHIP_STATUS_FILE="${REPO_ROOT}/docs/SHIP_STATUS.md"
+{
+  echo "# gitkeep-only ディレクトリ ↔ SHIP_STATUS 整合検査 (生成: $(date -Iseconds))"
+  echo "# 検査ロジック: 各 dir の最後 2 segments を SHIP_STATUS で grep し、許容キーワード共起を確認"
+  echo "# 許容キーワード: 設計のみ / 採用後の運用拡大時 / 意図的に空 / 雛形あり"
+  echo
+} > "${GITKEEP_INTEGRITY_OUT}"
+
+documented_count=0
+undocumented_count=0
+undocumented_dirs=""
+
+if [[ -f "${SHIP_STATUS_FILE}" && "${gitkeep_only_count}" -gt 0 ]]; then
+  while IFS= read -r d; do
+    [[ -z "${d}" ]] && continue
+    rel_d="${d#${REPO_ROOT}/}"
+    # 最後 2 segments を抽出（例: deploy/opentofu/environments → opentofu/environments）
+    # 短すぎる場合（segments=1）は full path を使う
+    last_two="$(echo "${rel_d}" | awk -F/ 'NF>=2 { print $(NF-1) "/" $NF; next } { print $0 }')"
+    last_one="$(basename "${rel_d}")"
+    # SHIP_STATUS で「last_two」が言及されている行を grep し、許容キーワードと共起しているか確認
+    matched=""
+    if grep -nE "${last_two}" "${SHIP_STATUS_FILE}" 2>/dev/null \
+       | grep -E '設計のみ|採用後の運用拡大時|意図的に空|雛形あり' >/dev/null; then
+      matched="${last_two}"
+    elif grep -nE "\b${last_one}\b" "${SHIP_STATUS_FILE}" 2>/dev/null \
+         | grep -E '設計のみ|採用後の運用拡大時|意図的に空|雛形あり' >/dev/null; then
+      matched="${last_one}"
+    fi
+    if [[ -n "${matched}" ]]; then
+      documented_count=$((documented_count + 1))
+      echo "DOCUMENTED  ${rel_d}  (matched on: ${matched})" >> "${GITKEEP_INTEGRITY_OUT}"
+    else
+      undocumented_count=$((undocumented_count + 1))
+      undocumented_dirs+="${rel_d}"$'\n'
+      echo "UNDOCUMENTED  ${rel_d}  (要 SHIP_STATUS 加筆 or 実装)" >> "${GITKEEP_INTEGRITY_OUT}"
+    fi
+  done <<< "${gitkeep_only_dirs}"
+else
+  echo "(SHIP_STATUS.md 不在 or gitkeep 0 件: スキップ)" >> "${GITKEEP_INTEGRITY_OUT}"
+fi
+
+{
+  echo
+  echo "## 集計"
+  echo "documented: ${documented_count}"
+  echo "undocumented: ${undocumented_count}"
+} >> "${GITKEEP_INTEGRITY_OUT}"
+
+{
+  echo "gitkeep-documented: ${documented_count}"
+  echo "gitkeep-undocumented: ${undocumented_count}"
+} >> "${SLACK_OUT}"
+
+if [[ "${undocumented_count}" -gt 0 ]]; then
+  {
+    echo
+    echo "## undocumented gitkeep-only-dirs (${undocumented_count} 件 — 要 SHIP_STATUS 加筆 or 実装)"
+    printf '%s' "${undocumented_dirs}"
+  } >> "${LOC_OUT}"
+fi
+
 # サマリ表示
 echo "=== slack 軸 集計 ==="
 cat "${SLACK_OUT}"

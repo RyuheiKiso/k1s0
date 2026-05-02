@@ -11,6 +11,9 @@
 #   tools/audit/run.sh ds            # A 軸: DS ID 網羅
 #   tools/audit/run.sh imp           # A 軸: IMP ID 網羅
 #   tools/audit/run.sh adr           # A 軸: ADR 網羅 + orphan 検出
+#   tools/audit/run.sh trace-nfr     # A 軸補助: NFR 双方向トレース
+#   tools/audit/run.sh trace-ds      # A 軸補助: DS 双方向トレース
+#   tools/audit/run.sh trace-imp     # A 軸補助: IMP 双方向トレース
 #   tools/audit/run.sh k8s           # C 軸: k8s 実機状態スナップショット
 #   tools/audit/run.sh oss           # D 軸: OSS 完成度
 #   tools/audit/run.sh all           # 全軸
@@ -63,6 +66,11 @@ run_axis() {
       write_meta "${axis}"
       bash "${LIB_DIR}/coverage.sh" "${REPO_ROOT}" "${EVIDENCE_DIR}" "${axis}"
       ;;
+    trace-nfr|trace-ds|trace-imp)
+      kind="${axis#trace-}"
+      write_meta "${axis}"
+      bash "${LIB_DIR}/trace.sh" "${REPO_ROOT}" "${EVIDENCE_DIR}" "${kind}"
+      ;;
     k8s)
       write_meta k8s
       bash "${LIB_DIR}/k8s.sh" "${REPO_ROOT}" "${EVIDENCE_DIR}"
@@ -72,21 +80,22 @@ run_axis() {
       bash "${LIB_DIR}/oss.sh" "${REPO_ROOT}" "${EVIDENCE_DIR}"
       ;;
     all)
-      for a in slack fr nfr ds imp adr k8s oss; do
+      # coverage(fr/adr) は trace の前提（impl 集合を使う）なので順序を固定
+      for a in slack fr nfr ds imp adr trace-nfr trace-ds trace-imp k8s oss; do
         echo "=== axis: ${a} ==="
         run_axis "${a}"
       done
       ;;
     *)
       echo "unknown axis: ${axis}" >&2
-      echo "usage: $0 {slack|fr|nfr|ds|imp|adr|k8s|oss|all}" >&2
+      echo "usage: $0 {slack|fr|nfr|ds|imp|adr|trace-nfr|trace-ds|trace-imp|k8s|oss|all}" >&2
       return 2
       ;;
   esac
 }
 
 if [[ $# -lt 1 ]]; then
-  echo "usage: $0 {slack|fr|nfr|ds|imp|adr|k8s|oss|all}" >&2
+  echo "usage: $0 {slack|fr|nfr|ds|imp|adr|trace-nfr|trace-ds|trace-imp|k8s|oss|all}" >&2
   exit 2
 fi
 

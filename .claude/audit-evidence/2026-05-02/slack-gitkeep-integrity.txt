@@ -1,0 +1,31 @@
+# gitkeep-only ディレクトリ ↔ SHIP_STATUS 整合検査 (生成: 2026-05-02T14:28:25+09:00)
+# 検査ロジック: 各 dir の最後 2 segments を SHIP_STATUS で grep し、許容キーワード共起を確認
+# 許容キーワード: 設計のみ / 採用後の運用拡大時 / 意図的に空 / 雛形あり
+
+UNDOCUMENTED  tools/migration/framework-to-sidecar  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tools/migration/framework-to-net8  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  third_party  (要 SHIP_STATUS 加筆 or 実装)
+DOCUMENTED  src/tier1/rust/crates/policy  (matched on: policy)
+UNDOCUMENTED  src/tier3/native/apps/K1s0.Native.Hub/Resources/Fonts  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/fixtures/openapi-samples  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/fixtures/seed-data  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/fixtures/tls-certs  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/contract/pact/consumers/portal-bff  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/contract/pact/consumers/admin-bff  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/contract/pact/providers/tier1-state  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  tests/contract/pact/providers/tier2-payroll  (要 SHIP_STATUS 加筆 or 実装)
+DOCUMENTED  deploy/rollouts/experiments  (matched on: rollouts/experiments)
+DOCUMENTED  deploy/opentofu/environments/staging  (matched on: staging)
+DOCUMENTED  deploy/opentofu/environments/dev  (matched on: dev)
+DOCUMENTED  deploy/opentofu/environments/prod  (matched on: prod)
+UNDOCUMENTED  deploy/opentofu/modules/vpn-gateway  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  deploy/opentofu/modules/dns  (要 SHIP_STATUS 加筆 or 実装)
+UNDOCUMENTED  deploy/opentofu/modules/baremetal-k8s  (要 SHIP_STATUS 加筆 or 実装)
+DOCUMENTED  infra/environments/staging/secrets  (matched on: secrets)
+DOCUMENTED  infra/environments/dev/secrets  (matched on: secrets)
+DOCUMENTED  infra/environments/prod/patches  (matched on: patches)
+DOCUMENTED  infra/environments/prod/secrets  (matched on: secrets)
+
+## 集計
+documented: 9
+undocumented: 14
