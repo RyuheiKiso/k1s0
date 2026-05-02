@@ -10,7 +10,7 @@
 
 ADR-CNCF-001 で「vanilla Kubernetes（CNCF Conformance 互換）を維持」と決定済で、その「移行・対応事項」に **「CNCF Conformance テスト（sonobuoy）を kind multi-node で定期実行する CI を整備（IMP-CI-CONF-*）」** が指示されている。しかし IMP-CI-CONF-* は docs/05_実装 配下で採番されておらず（`docs/05_実装/30_CI_CD設計/90_対応IMP-CI索引/01_対応IMP-CI索引.md` に未記載）、ADR-CNCF-001 の決定が机上に留まっている状態である。
 
-これは ADR-TEST-001（Test Pyramid + testcontainers）と並行で起票される必要がある。理由は ① L4 standard E2E（kind / Calico / 単一 cluster）と L5 conformance（本番 fidelity 重視）の責務分界を `docs/05_実装/30_CI_CD設計/30_quality_gate/02_test_layer_responsibility.md` で整備する必要がある、② ADR-CNCF-001 が指す「定期実行 CI」の頻度・cluster 構成・report 保管・採用検討者向け公開経路が未確定、の 2 点。なお L4 E2E の自動化経路 ADR は撤回済で、テスト基盤刷新後に新 ADR で再策定する。
+これは ADR-TEST-001（Test Pyramid + testcontainers）と並行で起票される必要がある。理由は ① L4 standard E2E（kind / Calico / 単一 cluster）と L5 conformance（本番 fidelity 重視）の責務分界を `docs/05_実装/30_CI_CD設計/30_quality_gate/02_test_layer_responsibility.md` で整備する必要がある、② ADR-CNCF-001 が指す「定期実行 CI」の頻度・cluster 構成・report 保管・採用検討者向け公開経路が未確定、の 2 点。なお L4 E2E の自動化経路 ADR は前 ADR-TEST-002 を撤回し、ADR-TEST-008（owner / user 二分構造）で再策定済である。
 
 実用上の選択肢:
 
@@ -55,7 +55,7 @@ cluster の CNI 選択（kind multi-node に限定）:
 - DNS: CoreDNS（kind 同梱）
 - 追加コンポーネント: なし（Conformance テストは vanilla K8s 機能のみ検証、フルスタック（Argo CD / Istio / Dapr 等）の起動は **不要**）
 
-L4 E2E 用の cluster 構成（フルスタック）と `--role conformance`（本 ADR、vanilla のみ）は責務が異なることを `tools/local-stack/README.md` で明文化する。L4 用の `--role` 名称はテスト基盤刷新後の新 ADR で再確定する。
+L4 E2E 用の cluster 構成（フルスタック）と `--role conformance`（本 ADR、vanilla のみ）は責務が異なることを `tools/local-stack/README.md` で明文化する。L4 用の `--role` は ADR-TEST-008 で `--role owner-e2e` / `--role user-e2e` として再確定済。
 
 ### 2. Sonobuoy 実行
 
@@ -149,7 +149,7 @@ ADR-CNCF-001 の「移行・対応事項」で cite されている IMP-CI-CONF-
 
 ### 6. QUALIFY-POLICY.md 同時整備
 
-**`docs/05_実装/30_CI_CD設計/30_quality_gate/02_test_layer_responsibility.md` の整備**を本 ADR 起票と同時に実施する。当面の射程は「L4 standard E2E（kind / Calico / フルスタック / nightly）と L5 conformance（kind multi-node / Calico / vanilla / 月次）の責務分界」のみとし、他の topic（Phase 移行 / OSSF Scorecard マッピング / SLSA / 成熟度ロードマップ等）は後続 ADR-TEST-* で順次拡張する。なお L4 E2E 側の正典 ADR はテスト基盤刷新後の新 ADR が担う。
+**`docs/05_実装/30_CI_CD設計/30_quality_gate/02_test_layer_responsibility.md` の整備**を本 ADR 起票と同時に実施する。当面の射程は「L4 standard E2E（kind / Calico / フルスタック / nightly）と L5 conformance（kind multi-node / Calico / vanilla / 月次）の責務分界」のみとし、他の topic（Phase 移行 / OSSF Scorecard マッピング / SLSA / 成熟度ロードマップ等）は後続 ADR-TEST-* で順次拡張する。なお L4 E2E 側の正典 ADR は ADR-TEST-008（owner / user 二分構造）が担う。
 
 ## 検討した選択肢
 
@@ -235,7 +235,7 @@ ADR-CNCF-001 の「移行・対応事項」で cite されている IMP-CI-CONF-
 
 ### 移行・対応事項
 
-- `tools/local-stack/up.sh` に `--role conformance` を追加し、kind cluster（control-plane 1 + worker 3）+ Calico CNI のみを起動する経路を整備（フルスタックは起動しない、L4 E2E 用 role はテスト基盤刷新後に新設し、本 role と区別する前提）
+- `tools/local-stack/up.sh` に `--role conformance` を追加し、kind cluster（control-plane 1 + worker 3）+ Calico CNI のみを起動する経路を整備（フルスタックは起動しない、L4 E2E 用 role は ADR-TEST-008 で `--role owner-e2e` / `--role user-e2e` として正典化、本 role と区別される）
 - `tools/qualify/conformance/run.sh` を新設し、Sonobuoy 実行 → retrieve → results 整形 → cleanup を冪等 shell script として実装
 - `.github/workflows/_reusable-conformance.yml` を新設し、`workflow_call` で `timeout_minutes` を inputs として受け取る構造で実装
 - `.github/workflows/conformance.yml` を新設し、`schedule: 0 18 1 * *`（月初 03:00 JST）+ `workflow_dispatch` で `_reusable-conformance.yml` を呼ぶ
@@ -250,7 +250,7 @@ ADR-CNCF-001 の「移行・対応事項」で cite されている IMP-CI-CONF-
 ## 参考資料
 
 - ADR-TEST-001（Test Pyramid + testcontainers）— L5 conformance が Test Pyramid の orthogonal 軸として位置づけられる根拠
-（L4 E2E 自動化経路 ADR は撤回済。テスト基盤刷新後の新 ADR で再策定し、L4 と L5 の責務分界・`tools/local-stack/up.sh --role` の対比を本 ADR と整合させる）
+- ADR-TEST-008（e2e owner / user 二分構造）— L4 と L5 の責務分界、`tools/local-stack/up.sh --role owner-e2e/user-e2e/conformance` の対比を本 ADR と整合
 - ADR-CNCF-001（vanilla K8s + CNCF Conformance 維持）— 本 ADR が「移行・対応事項」を充足
 - ADR-NET-001（CNI 選定）— kind multi-node = Calico の整合
 - ADR-INFRA-001（kubeadm + Cluster API）— production cluster 構成、kind との fidelity 差認識
@@ -260,4 +260,4 @@ ADR-CNCF-001 の「移行・対応事項」で cite されている IMP-CI-CONF-
 - Sonobuoy: sonobuoy.io
 - CNCF Certified Kubernetes Conformance Program: cncf.io/training/certification/software-conformance
 - Kubernetes e2e test framework: kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-conformance/
-- 関連 ADR（採用検討中）: ADR-TEST-004（Chaos ツール選定）/ ADR-TEST-005（Upgrade / DR drill）/ ADR-TEST-007（テスト属性タグ + 実行フェーズ分離）。E2E / 観測性 E2E はテスト基盤刷新後の新 ADR で再策定
+- 関連 ADR（採用検討中）: ADR-TEST-004（Chaos ツール選定）/ ADR-TEST-005（Upgrade / DR drill）/ ADR-TEST-007（テスト属性タグ + 実行フェーズ分離）/ ADR-TEST-008（e2e owner/user 二分）/ ADR-TEST-009（観測性 E2E）/ ADR-TEST-010（test-fixtures）/ ADR-TEST-011（release tag ゲート）

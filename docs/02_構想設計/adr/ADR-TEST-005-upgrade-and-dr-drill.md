@@ -8,7 +8,7 @@
 
 ## コンテキスト
 
-ADR-TEST-001 で確定した Test Pyramid の最上位 E2E 層（5%）と、ADR-TEST-003 / 004 で確定した Conformance / Chaos の各実施経路に続き、**Upgrade（K8s minor version 移行）と DR（Disaster Recovery）の drill 実施方針** を本 ADR で確定する（L4 E2E 自動化経路 ADR は撤回済、テスト基盤刷新後に新 ADR で再策定）。Upgrade と DR は「机上の手順書がある」と「drill で実走検証されている」の間に決定的な差がある領域で、本番リリース後に「Velero backup が実は復元できなかった」「kubeadm upgrade で deprecated API 互換崩壊」のような最悪事態を防ぐにはローカル / staging で drill を実施する仕組みが必要である。
+ADR-TEST-001 で確定した Test Pyramid の最上位 E2E 層（5%）と、ADR-TEST-003 / 004 で確定した Conformance / Chaos の各実施経路に続き、**Upgrade（K8s minor version 移行）と DR（Disaster Recovery）の drill 実施方針** を本 ADR で確定する（L4 E2E 自動化経路は ADR-TEST-008（owner / user 二分構造）で再策定済）。Upgrade と DR は「机上の手順書がある」と「drill で実走検証されている」の間に決定的な差がある領域で、本番リリース後に「Velero backup が実は復元できなかった」「kubeadm upgrade で deprecated API 互換崩壊」のような最悪事態を防ぐにはローカル / staging で drill を実施する仕組みが必要である。
 
 既存設計の調査で以下が判明した:
 
@@ -52,7 +52,7 @@ drill 実施方針として以下が未確定:
 - **対象 cluster**: staging（採用後の運用拡大時に常設、kubeadm + 3 control-plane HA + Cluster API 構成、ADR-INFRA-001 と一致）
 - **手順**: kubeadm 公式 upgrade plan / apply / node 経路（control-plane 1 → 2 → 3 → worker drain → upgrade → uncordon）
 - **対象バージョン**: N-2 → N-1 → N → N+1 の 3 段階移行を staging で必ず実走（production への適用は staging 完了後）
-- **成功判定**: ① upgrade 中の API 可用性 ≥ 99%、② 既存 Deployment の Pod が継続稼働、③ upgrade 完了後に L4 standard E2E（テスト基盤刷新後の新 ADR で再策定）+ L5 conformance（ADR-TEST-003）が PASS、④ 所要時間が想定値（control-plane 各 5 分 / worker 各 3 分 / 全体 30 分以内）に収まる
+- **成功判定**: ① upgrade 中の API 可用性 ≥ 99%、② 既存 Deployment の Pod が継続稼働、③ upgrade 完了後に L4 standard E2E（ADR-TEST-008）+ L5 conformance（ADR-TEST-003）が PASS、④ 所要時間が想定値（control-plane 各 5 分 / worker 各 3 分 / 全体 30 分以内）に収まる
 - **release tag との関係**: production cluster の K8s upgrade 直前に staging で本 drill を必須実施。drill が PASS しないと production upgrade を起動しない
 - **失敗時**: 失敗した step の Runbook（`ops/runbooks/RB-UPGRADE-*`）を更新、ADR-INFRA-001 の改訂が必要なら別 ADR 起票
 
@@ -183,7 +183,7 @@ drill 実施方針として以下が未確定:
 
 - ADR-TEST-001（Test Pyramid + testcontainers）— Chaos / DAST と並列で本 ADR が Upgrade / DR drill を扱う位置づけ
 - ADR-TEST-003（CNCF Conformance）— L5 conformance が upgrade 後の整合確認に使われる
-- L4 standard E2E は drill 後の整合確認に使われる予定（ADR はテスト基盤刷新後に再策定）
+- ADR-TEST-008（e2e owner / user 二分構造）— L4 standard E2E が drill 後の整合確認に使われる
 - ADR-TEST-004（LitmusChaos）— 同じ採用後の運用拡大時段階導入の前例
 - ADR-INFRA-001（kubeadm + Cluster API）— Upgrade drill の前提
 - ADR-DATA-001（CloudNativePG）— 経路 C（PostgreSQL restore）の前提
@@ -195,4 +195,4 @@ drill 実施方針として以下が未確定:
 - NFR-A-CONT-001（HA / RTO 4 時間）— 機能保全の要件
 - NFR-A-DR-002（RPO / バックアップ）
 - NFR-A-REC-002（復旧可能性検証）
-- 関連 ADR（採用検討中）: ADR-TEST-007（テスト属性タグ + 実行フェーズ分離）。観測性 E2E はテスト基盤刷新後に新 ADR で再策定
+- 関連 ADR（採用検討中）: ADR-TEST-007（テスト属性タグ + 実行フェーズ分離）/ ADR-TEST-009（観測性 E2E 5 検証）/ ADR-TEST-011（release tag ゲート代替保証）

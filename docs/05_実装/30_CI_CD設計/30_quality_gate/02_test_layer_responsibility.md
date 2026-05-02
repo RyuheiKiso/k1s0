@@ -1,12 +1,12 @@
 # 02. テスト層責務分界（L4 standard E2E と L5 conformance）
 
-本ファイルは ADR-TEST-003（CNCF Conformance / Sonobuoy）で決定された L5 conformance 層の責務、および L4 standard E2E 層との関係を、実装段階の運用契約として固定する。`01_quality_gate.md` で扱う 4 ゲート（fmt / lint / unit-test / coverage）が L0–L2（Test Pyramid 下層、ADR-TEST-001）の品質を保証する一方、本ファイルは **kind cluster を使う 2 つの上位層** の cluster 構成・実行頻度・本番 fidelity 目標を区別する。
+本ファイルは ADR-TEST-003（CNCF Conformance / Sonobuoy）で決定された L5 conformance 層と、ADR-TEST-008（e2e owner / user 二分構造）で決定された L4 standard E2E 層の責務分界を、実装段階の運用契約として固定する。`01_quality_gate.md` で扱う 4 ゲート（fmt / lint / unit-test / coverage）が L0–L2（Test Pyramid 下層、ADR-TEST-001）の品質を保証する一方、本ファイルは **K8s cluster を使う 2 つの上位層** の cluster 構成・実行頻度・本番 fidelity 目標を区別する。
 
-> **e2e テスト基盤刷新中の取り扱い**: L4 standard E2E の自動化経路 ADR は撤回済（前 ADR-TEST-002）。L4 列の記述は刷新後の新 ADR と本ファイル改訂で再確定する。本リリース時点では L5 conformance のみが正典として成立し、L4 は責務分界の参考枠として placeholder で記述する。
+> **L4 の実装段階**: ADR-TEST-008 で L4 を owner（multipass + kubeadm + 本番再現フルスタック、48GB host 専用）と user（kind + minimum stack、16GB host OK）に二分する設計を確定済。本ファイルでは ADR-TEST-008 の決定を実装段階の運用契約に展開する。実装（`tests/e2e/{owner,user}/` ディレクトリ + `tools/local-stack/up.sh --role owner-e2e/user-e2e`）は ADR の移行・対応事項に従って配置する。
 
 ## なぜ層を分けるのか
 
-L4 standard E2E は、kind cluster + 本番再現フルスタック（Argo CD / Istio Ambient / Dapr / CNPG / Strimzi / MinIO / Valkey / OpenBao / Backstage / Grafana LGTM / Keycloak）の上で業務シナリオを Go test として走らせる層を想定する。これは「採用組織の業務フローが tier1→2→3 を貫通して動くか」を検証する層であり、本番再現スタックが起動している前提で初めて意味を持つ。実装経路はテスト基盤刷新後の新 ADR で再確定する。
+L4 standard E2E は ADR-TEST-008 で **owner suite**（multipass × 5 + kubeadm 3CP HA + Cilium + Longhorn + MetalLB + フルスタック、48GB host 専用、CI 不可、不定期実走、`make e2e-owner-*`）と **user suite**（kind + minimum stack、16GB host OK、PR + nightly CI 可、`make e2e-user-{smoke,full}`）に物理分離している。owner は OSS 完成度検証（業務シナリオ tier1→2→3 + 4 言語 SDK + 観測性 + security + HA / DR / upgrade）を本番再現スタック上で網羅、user は利用者の自アプリ動作確認を最小成立形で機械検証する。実装経路は ADR-TEST-008 で確定済、本ファイルではその責務分界を運用契約として記述する。
 
 一方 ADR-TEST-003 で確定した CNCF Conformance は、Sonobuoy が **vanilla Kubernetes 機能のみ** を 500+ テストで検証する層であり、Argo CD / Istio / Dapr 等のスタック起動は **不要**（むしろテスト namespace を汚染するため避ける）。実行頻度も nightly ではなく月次で、ADR-CNCF-001 の「移行・対応事項」を充足する位置づけである。
 
@@ -14,21 +14,24 @@ L4 standard E2E は、kind cluster + 本番再現フルスタック（Argo CD / 
 
 ## L4 と L5 の対比
 
-責務分界を以下表で固定する。L5 は ADR-TEST-003 で確定済。L4 はテスト基盤刷新後の新 ADR で再確定する placeholder として残す。
+責務分界を以下表で固定する。L4 は ADR-TEST-008（owner / user 二分構造）で確定済、L5 は ADR-TEST-003 で確定済。本ファイルは両 ADR の決定を運用契約として固定する。L4 は owner / user の 2 系統に分かれるため 3 列で並列に記述する。
 
-| 軸 | L4 standard E2E（再策定中） | L5 conformance |
-|----|-----------------------------|----------------|
-| 起源 ADR | テスト基盤刷新後の新 ADR で再策定 | ADR-TEST-003 |
-| cluster 起動 | フルスタック起動 role（刷新後の新 ADR で正典化） | `tools/local-stack/up.sh --role conformance`（新設） |
-| node 構成 | control-plane 1 + worker 3（Calico CNI） | control-plane 1 + worker 3（Calico CNI） |
-| 起動コンポーネント | フルスタック（Argo CD / Istio Ambient / Dapr / CNPG / Strimzi / MinIO / Valkey / OpenBao / Backstage / Grafana LGTM / Keycloak） | vanilla K8s のみ（Sonobuoy が実行する Conformance テスト用） |
-| 実行ツール | Go test（実装経路は刷新後の新 ADR で再策定） | Sonobuoy v0.57+（`--mode certified-conformance`） |
-| reusable workflow | 刷新後の新 ADR で再策定 | `_reusable-conformance.yml` |
-| trigger workflow | 刷新後の新 ADR で再策定（cron 03:00 JST 想定） | `conformance.yml`（cron 月初 03:00 JST） |
-| 実行頻度 | 毎晩（想定） | 月次 |
-| 所要時間 | 約 30〜45 分（想定） | 約 60〜120 分 |
-| failure artifact | screenshot / HAR / k6-summary / cluster-logs（14 日保存、想定） | sonobuoy results.tar.gz / summary.md（90 日保存 + 12 ヶ月版管理） |
-| fidelity 目標 | 業務シナリオ（tier1→2→3）の貫通 | vanilla K8s API surface の準拠（CNCF 認証経路） |
+| 軸 | L4-owner（OSS 完成度検証） | L4-user（自アプリ動作確認） | L5 conformance |
+|----|----------------------------|------------------------------|----------------|
+| 起源 ADR | ADR-TEST-008 + ADR-TEST-009 / 010 / 011 | ADR-TEST-008 + ADR-TEST-010 | ADR-TEST-003 |
+| cluster 起動 | `tools/local-stack/up.sh --role owner-e2e` | `tools/local-stack/up.sh --role user-e2e` | `tools/local-stack/up.sh --role conformance` |
+| node 構成 | multipass × 5（3CP HA + 2W）+ kubeadm | kind（CP1 + W1） | kind（control-plane 1 + worker 3） |
+| host RAM 要件 | 48GB host 専用 | 16GB host OK | Actions runner 14GB |
+| CNI / CSI / LB | Cilium / Longhorn / MetalLB | Calico / local-path / extraPortMappings | Calico / local-path / extraPortMappings |
+| 起動コンポーネント | フルスタック（Argo CD / Istio Ambient / Dapr / CNPG / Strimzi / MinIO / Valkey / OpenBao / Backstage / Grafana LGTM / Keycloak） | minimum（Dapr + tier1 facade + Keycloak + 1 backend） | vanilla K8s のみ（Sonobuoy が実行する Conformance テスト用） |
+| 実行ツール | Go test + chromedp（tier3-web）+ k6（perf） | Go test + 利用者は test-fixtures (4 言語、ADR-TEST-010) 経由で TS Vitest+Playwright も可 | Sonobuoy v0.57+（`--mode certified-conformance`） |
+| reusable workflow | （CI 不可） | `_reusable-e2e-user.yml` | `_reusable-conformance.yml` |
+| trigger | localhost のみ（不定期、起案者判断） | `pr.yml`（smoke）+ `nightly.yml`（full） | `conformance.yml`（cron 月初 03:00 JST） |
+| 実行頻度 | 不定期（release tag 切る前 / k8s upgrade 前 / SDK major 改訂後） | PR 毎（smoke 5 分以内）+ nightly（full 30〜45 分） | 月次 |
+| 所要時間 | 約 1 時間 45 分（VM 起動 30 + 全件 60 + cleanup 15） | smoke 5 分 / full 30〜45 分 | 約 60〜120 分 |
+| failure artifact | full-result.tar.zst / cluster-info / dmesg（git LFS 12 ヶ月） | screenshot / HAR / k6-summary（14 日保存） | sonobuoy results.tar.gz / summary.md（90 日保存 + 12 ヶ月版管理） |
+| fidelity 目標 | 業務シナリオ + 4 言語 SDK + 観測性 + security + HA / DR / upgrade の網羅 | 利用者の自アプリ tier2/tier3 が k1s0 SDK 越しに動くか | vanilla K8s API surface の準拠（CNCF 認証経路） |
+| 代替保証 | ADR-TEST-011（release tag ゲート、cut.sh で PASS sha256 必須） | CI 機械検証（pr.yml + nightly.yml） | CI 機械検証（conformance.yml） |
 
 ## kind / Calico を共有する理由と限界
 
@@ -43,9 +46,9 @@ L4 standard E2E は、kind cluster + 本番再現フルスタック（Argo CD / 
 
 ## ローカル再現と CI の同一経路
 
-L5 は **同一の `tools/local-stack/up.sh` を `--role conformance` で起動する** 設計のため、開発者が devcontainer 内で実行する経路と CI workflow が呼ぶ経路が機械的に一致する。これは ADR-POL-002（local-stack を構成 SoT に統一）の延長で、cluster 構成が割れない構造的担保である。L4 側も同等の単一エントリ設計を踏襲する前提で、刷新後の新 ADR で正典化する。
+L4-owner / L4-user / L5 とも **同一の `tools/local-stack/up.sh` を `--role` 引数（owner-e2e / user-e2e / conformance）で切り替える** 設計のため、開発者が devcontainer 内で実行する経路と CI workflow が呼ぶ経路が機械的に一致する。これは ADR-POL-002（local-stack を構成 SoT に統一）の延長で、cluster 構成が割れない構造的担保である。
 
-`Makefile` には `verify-conformance`（L5）を追加済で、開発者が `make verify-conformance` の 1 コマンドでローカル再現できる。L4 用の `verify-*` target はテスト基盤刷新後の新 ADR と本ファイル改訂で再追加する。
+`Makefile` には `verify-conformance`（L5）を追加済、L4 用は ADR-TEST-008 で `make e2e-owner-{full,platform,observability,security,ha-dr,upgrade,sdk-roundtrip,tier3-web,perf}` / `make e2e-user-{smoke,full}` の 10 target を追加する設計を確定済。実装は ADR-TEST-008 の移行・対応事項に従って Makefile を改訂する。
 
 ## 拡張余地
 

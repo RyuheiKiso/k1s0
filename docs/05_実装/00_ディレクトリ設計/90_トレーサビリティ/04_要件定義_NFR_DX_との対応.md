@@ -82,7 +82,7 @@
 | DX-CICD-\*（GitOps） | IMP-DIR-OPS-091 | ArgoCD + Argo Rollouts |
 | DX-CICD-\*（IaC 宣言的管理） | IMP-DIR-OPS-097 | OpenTofu |
 | DX-CICD-\*（共通 Helm chart） | IMP-DIR-OPS-093 | deploy/charts/ |
-| DX-CICD-\*（テスト戦略） | IMP-DIR-COMM-112 | tests/contract/integration/fuzz/golden/（e2e はテスト基盤刷新後に再配置） |
+| DX-CICD-\*（テスト戦略） | IMP-DIR-COMM-112 | tests/contract/integration/fuzz/golden/ + tests/e2e/{owner,user}/（ADR-TEST-008 で 2 module 分離、実装時に配置） |
 
 ## 制約との対応
 

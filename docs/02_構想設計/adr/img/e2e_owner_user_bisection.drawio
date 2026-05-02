@@ -1,0 +1,97 @@
+<mxfile>
+  <diagram name="e2e_owner_user_bisection">
+    <mxGraphModel dx="1200" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="720" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="ADR-TEST-008: e2e 二分構造 (owner / user 環境契約の対比)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_header" value="owner — 48GB host 専用 / 不定期実走 / CI 不可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l1" value="tests/e2e/owner/{platform, observability, security, ha-dr,&#10;upgrade, sdk-roundtrip, tier3-web, perf}/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="125" width="540" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l2" value="Full Stack&#10;Argo CD / Istio Ambient / Dapr / CNPG / Strimzi / MinIO / Valkey&#10;OpenBao / Backstage / Grafana LGTM / Keycloak" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="540" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l3" value="CNI: Cilium (eBPF + Hubble) — ADR-NET-001" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="255" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l4" value="LB: MetalLB (L2) — ADR-STOR-002" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l5" value="CSI: Longhorn (3 replica) — ADR-STOR-001" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="345" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l6" value="K8s: kubeadm (3CP HA + 2W) — ADR-INFRA-001" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="390" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_l7" value="VM: multipass × 5 (各 6GB / 2vCPU) — 計 30GB&#10;multi-AZ topology label {a, b, c} で疑似分散" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="435" width="540" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_footer_a" value="起動: make e2e-owner-{full,platform,observability,...} (host OS WSL2 native shell)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="40" y="505" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_footer_b" value="代替保証: tools/release/cut.sh で release tag 切る時 owner full PASS sha256 必須 (ADR-TEST-011)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_header" value="user — 16GB host OK / PR + nightly CI 可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#FFFFFF;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="80" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l1" value="tests/e2e/user/{smoke, examples}/" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="125" width="540" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l2" value="Minimum Stack&#10;Dapr / tier1 facade / Keycloak / 1 backend (CNPG または MinIO、test ごと opt-in)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="180" width="540" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l3" value="CNI: Calico (kind 既定、ADR-NET-001 整合)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="255" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l4" value="LB: extraPortMappings (kind 既定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="300" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l5" value="CSI: local-path-provisioner (kind 既定)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="345" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l6" value="K8s: kind (CP1 + W1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="390" width="540" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_l7" value="ホスト: kind container (約 4GB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="435" width="540" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_footer_a" value="起動: make e2e-user-{smoke, full} (devcontainer 内で実行可能)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="620" y="505" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_footer_b" value="CI: pr.yml で smoke (5 分以内) / nightly.yml で full (30〜45 分) / _reusable-e2e-user.yml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="620" y="540" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="700" y="585" width="460" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例 (drawio_layer_convention 準拠)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="715" y="590" width="430" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app" value="アプリ層 (Test code / Stack)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="715" y="615" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_net" value="ネットワーク層 (CNI / LB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="935" y="615" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_data" value="データ層 (CSI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="715" y="645" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_infra" value="インフラ層 (K8s / VM)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="935" y="645" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_dashed" value="点線枠 = 起動経路 / CI / 代替保証 等の付帯情報" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="715" y="675" width="430" height="22" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

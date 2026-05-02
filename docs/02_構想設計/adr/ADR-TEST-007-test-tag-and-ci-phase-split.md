@@ -45,7 +45,7 @@ ADR-TEST-001〜006 で Test Pyramid 各層と orthogonal 軸（Conformance / Cha
 | フェーズ | 起動 trigger | 実行対象 | 所要時間予算 |
 |---------|-------------|---------|------------|
 | PR | `pr.yml` | タグなしテスト全件 | 5 分以内（ADR-TEST-001） |
-| nightly | `nightly.yml`（cron 03:00 JST、テスト基盤刷新後の新 ADR で再策定） | タグなし + `@slow` + `@nightly` | 30〜45 分 |
+| nightly | `nightly.yml`（cron 03:00 JST、ADR-TEST-008） | タグなし + `@slow` + `@nightly` | 30〜45 分 |
 | weekly | `weekly.yml`（新設、cron 月曜 03:00 JST） | nightly + `@security` | 1〜2 時間 |
 | release tag | `tools/release/cut.sh`（採用初期で新設） | 全件（タグなし + 4 タグ全） | 2〜4 時間（release qualify） |
 
@@ -186,7 +186,7 @@ ADR-TEST-001〜006 で Test Pyramid 各層と orthogonal 軸（Conformance / Cha
 - ADR-CICD-001（Argo CD）— release tag 連動の前提
 - ADR-OPS-001（Runbook 標準化）— RB-TEST-001 の形式根拠
 - IMP-CI-PF-031（path-filter 単一真実源）— 本 ADR の orthogonal 軸
-- IMP-CI-RWF-010（reusable workflow 4 本）— `_reusable-conformance` に加えて weekly / flaky-report の起動経路（E2E 用 reusable workflow はテスト基盤刷新後の新 ADR で再策定）
+- IMP-CI-RWF-010（reusable workflow 4 本）— `_reusable-conformance` に加えて weekly / flaky-report の起動経路（E2E 用 reusable workflow `_reusable-e2e-user.yml` は ADR-TEST-008 で正典化）
 - IMP-CI-TAG-001〜005（本 ADR で確定）
 - DX-MET-003（Lead Time 1h）/ DX-MET-005（Change Failure Rate 5%）
 - 関連 ADR（採用検討中）: なし（テスト戦略系列 ADR-TEST-001〜007 の最終 ADR）

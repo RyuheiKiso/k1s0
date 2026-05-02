@@ -74,7 +74,7 @@ kubectl uncordon <worker>
 kubectl get nodes
 # tier1 namespace の Pod が継続稼働
 kubectl get pods -n tier1-state
-# L4 標準テスト PASS（テスト基盤再構築後に手順反映）
+# L4 標準テスト PASS（ADR-TEST-008、make e2e-owner-platform で実走、実装後に手順詳細化）
 ```
 
 ## 7. 予防策
@@ -85,4 +85,4 @@ kubectl get pods -n tier1-state
 ## 8. 関連 Runbook
 
 - [RB-DR-001 etcd-snapshot-restore](incidents/RB-DR-001-etcd-snapshot-restore.md) — upgrade 失敗時の roll back
-- ADR-TEST-005 / ADR-INFRA-001（L4 verify は後続テスト基盤再構築後に追記）
+- ADR-TEST-005 / ADR-INFRA-001 / ADR-TEST-008（L4 verify、`make e2e-owner-platform` で実走）

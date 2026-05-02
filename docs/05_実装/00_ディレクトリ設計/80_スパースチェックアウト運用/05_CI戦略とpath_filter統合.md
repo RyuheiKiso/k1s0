@@ -204,8 +204,8 @@ jobs:
       - name: Setup kind cluster
         run: ./tools/local-stack/kind/bootstrap.sh
       - name: Run E2E tests
-        # 実装はテスト基盤刷新後の新 ADR で再策定。`<e2e ディレクトリ>` で go test を実行する想定
-        run: echo "e2e workflow placeholder（テスト基盤再構築後に実装）"
+        # 実装は ADR-TEST-008 で確定済。`_reusable-e2e-user.yml` に委譲し tests/e2e/user/ を kind 上で実行
+        run: cd tests/e2e/user && go test -v ./...
 ```
 
 ## CI キャッシュ戦略
