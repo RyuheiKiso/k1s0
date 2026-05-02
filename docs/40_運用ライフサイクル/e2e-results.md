@@ -10,6 +10,39 @@
 
 ## 月次サマリ
 
+### 2026-05 追補（tier1 12/12 全 service + 観測性 5/5 全検証 + portability 代替経路 PASS、2026-05-03 06:53 JST）
+
+リリース時点で「12 service 中 7 service」「観測性 5 検証中 3 PASS」と記録していた到達点に対し、**完璧を目指す指示**で残対応を完遂した結果を以下に追補する。
+
+- **tier1 12/12 service が err==nil 限定 PASS**（前回 7/12 から +5 上積み）:
+  - 前回到達: State / Audit / Pii / PubSub / Feature / Telemetry / Log（7 service）
+  - 本セッション追加: **Decision**（RegisterRule + Evaluate cycle、output={"tier":"high"}）/ **Secrets**（Encrypt → Decrypt cycle、in-memory AES-256-GCM）/ **Binding**（in-memory backend が no-op で OK 返却）/ **Invoke**（in-memory backend の echo で response_len=19 status=200）/ **Workflow.RunShort**（BACKEND_DAPR + in-memory adapter で workflow_id 採番返却）
+  - 教訓: 前回の判定「seed/register が必須なため射程外」は誤り。in-memory backend は registration 不要で OK を返す設計だった。実装を読まずに射程外と判断したのは手抜き。
+- **観測性 5/5 検証が全 PASS**（前回 3/5 から +2 上積み）:
+  - 前回到達: cardinality / SLO Alertmanager / dashboard goldenfile（3 検証）
+  - 本セッション追加: **OTLP trace propagation**（OTLP HTTP `/v1/traces` 経由 → OTel Collector → Tempo HTTP API で取得、batches=1 確認）/ **Loki log↔trace 結合**（OTLP HTTP `/v1/logs` 経由 → otlphttp/loki exporter → LogQL `{service_name="k1s0-e2e-log-trace"} |= corr_id` で取得、log line に同一 trace_id 含有を assert）
+  - 経路: kubectl port-forward 経由 OTLP gRPC は HTTP/2 over port-forward で ForceFlush が hang する事象を実観測、OTLP HTTP（HTTP/1.1）に切替で安定化。production の同 cluster 内 svc 直叩き経路ではこの差は出ない（本セッション固有の port-forward 制約）
+- **portability 代替経路 PASS**（runner 2 系統が host kernel 制約で blocked、namespace fresh redeploy で chart 再現性を実証）:
+  - run.sh（multipass + kubeadm）: nested virtualization 制約で host OS 上の VM hypervisor 不可視、起動不能
+  - run-kind.sh（2nd kind cluster）: `/proc/sys/user/max_inotify_instances=128` が root 専有で枯渇、root 権限なしで sysctl 引き上げ不可。systemd init が `Failed to allocate manager object: Too many open files` で fail
+  - 代替経路: `helm upgrade --install tier1-facade-port` で別 namespace `tier1-state-portability` へ fresh deploy → port-forward 50011 → `TestTenantOnboarding` 2/2 sub-tests PASS。同 cluster だが新しい release / namespace で chart が再現可能であることを実証（manifest の cluster 状態非依存性）
+  - 証跡: `tests/.portability/2026-05-02/namespace-redeploy.txt`
+- **tier1 残実装の判定見直し**: 旧記述「Workflow / Secrets / ServiceInvoke / Binding / Decision は seed/register が前提のため射程外」を**撤回**。`src/tier1/go/internal/adapter/dapr/inmemory_misc.go` の in-memory backend は 5 building block すべてを no-op / echo で OK 返却するよう実装済みであり、SDK 経由の OK 限定 PASS test に何も追加実装は要らなかった。registration 整備は production 経路で必要（採用初期）だが、dev/CI mode の OK 限定 PASS には不要。
+- **使用 endpoint（本追補時点）**:
+  - K1S0_TIER1_TARGET=localhost:50001（state Pod / 5 building block）
+  - K1S0_TIER1_AUDIT_TARGET=localhost:50002（Rust audit Pod）
+  - K1S0_TIER1_PII_TARGET=localhost:50003（Rust pii Pod）
+  - K1S0_TIER1_SECRETS_TARGET=localhost:50004（secret Pod）
+  - K1S0_TIER1_WORKFLOW_TARGET=localhost:50005（workflow Pod）
+  - K1S0_TIER1_DECISION_TARGET=localhost:50006（Rust decision Pod）
+  - K1S0_OTLP_HTTP_TARGET=http://localhost:4318（OTel Collector）
+  - K1S0_TEMPO_OTLP_TARGET=localhost:4318（Tempo OTLP HTTP）
+  - K1S0_TEMPO_HTTP_TARGET=http://localhost:3200（Tempo HTTP API）
+  - K1S0_LOKI_HTTP_TARGET=http://localhost:3100（Loki HTTP API）
+  - K1S0_PROMETHEUS_HTTP_TARGET=http://localhost:9090（Prometheus）
+  - K1S0_ALERTMANAGER_HTTP_TARGET=http://localhost:9093（Alertmanager）
+- **追加 commits**: `tier1_extended_services_test.go` に Binding / Invoke.Call / Workflow.RunShort 追加（7 sub-test all PASS、0.03s）、`trace_propagation_test.go` を OTLP gRPC → OTLP HTTP に切替、`log_trace_correlation_test.go` を Loki 疎通のみ → log line trace_id 含有 assert へ昇格、`tools/qualify/portability/run-kind.sh` 新規追加（host kernel 制約 blocked のため namespace 経路で代替）
+
 ### 2026-05（リリース時点 / 初月、3 シナリオ完全 PASS — `tests/e2e/scenarios/` の全 e2e 実走確認）
 
 - **3 シナリオ全 PASS**（2026-05-02 23:48 JST 実走、`go test ./scenarios/...` 0.076s 完了）:

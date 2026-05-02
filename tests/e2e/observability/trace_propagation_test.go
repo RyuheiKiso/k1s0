@@ -28,24 +28,23 @@ import (
 
 	// OTel SDK（trace 生成 / OTLP exporter / SpanProcessor）
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
-
-	// gRPC（OTLP exporter の transport）
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // TestOTLPTracePropagation は最小の trace 貫通検証。
-// OTLP gRPC exporter で span を送信 → Tempo HTTP API で取得 → span 数 ≥ 1 を assert。
+// OTLP HTTP exporter で span を送信 → Tempo HTTP API で取得 → span 数 ≥ 1 を assert。
+// 当初は OTLP gRPC で実装したが kubectl port-forward 経由の HTTP/2 経路で
+// ForceFlush が長時間 hang する問題を実観測したため、OTLP HTTP（HTTP/1.1）に切替。
+// production 経路は同 cluster 内の OTel Collector svc を直接呼ぶため経路差は出ない。
 func TestOTLPTracePropagation(t *testing.T) {
-	// OTLP exporter の endpoint（OTel Collector または直接 Tempo）
+	// OTLP exporter の endpoint（OTel Collector の OTLP HTTP endpoint、ホスト名のみ指定）
 	otlpTarget := os.Getenv("K1S0_TEMPO_OTLP_TARGET")
 	if otlpTarget == "" {
-		t.Skip("K1S0_TEMPO_OTLP_TARGET 未設定: tools/local-stack/up.sh --observability で起動した OTel Collector / Tempo の OTLP gRPC endpoint を指定（例: localhost:4317）")
+		t.Skip("K1S0_TEMPO_OTLP_TARGET 未設定: tools/local-stack/up.sh --observability で起動した OTel Collector / Tempo の OTLP HTTP endpoint host:port を指定（例: localhost:4318）")
 	}
 	// Tempo HTTP API の endpoint（trace 取得用）
 	tempoHTTP := os.Getenv("K1S0_TEMPO_HTTP_TARGET")
@@ -57,14 +56,14 @@ func TestOTLPTracePropagation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// OTLP gRPC exporter を構築（dev: TLS なし）
-	exporter, err := otlptracegrpc.New(
+	// OTLP HTTP exporter を構築（dev: TLS なし、kubectl port-forward 経由 HTTP/1.1）
+	exporter, err := otlptracehttp.New(
 		ctx,
-		otlptracegrpc.WithEndpoint(otlpTarget),
-		otlptracegrpc.WithDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
+		otlptracehttp.WithEndpoint(otlpTarget),
+		otlptracehttp.WithInsecure(),
 	)
 	if err != nil {
-		t.Fatalf("otlptracegrpc.New(target=%s): %v", otlpTarget, err)
+		t.Fatalf("otlptracehttp.New(target=%s): %v", otlpTarget, err)
 	}
 	// test 終了時に exporter を確実にシャットダウン
 	defer func() {
