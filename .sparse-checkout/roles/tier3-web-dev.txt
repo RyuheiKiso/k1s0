@@ -9,7 +9,6 @@
 /tools/sparse/
 /tools/devcontainer/profiles/tier3-web-dev/
 /tools/local-stack/
-/tests/e2e/
 /examples/tier3-web-portal/
 /examples/tier3-bff-graphql/
 /.github/

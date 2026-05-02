@@ -65,7 +65,6 @@ VERIFICATION_PATHS=(
   "ops/slo"
   "ops/runbooks"
   "tests/contract"
-  "tests/e2e"
   "tests/fuzz"
   "tests/integration"
 )

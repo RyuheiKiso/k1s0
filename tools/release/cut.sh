@@ -3,7 +3,7 @@
 # tools/release/cut.sh — release tag を切る唯一の正規入口
 #
 # 設計正典:
-#   ADR-TEST-001 / ADR-TEST-002（release tag 強制 3 重防御）
+#   ADR-TEST-001（release tag 強制 3 重防御）
 #   ADR-TEST-007（4 段フェーズ: PR / nightly / weekly / release tag）
 # 関連 ID: IMP-CI-TAG-001〜005
 #
@@ -22,7 +22,7 @@
 #   8. push は手動（cut.sh は tag 作成までで止め、push は別操作）
 #
 # 設計理由:
-#   ADR-TEST-001 / 002 で「release tag を切る行為そのものに qualify 強制を物理的に紐付ける」
+#   ADR-TEST-001 で「release tag を切る行為そのものに qualify 強制を物理的に紐付ける」
 #   を決定。git tag 直叩きを止めて本 wrapper のみを正規入口とすることで、CI なし環境でも
 #   qualify 走行なしの release tag が原理的に切れない構造にする。
 #
@@ -93,12 +93,8 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
             exit 1
         fi
     else
-        # make 不在環境（一部 devcontainer profile）では make 相当を直接実行
-        echo "[warn] make コマンドが不在。verify-e2e と verify-conformance を直接実行"
-        if ! cd tests/e2e && go test ./scenarios/... -v -timeout=10m && cd "$REPO_ROOT"; then
-            echo "[error] verify-e2e 失敗" >&2
-            exit 1
-        fi
+        echo "[error] make コマンドが不在。release tag 切りには make qualify-release が必須" >&2
+        exit 2
     fi
 else
     echo "[info] --dry-run: qualify-release を skip（tag 切りは実行）"

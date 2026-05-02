@@ -7,7 +7,6 @@
 /tools/sparse/
 /tools/devcontainer/profiles/tier3-native-dev/
 /tools/local-stack/
-/tests/e2e/
 /examples/tier3-native-maui/
 /.github/
 /.devcontainer/

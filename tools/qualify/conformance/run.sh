@@ -52,7 +52,7 @@ require_bin() {
 require_bin kubectl || exit 2
 require_bin kind || exit 2
 
-# Sonobuoy CLI が無ければ案内（自動 install しない、ADR-TEST-002 の portable 制約と整合）
+# Sonobuoy CLI が無ければ案内（自動 install しない、ADR-TEST-001 の portable 制約と整合）
 if ! command -v sonobuoy >/dev/null 2>&1; then
     echo "[error] sonobuoy CLI not found"
     echo "  install: https://github.com/vmware-tanzu/sonobuoy/releases"

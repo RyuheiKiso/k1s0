@@ -44,7 +44,7 @@ jobs:
           fetch-depth: 1
 
       - name: install sonobuoy
-        # ADR-TEST-002 portable 制約: SHA 検証は採用初期で導入（CI image にバージョン pin する経路）
+        # ADR-TEST-001 portable 制約: SHA 検証は採用初期で導入（CI image にバージョン pin する経路）
         run: |
           curl -L "https://github.com/vmware-tanzu/sonobuoy/releases/download/${{ inputs.sonobuoy_version }}/sonobuoy_${{ inputs.sonobuoy_version#v }}_linux_amd64.tar.gz" | tar xz
           sudo mv sonobuoy /usr/local/bin/sonobuoy

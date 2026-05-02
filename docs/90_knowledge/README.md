@@ -144,7 +144,6 @@ ADR・MVP・E2E テスト・OSS ライセンスなど、開発プロセスとガ
 
 #### 検証・レビュー
 
-- [e2e-testing_basics.md](methodology/e2e-testing_basics.md)
 - [lgtm_basics.md](methodology/lgtm_basics.md)
 
 #### ライセンス

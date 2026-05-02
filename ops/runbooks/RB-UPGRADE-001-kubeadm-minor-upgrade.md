@@ -22,7 +22,7 @@ last_updated: 2026-05-02
 - 実行者は staging cluster の cluster-admin 権限を持つ
 - kubeadm / kubectl のバージョンが現行 K8s version と整合（pkgs.k8s.io 公式 repo）
 - staging cluster が control-plane 3 + worker 3 の HA 構成（ADR-INFRA-001）
-- ADR-TEST-002 の L4 standard E2E が前回 PASS（baseline 確認）
+- L4 標準テスト（後続再構築予定）が前回 PASS（baseline 確認）
 
 ## 2. 対象事象
 
@@ -74,8 +74,7 @@ kubectl uncordon <worker>
 kubectl get nodes
 # tier1 namespace の Pod が継続稼働
 kubectl get pods -n tier1-state
-# L4 standard E2E が PASS
-make verify-e2e
+# L4 標準テスト PASS（テスト基盤再構築後に手順反映）
 ```
 
 ## 7. 予防策
@@ -86,4 +85,4 @@ make verify-e2e
 ## 8. 関連 Runbook
 
 - [RB-DR-001 etcd-snapshot-restore](incidents/RB-DR-001-etcd-snapshot-restore.md) — upgrade 失敗時の roll back
-- ADR-TEST-005 / ADR-INFRA-001 / ADR-TEST-002（L4 verify）
+- ADR-TEST-005 / ADR-INFRA-001（L4 verify は後続テスト基盤再構築後に追記）

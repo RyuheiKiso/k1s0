@@ -33,7 +33,7 @@ Exit codes:
 # 標準 library import
 from __future__ import annotations
 
-# argparse は CLI 引数解析（ADR-TEST-002 portable 制約と整合した最小依存）
+# argparse は CLI 引数解析（ADR-TEST-001 portable 制約と整合した最小依存）
 import argparse
 
 # datetime は run の created_at parse + summary の日付出力

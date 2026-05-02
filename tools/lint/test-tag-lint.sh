@@ -8,7 +8,7 @@
 # 関連 ID: IMP-CI-TAG-001（4 タグ正典化）/ IMP-CI-TAG-003（言語別実装）
 #
 # 検証対象（リリース時点での最小成立形）:
-#   1. tests/e2e 配下の Go test ファイルで `// +build` か `//go:build` の build tag
+#   1. tests/ 配下の Go test ファイルで `// +build` か `//go:build` の build tag
 #      が記述されている場合、4 タグ最低セット（slow / flaky / security / nightly）の
 #      いずれかに整合するかを確認する
 #   2. build tag に typo（slowww / flakey 等）が無いか
@@ -34,7 +34,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
 # 検査対象 ディレクトリ
-TARGETS=(tests/e2e)
+TARGETS=(tests)
 
 # 違反件数カウンタ
 violations=0
@@ -87,7 +87,7 @@ declare -A TYPOS=(
     ["nighlty"]="nightly"
 )
 for typo in "${!TYPOS[@]}"; do
-    if grep -rn --include="*_test.go" -E "//(go:build| \+build).*\\b${typo}\\b" tests/e2e 2>/dev/null; then
+    if grep -rn --include="*_test.go" -E "//(go:build| \+build).*\\b${typo}\\b" tests 2>/dev/null; then
         echo "[error] typo 検出: '${typo}' は '${TYPOS[$typo]}' の typo 可能性"
         violations=$((violations + 1))
     fi

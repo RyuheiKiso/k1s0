@@ -15,7 +15,7 @@ func TestSourceTierByPath(t *testing.T) {
 		{"src/tier2/go/services/foo/main.go", TierTier2},
 		{"src/tier3/bff/cmd/portal-bff/main.go", TierTier3},
 		{"src/platform/scaffold/Cargo.toml", TierPlatform},
-		{"tests/e2e/scenarios/x_test.go", TierTests},
+		{"tests/integration/x_test.go", TierTests},
 		{"tools/ci/go-dep-check/cmd/go-dep-check/main.go", TierTools},
 		{"docs/INDEX.md", TierUnknown},
 	}

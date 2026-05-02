@@ -198,7 +198,6 @@ GitHub の CODEOWNERS は path-pattern と GitHub team / user の対応を定義
 
 ```text
 /tests/                                         @k1s0/sre-ops @k1s0/platform-team
-/tests/e2e/                                     @k1s0/sre-ops
 /tests/contract/                                @k1s0/contract-reviewers @k1s0/platform-team
 /tests/integration/                             @k1s0/platform-team
 
