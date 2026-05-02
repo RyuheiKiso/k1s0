@@ -125,7 +125,7 @@ awk -F: '{ key=$1 ":" $2; if (!seen[key]++) cnt[$2]++ } END { for (id in cnt) pr
 # 3) docs インデックス: file → 含まれる KIND ID + 同居 FR / ADR ID
 #    DOCS_RAW: "file:ID" 形式（複数 ID パターンを 1 回の grep で）
 DOCS_RAW="${EVIDENCE_DIR}/.trace-${KIND}-docs-raw.tmp"
-COMBINED_REGEX="${ID_REGEX}|FR-T1-[A-Z]+-[0-9]+|ADR-[A-Z0-9]+-[0-9]+"
+COMBINED_REGEX="${ID_REGEX}|FR-T1-[A-Z]+-[0-9]+|ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)"
 grep -rHoE "${COMBINED_REGEX}" "${REPO_ROOT}/docs" 2>/dev/null > "${DOCS_RAW}" || true
 
 # DOCS_RAW から ID -> file 一覧 / file -> FR list / file -> ADR list を作る

@@ -178,6 +178,35 @@ else
   check "gitkeep 整合検査に documented/undocumented 集計あり" 1
 fi
 
+# === Test 13: coverage.sh ADR regex が旧形式 ADR-0001 系を取りこぼさない ===
+# 過去 bug: ID_REGEX='ADR-[A-Z0-9]+-[0-9]+' がハイフン区切り数値サフィックスを必須とするため
+#           ADR-0001/0002/0003 が 1 件もマッチせず、coverage / orphan / trace で完全に不可視
+echo
+echo "--- Test 13: coverage.sh ADR regex 旧形式対応 ---"
+K1S0_AUDIT_EVIDENCE="${TMP_EVIDENCE}" bash tools/audit/run.sh adr >/dev/null 2>&1 || true
+adr_ids="${EVIDENCE_DIR}/ids-adr.txt"
+for old in ADR-0001 ADR-0002 ADR-0003; do
+  if [[ -f "${adr_ids}" ]] && grep -q "^${old}$" "${adr_ids}"; then
+    check "${old} が ids-adr.txt に含まれる (regex 旧形式取りこぼし regression)" 0
+  else
+    check "${old} が ids-adr.txt に含まれる (regex 旧形式取りこぼし regression)" 1
+  fi
+done
+
+# === Test 14: ids-adr.txt が ADR ファイル数と整合 ===
+# 不変式: 新規 ADR ファイルを 1 つ追加したら ids-adr.txt が必ず +1 される。
+#         adr/ 配下の自己参照 ID も含まれるので id_count >= file_count を assert。
+echo
+echo "--- Test 14: coverage.sh ADR ID 列挙完全性 ---"
+adr_file_count=$(ls "${REPO_ROOT}/docs/02_構想設計/adr/ADR-"*.md 2>/dev/null | wc -l | tr -d ' ')
+adr_id_count=$(wc -l < "${adr_ids}" 2>/dev/null | tr -d ' ')
+adr_id_count="${adr_id_count:-0}"
+if [[ "${adr_id_count}" -ge "${adr_file_count}" ]]; then
+  check "ids-adr.txt count ${adr_id_count} >= ADR file count ${adr_file_count}" 0
+else
+  check "ids-adr.txt count ${adr_id_count} >= ADR file count ${adr_file_count}" 1
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

@@ -39,7 +39,11 @@ case "${KIND}" in
     ;;
   adr)
     DOCS_PATH="docs/02_構想設計/adr"
-    ID_REGEX='ADR-[A-Z0-9]+-[0-9]+'
+    # 旧形式 (ADR-0001 等、4 桁通し番号、3 件のみ歴史的に存在) と
+    # 新形式 (ADR-DATA-001 等、ドメイン別分類) の両対応。
+    # `[A-Z][A-Z0-9]*` で新形式の category 部を「先頭が大文字」に縛り、
+    # `ADR-0001-istio` の 0001 が新形式側にマッチして曖昧化するのを防ぐ。
+    ID_REGEX='ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)'
     ;;
   *)
     echo "unknown kind: ${KIND}" >&2
@@ -219,7 +223,7 @@ if [[ "${KIND}" == "adr" ]]; then
   fi
   ADR_FILE_IDS_TMP="${EVIDENCE_DIR}/.adr-file-ids.tmp"
   ls "${REPO_ROOT}/docs/02_構想設計/adr/" 2>/dev/null \
-    | grep -oE 'ADR-[A-Z0-9]+-[0-9]+' | sort -u > "${ADR_FILE_IDS_TMP}" || true
+    | grep -oE 'ADR-([0-9]{4}|[A-Z][A-Z0-9]*-[0-9]+)' | sort -u > "${ADR_FILE_IDS_TMP}" || true
   comm -23 "${CODE_REFS_TMP}" "${ADR_FILE_IDS_TMP}" > "${ORPHANS_OUT}" || true
   ORPHAN_COUNT="$(wc -l < "${ORPHANS_OUT}" | tr -d ' ')"
   {
