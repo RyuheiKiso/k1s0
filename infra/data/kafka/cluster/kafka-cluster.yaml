@@ -48,8 +48,11 @@ metadata:
     strimzi.io/kraft: enabled
 spec:
   kafka:
-    version: 3.9.0
-    metadataVersion: 3.9-IV0
+    # Strimzi 0.51.0 (local-stack 既定) のサポート集合は [4.1.0, 4.1.1, 4.2.0]。
+    # tools/local-stack/manifests/65-kafka/k1s0-kafka.yaml と同期する形で 4.1.0 を採用。
+    # metadataVersion は Kafka 4.1 系の安定版 4.1-IV0。
+    version: 4.1.0
+    metadataVersion: 4.1-IV0
     listeners:
       # クラスタ内通信は TLS 必須
       - name: tls

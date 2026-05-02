@@ -13,6 +13,10 @@ spec:
     type: persistent-claim
     size: 5Gi
     deleteClaim: true
+    # local-stack は kind の rancher.io/local-path（標準名 "standard"）を採用する。
+    # 旧設定は class 未指定で両 default StorageClass が混在し PVC が Pending に詰まった
+    # （k1s0-default は PLACEHOLDER_csi_provisioner で実 provisioner なし）。
+    class: standard
   resources:
     requests:
       cpu: 100m
@@ -28,8 +32,11 @@ metadata:
     strimzi.io/kraft: enabled
 spec:
   kafka:
-    version: 3.9.0
-    metadataVersion: 3.9-IV0
+    # Strimzi 0.51.0 が dropするため Kafka 3.9.0 → 4.1.0 に追従。サポート集合は
+    # [4.1.0, 4.1.1, 4.2.0]（kubectl logs strimzi-cluster-operator で確認）。
+    # metadataVersion は Kafka 4.1 系の安定版 4.1-IV0 を採用する。
+    version: 4.1.0
+    metadataVersion: 4.1-IV0
     listeners:
       - name: plain
         port: 9092
