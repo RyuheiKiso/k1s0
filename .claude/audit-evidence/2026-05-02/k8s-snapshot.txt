@@ -1,0 +1,13 @@
+# k8s 軸 スナップショット (生成: 2026-05-02T18:33:17+09:00)
+status: connected
+context: kind-k1s0-local
+cluster_class: kind
+verification_tier: local-only (kind / minikube / k3d 等)
+production_verified: false
+namespace_count: 36
+running_pods: 93
+total_pods: 93
+
+# 重要: 本 snapshot は local cluster (kind) のみ。
+# production-equivalent (managed K8s) での E2E 検証は別途必要。
+# AUDIT.md の C 軸では local / production の 2 列で記録すること。

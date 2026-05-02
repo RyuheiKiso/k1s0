@@ -115,8 +115,10 @@ desktop.ini
 !.vscode/settings.json
 # Claude Code（個人設定は除外、共有設定・skill・command・hook は含める）
 .claude/settings.local.json
-# /audit コマンドの生証跡（肥大化するためコミット対象外、AUDIT.md に集計のみ反映）
-.claude/audit-evidence/
+# /audit 生証跡は git 管理対象（第三者が AUDIT.md の主張を再生成なしに verify するため）
+# 走査時の一時ファイル（.*.tmp / *-filelist.txt 等）のみ除外する
+.claude/audit-evidence/**/.*.tmp
+.claude/audit-evidence/**/*-filelist.txt
 # Vim / Neovim のスワップファイル
 *.swp
 *.swo

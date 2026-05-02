@@ -1,0 +1,122 @@
+# OSS 完成度チェックリスト (生成: 2026-05-02T18:33:18+09:00)
+# 採点基準: OSSF Scorecard / CNCF Sandbox / OpenSSF Best Practices Badge
+# 判定値: Met / Unmet / Unknown(public repo + scorecard-cli が前提) / N/A
+
+## CNCF Sandbox 最低要件 (ファイル存在 + 中身の最低要素)
+
+- [LICENSE] Met: LICENSE (201 lines)
+- [Code of Conduct] Met: CODE_OF_CONDUCT.md (115 lines)
+- [Contributing Guide] Met: CONTRIBUTING.md (160 lines)
+- [Governance] Met: GOVERNANCE.md (79 lines)
+- [Security Policy] Met: SECURITY.md (73 lines)
+- [README] Met: README.md (359 lines)
+
+## LICENSE 種別判定 (OSI 承認 license)
+
+- 識別結果: Apache-2.0 (OSI 承認)
+  証跡: LICENSE 冒頭 5 行を grep で識別
+
+## Security-Policy (Scorecard 項目)
+
+- [Vulnerability 報告経路] Met: mailto/URL 0/1 件、disclosure キーワード 12 件
+
+## リポジトリ運用 (.github/ 系)
+
+- [CODEOWNERS] Met: .github/CODEOWNERS (56 lines)
+- [PR Template] Met: .github/PULL_REQUEST_TEMPLATE.md (93 lines)
+- [Labels Definition] Met: .github/labels.yml (225 lines)
+- [Repo Settings (文書化)] Met: .github/repo-settings.md (119 lines)
+- [Issue Template] Met: .github/ISSUE_TEMPLATE/ (3 件)
+
+## CI-Tests (Scorecard 項目)
+
+- [GitHub Actions workflows] Met: 17 件
+  - pr.yml: PR 単位で発火する workflow を確認
+
+## SAST / 静的解析 (Scorecard 項目)
+
+- [SAST] Met: _reusable-lint.yml で各言語 linter 実行
+
+## Token-Permissions (Scorecard 項目)
+
+- [permissions: 明示] 17/17 workflow で permissions キー明示
+
+## Pinned-Dependencies (Scorecard 項目)
+
+- [Renovate config] Met: renovate.json (依存自動更新)
+  - src/sdk/rust/Cargo.lock
+  - src/platform/scaffold/Cargo.lock
+  - src/tier1/rust/Cargo.lock
+  - src/sdk/typescript/pnpm-lock.yaml
+  - src/tier3/web/pnpm-lock.yaml
+  - examples/tier3-web-portal/pnpm-lock.yaml
+
+## Fuzzing (Scorecard 項目)
+
+- [Fuzz target] Met: tests/fuzz/ (Go 1 件 / Rust 10 件)
+
+## Signed-Releases / SBOM (Scorecard 項目)
+
+- [SBOM] Met: ops/supply-chain/sbom/ (12 件)
+- [Signatures] Met: ops/supply-chain/signatures/ (6 件)
+- [Public Keys] Met: ops/supply-chain/keys/
+
+## Binary-Artifacts (Scorecard 項目)
+
+- [Commit 済バイナリ] Met: 0 件 (clean、git ls-files で .exe/.dll/.so/.dylib/.jar/.class なし)
+
+## Dangerous-Workflow (Scorecard 項目)
+
+- [Dangerous-Workflow] Met: pull_request_target + PR HEAD checkout の危険な組み合わせ 0 件 (全 1 件中)
+
+## CII / OpenSSF Best Practices Badge (Passing 17 項目、ローカル判定可能分)
+
+- [CII: project_url] Met: README.md = project ホーム
+- [CII: vulnerability_report] Met: SECURITY.md = vulnerability 報告経路
+- [CII: floss_license] Met: LICENSE 存在 (FLOSS license)
+- [CII: public_version_control] Met: git remote が public ホスティング先を指している
+- [CII: unique_version_numbering] Manual-Required: git tag 0 件 (semver 準拠は別途確認)
+- [CII: release_notes] Manual-Required: CHANGELOG.md の有無 (不在)
+- [CII: bug_reporting_process] Met: .github/ISSUE_TEMPLATE/ で報告経路
+- [CII: vulnerability_response] Met: SECURITY.md (応答 SLA は別途記述要)
+- [CII: working_build_system] Met: Makefile / Cargo.toml / go.mod / package.json のいずれか
+- [CII: automated_test_suite] Met: tests/ ディレクトリ or *_test.{go,rs} 存在
+- [CII: test_added_for_changes] Manual-Required: PR レビュープロセスで test 追加を要求 (PR template で確認)
+- [CII: use_basic_good_cryptographic_practices] Manual-Required: 暗号アルゴリズム選定の妥当性は人間判定 (ADR-CRYPTO-* 系参照)
+- [CII: secured_delivery] Met: ops/supply-chain/ (sbom + signatures + keys)
+- [CII: publicly_known_vulnerabilities_fixed] Manual-Required: dependabot / renovate 自動更新 + lock file 監査
+- [CII: static_analysis] Met: _reusable-lint.yml = SAST workflow
+
+### CII Best Practices Passing 集計
+- Met (機械判定): 10 / 17
+- Unmet: 0 / 17
+- Manual-Required (人間判定): 5 / 17
+- 外部 bestpractices.dev での最終登録は別途実施 (URL 自己申告制)
+
+## public repo + GitHub API 必須項目 (Unknown)
+
+- [Branch-Protection] Unknown: GitHub Settings の API、public 化後に scorecard-cli で確認
+- [Code-Review] Unknown: PR 履歴の分析、public 化後に scorecard-cli で確認
+- [Vulnerabilities] Unknown: dependabot alert、public 化後に確認
+- [Webhooks] N/A: public 化前のため対象外
+
+## OSSF Scorecard CLI
+
+- status: scorecard_not_installed
+- note: scorecard-cli を導入後に手動実行 / GitHub Action で自動採点
+
+## Maintained (Scorecard 項目) - git log 直近 30 日 / 90 日
+
+- commits_last_30_days: 752
+- commits_last_90_days: 1686 (Scorecard Maintained 閾値)
+- unique_contributors_all_time: 3
+- [Maintained] Met (90 日以内に commit あり)
+
+## 集計サマリ
+
+- Met: 31 件
+- Unmet: 0 件
+- Unknown (public repo + scorecard-cli 必須): 3 件
+
+判定総合は人間が docs/AUDIT.md D 軸で行うこと (audit-protocol skill 規約)。
+Best Practices Badge の Passing 17 項目自己採点は外部サイト https://www.bestpractices.dev/ で repo URL を入力して実施。
