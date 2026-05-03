@@ -100,9 +100,9 @@ docs:
 user_e2e_smoke:
   - "tests/e2e/user/**"
   - "src/sdk/go/k1s0/test-fixtures/**"
-  - "src/sdk/rust/test-fixtures/**"
-  - "src/sdk/dotnet/K1s0.Sdk.TestFixtures/**"
-  - "src/sdk/typescript/packages/test-fixtures/**"
+  - "src/sdk/rust/crates/k1s0-sdk-test-fixtures/**"
+  - "src/sdk/dotnet/src/K1s0.Sdk.TestFixtures/**"
+  - "src/sdk/typescript/test-fixtures/**"
   - "src/tier1/**"
   - "tools/e2e/user/**"
   - "tools/e2e/lib/**"
