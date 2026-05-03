@@ -149,3 +149,4 @@ CODEOWNERS は `infra/` を SRE + tier 横断基盤担当、`deploy/` を GitOps
 - GitOps Principles: [opengitops.dev](https://opengitops.dev/)
 - Argo CD Application の Best Practices: [argo-cd.readthedocs.io](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/)
 - Kustomize overlay 設計: Airbnb / Shopify / Netflix のパブリック事例
+- [ADR-TEST-004: Chaos Engineering を LitmusChaos で実装](ADR-TEST-004-chaos-engineering-litmus.md) — `infra/chaos/` ディレクトリは LitmusChaos 想定

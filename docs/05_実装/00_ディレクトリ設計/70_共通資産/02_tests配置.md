@@ -87,45 +87,7 @@ tests/
 
 ## e2e/ の構造
 
-E2E テストは Go で統一する（tier1 Go、tier2 .NET / Go、tier3 Web を横断するため最大公約数）。`tests/e2e/go.mod` は独立 module。
-
-```go
-// tests/e2e/scenarios/tenant_onboarding_test.go
-//
-// テナント新規オンボーディングの E2E シナリオ
-package scenarios
-
-import (
-    "testing"
-    "github.com/k1s0/k1s0/tests/e2e/helpers"
-    "github.com/stretchr/testify/require"
-)
-
-// テナント作成 → ユーザ登録 → 初回ログインの一連フロー
-func TestTenantOnboarding(t *testing.T) {
-    // テストクラスタ準備
-    cluster := helpers.SetupCluster(t)
-    defer cluster.Teardown()
-
-    // Keycloak に admin でログイン
-    admin := helpers.AuthenticateAsAdmin(t, cluster)
-
-    // tier1 公開 API 経由でテナント作成
-    tenantID := admin.CreateTenant(t, "new-tenant")
-
-    // 初期ユーザ登録
-    userID := admin.RegisterUser(t, tenantID, "user@new-tenant.example.com")
-
-    // 初回ログイン
-    user := helpers.AuthenticateAsUser(t, cluster, userID)
-
-    // ダッシュボード取得
-    dashboard := user.GetDashboard(t, tenantID)
-    require.NotNil(t, dashboard)
-}
-```
-
-E2E は CI 上で kind cluster を起動、`infra/environments/dev/` を apply してから実行。時間は 30 分程度を想定。
+e2e テスト基盤は刷新中で本リリース時点では未配置。配置方針・ディレクトリ構造・実行経路は刷新後の新 ADR と本ファイル改訂で再確定する。
 
 ## contract/ の構造
 
@@ -206,5 +168,5 @@ diff -r /tmp/scaffold-out /tmp/expected/
 
 ## 対応 ADR / DS-SW-COMP / 要件
 
-- ADR-DEVEX-003（テスト戦略標準化）
+- ADR-TEST-001（Test Pyramid + testcontainers でテスト戦略を正典化、ADR-DEVEX-003 を吸収）
 - DX-GP-\* / NFR-A-AVL-\*

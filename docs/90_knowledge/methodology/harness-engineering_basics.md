@@ -201,7 +201,6 @@ print(messages[-1]["content"][0].text)
 ## 12. さらに学ぶには
 
 - 関連 Knowledge: [adr_basics.md](adr_basics.md) — ハーネス設計判断を残す形式
-- 関連 Knowledge: [e2e-testing_basics.md](e2e-testing_basics.md) — ハーネス eval を E2E として組む際の前提
 - Anthropic Engineering Blog の `Managed Agents` / `harness-design-long-running-apps` を一次資料として通読する
 
 ## 13. 参考資料

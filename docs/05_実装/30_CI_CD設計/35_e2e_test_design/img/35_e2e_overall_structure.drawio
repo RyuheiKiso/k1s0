@@ -1,0 +1,58 @@
+<mxfile>
+  <diagram name="35_e2e_overall_structure">
+    <mxGraphModel dx="1100" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="600" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="35_e2e_test_design 全体構造（4 ADR の実装段階展開）" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="1020" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="policy" value="00_方針 / 01_owner_user_責務分界&#10;（ADR-TEST-008 を実装規約に展開、IMP-CI-E2E-001）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="65" width="540" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="owner_pillar" value="10_owner_suite&#10;48GB host 専用 / 不定期 / CI 不可&#10;&#10;01_環境契約 (E2E-002)&#10;02_ディレクトリ構造 (E2E-004)&#10;03_Makefile_target (E2E-006)&#10;04_観測性5検証 (E2E-008、ADR-TEST-009)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="145" width="240" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="user_pillar" value="20_user_suite&#10;16GB host OK / PR + nightly CI&#10;&#10;01_環境契約 (E2E-003)&#10;02_ディレクトリ構造 (E2E-005)&#10;03_Makefile_target (E2E-007)&#10;04_CI戦略 (E2E-009 / 010)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="300" y="145" width="240" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="fixtures_pillar" value="30_test_fixtures&#10;4 言語 SDK 同梱 (Go/Rust/.NET/TS)&#10;&#10;01_4言語対称API (E2E-011)&#10;02_versioning (E2E-012)&#10;03_mock_builder段階展開 (E2E-013)&#10;ADR-TEST-010" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="145" width="240" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="gate_pillar" value="40_release_tag_gate&#10;owner full CI 不可の代替保証&#10;&#10;01_cut_sh_拡張 (E2E-014)&#10;02_artifact_保管 (E2E-015)&#10;03_owner_e2e_results_template (E2E-016)&#10;ADR-TEST-011" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="820" y="145" width="240" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="index_box" value="90_対応IMP-CI-E2E索引 / 01_対応IMP索引&#10;（IMP-CI-E2E-001 〜 016 一覧 + 状態 + 依存関係）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="280" y="335" width="540" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="adr_link" value="関連 ADR: ADR-TEST-001 (Test Pyramid) / ADR-TEST-008 (二分構造) / ADR-TEST-009 (観測性) / ADR-TEST-010 (fixtures) / ADR-TEST-011 (release gate)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="395" width="1020" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="450" width="460" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例 (drawio_layer_convention 準拠)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="615" y="455" width="430" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app" value="アプリ層 (方針 / fixtures)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="480" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_net" value="ネットワーク層 (user / CI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="835" y="480" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_data" value="データ層 (release gate)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="510" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_infra" value="インフラ層 (owner)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="835" y="510" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_dashed" value="点線枠 = 索引 / 補助情報" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="615" y="540" width="430" height="22" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

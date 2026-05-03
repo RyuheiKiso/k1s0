@@ -93,7 +93,6 @@
 /tools/codegen/buf/
 /tools/sparse/
 /tools/devcontainer/profiles/tier3-web-dev/
-/tests/e2e/
 /examples/tier3-web-portal/
 /examples/tier3-bff-graphql/
 /.github/
@@ -118,7 +117,6 @@
 /tools/codegen/buf/
 /tools/sparse/
 /tools/devcontainer/profiles/tier3-native-dev/
-/tests/e2e/
 /examples/tier3-native-maui/
 /.github/
 /.devcontainer/

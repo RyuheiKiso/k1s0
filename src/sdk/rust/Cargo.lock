@@ -374,6 +374,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "k1s0-sdk-test-fixtures"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"

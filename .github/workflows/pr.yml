@@ -33,18 +33,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      tier1_rust:    ${{ steps.f.outputs.tier1_rust }}
-      tier1_go:      ${{ steps.f.outputs.tier1_go }}
-      tier2_dotnet:  ${{ steps.f.outputs.tier2_dotnet }}
-      tier2_go:      ${{ steps.f.outputs.tier2_go }}
-      tier3_web:     ${{ steps.f.outputs.tier3_web }}
-      tier3_native:  ${{ steps.f.outputs.tier3_native }}
-      sdk:           ${{ steps.f.outputs.sdk }}
-      platform:      ${{ steps.f.outputs.platform }}
-      contracts:     ${{ steps.f.outputs.contracts }}
-      infra:         ${{ steps.f.outputs.infra }}
-      docs:          ${{ steps.f.outputs.docs }}
-      docs_only:     ${{ steps.docs_only.outputs.docs_only }}
+      tier1_rust:      ${{ steps.f.outputs.tier1_rust }}
+      tier1_go:        ${{ steps.f.outputs.tier1_go }}
+      tier2_dotnet:    ${{ steps.f.outputs.tier2_dotnet }}
+      tier2_go:        ${{ steps.f.outputs.tier2_go }}
+      tier3_web:       ${{ steps.f.outputs.tier3_web }}
+      tier3_native:    ${{ steps.f.outputs.tier3_native }}
+      sdk:             ${{ steps.f.outputs.sdk }}
+      platform:        ${{ steps.f.outputs.platform }}
+      contracts:       ${{ steps.f.outputs.contracts }}
+      infra:           ${{ steps.f.outputs.infra }}
+      docs:            ${{ steps.f.outputs.docs }}
+      docs_only:       ${{ steps.docs_only.outputs.docs_only }}
+      user_e2e_smoke:  ${{ steps.f.outputs.user_e2e_smoke }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -377,6 +378,19 @@ jobs:
       path: src/tier3/web
 
   # ------------------------------------------------------------------
+  # 3b. user e2e smoke (ADR-TEST-008、IMP-CI-E2E-010)
+  # tests/e2e/user/ + test-fixtures + tier1 + tools/e2e/user/ 等の変更時に kind 起動 + smoke 実行。
+  # owner full e2e は CI 不可（multipass nested virt 制約）で release tag ゲート (ADR-TEST-011) で代替保証する。
+  # ------------------------------------------------------------------
+  e2e-user-smoke:
+    needs: [filter]
+    if: needs.filter.outputs.user_e2e_smoke == 'true' && needs.filter.outputs.docs_only != 'true'
+    uses: ./.github/workflows/_reusable-e2e-user.yml
+    with:
+      mode: smoke
+      timeout_minutes: 10
+
+  # ------------------------------------------------------------------
   # 4. ci-overall（branch protection の必須 status check 集約 job）
   #
   # IMP-CI-POL-002 に従い、本 job 1 本のみが必須。skip された前段は
@@ -405,6 +419,7 @@ jobs:
       - test-tier2-dotnet
       - test-tier2-go
       - test-tier3-web
+      - e2e-user-smoke
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -440,6 +455,7 @@ jobs:
             [test-tier2-dotnet]="${{ needs.test-tier2-dotnet.result }}"
             [test-tier2-go]="${{ needs.test-tier2-go.result }}"
             [test-tier3-web]="${{ needs.test-tier3-web.result }}"
+            [e2e-user-smoke]="${{ needs.e2e-user-smoke.result }}"
           )
           for job in "${!results[@]}"; do
             r="${results[$job]}"

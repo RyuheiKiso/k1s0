@@ -1,0 +1,42 @@
+# =============================================================================
+# 本ファイルは月次 CNCF Conformance workflow。
+# 設計正典:
+#   ADR-TEST-003（CNCF Conformance を Sonobuoy で月次実行）
+#   ADR-CNCF-001（vanilla K8s + CNCF Conformance 維持）
+#
+# 起動 trigger:
+#   schedule: 月初 03:00 JST（毎月 1 日 18:00 UTC）
+#   workflow_dispatch: 起案者 / 採用初期協力者の手動起動を許容
+#
+# Sonobuoy results.tar.gz + summary.md は GitHub Actions artifact として 90 日保存。
+# 12 ヶ月時系列版管理は別 workflow（採用初期で git LFS sync）で tests/.conformance/<YYYY-MM>/
+# にコミットする経路を IMP-CI-CONF-004 で確立する。
+# =============================================================================
+name: conformance
+
+on:
+  schedule:
+    # 月初 03:00 JST = 毎月 1 日 18:00 UTC
+    - cron: "0 18 1 * *"
+  workflow_dispatch:
+    inputs:
+      sonobuoy_version:
+        description: "Sonobuoy CLI バージョン（採用初期は手動 override で v0.58+ 検証）"
+        required: false
+        type: string
+        default: "v0.57.3"
+
+concurrency:
+  # 月次 1 回が前提、複数走を抑制
+  group: conformance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    uses: ./.github/workflows/_reusable-conformance.yml
+    with:
+      timeout_minutes: 180
+      sonobuoy_version: ${{ inputs.sonobuoy_version || 'v0.57.3' }}

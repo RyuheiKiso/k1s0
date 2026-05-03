@@ -94,3 +94,16 @@ docs:
   - "SECURITY.md"
   - "GOVERNANCE.md"
   - "CODE_OF_CONDUCT.md"
+
+# user e2e smoke 起動条件（ADR-TEST-008、IMP-CI-E2E-010）
+# tests/e2e/user/ + 4 言語 SDK test-fixtures + tier1 + tools/e2e/user/ + tools/local-stack/ の変更で発火
+user_e2e_smoke:
+  - "tests/e2e/user/**"
+  - "src/sdk/go/k1s0/test-fixtures/**"
+  - "src/sdk/rust/test-fixtures/**"
+  - "src/sdk/dotnet/K1s0.Sdk.TestFixtures/**"
+  - "src/sdk/typescript/packages/test-fixtures/**"
+  - "src/tier1/**"
+  - "tools/e2e/user/**"
+  - "tools/e2e/lib/**"
+  - "tools/local-stack/**"

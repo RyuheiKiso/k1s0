@@ -71,6 +71,7 @@ declare -A ROLE_LAYERS=(
     ["infra-ops"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg kafka temporal minio valkey openbao backstage observability keycloak"
     ["docs-writer"]="cni cert-manager"
     ["full"]="cni cert-manager metallb istio kyverno spire dapr flagd gitea registry argocd argo-rollouts envoy-gateway cnpg kafka temporal minio valkey openbao backstage observability keycloak"
+    ["conformance"]="cni"
 )
 
 # ADR-POL-002: role 別の既定 mode（drift policy の Kyverno 強制度）。
@@ -86,6 +87,7 @@ declare -A ROLE_MODE=(
     ["docs-writer"]="dev"
     ["infra-ops"]="strict"
     ["full"]="strict"
+    ["conformance"]="strict"
 )
 
 ROLE="docs-writer"

@@ -1,0 +1,41 @@
+# kind portability 検証 — namespace 別 fresh install 経路
+run_date: 2026-05-02
+primary_cluster: k1s0-local
+primary_namespace: tier1-state
+portability_namespace: tier1-state-portability
+release: tier1-facade-port
+
+---
+## 制約解析
+
+本セッション host（WSL2 + devcontainer 相当環境）の制約:
+  - multipass: nested virtualization 制約で起動不可（host OS 上の VM hypervisor 不可視）
+  - kind 2nd cluster: /proc/sys/user/max_inotify_instances=128 が root 専有で枯渇、root 権限なし
+  - 結果: run.sh / run-kind.sh はいずれも host kernel 環境で blocked
+
+## 採用した代替経路
+
+同 cluster 上の別 namespace に fresh helm install + 公開 e2e shell test の経路で
+「chart の再現性」「manifest の cluster 状態非依存」を最小確認する。
+
+---
+## 実走 ログ
+
+### namespace 作成 + helm install
+NAME                      STATUS   AGE
+tier1-state-portability   Active   43s
+
+NAME             	NAMESPACE              	REVISION	UPDATED                                	STATUS  	CHART             	APP VERSION
+tier1-facade-port	tier1-state-portability	1       	2026-05-03 06:51:50.241716906 +0900 JST	deployed	tier1-facade-0.1.0	0.1.0      
+
+### Pod 状態
+NAME                                       READY   STATUS    RESTARTS   AGE
+tier1-facade-port-state-67b8dd84cc-v48pq   1/1     Running   0          43s
+
+### service 状態
+NAME                      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)                        AGE
+tier1-facade-port-state   ClusterIP   10.96.95.242   <none>        50001/TCP,50080/TCP,9090/TCP   43s
+
+### e2e (TestTenantOnboarding) 実走結果
+K1S0_TIER1_TARGET=localhost:50011 go test -v -run TestTenantOnboarding
+結果: PASS（2/2 subtests dapr-system_running + tier1_state_save_get_delete）

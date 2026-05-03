@@ -56,7 +56,7 @@ tools/devcontainer/
 | `kind`/`k3d` 同時利用 | 本番再現スタックは kind 単独。`tools/local-stack/k3d-config.yaml` 未配置 | Phase 3（k3d 軽量経路の必要性が顕在化した時点で追加） |
 | `examples/<role>-service/` の中身 | ディレクトリ自体未配置。10 役 cone は examples/ を参照しているため、役割切替後に当該ディレクトリは空のまま | Phase 3（tier1/tier2/tier3 の最初の実稼働サービスを起こす時点で配置） |
 | `tools/codegen/buf/` `tools/codegen/openapi/` | ディレクトリ未配置（cone 参照対象として空） | Phase 3（最初の `.proto` / OpenAPI 仕様が確定した時点） |
-| `tests/contract/` `tests/integration/` `tests/e2e/` `tests/fuzz/rust/` `tests/golden/` | ディレクトリ未配置 | Phase 3（テスト基盤の最初のジョブを CI に乗せる時点） |
+| `tests/contract/` `tests/integration/` `tests/fuzz/rust/` `tests/golden/` | ディレクトリ未配置 | Phase 3（テスト基盤の最初のジョブを CI に乗せる時点） |
 
 ## toolchain 診断（doctor.sh）
 

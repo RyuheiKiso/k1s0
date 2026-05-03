@@ -86,8 +86,8 @@ git gc --prune=now --aggressive
 | `tier1-rust-dev` | tier1 Rust コア（ZEN / 暗号 / Audit / scaffold CLI） | + `src/contracts/`, `src/tier1/rust/`, `src/platform/scaffold/`, `tools/codegen/buf/`, `tests/fuzz/rust/`, `tests/contract/`, `examples/tier1-rust-service/` | 13 | ≈255 MB |
 | `tier1-go-dev` | tier1 Go ファサード（Dapr 統合） | + `src/contracts/`, `src/tier1/go/`, `src/sdk/go/`, `tools/codegen/buf/`, `tests/contract/`, `tests/integration/go/`, `examples/tier1-go-facade/` | 13 | ≈255 MB |
 | `tier2-dev` | tier2 ドメイン共通（C# / Go） | + `src/contracts/`, `src/tier2/`, `src/sdk/go/`, `src/sdk/dotnet/`, `tools/codegen/`, `tests/contract/`, `tests/integration/`, `examples/tier2-{dotnet,go}-service/` | 15 | ≈255 MB |
-| `tier3-web-dev` | tier3 Web (React + TS + Vite) / BFF (Go) | + `src/sdk/typescript/`, `src/sdk/go/`, `src/tier3/web/`, `src/tier3/bff/`, `tools/codegen/{openapi,buf}/`, `tests/e2e/`, `examples/tier3-{web-portal,bff-graphql}/` | 15 | ≈255 MB |
-| `tier3-native-dev` | tier3 .NET MAUI / Legacy wrap (.NET Framework) | + `src/sdk/dotnet/`, `src/tier3/native/`, `src/tier3/legacy-wrap/`, `tools/codegen/buf/`, `tests/e2e/`, `examples/tier3-native-maui/` | 12 | ≈255 MB |
+| `tier3-web-dev` | tier3 Web (React + TS + Vite) / BFF (Go) | + `src/sdk/typescript/`, `src/sdk/go/`, `src/tier3/web/`, `src/tier3/bff/`, `tools/codegen/{openapi,buf}/`, `examples/tier3-{web-portal,bff-graphql}/` | 14 | ≈255 MB |
+| `tier3-native-dev` | tier3 .NET MAUI / Legacy wrap (.NET Framework) | + `src/sdk/dotnet/`, `src/tier3/native/`, `src/tier3/legacy-wrap/`, `tools/codegen/buf/`, `examples/tier3-native-maui/` | 11 | ≈255 MB |
 | `platform-cli-dev` | scaffold CLI / analyzer / Backstage plugin | + `src/contracts/`, `src/platform/`, `src/sdk/rust/`, `tools/codegen/`, `tests/golden/`, `examples/` | 12 | ≈255 MB |
 | `sdk-dev` | 4 言語 SDK 横断開発 | + `src/contracts/`, `src/sdk/`, `tools/codegen/`, `tests/contract/`, `examples/` | 11 | ≈255 MB |
 | `infra-ops` | infra / deploy / ops 横断（k8s / GitOps） | + `infra/`, `deploy/`, `ops/`, `tools/{ci,local-stack}/`, `tests/integration/` | 11 | ≈256 MB |

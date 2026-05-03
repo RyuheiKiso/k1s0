@@ -1,0 +1,61 @@
+<mxfile>
+  <diagram name="owner_stack">
+    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="700" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="700" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="owner suite stack（48GB host 専用 / multipass × 5 + kubeadm 3CP HA）" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=15;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="15" width="820" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1_app_tests" value="tests/e2e/owner/{platform, observability, security, ha-dr, upgrade,&#10;sdk-roundtrip, tier3-web, perf}/  ←  Go test (chromedp + k6)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="65" width="740" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2_full_stack" value="Full Stack（Argo CD / Istio Ambient / Dapr / CNPG / Strimzi / MinIO / Valkey&#10;OpenBao / Backstage / Grafana LGTM / Keycloak）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="130" width="740" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l3_cni" value="CNI: Cilium (eBPF + Hubble) — ADR-NET-001 production" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="195" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_lb" value="LB: MetalLB (L2 mode、IP pool 192.168.64.200-220) — ADR-STOR-002" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="245" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l5_csi" value="CSI: Longhorn (3 replica StorageClass) — ADR-STOR-001" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="295" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="l6_k8s" value="K8s: kubeadm (control-plane 3 HA + worker 2)&#10;multi-AZ topology label {a, b}（疑似分散）— ADR-INFRA-001" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="345" width="740" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_vm" value="VM: multipass × 5（k1s0-cp-1/2/3 + k1s0-w-1/2、各 6GB / 2vCPU）&#10;計 30GB RAM / 10vCPU / 100GB disk（host 48GB に対し約 47GB 占有）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="80" y="410" width="740" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l8_host" value="ホスト: WSL2 Ubuntu 24.04 / 48GB RAM / host OS の WSL2 native shell から実行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=center;verticalAlign=middle;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="80" y="475" width="740" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="footer" value="起動: tools/e2e/owner/up.sh / 終了: tools/e2e/owner/down.sh / 結果記録: docs/40_運用ライフサイクル/owner-e2e-results.md" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;dashed=1;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="80" y="525" width="740" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="380" y="580" width="460" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例 (drawio_layer_convention 準拠)" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="395" y="585" width="430" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app" value="アプリ層 (Test / Stack)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="395" y="610" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_net" value="ネットワーク層 (CNI / LB)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="610" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_data" value="データ層 (CSI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="395" y="640" width="200" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_infra" value="インフラ層 (K8s / VM / Host)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="615" y="640" width="210" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

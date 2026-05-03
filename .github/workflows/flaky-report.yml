@@ -1,0 +1,68 @@
+# =============================================================================
+# 本ファイルは flaky-report workflow（CI 結果統計 → quarantine 自動追加）。
+# 設計正典:
+#   ADR-TEST-007（テスト属性タグ + CI 実行フェーズ分離）
+# 関連 ID: IMP-CI-TAG-004（flaky 自動検出）/ IMP-CI-TAG-005（tests/.flaky-quarantine.yaml レビュー必須）
+#
+# 起動 trigger:
+#   schedule: 日次 04:00 JST（19:00 UTC、nightly E2E 完了後）
+#   workflow_dispatch: 手動起動
+#
+# tools/qualify/flaky-detector.py が GitHub Actions API 経由で直近 20 PR の test 結果を
+# 取得し、fail 率 ≥ 5% を tests/.flaky-quarantine.yaml の更新 PR として自動提出する設計。
+# 現リリース時点では flaky-detector.py が未実装のため skeleton 配置で、Python 実装と
+# 連動を採用初期で有効化する。
+# =============================================================================
+name: flaky-report
+
+on:
+  schedule:
+    # 日次 04:00 JST = 19:00 UTC（nightly E2E 完了後）
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: flaky-report-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install dependencies
+        # flaky-detector.py が必要とする依存を install（requests のみで十分）
+        run: pip install --quiet requests==2.32.3
+
+      - name: run flaky detector
+        # 採用初期で tools/qualify/flaky-detector.py を実装し、本 step が
+        # 直近 20 PR の test 結果を集計 → fail 率 ≥ 5% の test を
+        # tests/.flaky-quarantine.yaml に追加する PR を自動提出する設計。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 tools/qualify/flaky-detector.py
+
+      - name: upload flaky report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flaky-report-${{ github.run_id }}
+          path: tests/.flaky-report/
+          retention-days: 30
+          if-no-files-found: ignore

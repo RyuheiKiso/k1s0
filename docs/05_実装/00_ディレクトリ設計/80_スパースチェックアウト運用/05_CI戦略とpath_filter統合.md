@@ -204,7 +204,8 @@ jobs:
       - name: Setup kind cluster
         run: ./tools/local-stack/kind/bootstrap.sh
       - name: Run E2E tests
-        run: cd tests/e2e && go test -v ./...
+        # 実装は ADR-TEST-008 で確定済。`_reusable-e2e-user.yml` に委譲し tests/e2e/user/ を kind 上で実行
+        run: cd tests/e2e/user && go test -v ./...
 ```
 
 ## CI キャッシュ戦略

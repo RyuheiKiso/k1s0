@@ -1,0 +1,45 @@
+# =============================================================================
+# 本ファイルは nightly workflow（ADR-TEST-008 / 009 / 010）。
+# 03:00 JST cron + workflow_dispatch で起動し、user full e2e を実行する。
+# owner full e2e は CI 不可（multipass nested virt 制約、ADR-TEST-008）のため
+# 別経路（host OS の WSL2 native shell + ADR-TEST-011 release tag ゲート）で代替保証する。
+#
+# 設計正典:
+#   ADR-TEST-008（user full は nightly cron で機械検証）
+#   ADR-TEST-009（観測性 5 検証は owner only、本 workflow には含まない）
+#   ADR-TEST-011（owner full は release tag ゲート tools/release/cut.sh で代替保証）
+#   docs/05_実装/30_CI_CD設計/35_e2e_test_design/20_user_suite/04_CI戦略.md
+#
+# 起動 trigger:
+#   schedule: 03:00 JST = 18:00 UTC（朝会前完了想定）
+#   workflow_dispatch: 起案者の手動起動
+# =============================================================================
+name: nightly
+
+on:
+  schedule:
+    # 03:00 JST = 18:00 UTC
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "user e2e mode (smoke / full)"
+        required: false
+        type: string
+        default: "full"
+
+concurrency:
+  # 前回未完了で次の起動が来た場合は前回キャンセルして最新で再走
+  group: nightly-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-user-full:
+    # ADR-TEST-008 で約束した nightly user full e2e を _reusable-e2e-user.yml に委譲
+    uses: ./.github/workflows/_reusable-e2e-user.yml
+    with:
+      mode: ${{ inputs.mode || 'full' }}
+      timeout_minutes: 60

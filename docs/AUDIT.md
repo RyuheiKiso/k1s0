@@ -142,7 +142,7 @@
 
 trace 経路の意味:
 - **direct**: `src / infra / deploy / tools / examples` で ID 直接 grep ヒット（coverage と重複、業界慣行で稀）
-- **verify**: `infra/security/kyverno/`, `infra/observability/`, `deploy/rollouts/`, `ops/sli-slo/`, `tests/{contract,e2e,fuzz}/` 内の ID 引用（推奨される検証経路）
+- **verify**: `infra/security/kyverno/`, `infra/observability/`, `deploy/rollouts/`, `ops/sli-slo/`, `tests/{contract,fuzz}/` 内の ID 引用（推奨される検証経路、e2e はテスト基盤刷新中で対象外）
 - **via-fr / via-adr**: ID 言及 docs に同居する FR / ADR のうち impl_refs > 0 のもの（co-cite による間接 reach）
 - **unreached**: 4 経路すべてで reach 0、真の impl 不在候補。要 inspect
 
