@@ -85,10 +85,21 @@ if kind get clusters 2>/dev/null | grep -q "^${KIND_CLUSTER_NAME}$"; then
     fi
 fi
 if ! kind get clusters 2>/dev/null | grep -q "^${KIND_CLUSTER_NAME}$"; then
-    # control-plane 1 + worker 1 の最小構成（local-stack/kind-cluster.yaml の subset を inline 使用）
+    # control-plane 1 + worker 1 の最小構成（local-stack/kind-cluster.yaml と同設計の subset）
+    # disableDefaultCNI: true で kindnet を切る → 後続 apply_cni (Calico) が競合せず install 完了する
+    # podSubnet は Calico の既定 10.244.0.0/16 と整合
+    # registry mirror は docker.io rate limit (100 pulls/6h/IP) 回避（local-stack と同じ設定）
     kind create cluster --name "${KIND_CLUSTER_NAME}" --config - <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+      endpoint = ["https://mirror.gcr.io", "https://registry-1.docker.io"]
+networking:
+  disableDefaultCNI: true
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/16"
 nodes:
   - role: control-plane
   - role: worker
@@ -96,6 +107,11 @@ EOF
 fi
 # kubeconfig context を current にする
 kubectl config use-context "kind-${KIND_CLUSTER_NAME}"
+
+# 00-namespaces.yaml を事前適用（local-stack/up.sh の start_cluster 関数は --no-cluster 時 skip するため）
+# 各 layer の Helm chart は専用 namespace に install するため、cert-manager / dapr-system / cnpg-system 等が事前に必要
+e2e_log "[Step 1.5/4] namespace 群を事前適用 (local-stack/manifests/00-namespaces.yaml)"
+kubectl apply -f "${REPO_ROOT}/tools/local-stack/manifests/00-namespaces.yaml"
 
 # Step 2: minimum stack の install（local-stack/up.sh を --no-cluster で呼び、必要 layer のみ）
 # minimum stack = cni (Calico) + cert-manager + dapr + cnpg/minio (backend) + keycloak

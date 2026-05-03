@@ -109,9 +109,11 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
         exit 1
     fi
     # 最新 ### YYYY-MM-DD entry の日付を抽出（既定の order: 上に最新 = ADR-TEST-011 §3）
-    LATEST_ENTRY_DATE="$(grep -m1 '^### [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' "$OWNER_E2E_RESULTS_MD" | sed 's/^### //')"
+    # set -o pipefail 下で grep no-match (exit 1) が script を silent kill するのを `|| true` で回避
+    LATEST_ENTRY_DATE="$(grep -m1 '^### [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' "$OWNER_E2E_RESULTS_MD" 2>/dev/null | sed 's/^### //' || true)"
     if [[ -z "$LATEST_ENTRY_DATE" ]]; then
         echo "[error] $OWNER_E2E_RESULTS_MD に ### YYYY-MM-DD entry が存在しない" >&2
+        echo "[hint]  owner full を実走（host OS WSL2 native shell から make e2e-owner-full）し、PASS entry を追記する" >&2
         exit 1
     fi
     # 鮮度判定（現在から N 日以内）
@@ -137,7 +139,8 @@ if [[ "$DRY_RUN" -eq 0 ]]; then
         exit 1
     fi
     # artifact sha256 を抽出（ADR-TEST-011 §1 step 5、IMP-CI-E2E-014）
-    OWNER_E2E_SHA256="$(echo "$LATEST_ENTRY_BLOCK" | grep -m1 '^- artifact sha256:' | sed 's/^- artifact sha256: //' | tr -d ' \t')"
+    # 同じく pipefail 対策で `|| true` を付ける
+    OWNER_E2E_SHA256="$(echo "$LATEST_ENTRY_BLOCK" | grep -m1 '^- artifact sha256:' 2>/dev/null | sed 's/^- artifact sha256: //' | tr -d ' \t' || true)"
     if [[ -z "$OWNER_E2E_SHA256" ]]; then
         echo "[error] owner-e2e-results.md 最新 entry に 'artifact sha256:' フィールド不在" >&2
         exit 1
