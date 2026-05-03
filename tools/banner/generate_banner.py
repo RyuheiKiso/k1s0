@@ -5,16 +5,17 @@
   0.0-0.5s  プロンプト + カーソル待機
   0.5-3.0s  "keep it simple, 0 vendor lock-in" を打鍵
   3.0-3.5s  ホールド
-  3.5-4.5s  K / I / S / 0 をシアン化、他文字をフェードアウト
-  4.5-5.0s  "kis0" にクロスフェード
-  5.0-5.2s  i → 1 グリッチスワップ
+  3.5-4.5s  K / I / S / 0 をシアン化、他文字をフェードアウト（弱めドットノイズ）
+  4.5-5.0s  "kis0" にクロスフェード（弱めドットノイズ）
+  5.0-5.2s  i → 1 グリッチスワップ（強め: RGB チャンネルずれ + スキャンライン + ドット）
   5.2-7.5s  "k1s0" ロゴ + サブタイトルでホールド (カーソル無し / ループ点)
 
 出力: docs/assets/banner.gif
 """
 
+import random
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 W, H = 1280, 320
 BG = (13, 17, 23)
@@ -96,6 +97,34 @@ def lerp_color(a, b, t):
     return tuple(int(a[i] * (1 - t) + b[i] * t) for i in range(3))
 
 
+def add_dot_noise(img, density, palette, seed):
+    rnd = random.Random(seed)
+    px = img.load()
+    n = int(W * H * density)
+    for _ in range(n):
+        px[rnd.randrange(W), rnd.randrange(H)] = rnd.choice(palette)
+    return img
+
+
+def add_rgb_shift(img, shift):
+    r, g, b = img.split()
+    r = ImageChops.offset(r, shift, 0)
+    b = ImageChops.offset(b, -shift, 0)
+    return Image.merge("RGB", (r, g, b))
+
+
+def add_scanline_slice(img, n_slices, max_offset, seed):
+    rnd = random.Random(seed)
+    out = img.copy()
+    for _ in range(n_slices):
+        y0 = rnd.randrange(H)
+        h = rnd.randrange(4, 18)
+        y1 = min(H, y0 + h)
+        offset = rnd.randint(-max_offset, max_offset)
+        out.paste(img.crop((0, y0, W, y1)), (offset, y0))
+    return out
+
+
 def main():
     frames, durations = [], []
 
@@ -122,9 +151,9 @@ def main():
         frames.append(render_typing(typed, cur))
         durations.append(FRAME_MS)
 
-    # Phase 4a: keeper をシアン化（1 つずつ、各 2f）
+    # Phase 4a: keeper をシアン化（1 つずつ、各 2f） — 弱めドットノイズ
     for k_idx in [0, 5, 8, 16]:
-        for _ in range(2):
+        for sub in range(2):
             new = []
             for i, (ch, col) in enumerate(typed):
                 if i in KEEPERS and i <= k_idx:
@@ -132,10 +161,12 @@ def main():
                 else:
                     new.append((ch, col))
             typed = new
-            frames.append(render_typing(typed, False))
+            f = render_typing(typed, False)
+            f = add_dot_noise(f, 0.003, [ACCENT, FG, DIM], 300 + k_idx * 10 + sub)
+            frames.append(f)
             durations.append(FRAME_MS)
 
-    # Phase 4b: 非 keeper を FG → GHOST にディゾルブ (4 ステップ)
+    # Phase 4b: 非 keeper を FG → GHOST にディゾルブ (4 ステップ) — 弱めドットノイズ
     for step in range(4):
         t = (step + 1) / 4
         rendered = []
@@ -144,10 +175,12 @@ def main():
                 rendered.append((ch, ACCENT))
             else:
                 rendered.append((ch, lerp_color(FG, GHOST, t)))
-        frames.append(render_typing(rendered, False))
+        f = render_typing(rendered, False)
+        f = add_dot_noise(f, 0.003, [DIM, GHOST, FG], 400 + step)
+        frames.append(f)
         durations.append(FRAME_MS)
 
-    # Phase 4c: 全文 (dimmed) → "kis0" センターへクロスフェード (6f)
+    # Phase 4c: 全文 (dimmed) → "kis0" センターへクロスフェード (6f) — 弱めドットノイズ
     # kis0 はすべて keeper として cyan を維持
     src = render_typing(
         [(ch, ACCENT if i in KEEPERS else GHOST) for i, (ch, _) in enumerate(typed)],
@@ -158,7 +191,9 @@ def main():
     )
     for step in range(6):
         a = (step + 1) / 6
-        frames.append(Image.blend(src, tgt_kis0, a))
+        f = Image.blend(src, tgt_kis0, a)
+        f = add_dot_noise(f, 0.004, [ACCENT, GHOST, FG], 500 + step)
+        frames.append(f)
         durations.append(FRAME_MS)
 
     # kis0 ホールド (6f)
@@ -166,11 +201,14 @@ def main():
         frames.append(tgt_kis0)
         durations.append(FRAME_MS)
 
-    # Phase 5: i → 1 グリッチスワップ (3f: |, 1, 1) — 全文字 cyan のまま
-    for ch in ["|", "1", "1"]:
+    # Phase 5: i → 1 グリッチスワップ (3f: |, 1, 1) — 強めグリッチ (RGB shift + scanline + dot)
+    for i, ch in enumerate(["|", "1", "1"]):
         f = render_typing(
             [("k", ACCENT), (ch, ACCENT), ("s", ACCENT), ("0", ACCENT)], False
         )
+        f = add_rgb_shift(f, max(2, 6 - i * 2))
+        f = add_scanline_slice(f, n_slices=4, max_offset=30, seed=600 + i)
+        f = add_dot_noise(f, 0.01, [FG, ACCENT, ACCENT, DIM], 700 + i)
         frames.append(f)
         durations.append(FRAME_MS)
 
@@ -204,6 +242,11 @@ def main():
             sub_col = lerp_color(BG, DIM, sub_alpha)
             sw, _ = measure(d, SUBTITLE, F_SUB)
             d.text(((W - sw) // 2, y + th + 30), SUBTITLE, fill=sub_col, font=F_SUB)
+        # 拡大初期ほど強い弱めノイズ（後半で 0 へ）
+        if step < 6:
+            img = add_dot_noise(
+                img, 0.0025 * (1 - step / 6), [FG, ACCENT, DIM], 800 + step
+            )
         frames.append(img)
         durations.append(FRAME_MS)
 
