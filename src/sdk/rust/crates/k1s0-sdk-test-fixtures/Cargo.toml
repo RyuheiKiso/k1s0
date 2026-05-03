@@ -1,0 +1,30 @@
+# k1s0-sdk-test-fixtures crate
+#
+# 設計正典:
+#   ADR-TEST-010（test-fixtures 4 言語 SDK 同梱）
+#   docs/05_実装/30_CI_CD設計/35_e2e_test_design/30_test_fixtures/01_4言語対称API.md
+#
+# 本 crate は k1s0-sdk と同 workspace で同 SemVer / 同 release tag。
+# 利用者の dev-dependencies で k1s0-sdk-test-fixtures = "0.1" として参照する。
+
+[package]
+name = "k1s0-sdk-test-fixtures"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "k1s0 Rust SDK と同梱される e2e test 用 fixture ライブラリ (ADR-TEST-010)"
+
+[dependencies]
+# tokio: 非同期 setup / teardown で使う
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+# thiserror: エラー型
+thiserror = { workspace = true }
+# serde: mock data の serialize / deserialize（std feature で String 等の deserialize を有効化）
+serde = { workspace = true, features = ["derive", "std"] }
+
+[features]
+default = []
+# Playwright fixture は TS のみ提供（本 crate では feature ゲートのみ予約）
+playwright = []

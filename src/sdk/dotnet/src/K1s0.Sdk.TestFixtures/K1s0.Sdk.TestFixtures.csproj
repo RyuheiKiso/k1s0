@@ -1,0 +1,39 @@
+<!--
+  K1s0.Sdk.TestFixtures: k1s0 .NET SDK と同梱される e2e test 用 fixture ライブラリ。
+
+  設計正典:
+    ADR-TEST-010（test-fixtures 4 言語 SDK 同梱）
+    docs/05_実装/30_CI_CD設計/35_e2e_test_design/30_test_fixtures/01_4言語対称API.md
+
+  役割（リリース時点）:
+    K1s0.Sdk.Grpc への参照を持ち、xUnit IAsyncLifetime / Setup / Teardown / MockBuilder /
+    WaitFor / AssertPodReady の 4 言語対称 API を提供する。
+
+  バージョニング:
+    Directory.Build.props の <Version> を K1s0.Sdk.Proto / K1s0.Sdk.Grpc と共有し、
+    SDK 本体と同 SemVer / 同 release tag で release する（ADR-TEST-010 §2）。
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>K1s0.Sdk.TestFixtures</PackageId>
+    <Description>k1s0 .NET SDK e2e test fixtures (kind setup + mock builder + xUnit IAsyncLifetime)</Description>
+    <RootNamespace>K1s0.Sdk.TestFixtures</RootNamespace>
+    <AssemblyName>K1s0.Sdk.TestFixtures</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 同 sln 内の ProjectReference（K1s0.Sdk.Grpc 経由で SDK 本体を再 export） -->
+    <ProjectReference Include="../K1s0.Sdk.Grpc/K1s0.Sdk.Grpc.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- xUnit IAsyncLifetime を直接実装するため abstractions のみ参照（test framework 本体は利用者の test project に） -->
+    <PackageReference Include="xunit.abstractions" Version="2.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" Condition="Exists('../../README.md')" />
+  </ItemGroup>
+
+</Project>

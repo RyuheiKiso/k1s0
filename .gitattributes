@@ -1,0 +1,35 @@
+# =============================================================================
+# k1s0 .gitattributes — git LFS / 改行 / diff 表示の正規化規約
+#
+# 設計正典:
+#   ADR-TEST-003（CNCF Conformance results 12 ヶ月版管理）
+#   ADR-TEST-011（owner full e2e artifact 12 ヶ月版管理）
+#   docs/05_実装/30_CI_CD設計/35_e2e_test_design/40_release_tag_gate/02_artifact_保管.md
+# =============================================================================
+
+# テキストファイルは LF 改行を強制（Windows / WSL 混在運用で CRLF 混入を防ぐ）
+* text=auto eol=lf
+
+# git LFS で管理する artifact ----------------------------------------
+
+# tests/.owner-e2e/ — owner full e2e の artifact（ADR-TEST-011、12 ヶ月版管理）
+tests/.owner-e2e/**/*.tar.zst       filter=lfs diff=lfs merge=lfs -text
+tests/.owner-e2e/**/*.tar.gz        filter=lfs diff=lfs merge=lfs -text
+tests/.owner-e2e/**/screenshots/*.png  filter=lfs diff=lfs merge=lfs -text
+tests/.owner-e2e/**/dmesg.txt       filter=lfs diff=lfs merge=lfs -text
+
+# tests/.conformance/ — Sonobuoy conformance results（ADR-TEST-003、12 ヶ月版管理）
+tests/.conformance/**/*.tar.gz      filter=lfs diff=lfs merge=lfs -text
+tests/.conformance/**/*.tar.zst     filter=lfs diff=lfs merge=lfs -text
+
+# tests/.portability/ — multipass + kubeadm portability 検証 artifact
+tests/.portability/**/*.tar.gz      filter=lfs diff=lfs merge=lfs -text
+
+# drawio 出力 SVG は通常 git 管理（LFS なし、diff 可能性 + size 小）
+# *.drawio は xml なので通常管理。
+
+# Go generated code は diff 表示で linguist が "Generated" 扱いにする
+src/sdk/go/**/generated/**/*.go    linguist-generated=true
+src/sdk/rust/crates/k1s0-sdk-proto/src/gen/**/*.rs   linguist-generated=true
+src/sdk/dotnet/src/K1s0.Sdk.Proto/Generated/**/*.cs  linguist-generated=true
+src/sdk/typescript/src/proto/**/*.ts  linguist-generated=true

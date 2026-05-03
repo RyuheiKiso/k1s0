@@ -1,0 +1,48 @@
+{
+  "//": "k1s0 TypeScript SDK 同梱の e2e test 用 fixture ライブラリ。",
+  "//designRef": "ADR-TEST-010 / docs/05_実装/30_CI_CD設計/35_e2e_test_design/30_test_fixtures/01_4言語対称API.md",
+  "//versioning": "@k1s0/sdk-rpc と同 SemVer / 同 release tag で release（ADR-TEST-010 §2）",
+  "name": "@k1s0/sdk-test-fixtures",
+  "version": "0.1.0",
+  "description": "k1s0 TypeScript SDK e2e test fixtures (kind setup + mock builder + Playwright fixture)",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k1s0/k1s0.git",
+    "directory": "src/sdk/typescript/test-fixtures"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./playwright": {
+      "types": "./dist/playwright.d.ts",
+      "import": "./dist/playwright.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@k1s0/sdk-rpc": "0.1.0",
+    "@playwright/test": "^1.50.0",
+    "vitest": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": { "optional": true },
+    "vitest": { "optional": true }
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

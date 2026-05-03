@@ -1,0 +1,89 @@
+# =============================================================================
+# 本ファイルは user suite e2e の reusable workflow（ADR-TEST-008、IMP-CI-E2E-009）。
+#
+# 設計正典:
+#   ADR-TEST-008（e2e owner / user 二分構造、user = PR + nightly CI で機械検証）
+#   ADR-TEST-010（test-fixtures SDK 同梱、本 workflow は kind 上で fixtures 経由 test を実行）
+#   docs/05_実装/30_CI_CD設計/35_e2e_test_design/20_user_suite/04_CI戦略.md
+#
+# inputs:
+#   mode  — "smoke" (PR 5 分以内) または "full" (nightly 30〜45 分)
+#   timeout_minutes — workflow 全体の timeout（既定 60）
+#
+# 起動経路:
+#   pr.yml が path-filter で user_e2e_smoke を検出した時 mode=smoke で呼ぶ
+#   nightly.yml が cron で mode=full で呼ぶ
+#
+# 出力 artifact:
+#   tests/.user-e2e/<日付>/ + go test の result.json + stdout.log
+#   actions/upload-artifact@v4 で 14 日 retention
+# =============================================================================
+name: _reusable-e2e-user
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "smoke or full"
+        required: true
+        type: string
+      timeout_minutes:
+        description: "workflow timeout (minutes)"
+        required: false
+        type: number
+        default: 60
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-user:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: setup go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tests/e2e/user/go.mod
+          cache-dependency-path: tests/e2e/user/go.sum
+
+      - name: install kind
+        run: |
+          # kind は Actions runner に未 install のため、最新 stable を install
+          curl -fsSL -o kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/kind
+          kind version
+
+      - name: install helm
+        # local-stack の minimum stack install で helm が必要
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      - name: run e2e
+        # make e2e-user-{smoke,full} を直接呼ぶ（local 実行と CI 実行で同 shell path、ADR-POL-002）
+        run: |
+          if [[ "${{ inputs.mode }}" == "smoke" ]]; then
+            make e2e-user-smoke
+          elif [[ "${{ inputs.mode }}" == "full" ]]; then
+            make e2e-user-full
+          else
+            echo "::error title=invalid mode::mode must be 'smoke' or 'full' (got: ${{ inputs.mode }})"
+            exit 2
+          fi
+
+      - name: collect artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: user-e2e-${{ inputs.mode }}-${{ github.run_id }}
+          path: |
+            tests/.user-e2e/**
+          retention-days: 14
+          if-no-files-found: warn

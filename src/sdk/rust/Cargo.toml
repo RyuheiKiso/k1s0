@@ -19,6 +19,7 @@ resolver = "2"
 members = [
     "crates/k1s0-sdk-proto",
     "crates/k1s0-sdk",
+    "crates/k1s0-sdk-test-fixtures",
 ]
 
 # k1s0 全体で使う共通バージョン。`workspace = true` で各 crate が継承する。
