@@ -7,7 +7,9 @@
 #
 # 採用形態:
 #   - Mend Cloud は不採用（オンプレ制約 NFR-E-SEC）。GitHub Actions 上で self-hosted。
-#   - 毎時 schedule トリガで PR を生成。手動 trigger も workflow_dispatch で可能。
+#   - 手動 trigger（workflow_dispatch）専用。schedule は 2026-05-04 に一時停止
+#     （RENOVATE_TOKEN 未配備で連続失敗していたため）。再開時は下記 schedule:
+#     ブロックを復活させること。ADR-DEP-001 / renovate.json は据え置き。
 #
 # 必要な secrets:
 #   - RENOVATE_TOKEN: GitHub PAT（fine-grained 推奨、対象 repo のみ）
@@ -20,9 +22,10 @@
 name: renovate
 
 on:
-  schedule:
-    # UTC 0:00 / 6:00 / 12:00 / 18:00 = JST 9:00 / 15:00 / 21:00 / 3:00 の 4 回
-    - cron: "0 0,6,12,18 * * *"
+  # schedule 一時停止中（2026-05-04〜）。再開時は以下 4 行を復活:
+  #   schedule:
+  #     # UTC 0:00 / 6:00 / 12:00 / 18:00 = JST 9:00 / 15:00 / 21:00 / 3:00 の 4 回
+  #     - cron: "0 0,6,12,18 * * *"
   workflow_dispatch:
     inputs:
       logLevel:

@@ -9,5 +9,6 @@
   "platform": false,
   "contracts": false,
   "infra": false,
-  "docs": false
+  "docs": false,
+  "user_e2e_smoke": true
 }
