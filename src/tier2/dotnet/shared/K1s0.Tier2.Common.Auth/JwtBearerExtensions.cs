@@ -43,7 +43,7 @@ public static class JwtBearerExtensions
     public static IServiceCollection AddK1s0JwtBearer(this IServiceCollection services)
     {
         // 環境変数を読む。未設定 / 空は off 扱い。
-        var mode = (Environment.GetEnvironmentVariable("T2_AUTH_MODE") ?? "off").Trim().ToLowerInvariant();
+        string mode = (Environment.GetEnvironmentVariable("T2_AUTH_MODE") ?? "off").Trim().ToLowerInvariant();
 
         // 認証スキーム名は JwtBearerDefaults.AuthenticationScheme（"Bearer"）固定。
         var auth = services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
@@ -91,7 +91,7 @@ public static class JwtBearerExtensions
     /// </summary>
     private static void ConfigureHmac(AuthenticationBuilder auth)
     {
-        var secret = Environment.GetEnvironmentVariable("T2_AUTH_HMAC_SECRET") ?? string.Empty;
+        string secret = Environment.GetEnvironmentVariable("T2_AUTH_HMAC_SECRET") ?? string.Empty;
         if (string.IsNullOrEmpty(secret))
         {
             // 設定不備は fail-fast。Pod 起動時に確実に検知する。
@@ -117,7 +117,7 @@ public static class JwtBearerExtensions
     /// </summary>
     private static void ConfigureJwks(AuthenticationBuilder auth)
     {
-        var url = Environment.GetEnvironmentVariable("T2_AUTH_JWKS_URL") ?? string.Empty;
+        string url = Environment.GetEnvironmentVariable("T2_AUTH_JWKS_URL") ?? string.Empty;
         if (string.IsNullOrEmpty(url))
         {
             throw new InvalidOperationException("T2_AUTH_JWKS_URL is required when T2_AUTH_MODE=jwks");
