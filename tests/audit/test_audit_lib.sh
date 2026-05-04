@@ -426,6 +426,37 @@ for fr_id in FR-T1-STATE-002 FR-T1-WORKFLOW-004 FR-T1-TELEMETRY-003 FR-T1-PUBSUB
   fi
 done
 
+# === Test 24: FR-T1-PUBSUB-004 (DLQ) の handler 結線 + Component YAML 同期不変式 ===
+# 不変式: (a) src/tier1/go/internal/state/pubsub_dlq.go に dlqTopicName / serviceNameFromConsumerGroup
+#         両関数が存在する、(b) Component YAML の consumeRetryMax 値が pubsub_dlq.go の
+#         pubsubDLQMaxRetries 定数値と一致する。
+# 検証:
+#   (a) FR-T1-PUBSUB-004 の grep が src/ 配下に 1 件以上ヒット
+#   (b) Component YAML kafka.yaml の consumeRetryMax 値とコード側 pubsubDLQMaxRetries 定数値が一致
+# 失敗時:
+#   - (a) で 0 件 → pubsub_dlq.go が削除された / docstring の FR ID が消えた
+#   - (b) で不一致 → docs / Component YAML / コード側のいずれかが drift
+#   判定基準: docs/00_format/audit_criteria.md §A 軸 (3 段: docs + impl + Component 設定)
+echo
+echo "--- Test 24: FR-T1-PUBSUB-004 (DLQ) handler 結線 + Component YAML 同期 ---"
+
+# (a) src/ 配下に FR-T1-PUBSUB-004 の impl_ref が 1 件以上あること。
+pubsub004_hits=$(grep -rE "FR-T1-PUBSUB-004" --include='*.go' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${pubsub004_hits}" -ge 1 ]]; then
+  check "FR-T1-PUBSUB-004: impl_refs=${pubsub004_hits} >= 1" 0
+else
+  check "FR-T1-PUBSUB-004: impl_refs=0 (regression: pubsub_dlq.go の docstring が削除されたか)" 1
+fi
+
+# (b) Component YAML の consumeRetryMax 値とコード側 pubsubDLQMaxRetries 定数値が一致。
+yaml_retry_max=$(grep -A1 "name: consumeRetryMax" "${REPO_ROOT}/infra/dapr/components/pubsub/kafka.yaml" 2>/dev/null | grep -oE 'value: "[0-9]+"' | grep -oE '[0-9]+')
+code_retry_max=$(grep -E "pubsubDLQMaxRetries\s*=\s*[0-9]+" "${REPO_ROOT}/src/tier1/go/internal/state/pubsub_dlq.go" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+if [[ -n "${yaml_retry_max}" && -n "${code_retry_max}" && "${yaml_retry_max}" == "${code_retry_max}" ]]; then
+  check "FR-T1-PUBSUB-004: Component YAML consumeRetryMax (${yaml_retry_max}) == コード pubsubDLQMaxRetries (${code_retry_max})" 0
+else
+  check "FR-T1-PUBSUB-004: Component YAML / コード drift (yaml=${yaml_retry_max:-missing} code=${code_retry_max:-missing})" 1
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

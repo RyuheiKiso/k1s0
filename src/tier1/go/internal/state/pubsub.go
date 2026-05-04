@@ -381,12 +381,17 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 	if cgErr != nil {
 		return cgErr
 	}
+	// FR-T1-PUBSUB-004: DLQ topic 名 `k1s0.<tenant>.dlq.<service>` を統一規則で算出し、
+	// adapter 経由で Dapr Subscription metadata `deadLetterTopic` に注入する。
+	// retry 上限と実 DLQ 転送は Component YAML の consumeRetryMax と組み合わせる。
+	dlqTopic := dlqTopicName(tid, serviceNameFromConsumerGroup(tid, cg))
 	ctx := stream.Context()
 	sub, err := h.deps.PubSubAdapter.Subscribe(ctx, dapr.SubscribeAdapterRequest{
-		Component:     pubsubComponentName(),
-		Topic:         req.GetTopic(),
-		ConsumerGroup: cg,
-		TenantID:      tid,
+		Component:       pubsubComponentName(),
+		Topic:           req.GetTopic(),
+		ConsumerGroup:   cg,
+		TenantID:        tid,
+		DeadLetterTopic: dlqTopic,
 	})
 	if err != nil {
 		return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe failed: %v", err)

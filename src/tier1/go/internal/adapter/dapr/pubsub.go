@@ -63,10 +63,17 @@ type PubSubAdapter interface {
 
 // SubscribeAdapterRequest は Subscribe の入力。
 type SubscribeAdapterRequest struct {
-	Component     string
-	Topic         string
+	// Dapr Component 名（pubsub-kafka 等）。
+	Component string
+	// 物理 prefix 付与「前」の論理トピック名。
+	Topic string
+	// `k1s0.<tenant>.<service>` 形式の consumer group（正規化済）。
 	ConsumerGroup string
-	TenantID      string
+	// テナント識別子（NFR-E-AC-003 検証済）。
+	TenantID string
+	// FR-T1-PUBSUB-004: DLQ topic 名（tier1 が `k1s0.<tenant>.dlq.<service>` 形式で算出）。
+	// 空文字なら DLQ 機能を有効化しない（後方互換 / 旧経路）。
+	DeadLetterTopic string
 }
 
 // PubSubSubscription は subscription の操作集合。handler は Receive をループし、
@@ -147,6 +154,15 @@ func (a *daprPubSubAdapter) Subscribe(ctx context.Context, req SubscribeAdapterR
 		}
 		// kafka backend では "consumerGroup" がコンポーネント既定キー。
 		meta["consumerGroup"] = req.ConsumerGroup
+	}
+	// FR-T1-PUBSUB-004: DLQ topic 指定。Dapr Pub/Sub の Subscription metadata
+	// "deadLetterTopic" は Component 設定の consumeRetryMax と組み合わせて、
+	// retry 上限を超えたイベントを指定 topic に自動転送する標準機構。
+	if req.DeadLetterTopic != "" {
+		if meta == nil {
+			meta = make(map[string]string, 1)
+		}
+		meta["deadLetterTopic"] = req.DeadLetterTopic
 	}
 	// L2 テナント分離: 物理トピック名に `<tenant_id>/` を付与する。
 	physTopic := prefixTopic(req.TenantID, req.Topic)
