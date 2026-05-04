@@ -144,5 +144,5 @@ spec:
 
 ## 対応 ADR / DS-SW-COMP / 要件
 
-- ADR-DEVEX-001（Backstage 採用）
+- ADR-BS-001（Backstage 採用）
 - DX-GP-\* / DX-CICD-\*

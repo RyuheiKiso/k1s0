@@ -108,25 +108,27 @@ GitOps / ArgoCD / Argo Rollouts / Helm / Kustomize / OpenTofu の採用決定。
 |---|---|
 | IMP-DIR-OPS-091〜097 | 直接 |
 
-### ADR-DEVEX-001〜004（開発者体験）
+### ADR-BS-001 / ADR-DEV-001 / ADR-TEST-001（開発者体験）
 
-Backstage / Dev Container / テスト戦略 / Golden Path の採用決定。
+Backstage（ADR-BS-001）/ Paved Road / Golden Path（ADR-DEV-001）/ テスト戦略（ADR-TEST-001）の採用決定。Dev Container 標準化は ADR-DEV-001 の Paved Road の一部として包摂され、本体起票は仮番 ADR-DEV-NNN として `docs/04_概要設計/90_付録/02_ADR索引.md` 未起票一覧で追跡する。
 
 | IMP-DIR ID | 関連度 |
 |---|---|
 | IMP-DIR-OPS-096（Backstage） | 直接 |
 | IMP-DIR-COMM-111〜116 | 直接 |
 
-### ADR-GOV-001（OSS ライセンス遵守ポリシー）
+### ADR-GOV-001（OSS ライセンス遵守ポリシー — 仮番、リリース時点 起票予定）
 
 | IMP-DIR ID | 関連度 |
 |---|---|
 | IMP-DIR-COMM-114（third_party 配置） | 直接 |
 
+本体は未起票で、`docs/04_概要設計/90_付録/02_ADR索引.md` の未起票 ADR 一覧（仮番）に登録する。
+
 ## 未起票の ADR（運用蓄積後判定）
 
-- ADR-DIR-004: Git LFS ポリシー
+- ADR-DIR-004: Git LFS ポリシー（ADR-DIR-003 で予約番号として明記）
 - ADR-DIR-005: CODEOWNERS 構造（現時点は `06_CODEOWNERSマトリクス設計.md` に記述のみ）
 - ADR-DIR-006: Bazel / Buck2 / Nx / Turborepo 等のビルドツール導入
 
-これらは リリース時点 で判定する。本プランでは採番しない。
+これらは リリース時点 で判定する。仮番として `docs/04_概要設計/90_付録/02_ADR索引.md` 未起票 ADR 一覧に登録し、起票時に正式番号と一致させる。
