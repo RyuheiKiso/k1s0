@@ -372,6 +372,39 @@ else
   check "docs-orphan に ADR-OPS-001 なし (PR-A-1 起票で解消維持)" 0
 fi
 
+# === Test 22: docs-orphan 検出が経緯記録ファイル 4 件を除外している ===
+# 不変式: 以下 4 ファイルは「過去に存在した ID の言及」「監査基準の例示」「仮番登録表」として
+#         旧 ID を意図的に保持する性質上、ここからの cite を orphan 検出に含めると「歴史的言及」が
+#         永遠に orphan としてカウントされ続ける構造的 bug になる。coverage.sh の docs-orphan 検出は
+#         以下 4 ファイルを --exclude で除外する。
+#   - docs/AUDIT.md
+#   - docs/SHIP_STATUS.md
+#   - docs/00_format/audit_criteria.md
+#   - docs/04_概要設計/90_付録/02_ADR索引.md
+# 検証: これら 4 ファイルにのみ cite されている旧 ID が docs-orphans-adr.txt に出てこないこと。
+#   失敗時:
+#     (a) coverage.sh から --exclude が削除された → 経緯記録が永続 orphan としてカウント復活
+#     (b) Phase 1 で書換した cite が旧 ID に巻き戻った → 当該 cite を再書換
+#     (c) Phase 2 で仮番表に登録した ID が他文書からも cite されている → 通常 orphan として正しく検出
+#   判定基準: docs/00_format/audit_criteria.md §A 軸 orphan 定義
+echo
+echo "--- Test 22: docs-orphan 検出が経緯記録ファイル 4 件を除外 ---"
+# (a) coverage.sh のソースに 4 ファイル除外が残っていること
+exclude_count=$(grep -cE -- '--exclude=(AUDIT\.md|SHIP_STATUS\.md|audit_criteria\.md|02_ADR索引\.md)' "${REPO_ROOT}/tools/audit/lib/coverage.sh" 2>/dev/null || echo 0)
+if [[ "${exclude_count}" -ge 4 ]]; then
+  check "coverage.sh に経緯記録 4 ファイル除外あり (count=${exclude_count})" 0
+else
+  check "coverage.sh から --exclude が削除された (count=${exclude_count}, 期待 >=4)" 1
+fi
+# (b) 経緯記録のみに残る旧 ID が docs-orphan に出てこないこと
+for legacy_id in ADR-CNCF-004 ADR-MESH-001 ADR-DEVEX-001 ADR-DEVEX-004 ADR-OPS-002; do
+  if grep -q "^${legacy_id}$" "${docs_orphans}" 2>/dev/null; then
+    check "${legacy_id} が docs-orphan に出現 (経緯記録除外 regression、または実 cite 残存)" 1
+  else
+    check "${legacy_id} が docs-orphan に不在 (経緯記録のみに留まる)" 0
+  fi
+done
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

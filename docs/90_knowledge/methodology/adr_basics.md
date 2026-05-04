@@ -129,7 +129,7 @@ PostgreSQL を採用する。
 
 ### 8.1 ADR を置換する
 
-既存の ADR を変更する場合、元の ADR は修正せず新しい ADR を作成する。元の ADR のステータスに「置換: ADR-0005 に置き換え」と追記し、新しい ADR のコンテキストに「ADR-0002 の決定を見直す」と記述して相互参照する。
+既存の ADR を変更する場合、元の ADR は修正せず新しい ADR を作成する。元の ADR のステータスに「置換: ADR-NNNN に置き換え」（NNNN は新しい ADR の番号）と追記し、新しい ADR のコンテキストに「元 ADR の決定を見直す」と記述して相互参照する。実プロジェクトの運用ルールは [`docs/00_format/document_standards.md`](../../00_format/document_standards.md) と [`.claude/skills/docs-adr-authoring/SKILL.md`](../../../.claude/skills/docs-adr-authoring/SKILL.md) を参照。
 
 ### 8.2 ADR をコードレビューに組み込む
 

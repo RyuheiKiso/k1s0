@@ -133,7 +133,7 @@ Runbook 形式の選定は採用検討組織が「10 年保守する」前提で
 - `ops/runbooks/templates/runbook-template.md` を 8 セクション + YAML frontmatter の雛形として整備（DS-OPS-RB-002）
 - リリース時点で 15 本（NFR-A-REC-002 のコミット値）の Runbook を整備、`docs/04_概要設計/55_運用ライフサイクル方式設計/09_Runbook目録方式.md` の目録に対応
 - Alertmanager の全ルールに `runbook_url` ラベル付与を強制（未整備は `TBD`、TBD 10 件超で Product Council escalation）
-- Chaos Drill 四半期計画を `ops/chaos/workflows/` に配置（採用ツールは ADR-OPS-002 で別途決定）
+- Chaos Drill 四半期計画を `ops/chaos/workflows/` に配置（採用ツールは [ADR-TEST-004](ADR-TEST-004-chaos-engineering-litmus.md) で LitmusChaos に確定済）
 - Runbook 品質指標 4 種を Grafana ダッシュボード `runbook-quality.json` として `infra/observability/grafana/dashboards/` に配置
 - 新規協力者オンボーディング 2 週間プロセス（1 週目: 全 Runbook 読破 + 改善 PR / 2 週目: staging で 3 本実演）を `docs/40_運用ライフサイクル/` に文書化
 - 既存 docs の `ADR-OPS-001` cite（`docs/05_実装/00_ディレクトリ設計/60_operationレイアウト/05_ops配置_Runbook_Chaos_DR.md:278`）が本 ADR を指すことを `tests/audit/test_audit_lib.sh` Test 19 で監視（docs-orphan watchlist から本 ID を外す）
@@ -147,6 +147,5 @@ Runbook 形式の選定は採用検討組織が「10 年保守する」前提で
 - ADR-OBS-003（インシデント分類体系）— Severity / Category 軸との整合
 - ADR-CICD-001（Argo CD GitOps）— Runbook 自動化の配信経路
 - NFR-A-REC-002 / NFR-A-CONT-001 / NFR-C-NOP-001 / NFR-C-OPS-001 — 関連要件
-- 関連 ADR（採用検討中）: ADR-OPS-002（Chaos Engineering ツール選定、別 PR で起票）
 - ADR-TEST-004（LitmusChaos 採用）— Chaos Drill 四半期実施で使用するツール
 - ADR-TEST-005（Upgrade drill + DR drill）— 四半期 Chaos Drill とローテーション枠を共有
