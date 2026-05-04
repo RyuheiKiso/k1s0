@@ -1,7 +1,0 @@
-# ドキュメント作成者向け cone
-/docs/
-/tools/sparse/
-/tools/devcontainer/profiles/docs-writer/
-/CLAUDE.md
-/.github/
-/.devcontainer/

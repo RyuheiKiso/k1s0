@@ -1,8 +1,0 @@
-{
-    "recommendations": [
-        "golang.go",
-        "zxh404.vscode-proto3",
-        "bufbuild.vscode-buf",
-        "ms-kubernetes-tools.vscode-kubernetes-tools"
-    ]
-}
