@@ -457,6 +457,47 @@ else
   check "FR-T1-PUBSUB-004: Component YAML / コード drift (yaml=${yaml_retry_max:-missing} code=${code_retry_max:-missing})" 1
 fi
 
+# === Test 25: FR-T1-BINDING-002/003/004 の handler 検証 + Component YAML 配備不変式 ===
+# 不変式: (a) SMTP / HTTP の必須 metadata 検証関数が src/ 配下に存在 (impl_refs >=1)、
+#         (b) Component YAML 3 種 (smtp-outbound / http-outbound / cron-inbound) が配備済、
+#         (c) kustomization.yaml の resources に 3 種すべて含まれる。
+# 失敗時:
+#   - (a) で 0 件 → validateBindingMetadata が削除された / FR ID コメント消失
+#   - (b) で missing → Component YAML が削除された
+#   - (c) で missing → kustomize resources から漏れた
+echo
+echo "--- Test 25: FR-T1-BINDING-002/003/004 handler 検証 + Component YAML 配備 ---"
+
+# (a) src/ 配下に FR-T1-BINDING-002/003/004 の impl_ref が 1 件以上ずつあること。
+for fr_id in FR-T1-BINDING-002 FR-T1-BINDING-003 FR-T1-BINDING-004; do
+  hit_count=$(grep -rE "${fr_id}" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+  if [[ "${hit_count}" -ge 1 ]]; then
+    check "${fr_id}: impl_refs=${hit_count} >= 1" 0
+  else
+    check "${fr_id}: impl_refs=0 (regression: handler コメント or validateBindingMetadata 削除)" 1
+  fi
+done
+
+# (b) Component YAML 3 種が配備済であること。
+for yaml_name in smtp-outbound http-outbound cron-inbound; do
+  yaml_path="${REPO_ROOT}/infra/dapr/components/binding/${yaml_name}.yaml"
+  if [[ -f "${yaml_path}" ]]; then
+    check "Component YAML ${yaml_name}.yaml 配備済" 0
+  else
+    check "Component YAML ${yaml_name}.yaml 不在 (regression)" 1
+  fi
+done
+
+# (c) kustomization.yaml の resources に 3 種すべて含まれること。
+kustomize_path="${REPO_ROOT}/infra/dapr/components/binding/kustomization.yaml"
+for yaml_name in smtp-outbound http-outbound cron-inbound; do
+  if grep -q "${yaml_name}.yaml" "${kustomize_path}" 2>/dev/null; then
+    check "kustomization.yaml に ${yaml_name}.yaml あり" 0
+  else
+    check "kustomization.yaml に ${yaml_name}.yaml 不在 (regression)" 1
+  fi
+done
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

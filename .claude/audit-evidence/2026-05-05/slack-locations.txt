@@ -1,0 +1,47 @@
+## go-unimplemented (1 件)
+/home/ryuhei_kiso/github/k1s0/src/tier1/go/internal/adapter/dapr/dapr.go:40:// gRPC `codes.Unimplemented` に翻訳する。
+
+## go-silent-err (1 件)
+/home/ryuhei_kiso/github/k1s0/src/sdk/go/k1s0/doc.go:28://		_ = data; _ = etag; _ = found; _ = err
+
+## gitkeep-only-dirs (23 件)
+/home/ryuhei_kiso/github/k1s0/tools/migration/framework-to-sidecar
+/home/ryuhei_kiso/github/k1s0/tools/migration/framework-to-net8
+/home/ryuhei_kiso/github/k1s0/third_party
+/home/ryuhei_kiso/github/k1s0/src/tier1/rust/crates/policy
+/home/ryuhei_kiso/github/k1s0/src/tier3/native/apps/K1s0.Native.Hub/Resources/Fonts
+/home/ryuhei_kiso/github/k1s0/tests/fixtures/openapi-samples
+/home/ryuhei_kiso/github/k1s0/tests/fixtures/seed-data
+/home/ryuhei_kiso/github/k1s0/tests/fixtures/tls-certs
+/home/ryuhei_kiso/github/k1s0/tests/contract/pact/consumers/portal-bff
+/home/ryuhei_kiso/github/k1s0/tests/contract/pact/consumers/admin-bff
+/home/ryuhei_kiso/github/k1s0/tests/contract/pact/providers/tier1-state
+/home/ryuhei_kiso/github/k1s0/tests/contract/pact/providers/tier2-payroll
+/home/ryuhei_kiso/github/k1s0/deploy/rollouts/experiments
+/home/ryuhei_kiso/github/k1s0/deploy/opentofu/environments/staging
+/home/ryuhei_kiso/github/k1s0/deploy/opentofu/environments/dev
+/home/ryuhei_kiso/github/k1s0/deploy/opentofu/environments/prod
+/home/ryuhei_kiso/github/k1s0/deploy/opentofu/modules/vpn-gateway
+/home/ryuhei_kiso/github/k1s0/deploy/opentofu/modules/dns
+/home/ryuhei_kiso/github/k1s0/deploy/opentofu/modules/baremetal-k8s
+/home/ryuhei_kiso/github/k1s0/infra/environments/staging/secrets
+/home/ryuhei_kiso/github/k1s0/infra/environments/dev/secrets
+/home/ryuhei_kiso/github/k1s0/infra/environments/prod/patches
+/home/ryuhei_kiso/github/k1s0/infra/environments/prod/secrets
+
+
+## undocumented gitkeep-only-dirs (14 件 — 要 SHIP_STATUS 加筆 or 実装)
+tools/migration/framework-to-sidecar
+tools/migration/framework-to-net8
+third_party
+src/tier3/native/apps/K1s0.Native.Hub/Resources/Fonts
+tests/fixtures/openapi-samples
+tests/fixtures/seed-data
+tests/fixtures/tls-certs
+tests/contract/pact/consumers/portal-bff
+tests/contract/pact/consumers/admin-bff
+tests/contract/pact/providers/tier1-state
+tests/contract/pact/providers/tier2-payroll
+deploy/opentofu/modules/vpn-gateway
+deploy/opentofu/modules/dns
+deploy/opentofu/modules/baremetal-k8s
