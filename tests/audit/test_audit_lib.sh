@@ -498,6 +498,36 @@ for yaml_name in smtp-outbound http-outbound cron-inbound; do
   fi
 done
 
+# === Test 26: FR-T1-WORKFLOW-003 / 005 の SDK helper 配備 + impl_refs 不変式 ===
+# 不変式: (a) src/ 配下に FR-T1-WORKFLOW-003 / 005 の impl_refs >=1、
+#         (b) src/sdk/go/k1s0/workflow_saga.go (Saga executor) と
+#         workflow_wait.go (SignalAndAwait helper) が配備済。
+# 失敗時:
+#   - (a) で 0 件 → docstring が削除された / SDK helper の docstring から FR ID 消失
+#   - (b) で missing → SDK helper file が削除された
+echo
+echo "--- Test 26: FR-T1-WORKFLOW-003 / 005 SDK helper + impl_refs ---"
+
+# (a) src/ 配下に impl_refs >=1。
+for fr_id in FR-T1-WORKFLOW-003 FR-T1-WORKFLOW-005; do
+  hit_count=$(grep -rE "${fr_id}" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+  if [[ "${hit_count}" -ge 1 ]]; then
+    check "${fr_id}: impl_refs=${hit_count} >= 1" 0
+  else
+    check "${fr_id}: impl_refs=0 (regression: SDK helper docstring 削除 or register.go 消失)" 1
+  fi
+done
+
+# (b) SDK helper file 配備。
+for sdk_file in workflow_saga.go workflow_wait.go workflow_saga_test.go workflow_wait_test.go; do
+  sdk_path="${REPO_ROOT}/src/sdk/go/k1s0/${sdk_file}"
+  if [[ -f "${sdk_path}" ]]; then
+    check "SDK file ${sdk_file} 配備済" 0
+  else
+    check "SDK file ${sdk_file} 不在 (regression)" 1
+  fi
+done
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

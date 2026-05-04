@@ -27,6 +27,22 @@
 //     - Pod 再起動でもタイマーは保持（Temporal は永続化、Dapr は actor reminder）
 //   tier1 facade は backend 経路を保持するのみで、タイマー fire 後の継続は同 backend
 //   が actor / activity を再開する。手動でタイマーを発火させる必要はない。
+//
+// FR-T1-WORKFLOW-003: Saga 補償ロジック。本 handler は Saga 専用 RPC を持たず、
+//   tier2 が高水準 SDK helper `k1s0.WorkflowClient.NewSaga().Step(...).Execute(...)`
+//   (`src/sdk/go/k1s0/workflow_saga.go`) を使う client-side 設計を採る。各 Step は
+//   独立した tier1 Workflow を Start し、途中失敗で実行済 Step の補償 Workflow を
+//   逆順発火する。受け入れ基準「補償漏れが構造的に発生しえない設計」は SDK helper の
+//   Execute() が responsibility を集中することで満たす (個別 tier2 アプリでの再実装
+//   不要)。Workflow 定義内部の compensation chain (Temporal SagaActivities) は worker
+//   SDK 直接利用の責務。
+//
+// FR-T1-WORKFLOW-005: 外部イベント待ち受け (WaitForEvent)。本 handler は Signal RPC を
+//   提供し、tier2 の Workflow 定義内では worker SDK の Channel.Receive 等で待機する。
+//   client-side helper `k1s0.WorkflowClient.SignalAndAwait(...)` (`src/sdk/go/k1s0/
+//   workflow_wait.go`) で「Signal 送信 → 終端状態 polling」を 1 操作にまとめる。
+//   受け入れ基準「ポーリング不要」は Workflow 定義内 (worker SDK の signal channel)
+//   で満たし、外部送信側は Signal RPC + GetStatus polling helper で支援する。
 
 // Package workflow は t1-workflow Pod が登録する WorkflowService の handler を提供する。
 package workflow
