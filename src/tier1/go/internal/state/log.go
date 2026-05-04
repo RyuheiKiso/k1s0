@@ -2,6 +2,7 @@
 //
 // 設計正典:
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/07_Log_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/07_Log_API.md
 //   docs/04_概要設計/20_ソフトウェア方式設計/01_コンポーネント方式設計/02_Daprファサード層コンポーネント.md
 //     - DS-SW-COMP-037（Log Adapter: stdout JSON Lines / OTel Collector / Loki 集約）
 //
@@ -9,6 +10,17 @@
 //   SDK 側 facade からの gRPC 入口で proto LogEntry を受け取り、
 //   internal/otel.LogEmitter 越しに OTel Logs パイプラインへ流す。
 //   LogEmitter は cmd/state/main.go で必ず注入される（OTLP 未設定時は stdout fallback）。
+//
+// 関連要件:
+//   FR-T1-LOG-001 (構造化ログ送信)
+//   FR-T1-LOG-002 (バルクログ送信)
+//   FR-T1-LOG-003 (テナント分離)
+//   FR-T1-LOG-004 (動的ログレベル変更): 本 handler は static level 経路のみ。動的
+//     レベル切替の基盤は `src/tier1/go/internal/common/logger.go` の DynamicLogger
+//     が提供する (Step 1: env + SIGHUP 経路、本リリース時点)。Backstage プラグイン /
+//     CLI からの SetLogLevel RPC 経路は採用初期で log_service.proto を拡張して提供
+//     する (Step 2)。受け入れ基準「Pod 再起動を伴わずレベル変更可能」は Step 1 の
+//     SIGHUP + K1S0_LOG_LEVEL 環境変数 reload で満たす。
 
 package state
 

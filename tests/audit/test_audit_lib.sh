@@ -528,6 +528,42 @@ for sdk_file in workflow_saga.go workflow_wait.go workflow_saga_test.go workflow
   fi
 done
 
+# === Test 27: FR-T1-LOG-004 動的ログレベル基盤 + impl_refs 不変式 ===
+# 不変式: (a) FR-T1-LOG-004 の impl_refs >=1、
+#         (b) src/tier1/go/internal/common/logger.go (DynamicLogger) が配備済、
+#         (c) logger.go に SetLevel / LoadFromEnv / StartReloadOnSignal の 3 helper が存在。
+# 失敗時:
+#   - (a) で 0 件 → log.go の docstring から FR ID 削除
+#   - (b) で missing → logger.go ファイル削除
+#   - (c) で missing → 動的 level API 群が削除された (回帰)
+echo
+echo "--- Test 27: FR-T1-LOG-004 動的ログレベル基盤 + impl_refs ---"
+
+# (a) src/ 配下に impl_refs >=1。
+log004_hits=$(grep -rE "FR-T1-LOG-004" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${log004_hits}" -ge 1 ]]; then
+  check "FR-T1-LOG-004: impl_refs=${log004_hits} >= 1" 0
+else
+  check "FR-T1-LOG-004: impl_refs=0 (regression: docstring 削除 or DynamicLogger 削除)" 1
+fi
+
+# (b) logger.go 配備。
+logger_path="${REPO_ROOT}/src/tier1/go/internal/common/logger.go"
+if [[ -f "${logger_path}" ]]; then
+  check "common/logger.go (DynamicLogger) 配備済" 0
+else
+  check "common/logger.go 不在 (regression)" 1
+fi
+
+# (c) 3 helper 存在検査 (SetLevel / LoadFromEnv / StartReloadOnSignal)。
+for fn_name in "func.*SetLevel" "func.*LoadFromEnv" "func.*StartReloadOnSignal"; do
+  if grep -qE "${fn_name}" "${logger_path}" 2>/dev/null; then
+    check "logger.go に ${fn_name} あり" 0
+  else
+    check "logger.go に ${fn_name} 不在 (regression: 動的 level API 削除)" 1
+  fi
+done
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="
