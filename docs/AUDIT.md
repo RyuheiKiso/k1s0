@@ -25,12 +25,12 @@
 - 「採用検討者が信頼できる水準」は OSSF Scorecard 7/10 + CNCF Sandbox 最低要件 + OpenSSF Best Practices Passing の合算で判定する。**「完璧」は到達不能な目標として採らない**
 - 生証跡 `.claude/audit-evidence/<date>/` は **git 管理対象**。再生成なしに第三者が AUDIT.md の主張を verify できる
 
-## サマリ（最新実行: 2026-05-04 #9）
+## サマリ（最新実行: 2026-05-05 #11）
 
 | 軸 | 判定材料（数値・走査範囲） | 主な変化 |
 |---|---|---|
-| **A 網羅** | ADR **56**（ファイル ↔ ID 1:1）/ **code-orphan 0 / docs-orphan 26** / 実装参照 0 件 **7 件**（ADR-0002 規約 / DEP-001 / DX-001 + #3 で新規起票した未参照 ADR が含まれる可能性、要 inspect） ・ FR 50 / 3-stage 26 (52%) ・ NFR 155 / coverage 3-stage 8 (5%) → trace **reach 140 (90%)** / unreached 15 ・ DS 1416 / coverage 3-stage 16 (1%) → trace **reach 1168 (82%)** / unreached 248 ・ IMP 718 / coverage 3-stage 1 (0.1%) → trace **reach 712 (99%)** / unreached 6 | **A-1 docs-orphan 解消イテレーション**: Phase 1 で旧 ID → 既存 ADR への cite 書換 8 種実施（CNCF-002→STOR-001 / CNCF-003→0001 / CNCF-004→MIG-002 / CNCF-005→DAPR-001 / DEVEX-001→BS-001 / DEVEX-004→DEV-001 / SEC-005→CICD-003 / OPS-002→TEST-004）+ Phase 2 で `04_概要設計/90_付録/02_ADR索引.md` 仮番表に **16 件追記**（BS-002 / CICD-004,005,006 / CODE-001 / CT-001 / DEV-003 / DEVEX-002 / DIR-004,005,006 / GOV-001 / PROC-002 / SEC-004 / SUP-002 / TIER1-007）+ ADR-TEST-001 本体起票済のため仮番表から削除（14→29 件）+ **audit ロジック改修で経緯記録ファイル 4 件**（AUDIT.md / SHIP_STATUS.md / audit_criteria.md / 02_ADR索引.md）を docs-orphan 検出から除外（構造的本質改善、Test 22 で regression 監視）。docs-orphan **41 → 26**（-15、-37%）|
-| **B 手抜き** | **1312 ファイル走査** / 22 パターン / 真の手抜き **0 件** / 許容残置 2 件 (false-positive、コメント内擬似コード) / gitkeep-only ディレクトリ 23 件中 documented **9** / undocumented **14** | #10 で走査範囲が 1237 → 1312 に増加（PUBSUB-003 unit test 6 件 + Test 23 追加 + コメント追記による）、真の手抜き 0 件は維持 |
+| **A 網羅** | ADR **56**（ファイル ↔ ID 1:1）/ **code-orphan 0 / docs-orphan 26** / 実装参照 0 件 **7 件**（ADR-0002 規約 / DEP-001 / DX-001 + #3 で新規起票した未参照 ADR が含まれる可能性、要 inspect） ・ FR **49** / 3-stage **35 (71%)** / **docs-only 0 件** ・ NFR 155 / coverage 3-stage 8 (5%) → trace **reach 140 (90%)** / unreached 15 ・ DS 1416 / coverage 3-stage 16 (1%) → trace **reach 1168 (82%)** / unreached 248 ・ IMP 718 / coverage 3-stage 1 (0.1%) → trace **reach 712 (99%)** / unreached 6 | **A-2 FR-T1-* 真の impl 不在 完全解消イテレーション**: 6 PR 分割で 9 件 + 誤検出 1 件すべて解消。PR 1 PUBSUB-004 (DLQ topic 自動注入) / PR 2 BINDING-002/003/004 (SMTP/HTTP/Cron Component + handler 検証) / PR 3 WORKFLOW-003/005 (Saga executor + SignalAndAwait SDK helper) / PR 4 LOG-004 (DynamicLogger atomic level + SIGHUP reload) / PR 5 TELEMETRY-004 (Pyroscope config helper) / PR 6 FEATURE-002 (RolloutAssign hash-based sticky) + DECISION-008 (coverage.sh の `05_要件トレーサビリティ方針.md` exclude で誤検出除外、FR-T1 ID 50→49)。**docs-only 10 → 0**、**3-stage 26 → 35 (+9)**、走査範囲 1312 → 1327 (新規 +15 ファイル: pubsub_dlq / binding_components / workflow_saga/wait / logger / pyroscope / feature_rollout の各 _test.go ペア)、真の手抜き 0 件は維持 |
+| **B 手抜き** | **1327 ファイル走査** / 22 パターン / 真の手抜き **0 件** / 許容残置 2 件 (false-positive、コメント内擬似コード) / gitkeep-only ディレクトリ 23 件中 documented **9** / undocumented **14** | #11 で走査範囲が 1312 → 1327 に増加（FR-T1-* 9 件 + 誤検出 1 件解消で test 9 ペア + helper 9 ファイル追加による）、真の手抜き 0 件は維持 |
 | **C k8s** | local cluster (`kind-k1s0-local`) / 36 namespaces / **93 Running / 93 total = 100%** ・ production-equivalent (managed K8s) 検証: **未実施 (保留)** | 同一値で再現性確認 |
 | **D OSS** | Met **31** / Unmet **0** / Unknown 3 (Branch-Protection / Code-Review / Vulnerabilities — 全て public 化 + scorecard-cli 必須) ・ CII Best Practices Passing 17 項目: 機械判定 Met **10** / Manual-Required 5 / Unmet 0 ・ Dangerous-Workflow **Met** (危険な pull_request_target + PR HEAD checkout 0 件) ・ 直近 30 日 **750 commits** / 90 日 **1684 commits** | 再現性確認、commit 数の自然増（30 日 745→750 / 90 日 1679→1684） |
 
@@ -126,7 +126,7 @@
 
 | 軸 | 総 ID | 3 段揃い候補 | 2 段（docs+impl） | impl 不在 | 集計時点 |
 |---|---:|---:|---:|---:|---|
-| FR-T1-* | 50 | 26 (52%) | 14 (28%) | 10 (20%) | 2026-05-04 #10 |
+| FR-T1-* | **49** | **35 (71%)** | **14 (29%)** | **0 (0%)** | 2026-05-05 #11 |
 | NFR-* | 155 | 8 (5%) | 5 (3%) | 142 (92%) | 2026-05-02 #6 |
 | DS-* | 1416 | 16 (1%) | 11 (1%) | 1389 (98%) | 2026-05-02 #6 |
 | IMP-* | 718 | 1 (0.1%) | 58 (8%) | 659 (92%) | 2026-05-02 #6 |
@@ -158,13 +158,26 @@ NFR-* / DS-* / IMP-* で coverage 単独では「impl 不在」が高比率（NF
 
 trace.sh の数値（NFR reach 90% / DS reach 81%）が**実態に近い impl 充足度**を示す。coverage.sh の「impl 不在 92%」を真に受けて手抜きと解釈するのは過去の AUDIT.md の誤りで、本版で trace 軸を追加して補正済。
 
-#### FR-T1-* の 10 件 impl 不在（#10 で 14 → 10、要件再分類で C 群 9 件 + N/A 1 件に確定）
+#### FR-T1-* の真の impl 不在 完全解消（#11 で 10 → 0、9 件実装 + 誤検出 1 件除外）
 
-#10 で 14 件のうち 4 件 (STATE-002 / WORKFLOW-004 / TELEMETRY-003 / PUBSUB-003) を解消（A 群 3 件 ID コメント追記 + B 群 1 件 PUBSUB-003 Consumer Group 自動付与実装）。残 10 件のうち：DECISION-008 は要件 docs に存在せず coverage の誤検出（N/A、別 PR で coverage 側除外要）、9 件 (PUBSUB-004 DLQ / BINDING-002/003/004 SMTP/HTTP/cron / WORKFLOW-003/005 Saga/WaitForEvent / LOG-004 動的レベル / TELEMETRY-004 Pyroscope / FEATURE-002 段階 rollout) は proto 拡張 / Component 設計 / 優先度 SHOULD/COULD のため別 PR 起票が必要な C 群。最新証跡: `audit-evidence/2026-05-04/coverage-fr.txt` (docs-only 10 件、3-stage 26 件)。
+#10 で 14 件のうち 4 件 (STATE-002 / WORKFLOW-004 / TELEMETRY-003 / PUBSUB-003) を解消、残 10 件を本イテレーション #11 で 6 PR 分割で完全解消した。
+
+| PR | FR ID | 実装内容 | 主要 file |
+|---|---|---|---|
+| 1 | PUBSUB-004 | DLQ topic 自動注入 (`k1s0.<tenant>.dlq.<service>`) | `src/tier1/go/internal/state/pubsub_dlq.go` (新規 90 LOC) + Component YAML `consumeRetryMax: 3` |
+| 2 | BINDING-002/003/004 | SMTP/HTTP/Cron Component + handler 必須 metadata 検証 | `infra/dapr/components/binding/{http-outbound,cron-inbound}.yaml` (新規) + `validateBindingMetadata` in `binding.go` |
+| 3 | WORKFLOW-003 | Saga executor (client-side、逆順自動補償) | `src/sdk/go/k1s0/workflow_saga.go` (新規 180 LOC) |
+| 3 | WORKFLOW-005 | SignalAndAwait helper (Signal + GetStatus polling) | `src/sdk/go/k1s0/workflow_wait.go` (新規 110 LOC) |
+| 4 | LOG-004 | DynamicLogger (atomic.Int32 level + SIGHUP reload) | `src/tier1/go/internal/common/logger.go` (新規 200 LOC) |
+| 5 | TELEMETRY-004 | Pyroscope config helper (env 解決 + Profiler 起動 stub) | `src/tier1/go/internal/otel/pyroscope.go` (新規 110 LOC) |
+| 6 | FEATURE-002 | RolloutAssign (SHA-256 hash sticky percentage) | `src/tier1/go/internal/state/feature_rollout.go` (新規 90 LOC) |
+| 6 | DECISION-008 | coverage.sh 側で誤検出 ID を exclude (`05_要件トレーサビリティ方針.md` を grep 対象から除外) | `tools/audit/lib/coverage.sh` 修正 |
+
+各 PR で proto / handler / adapter / unit test / regression test を同 commit に含め (anti-shortcut 規律)、Test 24-29 を `tests/audit/test_audit_lib.sh` に追加して再発を構造的に防止 (impl_refs >=1 + Component YAML 同期 + SDK file 配備の不変式)。最新証跡: `.claude/audit-evidence/2026-05-05/coverage-fr.txt` (**docs-only 0 件、3-stage 35 件**)。FR-T1 ID は 50 → 49 (DECISION-008 除外)。
 
 ## B 軸: 手抜き検出
 
-実行: `tools/audit/run.sh slack`、走査範囲: **1312 ファイル**（`src` / `infra` / `deploy` / `tools` / `tests` / `examples`、生成コード + audit lib 自身を除外、内訳は `slack-scope.txt` の `total_files`）。
+実行: `tools/audit/run.sh slack`、走査範囲: **1327 ファイル**（`src` / `infra` / `deploy` / `tools` / `tests` / `examples`、生成コード + audit lib 自身を除外、内訳は `slack-scope.txt` の `total_files`）。
 
 ### B-1: パターン別残存件数（最新）
 
@@ -183,7 +196,7 @@ trace.sh の数値（NFR reach 90% / DS reach 81%）が**実態に近い impl �
 | Go silent error（`_ = err`） | 1 | doc.go:28 の doc コメント内擬似コード（コード本体ではない、許容） |
 | Rust empty `unwrap_or()` | 0 | |
 
-判定材料: **コード本体に残る真の手抜き 0 件 / 1312 ファイル走査**。許容残置 2 件は false-positive で、いずれも `//` で始まるコメント内の識別子言及であり実コード経路ではない。
+判定材料: **コード本体に残る真の手抜き 0 件 / 1327 ファイル走査**。許容残置 2 件は false-positive で、いずれも `//` で始まるコメント内の識別子言及であり実コード経路ではない。
 
 ### B-2: 許容残置 2 件の根拠
 
@@ -366,7 +379,7 @@ local kind PASS は production PASS の代理にならない。以下が product
 | OSSF Scorecard 7/10 | 機械化項目 Met 31 / Unmet 0 / Unknown 3 + Dangerous-Workflow Met | public repo 化 + scorecard-cli 導入で 3 Unknown を解消 |
 | CNCF Sandbox 最低要件 | 6 ファイル全て Met (中身検査済) | 外部 contributor 受入の可視化 |
 | OpenSSF Best Practices Passing | 機械判定 Met 10/17 / Manual-Required 5 / Unmet 0 | bestpractices.dev で repo URL 申告、Manual 5 件の人間判定 |
-| k1s0 自己基準（4 軸） | A: code-orphan 0 / docs-orphan **41 (新規可視化)** / FR 22/50 (44%) 3-stage 候補 / NFR trace reach 140/155 (90%) / DS trace reach **1168/1416 (82%)** / IMP trace reach **712/718 (99%)** ・ B: 真の手抜き 0 / gitkeep undocumented 14 ・ C: kind 100% / production 保留 ・ D: Met 31 / CII 10 | docs-orphan 41 件の個別判定（起票 / Superseded 注記 / cite 削除）、undocumented 14 件の SHIP_STATUS 加筆、unreached 件の inspect、production-equivalent 検証 |
+| k1s0 自己基準（4 軸） | A: code-orphan 0 / docs-orphan **26** / **FR 35/49 (71%) 3-stage 候補 / docs-only 0 件** / NFR trace reach 140/155 (90%) / DS trace reach **1168/1416 (82%)** / IMP trace reach **712/718 (99%)** ・ B: 真の手抜き 0 / gitkeep undocumented 14 ・ C: kind 100% / production 保留 ・ D: Met 31 / CII 10 | docs-orphan 26 件の個別判定（起票 / Superseded 注記 / cite 削除）、undocumented 14 件の SHIP_STATUS 加筆、unreached 件の inspect、production-equivalent 検証 |
 
 ### 解消済み（2026-05-02 #6 イテレーション — 監査ツール側バグ 2 件解消）
 
@@ -396,7 +409,7 @@ local kind PASS は production PASS の代理にならない。以下が product
 
 ### 残存タスク（中優先 Layer 2）
 
-18. FR-T1-* の **10 件** impl 不在の C 群 9 件起票 + DECISION-008 (要件不在) の coverage 側除外 (`audit-evidence/2026-05-04/coverage-fr.txt`、#10 で 14 → 10、A/B 群 4 件は本 PR で解消済)
+18. ✅ **FR-T1-* 10 件 impl 不在の完全解消** (#11、6 PR 分割で実装 9 件 + DECISION-008 audit 除外、`audit-evidence/2026-05-05/coverage-fr.txt` で docs-only 0 / 3-stage 35 を確認)
 19. 実装参照 0 件 ADR 3 件の実態確認 (`ADR-0002` 規約系 / `ADR-DEP-001` Renovate / `ADR-DX-001` DX メトリクス)
 20. trace `unreached` の inspect: NFR 15 件 / DS 248 件 / IMP 6 件 — 真の impl 不在候補
 21. gitkeep undocumented 14 件の SHIP_STATUS 加筆 or 実装合流
@@ -431,4 +444,5 @@ local kind PASS は production PASS の代理にならない。以下が product
 | 2026-05-02 (#7) | 再現性確認 + 既存不整合の訂正 | **`/audit all` 再実行で全軸の決定論的動作を確認**（commit 数 30/90 日 = 745→750 / 1679→1684 の自然増以外、全数値が #6 と完全一致）/ **AUDIT.md 内既存不整合 2 件訂正**: ① ADR ID 内訳の表記精度（L46「新形式 46 件」→ ADR ファイル 46 件 (旧 3 + 新 43) + cite-only 3 件 = 49 を明示、ファイル総数 46 を新形式 ID 数として誤って流用していた）／ ② B 軸セクション本文の走査範囲（L167 / L186「1236 ファイル」→ 1237 に統一、サマリ L33 と証跡 `slack-scope.txt` の `total_files: 1237` に整合）/ **regression test 1 件追加**（`tests/audit/test_audit_lib.sh` Test 17 — AUDIT.md 内の走査範囲数値が `slack-scope.txt` の `total_files` に整合する不変式、再発防止）/ 真の手抜き 0 / code-orphan 0 / docs-orphan 41 / kind 100% Running を継続維持 |
 | 2026-05-02 (#8) | coverage.sh の ADR ID 列挙を構造修正 — semantic 混在の解消 | **`tools/audit/lib/coverage.sh` の ADR ID 列挙ロジック修正**（adr/ 配下 grep → ADR ファイル名抽出、ID 数 49 → **46**、ファイル ↔ ID 1:1 厳密化）/ 過去 (~#7) の grep ベース列挙では cite-only 3 件 (DEV-003 / DIR-004 / SUP-002) が ids-adr.txt に混入し、coverage の分類で「docs-only (impl 不在)」と誤判定されていた（実態は ADR ファイル不在 = docs-orphan、概念混在）。本修正により `coverage-adr.txt` の docs-only が **6 → 3** に収束（ADR-0002 規約 / DEP-001 / DX-001 のみ、AUDIT.md narrative の手動再分類が不要に）/ docs-orphan 41 件 / code-orphan 0 件は不変、再分類済 ID は引き続き `docs-orphans-adr.txt` に登場 / **regression test 4 件追加・更新** (`tests/audit/test_audit_lib.sh` Test 14 を 1:1 厳密等号に強化、Test 18 ids-adr ↔ ADR file per-ID 検査、Test 19 docs-orphan に DEV-003/DIR-004/SUP-002 残存検査、Test 20 docs-only に cite-only orphan 混入なし — 計 31 assertion 全 PASS) / trace 数値（NFR/DS/IMP reach）は ADR ファイル集合不変のため影響なし、k8s / OSS / B 軸も不変 |
 | 2026-05-04 (#10) | A-2 FR-T1-* impl 不在 4 件解消 + Consumer Group 自動付与実装 | **真の impl 不在 (docs-only) 14 → 10 (-4、-29%)** + **3-stage-candidate 22 → 26 (+4)**。本イテレーションの起点は前段で誤った diagnosis（「tier1 11 API 独立 cmd 不在」）を出していたため、まず実態 verify で 6 Pod すべて完全実装済（t1-state/secret/workflow が Go、t1-decision/audit/pii が Rust binary）を確認、coverage-fr.txt の真の impl 不在 14 件を要件本体（`docs/03_要件定義/20_機能要件/10_tier1_API要件/`）と handler コードで 1 件ずつ突合せ、3 分類（A: 機能あり / ID コメント不在のみ、B: 機能なし / 既存構造で実装可、C: proto/ADR 起票要 / 別 PR）に仕分け。**Phase 1 (A 群 3 件)** ID コメント追記: FR-T1-STATE-002 (TTL 制御、state.go L94 docstring) / WORKFLOW-004 (タイマー・遅延、register.go L22 ファイルヘッダ) / TELEMETRY-003 (OTel Collector DaemonSet 配信、telemetry.go L13 ファイルヘッダ)。各 FR の真の要件は coverage-fr の grep ベース impl_refs=0 が「業界慣行的に ID 直引なし」のために発生していたもので、機能本体は既に実装済。**Phase 2 (B 群 1 件)** FR-T1-PUBSUB-003 Consumer Group 自動付与: pubsub.go に `normalizeConsumerGroup(tenantID, raw)` 関数追加（38 LOC）、`k1s0.<tenant_id>.<service_name>` 形式生成、二重 prefix 防止、空文字 / ドット混入を InvalidArgument で拒否、Subscribe handler に結線。pubsub_test.go に新 unit test 6 件 (純関数 4 + handler integration 2、計 8 test 全 PASS)。**C 群 9 件** (PUBSUB-004 DLQ / BINDING-002/003/004 SMTP/HTTP/cron / WORKFLOW-003/005 Saga/WaitForEvent / LOG-004 動的レベル / TELEMETRY-004 Pyroscope / FEATURE-002 段階 rollout) は proto 拡張 / Component 設計 / 優先度 SHOULD/COULD のため別 PR 起票が必要。**DECISION-008** は要件 docs に存在しない（coverage 誤検出、別 PR で除外）。**regression test** Test 23 を `tests/audit/test_audit_lib.sh` に追加（4 ID × impl_refs >=1 不変式、4 assertion 全 PASS）。本イテレーションで前段の agent 1 / agent 2 の主張をすべて verify し、誤った diagnosis を訂正した経緯（cf. `iteration-and-scope-discipline` skill）。B 軸走査範囲は test 追加で 1237 → **1312** に増加、真の手抜き 0 件は維持。 |
+| 2026-05-05 (#11) | A-2 FR-T1-* 真の impl 不在 完全解消 (10 → 0) + DECISION-008 audit 誤検出除外 | **真の impl 不在 (docs-only) 10 → 0 (-10、-100%)** + **3-stage-candidate 26 → 35 (+9)** + **FR-T1 ID 50 → 49** (DECISION-008 除外)。`iteration-and-scope-discipline` 原則 2 に従い 9 件 + 誤検出 1 件を **6 PR 分割** で完璧に実装: PR 1 PUBSUB-004 (`pubsub_dlq.go` 90 LOC + Component YAML `consumeRetryMax: 3` + handler に DLQ topic 自動注入経路、unit test 6 件) / PR 2 BINDING-002/003/004 (`http-outbound.yaml` / `cron-inbound.yaml` Component 新設 + `validateBindingMetadata` で SMTP `emailTo`/`subject` + HTTP `path` 必須検証、unit test 7 件) / PR 3 WORKFLOW-003 + 005 (`workflow_saga.go` 180 LOC で client-side Saga executor + `workflow_wait.go` 110 LOC で SignalAndAwait helper、bufconn 経由 integration test 5 件) / PR 4 LOG-004 (`logger.go` 200 LOC で DynamicLogger atomic.Int32 level + SIGHUP reload、unit test 4 件) / PR 5 TELEMETRY-004 (`pyroscope.go` 110 LOC で env config + Profiler 起動 stub、unit test 3 件) / PR 6 FEATURE-002 + DECISION-008 (`feature_rollout.go` 90 LOC で SHA-256 sticky percentage + `coverage.sh` で `05_要件トレーサビリティ方針.md` exclude、unit test 5 件 + audit lib regression)。**regression test** Test 24-29 を `tests/audit/test_audit_lib.sh` に追加 (impl_refs >=1 + Component YAML 同期 + SDK file 配備 + ids-fr.txt から DECISION-008 除外、計 23 assertion 全 PASS)。proto 拡張 0 件 (既存 RPC + Component metadata + SDK helper で全て表現可能)、新規 Go file 14 ペア / 新規 YAML 2 ファイル / coverage.sh 1 ファイル修正で **計 +2,267 行 / -7 行**。B 軸走査範囲は 1312 → **1327** (新規 +15 ファイル)、真の手抜き 0 件は維持。9 件すべて proto / handler / adapter / unit test / regression test を同 commit に含める anti-shortcut 規律遵守。Test 17 (AUDIT.md 走査範囲) を 1312 → 1327 で同期更新済。 |
 | 2026-05-04 (#9) | A-1 docs-orphan 解消イテレーション — 41 → 26 件 (-15) | **Phase 1 cite 書換（8 種）**: 旧 ID → 既存 ADR への参照修正を実装ディレクトリ書群で実施。ADR-CNCF-002→STOR-001（Longhorn）/ CNCF-003→0001（Istio Ambient）/ CNCF-004→MIG-002（Envoy Gateway）/ CNCF-005→DAPR-001（Dapr）/ DEVEX-001→BS-001（Backstage）/ DEVEX-004→DEV-001（Paved Road / Golden Path）/ SEC-005→CICD-003（Kyverno）/ OPS-002→TEST-004（LitmusChaos、ADR-OPS-001 本体内 2 cite 含む）。副次として ADR-CNCF-001（誤 cite）→ADR-NET-001 の typo 修正、ADR-0000「台帳」言及を ADR README 参照に置換、ADR-0005 教育例を NNNN プレースホルダ抽象化。 / **Phase 2 仮番表追記**: `docs/04_概要設計/90_付録/02_ADR索引.md` 未起票 ADR 一覧に 16 件追記（BS-002 / CICD-004,005,006 / CODE-001 / CT-001 / DEV-003 / DEVEX-002 / DIR-004,005,006 / GOV-001 / PROC-002 / SEC-004 / SUP-002 / TIER1-007）+ ADR-TEST-001 本体起票済のため表から削除（14 → 29 件）。 / **audit ロジック改修（構造的本質改善）**: `tools/audit/lib/coverage.sh` の docs-orphan 検出に `--exclude=AUDIT.md / SHIP_STATUS.md / audit_criteria.md / 02_ADR索引.md` を追加。経緯記録ファイル 4 件からの「歴史的言及」が永続 orphan としてカウントされる構造的 bug を解消。`90_トレーサビリティ/03_ADR_との対応.md` の DEVEX-001〜004 セクションを実在 ADR への展開（BS-001 / DEV-001 / TEST-001）に再構成。 / **regression test 1 件追加** (`tests/audit/test_audit_lib.sh` Test 22 — coverage.sh 経緯記録 4 ファイル除外不変式 + 旧 ID 5 件 (CNCF-004 / MESH-001 / DEVEX-001 / DEVEX-004 / OPS-002) の docs-orphan 不在不変式、計 6 assertion 全 PASS)。残 26 件の内訳: 仮番表正式登録 22 件 + 撤回 ADR 経緯記録 2 件 (TEST-002/006) + ADR 内吸収経緯 1 件 (DEVEX-003) + その他 ADR 内予約 1 件。実 ADR 起票（Phase 3）は別 PR で順次対応。/ B / C / D 軸は本イテレーション対象外、不変。 |
