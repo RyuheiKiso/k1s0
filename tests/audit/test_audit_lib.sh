@@ -564,6 +564,41 @@ for fn_name in "func.*SetLevel" "func.*LoadFromEnv" "func.*StartReloadOnSignal";
   fi
 done
 
+# === Test 28: FR-T1-TELEMETRY-004 Pyroscope helper + impl_refs 不変式 ===
+# 不変式: (a) FR-T1-TELEMETRY-004 の impl_refs >=1、
+#         (b) src/tier1/go/internal/otel/pyroscope.go (PyroscopeConfig + StartPyroscope) が配備済、
+#         (c) infra/observability/pyroscope/values.yaml が配備済。
+# 失敗時:
+#   - (a) で 0 件 → telemetry.go docstring から FR ID 削除
+#   - (b) で missing → otel/pyroscope.go ファイル削除
+#   - (c) で missing → Pyroscope Helm values 削除
+echo
+echo "--- Test 28: FR-T1-TELEMETRY-004 Pyroscope helper + impl_refs ---"
+
+# (a) src/ 配下 impl_refs >=1。
+tel004_hits=$(grep -rE "FR-T1-TELEMETRY-004" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${tel004_hits}" -ge 1 ]]; then
+  check "FR-T1-TELEMETRY-004: impl_refs=${tel004_hits} >= 1" 0
+else
+  check "FR-T1-TELEMETRY-004: impl_refs=0 (regression: docstring or pyroscope.go 削除)" 1
+fi
+
+# (b) otel/pyroscope.go 配備。
+pyrog_path="${REPO_ROOT}/src/tier1/go/internal/otel/pyroscope.go"
+if [[ -f "${pyrog_path}" ]]; then
+  check "otel/pyroscope.go (PyroscopeConfig) 配備済" 0
+else
+  check "otel/pyroscope.go 不在 (regression)" 1
+fi
+
+# (c) infra/observability/pyroscope/values.yaml 配備。
+pyroh_path="${REPO_ROOT}/infra/observability/pyroscope/values.yaml"
+if [[ -f "${pyroh_path}" ]]; then
+  check "infra/observability/pyroscope/values.yaml 配備済" 0
+else
+  check "infra/observability/pyroscope/values.yaml 不在 (regression)" 1
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

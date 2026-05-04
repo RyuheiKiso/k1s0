@@ -17,6 +17,14 @@
 //   tier1 cmd/state/main.go の otel.NewBundle が OTEL_EXPORTER_OTLP_ENDPOINT 設定時に
 //   OTLP gRPC で Collector 直送し、未設定時は stdout JSON Lines に fallback。
 //   Collector が落ちた場合の retry は SDK 側 BatchProcessor の責務。
+//
+// FR-T1-TELEMETRY-004: Pyroscope Continuous Profiling 連携。本 handler は Profile 専用
+//   RPC を持たず、tier2 アプリ起動経路で `otel.LoadPyroscopeConfigFromEnv()` +
+//   `otel.StartPyroscope(cfg)` (`src/tier1/go/internal/otel/pyroscope.go`) を呼んで
+//   Continuous Profiling を有効化する設計。Pyroscope server は
+//   `infra/observability/pyroscope/values.yaml` で micro-services モードで配備済。
+//   Tempo の Traces-to-Profiles 連携 (span attribute pyroscope.profile_id) は
+//   採用初期で otel/pyroscope.go の Profiler.Start() 結線時に自動付与する。
 
 package state
 
