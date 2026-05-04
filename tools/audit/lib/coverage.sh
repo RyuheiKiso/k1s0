@@ -66,6 +66,15 @@ if [[ -d "${REPO_ROOT}/${DOCS_PATH}" ]]; then
   if [[ "${KIND}" == "adr" ]]; then
     ls "${REPO_ROOT}/${DOCS_PATH}/" 2>/dev/null \
       | grep -oE "${ID_REGEX}" | sort -u > "${IDS_OUT}" || true
+  elif [[ "${KIND}" == "fr" ]]; then
+    # FR 専用処理: サンプル例示行を含む `05_要件トレーサビリティ方針.md` を除外する。
+    # 過去 bug (#10): 同方針ファイルの「DEPRECATED: FR-T1-DECISION-003 ... 代替要件
+    # FR-T1-DECISION-008 へ」がサンプル例示行 (将来形式の例) として書かれているが、
+    # grep が引っ掛けて DECISION-008 を「実在 ID」と誤検出していた (要件 docs に
+    # DECISION-008 は存在しない)。Test 29 で baseline 不在を保証する。
+    grep -rohE "${ID_REGEX}" "${REPO_ROOT}/${DOCS_PATH}" \
+      --exclude='05_要件トレーサビリティ方針.md' \
+      2>/dev/null | sort -u > "${IDS_OUT}" || true
   else
     grep -rohE "${ID_REGEX}" "${REPO_ROOT}/${DOCS_PATH}" 2>/dev/null | sort -u > "${IDS_OUT}" || true
   fi

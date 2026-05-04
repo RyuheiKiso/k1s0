@@ -2,10 +2,20 @@
 //
 // 設計正典:
 //   docs/03_要件定義/20_機能要件/40_tier1_API契約IDL/11_Feature_API.md
+//   docs/03_要件定義/20_機能要件/10_tier1_API要件/11_Feature_API.md
 //
 // scope: 実 flagd 結線は OpenFeature SDK 経由で確立可能。dev / CI では in-memory
 // Configuration backend 経由で評価される。FeatureAdminService（RegisterFlag /
 // GetFlag / ListFlags）は同 Pod 内に併設実装（feature_admin.go）。
+//
+// 関連要件:
+//   FR-T1-FEATURE-001 (Boolean / String / Number / Object Flag 評価、fail-soft)
+//   FR-T1-FEATURE-002 (段階ロールアウト %): hash-based sticky assignment helper を
+//     `feature_rollout.go` の RolloutAssign / RolloutPercentageOf で提供する。
+//     flagd 障害時 (NFR-A-CONT-006) でも tier1 facade が default rollout を返せる
+//     経路を確保。同 user_id は常に同じ結果 (SHA-256 hash の決定性で保証)。
+//   FR-T1-FEATURE-003 (Circuit Breaker override) — feature_circuit_breaker.go
+//   FR-T1-FEATURE-004 (Variants / Reason)
 
 package state
 

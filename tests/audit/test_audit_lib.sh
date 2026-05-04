@@ -599,6 +599,53 @@ else
   check "infra/observability/pyroscope/values.yaml 不在 (regression)" 1
 fi
 
+# === Test 29: FR-T1-FEATURE-002 段階 Rollout helper + DECISION-008 audit 除外 不変式 ===
+# 不変式: (a) FR-T1-FEATURE-002 の impl_refs >=1、
+#         (b) src/tier1/go/internal/state/feature_rollout.go (RolloutAssign) が配備済、
+#         (c) ids-fr.txt に FR-T1-DECISION-008 が含まれない (coverage.sh 側 exclude が機能)。
+# 失敗時:
+#   - (a) で 0 件 → feature.go docstring or feature_rollout.go 削除
+#   - (b) で missing → feature_rollout.go ファイル削除
+#   - (c) で含まれる → coverage.sh の exclude が effective でない (回帰)
+echo
+echo "--- Test 29: FR-T1-FEATURE-002 Rollout + DECISION-008 audit 除外 ---"
+
+# (a) src/ 配下 impl_refs >=1。
+feat002_hits=$(grep -rE "FR-T1-FEATURE-002" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${feat002_hits}" -ge 1 ]]; then
+  check "FR-T1-FEATURE-002: impl_refs=${feat002_hits} >= 1" 0
+else
+  check "FR-T1-FEATURE-002: impl_refs=0 (regression: docstring or feature_rollout.go 削除)" 1
+fi
+
+# (b) feature_rollout.go 配備。
+rollout_path="${REPO_ROOT}/src/tier1/go/internal/state/feature_rollout.go"
+if [[ -f "${rollout_path}" ]]; then
+  check "feature_rollout.go (RolloutAssign) 配備済" 0
+else
+  check "feature_rollout.go 不在 (regression)" 1
+fi
+
+# (c) ids-fr.txt に FR-T1-DECISION-008 が含まれない (coverage.sh 側 exclude が機能)。
+ids_fr_path=""
+# 最新 evidence 日付を取得する (.claude/audit-evidence/<date>/ids-fr.txt)。
+for d in $(ls -1 "${REPO_ROOT}/.claude/audit-evidence/" 2>/dev/null | sort -r); do
+  if [[ -f "${REPO_ROOT}/.claude/audit-evidence/${d}/ids-fr.txt" ]]; then
+    ids_fr_path="${REPO_ROOT}/.claude/audit-evidence/${d}/ids-fr.txt"
+    break
+  fi
+done
+if [[ -n "${ids_fr_path}" ]]; then
+  if grep -qE "^FR-T1-DECISION-008$" "${ids_fr_path}" 2>/dev/null; then
+    check "ids-fr.txt に DECISION-008 残存 (regression: coverage.sh exclude 不機能)" 1
+  else
+    check "ids-fr.txt から FR-T1-DECISION-008 が除外されている (coverage.sh exclude 機能)" 0
+  fi
+else
+  # evidence file 不在は本 test の skip (axis=fr 未実行)、PASS 扱い (前提エラーは別 test 17 で検出)。
+  check "ids-fr.txt 不在のため Test 29 (c) を skip (axis=fr 未実行)" 0
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="
