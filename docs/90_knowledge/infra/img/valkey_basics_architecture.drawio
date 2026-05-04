@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="architecture" id="arch1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="420" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;Valkey アーキテクチャ概要&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="260" y="10" width="300" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="client" value="&lt;b&gt;クライアント&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FB8C00;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="170" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="server" value="&lt;b&gt;Valkey サーバー&lt;/b&gt;" style="swimlane;startSize=28;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=12;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="55" width="280" height="310" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds_title" value="&lt;b&gt;インメモリデータ構造&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=none;strokeColor=none;fontColor=#1976D2;" vertex="1" parent="server">
+          <mxGeometry x="40" y="33" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds1" value="String" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="15" y="60" width="115" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds2" value="Hash" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="150" y="60" width="115" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds3" value="List" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="15" y="96" width="115" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds4" value="Set / Sorted Set" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="150" y="96" width="115" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds5" value="Bitmap / HyperLogLog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="15" y="132" width="115" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ds6" value="Stream" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="150" y="132" width="115" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="p_title" value="&lt;b&gt;永続化エンジン&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=none;strokeColor=none;fontColor=#388E3C;" vertex="1" parent="server">
+          <mxGeometry x="40" y="178" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="rdb" value="&lt;b&gt;RDB&lt;/b&gt;&lt;br&gt;スナップショット" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="15" y="205" width="115" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="aof" value="&lt;b&gt;AOF&lt;/b&gt;&lt;br&gt;追記ログ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="server">
+          <mxGeometry x="150" y="205" width="115" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="disk" value="&lt;b&gt;ディスク&lt;/b&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="690" y="165" width="110" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" value="" style="rounded=1;strokeColor=#FB8C00;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="client" target="server">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1_label" value="読み書き" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" value="" style="rounded=1;strokeColor=#388E3C;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="server" target="disk">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2_label" value="永続化" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="a2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,88 @@
+<mxfile>
+  <diagram name="Workflow Execution Flow" id="flow1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="920" pageHeight="330" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="920" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="Workflow 実行フロー" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="360" y="5" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="&lt;b&gt;① Client&lt;/b&gt;&lt;br&gt;Workflow 開始" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="25" y="45" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;② Temporal Service&lt;/b&gt;&lt;br&gt;イベント記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="175" y="45" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;③ Task Queue&lt;/b&gt;&lt;br&gt;タスク投入" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="325" y="45" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;④ Worker&lt;/b&gt;&lt;br&gt;Workflow 実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="475" y="45" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="&lt;b&gt;⑤ Worker&lt;/b&gt;&lt;br&gt;Activity 実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="625" y="45" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s6" value="&lt;b&gt;⑥ Temporal Service&lt;/b&gt;&lt;br&gt;完了記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="775" y="45" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="fa1" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=1.5;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="fa2" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=1.5;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="fa3" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=1.5;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="fa4" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=1.5;" edge="1" parent="1" source="s4" target="s5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="fa5" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=1.5;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eh" value="Event History（イベント履歴）" style="swimlane;startSize=22;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="25" y="145" width="870" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="WFExecution&lt;br&gt;Started" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="eh">
+          <mxGeometry x="0" y="30" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="WFTask&lt;br&gt;Scheduled" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="eh">
+          <mxGeometry x="150" y="30" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="WFTask&lt;br&gt;Completed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="eh">
+          <mxGeometry x="300" y="30" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="ActivityTask&lt;br&gt;Scheduled" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="eh">
+          <mxGeometry x="450" y="30" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="ActivityTask&lt;br&gt;Completed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="eh">
+          <mxGeometry x="600" y="30" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="WFExecution&lt;br&gt;Completed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="eh">
+          <mxGeometry x="750" y="30" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea1" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;" edge="1" parent="eh" source="e1" target="e2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea2" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;" edge="1" parent="eh" source="e2" target="e3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea3" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;" edge="1" parent="eh" source="e3" target="e4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea4" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;" edge="1" parent="eh" source="e4" target="e5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea5" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;" edge="1" parent="eh" source="e5" target="e6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="※ Worker がクラッシュしても Event History から自動リプレイで再開される" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="250" y="270" width="420" height="30" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

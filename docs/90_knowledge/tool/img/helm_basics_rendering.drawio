@@ -1,0 +1,40 @@
+<mxfile>
+  <diagram name="Helm Rendering" id="hr">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="300" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="300" as="geometry"/>
+        </mxCell>
+        <mxCell id="2" value="values.yaml&#xa;(デフォルト設定値)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="25" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="set / values フラグ&#xa;(上書き値)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="115" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="templates/&#xa;(Go テンプレート)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="200" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="Helm テンプレート&#xa;エンジン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="180" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="Kubernetes&#xa;マニフェスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="610" y="105" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" value="" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;" edge="1" source="2" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="8" value="" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;dashed=1;" edge="1" source="3" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="9" value="" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;" edge="1" source="4" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" value="" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;strokeWidth=2;" edge="1" source="5" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,61 @@
+<mxfile>
+  <diagram name="Helm Architecture" id="ha">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="480" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="850" height="480" as="geometry"/>
+        </mxCell>
+        <mxCell id="repo" value="Chart Repository&#xa;(Artifact Hub 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="40" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="chart" value="ローカル Chart&#xa;(templates/ + values.yaml)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="350" width="210" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="cli" value="Helm CLI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry x="350" y="180" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="cluster" value="Kubernetes Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="620" y="30" width="200" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="API Server" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="80" width="160" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="deploy" value="Deployment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="150" width="160" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc" value="Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="205" width="160" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="cm" value="ConfigMap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="260" width="160" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="secret" value="Secret" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="315" width="160" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="release" value="Release 情報&#xa;(Secret として保存)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="375" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="helm pull" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="repo" target="cli" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="テンプレート＋値" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="chart" target="cli" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" value="マニフェスト適用" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;strokeWidth=2;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="cli" target="api" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-15" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="" style="html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#b85450;strokeWidth=1;dashed=1;" edge="1" source="api" target="deploy" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

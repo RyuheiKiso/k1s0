@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="従来型開発と MVP 開発の比較" id="mvp-comparison">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="740" pageHeight="440" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="740" height="440" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="従来型開発と MVP 開発の比較" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="170" y="5" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="trad_label" value="従来型開発（ウォーターフォール）" style="text;html=1;fontSize=13;fontStyle=1;align=left;verticalAlign=middle;fillColor=#E6E6E6;strokeColor=#999999;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="45" width="270" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_plan" value="企画" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="88" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_design" value="設計" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="185" y="88" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_dev" value="開発（全機能）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="88" width="110" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_test" value="テスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="465" y="88" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_release" value="リリース" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="88" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="t_arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1" source="box_plan" target="box_design">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t_arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1" source="box_design" target="box_dev">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t_arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1" source="box_dev" target="box_test">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t_arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1" source="box_test" target="box_release">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="risk_text" value="全工程完了までフィードバックなし → 手戻りリスク大" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#CC0000;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="148" width="500" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="divider" value="" style="endArrow=none;html=1;strokeColor=#CCCCCC;dashed=1;strokeWidth=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" y="195" as="sourcePoint"/>
+            <mxPoint x="710" y="195" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mvp_label" value="MVP 開発（リーンスタートアップ）" style="text;html=1;fontSize=13;fontStyle=1;align=left;verticalAlign=middle;fillColor=#E6F2E6;strokeColor=#82B366;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="210" width="270" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="iter1_label" value="イテレーション 1" style="text;html=1;fontSize=9;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#888888;" vertex="1" parent="1">
+          <mxGeometry x="50" y="248" width="100" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_hyp1" value="仮説設定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="268" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_mvp1" value="MVP 構築" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="185" y="268" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_val1" value="ユーザー検証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="268" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#333333;" edge="1" parent="1" source="box_hyp1" target="box_mvp1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#333333;" edge="1" parent="1" source="box_mvp1" target="box_val1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="iter2_label" value="イテレーション 2" style="text;html=1;fontSize=9;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#888888;" vertex="1" parent="1">
+          <mxGeometry x="50" y="330" width="100" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_hyp2" value="仮説更新" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_mvp2" value="MVP 改善" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="185" y="350" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_val2" value="再検証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="350" width="100" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="box_product" value="製品版" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="350" width="110" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#333333;" edge="1" parent="1" source="box_hyp2" target="box_mvp2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=1;strokeColor=#333333;" edge="1" parent="1" source="box_mvp2" target="box_val2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="m_arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeWidth=2;strokeColor=#B85450;" edge="1" parent="1" source="box_val2" target="box_product">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="feedback_arrow" value="フィードバック" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;dashed=1;strokeWidth=1;strokeColor=#6C8EBF;labelBackgroundColor=#FFFFFF;fontColor=#6C8EBF;" edge="1" parent="1" source="box_val1" target="box_hyp2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="370" y="330"/>
+              <mxPoint x="100" y="330"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="success_text" value="各イテレーションでユーザー検証 → リスク最小化" style="text;html=1;fontSize=11;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#2E7D32;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="410" width="500" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

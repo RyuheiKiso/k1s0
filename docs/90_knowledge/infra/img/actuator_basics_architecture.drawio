@@ -1,0 +1,84 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="actuator-architecture" id="actuator-architecture">
+    <mxGraphModel dx="1200" dy="620" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="アクチュエータを含む制御ループ" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="10" width="500" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="phys" value="物理世界&#10;(温度・位置・圧力 など)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="50" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sensor" value="Sensor&#10;(物理量 → 電気信号)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="260" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ctrl" value="Controller&#10;(MCU / エッジアプリ)&#10;制御則の実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="250" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="act" value="Actuator&#10;(電気信号 → 物理量)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="260" width="180" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="broker" value="MQTT Broker / クラウド" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="480" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="観測" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="130" as="sourcePoint" />
+            <mxPoint x="170" y="260" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="600" y="190" />
+              <mxPoint x="170" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e2" value="測定値" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="260" y="300" as="sourcePoint" />
+            <mxPoint x="490" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e3" value="制御指令" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="710" y="300" as="sourcePoint" />
+            <mxPoint x="940" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4" value="物理作用" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1030" y="260" as="sourcePoint" />
+            <mxPoint x="710" y="90" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1030" y="210" />
+              <mxPoint x="800" y="210" />
+              <mxPoint x="800" y="90" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e5" value="MQTT Pub/Sub" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="480" as="sourcePoint" />
+            <mxPoint x="600" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="note" value="※ 制御ループは「センサ観測 → Controller 判断 → アクチュエータ動作」の 3 段階で 1 周する" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="200" y="570" width="800" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

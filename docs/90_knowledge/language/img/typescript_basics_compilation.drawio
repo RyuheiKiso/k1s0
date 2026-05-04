@@ -1,0 +1,94 @@
+<mxfile>
+  <diagram name="TypeScript コンパイルフロー" id="ts-compilation">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="450" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="450" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="TypeScript コンパイルフロー" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="240" y="10" width="340" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cfg" value="tsconfig.json&#xa;(設定)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="270" y="50" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="src" value=".ts ソース&#xa;(型注釈つき)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="160" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="tsc" value="tsc&#xa;(コンパイラ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="270" y="160" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="check" value="型チェッカー&#xa;(整合性を検証)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="270" y="290" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="js" value=".js 出力&#xa;(型情報なし)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="460" y="160" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="rt" value="Node.js / ブラウザ&#xa;(実行環境)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="650" y="160" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="a_src_tsc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#333333;strokeWidth=2;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="src" target="tsc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_cfg_tsc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#333333;strokeWidth=2;dashed=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="cfg" target="tsc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_tsc_check" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2;dashed=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" source="tsc" target="check" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_tsc_js" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="tsc" target="js" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_js_rt" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#333333;strokeWidth=2;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="js" target="rt" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_cfg" value="設定読込" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="405" y="115" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l_check" value="エラー時はビルド失敗" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="405" y="240" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l_emit" value="型を消去" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="395" y="135" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l_run" value="JS として実行" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="585" y="135" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_t" value="凡例" style="text;html=1;fontSize=11;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="380" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="408" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="ソース" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="75" y="406" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="140" y="408" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="コンパイラ" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="165" y="406" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="250" y="408" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="設定・実行環境" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="275" y="406" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="385" y="408" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4t" value="型検証" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="410" y="406" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="475" y="408" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5t" value="出力" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="500" y="406" width="60" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

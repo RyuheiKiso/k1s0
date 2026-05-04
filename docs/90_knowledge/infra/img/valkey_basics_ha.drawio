@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="ha" id="ha1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="940" pageHeight="400" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="940" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="left_title" value="&lt;b&gt;レプリケーション + Sentinel&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="10" width="300" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="&lt;b&gt;Sentinel&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="45" y="60" width="90" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;Sentinel&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="175" y="60" width="90" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;Sentinel&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="305" y="60" width="90" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="primary" value="&lt;b&gt;Primary&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="130" y="170" width="180" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="r1" value="&lt;b&gt;Replica 1&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="35" y="315" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="r2" value="&lt;b&gt;Replica 2&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="255" y="315" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="sa1" value="" style="rounded=1;strokeColor=#F9A825;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s1" target="primary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sa2" value="" style="rounded=1;strokeColor=#F9A825;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s2" target="primary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sa2_label" value="&lt;b&gt;監視&lt;/b&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#F9A825;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="sa2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="35" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sa3" value="" style="rounded=1;strokeColor=#F9A825;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s3" target="primary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pa1" value="" style="rounded=1;strokeColor=#1976D2;strokeWidth=2;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="primary" target="r1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pa2" value="" style="rounded=1;strokeColor=#1976D2;strokeWidth=2;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="primary" target="r2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="repl_label" value="&lt;i&gt;レプリケーション&lt;/i&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#1976D2;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="165" y="255" width="110" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="right_title" value="&lt;b&gt;Valkey Cluster&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="600" y="10" width="260" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="right_sub" value="データを 16384 ハッシュスロットに分散" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="570" y="34" width="320" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="65" width="130" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh1_label" value="&lt;b&gt;Shard 1&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="510" y="70" width="90" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh1_slot" value="Slot 0 – 5460" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="505" y="88" width="100" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh1_p" value="&lt;b&gt;Primary&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="505" y="115" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh1_r" value="&lt;b&gt;Replica&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="505" y="235" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh1_a" value="" style="strokeColor=#1976D2;strokeWidth=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sh1_p" target="sh1_r">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="65" width="130" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh2_label" value="&lt;b&gt;Shard 2&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="660" y="70" width="90" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh2_slot" value="Slot 5461 – 10922" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="650" y="88" width="110" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh2_p" value="&lt;b&gt;Primary&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="655" y="115" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh2_r" value="&lt;b&gt;Replica&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="655" y="235" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh2_a" value="" style="strokeColor=#1976D2;strokeWidth=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sh2_p" target="sh2_r">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="790" y="65" width="130" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh3_label" value="&lt;b&gt;Shard 3&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="810" y="70" width="90" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh3_slot" value="Slot 10923 – 16383" style="text;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="797" y="88" width="116" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh3_p" value="&lt;b&gt;Primary&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="805" y="115" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh3_r" value="&lt;b&gt;Replica&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="805" y="235" width="100" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="sh3_a" value="" style="strokeColor=#1976D2;strokeWidth=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sh3_p" target="sh3_r">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

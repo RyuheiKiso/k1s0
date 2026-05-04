@@ -1,0 +1,118 @@
+<mxfile>
+  <diagram name="MQTT Pub/Sub Architecture" id="mqtt-arch">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="640" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="MQTT Pub/Sub アーキテクチャ" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="180" y="15" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pubSectionLabel" value="Publisher（送信者）" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#2e5cb8;" vertex="1" parent="1">
+          <mxGeometry x="30" y="75" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="pub1" value="温度センサー&#xa;Publisher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="115" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="pub2" value="湿度センサー&#xa;Publisher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="235" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="pub3" value="気圧センサー&#xa;Publisher" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="355" width="170" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="broker" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="100" width="240" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="brokerTitle" value="MQTT Broker" style="text;html=1;fontSize=14;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#7a5d00;" vertex="1" parent="1">
+          <mxGeometry x="380" y="110" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="brokerSub" value="（Mosquitto / EMQX 等）" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#7a5d00;" vertex="1" parent="1">
+          <mxGeometry x="380" y="135" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="topicTreeTitle" value="Topic Tree" style="text;html=1;fontSize=11;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="380" y="165" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="topic1" value="home/temperature" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="195" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="topic2" value="home/humidity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="235" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="topic3" value="home/pressure" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="380" y="275" width="200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="routingTitle" value="メッセージルーティング" style="text;html=1;fontSize=11;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="380" y="320" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="routingDesc" value="購読者リストを管理&#xa;条件一致で配信" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="380" y="345" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sessionTitle" value="セッション管理 / 認証 / QoS" style="text;html=1;fontSize=10;align=center;fillColor=#f5e6a3;strokeColor=#d6b656;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="400" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="subSectionLabel" value="Subscriber（受信者）" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#3a8a3a;" vertex="1" parent="1">
+          <mxGeometry x="730" y="75" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sub1" value="ダッシュボード&#xa;Subscriber" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="115" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="sub2" value="アラート通知&#xa;Subscriber" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="235" width="170" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="sub3" value="時系列DB保存&#xa;Subscriber" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="355" width="170" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pArr1" value="PUBLISH" style="endArrow=classic;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#2e5cb8;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="142" as="sourcePoint" />
+            <mxPoint x="360" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pArr2" value="PUBLISH" style="endArrow=classic;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#2e5cb8;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="262" as="sourcePoint" />
+            <mxPoint x="360" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pArr3" value="PUBLISH" style="endArrow=classic;strokeColor=#6c8ebf;strokeWidth=2;fontSize=10;fontColor=#2e5cb8;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="382" as="sourcePoint" />
+            <mxPoint x="360" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="sArr1" value="SUBSCRIBE: home/#" style="endArrow=classic;strokeColor=#82b366;strokeWidth=2;fontSize=10;fontColor=#3a8a3a;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="210" as="sourcePoint" />
+            <mxPoint x="750" y="142" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sArr2" value="SUBSCRIBE: home/temperature" style="endArrow=classic;strokeColor=#82b366;strokeWidth=2;fontSize=10;fontColor=#3a8a3a;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="250" as="sourcePoint" />
+            <mxPoint x="750" y="262" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sArr3" value="SUBSCRIBE: home/+" style="endArrow=classic;strokeColor=#82b366;strokeWidth=2;fontSize=10;fontColor=#3a8a3a;fontStyle=1;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="290" as="sourcePoint" />
+            <mxPoint x="750" y="382" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="noteTitle" value="MQTT Pub/Sub の特徴" style="text;html=1;fontSize=13;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="noteBody" value="• Publisher と Subscriber は互いを直接知らず、Broker を介したトピック名だけで通信する&#xa;• 1 つのメッセージが複数の Subscriber に同時配信される（fan-out）&#xa;• ワイルドカード（`+` 単一階層 / `#` 複数階層）で柔軟な購読が可能&#xa;• TCP 上で軽量な 2 byte ヘッダの PUBLISH パケットを送受信（帯域効率が高い）" style="text;html=1;fontSize=11;align=left;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#333333;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="515" width="880" height="110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

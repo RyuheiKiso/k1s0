@@ -1,0 +1,56 @@
+<mxfile>
+  <diagram name="failover" id="fo1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="260" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="CloudNativePG フェイルオーバーの流れ" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;fontStyle=1;fontSize=14;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="240" y="8" width="420" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="&lt;b&gt;① 正常運転&lt;/b&gt;&lt;br&gt;&lt;br&gt;Primary: 1 台&lt;br&gt;Standby: 2 台&lt;br&gt;レプリケーション稼働中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="15" y="50" width="150" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;② 障害検知&lt;/b&gt;&lt;br&gt;&lt;br&gt;Primary Pod が&lt;br&gt;応答不能になる" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="200" y="50" width="150" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;③ フェイルオーバー&lt;/b&gt;&lt;br&gt;&lt;br&gt;最新データを持つ&lt;br&gt;Standby を&lt;br&gt;Primary に昇格" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="385" y="50" width="155" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;④ 新 Primary 稼働&lt;/b&gt;&lt;br&gt;&lt;br&gt;サービス再開&lt;br&gt;残りの Standby で&lt;br&gt;読み取り継続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="575" y="50" width="150" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="&lt;b&gt;⑤ 自己修復&lt;/b&gt;&lt;br&gt;&lt;br&gt;障害 Pod を&lt;br&gt;Standby として&lt;br&gt;自動再作成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="760" y="50" width="125" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s1" target="s2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e23" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s2" target="s3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e34" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s3" target="s4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e45" value="" style="endArrow=classic;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="s4" target="s5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_return" value="" style="endArrow=classic;html=1;strokeColor=#0066CC;strokeWidth=2;rounded=1;dashed=1;dashPattern=8 4;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="822" y="160" as="sourcePoint"/>
+            <mxPoint x="90" y="160" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="822" y="200"/>
+              <mxPoint x="90" y="200"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="return_label" value="自己修復完了 → 正常運転に復帰" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=10;fontColor=#0066CC;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="330" y="210" width="240" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

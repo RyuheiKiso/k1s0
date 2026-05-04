@@ -1,0 +1,74 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="sensor-vs-actuator" id="sensor-vs-actuator">
+    <mxGraphModel dx="1000" dy="420" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="420" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="センサとアクチュエータの対比（信号変換の向き）" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sensor-label" value="センサ系統" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s-phys" value="物理現象&#10;温度・加速度・光量 など" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s-box" value="センサ&#10;(変換素子)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="90" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="s-sig" value="電気信号&#10;電圧・電流・デジタル値" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="90" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="se1" value="物理量" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="130" as="sourcePoint" />
+            <mxPoint x="400" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="se2" value="信号" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="130" as="sourcePoint" />
+            <mxPoint x="760" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="actuator-label" value="アクチュエータ系統" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a-sig" value="電気信号&#10;PWM・ON/OFF・バス指令" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a-box" value="アクチュエータ&#10;(変換素子)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="260" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="a-phys" value="物理動作&#10;回転・移動・発熱 など" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="760" y="260" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ae1" value="指令" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="300" as="sourcePoint" />
+            <mxPoint x="400" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ae2" value="力・熱" style="endArrow=classic;html=1;rounded=0;strokeColor=#666666;fontSize=11;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="300" as="sourcePoint" />
+            <mxPoint x="760" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="note" value="センサは「物理 → 電気」、アクチュエータは「電気 → 物理」と向きが対になる" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="100" y="370" width="800" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

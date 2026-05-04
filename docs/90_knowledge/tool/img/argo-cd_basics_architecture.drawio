@@ -1,0 +1,180 @@
+<mxfile>
+  <diagram name="Argo CD Architecture" id="arch1">
+    <mxGraphModel dx="1200" dy="880" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="780" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="780" as="geometry" />
+        </mxCell>
+
+        <!-- Title -->
+        <mxCell id="title" value="Argo CD アーキテクチャ" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="15" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- External: Git Repository -->
+        <mxCell id="git_group" value="Git リポジトリ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="280" width="160" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="git_manifests" value="Kubernetes&#xa;マニフェスト&#xa;(YAML/Helm/&#xa;Kustomize)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="325" width="110" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Argo CD Control Plane -->
+        <mxCell id="argocd_plane" value="Argo CD（argocd namespace）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="270" y="80" width="520" height="620" as="geometry" />
+        </mxCell>
+
+        <!-- Users -->
+        <mxCell id="users" value="開発者 / CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="120" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- API Server (description included in box) -->
+        <mxCell id="api_server" value="API Server&#xa;（argocd-server）&#xa;Web UI / CLI / API の&#xa;エントリポイント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="110" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Repo Server (description included in box) -->
+        <mxCell id="repo_server" value="Repo Server&#xa;（argocd-repo-server）&#xa;Git リポジトリのクローン&#xa;とマニフェスト生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="310" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Application Controller (description included in box) -->
+        <mxCell id="app_controller" value="Application Controller&#xa;（argocd-application-controller）&#xa;望ましい状態と実際の状態を&#xa;比較し、同期を実行する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="530" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis" value="Redis&#xa;キャッシュ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="320" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Dex -->
+        <mxCell id="dex" value="Dex（SSO）&#xa;認証プロバイダ連携" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="120" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Notification Controller -->
+        <mxCell id="notif" value="Notifications Controller&#xa;Slack/Email 等に通知" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="545" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Target Kubernetes Cluster -->
+        <mxCell id="k8s_cluster" value="対象 Kubernetes クラスタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=5;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="250" width="200" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s_resources" value="Deployment&#xa;Service&#xa;ConfigMap&#xa;Secret&#xa;..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="900" y="310" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s_actual" value="実際の状態&#xa;（Live State）" style="text;html=1;fontSize=11;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="905" y="420" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows -->
+        <!-- Users -> API Server -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="users" target="api_server" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Git -> Repo Server -->
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" source="git_group" target="repo_server" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2_label" value="clone / fetch" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="arrow2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Server -> Dex -->
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;" edge="1" source="api_server" target="dex" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3_label" value="認証" style="edgeLabel;html=1;fontSize=10;fontColor=#9673a6;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="arrow3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Server -> Repo Server (left side path to avoid crossing) -->
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=0;exitY=1;entryX=0;entryY=0;" edge="1" source="api_server" target="repo_server" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="210" />
+              <mxPoint x="290" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Repo Server -> Redis -->
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;" edge="1" source="repo_server" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Repo Server -> Application Controller (left side path) -->
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=0;exitY=1;entryX=0;entryY=0;" edge="1" source="repo_server" target="app_controller" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="420" />
+              <mxPoint x="290" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow6_label" value="望ましい状態&#xa;（Desired State）" style="edgeLabel;html=1;fontSize=10;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="arrow6">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Application Controller -> K8s Cluster (route below notif) -->
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" edge="1" source="app_controller" target="k8s_cluster" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="660" />
+              <mxPoint x="970" y="660" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arrow7_label" value="比較 &amp; 同期" style="edgeLabel;html=1;fontSize=11;fontStyle=1;fontColor=#333333;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="arrow7">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="15" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#CCCCCC;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="500" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;fontSize=11;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="45" y="505" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="45" y="530" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1_text" value="ユーザー向けサーバー" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="75" y="528" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="45" y="553" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2_text" value="コア GitOps エンジン" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="75" y="551" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="45" y="576" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3_text" value="補助サービス" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="75" y="574" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="45" y="599" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4_text" value="外部リソース" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="75" y="597" width="140" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="flow" id="flow1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="400" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="&lt;b&gt;カオスエンジニアリング 実験サイクル&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="200" y="10" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="&lt;b&gt;① 定常状態の定義&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;正常動作を数値化&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;② 仮説の構築&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;障害時の振る舞いを予測&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="70" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;③ 実験の設計&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;障害と範囲を決定&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="70" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;④ 障害の注入&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;本番相当で実行&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="510" y="255" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="&lt;b&gt;⑤ 結果の分析&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;仮説との差異を特定&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="255" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="s6" value="&lt;b&gt;⑥ 改善の実施&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;弱点を修正&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="255" width="170" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="ct" value="&lt;font color=&quot;#999999&quot;&gt;&lt;i&gt;継続的に&lt;br&gt;繰り返す&lt;/i&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;strokeColor=none;fillColor=none;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="175" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="a12" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="102" as="sourcePoint"/>
+            <mxPoint x="270" y="102" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a23" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="102" as="sourcePoint"/>
+            <mxPoint x="510" y="102" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a34" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="595" y="135" as="sourcePoint"/>
+            <mxPoint x="595" y="255" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a45" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="287" as="sourcePoint"/>
+            <mxPoint x="440" y="287" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a56" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="287" as="sourcePoint"/>
+            <mxPoint x="200" y="287" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a61" style="endArrow=block;endFill=1;rounded=0;html=1;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="115" y="255" as="sourcePoint"/>
+            <mxPoint x="115" y="135" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

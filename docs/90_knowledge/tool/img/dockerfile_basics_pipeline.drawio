@@ -1,0 +1,43 @@
+<mxfile>
+  <diagram name="Dockerfile Build Pipeline" id="bp">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1080" pageHeight="380" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1080" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="Dockerfile から実行までのパイプライン" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="10" width="600" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ctx" value="&lt;b&gt;ビルドコンテキスト&lt;/b&gt;&lt;br&gt;&lt;br&gt;Dockerfile&lt;br&gt;ソースコード&lt;br&gt;.dockerignore" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="140" width="160" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="bk" value="&lt;b&gt;BuildKit&lt;/b&gt;&lt;br&gt;(ビルドエンジン)&lt;br&gt;&lt;br&gt;命令を解釈し&lt;br&gt;レイヤを生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="320" y="140" width="160" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="img" value="&lt;b&gt;イメージ&lt;/b&gt;&lt;br&gt;&lt;br&gt;マニフェスト&lt;br&gt;+&lt;br&gt;複数レイヤ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="140" width="160" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="reg" value="&lt;b&gt;レジストリ&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="40" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="cont" value="&lt;b&gt;コンテナ&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="920" y="280" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" value="docker build" style="edgeStyle=none;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#333333;strokeWidth=2;endArrow=classic;html=1;labelBackgroundColor=#FFFFFF;" edge="1" source="ctx" target="bk" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="生成" style="edgeStyle=none;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#333333;strokeWidth=2;endArrow=classic;html=1;labelBackgroundColor=#FFFFFF;" edge="1" source="bk" target="img" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="docker push" style="edgeStyle=none;rounded=0;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#333333;strokeWidth=2;endArrow=classic;html=1;labelBackgroundColor=#FFFFFF;" edge="1" source="img" target="reg" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" value="docker run" style="edgeStyle=none;rounded=0;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#333333;strokeWidth=2;endArrow=classic;html=1;labelBackgroundColor=#FFFFFF;" edge="1" source="img" target="cont" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,166 @@
+<mxfile>
+  <diagram name="Page-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="860" pageHeight="460" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="860" height="460" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="ベンダーロックイン緩和のレイヤ構造" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="230" y="10" width="400" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="app" value="アプリケーション層（ビジネスロジック・ドメインモデル）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="55" width="700" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="abs" value="抽象化層（インターフェース定義 / ポート）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="145" width="700" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_app_abs" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="430" y="105" as="sourcePoint"/>
+            <mxPoint x="430" y="145" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ad1" value="ストレージ&#xa;アダプタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="235" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad2" value="メッセージング&#xa;アダプタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="235" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad3" value="認証&#xa;アダプタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="235" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ad4" value="監視&#xa;アダプタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="235" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_abs_ad1" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="160" y="195" as="sourcePoint"/>
+            <mxPoint x="160" y="235" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_abs_ad2" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="340" y="195" as="sourcePoint"/>
+            <mxPoint x="340" y="235" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_abs_ad3" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="195" as="sourcePoint"/>
+            <mxPoint x="520" y="235" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_abs_ad4" style="endArrow=block;endFill=1;strokeWidth=1.5;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="195" as="sourcePoint"/>
+            <mxPoint x="700" y="235" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="v1a" value="MinIO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v1b" value="AWS S3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="165" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v2a" value="Kafka" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="260" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v2b" value="Dapr" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="345" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v3a" value="Keycloak" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v3b" value="OpenBao" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="525" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v4a" value="Prometheus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="v4b" value="Grafana" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="705" y="325" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="arr_ad1_v1a" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="117.5" y="285" as="sourcePoint"/>
+            <mxPoint x="117.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad1_v1b" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="202.5" y="285" as="sourcePoint"/>
+            <mxPoint x="202.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad2_v2a" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="297.5" y="285" as="sourcePoint"/>
+            <mxPoint x="297.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad2_v2b" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="382.5" y="285" as="sourcePoint"/>
+            <mxPoint x="382.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad3_v3a" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="477.5" y="285" as="sourcePoint"/>
+            <mxPoint x="477.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad3_v3b" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="562.5" y="285" as="sourcePoint"/>
+            <mxPoint x="562.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad4_v4a" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="657.5" y="285" as="sourcePoint"/>
+            <mxPoint x="657.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr_ad4_v4b" style="endArrow=block;endFill=1;strokeWidth=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="742.5" y="285" as="sourcePoint"/>
+            <mxPoint x="742.5" y="325" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="各層のアダプタを差し替えるだけでベンダーを変更可能 ― アプリケーション層のコード変更は不要" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=11;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="130" y="390" width="600" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例:" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="425" width="40" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="125" y="428" width="16" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="アプリケーション" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="145" y="425" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="260" y="428" width="16" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="インターフェース" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="280" y="425" width="100" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="395" y="428" width="16" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="アダプタ" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="415" y="425" width="60" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="490" y="428" width="16" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4t" value="ベンダー実装（交換可能）" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="510" y="425" width="150" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

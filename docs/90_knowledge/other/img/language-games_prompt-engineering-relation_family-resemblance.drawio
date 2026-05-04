@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="family-resemblance" name="family-resemblance">
+    <mxGraphModel dx="920" dy="480" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="920" pageHeight="480" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="920" height="480" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="家族的類似性: 要約プロンプトの複数バリエーションが共有する特徴" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="880" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rh" value="&lt;b&gt;プロンプト例&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="80" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ch1" value="A: 簡潔化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ch2" value="B: 抽象化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ch3" value="C: 重要度順" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ch4" value="D: 箇条書き" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="750" y="80" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" value="「3 点で要約せよ」" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="130" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r1a" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="130" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r1b" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="450" y="130" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r1c" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="130" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r1d" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="750" y="130" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" value="「TL;DR を書け」" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="190" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r2a" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="190" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r2b" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="450" y="190" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r2c" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="190" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r2d" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="750" y="190" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" value="「重要部を抽出せよ」" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="250" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r3a" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="250" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r3b" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="450" y="250" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r3c" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="250" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r3d" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="750" y="250" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4" value="「要点を箇条書きで」" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF9E6;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="310" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4a" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="300" y="310" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4b" value="—" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=18;fontColor=#CCCCCC;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="450" y="310" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4c" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="600" y="310" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4d" value="●" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=22;fontColor=#82B366;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="750" y="310" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="全プロンプトに共通する単一特徴は存在しない（B は 1・2 のみ、C は 1・3・4、D は 4 のみ）。それでも『要約』という一つのゲームとして束ねられるのが家族的類似性である（PU §66-67）。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="390" width="880" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

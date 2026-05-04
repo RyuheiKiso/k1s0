@@ -1,0 +1,75 @@
+<mxfile>
+  <diagram name="Grafana Tempo Architecture" id="arch">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="410" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="410" as="geometry"/>
+        </mxCell>
+        <mxCell id="apps" value="アプリケーション&lt;br&gt;+ OTel SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="50" width="135" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="collector" value="OTel Collector&lt;br&gt;/ Grafana Alloy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="50" width="145" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="tempo_box" value="Grafana Tempo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#333333;dashed=1;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=2;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="370" y="15" width="420" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="distributor" value="Distributor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="50" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="ingester" value="Ingester" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="170" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="query_frontend" value="Query Frontend" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="195" y="315" width="145" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="querier" value="Querier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="315" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="compactor" value="Compactor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=11;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="280" width="130" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="obj_storage" value="Object Storage&lt;br&gt;(S3 / GCS / MinIO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="165" width="155" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="grafana" value="Grafana" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="315" width="135" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;" edge="1" source="apps" target="collector" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="OTLP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;fontSize=10;fontColor=#82B366;" edge="1" source="collector" target="distributor" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" style="exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;" edge="1" source="distributor" target="ingester" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" style="exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82B366;strokeWidth=2;" edge="1" source="ingester" target="obj_storage" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a5" style="exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#999999;strokeWidth=1;dashed=1;" edge="1" source="compactor" target="obj_storage" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" source="grafana" target="query_frontend" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" source="query_frontend" target="querier" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a8" style="exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" source="querier" target="ingester" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a9" style="exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;strokeColor=#6C8EBF;strokeWidth=2;" edge="1" source="querier" target="obj_storage" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="337"/>
+              <mxPoint x="570" y="220"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

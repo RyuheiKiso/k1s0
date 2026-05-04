@@ -1,0 +1,49 @@
+<mxfile host="app.diagrams.net" modified="2026-04-28T00:00:00.000Z" agent="claude" version="24.0.0">
+  <diagram id="axum_stack" name="Axum スタック">
+    <mxGraphModel dx="900" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Axum を支える非同期スタック（同一プロセス内の依存関係）" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="780" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="proc" value="Rust アプリケーションプロセス（1 つのバイナリ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#444444;dashed=1;fontSize=11;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="780" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="ユーザー定義の Handler / Router&#10;(fn handler(...) -&gt; impl IntoResponse)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="120" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="axum" value="Axum (route / extractor / state / response)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="200" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tower" value="Tower (Service / Layer による middleware)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="280" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="hyper" value="Hyper (HTTP/1.1 と HTTP/2 のプロトコル実装)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="360" width="660" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tokio" value="Tokio (非同期ランタイム / TCP / タスクスケジューラ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="120" y="440" width="660" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="上の層が下の層に依存する。Axum は薄い層で、Tower の Service trait を Handler に対応付けることが主な責務。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="520" width="780" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;strokeColor=#444444;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="axum">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;strokeColor=#444444;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="axum" target="tower">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=classic;html=1;rounded=0;strokeColor=#444444;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="tower" target="hyper">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=classic;html=1;rounded=0;strokeColor=#444444;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="hyper" target="tokio">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

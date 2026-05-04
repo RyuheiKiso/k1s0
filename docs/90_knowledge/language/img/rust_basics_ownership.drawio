@@ -1,0 +1,112 @@
+<mxfile>
+  <diagram name="Rust 所有権モデル" id="ownership-model">
+    <mxGraphModel dx="900" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="500" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Rust 所有権モデル" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="250" y="10" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stack_label" value="スタック領域" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="50" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="heap_label" value="ヒープ領域" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="340" y="50" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="stack_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="heap_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="var_s1" value="s1: String&#xa;ptr | len | cap" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="var_s2" value="s2: String&#xa;ptr | len | cap" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="170" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="heap_data" value="&quot;hello&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="340" y="130" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ptr_s1" style="strokeColor=#999999;strokeWidth=1;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" source="var_s1" target="heap_data" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="120" />
+              <mxPoint x="270" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ptr_s1_x" value="✕ ムーブ済み" style="text;html=1;fontSize=10;fontStyle=0;align=center;fillColor=none;strokeColor=none;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="240" y="105" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ptr_s2" style="strokeColor=#82b366;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" source="var_s2" target="heap_data" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="190" />
+              <mxPoint x="270" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ptr_s2_label" value="所有権を持つ" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="240" y="170" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="move_label" value="let s2 = s1;  // 所有権がムーブ" style="text;html=1;fontSize=11;fontStyle=2;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="145" width="230" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="section2_title" value="借用（Borrowing）" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="borrow_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="80" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="owner" value="owner: String&#xa;（所有者）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="570" y="95" width="140" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="ref_immut" value="&amp;owner（共有参照）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="570" y="145" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ref_mut" value="&amp;mut owner（排他参照）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="570" y="190" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="borrow_a1" style="strokeColor=#82b366;strokeWidth=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" source="ref_immut" target="owner" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="borrow_a2" style="strokeColor=#b85450;strokeWidth=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" edge="1" source="ref_mut" target="owner" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="190" />
+              <mxPoint x="730" y="130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rule_title" value="所有権の 3 つのルール" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="160" y="270" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rules_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="30" y="300" width="740" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="rule1" value="ルール 1: 各値は 1 つの所有者だけを持つ" style="text;html=1;fontSize=12;align=left;fillColor=none;strokeColor=none;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="310" width="350" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rule1d" value="→ 1 つの値を複数の変数が同時に所有することはできない" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="70" y="335" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rule2" value="ルール 2: 所有者がスコープを抜けると値は自動で解放される" style="text;html=1;fontSize=12;align=left;fillColor=none;strokeColor=none;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="360" width="450" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rule2d" value="→ GC 不要。メモリリークのリスクを根本的に排除する" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="70" y="385" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rule3" value="ルール 3: 共有参照（&amp;T）は複数可、排他参照（&amp;mut T）は 1 つだけ" style="text;html=1;fontSize=12;align=left;fillColor=none;strokeColor=none;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="410" width="500" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rule3d" value="→ データ競合をコンパイル時に防止する" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="70" y="435" width="400" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

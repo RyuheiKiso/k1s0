@@ -1,0 +1,59 @@
+<mxfile>
+  <diagram name="kubectl Architecture" id="ka">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="950" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="user" value="ユーザー&#xa;(ターミナル)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="kubectl" value="kubectl CLI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#23445d;fontColor=#FFFFFF;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="kc" value="kubeconfig&#xa;(~/.kube/config)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="240" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="cluster" value="Kubernetes Cluster" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="560" y="40" width="380" height="400" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="kube-apiserver&#xa;(REST + Watch)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="80" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="etcd" value="etcd&#xa;(クラスタ状態の永続化)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="190" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="nodes" value="Worker Nodes (kubelet + Pod)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="620" y="290" width="240" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="node1" value="Node 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="330" width="60" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="node2" value="Node 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="710" y="330" width="60" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="node3" value="Node 3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="780" y="330" width="60" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="コマンド入力" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;strokeWidth=2;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="user" target="kubectl" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="認証情報読込" style="html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="kc" target="kubectl" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="HTTPS + TLS" style="html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="kubectl" target="api" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-12" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="状態保存" style="html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=1;dashed=1;fontSize=11;fontColor=#333333;labelBackgroundColor=#FFFFFF;" edge="1" source="api" target="etcd" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

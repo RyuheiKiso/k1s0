@@ -1,0 +1,43 @@
+<mxfile>
+  <diagram name="Docker Architecture" id="arch">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="420" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="Docker アーキテクチャ" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="300" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="client" value="&lt;b&gt;Docker Client&lt;/b&gt;&lt;br&gt;(docker CLI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="20" y="190" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="host" value="&lt;b&gt;Docker Host (Docker Daemon)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="380" y="70" width="320" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="images" value="イメージ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="150" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="containers" value="コンテナ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="260" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="networks" value="ネットワーク" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="150" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="volumes" value="ボリューム" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="260" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="registry" value="&lt;b&gt;Docker Registry&lt;/b&gt;&lt;br&gt;(Docker Hub 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="900" y="190" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow1" value="docker build / run / pull" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#333333;strokeWidth=2;" edge="1" source="client" target="host" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arrow2" value="push / pull" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#333333;strokeWidth=2;" edge="1" source="host" target="registry" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

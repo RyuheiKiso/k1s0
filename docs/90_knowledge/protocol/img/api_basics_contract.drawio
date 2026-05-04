@@ -1,0 +1,43 @@
+<mxfile host="Electron" modified="2026-04-28T00:00:00.000Z" agent="claude-code" version="24.0.0">
+  <diagram id="api-contract" name="API 契約と利用側・提供側">
+    <mxGraphModel dx="800" dy="460" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="460" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="460" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="API: 契約 (Contract) を介した利用側と提供側の分離" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="100" y="25" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="利用側は契約に依存し、提供側は契約を実装する。契約が安定する限り、両者は独立に変更できる。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="720" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="caller" value="Caller (利用側)&#10;&#10;・関数を呼ぶアプリ&#10;・SDK 経由のクライアント&#10;・別サービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="200" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="contract" value="API 契約 (Contract)&#10;&#10;・操作 (メソッド名)&#10;・入力 (パラメータ型)&#10;・出力 (戻り値型)&#10;・誤りの表現 (エラー)&#10;・前提条件 / 不変条件" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="140" width="200" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="provider" value="Provider (提供側)&#10;&#10;・関数の実装&#10;・サーバ実装&#10;・SaaS の中身" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="170" width="200" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="arr1" value="依存" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="245" as="sourcePoint" />
+            <mxPoint x="300" y="245" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr2" value="実装" style="endArrow=classic;html=1;rounded=0;strokeColor=#333333;fontSize=12;labelBackgroundColor=#FFFFFF;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="245" as="sourcePoint" />
+            <mxPoint x="500" y="245" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="契約が安定すれば、利用側は提供側の実装変更を意識せずに使い続けられる。これが API の最大の価値である。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="640" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

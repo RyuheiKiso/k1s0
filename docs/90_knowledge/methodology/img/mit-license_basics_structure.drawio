@@ -1,0 +1,74 @@
+<mxfile>
+  <diagram name="MIT License Structure" id="structure">
+    <mxGraphModel dx="820" dy="520" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="520">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="520" as="geometry"/>
+        </mxCell>
+        <mxCell id="mit" value="MIT ライセンス（MIT License）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="210" y="20" width="400" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="ph" value="✓ 許可事項（Permissions）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="140" width="240" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="ch" value="ⓘ 条件（Conditions）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="140" width="240" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="lh" value="✕ 制限事項（Limitations）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="140" width="240" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" value="" style="rounded=1;orthogonalLoop=1;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=block;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="mit" target="ph" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="115"/>
+              <mxPoint x="140" y="115"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" value="" style="rounded=1;orthogonalLoop=1;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="mit" target="ch" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="" style="rounded=1;orthogonalLoop=1;html=1;strokeColor=#6c8ebf;strokeWidth=2;endArrow=block;endFill=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="mit" target="lh" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="115"/>
+              <mxPoint x="680" y="115"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1" value="商用利用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="200" width="240" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="改変（ソースコードの変更）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="248" width="240" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="配布（再頒布）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="296" width="240" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="私的利用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="20" y="344" width="240" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="c1" value="著作権表示と&lt;br&gt;ライセンス文の保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="290" y="200" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="cn" value="ソフトウェアの全コピーまたは&lt;br&gt;重要な部分に著作権表示と&lt;br&gt;ライセンス文を含める必要がある" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFDE7;strokeColor=#d6b656;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="290" y="275" width="240" height="65" as="geometry"/>
+        </mxCell>
+        <mxCell id="l1" value="責任の免除（Liability）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="200" width="240" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="l2" value="保証の免除（Warranty）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="248" width="240" height="38" as="geometry"/>
+        </mxCell>
+        <mxCell id="ln" value="ソフトウェアは「現状のまま」提供され&lt;br&gt;作者は一切の保証や責任を負わない" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#b85450;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="300" width="240" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="sum" value="まとめ: MIT ライセンスは最も自由度の高いライセンスの一つ。唯一の条件は著作権表示とライセンス文を保持すること。" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;fontSize=12;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="420" width="780" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

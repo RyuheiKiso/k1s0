@@ -1,0 +1,67 @@
+<mxfile>
+  <diagram name="Page-1" id="protobuf-workflow">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="740" pageHeight="480" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="740" height="480" as="geometry"/>
+        </mxCell>
+        <mxCell id="proto" value=".proto ファイル&#xa;（スキーマ定義）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="20" width="220" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="protoc" value="protoc（コンパイラ）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="135" width="640" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="コンパイル" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;fontSize=11;" edge="1" source="proto" target="protoc" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="go" value="Go&#xa;(.pb.go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="240" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="rust" value="Rust&#xa;(.rs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="220" y="240" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="java" value="Java&#xa;(.java)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="240" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="python" value="Python&#xa;(_pb2.py)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="240" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.102;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" source="protoc" target="go" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="コード生成" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.367;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" source="protoc" target="rust" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.633;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" source="protoc" target="java" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.898;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;" edge="1" source="protoc" target="python" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sep" value="" style="shape=line;strokeColor=#999999;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="315" width="680" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="label_flow" value="データ送受信フロー" style="text;html=1;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="260" y="330" width="220" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="appA" value="アプリケーション A&#xa;（送信側）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="375" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="binary" value="バイナリデータ&#xa;（ネットワーク / ファイル）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="280" y="375" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="appB" value="アプリケーション B&#xa;（受信側）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="375" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="シリアライズ" style="rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" source="appA" target="binary" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="デシリアライズ" style="rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" source="binary" target="appB" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

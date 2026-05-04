@@ -1,0 +1,104 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="emqx-pubsub" id="emqx-pubsub">
+    <mxGraphModel dx="1200" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Publish / Subscribe の内部フロー" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="10" width="340" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="publisher" value="Publisher&#10;PUBLISH topic/a QoS1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="220" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="broker" value="EMQX Broker" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="80" width="540" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="listener" value="1. Listener&#10;(TCP/TLS/WS 終端)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="310" y="130" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" value="2. Auth / ACL&#10;(JWT / DB / HTTP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="310" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="session" value="3. Session&#10;(QoS キュー / Inflight)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="310" y="310" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="router" value="4. Router&#10;(トピックマッチング)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="590" y="220" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rule" value="5. Rule Engine&#10;(任意の転送ルール)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="590" y="310" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="retain" value="6. Retained Store&#10;(保留メッセージ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="590" y="400" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sub1" value="Subscriber A&#10;SUBSCRIBE topic/#" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="900" y="140" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sub2" value="Subscriber B&#10;SUBSCRIBE topic/a" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="900" y="230" width="160" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="backend" value="Kafka / DB / Webhook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;" vertex="1" parent="1">
+          <mxGeometry x="900" y="320" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note2" value="※ QoS 0: 最大 1 回 / QoS 1: 少なくとも 1 回 / QoS 2: 正確に 1 回&#10;※ Retained は新規サブスクライバ接続時に即座に配信される" style="text;html=1;strokeColor=none;fillColor=#F5F5F5;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="490" width="1020" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6C8EBF;endArrow=classic;" edge="1" parent="1" source="publisher" target="listener">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="255" />
+              <mxPoint x="240" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f2" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#82B366;endArrow=classic;" edge="1" parent="1" source="listener" target="auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#82B366;endArrow=classic;" edge="1" parent="1" source="auth" target="session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#D6B656;endArrow=classic;" edge="1" parent="1" source="session" target="router">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="550" y="340" />
+              <mxPoint x="550" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f5" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#B85450;endArrow=classic;" edge="1" parent="1" source="router" target="rule">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6" style="edgeStyle=none;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#82B366;endArrow=classic;dashed=1;" edge="1" parent="1" source="rule" target="retain">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f7" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.5;strokeColor=#6C8EBF;endArrow=classic;" edge="1" parent="1" source="router" target="sub1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="238" />
+              <mxPoint x="860" y="175" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f8" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.7;entryX=0;entryY=0.5;strokeColor=#6C8EBF;endArrow=classic;" edge="1" parent="1" source="router" target="sub2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="262" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f9" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#D79B00;endArrow=classic;" edge="1" parent="1" source="rule" target="backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

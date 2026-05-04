@@ -1,0 +1,115 @@
+<mxfile host="app.diagrams.net" modified="2026-04-28T00:00:00.000Z" agent="claude-knowledge" version="22.0.0" type="device">
+  <diagram name="forward-vs-reverse" id="proxy-fr-1">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="640" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title-fwd" value="Forward Proxy（前方プロキシ）: 内部のクライアントを代表して外部にアクセスする" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zone-fwd-internal" value="社内ネットワーク" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#999999;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="500" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-fwd-external" value="インターネット側（任意のサーバ群）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="60" width="360" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fwd-clientA" value="Client A" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fwd-clientB" value="Client B" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="210" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fwd-proxy" value="Forward Proxy&#10;（送信元を代理）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="150" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="fwd-srvA" value="任意のサーバ A&#10;（github.com 等）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="110" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="fwd-srvB" value="任意のサーバ B&#10;（外部 API 等）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="210" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-fwd-A" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="fwd-clientA" target="fwd-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-fwd-B" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="fwd-clientB" target="fwd-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-fwd-pA" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="fwd-proxy" target="fwd-srvA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-fwd-pB" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="fwd-proxy" target="fwd-srvB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="title-rev" value="Reverse Proxy（逆プロキシ）: 外部のクライアントから内部サーバ群を代表して受ける" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="310" width="900" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zone-rev-external" value="インターネット側（外部クライアント）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#999999;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="260" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-rev-internal" value="社内ネットワーク（隠蔽されたバックエンド）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#999999;dashed=1;align=left;verticalAlign=top;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="350" width="600" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rev-clientA" value="External Client A" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rev-clientB" value="External Client B" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rev-proxy" value="Reverse Proxy&#10;（受信先を代理）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="440" width="160" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rev-srvA" value="Backend Server A" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="700" y="390" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rev-srvB" value="Backend Server B" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="700" y="450" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rev-srvC" value="Backend Server C" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="700" y="510" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-rev-A" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="rev-clientA" target="rev-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-rev-B" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="rev-clientB" target="rev-proxy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-rev-pA" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="rev-proxy" target="rev-srvA">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-rev-pB" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="rev-proxy" target="rev-srvB">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-rev-pC" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;" edge="1" parent="1" source="rev-proxy" target="rev-srvC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="780" y="600" width="180" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-client" value="Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="788" y="608" width="50" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-proxy" value="Proxy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="846" y="608" width="50" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-server" value="Server" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="904" y="608" width="50" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

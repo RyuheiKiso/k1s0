@@ -1,0 +1,79 @@
+<mxfile>
+  <diagram name="TypeScript の階層構造" id="ts-type-layers">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="500" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="TypeScript の階層構造（ツール層 / 型層 / 実行時層）" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="620" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_top" value="ツール層 — IDE 補完・静的解析が型情報に依存する" style="text;html=1;fontSize=12;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="50" y="55" width="720" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="editor" value="エディタ&#xa;(VS Code / tsserver)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="85" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="linter" value="型対応 ESLint&#xa;(規約検査)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="300" y="85" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ci" value="CI 型検査&#xa;(tsc --noEmit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="540" y="85" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_mid" value="型層 — コンパイル時のみ存在 / 実行時には残らない" style="text;html=1;fontSize=12;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="50" y="170" width="720" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="ann" value="型注釈 / 型推論&#xa;(let x: number = 1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="200" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="gen" value="ジェネリクス&#xa;(関数・型のパラメータ化)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="300" y="200" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="struct" value="構造的部分型&#xa;(形が一致すれば代入可)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="540" y="200" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_bot" value="実行時層 — 出力 .js / 型情報を含まない素の JavaScript" style="text;html=1;fontSize=12;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="50" y="285" width="720" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="vars" value="変数・関数・クラス&#xa;(JS の構文要素)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="315" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="mods" value="ESM モジュール&#xa;(import / export)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="300" y="315" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="libs" value="標準ライブラリ&#xa;(Promise / Array / Map…)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="540" y="315" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="note1" value="※ 型は実行時に存在しないため、typeof による分岐は JS 値の typeof のみが使える" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="50" y="400" width="720" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="note2" value="※ tsc --noEmit を CI で回すと、型崩れを実行前に検出できる" style="text;html=1;fontSize=11;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="50" y="425" width="720" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg_t" value="凡例" style="text;html=1;fontSize=11;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="50" y="455" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="ツール層" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="125" y="458" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="220" y="460" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="型層 (ビルド時)" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="245" y="458" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="360" y="460" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="実行時層 (素の JS)" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="385" y="458" width="120" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

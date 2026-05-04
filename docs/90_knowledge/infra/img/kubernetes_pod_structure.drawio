@@ -1,0 +1,85 @@
+<mxfile host="draw.io" agent="k1s0">
+  <diagram id="pod_structure" name="Pod Structure">
+    <mxGraphModel dx="900" dy="600" grid="0" pageWidth="900" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Pod 内部構造（共有 namespace と Volume）" style="text;html=1;align=left;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="15" width="500" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="node" value="Worker Node" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="840" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="pod" value="Pod (Pod IP: 10.244.1.5)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fadbd6;strokeColor=#b85450;verticalAlign=top;align=left;spacingLeft=10;spacingTop=8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="780" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="container_label" value="① コンテナ（同一 Pod 内に複数置ける）" style="text;html=1;align=left;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="125" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="pause" value="Pause コンテナ&#xa;(Network / IPC NS 保持)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8e8e8;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="155" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="appa" value="main コンテナ&#xa;(image: nginx:1.27)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="290" y="155" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="appb" value="sidecar コンテナ&#xa;(image: log-shipper)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="520" y="155" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="net_label" value="② 共有リソース（Pod 内で常に同じ）" style="text;html=1;align=left;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="netns" value="共有 Network Namespace — コンテナ間は localhost 通信、Pod IP を全員で共有" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="265" width="740" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ipcns" value="共有 IPC Namespace — POSIX 共有メモリ・セマフォを相互参照可能" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="740" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="vol" value="共有 Volume — emptyDir / configMap / Secret / PVC をマウントしてファイル受け渡し" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="740" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_box" value="凡例（責務レイヤ）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="510" width="480" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_s" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="405" y="540" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_app_t" value="アプリ層: ユーザがイメージで定義するコンテナ" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="435" y="535" width="430" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_s" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="405" y="560" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_net_t" value="ネットワーク層: namespace（透過的に効く）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="435" y="555" width="430" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_s" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="405" y="580" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_data_t" value="データ層: Volume / 永続ストレージ" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="435" y="575" width="430" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_s" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="540" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_infra_t" value="インフラ層: Worker Node" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="660" y="535" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_pod_s" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fadbd6;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="630" y="560" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_pod_t" value="Pod 境界（スケジューリング単位）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="660" y="555" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_pause_s" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8e8e8;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="580" width="22" height="14" as="geometry" />
+        </mxCell>
+        <mxCell id="lg_pause_t" value="システムコンテナ（Pause）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="660" y="575" width="220" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

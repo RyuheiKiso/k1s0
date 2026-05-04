@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram name="metadata-categories" id="metadata-categories">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="850" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="root" value="メタデータ&#10;(Metadata)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="345" y="50" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="desc" value="&lt;b&gt;記述的メタデータ&lt;/b&gt;&#10;(Descriptive)&#10;&#10;同定・検索・発見のため&#10;&#10;・タイトル&#10;・著者 / 作成者&#10;・件名 / キーワード&#10;・要約" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;align=left;verticalAlign=top;spacingLeft=12;spacingTop=12;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="220" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="struct" value="&lt;b&gt;構造的メタデータ&lt;/b&gt;&#10;(Structural)&#10;&#10;内部構成・関係を示す&#10;&#10;・章 / 節の順序&#10;・ページ番号&#10;・ファイル間の包含/参照&#10;・チャプター区切り" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;spacingLeft=12;spacingTop=12;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="315" y="200" width="220" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="admin" value="&lt;b&gt;管理的メタデータ&lt;/b&gt;&#10;(Administrative)&#10;&#10;運用・保管に必要&#10;&#10;・技術: 形式 / サイズ&#10;・権利: 著作権 / ライセンス&#10;・保存: 作成日 / 保管期限&#10;・出所: 入手経路" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;spacingLeft=12;spacingTop=12;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="590" y="200" width="220" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1.5" edge="1" parent="1" source="root" target="desc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="425" y="150" />
+              <mxPoint x="150" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1.5" edge="1" parent="1" source="root" target="struct">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1.5" edge="1" parent="1" source="root" target="admin">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="425" y="150" />
+              <mxPoint x="700" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" value="出典: NISO『Understanding Metadata』(2017) の 3 大分類。&#10;実装上は「技術メタデータ」「保存メタデータ」「権利メタデータ」を独立扱いする場合もある。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;align=center;fontSize=11;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="770" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

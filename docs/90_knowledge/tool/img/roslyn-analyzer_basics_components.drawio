@@ -1,0 +1,98 @@
+<mxfile host="draw.io">
+  <diagram name="Roslyn Analyzer Components" id="comp1">
+    <mxGraphModel dx="1200" dy="760" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="620" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Roslyn Analyzer の主要コンポーネント" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="240" y="15" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nuget_group" value="NuGet パッケージとして配布" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="900" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="da" value="DiagnosticAnalyzer&#xa;&#xa;コードを検査して&#xa;問題を検出する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="nuget_group">
+          <mxGeometry x="30" y="50" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="cfp" value="CodeFixProvider&#xa;&#xa;検出された問題の&#xa;自動修正を提案する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="nuget_group">
+          <mxGeometry x="250" y="50" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="crp" value="CodeRefactoringProvider&#xa;&#xa;問題がなくても&#xa;コード改善を提案する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="nuget_group">
+          <mxGeometry x="470" y="50" width="190" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sg" value="Source Generator&#xa;&#xa;コンパイル時に&#xa;C# コードを自動生成する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=0;verticalAlign=top;spacingTop=5;" vertex="1" parent="nuget_group">
+          <mxGeometry x="700" y="50" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="da_note" value="[DiagnosticAnalyzer]&#xa;属性で登録" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="nuget_group">
+          <mxGeometry x="40" y="160" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="cfp_note" value="DiagnosticId で&#xa;Analyzer と紐づく" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="nuget_group">
+          <mxGeometry x="260" y="160" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="api_group" value="Roslyn コンパイラ API" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="320" width="900" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="st" value="SyntaxTree&#xa;構文木" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="api_group">
+          <mxGeometry x="30" y="45" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sn" value="SyntaxNode&#xa;構文ノード" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="api_group">
+          <mxGeometry x="190" y="45" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="stk" value="SyntaxToken&#xa;トークン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="api_group">
+          <mxGeometry x="350" y="45" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sm" value="SemanticModel&#xa;意味モデル" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="api_group">
+          <mxGeometry x="510" y="45" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sym" value="ISymbol&#xa;シンボル情報" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="api_group">
+          <mxGeometry x="680" y="45" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="severity_group" value="診断の重要度（DiagnosticSeverity）" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="480" width="900" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="hidden" value="Hidden&#xa;非表示" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;" vertex="1" parent="severity_group">
+          <mxGeometry x="30" y="45" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="info" value="Info&#xa;情報" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="severity_group">
+          <mxGeometry x="200" y="45" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="warning" value="Warning&#xa;警告" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="severity_group">
+          <mxGeometry x="370" y="45" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="errorbox" value="Error&#xa;エラー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="severity_group">
+          <mxGeometry x="540" y="45" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sev_arrow" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="severity_group" source="hidden" target="errorbox">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="175" y="70" />
+              <mxPoint x="175" y="35" />
+              <mxPoint x="605" y="35" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sev_label" value="重要度: 低 → 高" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" connectable="0" parent="sev_arrow">
+          <mxGeometry x="0.3" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="da" target="st">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="300" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="150" y="300" />
+              <mxPoint x="125" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn1_label" value="参照" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" connectable="0" parent="conn1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

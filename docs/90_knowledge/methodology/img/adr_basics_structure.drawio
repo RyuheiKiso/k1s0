@@ -1,0 +1,43 @@
+<mxfile>
+  <diagram name="ADR Structure">
+    <mxGraphModel dx="800" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="ADR ドキュメント構造" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="280" y="10" width="240" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec1" value="&lt;b&gt;タイトル（Title）&lt;/b&gt;&lt;br&gt;連番 + 決定内容の要約&lt;br&gt;例: ADR-0002 データベースに PostgreSQL を採用する" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="400" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec2" value="&lt;b&gt;ステータス（Status）&lt;/b&gt;&lt;br&gt;提案（Proposed）/ 承認（Accepted）/ 非推奨（Deprecated）/ 置換（Superseded）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="150" width="400" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec3" value="&lt;b&gt;コンテキスト（Context）&lt;/b&gt;&lt;br&gt;決定が必要になった背景・技術的状況・制約条件" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="230" width="400" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec4" value="&lt;b&gt;決定（Decision）&lt;/b&gt;&lt;br&gt;選択した方針とその理由（「なぜ」を最も重視する）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="320" width="400" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="sec5" value="&lt;b&gt;結果（Consequences）&lt;/b&gt;&lt;br&gt;決定によるメリット・デメリット・影響範囲" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="410" width="400" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sec1" target="sec2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" style="exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sec2" target="sec3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" style="exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sec3" target="sec4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" style="exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;endArrow=classic;" edge="1" parent="1" source="sec4" target="sec5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

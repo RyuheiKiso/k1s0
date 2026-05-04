@@ -1,0 +1,46 @@
+<mxfile>
+  <diagram name="kubectl Command Pattern" id="kp">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="kubectl" value="kubectl CLI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6c8ebf;strokeColor=#23445d;fontColor=#FFFFFF;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="375" y="30" width="150" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="imp" value="命令型 (Imperative)&#xa;&#xa;動詞ベースで&#xa;状態を 1 回変える&#xa;&#xa;例: run / create&#xa;     delete / scale&#xa;&#xa;API: POST/PUT/DELETE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;verticalAlign=top;align=left;spacingLeft=12;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="240" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="dec" value="宣言型 (Declarative)&#xa;&#xa;マニフェストで&#xa;望ましい姿を渡す&#xa;&#xa;例: apply -f&#xa;     diff&#xa;&#xa;API: PATCH (Server-Side Apply)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=top;align=left;spacingLeft=12;spacingTop=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="160" width="240" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="rd" value="照会・診断 (Read)&#xa;&#xa;状態を観察する&#xa;&#xa;例: get / describe&#xa;     logs / exec&#xa;     port-forward&#xa;&#xa;API: GET / WATCH" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;verticalAlign=top;align=left;spacingLeft=12;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="160" width="240" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="kube-apiserver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="375" y="420" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ek1" style="html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;" edge="1" source="kubectl" target="imp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ek2" style="html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;" edge="1" source="kubectl" target="dec" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ek3" style="html=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=2;" edge="1" source="kubectl" target="rd" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea1" style="html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=#d6b656;strokeWidth=2;" edge="1" source="imp" target="api" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea2" style="html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#82b366;strokeWidth=2;" edge="1" source="dec" target="api" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea3" style="html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;strokeWidth=2;" edge="1" source="rd" target="api" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

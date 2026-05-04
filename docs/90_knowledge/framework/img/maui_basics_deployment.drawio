@@ -1,0 +1,79 @@
+<mxfile>
+  <diagram name="MAUI Cross-Platform Deployment" id="maui-deployment">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="960" pageHeight="540" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="960" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="MAUI: 単一プロジェクトから 4 プラットフォームへ" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="560" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="proj-label" value="① 単一プロジェクト（Single Project）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#6c8ebf;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="320" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="proj" value="&lt;b&gt;MyApp.csproj&lt;/b&gt;&lt;br&gt;&lt;br&gt;TargetFrameworks =&lt;br&gt;net10.0-android;&lt;br&gt;net10.0-ios;&lt;br&gt;net10.0-maccatalyst;&lt;br&gt;net10.0-windows10.0.19041.0&lt;br&gt;&lt;br&gt;Resources / Platforms / App.xaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="build-label" value="② dotnet build / dotnet publish" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#82b366;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="build" value="&lt;b&gt;.NET SDK&lt;/b&gt;&lt;br&gt;&lt;br&gt;ターゲット別に&lt;br&gt;個別ビルド&lt;br&gt;&lt;br&gt;-f net10.0-android&lt;br&gt;-f net10.0-ios&lt;br&gt;…" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="400" y="110" width="160" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="out-label" value="③ プラットフォーム別配布物" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#b85450;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="80" width="280" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="out-android" value="&lt;b&gt;Android&lt;/b&gt;&lt;br&gt;.apk / .aab&lt;br&gt;Google Play" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="110" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out-ios" value="&lt;b&gt;iOS&lt;/b&gt;&lt;br&gt;.ipa（要 macOS ビルダー）&lt;br&gt;App Store" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="170" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out-mac" value="&lt;b&gt;macOS&lt;/b&gt;&lt;br&gt;.app（Mac Catalyst）&lt;br&gt;Mac App Store / Notarization" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="230" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="out-win" value="&lt;b&gt;Windows&lt;/b&gt;&lt;br&gt;.msix / .exe&lt;br&gt;Microsoft Store / 直接配布" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="620" y="290" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="proj" target="build" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="build" target="out-android" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="build" target="out-ios" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="build" target="out-mac" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="build" target="out-win" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="※ iOS / macOS はコード署名と App Store 配信に macOS マシンが必須。CI では mac ビルダーを別ノードとして用意する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#666666;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="840" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="840" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="435" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="青＝開発者の単一プロジェクト" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="455" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="緑＝.NET SDK ビルド処理" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="475" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3" value="赤＝OS ごとの配布パッケージ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="455" width="280" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4" value="実線太矢印＝ビルド成果物の流れ" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="350" y="475" width="280" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

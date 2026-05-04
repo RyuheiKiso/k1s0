@@ -1,0 +1,55 @@
+<mxfile>
+  <diagram name="Seal Unseal" id="seal">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="720" pageHeight="460" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="720" height="460" as="geometry"/>
+        </mxCell>
+        <mxCell id="start" value="&lt;b&gt;OpenBao 起動&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="260" y="15" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="start" target="sealed" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sealed" value="&lt;b&gt;Sealed 状態&lt;/b&gt;（暗号化データは復号不可・全機能停止）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="155" y="85" width="410" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="sealed" target="shamir" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="shamir" value="&lt;b&gt;Shamir の秘密分散（例: 閾値 3 / 共有数 5）&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="165" width="640" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="k1" value="&lt;b&gt;キー 1 ✓&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="205" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="k2" value="&lt;b&gt;キー 2 ✓&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="180" y="205" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="k3" value="&lt;b&gt;キー 3 ✓&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="300" y="205" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="k4" value="キー 4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="420" y="205" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="k5" value="キー 5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e0e0;strokeColor=#999999;fontSize=11;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="540" y="205" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="shamir" target="rootkey" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rootkey" value="&lt;b&gt;ルートキー復元&lt;/b&gt; → 暗号化キー復号" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="215" y="295" width="290" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="rootkey" target="unsealed" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="unsealed" value="&lt;b&gt;Unsealed 状態&lt;/b&gt;（全機能が利用可能）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="155" y="375" width="410" height="50" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

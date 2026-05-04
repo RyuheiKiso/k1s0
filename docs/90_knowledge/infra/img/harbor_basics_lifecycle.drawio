@@ -1,0 +1,55 @@
+<mxfile>
+  <diagram name="Harbor Image Lifecycle" id="harbor-lifecycle">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="180" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="850" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="① docker push" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="30" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="② イメージ保存" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="180" y="30" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="③ 脆弱性スキャン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="④ ポリシー適用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="30" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="⑤ docker pull" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="30" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="開発者がイメージを送信" style="text;html=1;align=center;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="10" y="95" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2" value="Registry に格納" style="text;html=1;align=center;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="180" y="95" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3" value="Trivy が自動実行" style="text;html=1;align=center;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="350" y="95" width="140" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="t4" value="脆弱性の重大度で判定" style="text;html=1;align=center;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="530" y="95" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="t5" value="安全なイメージを取得" style="text;html=1;align=center;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="700" y="95" width="130" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="s1" target="s2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" style="exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="s2" target="s3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" style="exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="s3" target="s4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" style="exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="s4" target="s5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

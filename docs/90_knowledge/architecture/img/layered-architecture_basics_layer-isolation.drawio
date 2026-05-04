@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Closed vs Open Layers">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="500" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="title_left" value="Closed Layers（層分離）" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="title_right" value="Open Layers（層スキップ可）" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="560" y="10" width="520" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="divider" value="" style="endArrow=none;html=1;strokeColor=#AAAAAA;strokeWidth=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="540" y="20" as="sourcePoint"/>
+            <mxPoint x="540" y="460" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L_pres" value="Presentation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="60" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="L_bus" value="Business" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="140" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="L_pers" value="Persistence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="220" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="L_db" value="Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="300" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="L_arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="120" as="sourcePoint"/>
+            <mxPoint x="270" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L_arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="200" as="sourcePoint"/>
+            <mxPoint x="270" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L_arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="280" as="sourcePoint"/>
+            <mxPoint x="270" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="L_note" value="上位レイヤは直下のレイヤしか呼び出せない。&lt;br&gt;ある層の差し替え影響が隣接層に局所化される。" style="text;html=1;fontSize=12;align=center;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="460" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="R_pres" value="Presentation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="60" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="R_bus" value="Business" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="140" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="R_pers" value="Persistence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="220" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="R_db" value="Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=middle;align=center;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="300" width="280" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="R_arrow1" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="810" y="120" as="sourcePoint"/>
+            <mxPoint x="810" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="R_arrow2" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="810" y="200" as="sourcePoint"/>
+            <mxPoint x="810" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="R_arrow3" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#333333;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="810" y="280" as="sourcePoint"/>
+            <mxPoint x="810" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="R_skip" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673A6;dashed=1;endSize=8;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="950" y="90" as="sourcePoint"/>
+            <mxPoint x="950" y="250" as="targetPoint"/>
+            <Array as="points">
+              <mxPoint x="1030" y="90"/>
+              <mxPoint x="1030" y="250"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="R_skip_label" value="skip" style="text;html=1;fontSize=12;fontStyle=2;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="160" width="50" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="R_note" value="中間層をスキップして直接下位層を呼び出せる。&lt;br&gt;可動性は上がるが、層分離の利点を一部失う。" style="text;html=1;fontSize=12;align=center;verticalAlign=top;fillColor=none;strokeColor=none;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="580" y="380" width="500" height="60" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

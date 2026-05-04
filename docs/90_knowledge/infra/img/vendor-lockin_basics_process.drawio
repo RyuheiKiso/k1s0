@@ -1,0 +1,91 @@
+<mxfile>
+  <diagram name="Page-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="860" pageHeight="460" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="860" height="460" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="ベンダーロックインの深化プロセス" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="230" y="10" width="400" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="導入フェーズ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="依存深化フェーズ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="60" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="ロックイン状態" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="590" y="60" width="240" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="270" y="85" as="sourcePoint"/>
+            <mxPoint x="310" y="85" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a2" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#333333;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="85" as="sourcePoint"/>
+            <mxPoint x="590" y="85" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f1a" value="初期コスト削減・無料枠" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="140" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1b" value="迅速な導入と立ち上げ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="186" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1c" value="手厚い技術サポート" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="232" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2a" value="独自 API / SDK への依存" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="140" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2b" value="独自データ形式への固定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="186" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2c" value="特定技術へのスキル偏重" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="232" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2d" value="長期契約・ボリューム割引" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="278" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3a" value="高額な移行コスト" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="140" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3b" value="価格交渉力の喪失" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="186" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3c" value="ベンダー都合の仕様変更への追従" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="232" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3d" value="サービス終了・撤退リスク" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="278" width="240" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="cost_label" value="切替コスト" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="20" y="350" width="90" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="cost_low" value="低" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="350" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="cost_mid" value="中" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="350" width="200" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="cost_high" value="高" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="350" width="290" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="time_arrow" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="410" as="sourcePoint"/>
+            <mxPoint x="830" y="410" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="time_label" value="時間経過" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=none;fillColor=none;fontSize=12;fontStyle=1;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="420" y="418" width="80" height="30" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

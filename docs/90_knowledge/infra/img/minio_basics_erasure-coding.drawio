@@ -1,0 +1,37 @@
+<mxfile>
+  <diagram name="MinIO Erasure Coding" id="minio-ec">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="720" pageHeight="310" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="720" height="310" as="geometry"/>
+        </mxCell>
+        <mxCell id="object" value="オブジェクト (file.jpg)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="15" width="200" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="ec" value="Erasure Coding (分割 + 冗長化)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="195" y="95" width="330" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="data" value="&lt;b&gt;データシャード ×4&lt;/b&gt;&lt;br&gt;オブジェクトの実データを分割して格納" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="190" width="300" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="parity" value="&lt;b&gt;パリティシャード ×4&lt;/b&gt;&lt;br&gt;障害復旧用の冗長データ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="390" y="190" width="300" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="合計 8 ドライブ中、最大 4 台の障害からデータ復旧可能" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="275" width="440" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="object" target="ec" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" style="exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="ec" target="data" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" style="exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="ec" target="parity" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

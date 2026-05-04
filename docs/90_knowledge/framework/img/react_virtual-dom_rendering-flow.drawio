@@ -1,0 +1,55 @@
+<mxfile>
+  <diagram name="仮想DOMレンダリングフロー">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="640" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="640" as="geometry"/>
+        </mxCell>
+        <mxCell id="n1" value="状態変更 (setState)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="170" y="30" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n2" value="コンポーネント関数を再実行" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="170" y="130" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n3" value="新しい仮想DOMツリーを生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="170" y="250" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n4" value="差分検出 (Reconciliation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="170" y="380" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n5" value="変更箇所のみ実DOMに反映" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="170" y="480" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n6" value="画面更新完了" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="170" y="570" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="n7" value="前回の仮想DOMツリー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="530" y="380" width="200" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="仮想DOM =&lt;br&gt;JavaScriptオブジェクトで&lt;br&gt;表現された軽量なDOMのコピー" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fillColor=none;strokeColor=none;fontColor=#666666;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="240" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n1" target="n2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n2" target="n3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n3" target="n4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n7" target="n4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n4" target="n5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#333333;strokeWidth=2;endArrow=block;endFill=1;" edge="1" source="n5" target="n6" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

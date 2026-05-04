@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Dapr Building Blocks">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="830" pageHeight="440" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="830" height="440" as="geometry"/>
+        </mxCell>
+        <mxCell id="hc1" value="アプリケーション" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="25" y="15" width="115" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="hc2" value="Dapr Building Block API" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="260" y="15" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="hc3" value="コンポーネント" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="580" y="15" width="210" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="app" value="あなたのコード&#xa;&#xa;任意の言語&#xa;任意の&#xa;フレームワーク" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="25" y="55" width="115" height="340" as="geometry"/>
+        </mxCell>
+        <mxCell id="ea" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="224" as="sourcePoint"/>
+            <mxPoint x="260" y="224" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eal" value="HTTP / gRPC" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="155" y="196" width="80" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="b1" value="サービス呼び出し" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="55" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2" value="状態管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="97" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b3" value="Pub/Sub メッセージング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="139" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b4" value="入出力バインディング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="181" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b5" value="アクター" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="223" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b6" value="シークレット管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="265" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b7" value="設定管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="307" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="b8" value="ワークフロー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="260" y="349" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="他のサービス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="55" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="Redis, PostgreSQL 等" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="97" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Kafka, RabbitMQ 等" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="139" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="外部システム / API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="181" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p5" value="アクターランタイム" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="223" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6" value="Vault, AWS Secrets 等" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="265" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p7" value="設定ストア" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="307" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="p8" value="ワークフローエンジン" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="349" width="210" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb1" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b1" target="p1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb2" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b2" target="p2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb3" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b3" target="p3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb4" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b4" target="p4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb5" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b5" target="p5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb6" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b6" target="p6" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb7" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b7" target="p7" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="eb8" style="endArrow=classic;html=1;strokeColor=#999999;strokeWidth=1;" edge="1" source="b8" target="p8" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

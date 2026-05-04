@@ -1,0 +1,97 @@
+<mxfile host="65bd71144e">
+  <diagram name="gin-request-flow" id="gin-flow">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Gin のリクエスト処理フロー（c.Next による前後実行）" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="170" y="20" width="560" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" value="① クライアントが HTTP リクエスト送信&#10;GET /v1/users/42" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="70" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" value="② Engine.ServeHTTP&#10;net/http から呼ばれる入口" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="150" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="③ メソッド別 Radix Tree を検索&#10;パターン /v1/users/:id にマッチ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="230" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" value="④ Context を sync.Pool から取得&#10;Params にキャプチャ値を充填" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="310" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="chainBox" value="⑤ HandlersChain を順に実行" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="390" width="660" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="mw1Pre" value="Logger 前半&#10;(c.Next の前)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="150" y="430" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mw2Pre" value="Recovery 前半&#10;defer recover() 設置" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="430" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mw3Pre" value="Auth 前半&#10;認証チェック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="430" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="handler" value="ハンドラ本体&#10;c.Param(&quot;id&quot;) で 42 取得 / c.JSON 応答" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="290" y="520" width="320" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mw3Post" value="Auth 後半&#10;(c.Next の後)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="510" y="610" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mw2Post" value="Recovery 後半&#10;panic を捕捉" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="320" y="610" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mw1Post" value="Logger 後半&#10;ステータス・所要時間記録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="150" y="610" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" value="⑥ ResponseWriter に書き出し&#10;Context を Pool に返却" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="740" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" value="⑦ クライアントが応答を受信&#10;200 OK / application/json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="320" y="820" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s4" target="chainBox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" style="endArrow=classic;html=1;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="mw1Pre" target="mw2Pre">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" style="endArrow=classic;html=1;strokeColor=#000000;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="mw2Pre" target="mw3Pre">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a7" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.8;entryY=0;" edge="1" parent="1" source="mw3Pre" target="handler">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a8" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.8;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="handler" target="mw3Post">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a9" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="mw3Post" target="mw2Post">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a10" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="mw2Post" target="mw1Post">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a11" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="chainBox" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a12" style="endArrow=classic;html=1;strokeColor=#000000;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="s6" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例&#10;• 寒色: クライアント側&#10;• 暖色枠: Gin Engine の処理&#10;• 緑枠 : ユーザ定義ハンドラ&#10;• 上→下: c.Next 前 / 下→上: c.Next 後&#10;  （ミドルウェアは前後で 2 回実行される）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;align=left;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="80" width="220" height="130" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

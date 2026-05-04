@@ -1,0 +1,154 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="emqx-architecture" id="emqx-arch">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="EMQX クラスタ構成と周辺連携" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="10" width="340" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="client_group" value="MQTT クライアント" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="200" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="pub" value="Publisher&#10;(センサー等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sub" value="Subscriber&#10;(アプリ/ダッシュボード)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="70" y="190" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="iot" value="IoT デバイス&#10;(MQTT / WSS / QUIC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="70" y="280" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cluster" value="EMQX クラスタ (Erlang/OTP)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="60" width="420" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="node1" value="Node 1&#10;Listener / Session / Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="390" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="node2" value="Node 2&#10;Listener / Session / Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="580" y="100" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="node3" value="Node 3&#10;Listener / Session / Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="485" y="210" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mnesia" value="分散メタストア (Mnesia / RLOG)&#10;ルーティングテーブル・セッション情報を共有" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="390" y="320" width="360" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rule" value="Rule Engine&#10;(SQL ライクな転送ルール)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="390" y="410" width="360" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dashboard" value="Dashboard&#10;(Web UI :18083)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="430" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="backend_group" value="バックエンド連携" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;verticalAlign=top;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="60" width="160" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="kafka" value="Kafka" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="100" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="influx" value="InfluxDB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="180" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="webhook" value="HTTP Webhook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="260" width="120" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="RDB (PostgreSQL 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D79B00;" vertex="1" parent="1">
+          <mxGeometry x="920" y="340" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note" value="※ Listener は TCP 1883 / SSL 8883 / WS 8083 / WSS 8084 を提供&#10;※ クラスタ内の任意のノードに接続しても Pub/Sub 可能" style="text;html=1;strokeColor=none;fillColor=#F5F5F5;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="1020" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.25;entryX=0;entryY=0.25;strokeColor=#6C8EBF;endArrow=classic;" edge="1" parent="1" source="pub" target="node1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="115" />
+              <mxPoint x="300" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.75;strokeColor=#6C8EBF;endArrow=classic;" edge="1" parent="1" source="sub" target="node1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="220" />
+              <mxPoint x="300" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#6C8EBF;endArrow=classic;" edge="1" parent="1" source="iot" target="node3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="310" />
+              <mxPoint x="300" y="250" />
+              <mxPoint x="485" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4" style="edgeStyle=none;rounded=0;html=1;strokeColor=#82B366;endArrow=classic;startArrow=classic;" edge="1" parent="1" source="node1" target="node2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=none;rounded=0;html=1;strokeColor=#82B366;endArrow=classic;startArrow=classic;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="node1" target="node3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=none;rounded=0;html=1;strokeColor=#82B366;endArrow=classic;startArrow=classic;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="node2" target="node3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e7" style="edgeStyle=none;rounded=0;html=1;strokeColor=#D6B656;endArrow=classic;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="node3" target="mnesia">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e8" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#B85450;endArrow=classic;" edge="1" parent="1" source="rule" target="kafka">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="440" />
+              <mxPoint x="820" y="125" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#B85450;endArrow=classic;" edge="1" parent="1" source="rule" target="influx">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="850" y="440" />
+              <mxPoint x="850" y="205" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#B85450;endArrow=classic;" edge="1" parent="1" source="rule" target="webhook">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="440" />
+              <mxPoint x="870" y="285" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=none;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#B85450;endArrow=classic;" edge="1" parent="1" source="rule" target="db">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="890" y="440" />
+              <mxPoint x="890" y="365" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e12" style="edgeStyle=none;rounded=0;html=1;strokeColor=#9673A6;endArrow=classic;dashed=1;exitX=1;exitY=0.5;entryX=0;entryY=0.75;" edge="1" parent="1" source="dashboard" target="mnesia">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="460" />
+              <mxPoint x="320" y="365" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

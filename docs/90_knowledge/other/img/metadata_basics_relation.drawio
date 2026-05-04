@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram name="metadata-relation" id="metadata-relation">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="540" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="例: デジタル写真ファイル" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;align=center;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="820" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="primary" value="&lt;b&gt;本体データ (Primary Data)&lt;/b&gt;&#10;&#10;IMG_4823.jpg&#10;&#10;0xFF 0xD8 0xFF 0xE0&#10;0x00 0x10 0x4A 0x46&#10;0x49 0x46 0x00 0x01&#10;…&#10;(圧縮画素値 4.2 MB)&#10;&#10;━━━━━━━━━━━&#10;画素値だけからは&#10;・何の写真か&#10;・いつ撮ったか&#10;・誰が撮ったか&#10;・使って良いか&#10;が分からない" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;spacingLeft=14;spacingTop=14;fontSize=12;fontFamily=Helvetica" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="300" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="meta" value="&lt;b&gt;メタデータ (Metadata)&lt;/b&gt;&#10;&#10;〔記述的〕&#10;  タイトル: 鎌倉の海岸&#10;  撮影者: K. 山田&#10;  キーワード: 海, 夏&#10;&#10;〔構造的〕&#10;  EXIF セグメント順序&#10;  サムネイルオフセット&#10;&#10;〔管理的〕&#10;  撮影日時: 2024-08-15 14:32&#10;  GPS: 35.32°N 139.55°E&#10;  カメラ: NX-100&#10;  ファイル形式: JPEG&#10;  著作権: © 2024 K. 山田" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=top;spacingLeft=14;spacingTop=14;fontSize=12;fontFamily=Helvetica" vertex="1" parent="1">
+          <mxGeometry x="560" y="70" width="300" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="rel" value="記述する" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#444444;strokeWidth=2;fontSize=13;labelBackgroundColor=#FFFFFF;verticalAlign=bottom;fontStyle=1" edge="1" parent="1" source="meta" target="primary">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="anno" value="メタ (meta-) = ギリシャ語「〜について」 + データ → 「データについてのデータ」&#10;本体データから独立した属性集合として扱うことで、検索・発見・管理・保存・運用が初めて可能になる。" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;align=center;fontSize=11;fontColor=#444444" vertex="1" parent="1">
+          <mxGeometry x="40" y="470" width="820" height="50" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

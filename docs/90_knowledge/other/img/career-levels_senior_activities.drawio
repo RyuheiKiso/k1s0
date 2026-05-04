@@ -1,0 +1,31 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="senior-activities" name="senior-activities">
+    <mxGraphModel dx="1000" dy="720" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="720" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Senior の 4 つの仕事領域と時間配分の目安" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="960" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="q1" value="&lt;b&gt;設計・アーキテクチャ&lt;/b&gt;&#xa;（週 30% 目安）&#xa;&#xa;• 数週間単位の機能の設計ドキュメント作成&#xa;• 技術選定と代替案の比較&#xa;• ADR（アーキテクチャ決定記録）の起草&#xa;• 非機能要件（性能・可観測性）の指定&#xa;• 上位設計レビューのファシリテータ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="90" width="465" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="q2" value="&lt;b&gt;実装・コードレビュー&lt;/b&gt;&#xa;（週 30% 目安）&#xa;&#xa;• 中核コンポーネントの実装（全体の 30-50%）&#xa;• 複雑な PR のレビューと設計議論&#xa;• リファクタリング方針の策定と実施&#xa;• ペアプロ・モブプロによる知識転移&#xa;• 重要な技術的負債の返済主導" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="505" y="90" width="465" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="q3" value="&lt;b&gt;メンタリング・育成&lt;/b&gt;&#xa;（週 20% 目安）&#xa;&#xa;• Junior/Mid への 1on1 メンタリング&#xa;• 成長計画の合意と進捗フォロー&#xa;• コードレビューによる教育的指摘&#xa;• 設計ドキュメント作成の指導&#xa;• オンボーディング設計と初期課題付与" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="370" width="465" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="q4" value="&lt;b&gt;調整・運用&lt;/b&gt;&#xa;（週 20% 目安）&#xa;&#xa;• PM・デザイナとの要件すり合わせ&#xa;• 他チームとの依存調整&#xa;• オンコール当番・インシデントコマンダ&#xa;• 障害ポストモーテムの起草&#xa;• チームの運用ダッシュボード整備" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingRight=12;spacingTop=12;" vertex="1" parent="1">
+          <mxGeometry x="505" y="370" width="465" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="Senior の特徴は「実装時間が 30% しかない」こと。残り 70% は設計・育成・調整に使う。実装マシンに留まるエンジニアは Senior ではなく Mid 扱いになる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#999999;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="640" width="940" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

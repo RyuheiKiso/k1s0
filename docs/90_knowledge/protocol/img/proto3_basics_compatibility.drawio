@@ -1,0 +1,64 @@
+<mxfile>
+  <diagram name="Page-1" id="proto3-compatibility">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="740" pageHeight="340" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="740" height="340" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="proto3 スキーマ進化の互換性ルール" style="text;html=1;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="150" y="5" width="440" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="40" width="340" height="285" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_title" value="安全な変更（後方互換あり）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="40" width="340" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_1" value="新しいフィールドの追加" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="90" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_2" value="フィールドの削除（reserved で番号を予約）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="126" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_3" value="フィールド名の変更（番号は維持）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="162" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_4" value="新しい enum 値の追加" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="198" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_5" value="ネストメッセージ型の追加" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="234" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="safe_6" value="int32 ↔ int64 などの互換型間の変更" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="35" y="270" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="40" width="340" height="285" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_title" value="危険な変更（互換性が壊れる）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="40" width="340" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_1" value="フィールド番号の変更" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="90" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_2" value="非互換な型への変更（string → int32 など）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="126" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_3" value="削除したフィールド番号の再利用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="162" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_4" value="enum の 0 値（デフォルト値）の変更" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="198" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_5" value="oneof フィールドの通常フィールドへの移動" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="234" width="310" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="danger_6" value="パッケージ名の変更" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="270" width="310" height="28" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

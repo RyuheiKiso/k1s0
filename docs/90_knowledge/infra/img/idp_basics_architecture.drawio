@@ -1,0 +1,70 @@
+<mxfile host="draw.io">
+  <diagram name="IDP レイヤーアーキテクチャ" id="idp-layers">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="620" pageHeight="520" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="620" height="520" as="geometry"/>
+        </mxCell>
+        <mxCell id="dev1" value="フロントエンド開発者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="dev2" value="バックエンド開発者" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="30" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="dev3" value="SRE / Platform Eng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="430" y="30" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="idp" value="IDP (Internal Developer Platform)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;verticalAlign=top;align=center;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="150" width="580" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="idpC1" value="Developer Portal&#xa;(開発者ポータル)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="165" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="idpC2" value="Software Catalog&#xa;(ソフトウェアカタログ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="227" y="200" width="165" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="idpC3" value="Golden Paths&#xa;(ゴールデンパス)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="415" y="200" width="165" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="idpC4" value="CI/CD 統合" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="285" width="165" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="idpC5" value="IaC 管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="227" y="285" width="165" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="idpC6" value="セキュリティ /&#xa;コンプライアンス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="415" y="285" width="165" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="infra1" value="Kubernetes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="infra2" value="Cloud Services" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="235" y="440" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="infra3" value="DB / Storage" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="430" y="440" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.17;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;endArrow=block;endFill=1;" edge="1" source="dev1" target="idp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;endArrow=block;endFill=1;" edge="1" source="dev2" target="idp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.83;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;endArrow=block;endFill=1;" edge="1" source="dev3" target="idp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.17;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;endArrow=block;endFill=1;" edge="1" source="idp" target="infra1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;endArrow=block;endFill=1;" edge="1" source="idp" target="infra2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" style="rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.83;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#333333;endArrow=block;endFill=1;" edge="1" source="idp" target="infra3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

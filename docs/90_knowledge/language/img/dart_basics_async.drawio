@@ -1,0 +1,58 @@
+<mxfile>
+  <diagram name="Dart 非同期モデル" id="async">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="820" pageHeight="400" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="820" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Dart 非同期モデル: Isolate / Event Loop / Future / Stream" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="500" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="iso_main" value="Main Isolate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="500" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="microtask" value="Microtask Queue&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Future の継続&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="event" value="Event Queue&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;I/O / Timer / Stream&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="310" y="100" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="loop" value="Event Loop&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Microtask を優先消化 → Event を 1 件処理&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="180" width="440" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="exec" value="Dart コード実行 (シングルスレッド)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="260" width="440" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="iso_worker" value="Worker Isolate&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;独立メモリ空間&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="600" y="60" width="180" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="worker_loop" value="独自の Event Loop" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="180" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="worker_exec" value="重い計算" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="260" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="msg" value="メッセージ&#xa;(コピー渡し)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="540" y="100" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="port" style="endArrow=classic;endFill=1;startArrow=classic;startFill=1;exitX=1;exitY=0.3;entryX=0;entryY=0.3;strokeColor=#333333;strokeWidth=2;dashed=1;" edge="1" source="iso_main" target="iso_worker" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.25;entryY=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="microtask" target="loop" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.75;entryY=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="event" target="loop" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="loop" target="exec" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="Dart は 1 Isolate = 1 スレッドで動く。Future はマイクロタスクで継続を実行し、Stream は Event Queue 経由で値を流す。&#xa;CPU バウンドな処理は Isolate.spawn で別 Isolate に逃がし、ポート (SendPort/ReceivePort) でメッセージ通信する。" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="740" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

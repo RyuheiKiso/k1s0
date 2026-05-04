@@ -1,0 +1,43 @@
+<mxfile host="Electron" modified="2026-04-28T00:00:00.000Z" agent="claude-code" version="24.0.0">
+  <diagram id="jwt-structure" name="JWT の 3 部構成と base64url エンコード">
+    <mxGraphModel dx="900" dy="640" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="640" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="JWT の 3 部構成: Header . Payload . Signature" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="100" y="20" width="700" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="各部を JSON で記述し、それぞれを base64url エンコードしてドット区切りで連結したものが JWT である。" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="820" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="header_json" value="Header (JSON)&#10;&#10;{&#10;  &quot;alg&quot;: &quot;RS256&quot;,&#10;  &quot;typ&quot;: &quot;JWT&quot;,&#10;  &quot;kid&quot;: &quot;key-2026-04&quot;&#10;}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="payload_json" value="Payload (Claims, JSON)&#10;&#10;{&#10;  &quot;iss&quot;: &quot;https://auth.example&quot;,&#10;  &quot;sub&quot;: &quot;user-1234&quot;,&#10;  &quot;aud&quot;: &quot;api.example&quot;,&#10;  &quot;exp&quot;: 1745800000,&#10;  &quot;iat&quot;: 1745796400&#10;}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="260" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="sig_box" value="Signature (バイト列)&#10;&#10;sign(&#10;  base64url(Header) +&#10;  &quot;.&quot; +&#10;  base64url(Payload),&#10;  鍵&#10;)&#10;&#10;鍵の種類は alg に従う" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="620" y="100" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_h2t" value="base64url" style="endArrow=classic;html=1;rounded=0;strokeColor=#b85450;fontSize=10;labelBackgroundColor=#FFFFFF;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.15;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="header_json" target="token_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_p2t" value="base64url" style="endArrow=classic;html=1;rounded=0;strokeColor=#d6b656;fontSize=10;labelBackgroundColor=#FFFFFF;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="payload_json" target="token_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr_s2t" value="base64url" style="endArrow=classic;html=1;rounded=0;strokeColor=#82b366;fontSize=10;labelBackgroundColor=#FFFFFF;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="sig_box" target="token_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="token_box" value="JWT (送信される文字列)&#10;&#10;eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImtleS0yMDI2LTA0In0&#10;.&#10;eyJpc3MiOiJodHRwczovL2F1dGguZXhhbXBsZSIsInN1YiI6InVzZXItMTIzNCIsImF1ZCI6ImFwaS5leGFtcGxlIiwiZXhwIjoxNzQ1ODAwMDAwLCJpYXQiOjE3NDU3OTY0MDB9&#10;.&#10;a4Q...署名バイト列の base64url..._Z9" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="820" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="ポイント: Payload は base64url で「エンコード」されるだけで「暗号化」はされない。誰でも復号できるため、機密情報を入れてはならない。Signature は改ざん検出に使い、検証側は同じアルゴリズムと鍵で再計算した値と一致するかを確認する。" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fillColor=#fff8e1;strokeColor=#d6b656;rounded=0;spacingLeft=12;spacingRight=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="555" width="820" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

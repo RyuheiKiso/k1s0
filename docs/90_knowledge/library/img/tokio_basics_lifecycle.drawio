@@ -1,0 +1,85 @@
+<mxfile>
+  <diagram name="lifecycle" id="lc1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1240" pageHeight="380" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1240" height="380" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="s1" value="async fn 定義&#xa;Future の生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="tokio::spawn(future)&#xa;JoinHandle 取得" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="270" y="80" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="Worker Thread の&#xa;ローカルキューに登録" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="530" y="80" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="poll() 実行&#xa;Pending なら yield&#xa;Ready なら戻り値返却" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="790" y="80" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="Reactor が&#xa;準備完了を Waker 通知" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="790" y="220" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s6" value="再 poll &#xa;最終的に Ready" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="530" y="220" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="s7" value="JoinHandle.await&#xa;結果を呼び出し元へ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="270" y="220" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e12" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s1" target="s2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e23" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s2" target="s3" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e34" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s3" target="s4" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e45" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="s4" target="s5" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e45l" value="I/O 待ちで Pending" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontColor=#333333;" vertex="1" connectable="0" parent="e45">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+        <mxCell id="e56" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s5" target="s6" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e56l" value="Waker 経由で再スケジュール" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontColor=#333333;" vertex="1" connectable="0" parent="e56">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry>
+        </mxCell>
+        <mxCell id="e67" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="s6" target="s7" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="legend_box" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;fontStyle=1;fontSize=11;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="30" y="220" width="220" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app" value="アプリコード呼び出し" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="242" width="170" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_app_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="42" y="244" width="20" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_rt" value="ランタイム内部処理" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="262" width="170" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_rt_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="42" y="264" width="20" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_react" value="Reactor からの非同期通知" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="282" width="180" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_react_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="42" y="284" width="20" height="12" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend_dash" value="破線 = 非同期な Wake" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="42" y="302" width="180" height="16" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

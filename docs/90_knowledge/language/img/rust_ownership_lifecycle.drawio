@@ -1,0 +1,115 @@
+<mxfile>
+  <diagram name="所有権のライフサイクル" id="ownership-lifecycle">
+    <mxGraphModel dx="880" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="880" pageHeight="500" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="880" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="所有権のライフサイクル" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="260" y="10" width="360" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_border" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#AAAAAA;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="60" width="250" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_label" value="① 値の生成" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="70" y="68" width="150" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_code" value="let s1 = String::from(&quot;hello&quot;);" style="text;html=1;fontSize=10;fontStyle=2;align=center;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="35" y="92" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_stack" value="スタック" style="text;html=1;fontSize=9;align=left;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="28" y="118" width="40" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_s1" value="s1: String" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="65" y="120" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_heaplbl" value="ヒープ" style="text;html=1;fontSize=9;align=left;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="28" y="222" width="40" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_heap" value="&quot;hello&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="85" y="220" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_arrow" style="strokeColor=#6c8ebf;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="p1_s1" target="p1_heap" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_border" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#AAAAAA;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="60" width="250" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_label" value="② ムーブ" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="370" y="68" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_code" value="let s2 = s1;" style="text;html=1;fontSize=10;fontStyle=2;align=center;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="355" y="92" width="160" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s1" value="s1（無効）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;fontColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="355" y="120" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s2" value="s2: String" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="355" y="165" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_heap" value="&quot;hello&quot;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="375" y="250" width="120" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_arrow" style="strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="p2_s2" target="p2_heap" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_border" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#AAAAAA;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="60" width="250" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_label" value="③ スコープ終了（drop）" style="text;html=1;fontSize=13;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="620" y="68" width="210" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_code" value="} // s2 がスコープを抜ける" style="text;html=1;fontSize=10;fontStyle=2;align=center;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="92" width="200" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_s2" value="s2（破棄）" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=11;fontColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="140" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_heap" value="解放済み" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#CCCCCC;fontSize=12;fontColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="230" width="110" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_arrow" style="strokeColor=#b85450;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="p3_s2" target="p3_heap" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_free" value="メモリ自動解放" style="text;html=1;fontSize=10;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="748" y="185" width="90" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="flow1" style="strokeColor=#666666;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="p1_border" target="p2_border" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow2" style="strokeColor=#666666;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="p2_border" target="p3_border" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="summary_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0F4FF;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="20" y="330" width="410" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="copy_title" value="Copy トレイト型（i32, f64, bool, char）" style="text;html=1;fontSize=11;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="35" y="338" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="copy_desc" value="代入時にビットコピーが発生する。元の変数も引き続き使用可能。&#xa;スタック上の固定サイズデータのみが対象。" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="35" y="360" width="380" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="copy_ex" value="let x = 42; let y = x;  → x も y も有効" style="text;html=1;fontSize=10;fontStyle=2;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="35" y="396" width="350" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="move_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="450" y="330" width="410" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="move_title" value="ヒープ型（String, Vec&lt;T&gt;, Box&lt;T&gt;）" style="text;html=1;fontSize=11;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="465" y="338" width="380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="move_desc" value="代入時にムーブが発生する。元の変数は無効になる。&#xa;同じデータを使いたい場合は clone() または借用を使用する。" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="465" y="360" width="380" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="move_ex" value="let s1 = String::from(&quot;hi&quot;); let s2 = s1;  → s1 は無効" style="text;html=1;fontSize=10;fontStyle=2;align=left;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="465" y="396" width="380" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="所有権の 3 つのルール: ① 各値は 1 つの所有者を持つ  ② 所有者がスコープを抜けると値は解放される  ③ 同時に持てる参照は &amp;T 複数 or &amp;mut T 1 つ" style="text;html=1;fontSize=10;align=center;fillColor=none;strokeColor=none;fontColor=#333333;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="440" width="840" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

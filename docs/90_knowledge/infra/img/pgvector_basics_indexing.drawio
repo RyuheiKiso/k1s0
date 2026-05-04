@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="indexing" id="idx1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="440" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="760" height="440" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;HNSW と IVFFlat の比較&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="230" y="8" width="300" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="sep" value="" style="line;strokeWidth=2;strokeColor=#CCCCCC;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="378" y="45" width="1" height="385" as="geometry"/>
+        </mxCell>
+        <mxCell id="h_title" value="&lt;b&gt;HNSW&lt;/b&gt;&lt;br&gt;(Hierarchical Navigable Small World)" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fillColor=none;strokeColor=none;fontColor=#388E3C;" vertex="1" parent="1">
+          <mxGeometry x="30" y="45" width="320" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_title" value="&lt;b&gt;IVFFlat&lt;/b&gt;&lt;br&gt;(Inverted File with Flat Compression)" style="text;html=1;align=center;verticalAlign=middle;fontSize=13;fillColor=none;strokeColor=none;fontColor=#1976D2;" vertex="1" parent="1">
+          <mxGeometry x="408" y="45" width="330" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="h_layer2" value="&lt;b&gt;レイヤー 2 (最上位)&lt;/b&gt;&lt;br&gt;少数のノード・粗い接続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="h_layer1" value="&lt;b&gt;レイヤー 1 (中間)&lt;/b&gt;&lt;br&gt;中程度のノード・より密な接続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="185" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="h_layer0" value="&lt;b&gt;レイヤー 0 (最下位)&lt;/b&gt;&lt;br&gt;全データポイント・最も密な接続" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="275" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ha1" value="" style="strokeColor=#388E3C;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="h_layer2" target="h_layer1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ha1_label" value="グラフ探索" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#388E3C;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="ha1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha2" value="" style="strokeColor=#388E3C;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="h_layer1" target="h_layer0">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ha2_label" value="グラフ探索" style="edgeLabel;html=1;align=center;verticalAlign=middle;fontSize=9;fontColor=#388E3C;fillColor=#FFFFFF;" vertex="1" connectable="0" parent="ha2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="30" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="h_query" value="&lt;b&gt;クエリベクトル&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="60" y="345" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="h_result" value="&lt;b&gt;近似最近傍&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="200" y="345" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ha3" value="" style="strokeColor=#B85450;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.15;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="h_query" target="h_layer0">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ha4" value="" style="strokeColor=#D6B656;strokeWidth=2;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="h_layer0" target="h_result">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_step1" value="&lt;b&gt;1. セントロイド群&lt;/b&gt;&lt;br&gt;データを k 個のクラスタに分割&lt;br&gt;各クラスタの中心点を保持" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="410" y="95" width="330" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_step2" value="&lt;b&gt;2. 最近接セントロイド探索&lt;/b&gt;&lt;br&gt;クエリに最も近いセントロイドを特定" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="410" y="185" width="330" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_step3" value="&lt;b&gt;3. リスト内全探索&lt;/b&gt;&lt;br&gt;該当クラスタ内の全ベクトルと距離を計算" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="410" y="275" width="330" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ia1" value="" style="strokeColor=#1976D2;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="i_step1" target="i_step2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ia2" value="" style="strokeColor=#1976D2;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="i_step2" target="i_step3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_query" value="&lt;b&gt;クエリベクトル&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="410" y="345" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_result" value="&lt;b&gt;近似最近傍&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="620" y="345" width="120" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="ia3" value="" style="strokeColor=#B85450;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.15;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="i_query" target="i_step3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ia4" value="" style="strokeColor=#D6B656;strokeWidth=2;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="i_step3" target="i_result">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="h_feat" value="&lt;b&gt;特徴&lt;/b&gt;: 高精度 / メモリ大 / 構築遅い" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;fontColor=#388E3C;" vertex="1" parent="1">
+          <mxGeometry x="30" y="395" width="320" height="25" as="geometry"/>
+        </mxCell>
+        <mxCell id="i_feat" value="&lt;b&gt;特徴&lt;/b&gt;: 構築速い / メモリ小 / 精度はHNSWに劣る" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;fontColor=#1976D2;" vertex="1" parent="1">
+          <mxGeometry x="408" y="395" width="340" height="25" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

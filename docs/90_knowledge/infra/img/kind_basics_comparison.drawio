@@ -1,0 +1,109 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="kind comparison">
+    <mxGraphModel dx="1200" dy="460" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="460" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1200" height="460" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ローカル Kubernetes 解の比較 (2026 年時点)" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="25" width="1120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr0" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_kind" value="kind" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d79b00;strokeColor=#d79b00;fontColor=#ffffff;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="200" y="70" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_mini" value="minikube" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#ffffff;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="440" y="70" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_k3d" value="k3d" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#ffffff;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="680" y="70" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr_k3s" value="k3s" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#666666;fontColor=#ffffff;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="920" y="70" width="240" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="r1l" value="動作基盤" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="160" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r1k" value="Docker&#10;(kindest/node コンテナ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="110" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r1m" value="VM (HyperKit/KVM/Hyper-V)&#10;または Docker / systemd 切替可" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="110" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r1d" value="Docker&#10;(k3s を内蔵したコンテナ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="110" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r1s" value="Linux native (systemd)&#10;または Docker (rootful/rootless)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="110" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r2l" value="K8s ディストリ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="162" width="160" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r2k" value="公式 Kubernetes (kubeadm)&#10;kindest/node:v1.x で固定" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="162" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r2m" value="公式 Kubernetes (kubeadm)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="162" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r2d" value="k3s 軽量版&#10;(Traefik / SQLite 等を内蔵)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="162" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r2s" value="k3s 軽量版&#10;(CNCF certified、本番運用可)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="162" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r3l" value="起動時間&#10;(目安)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="214" width="160" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r3k" value="約 30 秒&#10;(control-plane 1 ノード)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="214" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r3m" value="約 60 秒 (VM ドライバ)&#10;約 30 秒 (Docker ドライバ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="214" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r3d" value="約 20 秒&#10;(k3s が軽量なため)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="214" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r3s" value="約 15 秒&#10;(単一バイナリ起動)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="214" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r4l" value="主用途" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="266" width="160" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r4k" value="CI / e2e / conformance&#10;K8s 自身の e2e に採用" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="266" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r4m" value="ローカル開発全般&#10;dashboard / addon が豊富" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="266" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r4d" value="CI / 開発&#10;k3s ベースの軽量検証" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="266" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r4s" value="Edge / IoT / 軽量本番&#10;Rancher 系プロダクトの基盤" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="266" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r5l" value="注意" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="318" width="160" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r5k" value="本番不可&#10;kind delete で永続データ全消失" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="318" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r5m" value="VM ドライバ時はリソース重&#10;ドライバ差で挙動が変わる" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="318" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r5d" value="k3s 互換のみ (公式 K8s ではない)&#10;Traefik / Flannel が前提" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="680" y="318" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="r5s" value="本番運用も視野なため&#10;CI 用途では kind/k3d より重い" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="318" width="240" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="※ kind 列は本ドキュメントの主題のため強調表示。&#10;※ kind と k3d はいずれも「Docker 内 K8s」だが、kind は公式 kubeadm、k3d は k3s 軽量版を内蔵する点で根本が異なる。" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=#fffde7;strokeColor=#cca676;rounded=0;spacingLeft=8;spacingRight=8;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="385" width="1120" height="48" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

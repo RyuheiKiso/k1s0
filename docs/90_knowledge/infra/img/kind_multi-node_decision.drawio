@@ -1,0 +1,71 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="kind-multi-node-decision" id="dec">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="マルチノード構成の判断フロー (1 → 3 → HA への段階的拡張)" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1020" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="q1" value="Q1. クラスタは&#10;単一ノードで足りる？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#444444;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="single" value="single-node 構成&#10;control-plane: 1&#10;worker: 0&#10;&#10;用途: ユニット試験 / API 動作確認 /&#10;Helm chart 動作試験" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="340" y="80" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="q2" value="Q2. control-plane の&#10;ダウンを試験する？" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#444444;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="280" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="multi" value="control-plane 1 + worker N 構成&#10;&#10;用途: NodePort / DaemonSet 試験 /&#10;topologyKey 検証 /&#10;PV scheduling 検証 /&#10;node 障害シミュレーション (worker drain)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B58900;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="340" y="240" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ha" value="HA control-plane 構成&#10;control-plane: 3 (奇数) + worker: N&#10;&#10;自動生成: external-load-balancer&#10;node (haproxy)&#10;&#10;用途: control-plane 障害試験 /&#10;etcd quorum 試験 /&#10;production-like e2e" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1F6FB2;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="280" width="280" height="180" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cost" value="リソース見積り (kind v0.31 / kindest/node v1.31)&#10;node container 1 つあたり: vCPU ≈ 0.5–1.0, RSS ≈ 600–900 MB&#10;control-plane × 3 + worker × 3 = 6 ノード ⇒ ホスト目安 8 vCPU / 8–10 GB RAM" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#888888;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="500" width="840" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rule" value="原則: 「再現したい試験」が決まってから増やす — 増やすほど起動時間とホスト負荷は線形に増える" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="600" width="1020" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eY1" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#2E7D32;" edge="1" parent="1" source="q1" target="single">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lY1" value="Yes" style="text;html=1;fontSize=11;fontStyle=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="155" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eN1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#444444;" edge="1" parent="1" source="q1" target="q2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lN1" value="No" style="text;html=1;fontSize=11;fontStyle=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="190" y="230" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eN2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#B58900;" edge="1" parent="1" source="q2" target="multi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lN2" value="No" style="text;html=1;fontSize=11;fontStyle=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="320" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="eY2" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#1F6FB2;" edge="1" parent="1" source="multi" target="ha">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lY2" value="Yes&#10;(control-plane の冗長化が必要)" style="text;html=1;fontSize=10;fontStyle=1;fillColor=#FFFFFF;strokeColor=none;align=center;" vertex="1" parent="1">
+          <mxGeometry x="585" y="320" width="60" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

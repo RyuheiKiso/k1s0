@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile>
+  <diagram name="Istio Ambient Data Path">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="560" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1000" height="560" as="geometry"/>
+        </mxCell>
+        <mxCell id="title1" value="(1) L4 のみ: ztunnel ↔ ztunnel の 1 本 HBONE" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="20" width="500" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_pa" value="Pod A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="130" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_zta" value="ztunnel A&#xa;(Rust, L4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="230" y="80" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_ztb" value="ztunnel B&#xa;(Rust, L4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="610" y="80" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_pb" value="Pod B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="820" y="80" width="130" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_e1" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" source="l4_pa" target="l4_zta" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_e1_lbl" value="平文" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="170" y="50" width="60" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_e2" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=3;" edge="1" source="l4_zta" target="l4_ztb" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_e2_lbl" value="HBONE (mTLS)" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#333333;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="400" y="50" width="180" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_e3" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" source="l4_ztb" target="l4_pb" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_e3_lbl" value="平文" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="755" y="50" width="60" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="l4_note" value="適用されるポリシー: mTLS 相互認証、PeerAuthentication、L4 AuthorizationPolicy（送信元 SA / ポート基準）" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="170" width="920" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="div" value="" style="line;strokeColor=#cccccc;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="220" width="940" height="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="title2" value="(2) L7 有効: ztunnel → Waypoint → ztunnel の二重 HBONE" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="240" width="560" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_pa" value="Pod A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="30" y="320" width="120" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_zta" value="ztunnel A&#xa;(L4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="320" width="120" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_wp" value="Waypoint&#xa;(Envoy, L7)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="310" width="180" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_ztb" value="ztunnel B&#xa;(L4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="620" y="320" width="120" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_pb" value="Pod B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="830" y="320" width="120" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_e1" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" source="l7_pa" target="l7_zta" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_e2" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=3;" edge="1" source="l7_zta" target="l7_wp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_e2_lbl" value="HBONE" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#333333;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="322" y="290" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_e3" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=3;" edge="1" source="l7_wp" target="l7_ztb" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_e3_lbl" value="HBONE" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=1;fontColor=#333333;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="562" y="290" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_e4" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" source="l7_ztb" target="l7_pb" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_wp_role" value="L7 でのルーティング・リトライ・HTTP 認可・可観測" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="340" y="400" width="260" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="l7_note" value="適用されるポリシー: (1) の全項目に加えて、HTTPRoute / VirtualService、L7 AuthorizationPolicy（パス・メソッド基準）、RequestAuthentication、WasmPlugin" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="440" width="920" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend" value="凡例: 青=Pod / 緑=ztunnel / 赤=Waypoint / 緑太線=HBONE トンネル" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="30" y="510" width="600" height="18" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

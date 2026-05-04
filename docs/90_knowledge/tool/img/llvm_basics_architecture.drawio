@@ -1,0 +1,82 @@
+<mxfile>
+  <diagram name="Page-1">
+    <mxGraphModel dx="0" dy="0" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1160" pageHeight="440" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1160" height="440" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;LLVM 3フェーズ設計&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="430" y="10" width="300" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe" value="フロントエンド" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="65" width="220" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe1" value="Clang (C/C++/ObjC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="140" y="115" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe2" value="Flang (Fortran)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="140" y="165" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe3" value="他の言語フロントエンド" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="140" y="215" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="fe4" value="字句解析 → 構文解析 → IR 生成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="280" width="180" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="opt" value="最適化パス（ミドルエンド）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="470" y="65" width="220" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="opt1" value="定数畳み込み" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="490" y="115" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="opt2" value="デッドコード除去" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="490" y="165" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="opt3" value="ループ最適化" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="490" y="215" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="opt4" value="インライン展開" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="490" y="265" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="be" value="バックエンド" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D6B656;verticalAlign=top;fontStyle=1;fontSize=13;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="820" y="65" width="220" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="be1" value="x86_64" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="840" y="115" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="be2" value="AArch64 (ARM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="840" y="165" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="be3" value="RISC-V" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="840" y="215" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="be4" value="WebAssembly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="840" y="265" width="180" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="src" value="&lt;b&gt;ソースコード&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="5" y="205" width="95" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="out" value="&lt;b&gt;マシンコード&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="205" width="95" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="a1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="src" target="fe" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="&lt;b&gt;LLVM IR&lt;/b&gt;" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" source="fe" target="opt" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="&lt;b&gt;最適化済み IR&lt;/b&gt;" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;fontSize=12;labelBackgroundColor=#FFFFFF;" edge="1" source="opt" target="be" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="be" target="out" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="各フロントエンドが共通の LLVM IR を生成し、&lt;br&gt;言語非依存の最適化と多ターゲット対応を実現する" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="330" y="400" width="330" height="40" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

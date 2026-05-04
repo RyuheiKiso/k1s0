@@ -1,0 +1,58 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="MCP Architecture" id="mcp-arch">
+    <mxGraphModel dx="800" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="800" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="MCP の参加者とトランスポート (Host / Client / Server)" style="text;html=1;align=center;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="15" width="560" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="host" value="MCP Host (AI アプリケーション: Claude Desktop / VS Code 等)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="720" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="MCP Client 1&#10;(Server A 専用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="130" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="MCP Client 2&#10;(Server B 専用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="130" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="MCP Client 3&#10;(Server C 専用)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="130" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sa" value="MCP Server A&#10;(filesystem)&#10;ローカル / stdio" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sb" value="MCP Server B&#10;(database)&#10;リモート / Streamable HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="400" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sc" value="MCP Server C&#10;(Sentry)&#10;リモート / Streamable HTTP" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="540" y="400" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ar1" value="stdio" style="endArrow=classic;startArrow=classic;html=1;rounded=0;dashed=1;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="c1" target="sa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar2" value="HTTP / SSE" style="endArrow=classic;startArrow=classic;html=1;rounded=0;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="c2" target="sb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ar3" value="HTTP / SSE" style="endArrow=classic;startArrow=classic;html=1;rounded=0;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="c3" target="sc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;verticalAlign=top;fontSize=11;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="525" width="720" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="lg1" value="実線: HTTP / SSE トランスポート (リモート接続)" style="text;html=1;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="60" y="550" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg2" value="破線: stdio トランスポート (ローカルプロセス)" style="text;html=1;align=left;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="400" y="550" width="320" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lg3" value="全通信は JSON-RPC 2.0 メッセージ。Client と Server は 1:1 の専用接続を維持する。" style="text;html=1;align=left;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="566" width="700" height="14" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

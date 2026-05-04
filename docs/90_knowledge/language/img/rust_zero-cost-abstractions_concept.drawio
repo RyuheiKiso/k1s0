@@ -1,0 +1,95 @@
+<mxfile>
+  <diagram name="ゼロコスト抽象化の概念" id="zca-concept">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="540" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="540" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="ゼロコスト抽象化: 高水準コードとハンドコードが同じ機械語に収束する" style="text;html=1;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="700" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hi_label" value="高水準コード（抽象）" style="text;html=1;fontSize=12;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="55" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="hi_code" value="(0..n).map(|x| x * 2).sum::&lt;i32&gt;()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontFamily=Courier New;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="85" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="lo_label" value="ハンドコード（手書きループ）" style="text;html=1;fontSize=12;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="640" y="55" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lo_code" value="let mut s = 0;&#xa;for x in 0..n { s += x * 2; }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontFamily=Courier New;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="640" y="85" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rustc" value="rustc&#xa;（型解決・モノモーフィゼーション）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="195" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="rustc2" value="rustc&#xa;（型解決・モノモーフィゼーション）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="640" y="195" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="llvm" value="LLVM 最適化&#xa;（インライン化・ループ融合・定数畳み込み）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="305" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="llvm2" value="LLVM 最適化&#xa;（ループ展開・ベクトル化）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="640" y="305" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="asm" value="生成された機械語&#xa;（ループ・即値加算）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontFamily=Courier New;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="340" y="420" width="220" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="merge_note" value="両方の経路が同じ機械語に収束" style="text;html=1;fontSize=11;fontStyle=2;align=center;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="320" y="370" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="a_hi_rustc" style="edgeStyle=none;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="hi_code" target="rustc" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_rustc_llvm" style="edgeStyle=none;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="rustc" target="llvm" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_lo_rustc" style="edgeStyle=none;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="lo_code" target="rustc2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_rustc2_llvm2" style="edgeStyle=none;strokeColor=#333333;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="rustc2" target="llvm2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a_llvm_asm" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" source="llvm" target="asm" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="405" />
+              <mxPoint x="395" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a_llvm2_asm" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" source="llvm2" target="asm" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="405" />
+              <mxPoint x="505" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_title" value="凡例" style="text;html=1;fontSize=11;fontStyle=1;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="30" y="495" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="70" y="498" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1t" value="ソースコード" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="95" y="495" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="200" y="498" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2t" value="コンパイラ処理" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="225" y="495" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="350" y="498" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3t" value="出力（機械語）" style="text;html=1;fontSize=10;align=left;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="375" y="495" width="120" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

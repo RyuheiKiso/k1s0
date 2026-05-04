@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="namespace-dns" id="dns">
+    <mxGraphModel dx="900" dy="500" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="520" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="900" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster" value="Kubernetes Cluster (CoreDNS による名前解決)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;verticalAlign=top;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="860" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="ns-dev" value="Namespace: development" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="120" width="380" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="caller" value="Pod: caller&#10;(クライアント)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="220" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dev-svc" value="Service: api" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="230" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dev-pod" value="Pod: api" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="300" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ns-prod" value="Namespace: production" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="120" width="380" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-svc" value="Service: api" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="230" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-pod" value="Pod: api" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="300" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;dashed=0;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="caller" target="dev-svc">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="220" y="250" as="sourcePoint" />
+            <mxPoint x="270" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1-label" value="api  (短縮名)" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="220" y="190" width="130" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;dashed=1;fontSize=11;" edge="1" parent="1" source="caller" target="prod-svc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="80" />
+              <mxPoint x="820" y="80" />
+              <mxPoint x="820" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2-label" value="api.production.svc.cluster.local  (FQDN)" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="280" y="60" width="340" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-box" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#999999;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="420" width="860" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-solid-text" value="実線: 同 namespace 内 (短縮名で解決可)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="450" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-solid-line" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="461" as="sourcePoint" />
+            <mxPoint x="90" y="461" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="lg-dashed-text" value="破線: namespace 跨ぎ (FQDN 必須)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="100" y="478" width="320" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lg-dashed-line" style="endArrow=classic;html=1;rounded=0;strokeColor=#000000;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="40" y="489" as="sourcePoint" />
+            <mxPoint x="90" y="489" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

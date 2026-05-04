@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="draw.io">
+  <diagram name="Renovate 動作フロー" id="renovate-flow">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1100" height="500" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Renovate 動作フロー" style="text;html=1;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="380" y="20" width="340" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="① リポジトリスキャン&#xa;&#xa;パッケージファイルを&#xa;自動検出&#xa;(package.json,&#xa;Dockerfile 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="170" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="② 依存関係の解析&#xa;&#xa;現在のバージョンと&#xa;最新バージョンを&#xa;比較" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="290" y="100" width="170" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="③ PR 自動作成&#xa;&#xa;更新内容・変更ログ&#xa;付きの PR を作成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="540" y="100" width="170" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="④ レビュー &amp; マージ&#xa;&#xa;開発者がレビューし&#xa;マージまたは&#xa;自動マージ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="790" y="100" width="170" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="step1" target="step2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="step2" target="step3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#333333;strokeWidth=2;" edge="1" source="step3" target="step4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="registry" value="パッケージ&#xa;レジストリ&#xa;(npm, Docker Hub 等)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="330" y="300" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="repo" value="Git リポジトリ&#xa;(GitHub / GitLab 等)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="config" value="renovate.json&#xa;設定ファイル" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="580" y="310" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard" value="Dependency Dashboard&#xa;（Issue で管理）" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="820" y="310" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_repo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;dashed=1;" edge="1" source="repo" target="step1" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_reg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;dashed=1;" edge="1" source="registry" target="step2" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_config" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;dashed=1;" edge="1" source="config" target="step3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow_dash" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeColor=#666666;strokeWidth=1;dashed=1;" edge="1" source="dashboard" target="step4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label_scan" value="読み取り" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="260" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="label_lookup" value="バージョン照会" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="345" y="260" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="label_config" value="ルール参照" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="600" y="270" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="label_dash" value="状態表示" style="text;html=1;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="860" y="270" width="60" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
