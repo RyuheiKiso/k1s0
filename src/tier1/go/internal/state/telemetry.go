@@ -8,7 +8,15 @@
 // 役割（plan 04-13 結線済）:
 //   SDK 側 facade からの gRPC 入口で proto Metric / Span を受け取り、
 //   internal/otel.MetricEmitter / TraceEmitter 越しに OTel Metrics / Traces
-//   パイプライン（→ Mimir / Tempo）へ流す。
+//   パイプライン（→ OTel Collector DaemonSet → Mimir / Tempo）へ流す。
+//
+// FR-T1-TELEMETRY-003: OpenTelemetry Collector 経由配信。受け入れ基準:
+//   - Collector は DaemonSet で全 Node に配置（infra/observability/otel-collector/）
+//   - tier2 SDK は localhost:4318 (OTLP HTTP) または tier1 facade gRPC 経由で送信
+//   - Collector 側で batch / retry / filtering / multitenant 振り分けを集約
+//   tier1 cmd/state/main.go の otel.NewBundle が OTEL_EXPORTER_OTLP_ENDPOINT 設定時に
+//   OTLP gRPC で Collector 直送し、未設定時は stdout JSON Lines に fallback。
+//   Collector が落ちた場合の retry は SDK 側 BatchProcessor の責務。
 
 package state
 

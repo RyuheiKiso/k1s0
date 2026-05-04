@@ -18,6 +18,15 @@
 //   - BACKEND_AUTO:     handler 既定の routing ルールに従う（現状: Temporal にフォールバック）
 //   選択結果は StartResponse.backend に返す。後続 Signal / Query / Cancel / Terminate /
 //   GetStatus は workflow_id を見て同じ backend に dispatch する（routing table 参照）。
+//
+// FR-T1-WORKFLOW-004: タイマー・遅延実行。本 handler はタイマー専用 RPC を持たず、
+//   Workflow 定義側 (tier2 ワーカ) が SDK の awaitTimer / CreateTimer / sleep API を
+//   使用する。受け入れ基準は backend SDK が満たす:
+//     - 最小遅延 1 秒、最大: Dapr Workflow 7 日 / Temporal 無制限
+//     - タイマー精度 ±1 秒以内（SDK 標準）
+//     - Pod 再起動でもタイマーは保持（Temporal は永続化、Dapr は actor reminder）
+//   tier1 facade は backend 経路を保持するのみで、タイマー fire 後の継続は同 backend
+//   が actor / activity を再開する。手動でタイマーを発火させる必要はない。
 
 // Package workflow は t1-workflow Pod が登録する WorkflowService の handler を提供する。
 package workflow

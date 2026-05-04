@@ -405,6 +405,27 @@ for legacy_id in ADR-CNCF-004 ADR-MESH-001 ADR-DEVEX-001 ADR-DEVEX-004 ADR-OPS-0
   fi
 done
 
+# === Test 23: FR-T1-* 4 件 (PR で潰した impl 不在) が coverage-fr.txt で再検出されない不変式 ===
+# 不変式: 以下 4 件の FR-T1-* ID は本 PR (Phase 1 = ID コメント追記、Phase 2 = PUBSUB-003 実装)
+#         で .claude/audit-evidence/<date>/coverage-fr.txt の "docs-only (impl 不在)" 集合から外した。
+#         今後の refactor で再びコメント削除や実装巻き戻しが起きると AUDIT.md #9 の "FR-T1-* 50 件中
+#         impl 不在 14 件" が増加する。CI で src/ 配下の grep カウントを不変式化して再発を防ぐ。
+# 検証: src/ 配下に各 ID の grep ヒットが 1 件以上あること（ID パターン: FR-T1-[A-Z]+-[0-9]+）。
+#   失敗時:
+#     (a) handler 冒頭コメントから FR ID が削除された → 該当 handler を読んで docstring を再追記
+#     (b) PUBSUB-003 の normalizeConsumerGroup 関数が削除された → pubsub.go に再導入
+#   判定基準: docs/00_format/audit_criteria.md §A 軸 (FR の 3 段確認 = docs + impl + 動作証跡)
+echo
+echo "--- Test 23: FR-T1-* 4 件 (PR で潰した impl 不在) の coverage 不変式 ---"
+for fr_id in FR-T1-STATE-002 FR-T1-WORKFLOW-004 FR-T1-TELEMETRY-003 FR-T1-PUBSUB-003; do
+  hit_count=$(grep -rE "${fr_id}" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+  if [[ "${hit_count}" -ge 1 ]]; then
+    check "${fr_id}: impl_refs=${hit_count} >= 1" 0
+  else
+    check "${fr_id}: impl_refs=0 (regression: 本 PR で潰した impl 不在が再発)" 1
+  fi
+done
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="

@@ -19,3 +19,17 @@ branch: remake
 uname: Linux KISO 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
 axis: adr
 evidence_dir: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-04
+# k1s0 audit meta — fr
+executed_at: 2026-05-04T23:25:09+09:00
+commit: cb3f5deb09e5d1a103f7aea8a6d51b922c24f318
+branch: remake
+uname: Linux KISO 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+axis: fr
+evidence_dir: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-04
+# k1s0 audit meta — slack
+executed_at: 2026-05-04T23:25:35+09:00
+commit: cb3f5deb09e5d1a103f7aea8a6d51b922c24f318
+branch: remake
+uname: Linux KISO 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+axis: slack
+evidence_dir: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-04
