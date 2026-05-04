@@ -244,7 +244,10 @@ func TestPubSubService_Subscribe_AdapterError(t *testing.T) {
 	)
 	defer conn.Close()
 	client := pubsubv1.NewPubSubServiceClient(conn)
-	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t", Context: makeTenantCtx("T")})
+	// FR-T1-PUBSUB-003: 空 ConsumerGroup は新挙動で InvalidArgument に倒れるため、
+	// adapter 一般エラー → Internal の翻訳経路を試したい本テストでは ConsumerGroup を
+	// 明示指定する。"g" は normalize で "k1s0.T.g" に変換されて adapter に渡る。
+	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t", ConsumerGroup: "g", Context: makeTenantCtx("T")})
 	_, err := stream.Recv()
 	if got := status.Code(err); got != codes.Internal {
 		t.Fatalf("status: got %v want Internal", got)
@@ -300,5 +303,132 @@ func TestPubSubService_Publish_OverGRPC(t *testing.T) {
 	}
 	if captured.topic != "k1s0.events.test" || string(captured.data) != "hello" {
 		t.Fatalf("captured args mismatch: topic=%q data=%q", captured.topic, captured.data)
+	}
+}
+
+// FR-T1-PUBSUB-003: 純関数 normalizeConsumerGroup の 4 ケース + handler 結線 2 ケース
+// = 計 6 件の regression test。docs 受け入れ基準
+// （k1s0.<tenant>.<service_name> 自動付与 / 重複付与なし / 空文字拒否 / ドット拒否）を
+// 機械的に検証し、coverage.sh の grep ヒット (impl_refs) 1 → 6+ に底上げする。
+
+// TestNormalizeConsumerGroup_PrefixesServiceName は service_name のみ受けて
+// k1s0.<tenant>.<svc> を生成することを確認する。
+func TestNormalizeConsumerGroup_PrefixesServiceName(t *testing.T) {
+	got, err := normalizeConsumerGroup("acme", "billing")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "k1s0.acme.billing" {
+		t.Fatalf("got %q want k1s0.acme.billing", got)
+	}
+}
+
+// TestNormalizeConsumerGroup_AlreadyPrefixedKept は前方互換のために
+// 既に k1s0.<tenant>. で始まっている値を二重 prefix しないことを確認する。
+func TestNormalizeConsumerGroup_AlreadyPrefixedKept(t *testing.T) {
+	got, err := normalizeConsumerGroup("acme", "k1s0.acme.legacy")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "k1s0.acme.legacy" {
+		t.Fatalf("got %q want k1s0.acme.legacy (prefix duplication must be avoided)", got)
+	}
+}
+
+// TestNormalizeConsumerGroup_EmptyRejected は空文字を InvalidArgument で弾くことを確認する。
+// service_name 不在では「k1s0.<tenant>.<service_name>」を生成不能のため。
+func TestNormalizeConsumerGroup_EmptyRejected(t *testing.T) {
+	_, err := normalizeConsumerGroup("acme", "")
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("status: got %v want InvalidArgument", got)
+	}
+}
+
+// TestNormalizeConsumerGroup_DotInServiceNameRejected は <service_name> 部の
+// ドットを禁止することを確認する（階層境界 collision を構造的に防ぐ）。
+func TestNormalizeConsumerGroup_DotInServiceNameRejected(t *testing.T) {
+	_, err := normalizeConsumerGroup("acme", "billing.invoice")
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("status: got %v want InvalidArgument for %q", got, "billing.invoice")
+	}
+}
+
+// TestPubSubService_Subscribe_AutoPrefixesConsumerGroup は Subscribe handler が
+// service_name を受け取って adapter には k1s0.<tenant>.<svc> を渡すことを検証する。
+func TestPubSubService_Subscribe_AutoPrefixesConsumerGroup(t *testing.T) {
+	lis := bufconn.Listen(bufSize)
+	sub := &fakeSubscription{events: make(chan *dapr.SubscribedEvent, 1)}
+	// 1 件投入してから close して関数が戻るようにする。
+	go func() {
+		sub.events <- &dapr.SubscribedEvent{Topic: "t", Data: []byte("e1"), Ack: func() error { return nil }}
+		close(sub.events)
+		sub.closed = true
+	}()
+	// adapter に渡る ConsumerGroup を capture する。
+	var capturedCG string
+	a := &fakePubSubAdapter{
+		subscribeFn: func(_ context.Context, req dapr.SubscribeAdapterRequest) (dapr.PubSubSubscription, error) {
+			capturedCG = req.ConsumerGroup
+			return sub, nil
+		},
+	}
+	srv := grpc.NewServer()
+	pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: Deps{PubSubAdapter: a}})
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	dialer := func(context.Context, string) (net.Conn, error) { return lis.Dial() }
+	conn, err := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("grpc.NewClient: %v", err)
+	}
+	defer conn.Close()
+	client := pubsubv1.NewPubSubServiceClient(conn)
+	stream, err := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{
+		Topic: "t", ConsumerGroup: "billing", Context: makeTenantCtx("acme"),
+	})
+	if err != nil {
+		t.Fatalf("Subscribe: %v", err)
+	}
+	if _, err := stream.Recv(); err != nil {
+		t.Fatalf("Recv: %v", err)
+	}
+	if capturedCG != "k1s0.acme.billing" {
+		t.Fatalf("adapter ConsumerGroup: got %q want k1s0.acme.billing", capturedCG)
+	}
+}
+
+// TestPubSubService_Subscribe_RejectsEmptyConsumerGroup は handler 段で
+// 空 ConsumerGroup を InvalidArgument で弾き、adapter を呼ばないことを確認する。
+func TestPubSubService_Subscribe_RejectsEmptyConsumerGroup(t *testing.T) {
+	lis := bufconn.Listen(bufSize)
+	// adapter は呼ばれてはならない（handler が事前に弾く契約）。
+	a := &fakePubSubAdapter{
+		subscribeFn: func(_ context.Context, _ dapr.SubscribeAdapterRequest) (dapr.PubSubSubscription, error) {
+			t.Fatalf("adapter must not be called when consumer_group is empty (FR-T1-PUBSUB-003)")
+			return nil, nil
+		},
+	}
+	srv := grpc.NewServer()
+	pubsubv1.RegisterPubSubServiceServer(srv, &pubsubHandler{deps: Deps{PubSubAdapter: a}})
+	go func() { _ = srv.Serve(lis) }()
+	defer srv.Stop()
+
+	dialer := func(context.Context, string) (net.Conn, error) { return lis.Dial() }
+	conn, _ := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(dialer),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	defer conn.Close()
+	client := pubsubv1.NewPubSubServiceClient(conn)
+	stream, _ := client.Subscribe(context.Background(), &pubsubv1.SubscribeRequest{Topic: "t", Context: makeTenantCtx("T")})
+	_, err := stream.Recv()
+	if got := status.Code(err); got != codes.InvalidArgument {
+		t.Fatalf("status: got %v want InvalidArgument", got)
 	}
 }

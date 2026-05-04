@@ -43,6 +43,12 @@ import (
 // 論理 topic 名と prefix 付与「後」の物理 topic 名 双方に適用できる。
 var pubsubTopicRegex = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
+// pubsubConsumerGroupServiceNameRegex は FR-T1-PUBSUB-003 の Consumer Group の
+// `<service_name>` 部に許容する文字。topic と異なりドットは禁止する: 階層
+// `k1s0.<tenant_id>.<service_name>` の境界を `<service_name>` 内で侵食しないため
+// （`k1s0.T.svc.foo` のような分かりにくい表現を弾く）。Kafka 互換の安全側 subset。
+var pubsubConsumerGroupServiceNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
 // pubsubMaxEventBytes は FR-T1-PUBSUB-005 受け入れ基準「イベントサイズ上限 1MB
 // （Kafka メッセージ上限に合わせる）」。Strimzi Kafka の既定 message.max.bytes は
 // 1 MiB（1_048_588 バイト）相当のため、handler 段でこの値で弾いて Kafka 側で
@@ -147,6 +153,42 @@ func splitN(s string, sep byte, n int) []string {
 	}
 	out = append(out, s[start:])
 	return out
+}
+
+// normalizeConsumerGroup は FR-T1-PUBSUB-003 の Consumer Group 自動付与を行う。
+//
+// 受け入れ基準（docs/03_要件定義/20_機能要件/10_tier1_API要件/03_PubSub_API.md）:
+//   - 形式 `k1s0.<tenant_id>.<service_name>` で tier1 が自動付与する
+//   - 同一 service_name の複数インスタンスは同一 Consumer Group として動作（partition 分散）
+//   - rebalance 中のイベントロスト 0（Kafka client / Dapr SDK 側の責務）
+//
+// 動作:
+//   - tier2 SDK は consumer_group フィールドに `<service_name>` のみを指定する
+//   - tier1 は `k1s0.<tenant_id>.` prefix を付与して adapter に渡す
+//   - 既に `k1s0.<tenant_id>.` で始まっている場合は前方互換でそのまま採用（重複付与しない）
+//   - 空文字は呼出側の不備として InvalidArgument に翻訳（service_name 不在では生成不能）
+//   - service_name 部に "." 等の禁止文字が含まれる場合も InvalidArgument に翻訳
+//     （階層境界 collision を構造的に防止）
+func normalizeConsumerGroup(tenantID, raw string) (string, error) {
+	if raw == "" {
+		return "", status.Error(codes.InvalidArgument,
+			"tier1/pubsub: consumer_group required (FR-T1-PUBSUB-003: tier1 が k1s0.<tenant>.<service_name> を生成するため、呼出側は service_name を指定すること)")
+	}
+	expected := "k1s0." + tenantID + "."
+	if hasASCIIPrefix(raw, expected) {
+		return raw, nil
+	}
+	if !pubsubConsumerGroupServiceNameRegex.MatchString(raw) {
+		return "", status.Errorf(codes.InvalidArgument,
+			"tier1/pubsub: invalid consumer_group service_name %q (must match [a-zA-Z0-9_-]+ to avoid hierarchy collision in k1s0.<tenant>.<service_name>)", raw)
+	}
+	return expected + raw, nil
+}
+
+// hasASCIIPrefix は strings.HasPrefix 等価の軽量実装（既存 splitN と同じ方針で
+// strings 依存を避ける）。ASCII 限定のため bytes 比較で十分。
+func hasASCIIPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }
 
 // validatePubSubTopic は handler 段で topic 名を事前検証する。
@@ -333,12 +375,23 @@ func (h *pubsubHandler) Subscribe(req *pubsubv1.SubscribeRequest, stream pubsubv
 	if terr != nil {
 		return terr
 	}
+	// FR-T1-PUBSUB-003: tier1 が `k1s0.<tenant_id>.<service_name>` を自動付与する。
+	// 呼出側は consumer_group フィールドに service_name のみを指定する契約。
+	cg, cgErr := normalizeConsumerGroup(tid, req.GetConsumerGroup())
+	if cgErr != nil {
+		return cgErr
+	}
+	// FR-T1-PUBSUB-004: DLQ topic 名 `k1s0.<tenant>.dlq.<service>` を統一規則で算出し、
+	// adapter 経由で Dapr Subscription metadata `deadLetterTopic` に注入する。
+	// retry 上限と実 DLQ 転送は Component YAML の consumeRetryMax と組み合わせる。
+	dlqTopic := dlqTopicName(tid, serviceNameFromConsumerGroup(tid, cg))
 	ctx := stream.Context()
 	sub, err := h.deps.PubSubAdapter.Subscribe(ctx, dapr.SubscribeAdapterRequest{
-		Component:     pubsubComponentName(),
-		Topic:         req.GetTopic(),
-		ConsumerGroup: req.GetConsumerGroup(),
-		TenantID:      tid,
+		Component:       pubsubComponentName(),
+		Topic:           req.GetTopic(),
+		ConsumerGroup:   cg,
+		TenantID:        tid,
+		DeadLetterTopic: dlqTopic,
 	})
 	if err != nil {
 		return status.Errorf(codes.Internal, "tier1/pubsub: Subscribe failed: %v", err)

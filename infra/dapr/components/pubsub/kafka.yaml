@@ -41,6 +41,14 @@ spec:
     # メッセージ消費済 offset を Kafka 側に commit させる（at-least-once）
     - name: consumeRetryEnabled
       value: "true"
+    # FR-T1-PUBSUB-004: handler 連続 N 回失敗で DLQ へ転送する。本値は
+    # `src/tier1/go/internal/state/pubsub_dlq.go` の pubsubDLQMaxRetries (3) と
+    # 同期させること。Test 24 (`tests/audit/test_audit_lib.sh`) で機械検証する。
+    - name: consumeRetryMax
+      value: "3"
+    # FR-T1-PUBSUB-004: 個別 Subscription metadata `deadLetterTopic` は tier1
+    # facade が `k1s0.<tenant_id>.dlq.<service_name>` 形式で動的に注入する
+    # （Component 全体で固定 DLQ topic は持たない）。
     - name: maxMessageBytes
       value: "1048576"
 auth:

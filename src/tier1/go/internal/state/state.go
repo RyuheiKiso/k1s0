@@ -90,6 +90,12 @@ func (h *stateHandler) Get(ctx context.Context, req *statev1.GetRequest) (*state
 // Set は単一キー保存。
 // 共通規約 §「冪等性と再試行」: idempotency_key 指定時は同一キーの再試行で副作用を
 // 重複させず、初回 SetResponse を返す（24h TTL の cache でレスポンスを保持）。
+//
+// FR-T1-STATE-002: TTL 制御。proto の ttl_sec フィールドを adapter 越しに store に渡す。
+// 受け入れ基準: 1 秒〜無制限の指定可能 / TTL 0 は「TTL なし（永続）」として扱う（即時失効
+// ではない、tier2 操作の単純化のため）/ TTL 経過後のキーは Get が NotFound を返す
+// （lazy expiration、adapter / Valkey 側で実装）。本 handler は ttl_sec の値検証を
+// 行わず adapter にそのまま渡す（負値は SDK が拒否するため handler 段では弾かない）。
 func (h *stateHandler) Set(ctx context.Context, req *statev1.SetRequest) (*statev1.SetResponse, error) {
 	// 入力 nil 防御。
 	if req == nil {

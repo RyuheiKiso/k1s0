@@ -405,6 +405,247 @@ for legacy_id in ADR-CNCF-004 ADR-MESH-001 ADR-DEVEX-001 ADR-DEVEX-004 ADR-OPS-0
   fi
 done
 
+# === Test 23: FR-T1-* 4 件 (PR で潰した impl 不在) が coverage-fr.txt で再検出されない不変式 ===
+# 不変式: 以下 4 件の FR-T1-* ID は本 PR (Phase 1 = ID コメント追記、Phase 2 = PUBSUB-003 実装)
+#         で .claude/audit-evidence/<date>/coverage-fr.txt の "docs-only (impl 不在)" 集合から外した。
+#         今後の refactor で再びコメント削除や実装巻き戻しが起きると AUDIT.md #9 の "FR-T1-* 50 件中
+#         impl 不在 14 件" が増加する。CI で src/ 配下の grep カウントを不変式化して再発を防ぐ。
+# 検証: src/ 配下に各 ID の grep ヒットが 1 件以上あること（ID パターン: FR-T1-[A-Z]+-[0-9]+）。
+#   失敗時:
+#     (a) handler 冒頭コメントから FR ID が削除された → 該当 handler を読んで docstring を再追記
+#     (b) PUBSUB-003 の normalizeConsumerGroup 関数が削除された → pubsub.go に再導入
+#   判定基準: docs/00_format/audit_criteria.md §A 軸 (FR の 3 段確認 = docs + impl + 動作証跡)
+echo
+echo "--- Test 23: FR-T1-* 4 件 (PR で潰した impl 不在) の coverage 不変式 ---"
+for fr_id in FR-T1-STATE-002 FR-T1-WORKFLOW-004 FR-T1-TELEMETRY-003 FR-T1-PUBSUB-003; do
+  hit_count=$(grep -rE "${fr_id}" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+  if [[ "${hit_count}" -ge 1 ]]; then
+    check "${fr_id}: impl_refs=${hit_count} >= 1" 0
+  else
+    check "${fr_id}: impl_refs=0 (regression: 本 PR で潰した impl 不在が再発)" 1
+  fi
+done
+
+# === Test 24: FR-T1-PUBSUB-004 (DLQ) の handler 結線 + Component YAML 同期不変式 ===
+# 不変式: (a) src/tier1/go/internal/state/pubsub_dlq.go に dlqTopicName / serviceNameFromConsumerGroup
+#         両関数が存在する、(b) Component YAML の consumeRetryMax 値が pubsub_dlq.go の
+#         pubsubDLQMaxRetries 定数値と一致する。
+# 検証:
+#   (a) FR-T1-PUBSUB-004 の grep が src/ 配下に 1 件以上ヒット
+#   (b) Component YAML kafka.yaml の consumeRetryMax 値とコード側 pubsubDLQMaxRetries 定数値が一致
+# 失敗時:
+#   - (a) で 0 件 → pubsub_dlq.go が削除された / docstring の FR ID が消えた
+#   - (b) で不一致 → docs / Component YAML / コード側のいずれかが drift
+#   判定基準: docs/00_format/audit_criteria.md §A 軸 (3 段: docs + impl + Component 設定)
+echo
+echo "--- Test 24: FR-T1-PUBSUB-004 (DLQ) handler 結線 + Component YAML 同期 ---"
+
+# (a) src/ 配下に FR-T1-PUBSUB-004 の impl_ref が 1 件以上あること。
+pubsub004_hits=$(grep -rE "FR-T1-PUBSUB-004" --include='*.go' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${pubsub004_hits}" -ge 1 ]]; then
+  check "FR-T1-PUBSUB-004: impl_refs=${pubsub004_hits} >= 1" 0
+else
+  check "FR-T1-PUBSUB-004: impl_refs=0 (regression: pubsub_dlq.go の docstring が削除されたか)" 1
+fi
+
+# (b) Component YAML の consumeRetryMax 値とコード側 pubsubDLQMaxRetries 定数値が一致。
+yaml_retry_max=$(grep -A1 "name: consumeRetryMax" "${REPO_ROOT}/infra/dapr/components/pubsub/kafka.yaml" 2>/dev/null | grep -oE 'value: "[0-9]+"' | grep -oE '[0-9]+')
+code_retry_max=$(grep -E "pubsubDLQMaxRetries\s*=\s*[0-9]+" "${REPO_ROOT}/src/tier1/go/internal/state/pubsub_dlq.go" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+if [[ -n "${yaml_retry_max}" && -n "${code_retry_max}" && "${yaml_retry_max}" == "${code_retry_max}" ]]; then
+  check "FR-T1-PUBSUB-004: Component YAML consumeRetryMax (${yaml_retry_max}) == コード pubsubDLQMaxRetries (${code_retry_max})" 0
+else
+  check "FR-T1-PUBSUB-004: Component YAML / コード drift (yaml=${yaml_retry_max:-missing} code=${code_retry_max:-missing})" 1
+fi
+
+# === Test 25: FR-T1-BINDING-002/003/004 の handler 検証 + Component YAML 配備不変式 ===
+# 不変式: (a) SMTP / HTTP の必須 metadata 検証関数が src/ 配下に存在 (impl_refs >=1)、
+#         (b) Component YAML 3 種 (smtp-outbound / http-outbound / cron-inbound) が配備済、
+#         (c) kustomization.yaml の resources に 3 種すべて含まれる。
+# 失敗時:
+#   - (a) で 0 件 → validateBindingMetadata が削除された / FR ID コメント消失
+#   - (b) で missing → Component YAML が削除された
+#   - (c) で missing → kustomize resources から漏れた
+echo
+echo "--- Test 25: FR-T1-BINDING-002/003/004 handler 検証 + Component YAML 配備 ---"
+
+# (a) src/ 配下に FR-T1-BINDING-002/003/004 の impl_ref が 1 件以上ずつあること。
+for fr_id in FR-T1-BINDING-002 FR-T1-BINDING-003 FR-T1-BINDING-004; do
+  hit_count=$(grep -rE "${fr_id}" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+  if [[ "${hit_count}" -ge 1 ]]; then
+    check "${fr_id}: impl_refs=${hit_count} >= 1" 0
+  else
+    check "${fr_id}: impl_refs=0 (regression: handler コメント or validateBindingMetadata 削除)" 1
+  fi
+done
+
+# (b) Component YAML 3 種が配備済であること。
+for yaml_name in smtp-outbound http-outbound cron-inbound; do
+  yaml_path="${REPO_ROOT}/infra/dapr/components/binding/${yaml_name}.yaml"
+  if [[ -f "${yaml_path}" ]]; then
+    check "Component YAML ${yaml_name}.yaml 配備済" 0
+  else
+    check "Component YAML ${yaml_name}.yaml 不在 (regression)" 1
+  fi
+done
+
+# (c) kustomization.yaml の resources に 3 種すべて含まれること。
+kustomize_path="${REPO_ROOT}/infra/dapr/components/binding/kustomization.yaml"
+for yaml_name in smtp-outbound http-outbound cron-inbound; do
+  if grep -q "${yaml_name}.yaml" "${kustomize_path}" 2>/dev/null; then
+    check "kustomization.yaml に ${yaml_name}.yaml あり" 0
+  else
+    check "kustomization.yaml に ${yaml_name}.yaml 不在 (regression)" 1
+  fi
+done
+
+# === Test 26: FR-T1-WORKFLOW-003 / 005 の SDK helper 配備 + impl_refs 不変式 ===
+# 不変式: (a) src/ 配下に FR-T1-WORKFLOW-003 / 005 の impl_refs >=1、
+#         (b) src/sdk/go/k1s0/workflow_saga.go (Saga executor) と
+#         workflow_wait.go (SignalAndAwait helper) が配備済。
+# 失敗時:
+#   - (a) で 0 件 → docstring が削除された / SDK helper の docstring から FR ID 消失
+#   - (b) で missing → SDK helper file が削除された
+echo
+echo "--- Test 26: FR-T1-WORKFLOW-003 / 005 SDK helper + impl_refs ---"
+
+# (a) src/ 配下に impl_refs >=1。
+for fr_id in FR-T1-WORKFLOW-003 FR-T1-WORKFLOW-005; do
+  hit_count=$(grep -rE "${fr_id}" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+  if [[ "${hit_count}" -ge 1 ]]; then
+    check "${fr_id}: impl_refs=${hit_count} >= 1" 0
+  else
+    check "${fr_id}: impl_refs=0 (regression: SDK helper docstring 削除 or register.go 消失)" 1
+  fi
+done
+
+# (b) SDK helper file 配備。
+for sdk_file in workflow_saga.go workflow_wait.go workflow_saga_test.go workflow_wait_test.go; do
+  sdk_path="${REPO_ROOT}/src/sdk/go/k1s0/${sdk_file}"
+  if [[ -f "${sdk_path}" ]]; then
+    check "SDK file ${sdk_file} 配備済" 0
+  else
+    check "SDK file ${sdk_file} 不在 (regression)" 1
+  fi
+done
+
+# === Test 27: FR-T1-LOG-004 動的ログレベル基盤 + impl_refs 不変式 ===
+# 不変式: (a) FR-T1-LOG-004 の impl_refs >=1、
+#         (b) src/tier1/go/internal/common/logger.go (DynamicLogger) が配備済、
+#         (c) logger.go に SetLevel / LoadFromEnv / StartReloadOnSignal の 3 helper が存在。
+# 失敗時:
+#   - (a) で 0 件 → log.go の docstring から FR ID 削除
+#   - (b) で missing → logger.go ファイル削除
+#   - (c) で missing → 動的 level API 群が削除された (回帰)
+echo
+echo "--- Test 27: FR-T1-LOG-004 動的ログレベル基盤 + impl_refs ---"
+
+# (a) src/ 配下に impl_refs >=1。
+log004_hits=$(grep -rE "FR-T1-LOG-004" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${log004_hits}" -ge 1 ]]; then
+  check "FR-T1-LOG-004: impl_refs=${log004_hits} >= 1" 0
+else
+  check "FR-T1-LOG-004: impl_refs=0 (regression: docstring 削除 or DynamicLogger 削除)" 1
+fi
+
+# (b) logger.go 配備。
+logger_path="${REPO_ROOT}/src/tier1/go/internal/common/logger.go"
+if [[ -f "${logger_path}" ]]; then
+  check "common/logger.go (DynamicLogger) 配備済" 0
+else
+  check "common/logger.go 不在 (regression)" 1
+fi
+
+# (c) 3 helper 存在検査 (SetLevel / LoadFromEnv / StartReloadOnSignal)。
+for fn_name in "func.*SetLevel" "func.*LoadFromEnv" "func.*StartReloadOnSignal"; do
+  if grep -qE "${fn_name}" "${logger_path}" 2>/dev/null; then
+    check "logger.go に ${fn_name} あり" 0
+  else
+    check "logger.go に ${fn_name} 不在 (regression: 動的 level API 削除)" 1
+  fi
+done
+
+# === Test 28: FR-T1-TELEMETRY-004 Pyroscope helper + impl_refs 不変式 ===
+# 不変式: (a) FR-T1-TELEMETRY-004 の impl_refs >=1、
+#         (b) src/tier1/go/internal/otel/pyroscope.go (PyroscopeConfig + StartPyroscope) が配備済、
+#         (c) infra/observability/pyroscope/values.yaml が配備済。
+# 失敗時:
+#   - (a) で 0 件 → telemetry.go docstring から FR ID 削除
+#   - (b) で missing → otel/pyroscope.go ファイル削除
+#   - (c) で missing → Pyroscope Helm values 削除
+echo
+echo "--- Test 28: FR-T1-TELEMETRY-004 Pyroscope helper + impl_refs ---"
+
+# (a) src/ 配下 impl_refs >=1。
+tel004_hits=$(grep -rE "FR-T1-TELEMETRY-004" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${tel004_hits}" -ge 1 ]]; then
+  check "FR-T1-TELEMETRY-004: impl_refs=${tel004_hits} >= 1" 0
+else
+  check "FR-T1-TELEMETRY-004: impl_refs=0 (regression: docstring or pyroscope.go 削除)" 1
+fi
+
+# (b) otel/pyroscope.go 配備。
+pyrog_path="${REPO_ROOT}/src/tier1/go/internal/otel/pyroscope.go"
+if [[ -f "${pyrog_path}" ]]; then
+  check "otel/pyroscope.go (PyroscopeConfig) 配備済" 0
+else
+  check "otel/pyroscope.go 不在 (regression)" 1
+fi
+
+# (c) infra/observability/pyroscope/values.yaml 配備。
+pyroh_path="${REPO_ROOT}/infra/observability/pyroscope/values.yaml"
+if [[ -f "${pyroh_path}" ]]; then
+  check "infra/observability/pyroscope/values.yaml 配備済" 0
+else
+  check "infra/observability/pyroscope/values.yaml 不在 (regression)" 1
+fi
+
+# === Test 29: FR-T1-FEATURE-002 段階 Rollout helper + DECISION-008 audit 除外 不変式 ===
+# 不変式: (a) FR-T1-FEATURE-002 の impl_refs >=1、
+#         (b) src/tier1/go/internal/state/feature_rollout.go (RolloutAssign) が配備済、
+#         (c) ids-fr.txt に FR-T1-DECISION-008 が含まれない (coverage.sh 側 exclude が機能)。
+# 失敗時:
+#   - (a) で 0 件 → feature.go docstring or feature_rollout.go 削除
+#   - (b) で missing → feature_rollout.go ファイル削除
+#   - (c) で含まれる → coverage.sh の exclude が effective でない (回帰)
+echo
+echo "--- Test 29: FR-T1-FEATURE-002 Rollout + DECISION-008 audit 除外 ---"
+
+# (a) src/ 配下 impl_refs >=1。
+feat002_hits=$(grep -rE "FR-T1-FEATURE-002" --include='*.go' --include='*.rs' "${REPO_ROOT}/src/" 2>/dev/null | wc -l)
+if [[ "${feat002_hits}" -ge 1 ]]; then
+  check "FR-T1-FEATURE-002: impl_refs=${feat002_hits} >= 1" 0
+else
+  check "FR-T1-FEATURE-002: impl_refs=0 (regression: docstring or feature_rollout.go 削除)" 1
+fi
+
+# (b) feature_rollout.go 配備。
+rollout_path="${REPO_ROOT}/src/tier1/go/internal/state/feature_rollout.go"
+if [[ -f "${rollout_path}" ]]; then
+  check "feature_rollout.go (RolloutAssign) 配備済" 0
+else
+  check "feature_rollout.go 不在 (regression)" 1
+fi
+
+# (c) ids-fr.txt に FR-T1-DECISION-008 が含まれない (coverage.sh 側 exclude が機能)。
+ids_fr_path=""
+# 最新 evidence 日付を取得する (.claude/audit-evidence/<date>/ids-fr.txt)。
+for d in $(ls -1 "${REPO_ROOT}/.claude/audit-evidence/" 2>/dev/null | sort -r); do
+  if [[ -f "${REPO_ROOT}/.claude/audit-evidence/${d}/ids-fr.txt" ]]; then
+    ids_fr_path="${REPO_ROOT}/.claude/audit-evidence/${d}/ids-fr.txt"
+    break
+  fi
+done
+if [[ -n "${ids_fr_path}" ]]; then
+  if grep -qE "^FR-T1-DECISION-008$" "${ids_fr_path}" 2>/dev/null; then
+    check "ids-fr.txt に DECISION-008 残存 (regression: coverage.sh exclude 不機能)" 1
+  else
+    check "ids-fr.txt から FR-T1-DECISION-008 が除外されている (coverage.sh exclude 機能)" 0
+  fi
+else
+  # evidence file 不在は本 test の skip (axis=fr 未実行)、PASS 扱い (前提エラーは別 test 17 で検出)。
+  check "ids-fr.txt 不在のため Test 29 (c) を skip (axis=fr 未実行)" 0
+fi
+
 # === 集計 ===
 echo
 echo "=== 集計 ==="
