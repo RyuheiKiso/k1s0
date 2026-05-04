@@ -192,6 +192,6 @@ infra/
 ## 対応 ADR / DS-SW-COMP / 要件
 
 - ADR-DIR-002（infra 分離）
-- ADR-CNCF-005（Dapr 採用）
+- ADR-DAPR-001（Dapr 採用）
 - DS-SW-COMP-122（Dapr Component）の配置先移行
 - FR-\*（tier1 公開 API は Dapr Component で backing store を切り替え）

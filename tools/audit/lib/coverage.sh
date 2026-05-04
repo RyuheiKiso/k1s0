@@ -249,10 +249,24 @@ if [[ "${KIND}" == "adr" ]]; then
   # docs-orphan: docs/ 全体で cite ∩ ADR ファイル無し
   # （coverage の ID 列挙は adr/ 配下に限定されるため、docs 他階層からの cite を別途拾う。
   #   採用検討者が docs を読んで存在しない ADR を探す事故を防ぐ）
+  #
+  # 除外対象（経緯記録ファイル）: 以下 4 ファイルは「過去に存在した ID の言及」「監査基準
+  # の例示」「仮番登録表」として旧 ID を意図的に保持する性質上、ここからの cite を orphan
+  # 検出に含めると「歴史的言及」が永遠に orphan としてカウントされ続ける構造的 bug になる。
+  # 除外することで、orphan 検出を「他文書から実質的に cite されているが未起票の ADR」に
+  # 限定する。判定基準は docs/00_format/audit_criteria.md §A 軸 orphan 定義を参照。
+  #   - docs/AUDIT.md                    : 自己監査結果（過去の orphan を経緯記録）
+  #   - docs/SHIP_STATUS.md              : 実装マチュリティ開示（旧 ID 言及を経緯記録）
+  #   - docs/00_format/audit_criteria.md : 監査基準正典（orphan ID の例示）
+  #   - docs/04_概要設計/90_付録/02_ADR索引.md : 仮番登録表（リリース時点 前起票予定の追跡）
   DOCS_ORPHANS_OUT="${EVIDENCE_DIR}/docs-orphans-adr.txt"
   DOCS_REFS_TMP="${EVIDENCE_DIR}/.adr-docs-refs.tmp"
   grep -rohE "${ID_REGEX}" "${REPO_ROOT}/docs" \
     --exclude-dir=.git \
+    --exclude=AUDIT.md \
+    --exclude=SHIP_STATUS.md \
+    --exclude=audit_criteria.md \
+    --exclude=02_ADR索引.md \
     2>/dev/null | sort -u > "${DOCS_REFS_TMP}" || true
   comm -23 "${DOCS_REFS_TMP}" "${ADR_FILE_IDS_TMP}" > "${DOCS_ORPHANS_OUT}" || true
   DOCS_ORPHAN_COUNT="$(wc -l < "${DOCS_ORPHANS_OUT}" | tr -d ' ')"

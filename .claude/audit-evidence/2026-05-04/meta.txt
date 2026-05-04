@@ -1,0 +1,21 @@
+# k1s0 audit meta — adr
+executed_at: 2026-05-04T22:15:26+09:00
+commit: 73a919caa5546da2ef5d22ff86d115ab3056df14
+branch: remake
+uname: Linux KISO 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+axis: adr
+evidence_dir: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-04
+# k1s0 audit meta — adr
+executed_at: 2026-05-04T22:19:10+09:00
+commit: 73a919caa5546da2ef5d22ff86d115ab3056df14
+branch: remake
+uname: Linux KISO 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+axis: adr
+evidence_dir: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-04
+# k1s0 audit meta — adr
+executed_at: 2026-05-04T22:22:44+09:00
+commit: 73a919caa5546da2ef5d22ff86d115ab3056df14
+branch: remake
+uname: Linux KISO 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+axis: adr
+evidence_dir: /home/ryuhei_kiso/github/k1s0/.claude/audit-evidence/2026-05-04

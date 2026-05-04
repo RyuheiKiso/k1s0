@@ -159,7 +159,7 @@ alertmanager_rule / fmea_id / estimated_recovery / last_updated` を必須化。
 
 ## chaos/ の構造
 
-LitmusChaos（OSS Chaos Engineering）を採用。**バージョンは v3.x を pin する**（v1.13 系の `apiVersion: litmuschaos.io/v1alpha1` は Maintenance-only で新 API が凍結されているため）。以下のサンプルは v3.11 time のシェイプに対応する。`apiVersion` と `probe` の記法は v1alpha1 / v3 で互換性があるが、`ChaosResult` / `ChaosCenter` など新 CRD は v3 以降でのみ有効。v4 以降のリリースで非互換変更が入る場合は ADR-OPS-002 を改訂する。
+LitmusChaos（OSS Chaos Engineering）を採用。**バージョンは v3.x を pin する**（v1.13 系の `apiVersion: litmuschaos.io/v1alpha1` は Maintenance-only で新 API が凍結されているため）。以下のサンプルは v3.11 time のシェイプに対応する。`apiVersion` と `probe` の記法は v1alpha1 / v3 で互換性があるが、`ChaosResult` / `ChaosCenter` など新 CRD は v3 以降でのみ有効。v4 以降のリリースで非互換変更が入る場合は ADR-TEST-004（Chaos Engineering Litmus）を改訂する。
 
 ### experiments/
 
@@ -276,5 +276,5 @@ export default function () {
 ## 対応 ADR / DS-SW-COMP / 要件
 
 - ADR-OPS-001（Runbook 標準化）
-- ADR-OPS-002（LitmusChaos 採用）
+- ADR-TEST-004（Chaos Engineering Litmus 採用）
 - NFR-C-NOP-\* / NFR-A-AVL-\*

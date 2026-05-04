@@ -318,7 +318,7 @@ ADR 起票から本索引更新までの手順は以下 5 ステップである�
 
 ## 未起票 ADR 一覧（リリース時点 前起票予定）
 
-概要設計書を執筆する過程で、既存 36 ADR では決定理由を十分に固定化できない論点が 14 件浮上した。これらは構想設計段階で議論が行われた選定結果を概要設計で参照してしまっているか、概要設計で新たに確定させた方針がそのまま ADR 化に値するため、正式な ADR 起票前の「仮番」として本節に登録する。リリース時点 開発着手前までに構想設計側で本体を起票し、本索引の領域別索引に移し替える運用とする。
+概要設計書および実装ディレクトリ設計書を執筆する過程で、既存 ADR では決定理由を十分に固定化できない論点が 29 件浮上した。これらは構想設計段階で議論が行われた選定結果を下流文書で参照してしまっているか、下流で新たに確定させた方針がそのまま ADR 化に値するため、正式な ADR 起票前の「仮番」として本節に登録する。リリース時点 開発着手前までに構想設計側で本体を起票し、本索引の領域別索引に移し替える運用とする。
 
 仮番の目的は 2 点ある。第一に、概要設計書内で `ADR-AUDIT-001` のように参照している ADR 番号を索引側でトレース可能にし、「参照先 ADR が存在しない」という逆引き不整合を解消する。第二に、リリース時点 前の ADR 起票計画（誰がいつ起票するか）を Product Council のレビュー対象として明示化し、抜け漏れを防ぐ。
 
@@ -331,21 +331,36 @@ ADR 起票から本索引更新までの手順は以下 5 ステップである�
 | 仮番 | 仮タイトル | 起票予定カテゴリ | 参照元主要ファイル | 確定予定論点 |
 |---|---|---|---|---|
 | ADR-AUDIT-001 | WORM 監査証跡方針 | セキュリティ | 20_SW/02 EIF/10_Audit_Pii_API方式 | 監査ログの Write-Once-Read-Many 強制と tamper-evident（ハッシュチェーン）採用根拠 |
+| ADR-BS-002 | Backstage entity 粒度確定 | 開発者体験 | 05_実装/99_索引/40_Backstage_catalog対応/01_Backstage_catalog対応表 | 1 Component = 1 Group の entity 設計、Backstage catalog の採番粒度確定 |
 | ADR-CB-001 | Circuit Breaker 採用方針 | 基本構造 | 55_OPS/02_インシデント対応方式 | Dapr Resiliency Circuit Breaker の閾値設計（open 条件 / half-open 遷移 / state 監視） |
+| ADR-CICD-004 | Helm 採用 | CI/CD | 05_実装/00_ディレクトリ設計/60_operationレイアウト/03_Helm_charts配置 | Helm chart のテンプレート設計と GHA self-hosted runner（actions-runner-controller）採用根拠、Kustomize との使い分け基準 |
+| ADR-CICD-005 | Kustomize overlay 採用 | CI/CD | 05_実装/00_ディレクトリ設計/60_operationレイアウト/04_Kustomize_overlays配置 | base / overlays/{dev,staging,prod} の責務分離、Helm との使い分け基準 |
+| ADR-CICD-006 | OpenTofu 採用 | CI/CD | 05_実装/00_ディレクトリ設計/60_operationレイアウト/07_OpenTofu配置 | OpenTofu の採用後の運用拡大時 段階導入、Terraform Foundation 移行先としての位置付け |
+| ADR-CODE-001 | buf 採用 | その他 | 05_実装/00_ディレクトリ設計/70_共通資産/06_codegen配置 | Protobuf スキーマ管理ツールとしての buf 選定（lint / breaking / format / generate の統合） |
+| ADR-CT-001 | Contract Testing 戦略 | CI/CD | SHIP_STATUS.md（schemathesis 実走実績） | OpenAPI 契約テストツール（schemathesis）採用と CI 結線方針 |
+| ADR-DEV-003 | macOS / 純 Linux ホスト拡張 | 開発者体験 | 02_構想設計/adr/ADR-DEV-002（予約番号として明記） | Windows + WSL2 以外のホスト OS 対応時の Docker ランタイム選定（VirtioFS / systemd 制約） |
+| ADR-DEVEX-002 | Dev Container 標準化 | 開発者体験 | 05_実装/00_ディレクトリ設計/70_共通資産/01_tools配置 + 05_devcontainer配置 | Dev Container の言語別プロファイル設計、ADR-DEV-001 Paved Road 内包の正式化 |
 | ADR-DEVX-001 | Tilt + kind ローカル環境 | 開発者体験 | 70_DEVX/02_ローカル開発環境方式 | 開発者 1 台 PC での 5 分以内フルスタック起動ルールの技術選定 |
+| ADR-DIR-004 | Git LFS ポリシー | その他 | 02_構想設計/adr/ADR-DIR-003（予約番号として明記）+ 70_共通資産/02_tests配置 | 100 MiB を超えるバイナリ発生時の LFS 採用判定基準 |
+| ADR-DIR-005 | CODEOWNERS 構造 | その他 | 05_実装/00_ディレクトリ設計/06_CODEOWNERSマトリクス設計（記述のみ） | path 粒度の CODEOWNERS ルール、ロール別承認権限の正典化 |
+| ADR-DIR-006 | ビルドツール導入判定 | その他 | 90_トレーサビリティ/03_ADR_との対応 | Bazel / Buck2 / Nx / Turborepo 等のモノレポビルドツール採用判定基準 |
 | ADR-FEAT-001 | OpenFeature + flagd 契約 | Feature Flag | 20_SW/02 EIF/11_Feature_API方式 | OpenFeature SDK と flagd バックエンドの契約固定（ADR-FM-001 の API 契約拡張） |
+| ADR-GOV-001 | OSS ライセンス遵守ポリシー | その他 | 05_実装/00_ディレクトリ設計/70_共通資産/04_third_party配置 | third_party 取り込みの法務監査証跡（コミット + UPSTREAM.md）と AGPL 隔離方針の運用ルール |
 | ADR-LEGAL-NNN | 法務制約マッピング | その他 | 50_NFR/05_セキュリティ方式設計 | セキュリティ多層防御と個人情報保護法・AGPL 要件・金商法マッピング |
 | ADR-MSG-001 | Dapr Building Block 分離 | 基本構造 | 20_SW/01/02_Daprファサード層コンポーネント | State / PubSub / Binding / Feature の責務重複排除と選択判断基準 |
 | ADR-NFR-001 | k6 / Locust 負荷試験選定 | CI/CD | 55_OPS/07_負荷試験方式 | 負荷試験ツール二刀流の使い分け（Baseline/Spike/Soak/Stress マッピング） |
 | ADR-OBS-004 | Telemetry API 4 メソッド設計 | 観測性 | 20_SW/02 EIF/08_Telemetry_API方式 | Traces / Metrics / Profiles / Stream 4 メソッドの API 契約（仮番 ADR-OBS-003 は 2026-04-24 に「可用性・セキュリティインシデント統合分類」で Accepted 済のため ADR-OBS-004 にスライド） |
 | ADR-PERF-001 | p99 500ms 層別積算モデル | その他 | 50_NFR/02_性能と拡張性方式 | 業務 200 + Dapr 80 + OTel 20 + 監査 50 + NW/DB 150 の内訳固定化 |
+| ADR-PROC-002 | Fuzz testing 戦略 | CI/CD | SHIP_STATUS.md（Go / Rust fuzz 実走実績） | Go std fuzzing と Rust libfuzzer / 代替 PRNG harness の使い分け、NFR-H-INT-* 動作証跡の運用ルール |
 | ADR-PUBSUB-NNN | CloudEvents v1.0 準拠契約 | データ層 | 20_SW/02 EIF/03_PubSub_API方式 | CloudEvents 準拠・トピック命名強制・DLQ・Ordering 保証の契約 |
+| ADR-SEC-004 | cert-manager 採用 | セキュリティ | 05_実装/00_ディレクトリ設計/50_infraレイアウト/06_セキュリティ層配置 | TLS 証明書の自動発行・更新基盤、ACME / Vault Issuer の使い分け |
 | ADR-SLO-NNN | 11 API SLO とバジェット運用 | 観測性 | 50_NFR/11_SLI_SLO_エラーバジェット方式 | API 単位 SLO 目標値・Burn Rate Alert 閾値・エラーバジェット配分 |
-| ADR-TEST-001 | Test Pyramid 戦略 | CI/CD | 70_DEVX/05_テスト戦略方式 | UT 70% / 結合 20% / E2E 10% 比率と testcontainers 採用方針 |
+| ADR-SUP-002 | Hermetic Build 採用経路 | その他 | 02_構想設計/adr/ADR-SUP-001（予約番号として明記） | SLSA Level 3 到達のための hermetic runner 経路（α / β）の PoC 結果に基づく確定 |
+| ADR-TIER1-007 | tier2/tier3 Dapr 不可視化原則の明示 ADR 化 | 基本構造 | 04_概要設計/20_SW/02 EIF/06_API別詳細方式/00_API共通規約方式 | tier1 公開 11 API の抽象境界定義、Dapr 実装差し替え時の tier2/tier3 互換契約 |
 | ADR-WF-001 | Dapr Workflow / Temporal 二重化 | ルールエンジン | 20_SW/02 EIF/06_Workflow_API方式 | 1 時間境界での短期 / 長期ワークフロー振り分け契約（ADR-RULE-002 の運用ルール詳細化） |
 | ADR-ZEN-002 | ZEN Engine マルチ NUMA 構成 | ルールエンジン | 20_SW/02 EIF/09_Decision_API方式 | 採用後の運用拡大時 高負荷時の per-NUMA pod シャーディング戦略 |
 
-未起票 ADR の合計は 14 件である。うち 3 件（ADR-LEGAL-NNN / ADR-PUBSUB-NNN / ADR-SLO-NNN）はプレースホルダで、残り 11 件は仮番確定済である。なお、当初「ADR-TIER1-003」として OpenBao（MPL-2.0）採用根拠を仮登録していたが、構想設計側で同番号が「tier2/tier3 からの内部言語不可視化」として 2026-04-19 に正式採択（Accepted）されたため、未起票一覧から除去して領域別索引（基本構造 ADR）へ移管した。OpenBao ライセンス根拠は ADR-SEC-002 の実装詳細補強として吸収する運用とする。加えて当初「ADR-OBS-003」として Telemetry API 4 メソッド設計を仮登録していたが、構想設計側で同番号が 2026-04-24 に「可用性・セキュリティインシデントを単一分類体系で統合管理」として正式採択（Accepted）されたため、Telemetry API 契約の仮番を ADR-OBS-004 にスライドした。概要設計書内で `ADR-OBS-003` を Telemetry API 4 メソッド設計として参照している箇所は リリース時点 の起票時点で `ADR-OBS-004` に一括書換する。
+未起票 ADR の合計は 29 件である。うち 3 件（ADR-LEGAL-NNN / ADR-PUBSUB-NNN / ADR-SLO-NNN）はプレースホルダで、残り 26 件は仮番確定済である。なお、当初「ADR-TIER1-003」として OpenBao（MPL-2.0）採用根拠を仮登録していたが、構想設計側で同番号が「tier2/tier3 からの内部言語不可視化」として 2026-04-19 に正式採択（Accepted）されたため、未起票一覧から除去して領域別索引（基本構造 ADR）へ移管した。OpenBao ライセンス根拠は ADR-SEC-002 の実装詳細補強として吸収する運用とする。加えて当初「ADR-OBS-003」として Telemetry API 4 メソッド設計を仮登録していたが、構想設計側で同番号が 2026-04-24 に「可用性・セキュリティインシデントを単一分類体系で統合管理」として正式採択（Accepted）されたため、Telemetry API 契約の仮番を ADR-OBS-004 にスライドした。概要設計書内で `ADR-OBS-003` を Telemetry API 4 メソッド設計として参照している箇所は リリース時点 の起票時点で `ADR-OBS-004` に一括書換する。さらに ADR-TEST-001（Test Pyramid + testcontainers）は 2026-05-02 に本体ファイル（[`../../02_構想設計/adr/ADR-TEST-001-test-pyramid-and-testcontainers.md`](../../02_構想設計/adr/ADR-TEST-001-test-pyramid-and-testcontainers.md)）が起票され Accepted となったため、本表から除去し領域別索引（CI/CD）へ移管した。
 
 ## 下流参照
 
@@ -359,3 +374,4 @@ ADR の詳細本体は [../../02_構想設計/adr/](../../02_構想設計/adr/) 
 | 2026-04-21 | 0.2 | 未起票 ADR 一覧（リリース時点 前起票予定）15 件を追加。概要設計書内からの ADR 参照で索引に存在しなかった論点を仮番として集約し、起票期限・運用ルールを明文化。また ADR-ZEN-001 を ADR-RULE-001 に統合（ZEN Engine 採用の重複参照解消）。 | 概要設計チーム |
 | 2026-04-21 | 0.3 | ADR-TIER1-003（tier2/tier3 から内部言語を不可視化、2026-04-19 Accepted）を基本構造 ADR（5 → 6 件）・アルファベット順索引・時系列索引に正式登録。同じ仮番で未起票一覧に置かれていた OpenBao ライセンス根拠エントリを除去し、ADR-SEC-002 の実装詳細補強側へ吸収する運用に変更。総 ADR 件数を 26 → 27 に更新。 | 概要設計チーム |
 | 2026-04-24 | 0.4 | 欠落 10 ADR (DEP-001/DEV-001/DIR-001〜003/DX-001/OBS-003/POL-001/REL-001/SUP-001) を索引化。総件数 27→36。 | 概要設計チーム |
+| 2026-05-04 | 0.5 | docs-orphan 監査（AUDIT.md A-1）の解消として、未起票一覧に **16 件追記**（BS-002 / CICD-004,005,006 / CODE-001 / CT-001 / DEV-003 / DEVEX-002 / DIR-004,005,006 / GOV-001 / PROC-002 / SEC-004 / SUP-002 / TIER1-007）。ADR-TEST-001 は本体ファイル起票済（2026-05-02）のため本表から除去。総仮番件数 14 → **29**。並行して旧 ID から既存 ADR への cite 書換 8 種を Phase 1 として実施（CNCF-002→STOR-001 / CNCF-003→0001 / CNCF-004→MIG-002 / CNCF-005→DAPR-001 / DEVEX-001→BS-001 / DEVEX-004→DEV-001 / SEC-005→CICD-003 / OPS-002→TEST-004）。 | 概要設計チーム |

@@ -113,5 +113,5 @@ k1s0 にはコード雛形・参照コードに相当するディレクトリが
 
 ## 対応 ADR / DS-SW-COMP / 要件
 
-- ADR-DEVEX-004（Golden Path 採用）
+- ADR-DEV-001（Paved Road / Golden Path 採用）
 - DX-GP-\*
