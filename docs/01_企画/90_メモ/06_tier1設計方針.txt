@@ -1,0 +1,76 @@
+============================================================
+tier1 設計方針 / SDK 提供機能
+============================================================
+
+■ 方針
+  - tier1 SDK は「機能カテゴリ単位の抽象 API」を tier2 / tier3 に提供
+    する。現行採用 OSS は実装の詳細であり、SDK の表面 API には漏らさ
+    ない。
+  - tier2 / tier3 は本 SDK のみを通じて infra にアクセスする。OSS の
+    クライアントライブラリを直接 import することは禁止する。
+  - SDK を直接組み込めない言語（.NET Framework など）からは tier1 が
+    提供するゲートウェイ経由で同等の機能にアクセスする。
+    .proto を単一の真とし、Envoy Gateway の gRPC-JSON Transcoder で
+    HTTP/1.1 + JSON エンドポイントを派生させる。
+
+■ 提供機能カテゴリと現行実装 OSS
+  カテゴリ                        | 主な提供 API                            | 現行実装 OSS
+  --------------------------------+-----------------------------------------+--------------------------------------
+  Observability / Logging         | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry SDK + Collector → OpenSearch
+  Observability / Tracing         | 分散トレース span 発行、伝播            | OpenTelemetry SDK + Jaeger
+  Observability / Metrics         | カウンタ / ヒストグラム / ゲージ        | OpenTelemetry SDK + Prometheus
+  Observability / Profiling       | Continuous Profiling 有効化、ラベル付与 | Parca
+  Authentication / Authorization  | OIDC クライアント、トークン検証、認可   | Keycloak
+  Secret Management               | シークレット取得、ローテーション通知    | OpenBao + External Secrets Operator
+  Configuration / Feature Flag    | フラグ評価、動的設定読込                | OpenFeature + flagd
+  Messaging / EventBus            | publish / subscribe、Outbox 連携        | Apache Kafka (Strimzi)
+  Schema Registry                 | イベントスキーマ登録 / 取得 / 互換検証  | Apicurio Registry + Buf
+  RPC / Gateway                   | inter-service RPC クライアント / サーバ | Envoy Gateway + gRPC
+  Relational Store                | トランザクション、リポジトリ抽象        | PostgreSQL (CloudNativePG) + PgBouncer + pg_partman
+  Vector Search                   | ベクトル登録 / 類似検索                 | pgvector
+  KeyValue / Cache                | KV 操作、TTL、分散ロック                | Valkey
+  Object Storage                  | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
+  Workflow / Long-running Saga    | Workflow / Activity 定義、補償処理      | Temporal
+  Rule Engine                     | 決定表評価、ルール実行                  | ZEN Engine
+
+■ 抽象化レベルの方針
+  - 抽象 API は「業務ロジックから自然に呼べる粒度」を狙う。OSS 固有の
+    型 / 概念（Kafka の partition、Temporal の WorkflowID 形式など）は
+    SDK の表面に出さず、必要なものだけを SDK 独自の概念として再定義
+    する。
+  - OSS 差し替え時に tier2 / tier3 のコードを書き換えなくて済むことを
+    受け入れ基準とする。受け入れ基準を満たせない API は提供しない
+    （= その機能は SDK に乗せず、別途設計を見直す）。
+
+■ 横断的に SDK が担う共通要素
+  - 認証コンテキスト（誰が呼んでいるか）の伝播。
+  - トレース / ログ / メトリクスへの自動計装。
+  - リトライ / タイムアウト / サーキットブレーカ等のレジリエンス。
+  - マルチテナント識別子の伝播と分離。
+
+■ 非提供（SDK スコープ外）
+  - 業務固有領域
+      - tier3 固有の業務ロジック、UI、画面遷移制御。
+  - Operator / Controller 実装
+      - Kubernetes Operator / Controller は Go で別途実装する
+        （SDK としては配布しない）。
+  - 可視化 UI
+      - Grafana 等の可視化 UI は AGPL 回避のため未採用。
+        Perses 等の代替検討は別トラック。
+  - サービスメッシュ（Istio）
+      - mTLS / トラフィック制御はメッシュが透過的に担う。
+        SDK は認証 / トレースコンテキストの伝播のみを担当し、
+        メッシュ機能を SDK API として再露出しない。
+  - ブロックストレージ（Longhorn / Ceph RBD）
+      - tier2 / tier3 は Kubernetes の PVC 経由で扱う。
+        SDK では抽象化しない（オブジェクトストレージのみ SDK 提供）。
+  - 証明書 / PKI（cert-manager）
+      - 証明書はプラットフォーム側で発行・配布する。
+        SDK は受領済み TLS コンテキストを利用するのみ。
+  - 開発体験 / 運用ツール
+      - Backstage（開発者ポータル）。
+      - Testcontainers / Tilt（ローカル開発）。
+      - Helm / Kustomize（マニフェスト管理）。
+      - sqlx-cli（DB マイグレーション CLI）。
+      - これらは SDK としては配布せず、テンプレート / ドキュメント
+        で利用方法を案内する。
