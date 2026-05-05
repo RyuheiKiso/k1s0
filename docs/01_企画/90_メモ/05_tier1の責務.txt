@@ -16,3 +16,8 @@ tier1 の責務（infra 隠蔽）
     限定でき、tier2 / tier3 の改修を最小化できる。
   - tier2 / tier3 のエンジニアは OSS の動向やライセンスに必ずしも
     精通しているわけではないため、選定・追従の責務は tier1 に集約する。
+
+■ 言語スタック
+
+Server系：Rust
+tier2,tier3への配布用Library：Rust,C#,go,typescript
