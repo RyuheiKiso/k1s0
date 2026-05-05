@@ -14,9 +14,12 @@
   メッセージング                 | Apache Kafka (Strimzi Operator)  | Apache 2.0
 
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 ゲートウェイの
-    前段で gRPC-JSON Transcoder / gRPC-Web filter を担う。
-    .NET Framework などレガシー言語向けの HTTP/1.1 + JSON 経路は、
-    proto を単一ソースとして同 filter で派生させる。
+    前段で gRPC-JSON Transcoder（stream_json_responses 有効化）を担う。
+    .NET Framework などレガシー言語向けの HTTP/1.1 + JSON / NDJSON 経路
+    は、proto を単一ソースとして同 filter で派生させる。client-streaming
+    / bidirectional streaming は External Proto に直接出さず unary 射影
+    で扱うため、gRPC-Web filter は現時点で常用しない（詳細は
+    「05_tier1/03_Server系」Proto 二層化 / RPC 形式の射影方針を参照）。
 
 ------------------------------------------------------------
 [2] オブザーバビリティ

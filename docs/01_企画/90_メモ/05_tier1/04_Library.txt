@@ -12,7 +12,9 @@ tier1 Library 設計方針
     ビジネス API と観測可能性を分けて提供する。
       - ビジネス API：tier1 提供のゲートウェイ経由でアクセスする。
         .proto を単一の真とし、Envoy Gateway の gRPC-JSON Transcoder で
-        HTTP/1.1 + JSON エンドポイントを派生させる。
+        HTTP/1.1 + JSON / NDJSON エンドポイントを派生させる
+        （streaming RPC の扱い詳細は「05_tier1/03_Server系」Proto
+        二層化 / RPC 形式の射影方針を参照）。
       - 観測可能性 / 認証コンテキスト伝播：Observability Companion を
         別途提供する（詳細は本ファイル末尾を参照）。
 
@@ -85,9 +87,9 @@ tier1 Library 設計方針
 
 ■ Observability Companion（Library 非対応言語向け追加提供）
   - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に
-    対し、観測可能性 / 認証コンテキスト伝播のみを担う薄物として別途
-    提供する。ビジネス API 抽象は含まない（ビジネス API は引き続き
-    Gateway 経由で利用する）。
+    対し、観測可能性 / 認証コンテキスト伝播 / streaming トランスポート
+    の薄物を担う。ビジネス API 抽象は含まない（ビジネス API のスキーマ
+    / セマンティクスは引き続き Gateway 経由で利用する）。
   - 標準形態：.NET Framework 4.6.2+ 向けに OpenTelemetry .NET
     Auto-Instrumentation を採用する。CLR Profiler によるアタッチ方式
     で、アプリケーションのソースコード変更を不要とする。HttpClient /
@@ -97,8 +99,18 @@ tier1 Library 設計方針
     NuGet 参照型の Companion を提供する。HttpClient 用
     DelegatingHandler、Authorization / traceparent / テナント識別子の
     伝播ヘルパ、Logger 拡張のみを含む。
+  - streaming トランスポートヘルパ：External Proto の server-streaming
+    RPC を扱うため、NDJSON（application/x-ndjson）リーダを NuGet 参照
+    型 Companion に同梱する。HttpClient.ResponseHeadersRead に基づく
+    chunk 消費・キャンセル・再接続を内蔵し、レガシー側に streaming
+    トランスポートの自製を要求しない。client-streaming /
+    bidirectional streaming は Server系 側で unary 射影に変換済みの
+    ため、本ヘルパの対象外とする（詳細は「05_tier1/03_Server系」
+    RPC 形式の射影方針を参照）。
   - スコープ外：いずれの形態も Library が提供する機能カテゴリ
     （Messaging / Relational Store / Workflow など）の抽象は含まない。
+    streaming トランスポートヘルパも proto 上の RPC 定義および NDJSON
+    のデシリアライズ補助に留まり、業務セマンティクスの解釈は行わない。
   - core スキーマとの整合：構造化ログ / span attribute 名は言語中立
     のスキーマ定義（YAML、OpenTelemetry Semantic Conventions 拡張
     形式）を単一の真とし、OpenTelemetry Weaver で各言語の定数コード

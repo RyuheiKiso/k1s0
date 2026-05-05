@@ -15,10 +15,11 @@ tier1 Server系（ランタイム成果物）
         の基盤レイヤを担う。
       - 方式：
           - ビジネス API：.proto を単一の真とし、Envoy Gateway の
-            gRPC-JSON Transcoder で HTTP/1.1 + JSON エンドポイントを
-            派生させる。.proto は External / Internal の 2 層に分離し、
-            Gateway が直接派生対象とするのは External 側のみとする
-            （詳細は本ファイル末尾「Proto 二層化」を参照）。
+            gRPC-JSON Transcoder で HTTP/1.1 + JSON / NDJSON
+            エンドポイントを派生させる。.proto は External / Internal
+            の 2 層に分離し、Gateway が直接派生対象とするのは External
+            側のみとする（詳細は本ファイル末尾「Proto 二層化」および
+            「RPC 形式の射影方針」を参照）。
           - 観測可能性：W3C Trace Context（traceparent / tracestate /
             baggage）を未着信なら生成、着信していれば継承する。
             リクエストメトリクス（status / latency / size）を
@@ -69,8 +70,14 @@ tier1 Server系（ランタイム成果物）
   - External Proto
       - 用途：Gateway 経由で Library 非対応言語（.NET Framework など）
         に公開する API 専用。
-      - 制約：Transcoder で安全に JSON 派生できるサブセットに限定する。
-          - streaming RPC 禁止（必要なら SSE 等で別経路に切り出す）。
+      - 制約：Transcoder で安全に JSON / NDJSON 派生できるサブセット
+        に限定する。
+          - server-streaming RPC は許容する。Transcoder の
+            stream_json_responses を有効化し、レスポンスを NDJSON
+            （application/x-ndjson）で派生させる。
+          - client-streaming / bidirectional streaming は External
+            に直接出さず、後述「RPC 形式の射影方針」に従って unary
+            の組み合わせに射影する。
           - google.protobuf.Any 禁止（既知型の oneof に置換、真に動的
             な場合は bytes + content_type）。
           - well-known types（Timestamp / Duration / FieldMask 等）の
@@ -96,6 +103,32 @@ tier1 Server系（ランタイム成果物）
         構造的に担保するため、External ↔ Internal の対応関係（フィー
         ルド射影、欠落フィールドの既定値）は tier1 リポジトリ内で
         宣言的に管理し、CI で差分検査する。
+  - RPC 形式の射影方針
+      - unary
+          - External はそのまま JSON 派生（既存のとおり）。
+      - server-streaming
+          - External は NDJSON 派生（Transcoder の
+            stream_json_responses）。レガシー側のチャンク消費は
+            Companion の streaming トランスポートヘルパに委譲する
+            （詳細は「05_tier1/04_Library」Observability Companion
+            を参照）。
+      - client-streaming
+          - External には直接出さない。External Proto では
+            resumable upload 形式（Init → 分割 PUT → Commit）の
+            unary 3 連 RPC に射影する。
+      - bidirectional streaming
+          - External には直接出さない。External Proto では
+            コールバック URL 登録 RPC + サーバ側からの webhook POST
+            のペアに射影する。レガシー側は受信エンドポイントを
+            別途公開する。
+      - 長時間ジョブの進捗
+          - 進捗を streaming で外に出さない。Internal / External
+            とも「Start RPC → cursor 付き GetStatus / Poll RPC」の
+            ペアで表現する（Temporal の Query / Signal と整合する）。
+      - 上記射影は External / Internal 対応マップに射影テンプレート
+        として宣言し、CI で「Internal 側に streaming RPC が増えた
+        際に External 側の射影が宣言されているか」「射影テンプレート
+        に沿ったフィールド構成になっているか」を機械的に検査する。
   - 「.proto を単一の真」とする原則は維持される。真とは External /
     Internal の両 proto セットの集合であり、両者の整合は tier1 の
     責務とする。
