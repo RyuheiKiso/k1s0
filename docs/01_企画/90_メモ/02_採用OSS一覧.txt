@@ -13,10 +13,6 @@
   サービスメッシュ               | Istio                            | Apache 2.0
   メッセージング                 | Apache Kafka (Strimzi Operator)  | Apache 2.0
 
-  ※ マイクロサービス runtime（Dapr 等）は採用しない。
-    採用 OSS を決め打ちする方針のため、複数バックエンド対応の
-    汎用 runtime は過剰となる。infra 隠蔽は tier1 を Rust で
-    自製することで実現する。詳細は「tier1 SDK 設計方針」を参照。
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 ゲートウェイの
     前段で gRPC-JSON Transcoder / gRPC-Web filter を担う。
     .NET Framework などレガシー言語向けの HTTP/1.1 + JSON 経路は、
