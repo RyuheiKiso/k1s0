@@ -8,6 +8,6 @@ tier1 の言語スタック
     kubebuilder の生態系都合で Go を許容する。
 
 ■ tier2 / tier3 への配布用 Library
-  - 対応言語：Rust, C#, Go, TypeScript
+  - 対応言語：Rust, C#(.NET8 , .net framework 4.7.2), Go, TypeScript
   - tier2 / tier3 のユーザー（業務）に適する言語で開発できるよう
     Library でサポートする。

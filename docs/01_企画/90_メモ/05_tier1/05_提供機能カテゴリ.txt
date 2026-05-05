@@ -7,12 +7,12 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   Observability / Logging         | both     | L3 | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry Library + Collector → OpenSearch
   Observability / Tracing         | both     | L3 | 分散トレース span 発行、伝播            | OpenTelemetry Library + Jaeger
   Observability / Metrics         | both     | L3 | カウンタ / ヒストグラム / ゲージ        | OpenTelemetry Library + Prometheus
-  Observability / Profiling       | backend  | L3 | Continuous Profiling 有効化、ラベル付与 | Parca
+  Observability / Profiling       | backend  | L2 | Continuous Profiling 有効化、ラベル付与 | Parca
   Authentication / Authorization  | both     | L3 | OIDC クライアント、トークン検証、認可   | Keycloak
   Secret Management               | backend  | L3 | シークレット取得、ローテーション通知    | OpenBao + External Secrets Operator
-  Configuration / Feature Flag    | both     | L3 | フラグ評価、動的設定読込                | OpenFeature + flagd
-  KeyValue / Cache                | backend  | L3 | KV 操作、TTL、分散ロック                | Valkey
-  Object Storage                  | backend  | L3 | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
+  Configuration / Feature Flag    | both     | L2 | フラグ評価、動的設定読込                | OpenFeature + flagd
+  KeyValue / Cache                | backend  | L2 | KV 操作、TTL、分散ロック                | Valkey
+  Object Storage                  | backend  | L2 | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
   RPC / Gateway                   | both     | L3 | inter-service RPC クライアント / サーバ | Envoy Gateway + gRPC
   Messaging / EventBus            | backend  | L2 | publish / subscribe、Outbox 連携        | Apache Kafka (Strimzi)
   Schema Registry                 | backend  | L2 | イベントスキーマ登録 / 取得 / 互換検証  | Apicurio Registry + Buf
