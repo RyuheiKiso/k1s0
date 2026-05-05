@@ -14,7 +14,7 @@
 ■ 既存資産への配慮
   - レガシー資産（.NET Framework など）も最小限のカスタマイズで
     プラットフォームの恩恵を受けられるようにする。
-  - Rust SDK を直接組み込めない言語からは tier1 が提供する
+  - tier1 SDK を直接組み込めない言語からは tier1 が提供する
     ゲートウェイ経由で infra にアクセスさせる。
     .proto を単一の真とし、Envoy Gateway の gRPC-JSON Transcoder で
     HTTP/1.1 + JSON エンドポイントを派生させる方式を採る。

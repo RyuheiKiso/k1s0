@@ -42,11 +42,9 @@
 ------------------------------------------------------------
   カテゴリ                       | プロダクト                       | ライセンス
   -------------------------------+----------------------------------+-----------------------
-  tier1 SDK / アプリ実装         | Rust                             | Apache 2.0 / MIT
   K8s Controller / Operator      | Go                               | BSD-3
 
-  ※ tier1 ファサードは Rust crate 群として提供する。
-    Go は K8s エコシステム（カスタム Controller、Admission Webhook、
+  ※ Go は K8s エコシステム（カスタム Controller、Admission Webhook、
     Operator 拡張など）に限定して使用する。
 
 ------------------------------------------------------------
@@ -129,4 +127,4 @@
   マニフェスト管理 (自製)        | Kustomize                        | Apache 2.0
   マニフェスト管理 (3rd party)   | Helm                             | Apache 2.0
   ローカル開発                   | Tilt                             | Apache 2.0
-  DB マイグレーション (Rust)     | sqlx-cli                         | MIT / Apache 2.0
+  DB マイグレーション             | sqlx-cli                         | MIT / Apache 2.0
