@@ -6,7 +6,7 @@ tier1 の責務（infra 隠蔽）
   - tier1 は、tier2 / tier3 に infra 層を意識させないことを使命とする。
   - infra 層の OSS / ミドルウェアへのアクセスは tier1 のファサードを
     経由させ、tier2 / tier3 から直接利用させない。
-  - 設計の詳細は「tier1 設計方針」を参照。
+  - 設計の詳細は本ディレクトリ配下の各方針メモを参照。
 
 ■ 背景・狙い
   - 例：tier2 が独自に Kafka を直接利用していた場合、Kafka がライセンス
@@ -16,9 +16,3 @@ tier1 の責務（infra 隠蔽）
     限定でき、tier2 / tier3 の改修を最小化できる。
   - tier2 / tier3 のエンジニアは OSS の動向やライセンスに必ずしも
     精通しているわけではないため、選定・追従の責務は tier1 に集約する。
-
-■ 言語スタック
-
-Server系：Rust
-tier2,tier3への配布用Library：Rust,C#,go,typescript
-tier2,tier3のユーザー(業務)に適する言語で開発できるようにLibraryでサポートする。

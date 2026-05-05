@@ -1,0 +1,60 @@
+============================================================
+tier1 Server系（ランタイム成果物）
+============================================================
+
+■ 位置づけ
+  - Server系 は tier1 が「動かす」ランタイム成果物の総称。
+    tier2 / tier3 に「配る」コード成果物である Library と対をなす。
+  - 各カテゴリの具体機能との対応は本ディレクトリの
+    「提供機能カテゴリ」を参照する。
+
+■ 分類
+  - Gateway
+      - 役割：Library を直接組み込めない言語（.NET Framework など）
+        からの呼び口を提供する。併せて、観測可能性 / 認証コンテキスト
+        の基盤レイヤを担う。
+      - 方式：
+          - ビジネス API：.proto を単一の真とし、Envoy Gateway の
+            gRPC-JSON Transcoder で HTTP/1.1 + JSON エンドポイントを
+            派生させる。
+          - 観測可能性：W3C Trace Context（traceparent / tracestate /
+            baggage）を未着信なら生成、着信していれば継承する。
+            リクエストメトリクス（status / latency / size）を
+            Prometheus に送出する。Library 非対応言語経路の最低限の
+            観測可能性は本レイヤで担保し、プロセス内計装は
+            Observability Companion で補完する（04_Library 参照）。
+          - 認証コンテキスト：envoy.filters.http.jwt_authn で OIDC
+            トークンを検証し、クレームを内部ヘッダに展開する。
+            tier1 Backend-for-Library 側で span attribute / 構造化
+            ログに注入する。
+      - 実装：Envoy Gateway + tier1 製ハンドラ（Rust）。
+
+  - Sidecar / Agent
+      - 役割：Library から切り離して常駐させたい処理を担う。
+      - 例：Outbox relay、シークレット同期、トレース送出のバッファ。
+      - 実装：Rust 製常駐プロセス。
+
+  - Backend-for-Library
+      - 役割：業務側プロセスに置けない権限 / 鍵で動く処理を
+        集中化する。
+      - 例：トークン検証の集中点、認可ポリシー一括評価、
+        Schema Registry の互換性強制プロキシ。
+      - 実装：Rust gRPC サーバ。
+
+  - Control Plane
+      - 役割：Library / Gateway / Sidecar への動的設定配信を担う。
+      - 例：OpenFeature / flagd の前段、テナント設定配布。
+      - 実装：Rust + flagd 連携。
+
+  - Operator / Controller
+      - 役割：Kubernetes リソースの宣言的管理を担う。
+      - 例：CloudNativePG、Strimzi、Keycloak 等のテナント別
+        リソース自動化。
+      - 実装：Go（controller-runtime / kubebuilder）。
+
+■ 配布形態
+  - コンテナイメージ + Helm / Operator マニフェストとして配布する。
+  - Library がパッケージレジストリ配布であるのに対し、Server系 は
+    プラットフォーム側で「動かす」成果物として扱う。
+  - tier2 / tier3 から見た契約面（API / プロトコル）は Library と同様、
+    .proto を単一の真とする。

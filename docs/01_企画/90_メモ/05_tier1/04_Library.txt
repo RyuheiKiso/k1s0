@@ -1,0 +1,117 @@
+============================================================
+tier1 Library 設計方針
+============================================================
+
+■ 方針
+  - tier1 Library は「機能カテゴリ単位の抽象 API」を tier2 / tier3 に提供
+    する。現行採用 OSS は実装の詳細であり、Library の表面 API には漏らさ
+    ない。
+  - tier2 / tier3 は本 Library のみを通じて infra にアクセスする。OSS の
+    クライアントライブラリを直接 import することは禁止する。
+  - Library を直接組み込めない言語（.NET Framework など）に対しては、
+    ビジネス API と観測可能性を分けて提供する。
+      - ビジネス API：tier1 提供のゲートウェイ経由でアクセスする。
+        .proto を単一の真とし、Envoy Gateway の gRPC-JSON Transcoder で
+        HTTP/1.1 + JSON エンドポイントを派生させる。
+      - 観測可能性 / 認証コンテキスト伝播：Observability Companion を
+        別途提供する（詳細は本ファイル末尾を参照）。
+
+■ パッケージ構成（frontend / backend 分離方針）
+  - Library は core / frontend / backend の 3 パッケージで構成し、
+    対象言語ごとにこの 3 パッケージを提供する。
+  - 両者で重複する概念は core に集約し、frontend / backend は core
+    に依存する形を取る。core に置く対象例：
+      - 認証コンテキスト / テナント識別子の型と伝播ヘルパ
+      - 構造化ログ / トレース / メトリクスの共通スキーマ
+      - 共通エラー型、リトライ / タイムアウト等のポリシー定義
+  - frontend パッケージにバックエンド専用の依存（DB ドライバ、Kafka
+    クライアント、Temporal クライアント等）が混入することを禁止する。
+    「提供機能カテゴリ」の「対象」列で frontend / backend / both を
+    明示し、バンドル境界の検査基準とする。
+  - 「対象」が both のカテゴリでも、具象 API は frontend / backend で
+    異なって構わない（例：Authentication は frontend で OIDC PKCE
+    クライアント、backend でトークン検証 / 認可ポリシー評価）。core
+    が共有するのは型と概念であり、API 表面の完全一致は要求しない。
+
+■ 抽象化レベルの方針
+  - 機能カテゴリごとに到達可能な抽象化レベルが異なる。一律に「OSS 差し
+    替えで業務コード無変更」を受け入れ基準として課すと、Messaging /
+    Workflow / Saga / Rule Engine 等は「Library に乗らない」結論になり、
+    かえって tier2 / tier3 が OSS を直接触る抜け穴を生む。これを避ける
+    ため、Library は次の 3 段階の抽象化レベル（Lv）を認め、カテゴリ
+    ごとに到達目標を割り当てる。
+
+  - L3 : OSS 中立
+      - OSS 固有の型 / 概念を API 表面に一切出さない。
+      - 受け入れ基準 : OSS 差し替え時、業務コード（tier2 / tier3）は無変更。
+      - 想定対象 : Logging / Tracing / Metrics / Profiling / Authentication /
+        Secret / Feature Flag / KeyValue / Object Storage / RPC。
+
+  - L2 : 概念再定義
+      - OSS 固有の語彙は Library 独自語彙に翻訳するが、分割キー / 順序
+        保証 / 再試行境界 / トランザクション境界 / インデックス種別など
+        の概念は API 表面に残す。
+      - 受け入れ基準 : OSS 差し替え時、業務コードは型置換 + 一部チュー
+        ニング（パラメータ調整・索引再設計など）で済み、業務ロジックの
+        再設計は不要。
+      - 想定対象 : Messaging / EventBus、Schema Registry、Relational
+        Store、Vector Search。
+
+  - L1 : 概念露出
+      - OSS 固有の概念（Workflow / Activity 境界、補償処理の書き方、
+        決定表 DSL 等）が API 表面に出る。Library の責務は OSS の隠蔽
+        ではなく、以下の横断要素の強制に絞る。
+          - 認証コンテキスト / テナント識別子の伝播
+          - 構造化ログ / トレース / メトリクスの自動計装
+          - 共通エラー型 / リトライ・タイムアウトポリシー
+          - ベストプラクティスのテンプレート提供
+      - 受け入れ基準 : OSS クライアントを直接 import させない経路を
+        Library として一本化し、差し替え時の影響範囲が「Library + 該当
+        カテゴリの業務コード」に限定できること（全層に波及しない）。
+      - 想定対象 : Workflow / Long-running Saga、Rule Engine。
+
+  - L1 / L2 で API 表面に露出する OSS 概念は、カテゴリごとに「露出概念
+    一覧」として Library 側ドキュメントに明示する。OSS 差し替え時の影響
+    範囲調査チェックリストとして使う。
+  - L3 を狙えないことを理由に Library から外さない。代わりに L1 / L2
+    を選び、tier2 / tier3 が OSS を直接 import する経路を塞ぐことを
+    優先する。
+
+■ 横断的に Library が担う共通要素
+  - 認証コンテキスト（誰が呼んでいるか）の伝播。
+  - トレース / ログ / メトリクスへの自動計装。
+  - リトライ / タイムアウト / サーキットブレーカ等のレジリエンス。
+  - マルチテナント識別子の伝播と分離。
+
+■ Observability Companion（Library 非対応言語向け追加提供）
+  - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に
+    対し、観測可能性 / 認証コンテキスト伝播のみを担う薄物として別途
+    提供する。ビジネス API 抽象は含まない（ビジネス API は引き続き
+    Gateway 経由で利用する）。
+  - 標準形態：.NET Framework 4.6.2+ 向けに OpenTelemetry .NET
+    Auto-Instrumentation を採用する。CLR Profiler によるアタッチ方式
+    で、アプリケーションのソースコード変更を不要とする。HttpClient /
+    ASP.NET / ADO.NET / WCF などを自動計装する。配布形態は環境変数 +
+    DLL 配置 + 再起動で完結させる。
+  - 補助形態：Auto-Instrumentation 非対応環境（4.6.1 以前など）向けに
+    NuGet 参照型の Companion を提供する。HttpClient 用
+    DelegatingHandler、Authorization / traceparent / テナント識別子の
+    伝播ヘルパ、Logger 拡張のみを含む。
+  - スコープ外：いずれの形態も Library が提供する機能カテゴリ
+    （Messaging / Relational Store / Workflow など）の抽象は含まない。
+  - core スキーマとの整合：構造化ログ / span attribute 名は言語中立
+    のスキーマ定義（YAML、OpenTelemetry Semantic Conventions 拡張
+    形式）を単一の真とし、OpenTelemetry Weaver で各言語の定数コード
+    を生成する。Companion は core 全体を取り込めないが、生成された
+    定数のみを含む最小 NuGet を切り出して参照する形を取る。これに
+    より人手による「複製実装」自体を排除する。
+  - スキーマ持ち分の最小化：アプリ側で持つ組織固有スキーマは
+    「テナント識別子・業務相関 ID・認証主体」等に絞り、HTTP / DB /
+    RPC などの標準計装は OpenTelemetry Semantic Conventions に従う。
+    属性のリネーム / 追加 / 削除は OpenTelemetry Collector のプロ
+    セッサ（attributes / transform）で一元化し、Companion / 各言語
+    Library 側に同等処理を持たせない。
+  - CI 検証：定数文字列の一致確認に留めず、Testcontainers で
+    OpenTelemetry Collector を起動し、Companion / 各言語 Library
+    から実際に emit される span / log 属性をゴールデン値と比較する。
+    スキーマ定義 → 生成定数 → 実行時出力の 3 点を CI で連結する。

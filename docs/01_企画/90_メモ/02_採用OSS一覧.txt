@@ -32,10 +32,19 @@
   k8s 状態メトリクス             | kube-state-metrics               | Apache 2.0
   k8s Web UI                     | Headlamp                         | Apache 2.0
   API トラフィックビューア       | Kubeshark                        | Apache 2.0
+  可視化ダッシュボード           | Perses                           | Apache 2.0
 
-  ※ 可視化（Grafana 等）は AGPL 回避のため現時点では未採用。
-    将来的に Perses（CNCF Sandbox）の成熟度を見て再検討する。
+  ※ 可視化基盤は Grafana の AGPL を回避するため Perses（CNCF Sandbox、
+    Apache 2.0）を標準採用する。
+    Perses のデータソース対応は Prometheus 系を中心としており、
+    Jaeger / OpenSearch については対応状況を都度確認のうえ、
+    必要に応じて専用 UI（Jaeger UI、OpenSearch Dashboards 等）を併用する。
   ※ Jaeger のストレージバックエンドにはログ用 OpenSearch を共用する想定。
+  ※ .NET Framework 向けには OpenTelemetry .NET Auto-Instrumentation
+    （CLR Profiler アタッチ方式、Apache 2.0）を併用する。tier1 Library
+    を直接組み込めない言語向けの観測可能性 Companion として位置付ける。
+    Auto-Instrumentation 非対応環境（4.6.1 以前など）向けには NuGet
+    参照型の Companion を補助的に提供する。
 
 ------------------------------------------------------------
 [3] 開発言語

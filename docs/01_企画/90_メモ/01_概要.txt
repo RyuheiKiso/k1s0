@@ -14,8 +14,15 @@
 ■ 既存資産への配慮
   - レガシー資産（.NET Framework など）も最小限のカスタマイズで
     プラットフォームの恩恵を受けられるようにする。
-  - tier1 SDK を直接組み込めない言語からは tier1 が提供する
-    ゲートウェイ経由で infra にアクセスさせる。
-    .proto を単一の真とし、Envoy Gateway の gRPC-JSON Transcoder で
-    HTTP/1.1 + JSON エンドポイントを派生させる方式を採る。
-    （詳細は「tier1 SDK 設計方針」を参照）
+  - tier1 Library を直接組み込めない言語については、ビジネス API と
+    観測可能性を分けて提供する。
+      - ビジネス API：tier1 が提供するゲートウェイ経由で infra に
+        アクセスさせる。.proto を単一の真とし、Envoy Gateway の
+        gRPC-JSON Transcoder で HTTP/1.1 + JSON エンドポイントを
+        派生させる。
+      - 観測可能性 / 認証コンテキスト伝播：Observability Companion を
+        別途提供する。.NET Framework 4.6.2+ では OpenTelemetry .NET
+        Auto-Instrumentation（CLR Profiler アタッチ方式、コード変更
+        不要）を標準とし、Auto-Instrumentation 非対応環境向けには
+        NuGet 参照型の Companion を補助的に提供する。
+    （詳細は「05_tier1」配下の各方針メモを参照）
