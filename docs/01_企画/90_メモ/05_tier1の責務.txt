@@ -21,3 +21,4 @@ tier1 の責務（infra 隠蔽）
 
 Server系：Rust
 tier2,tier3への配布用Library：Rust,C#,go,typescript
+tier2,tier3のユーザー(業務)に適する言語で開発できるようにLibraryでサポートする。
