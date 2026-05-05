@@ -16,7 +16,9 @@ tier1 Server系（ランタイム成果物）
       - 方式：
           - ビジネス API：.proto を単一の真とし、Envoy Gateway の
             gRPC-JSON Transcoder で HTTP/1.1 + JSON エンドポイントを
-            派生させる。
+            派生させる。.proto は External / Internal の 2 層に分離し、
+            Gateway が直接派生対象とするのは External 側のみとする
+            （詳細は本ファイル末尾「Proto 二層化」を参照）。
           - 観測可能性：W3C Trace Context（traceparent / tracestate /
             baggage）を未着信なら生成、着信していれば継承する。
             リクエストメトリクス（status / latency / size）を
@@ -58,3 +60,42 @@ tier1 Server系（ランタイム成果物）
     プラットフォーム側で「動かす」成果物として扱う。
   - tier2 / tier3 から見た契約面（API / プロトコル）は Library と同様、
     .proto を単一の真とする。
+
+■ Proto 二層化（External / Internal）
+  - 背景：gRPC-JSON Transcoder は streaming RPC、google.protobuf.Any、
+    一部 well-known types の JSON 表現に制約がある。Library 非対応言語
+    の都合で内部 RPC の proto まで妥協する「逆流」を避けるため、
+    .proto を External / Internal の 2 層に分離する。
+  - External Proto
+      - 用途：Gateway 経由で Library 非対応言語（.NET Framework など）
+        に公開する API 専用。
+      - 制約：Transcoder で安全に JSON 派生できるサブセットに限定する。
+          - streaming RPC 禁止（必要なら SSE 等で別経路に切り出す）。
+          - google.protobuf.Any 禁止（既知型の oneof に置換、真に動的
+            な場合は bytes + content_type）。
+          - well-known types（Timestamp / Duration / FieldMask 等）の
+            JSON 表現を固定する（RFC3339 / "1.5s" / カンマ区切り など）。
+          - oneof は discriminator フィールドを併記して使う。
+          - 全 RPC に google.api.http アノテーションを必須とし、HTTP
+            メソッド / パス / pagination フィールド命名を規約化する。
+      - 強制：上記プロファイルは Buf の lint ルールとして CI で機械的に
+        強制する。
+      - 互換性：レガシー側の互換性を最優先し、破壊的変更は厳格に管理
+        する（buf breaking 相当の差分検査を CI で行う）。
+  - Internal Proto
+      - 用途：tier1 Server 系内部 / Library を組み込んだ言語（Rust /
+        C# / Go / TypeScript）間の RPC。
+      - 制約：proto のフル機能（streaming、Any、深いネスト等）を許容
+        する。External の制約は適用しない。
+  - 変換境界
+      - External Proto を受けた tier1 ハンドラ（Gateway 配下）で
+        Internal Proto への射影を行う。Backend-for-Library 配下の権限
+        処理（トークン検証 / 認可ポリシー評価等）は Internal Proto で
+        受ける。
+      - 「External 経路の都合で Internal Proto を曲げない」ことを
+        構造的に担保するため、External ↔ Internal の対応関係（フィー
+        ルド射影、欠落フィールドの既定値）は tier1 リポジトリ内で
+        宣言的に管理し、CI で差分検査する。
+  - 「.proto を単一の真」とする原則は維持される。真とは External /
+    Internal の両 proto セットの集合であり、両者の整合は tier1 の
+    責務とする。
