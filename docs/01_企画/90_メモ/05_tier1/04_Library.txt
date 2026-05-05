@@ -7,7 +7,8 @@ tier1 Library 設計方針
     する。現行採用 OSS は実装の詳細であり、Library の表面 API には漏らさ
     ない。
   - tier2 / tier3 は本 Library のみを通じて infra にアクセスする。OSS の
-    クライアントライブラリを直接 import することは禁止する。
+    クライアントライブラリを直接 import することは禁止する（機械的担保は
+    本ファイル「強制機構」節を参照）。
   - Library を直接組み込めない言語（.NET Framework など）に対しては、
     ビジネス API と観測可能性を分けて提供する。
       - ビジネス API：tier1 提供のゲートウェイ経由でアクセスする。
@@ -84,6 +85,52 @@ tier1 Library 設計方針
   - トレース / ログ / メトリクスへの自動計装。
   - リトライ / タイムアウト / サーキットブレーカ等のレジリエンス。
   - マルチテナント識別子の伝播と分離。
+
+■ 強制機構（OSS 直接 import 禁止の機械的担保）
+  - 「OSS クライアントを直接 import しない」方針を運用で空文化させない
+    ため、以下 3 層を多重に設ける（defense-in-depth）。いずれの層も CI
+    の必須チェックとして組み込み、後付け運用や例外申請に依存しない。
+  - 層 1 ：依存導入レベル（tier2 / tier3 リポジトリ側）
+      - 各言語の標準ツールで OSS クライアントの import 自体を機械的に
+        禁止する。
+          Rust         : cargo-deny の [bans] で Kafka / PostgreSQL /
+                         Temporal / Valkey / Object Storage 等のクライ
+                         アント crate を deny。
+          C# (.NET 8+) : BannedApiAnalyzers の BannedSymbols.txt で OSS
+                         の名前空間を禁止し、Central Package Management
+                         で未承認パッケージの参照自体を弾く。
+          Go           : golangci-lint の depguard で OSS クライアントの
+                         import パスを deny。
+          TypeScript   : eslint-plugin-import の no-restricted-imports と
+                         eslint-plugin-boundaries で禁止と層越境を検出。
+      - 上記設定は Backstage の Software Template に同梱し、tier2 /
+        tier3 リポジトリ生成時点で組み込む。
+  - 層 2 ：Library 公開 API 表面レベル（tier1 側）
+      - Library が OSS 型を再エクスポート（Rust の pub use、C# の
+        public 露出 等）すると、層 1 を満たしても業務コードが間接的に
+        OSS 概念へ依存する。これを防ぐため、Library 公開 API を
+        snapshot 化し差分を CI で検査する。
+          Rust         : cargo public-api。
+          C#           : Microsoft.CodeAnalysis.PublicApiAnalyzers
+                         （PublicAPI.Shipped.txt 運用）。
+          Go           : go-apidiff と自製 go/analysis を併用。
+          TypeScript   : api-extractor の .d.ts rollup。
+      - L3 / L2 カテゴリは公開シグネチャに OSS 型が現れたら CI fail と
+        する。L1 カテゴリは「05_提供機能カテゴリ」の露出概念一覧と
+        allowlist 一致を検査する。
+  - 層 3 ：供給経路レベル（内部パッケージリポジトリの一元化）
+      - tier2 / tier3 のビルドが OSS クライアントを物理的に取得できな
+        いよう、内部パッケージリポジトリを唯一の取得元に固定する。
+          Rust         : 内部 cargo registry を [source.crates-io] で
+                         置換。
+          C#           : 内部 NuGet feed のみ nuget.config に登録。
+          Go           : Athens 等の内部 module proxy を GOPROXY に固定。
+          TypeScript   : Verdaccio 等の内部 npm registry に固定。
+      - 内部リポジトリには Library と承認済み補助パッケージのみを公開
+        し、Kafka / Temporal / PostgreSQL 系等の OSS クライアントは
+        置かない。Library リポジトリの CI に限り、外部 feed を許可する。
+      - 「02_採用OSS一覧」[6] サプライチェーン / セキュリティ の
+        Harbor / Cosign / Trivy と整合する形で構築する。
 
 ■ Observability Companion（Library 非対応言語向け追加提供）
   - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に
