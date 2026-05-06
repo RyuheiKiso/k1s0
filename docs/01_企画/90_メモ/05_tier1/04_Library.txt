@@ -16,8 +16,11 @@ tier1 Library 設計方針
         HTTP/1.1 + JSON / NDJSON エンドポイントを派生させる
         （streaming RPC の扱い詳細は「05_tier1/03_Server系」Proto
         二層化 / RPC 形式の射影方針を参照）。
-      - 観測可能性 / 認証コンテキスト伝播：Observability Companion を
-        別途提供する（詳細は本ファイル末尾を参照）。
+      - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation：
+        Companion を別途提供する。観測可能性と認証コンテキスト伝播
+        を役割 A、bidi を含む RPC の transport 選択と等価実装を
+        役割 B として担う（詳細は本ファイル末尾「Companion」節を
+        参照）。
 
 ■ パッケージ構成（frontend / backend 分離方針）
   - Library は core / frontend / backend の 3 パッケージで構成し、
@@ -265,11 +268,20 @@ tier1 Library 設計方針
     変更等の予兆が出た時点で候補のうち 1 つを正式移行先として toolchain
     実装に進める。
 
-■ Observability Companion（Library 非対応言語向け追加提供）
+■ Companion（Library 非対応言語向け追加提供）
   - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に
-    対し、観測可能性 / 認証コンテキスト伝播 / streaming トランスポート
-    の薄物を担う。ビジネス API 抽象は含まない（ビジネス API のスキーマ
-    / セマンティクスは引き続き Gateway 経由で利用する）。
+    対し、二つの役割を担う薄物として提供する。
+      役割 A : Observability / 認証コンテキスト伝播
+      役割 B : Transport Negotiation Runtime（bidi を含む RPC の
+               transport 選択と等価実装。tier1 Server系 の
+               Transport Adapter Layer と対をなすクライアント実装）
+  - 共通スコープ：ビジネス API 抽象（Messaging / Relational Store /
+    Workflow など）は含まない。ビジネス API のスキーマ / セマンティ
+    クスは引き続き Gateway 経由で .proto を真として利用する。
+    Companion は「proto に書かれた意味論を、レガシー言語の HTTP / IO
+    スタックの上で透過に実行する runtime」と位置付ける。
+
+  ── 役割 A : Observability / 認証コンテキスト伝播
   - 標準形態：.NET Framework 4.6.2+ 向けに OpenTelemetry .NET
     Auto-Instrumentation を採用する。CLR Profiler によるアタッチ方式
     で、アプリケーションのソースコード変更を不要とする。HttpClient /
@@ -279,18 +291,6 @@ tier1 Library 設計方針
     NuGet 参照型の Companion を提供する。HttpClient 用
     DelegatingHandler、Authorization / traceparent / テナント識別子の
     伝播ヘルパ、Logger 拡張のみを含む。
-  - streaming トランスポートヘルパ：External Proto の server-streaming
-    RPC を扱うため、NDJSON（application/x-ndjson）リーダを NuGet 参照
-    型 Companion に同梱する。HttpClient.ResponseHeadersRead に基づく
-    chunk 消費・キャンセル・再接続を内蔵し、レガシー側に streaming
-    トランスポートの自製を要求しない。client-streaming /
-    bidirectional streaming は Server系 側で unary 射影に変換済みの
-    ため、本ヘルパの対象外とする（詳細は「05_tier1/03_Server系」
-    RPC 形式の射影方針を参照）。
-  - スコープ外：いずれの形態も Library が提供する機能カテゴリ
-    （Messaging / Relational Store / Workflow など）の抽象は含まない。
-    streaming トランスポートヘルパも proto 上の RPC 定義および NDJSON
-    のデシリアライズ補助に留まり、業務セマンティクスの解釈は行わない。
   - core スキーマとの整合：構造化ログ / span attribute 名は言語中立
     のスキーマ定義（YAML、OpenTelemetry Semantic Conventions 拡張
     形式）を単一の真とし、OpenTelemetry Weaver で各言語の定数コード
@@ -307,3 +307,61 @@ tier1 Library 設計方針
     OpenTelemetry Collector を起動し、Companion / 各言語 Library
     から実際に emit される span / log 属性をゴールデン値と比較する。
     スキーマ定義 → 生成定数 → 実行時出力の 3 点を CI で連結する。
+
+  ── 役割 B : Transport Negotiation Runtime
+  - 位置づけ：tier1 Server系 の Transport Adapter Layer
+    （「03_Server系」参照）と対をなすクライアント実装。proto に
+    宣言された bidi semantics（ordering / half_close / resumable /
+    max_msg_lag_ms / conformance_class）を、レガシー言語上で
+    transport 非依存に実行する責務を持つ。
+  - 提供 API：bidi RPC に対しては言語ごとに統一インタフェース
+    （C# 例：IBidiChannel<TReq, TResp>）を提供し、その裏で Gateway
+    が選んだ chosen_transport に応じた adapter 実装が動作する。
+    アプリ側は transport 種別を意識しない。server-streaming RPC も
+    同様に統一 API（IServerStream<TResp>）で受ける。
+  - 同梱 adapter（Companion 側受信実装）：
+      sse_paired       : 既定。HttpClient.ResponseHeadersRead を用い
+                         た NDJSON リーダ + 送信用 unary POST。
+                         chunk 消費・キャンセル・再接続・
+                         Last-Event-ID 相当の resume_token を内蔵。
+      long_poll        : cursor 付き short poll の組合せ。長時間
+                         接続を切る proxy 越えに用いる。
+      webhook          : レガシー側で IIS / WCF / HttpListener が
+                         利用可能な場合の opt-in。受信ハンドラ枠 +
+                         認証検証を同梱。
+      websocket        : ClientWebSocket ベース。.NET Framework
+                         4.6.2+ で動作確認可能な範囲のみ提供する。
+      web_transport    : .NET 8+ 等、QUIC / WebTransport クライアント
+                         を持つ環境向け。.NET Framework Companion
+                         には載せない。
+      messaging_bridge : Kafka / AMQP の REST Proxy / 単純クライアント
+                         越しに bidi メッセージを搬送する形態。
+                         ネットワーク完全分離環境向け。
+  - Conformance proof：各 adapter は tier1 Server系 の Transport
+    Adapter Layer と同一の conformance scenario corpus
+    （「03_Server系」Conformance Equivalence の機械的担保）に対して
+    green を merge 条件とする。片側でしか通らない adapter はその
+    時点で当該 conformance class の preferred transport から外す。
+  - capability 宣言：Companion は起動時に自身が利用可能な adapter
+    一覧 / TLS バージョン / inbound 可否 / max message size 等を
+    Open RPC の client_capabilities として送出する。Gateway が選んだ
+    chosen_transport を尊重する。アプリ側のコード変更は伴わない。
+  - resume の透過化：bidi RPC が resumable: REQUIRED を持つ場合、
+    Companion は transport 切替（例：SSE 切断 → 再接続、または
+    websocket → sse_paired への降格）を跨いで session を継続する。
+    アプリは onMessage / send の API しか見えず、再接続は Companion
+    内部で完結する。
+  - スコープ外：proto に書かれた意味論を実行することに留め、
+    Library が提供する機能カテゴリ（Messaging / Relational Store /
+    Workflow など）の抽象は持たない。Transport Negotiation も
+    「proto 上の RPC を運ぶ」までの責務で、業務セマンティクスの
+    解釈・補正は行わない。
+
+  ── 長期収斂
+  - tier1 側の Adapter Layer 退役（webhook / long_poll / sse_paired
+    等の段階的廃止）に追随し、Companion 側 adapter も同期して退役
+    する。Adapter の追加 / 退役はいずれもアプリのコード変更を伴わ
+    ない（capability 宣言からの自動降格 / 自動採用で吸収する）。
+  - レガシー言語そのものが対象 fleet から退役した時点で Companion
+    自体の保守も終了する。その時点で Proto 二層化も単層へ collapse
+    する（「03_Server系」Proto 二層化「長期方針」を参照）。

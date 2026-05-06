@@ -73,7 +73,14 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - Secret Management              : External Secrets Operator 経由
                                      （Provider 差し替えに対し Library API 不変）
   - RPC / Gateway                  : gRPC（Library 経由言語向け） +
-                                     gRPC-JSON Transcoder 派生（External 経路）
+                                     Transport Adapter Layer による
+                                     transport-neutral な External 公開
+                                     （sse_paired / websocket / webhook /
+                                      web_transport / long_poll /
+                                      messaging_bridge を conformance
+                                      proof で等価実装。詳細は
+                                      「03_Server系」Transport Adapter
+                                      Layer を参照）。
   - KeyValue / Cache               : RESP 族
                                      （Valkey / Dragonfly / KeyDB）
   - Object Storage                 : S3 API 族
@@ -98,3 +105,28 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   L1+ では day-1 で複数 backend を並走させない。OSS ライフサイクル
   イベント時に tier1 が移行 toolchain を成果物として提供する
   （詳細は「04_Library」L1+ 移行コミットメント節を参照）。
+
+■ RPC / Gateway カテゴリの追加次元（transport-neutral）
+  - 本カテゴリは L3（OSS 中立）に加え、もう一つの中立性次元を持つ。
+    Transport Adapter Layer により、bidi を含む全 RPC 形式は transport
+    （wire 上の搬送方式）からも独立に表現される。
+  - これは「異なる transport（HTTP/2 + gRPC / HTTP/3 + WebTransport /
+    HTTP/1.1 + WebSocket / HTTP/1.1 + NDJSON / inbound webhook /
+    cursor poll / messaging bridge 等）が同じ bidi semantics を等価
+    実装する」ことを CI で証明する形で担保される。proto に宣言された
+    意味論（ordering / half_close / resumable / max_msg_lag_ms /
+    conformance_class）が単一の真であり、transport はその interpreter
+    として複数並立する。
+  - 受け入れ基準（業務コードへの影響）：
+      - 新 transport の追加 : 業務コード無変更（adapter 追加のみ）。
+      - 古い transport 退役 : 業務コード無変更（capability 宣言から
+                              自動降格）。
+      - transport 切替（例：SSE → WebSocket）: 業務コード無変更
+                              （Companion / Library 内部で完結）。
+  - 「OSS 中立」と「transport 中立」の二軸が成立することにより、本
+    カテゴリは tier2 / tier3 から見た最も安定した抽象表面となる。
+    External / Internal proto 二層化（「03_Server系」参照）も、本軸
+    の成熟に伴い長期的には単層へ collapse する。
+  - この発想は L1+「単一 OSS 深耕 + 移行コミットメント」の哲学を
+    transport 軸に転写したもの（単一 transport 深耕ではなく、bidi
+    semantics 深耕 + transport 移行コミットメント）として位置付ける。

@@ -13,13 +13,16 @@
   サービスメッシュ               | Istio                            | Apache 2.0
   メッセージング                 | Apache Kafka (Strimzi Operator)  | Apache 2.0
 
-  ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 ゲートウェイの
-    前段で gRPC-JSON Transcoder（stream_json_responses 有効化）を担う。
-    .NET Framework などレガシー言語向けの HTTP/1.1 + JSON / NDJSON 経路
-    は、proto を単一ソースとして同 filter で派生させる。client-streaming
-    / bidirectional streaming は External Proto に直接出さず unary 射影
-    で扱うため、gRPC-Web filter は現時点で常用しない（詳細は
-    「05_tier1/03_Server系」Proto 二層化 / RPC 形式の射影方針を参照）。
+  ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
+    Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 +
+    WebTransport、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1 + chunked
+    NDJSON（gRPC-JSON Transcoder の stream_json_responses 経由）等の
+    transport を同一クラスタ内で並立させる。bidi semantics は proto
+    に宣言された意味論を単一の真とし、各 transport adapter が
+    conformance proof で等価実装する。client-streaming は当面 External
+    Proto に直接出さず unary 射影（resumable upload 形式）で扱う。
+    詳細は「05_tier1/03_Server系」Proto 二層化 / Transport Adapter
+    Layer を参照。
 
 ------------------------------------------------------------
 [2] オブザーバビリティ
@@ -63,9 +66,12 @@
     出さない）。
   ※ .NET Framework 向けには OpenTelemetry .NET Auto-Instrumentation
     （CLR Profiler アタッチ方式、Apache 2.0）を併用する。tier1 Library
-    を直接組み込めない言語向けの観測可能性 Companion として位置付ける。
+    を直接組み込めない言語向けの Companion（観測可能性 + Transport
+    Negotiation の二役割）の観測可能性役割の標準形態として位置付ける。
     Auto-Instrumentation 非対応環境（4.6.1 以前など）向けには NuGet
-    参照型の Companion を補助的に提供する。
+    参照型の Companion を補助的に提供する。Transport Negotiation 役割
+    は OpenTelemetry Auto-Instrumentation とは独立に NuGet 参照で配布
+    する（詳細は「05_tier1/04_Library」Companion 節）。
 
 ------------------------------------------------------------
 [3] 開発言語

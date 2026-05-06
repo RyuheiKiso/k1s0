@@ -21,9 +21,14 @@
         gRPC-JSON Transcoder で HTTP/1.1 + JSON / NDJSON エンドポイント
         を派生させる（streaming RPC の扱い詳細は「05_tier1/03_Server系」
         Proto 二層化 / RPC 形式の射影方針を参照）。
-      - 観測可能性 / 認証コンテキスト伝播：Observability Companion を
-        別途提供する。.NET Framework 4.6.2+ では OpenTelemetry .NET
-        Auto-Instrumentation（CLR Profiler アタッチ方式、コード変更
-        不要）を標準とし、Auto-Instrumentation 非対応環境向けには
-        NuGet 参照型の Companion を補助的に提供する。
+      - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation：
+        Companion を別途提供する。.NET Framework 4.6.2+ では
+        OpenTelemetry .NET Auto-Instrumentation（CLR Profiler アタッチ
+        方式、コード変更不要）を観測可能性の標準とし、
+        Auto-Instrumentation 非対応環境向けには NuGet 参照型の
+        Companion を補助的に提供する。bidi を含む全 RPC は tier1 の
+        Transport Adapter Layer と対をなす Companion 内 adapter で
+        transport 非依存に実行される（詳細は「05_tier1/03_Server系」
+        Transport Adapter Layer / 「05_tier1/04_Library」Companion を
+        参照）。
     （詳細は「05_tier1」配下の各方針メモを参照）

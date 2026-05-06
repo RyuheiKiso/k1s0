@@ -20,8 +20,9 @@ tier1 の言語スタック
         として安定しない。
       - Library 非対応経路は「ビジネス API は Gateway 経由
         （HTTP/1.1 + JSON, External Proto 由来）」「観測可能性 /
-        認証コンテキスト伝播は Observability Companion」で代替する
-        枠を既に持っている（01_概要 / 04_Library 参照）。
+        認証コンテキスト伝播 / Transport Negotiation は Companion
+        （役割 A / 役割 B の二役割）」で代替する枠を既に持っている
+        （01_概要 / 04_Library 参照）。
   - 将来的に .NET Framework での gRPC 周辺事情が変わった場合も、
     Library 対応に組み入れるかどうかは「Library が抽象する全カテゴリ
     を素直に載せられるか」を基準に再判断する。Gateway + Companion で

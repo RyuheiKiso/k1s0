@@ -25,7 +25,7 @@ tier1 Server系（ランタイム成果物）
             リクエストメトリクス（status / latency / size）を
             Prometheus に送出する。Library 非対応言語経路の最低限の
             観測可能性は本レイヤで担保し、プロセス内計装は
-            Observability Companion で補完する（04_Library 参照）。
+            Companion 役割 A で補完する（04_Library 参照）。
           - 認証コンテキスト：envoy.filters.http.jwt_authn で OIDC
             トークンを検証し、クレームを内部ヘッダに展開する。
             tier1 Backend-for-Library 側で span attribute / 構造化
@@ -67,6 +67,16 @@ tier1 Server系（ランタイム成果物）
     一部 well-known types の JSON 表現に制約がある。Library 非対応言語
     の都合で内部 RPC の proto まで妥協する「逆流」を避けるため、
     .proto を External / Internal の 2 層に分離する。
+  - 長期方針（漸進的な単層化）：
+      External / Internal の二層分離は、現時点での gRPC-JSON Transcoder
+      の制約と Library 非対応言語の receive 能力差を吸収するための
+      過渡期の最適解と位置付ける。後述「Transport Adapter Layer」が
+      整備され、HTTP/3 + WebTransport を含む全 transport で bidi を
+      含む全 RPC 形式の意味論的等価性が conformance proof で保証される
+      段階に達した時点で、External の制約は段階的に解消され、二層は
+      単層 proto + transport ladder へ collapse する。.proto を単一の
+      真とする原則は変わらないが、「真」の集合は External / Internal
+      の二層から、最終的に単層へ縮約される。
   - External Proto
       - 用途：Gateway 経由で Library 非対応言語（.NET Framework など）
         に公開する API 専用。
@@ -109,18 +119,28 @@ tier1 Server系（ランタイム成果物）
       - server-streaming
           - External は NDJSON 派生（Transcoder の
             stream_json_responses）。レガシー側のチャンク消費は
-            Companion の streaming トランスポートヘルパに委譲する
-            （詳細は「05_tier1/04_Library」Observability Companion
-            を参照）。
+            Companion 役割 B の sse_paired adapter に委譲する
+            （詳細は「05_tier1/04_Library」Companion 節を参照）。
       - client-streaming
           - External には直接出さない。External Proto では
             resumable upload 形式（Init → 分割 PUT → Commit）の
             unary 3 連 RPC に射影する。
       - bidirectional streaming
-          - External には直接出さない。External Proto では
-            コールバック URL 登録 RPC + サーバ側からの webhook POST
-            のペアに射影する。レガシー側は受信エンドポイントを
-            別途公開する。
+          - External には Internal の bidi RPC をそのまま「bidi の
+            意味論を持つ proto 表面」として公開する。射影は wire 形式
+            ではなく後述「Transport Adapter Layer」が担う。
+          - Adapter は capability negotiation で選択される。outbound
+            のみのレガシーには sse_paired（Open / Send / Receive /
+            Close の unary + server-streaming NDJSON ペア）を既定と
+            して割り当て、inbound 受信能力を持つレガシーには webhook
+            adapter を opt-in で割り当てる。WebSocket / WebTransport /
+            long_poll / messaging_bridge も同列の選択肢として扱う。
+          - .proto 上は bidi のままに保ち、「Internal は bidi だが
+            External では一部 unary 射影」という二重表現は廃する。
+            bidi が持つ意味論的不変量（順序保証 / half-close /
+            resumable / realtime 上限）は次節「Transport Adapter
+            Layer」で proto option として宣言し、各 Adapter が等価
+            実装することを CI で証明する。
       - 長時間ジョブの進捗
           - 進捗を streaming で外に出さない。Internal / External
             とも「Start RPC → cursor 付き GetStatus / Poll RPC」の
@@ -132,3 +152,96 @@ tier1 Server系（ランタイム成果物）
   - 「.proto を単一の真」とする原則は維持される。真とは External /
     Internal の両 proto セットの集合であり、両者の整合は tier1 の
     責務とする。
+
+■ Transport Adapter Layer
+  - 位置づけ：bidi を含む RPC 形式を、transport（wire 上の搬送方式）
+    から切り離して提供する Gateway 内部のレイヤ。tier2 / tier3 から
+    見える .proto を「bidi semantics の単一の真」とし、それを実現する
+    transport を複数並立させる。
+  - 設計の核：
+      - bidi semantics を proto で形式化する（次項）。
+      - Internal の bidi state machine を一つだけ持ち、複数の
+        transport adapter がその front-end として dispatch する。
+      - 各 adapter は同一の conformance scenario corpus に対して
+        green を merge 条件とし、意味論的等価性を CI で証明する。
+      - クライアントが capability を宣言し、Gateway が「conformance
+        を満たす中で最高優先度」の transport を選択する。
+  - bidi semantics の proto 形式化：
+      - bidi RPC には次の option を必須とする。Buf の custom lint で
+        欠落 / 矛盾を CI で検出する。
+            tier1.bidi.ordering           : SESSION_ORDERED | CAUSAL | UNORDERED
+            tier1.bidi.half_close         : SUPPORTED | UNUSED
+            tier1.bidi.resumable          : REQUIRED | NONE
+            tier1.bidi.max_msg_lag_ms     : realtime 上限（数値、
+                                            0 = 無指定）
+            tier1.bidi.conformance_class  : テストケース集合の識別子
+                                            （例 "tier1.bidi.v1"）
+      - これらは「External / Internal の対応マップ」（Proto 二層化）
+        の射影テンプレートと並ぶ第二の意味論宣言として扱う。射影
+        テンプレートが「フィールド構造の宣言」であるのに対し、本
+        option は「意味論的不変量の宣言」となる。
+  - Adapter 一覧（初期セット）：
+      adapter             | substrate                    | 主な対象
+      --------------------+------------------------------+----------------------------------
+      grpc_native         | HTTP/2 + gRPC                | Library 対応言語（直結）
+      web_transport       | HTTP/3 + QUIC + WebTransport | 将来のモダンクライアント
+      websocket           | HTTP/1.1 Upgrade             | モダンブラウザ / .NET 8+
+      sse_paired          | HTTP/1.1 chunked + NDJSON    | .NET Framework 4.6.2+ outbound
+      long_poll           | HTTP/1.1 cursor poll         | 長時間接続を切る proxy 越え
+      webhook             | inbound POST                 | IIS / WCF 同居型レガシー
+      messaging_bridge    | Kafka / AMQP                 | ネットワーク完全分離環境
+      - 各 adapter は tier1 内の Rust crate として実装し、Internal
+        の bidi state machine に同一インタフェースで接続する。
+        Companion 側にも対応する受信実装を同梱する（詳細は
+        「04_Library」Companion 節を参照）。
+      - Adapter の追加は purely additive、退役は capability 宣言
+        からの自動降格で行う。proto および業務コードはいずれの場合も
+        無変更とする。
+  - Capability Negotiation：
+      - Open RPC で client_capabilities（サポート adapter 一覧 / TLS
+        バージョン / inbound 可否 / max message size 等）を必須宣言
+        する。
+      - Gateway は declared capability ∩ proto の conformance_class
+        を満たす adapter set の中から、サーバ側で定義した優先順位に
+        従って chosen_transport を返す。クライアント側は本ストリーム
+        を chosen_transport に切り替える。
+      - 同一 fleet 内で transport の混在を許容する。古いクライアント
+        は next-best へ自動的に落ち、新しいクライアントは最良 transport
+        を享受する。
+  - Conformance Equivalence の機械的担保：
+      - conformance_class（tier1.bidi.v1 など）ごとに固定の scenario
+        corpus を tier1 リポジトリで保持する。
+            happy path / 並列メッセージ / half-close / 中断と再開 /
+            slow consumer / proxy buffering 注入 / TLS 切断 /
+            大メッセージ / 長時間アイドル
+      - 全 adapter で同一コーパスを Testcontainers で実行し green
+        を merge 条件とする。L2* 同族保証（04_Library「L2* 同族保証
+        の機械的担保」）を transport 軸に貫徹したものとして位置付ける。
+      - 個別 adapter が満たさない conformance_class が出た場合、
+        その adapter は当該 class の preferred transport から自動
+        除外される。proto 側 / 業務コード側の修正は不要。
+  - Resume / Replay の transport 非依存化：
+      - resumable: REQUIRED の bidi RPC は、transport を跨いで
+        session を継続できることを保証する。
+      - Internal state machine が server-assigned monotonic seq を
+        全メッセージに付与し、resume_token = (session_id,
+        last_ack_seq) を Open RPC の optional 入力として受ける。
+      - 各 adapter は transport ごとの再接続プロトコル（SSE の
+        Last-Event-ID / WebSocket の resumption frame / long_poll
+        の cursor / WebTransport の session ticket 等）を、同一の
+        proto-level seq に機械的にマップする。
+      - これにより、ネットワーク瞬断時に adapter を跨いだ降格
+        （例：WebSocket → sse_paired）でも session を継続できる。
+  - 長期収斂：
+      - Adapter Layer の整備が進み、HTTP/3 + WebTransport が標準化
+        と runtime 普及を達成した段階で、External の Transcoder 由来
+        の制約（streaming 不可・Any 不可・well-known の表現）は不要
+        になる。この時点で Proto 二層化は単層へ collapse する
+        （Proto 二層化節「長期方針」を参照）。
+      - 古い adapter（webhook / long_poll / sse_paired）は capability
+        宣言から段階的に退役する。proto と業務コードは無変更で遷移
+        する。
+      - 本レイヤの哲学は「単一 OSS 深耕 + 移行コミットメント」
+        （04_Library L1+）を transport 軸に転写したものに当たる。
+        単一 transport 深耕ではなく、bidi semantics 深耕 + transport
+        移行コミットメントを採る。
