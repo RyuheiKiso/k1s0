@@ -157,6 +157,13 @@
   Feature Flag (標準 API)        | OpenFeature                      | Apache 2.0
   Feature Flag (評価エンジン)    | flagd                            | Apache 2.0
 
+  ※ Schema Registry の L2* 同族保証における代替実装として Karapace
+    （Aiven、Apache 2.0、Confluent Schema Registry wire 互換）を採用する。
+    Confluent Schema Registry は v5.0 以降 Confluent Community License
+    （OSI 非準拠）となっており、本企画の OSS 方針と整合しないため族
+    メンバーから外す。詳細は「05_tier1/05_提供機能カテゴリ」L2* 同族
+    定義を参照。
+
 ------------------------------------------------------------
 [9] インフラ / ネットワーク
 ------------------------------------------------------------

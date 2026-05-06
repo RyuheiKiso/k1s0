@@ -183,7 +183,7 @@ tier1 Library 設計方針
       - 想定の組合せ：
           Profiling              : Parca + Pyroscope
           Feature Flag           : flagd + GO Feature Flag
-          Schema Registry        : Apicurio + Confluent SR (OSS)
+          Schema Registry        : Apicurio + Karapace
           Vector Search          : pgvector + Qdrant
       - 片側でしか通らないテストが発生した時点で「その API は L2* として
         適格でない」とみなし、API を族内ポータブル範囲まで縮める、

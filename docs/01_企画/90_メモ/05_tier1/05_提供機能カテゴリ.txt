@@ -60,8 +60,8 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - Profiling                      : pprof 族（Parca / Pyroscope）
   - Configuration / Feature Flag   : OpenFeature provider 族
                                      （flagd / GO Feature Flag / GrowthBook 等）
-  - Schema Registry                : Confluent Schema Registry 互換族
-                                     （Apicurio / Confluent SR）
+  - Schema Registry                : Confluent Schema Registry wire 互換族
+                                     （Apicurio / Karapace）
   - Vector Search                  : k-NN 族
                                      （pgvector / Qdrant / Milvus、profile API 経由）
   族の外への差し替えは保証対象外。族の改廃自体は Library の破壊的変更
