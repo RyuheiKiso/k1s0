@@ -2,57 +2,66 @@
 tier1 Library 提供機能カテゴリと現行実装 OSS
 ============================================================
 
-  カテゴリ                        | 対象     | Lv | 主な提供 API                            | 現行実装 OSS
-  --------------------------------+----------+----+-----------------------------------------+--------------------------------------
-  Observability / Logging         | both     | L3 | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry Library + Collector → OpenSearch
-  Observability / Tracing         | both     | L3 | 分散トレース span 発行、伝播            | OpenTelemetry Library + Jaeger
-  Observability / Metrics         | both     | L3 | カウンタ / ヒストグラム / ゲージ        | OpenTelemetry Library + Prometheus
-  Observability / Profiling       | backend  | L2 | Continuous Profiling 有効化、ラベル付与 | Parca
-  Authentication / Authorization  | both     | L3 | OIDC クライアント、トークン検証、認可   | Keycloak
-  Secret Management               | backend  | L3 | シークレット取得、ローテーション通知    | OpenBao + External Secrets Operator
-  Configuration / Feature Flag    | both     | L2 | フラグ評価、動的設定読込                | OpenFeature + flagd
-  KeyValue / Cache                | backend  | L3 | KV 操作、TTL、分散ロック                | Valkey
-  Object Storage                  | backend  | L3 | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
-  RPC / Gateway                   | both     | L3 | inter-service RPC クライアント / サーバ | Envoy Gateway + gRPC
-  Messaging / EventBus            | backend  | L2 | publish / subscribe、Outbox 連携        | Apache Kafka (Strimzi)
-  Schema Registry                 | backend  | L2 | イベントスキーマ登録 / 取得 / 互換検証  | Apicurio Registry + Buf
-  Relational Store                | backend  | L2 | トランザクション、リポジトリ抽象        | PostgreSQL (CloudNativePG) + PgBouncer + pg_partman
-  Vector Search                   | backend  | L2 | ベクトル登録 / 類似検索                 | pgvector
-  Workflow / Long-running Saga    | backend  | L1 | Workflow / Activity 定義、補償処理      | Temporal
-  Rule Engine                     | backend  | L1 | 決定表評価、ルール実行                  | ZEN Engine
+  カテゴリ                                | 対象     | Lv  | 主な提供 API                            | 現行実装 OSS
+  ----------------------------------------+----------+-----+-----------------------------------------+--------------------------------------
+  Observability / Logging                 | both     | L3  | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry Library + Collector → OpenSearch
+  Observability / Tracing                 | both     | L3  | 分散トレース span 発行、伝播            | OpenTelemetry Library + Jaeger
+  Observability / Metrics                 | both     | L3  | カウンタ / ヒストグラム / ゲージ        | OpenTelemetry Library + Prometheus
+  Observability / Profiling               | backend  | L2* | Continuous Profiling 有効化、ラベル付与 | Parca
+  Authentication / Authorization          | both     | L3  | OIDC クライアント、トークン検証、認可   | Keycloak
+  Secret Management                       | backend  | L3  | シークレット取得、ローテーション通知    | OpenBao + External Secrets Operator
+  Configuration / Feature Flag            | both     | L2* | フラグ評価、動的設定読込                | OpenFeature + flagd
+  KeyValue / Cache                        | backend  | L3  | KV 操作、TTL、分散ロック                | Valkey
+  Object Storage                          | backend  | L3  | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
+  RPC / Gateway                           | both     | L3  | inter-service RPC クライアント / サーバ | Envoy Gateway + gRPC
+  Messaging / EventBus                    | backend  | L1+ | publish / subscribe、Outbox 連携        | Apache Kafka (Strimzi)
+  Schema Registry                         | backend  | L2* | イベントスキーマ登録 / 取得 / 互換検証  | Apicurio Registry + Buf
+  Relational Store / Single-leader        | backend  | L1+ | トランザクション、リポジトリ抽象、      | PostgreSQL (CloudNativePG) + PgBouncer + pg_partman
+                                          |          |     | パーティション lifecycle、拡張機能 API  |
+  Relational Store / Distributed SQL      | backend  | L1+ | 将来カテゴリ。tier3 がアーキテクチャ    | （未定）
+                                          |          |     | 設計時に Single-leader と排他選択する。 |
+  Vector Search                           | backend  | L2* | ベクトル登録 / 類似検索                 | pgvector
+  Workflow / Long-running Saga            | backend  | L1+ | Workflow / Activity 定義、補償処理      | Temporal
+  Rule Engine                             | backend  | L1+ | 決定表評価、ルール実行                  | ZEN Engine
 
 ■ 抽象化レベル（Lv）の意味
-  - L3 : OSS 中立。差し替え時、業務コードは無変更。
-  - L2 : 概念再定義。差し替え時、業務コードは型置換 + 一部チューニング
-         で済む（業務ロジックは不変）。
-  - L1 : 概念露出。OSS 概念が API 表面に出る。差し替え時は該当カテゴリ
-         の業務コードに設計レベルの修正が入る。
+  - L3   : 業界標準 wire / protocol が存在する領域。OSS 中立。差し替え
+           時、業務コードは無変更。
+  - L2*  : 軽セマンティクスかつ真に互換性の高い OSS 族が存在する領域。
+           差し替え時、業務コードは型置換 + 一部チューニングで済む
+           （業務ロジックは不変）。族の外への差し替えは保証外。
+  - L1+  : 高セマンティクス領域。単一 OSS への深耕を選ぶ代わり、OSS の
+           全機能（拡張・運用機能を含む）を Library API として表現する。
+           OSS ライフサイクルイベント時は tier1 が移行 toolchain を
+           成果物として提供する（移行コミットメント）。差し替え時は
+           当該カテゴリの業務コードに設計レベルの修正が入るが、tier1 が
+           toolchain で支援する。
   - レベル定義および各レベルの受け入れ基準は「04_Library」を参照。
 
-■ L1 / L2 カテゴリで露出する代表的な OSS 概念（差し替え時影響箇所）
-  - Profiling                      : profile 種別（cpu / heap / goroutine 等）、
-                                     サンプリングレート、ラベル基数
-  - Configuration / Feature Flag   : evaluation context、ターゲティング規則、
-                                     セグメント定義
-  - Messaging / EventBus           : 分割キー、順序保証、consumer pool、
-                                     再試行 / DLQ ポリシー、Outbox 設計
-  - Schema Registry                : 互換性モード、グループ / artifact 体系
-  - Relational Store               : トランザクション分離レベル、SQL 方言、
-                                     接続プーリングの制約、マイグレーション形式
-  - Vector Search                  : インデックス種別 / 距離関数、再構築コスト
-  - Workflow / Long-running Saga   : Workflow / Activity 境界、WorkflowID 体系、
-                                     補償処理の書き方、決定論実行の制約
-  - Rule Engine                    : 決定表 DSL、ルール評価セマンティクス
+■ L1+ / L2* カテゴリで露出する代表的な OSS 概念（移行時影響箇所）
+  - Profiling                              : profile 種別（cpu / heap / goroutine 等）、
+                                             サンプリングレート、ラベル基数
+  - Configuration / Feature Flag           : evaluation context、ターゲティング規則、
+                                             セグメント定義
+  - Schema Registry                        : 互換性モード、グループ / artifact 体系
+  - Vector Search                          : インデックス種別 / 距離関数、再構築コスト
+  - Messaging / EventBus                   : 分割キー、順序保証、consumer pool、
+                                             再試行 / DLQ ポリシー、Outbox 設計、
+                                             トランザクション送信
+  - Relational Store / Single-leader       : トランザクション分離レベル、advisory lock、
+                                             SQL 方言、接続プーリング制約、マイグレー
+                                             ション形式、パーティション lifecycle、
+                                             利用拡張（pg_trgm / PostGIS / pgvector 等）
+  - Workflow / Long-running Saga           : Workflow / Activity 境界、WorkflowID 体系、
+                                             補償処理の書き方、決定論実行の制約
+  - Rule Engine                            : 決定表 DSL、ルール評価セマンティクス
 
-■ L2 カテゴリの同族定義（差し替え保証対象範囲）
+■ L2* カテゴリの同族定義（差し替え保証対象範囲）
   - Profiling                      : pprof 族（Parca / Pyroscope）
   - Configuration / Feature Flag   : OpenFeature provider 族
                                      （flagd / GO Feature Flag / GrowthBook 等）
-  - Messaging / EventBus           : log-stream 族（Kafka / RedPanda / Pulsar）
   - Schema Registry                : Confluent Schema Registry 互換族
                                      （Apicurio / Confluent SR）
-  - Relational Store               : PostgreSQL wire 互換族
-                                     （PostgreSQL / CockroachDB / YugabyteDB）
   - Vector Search                  : k-NN 族
                                      （pgvector / Qdrant / Milvus、profile API 経由）
   族の外への差し替えは保証対象外。族の改廃自体は Library の破壊的変更
@@ -70,9 +79,22 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - Object Storage                 : S3 API 族
                                      （Ceph RGW / MinIO / SeaweedFS）
 
-■ L1 カテゴリの実装固定
-  - Workflow / Long-running Saga   : Temporal 単独
-  - Rule Engine                    : ZEN Engine 単独
-  L1 は OSS 中立を放棄しているカテゴリのため、差し替え検討は OSS そのもの
-  の改廃時にのみ発生する。差し替え時は当該カテゴリの業務コードに設計
-  レベルの修正が入る。
+■ L1+ カテゴリの本命 OSS と移行先候補
+  - Relational Store / Single-leader  : 本命       PostgreSQL (CloudNativePG)
+                                        移行先候補 別 PG operator
+                                                   （StackGres / Crunchy PGO / EDB）、
+                                                   Aurora PG、Neon
+  - Relational Store / Distributed SQL: 将来カテゴリ。tier3 がアーキテクチャ
+                                        設計時に Single-leader と排他選択する。
+                                        本命 OSS は未定（CR / YB / TiDB /
+                                        Spanner-API 等が候補）。実装着手は
+                                        顧客要件発生時。
+  - Messaging / EventBus              : 本命       Apache Kafka (Strimzi)
+                                        移行先候補 RedPanda、AWS MSK、Confluent Cloud
+  - Workflow / Long-running Saga      : 本命       Temporal
+                                        移行先候補 Cadence、Temporal Cloud
+  - Rule Engine                       : 本命       ZEN Engine
+                                        移行先候補 自製 DSL、別 OSS
+  L1+ では day-1 で複数 backend を並走させない。OSS ライフサイクル
+  イベント時に tier1 が移行 toolchain を成果物として提供する
+  （詳細は「04_Library」L1+ 移行コミットメント節を参照）。

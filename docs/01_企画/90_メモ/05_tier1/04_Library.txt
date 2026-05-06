@@ -39,52 +39,81 @@ tier1 Library 設計方針
 ■ 抽象化レベルの方針
   - 機能カテゴリごとに到達可能な抽象化レベルが異なる。一律に「OSS 差し
     替えで業務コード無変更」を受け入れ基準として課すと、Messaging /
-    Workflow / Saga / Rule Engine 等は「Library に乗らない」結論になり、
-    かえって tier2 / tier3 が OSS を直接触る抜け穴を生む。これを避ける
-    ため、Library は次の 3 段階の抽象化レベル（Lv）を認め、カテゴリ
-    ごとに到達目標を割り当てる。
+    Workflow / Saga / Rule Engine / Relational Store 等は「Library に
+    乗らない」結論になり、かえって tier2 / tier3 が OSS を直接触る抜け
+    穴を生む。これを避けるため、Library は次の 3 段階の抽象化レベル
+    （Lv）を認め、カテゴリごとに到達目標を割り当てる。
+  - 設計上の前提：
+      - 「OSS 差し替え」は日常運用ではなく、ライフサイクルイベント
+        （ライセンス変更・改廃・サポート終了等）として扱う。day-1 で
+        複数 backend を並走させ続けるよりも、ライフサイクルイベント時
+        に確実に移行できる toolchain を tier1 が用意する方が長期の
+        価値が高い。これを「移行コミットメント」として L1+ カテゴリに
+        適用する。
+      - 高セマンティクス領域（Relational / Messaging / Workflow / Rule）
+        では「型置換 + 一部チューニング」での差し替えは物理的に成立
+        しない（トランザクション分離・採番・ロック・順序保証などの
+        semantics 差が業務ロジックに染み出す）。L2 を無理に主張せず、
+        L1+ で深耕する。
 
   - L3 : OSS 中立
+      - 業界標準の wire / protocol（OIDC / OTLP / RESP / S3 / gRPC 等）
+        が存在し、複数 OSS 実装が同じ表面を提供する領域に限定する。
       - OSS 固有の型 / 概念を API 表面に一切出さない。
       - 受け入れ基準 : OSS 差し替え時、業務コード（tier2 / tier3）は無変更。
-      - 前提 : 当該カテゴリの wire / プロトコル仕様が業界標準として
-        確立しており、複数 OSS 実装が同じ表面を提供できること
-        （例：S3 API、RESP、OpenTelemetry、OIDC、gRPC）。
       - 想定対象 : Logging / Tracing / Metrics / Authentication / Secret /
         RPC / KeyValue / Object Storage。
 
-  - L2 : 同族内 OSS 中立
-      - OSS 固有の語彙は Library 独自語彙に翻訳する。分割キー / 順序
-        保証 / 再試行境界 / トランザクション境界 / インデックス種別
-        などの概念は API 表面に残す。
+  - L2* : 軽セマンティクス + 真に互換性の高い OSS 族
+      - 族の semantics 差が API 表面に出ても破壊的でない領域に限定する。
+        高セマンティクス領域（トランザクション境界・ロック挙動・採番・
+        順序保証等が業務ロジックに染み出す領域）には適用しない。
+      - OSS 固有の語彙は Library 独自語彙に翻訳する。族内で意味を保てる
+        範囲のチューニング概念（距離関数 / 互換性モード / evaluation
+        context / プロファイル種別等）は API 表面に残す。
       - カテゴリごとに「同族」を明示列挙し、その範囲内での差し替えを
         保証対象とする。族の外への差し替えは保証外であり、族の改廃
         そのものを Library の破壊的変更（major version up）として扱う。
       - 受け入れ基準 : 族内差し替え時、業務コードは型置換 + 一部チュー
         ニング（パラメータ調整・索引再設計など）で済み、業務ロジック
         の再設計は不要。
-      - 想定対象 : Profiling、Feature Flag、Messaging / EventBus、
-        Schema Registry、Relational Store、Vector Search。
+      - 想定対象 : Profiling、Feature Flag、Schema Registry、Vector Search。
       - 同族の具体定義は「05_提供機能カテゴリ」を参照。
 
-  - L1 : 概念露出
-      - OSS 固有の概念（Workflow / Activity 境界、補償処理の書き方、
-        決定表 DSL 等）が API 表面に出る。Library の責務は OSS の隠蔽
-        ではなく、以下の横断要素の強制に絞る。
-          - 認証コンテキスト / テナント識別子の伝播
-          - 構造化ログ / トレース / メトリクスの自動計装
-          - 共通エラー型 / リトライ・タイムアウトポリシー
-          - ベストプラクティスのテンプレート提供
+  - L1+ : 単一 OSS 深耕 + 移行コミットメント
+      - 高セマンティクス領域で、OSS の semantics 差が業務ロジックに
+        必然的に染み出す領域。複数 OSS 同時サポートを諦める代わりに、
+        単一 OSS の全機能（拡張・運用機能を含む）を Library API として
+        深く表現する。
+      - Library の責務 :
+          - 単一 OSS の全機能（拡張・運用機能を含む）を Library API
+            として漏れなく表現する。L3 / L2* で要求される「OSS 概念の
+            隠蔽」は意図的に放棄する。
+          - 横断要素（認証コンテキスト伝播 / 自動計装 / リトライ・
+            タイムアウト / マルチテナント識別子 / 共通エラー型 /
+            ベストプラクティステンプレート）を強制する。
+          - OSS バージョン跨ぎ（マイナー / メジャー）の互換維持と
+            移行支援。
+          - OSS ライフサイクルイベント時の移行 toolchain を成果物として
+            継続保持（schema / state diff、双方向 ETL、dual-write 移行、
+            observability の連続性確保。詳細は本ファイル「L1+ 移行
+            コミットメント」節を参照）。
       - 受け入れ基準 : OSS クライアントを直接 import させない経路を
-        Library として一本化し、差し替え時の影響範囲が「Library + 該当
-        カテゴリの業務コード」に限定できること（全層に波及しない）。
-      - 想定対象 : Workflow / Long-running Saga、Rule Engine。
+        Library として一本化し、ライフサイクルイベント時の影響範囲が
+        「Library + 該当カテゴリの業務コード + tier1 が提供する移行
+        toolchain」の三点に閉じること（全層に波及しない）。
+      - 露出される OSS 概念は「05_提供機能カテゴリ」の露出概念一覧に
+        明示する。OSS バージョンアップ / 移行時の影響範囲調査チェック
+        リストとして使う。
+      - 想定対象 : Relational Store / Single-leader、Messaging / EventBus、
+        Workflow / Long-running Saga、Rule Engine。将来カテゴリとして
+        Relational Store / Distributed SQL を予約（tier3 がアーキテク
+        チャ設計時に Single-leader と排他選択する位置付け）。
 
-  - L1 / L2 で API 表面に露出する OSS 概念は、カテゴリごとに「露出概念
-    一覧」として Library 側ドキュメントに明示する。OSS 差し替え時の影響
-    範囲調査チェックリストとして使う。
-  - L3 を狙えないことを理由に Library から外さない。代わりに L1 / L2
-    を選び、tier2 / tier3 が OSS を直接 import する経路を塞ぐことを
+  - L1+ / L2* で API 表面に露出する OSS 概念は、カテゴリごとに「露出概念
+    一覧」として Library 側ドキュメントに明示する。
+  - 抽象化レベルが低いことを理由に Library から外さない。代わりに L1+ /
+    L2* を選び、tier2 / tier3 が OSS を直接 import する経路を塞ぐことを
     優先する。
 
 ■ 横断的に Library が担う共通要素
@@ -122,9 +151,10 @@ tier1 Library 設計方針
                          （PublicAPI.Shipped.txt 運用）。
           Go           : go-apidiff と自製 go/analysis を併用。
           TypeScript   : api-extractor の .d.ts rollup。
-      - L3 / L2 カテゴリは公開シグネチャに OSS 型が現れたら CI fail と
-        する。L1 カテゴリは「05_提供機能カテゴリ」の露出概念一覧と
-        allowlist 一致を検査する。
+      - L3 / L2* カテゴリは公開シグネチャに OSS 型が現れたら CI fail
+        とする。L1+ カテゴリは「05_提供機能カテゴリ」の露出概念一覧と
+        allowlist 一致を検査する（一覧外の OSS 型が API 表面に出現
+        したら fail）。
   - 層 3 ：供給経路レベル（内部パッケージリポジトリの一元化）
       - tier2 / tier3 のビルドが OSS クライアントを物理的に取得できな
         いよう、内部パッケージリポジトリを唯一の取得元に固定する。
@@ -139,26 +169,27 @@ tier1 Library 設計方針
       - 「02_採用OSS一覧」[6] サプライチェーン / セキュリティ の
         Harbor / Cosign / Trivy と整合する形で構築する。
 
-■ L2 同族保証の機械的担保
+■ L2* 同族保証の機械的担保
   - 「同族内 OSS 中立」を文書上の願望で終わらせないため、以下を CI と
-    出荷物の両面で強制する。
+    出荷物の両面で強制する。L2* に該当しないカテゴリ（高セマンティクス
+    領域）は本節の対象外で、「L1+ 移行コミットメント」に従う。
   - 二バックエンド conformance（最重要）
-      - 各 L2 カテゴリで、本命 OSS と同族内代替 OSS の最低 2 実装を
+      - 各 L2* カテゴリで、本命 OSS と同族内代替 OSS の最低 2 実装を
         Testcontainers で同時に立ち上げ、共通の統合テストを両方で green
         にすることを merge 条件とする。
-      - 想定の組合せ（例）：
-          Messaging              : Kafka (Strimzi) + RedPanda
-          Schema Registry        : Apicurio + Confluent SR (OSS)
-          Relational Store       : PostgreSQL (CNPG) + CockroachDB
-          Vector Search          : pgvector + Qdrant
+      - 想定の組合せ：
           Profiling              : Parca + Pyroscope
           Feature Flag           : flagd + GO Feature Flag
-      - 片側でしか通らないテストが発生した時点で「その API は L2 として
+          Schema Registry        : Apicurio + Confluent SR (OSS)
+          Vector Search          : pgvector + Qdrant
+      - 片側でしか通らないテストが発生した時点で「その API は L2* として
         適格でない」とみなし、API を族内ポータブル範囲まで縮める、
-        または当該機能を L1 拡張へ降格する。
+        または当該カテゴリを L1+ へ昇格させる（単一 OSS 深耕 + 移行
+        コミットメントに切り替える）。
   - capability negotiation
-      - Library の初期化 API で、業務コード側が要求する能力（配信保証 /
-        順序保証 / トランザクション境界 / 距離関数など）を宣言させる。
+      - Library の初期化 API で、業務コード側が要求する能力（互換性
+        モード / 距離関数 / evaluation context 種別 / プロファイル種別
+        など）を宣言させる。
       - backend が要求能力を満たさない場合、起動時に fail-fast する。
         本番投入後の差し替えで silent な意味論変化が起きるのを防ぐ。
   - 露出概念 / 禁止概念の機械可読宣言
@@ -169,19 +200,70 @@ tier1 Library 設計方針
         語が API 表面に出現したら fail させる。
       - これは「強制機構」層 2 と同じ枠で動かす。
 
-■ 出荷時の二バックエンド方針
-  - L2 / L3 のうち、族内差し替えの実用可能性を継続的に保証したい
-    カテゴリは、CI conformance に加えて出荷時から複数バックエンドを
-    サポート対象として併走させる。
-  - day-1 で複数バックエンドを併走させる初期対象（最低限）：
-      Messaging              : Kafka + RedPanda
-      KeyValue / Cache       : Valkey + Dragonfly
-      Object Storage         : Ceph RGW + MinIO
-  - tier2 / tier3 リポジトリは Backstage Software Template で backend
-    を選択できる状態とし、テンプレート選択肢の存在自体を「族内差し替え
-    が機能している」生きた証跡として運用する。
-  - CI conformance のみだと運用 1 年で片側が腐るため、出荷物として
-    並走させること自体を保証手段に含める。
+■ 出荷時のバックエンド方針
+  - 抽象化レベルごとに方針を分ける。
+  - L3 カテゴリ（wire 互換）：
+      - 複数 OSS が wire 標準で互換のため、Library としてはどの実装でも
+        利用可能。Backstage Software Template には初期オプションとして
+        以下を含め、tier2 / tier3 が選択できる状態を維持する。
+            KeyValue / Cache       : Valkey、Dragonfly
+            Object Storage         : Ceph RGW、MinIO
+      - L3 はライセンス事情の変化等で実装を増減させる際の影響が小さい。
+        tier3 が複数の選択肢を持つこと自体を「wire 互換が機能している」
+        生きた証跡として運用する。
+  - L2* カテゴリ（同族）：
+      - CI conformance で同族の 2 実装の green を merge 条件とする
+        （前節「L2* 同族保証の機械的担保」）。日常運用で並走させるか
+        どうかは別判断とし、Library 本体としては並走を強制しない。
+      - tier2 / tier3 は本命 OSS を標準として運用し、族内代替の運用化
+        が必要になった時点で Backstage template に追加する。
+  - L1+ カテゴリ（深耕 + 移行コミットメント）：
+      - 本命 OSS のみを Backstage template の標準として提供する。
+        並走は行わない。
+      - 移行は OSS ライフサイクルイベント発生時に tier1 が toolchain で
+        支援する（次節「L1+ 移行コミットメント」）。
+      - 並走しないことを「責任放棄」にしないため、移行 toolchain の
+        年次 dry-run を実施し、移行可能性を継続的に検証する。
+
+■ L1+ 移行コミットメント
+  - 位置づけ：L1+ カテゴリは単一 OSS への深耕を選ぶ代わりに、OSS ライフ
+    サイクルイベント（ライセンス変更・改廃・サポート終了等）で発生する
+    移行作業を Library / tier1 が toolchain として成果物化する。day-1 で
+    複数 backend を並走させる方式は採らない。
+  - 移行 toolchain の成果物（カテゴリごとに整備）：
+      - schema / state 差分検出
+          DB なら schema diff、Workflow なら Workflow / Activity 定義の
+          差分、Rule Engine なら決定表 DSL の差分、Messaging なら
+          topic / consumer group / Schema Registry エントリの差分。
+      - 双方向 ETL / replication
+          Kafka なら MirrorMaker 2 系、PG なら logical replication /
+          pg_dump、Temporal なら state export / replay。
+      - dual-write 移行支援
+          移行期間中、新旧 backend に二重書き込みするための Library
+          抽象（書込 / 読取の正解 backend を ramp で切り替える）。
+      - observability 連続性
+          移行前後で span / metric の意味論を維持する Collector
+          プロセッサ設定とゴールデン値テスト。
+      - 業務コード移行ガイド
+          露出概念一覧を起点に、tier2 / tier3 側の修正点を機械的に
+          列挙したチェックリスト。
+  - 維持責務：
+      - 上記 toolchain は「ライフサイクルイベント時のみ作る」のではなく、
+        Library 本体と同じリポジトリで継続的に維持する。Library のバー
+        ジョンアップ時に toolchain も同時に CI で検証する。
+      - 移行先候補（カテゴリごとに 1 つ以上）を文書化し、Testcontainers
+        での dry-run 移行テストを年次で実施する。dry-run の green を
+        Library リリース条件に含める。
+  - 移行先候補（参考、確定ではない）：
+      Relational Store / Single-leader : 別 PG operator（CNPG ↔ StackGres
+                                          ↔ Crunchy PGO ↔ EDB Postgres）、
+                                          Aurora PG、Neon
+      Messaging / EventBus              : RedPanda、AWS MSK、Confluent Cloud
+      Workflow / Long-running Saga      : Cadence、Temporal Cloud
+      Rule Engine                       : 自製 DSL、別 OSS
+  - 移行先候補は ライフサイクル監視の対象であり、本命 OSS にライセンス
+    変更等の予兆が出た時点で候補のうち 1 つを正式移行先として toolchain
+    実装に進める。
 
 ■ Observability Companion（Library 非対応言語向け追加提供）
   - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に

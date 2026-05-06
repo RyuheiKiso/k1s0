@@ -93,18 +93,32 @@
   シークレット同期               | External Secrets Operator        | Apache 2.0
 
 ------------------------------------------------------------
-[7] データストア
+[7] データストア（コア）
 ------------------------------------------------------------
   カテゴリ                       | プロダクト                       | ライセンス
   -------------------------------+----------------------------------+-----------------------
   キャッシュ / KV                | Valkey                           | BSD-3
   RDBMS Operator                 | CloudNativePG                    | Apache 2.0
   RDBMS エンジン                 | PostgreSQL                       | PostgreSQL License
-  ベクトル拡張                   | pgvector                         | PostgreSQL License
-  パーティション拡張             | pg_partman                       | PostgreSQL License
   接続プーリング                 | PgBouncer                        | ISC
   オブジェクトストレージ         | Rook + Ceph (RGW)                | Apache 2.0 / LGPL-2.1
   分散ブロックストレージ         | Longhorn                         | Apache 2.0
+
+------------------------------------------------------------
+[7-b] PostgreSQL 拡張（Relational Store / Single-leader 深耕の構成要素）
+------------------------------------------------------------
+  カテゴリ                       | プロダクト                       | ライセンス
+  -------------------------------+----------------------------------+-----------------------
+  パーティション lifecycle       | pg_partman                       | PostgreSQL License
+  ベクトル検索                   | pgvector                         | PostgreSQL License
+
+  ※ これらは Relational Store / Single-leader（L1+）の深耕対象である
+    PostgreSQL ecosystem の構成要素として Library API に取り込む。
+    L2* 同族保証の対象外（PG 単独深耕 + 移行コミットメント）。
+  ※ pgvector は Vector Search カテゴリ（L2* / k-NN 族）の一実装としても
+    位置付ける。Vector Search は Relational Store とは独立した Library
+    として提供し、接続も独立して管理する（pgvector backend 選択時にも
+    Relational Store の backend 選択とは独立）。
 
 ------------------------------------------------------------
 [8] アプリケーション基盤
