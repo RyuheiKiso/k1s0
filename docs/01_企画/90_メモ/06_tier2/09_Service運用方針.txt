@@ -1,0 +1,105 @@
+============================================================
+tier2 Service の運用方針（プラットフォーム共有運用）
+============================================================
+
+■ 位置づけ
+  - tier2 が提供する Service 形態の機能は、プラットフォーム側
+    で共有運用する形態を取る。各 tier3 アプリケーションが個別
+    に tier2 Service をデプロイすることはしない。
+  - 共有運用とすることで、業務資産（マスタ / Workflow / 決定
+    表）のテナント横断的な整合性 / 監査 / 規制対応を集中して
+    担保する。
+  - tier3 ごとのデプロイテンプレート提供は本方針の対象外
+    （「02_位置づけ」「08_配布形態」参照）。
+
+■ Kubernetes 配置
+  - namespace : tier2 Service ごとに専用 namespace を切る
+    （tier2-fa / tier2-procurement / tier2-inspection /
+    tier2-cross-industry 等）。tier1 Service とは namespace を
+    分離する。
+  - Pod : Deployment による horizontal scaling。HPA で CPU /
+    メモリベースの自動スケール。
+  - Service Mesh : tier1 が運用する Istio に乗る。mTLS / トラ
+    フィック制御は Mesh が透過に担う（「05_tier1/06_非提供
+    スコープ」サービスメッシュ節と整合）。
+
+■ テナント分離（共有 Pod + 行レベル既定）
+  - 既定 : 共有 Pod 上で複数テナントが同居。tenant_id 述語を
+    必ず含めるリポジトリ抽象でデータを分離する（「06_マルチ
+    テナント方針」参照）。
+  - 専用 Pod / 専用 DB への昇格 :
+      - 規制 / SLO 要件で必要な場合に限定して昇格を許容する
+        （詳細は「06_マルチテナント方針」専用 Service 昇格
+        条件節を参照）。
+      - 昇格時も同一の Service コードベースを使い、k8s
+        manifest（namespace / Deployment / DB 接続情報）のみ
+        切り替える。業務コードは無変更。
+  - リソース isolation : 共有 Pod でも tier2 内部の per-tenant
+    rate limiter / concurrency limiter で隣接テナントの逼迫
+    影響を抑制する。
+
+■ 認証 / 認可
+  - クライアント認証 : tier1 Authentication（Keycloak）の OIDC
+    トークンを Authorization header で受領。Envoy Gateway で
+    検証後、tier2 Service に転送される。
+  - サービス間認証 : Istio の mTLS で透過に担保。tier2 Service
+    から tier1 のバックエンド（DB / Kafka 等）への接続は tier1
+    Library が認証を担う（「05_tier1/04_Library」横断的に
+    Library が担う共通要素を参照）。
+  - 認可 : tier2 の API ごとに必要なロール / スコープを宣言。
+    Keycloak の認可ポリシーで評価し、テナント識別子と組み合わ
+    せて決定する（「06_マルチテナント方針」認可節と整合）。
+
+■ 永続化
+  - DB : tier1 の Relational Store カテゴリ（CloudNativePG）を
+    使用する。tier2 Service ごとに論理 DB / schema を分離。
+  - DB schema は tier2 が所有し、tier3 / 運用は直接 schema 変更
+    を行わない（「07_業務資産所有権」参照）。
+  - migration : Backstage Software Template から sqlx-cli で
+    実施（tier1 の「05_tier1/06_非提供スコープ」開発体験 /
+    運用ツール節と整合）。
+
+■ ライフサイクル
+  - デプロイ : GitOps で manifest を管理。Argo CD または同等
+    の Operator でロールアウト。
+  - アップグレード :
+      - rolling update を既定とする。tier2 Service は接続中
+        セッションを drain してから停止する（特に Workflow /
+        Saga 関連は tier1 Temporal の機構に従って safe shutdown
+        する）。
+      - schema migration を伴うアップグレードは「13_互換性
+        ポリシー」に従い、互換 schema 期間を経てから旧 schema
+        を撤去する（dual-write 期間など）。
+  - ロールバック :
+      - schema migration が前方互換である限り、Service image
+        のロールバックは可能とする。後方互換性を破る migration
+        を含むリリースは原則として行わない。
+
+■ 観測可能性
+  - 既定で tier1 Library の自動計装に乗る（「05_tier1/04_
+    Library」横断的共通要素節）。tier2 Service は構造化ログ /
+    span / metric をすべて tier1 OpenTelemetry スキーマで emit
+    する。
+  - tier2 固有の業務 metric（業務イベント発行件数 / Workflow
+    完了率 / override 拡張点呼び出し回数 等）は OpenTelemetry
+    Semantic Conventions の tier2 拡張として宣言し、Companion
+    と同じ手順（OpenTelemetry Weaver）で各言語の定数コードを
+    生成する（「05_tier1/04_Library」Companion 役割 A 節と
+    同枠）。
+  - 可視化は tier1 のプラットフォーム標準 UI（Perses / Apache
+    Superset / Jaeger v2 UI）を使用する。tier2 自身は可視化 UI
+    を提供しない。
+
+■ SLO
+  - tier2 Service は API カテゴリごとに SLO を宣言する。共有
+    運用のため、テナント単位の SLO 違反が他テナントに波及しない
+    ことを per-tenant rate limiter / concurrency limiter で
+    担保する。
+  - SLO 監視は tier1 Metrics（Prometheus）に乗る。
+
+■ 障害対応 / インシデント
+  - tier2 Service の障害は tier1 のサービスメッシュ（Istio）
+    で transient な失敗を吸収。永続的失敗は tier1 Workflow
+    （Temporal）の補償機構と組み合わせて業務を確定状態に戻す。
+  - PII を含むエラー詳細はログに残さない（「14_業務エラー
+    監査コンプライアンス」参照）。

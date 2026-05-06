@@ -1,0 +1,92 @@
+============================================================
+tier2 の業務資産表現手段
+============================================================
+
+■ 方針
+  - tier2 の業務資産は「コード」「Schema 駆動」「DSL」「codegen」
+    の 4 つの表現手段から、対象資産の性質に応じて選択する。
+  - 一つの業務資産を複数手段で重複して表現することは禁止する
+    （単一の真を維持）。
+
+■ コード（一般的な業務ロジック）
+  - 対象 : aggregate / entity / domain service / value object
+    等のドメインモデル、API ハンドラ、リポジトリ実装。
+  - 言語 : 「12_言語スタック」記載の対応言語。
+  - 抽象化レベル別の責務 :
+      - 業界横断 / 業界共通 Lv はコードで実装（型安全 / 単体
+        テストで業務不変条件を守る）。
+      - テナント差分はコードでなく Schema / DSL / マスタで
+        吸収する（コードに分岐を増やさない）。
+
+■ Schema 駆動（多言語横断 / wire 一致が要るもの）
+  - 対象 : Domain Event の schema、API（Library + Service の
+    両形態で wire 等価が必要）、業務マスタの構造、設定値。
+  - 真の置き場 :
+      - API : .proto を単一の真とする（「02_位置づけ」「08_
+        配布形態」と整合）。tier2 の Library 表面 API も
+        Service 表面 API もここから派生させる。
+      - Domain Event : Apache Avro または Protobuf を使用。
+        tier1 Schema Registry（Apicurio）に登録し、互換性
+        モードを BACKWARD_TRANSITIVE で運用する。
+      - DB schema : SQL DDL を真とする。tier2 リポジトリで
+        sqlx-cli の migration を管理。tier3 は migration を
+        直接書かない。
+      - 業務マスタ構造 : YAML / JSON Schema を真とする。
+  - 多言語コード生成 :
+      - .proto から Rust / C# / Go / TypeScript の型 / クライ
+        アント / サーバスタブを生成。
+      - Domain Event の Avro / Protobuf から各言語の type を
+        生成。
+      - YAML マスタ構造から各言語の DTO を生成。
+  - 互換性検査は tier1 Schema Registry の互換性モードと、tier2
+    の公開 API snapshot 検査の二重で行う。
+
+■ DSL（業務ルール / 決定表）
+  - 対象 : 業務ルール、決定表、承認規則、計算式。
+  - 真の置き場 : ZEN Engine の決定表 DSL（tier1 Rule Engine
+    カテゴリの本命 OSS。「05_tier1/05_提供機能カテゴリ」参照）。
+  - tier2 のラッパ : 決定表 DSL を業務語彙で記述できる薄物を
+    tier2 が提供する。tier3 の override 拡張点は「上書き決定
+    表」として ZEN Engine の評価チェーンに挿入する形を取る
+    （「07_業務資産所有権」参照）。
+  - DSL を選ぶ理由 : 業務ルールは「業務担当が読み / 編集する」
+    対象。コードでなく決定表 DSL に置くことで、業務担当が直接
+    変更可能な状態を維持する（変更権限は別途認可で制御）。
+  - DSL を選ばない場合 : ルールが小規模で変更頻度が低い場合は
+    コードに置く。逆に、DSL に乗らない複雑なルール（外部 API
+    呼び出しを含む等）はコードで Strategy として実装する。
+
+■ codegen（重複削減 / 一貫性担保）
+  - 対象 :
+      - Schema 駆動の派生コード（前述）
+      - OpenTelemetry Semantic Conventions の tier2 拡張から
+        の定数コード（OpenTelemetry Weaver 経由。「09_Service
+        運用方針」観測可能性節と同枠）
+      - tier2 公開 API の snapshot file（cargo public-api /
+        PublicApiAnalyzers / api-extractor / go-apidiff）
+      - Domain Event の発行 / 購読ボイラープレート
+  - 生成タイミング : ビルド時に生成し、生成物は VCS にコミット
+    する（diff レビューで意図しない変化を検出）。
+  - 生成元 → 生成物の片方向性 : 生成物を手動編集することを
+    禁止する（CI で diff を検出して fail）。
+
+■ 「コード or DSL」の選択基準
+  - コード優先 :
+      - 型安全 / 単体テスト網羅で業務不変条件を守りたい
+      - 言語の標準ツールで refactor / 静的解析を効かせたい
+      - 業務担当による直接編集を許可しない
+  - DSL 優先 :
+      - 業務担当による直接編集 / レビューが業務上必要
+      - ルールの変更頻度が高く、コード再ビルド / 再デプロイを
+        回避したい
+      - テナント別の差分が多発し、override 数が多い
+  - どちらでもよい場合 : コードを既定とする（型安全と refactor
+    可能性を優先）。
+
+■ ドキュメント生成
+  - .proto / Avro / YAML マスタ構造から API 仕様書 / Domain
+    Event カタログを自動生成し、Backstage の TechDocs に公開
+    する。
+  - tier2 が提供する全業務資産（業界横断 + 製造業 pack）に
+    ついて、本ファイル「11_表現手段」のどの手段で表現されて
+    いるかを資産カタログに明記する。

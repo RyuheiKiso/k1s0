@@ -1,0 +1,134 @@
+============================================================
+tier2 の API 設計規約（wire 仕様）
+============================================================
+
+■ 方針
+  - .proto を単一の真とする方針（「02_位置づけ」「11_表現手段」
+    参照）の上で、wire 上の規約を本ファイルで定める。tier2 の
+    全 API（業界横断 / 業界 pack / Library / Service すべて）
+    に適用する。
+  - 言語間で実装がブレないよう、規約を YAML 宣言とし、CI で
+    実装に対し検査する（「16_強制機構」と同枠）。
+
+■ API バージョニング（wire 上の表現）
+  - URL path に major バージョンを含める（/v1/、/v2/ 等）。
+    minor / patch は URL に出さず SemVer の package version で
+    管理する（「13_互換性ポリシー」参照）。
+  - gRPC では proto package 名に major バージョンを含める
+    （例：tier2.cross_industry.notification.v1）。
+  - major version up 時の並行運用期間（「13_互換性ポリシー」
+    最長 6 ヶ月）に新旧 path / package を共存させる。
+  - tier3 / Companion 経由 tier3 は明示的に major バージョンを
+    指定して呼び出す。サーバ側で「最新 major へ自動 routing」
+    は行わない（silent な意味論変化を避ける）。
+
+■ エラーレスポンス形式
+  - gRPC ：google.rpc.Status を使用。tier2 の業務例外 taxonomy
+    （「14_業務エラー監査コンプライアンス」参照）を Status の
+    code + details に対応させる。
+      DomainError          → FAILED_PRECONDITION
+      ValidationError      → INVALID_ARGUMENT
+      BusinessConflict     → ABORTED
+      AuthorizationDenied  → PERMISSION_DENIED
+  - HTTP transcoded（Companion 経由 tier3 等）：RFC 7807
+    Problem Details + tier2 拡張フィールドを使用。
+      type     : tier2 業務エラーの URI 識別子
+      title    : 業務語彙の短い説明
+      status   : HTTP ステータス
+      detail   : 業務固有の詳細
+      instance : エラー発生 aggregate ID 等
+      tier2 拡張：error_code（業務エラーコード enum 値）、
+                  business_outcome（成功 / 業務的失敗 /
+                  システム失敗）、recovery_hints（推奨対応）
+  - 詳細メッセージに PII を含めない（「14_業務エラー監査
+    コンプライアンス」参照）。
+
+■ 冪等性（Idempotency）
+  - 状態変更 RPC（POST / PUT / DELETE 相当）は Idempotency-Key
+    header / metadata を必須とする。クライアントが UUID v4 を
+    生成して付与する。
+  - サーバ側は Idempotency-Key + tenant_id + RPC 名 + リクエスト
+    body のハッシュをキーとして結果を tier1 Valkey に 24 時間
+    キャッシュする。重複リクエストには同一レスポンスを返す
+    （「24_読み取りモデル方針」Cache 節と整合）。
+  - 取得系 RPC（GET 相当）は本来的に冪等のため Idempotency-Key
+    を要求しない。
+  - tier2 が呼び出す tier1 backend（DB / Kafka 等）への冪等性
+    確保は tier2 側で担保する（DB は unique 制約、Kafka は
+    transactional producer）。
+
+■ Pagination
+  - cursor-based を既定とする。offset-based は禁止（大規模
+    データで性能劣化 / 重複・欠落が発生するため）。
+  - リクエスト：page_size（必須、上限あり）、page_token
+    （オプション、初回省略）。
+  - レスポンス：items[]、next_page_token（最終ページでは空）。
+  - cursor の中身はサーバ実装の詳細であり、クライアントは
+    opaque として扱う（Base64 encoded JSON 等の内部形式に
+    依存させない）。
+  - page_size の上限はカテゴリごとに宣言（既定 100 件、最大
+    1000 件）。
+
+■ Streaming
+  - Server-Streaming :
+      - 大量データの取得（監査ログ検索結果等）。
+      - リアルタイム更新（Domain Event の subscribe）。
+      - half_close required（クライアント側は close せず受信
+        専念）。
+  - Bidi-Streaming :
+      - 業務 API では原則使用しない（複雑度に見合う必要性が
+        ある場合のみ）。
+      - 採用する場合は tier1 Transport Adapter Layer の
+        conformance class を満たす（「05_tier1/03_Server系」
+        参照）。
+  - Streaming の resumable 性 :
+      - 長時間 streaming（監査検索 / 大量 Domain Event）は
+        resume_token を発行し、tier1 Companion の resume 透過
+        化と整合させる（「05_tier1/04_Library」Companion 役割
+        B 参照）。
+
+■ Long-running operation（LRO）
+  - 業務処理の所要時間で API 形態を分ける :
+      - 数秒以内 : 同期 RPC で完結。
+      - 数秒〜数分 : 同期 RPC で Workflow 起動 + 結果待ち
+        （deadline 設定）。
+      - 数分以上 : 非同期 LRO パターン。Workflow 起動 RPC が
+        operation_id を返却し、Get / Cancel / Webhook の各
+        エンドポイントを提供する。
+  - 非同期 LRO の規約（Google API Design Guide 準拠） :
+      - Operation オブジェクト : operation_id、状態（PENDING
+        / RUNNING / SUCCEEDED / FAILED / CANCELLED）、開始
+        時刻、進捗率（オプション）、結果 / エラー。
+      - クライアントは polling または Webhook 通知を選択。
+        Webhook 通知は tier2 の通知 channel adapter（「10_提供
+        機能カテゴリ」業界横断 通知）経由で配信。
+      - 内部実装は tier1 Workflow（Temporal）の Workflow ID と
+        operation_id を 1:1 対応させる。
+
+■ リクエスト / レスポンス共通規約
+  - tenant_id : Authorization context から取得（リクエスト
+    body / parameter で受け付けない。「06_マルチテナント方針」
+    識別子漏洩防止節 参照）。
+  - request_id : クライアントが任意で発行できる（observability
+    用途）。tier1 trace context と紐付ける。
+  - timestamp : ISO 8601 + offset（UTC で保管、表示は「21_
+    国際化方針」のタイムゾーン規約に従う）。
+  - 数値 : Decimal は string で wire 表現（精度欠損を避ける）。
+    数量・金額は「21_国際化方針」の単位 / 通貨規約に従う。
+
+■ deprecation
+  - 廃止予定 API は proto / OpenAPI で deprecated とマークする。
+  - Sunset header（HTTP）/ deprecated metadata（gRPC）で
+    クライアントに廃止予定日を通知する。
+  - 廃止予定の API を呼び出した時 metric を計上し、tier3 移行
+    の進捗を可視化する。
+
+■ wire 規約 YAML 宣言
+  - 上記すべての規約をカテゴリごとに YAML で宣言する :
+      - エラー code → HTTP / gRPC status mapping
+      - 冪等性必須 RPC リスト
+      - pagination 上限
+      - streaming class
+      - LRO 形態
+  - YAML 宣言と実装（.proto / 実装コード / 生成スタブ）の整合
+    を CI で検査する（「16_強制機構」参照）。

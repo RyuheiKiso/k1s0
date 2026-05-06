@@ -1,0 +1,119 @@
+============================================================
+tier2 の強制機構
+============================================================
+
+■ 方針
+  - tier2 が定める方針（OSS 直接利用禁止 / tier1 経由必須 /
+    業界中立性 / 拡張点 contract / テナント識別子強制注入 等）
+    を運用で空文化させないため、CI で機械的に強制する。
+  - tier1 の強制機構（「05_tier1/04_Library」強制機構節）と
+    同じ defense-in-depth の枠組みで構成する。
+
+■ 層 1 ：tier3 リポジトリ側
+  - tier3 が「tier2 経由」を回避して tier1 Library / Companion
+    / OSS を直接利用する経路を、各言語の標準ツールで機械的に
+    禁止する。
+      Rust         : cargo-deny の [bans] で tier1 Library
+                     クライアント crate / OSS クライアント crate
+                     を deny。tier2 Library crate のみを許可。
+      C# (.NET 8+) : BannedApiAnalyzers の BannedSymbols.txt で
+                     tier1 / OSS の名前空間を禁止。Central
+                     Package Management で tier2 NuGet のみ参照
+                     許可。
+      Go           : golangci-lint の depguard で tier1 / OSS
+                     パッケージの import を deny。tier2 Go
+                     module のみを許可。
+      TypeScript   : eslint-plugin-import の no-restricted-
+                     imports と eslint-plugin-boundaries で
+                     tier1 / OSS パッケージを禁止。
+  - 上記設定は Backstage の Software Template に同梱し、tier3
+    リポジトリ生成時点で組み込む。
+  - tier3 リポジトリの CI で拡張点 contract test を必須実行
+    する（「07_業務資産所有権」「15_テスト方針」参照）。skip
+    / 改変は CI で fail。
+
+■ 層 2 ：tier2 公開 API 表面（業界中立性）
+  - 業界横断層の公開 API snapshot に業界固有語が出現したら CI
+    fail とする（「03_業界拡張モデル」業界中立性の機械的担保
+    (1) 参照）。
+      Rust         : cargo public-api。
+      C#           : Microsoft.CodeAnalysis.PublicApiAnalyzers
+                     （PublicAPI.Shipped.txt 運用）。
+      Go           : go-apidiff と自製 go/analysis を併用。
+      TypeScript   : api-extractor の .d.ts rollup。
+  - 禁止語リストは業界 pack ごとに YAML 宣言（「03_業界拡張
+    モデル」(1) 参照）し、CI で照合する。
+  - 拡張点 / 不変条件 YAML 宣言（「07_業務資産所有権」拡張点
+    vs 不変条件節）と公開 API snapshot を CI で照合し、宣言と
+    実装の乖離を fail させる。
+
+■ 層 3 ：tier2 内部の依存方向
+  - 業界横断層 → 業界 pack の依存を機械的に禁止
+    （「03_業界拡張モデル」(2) 参照）。業界 pack 間の相互依存
+    も禁止。
+      Rust         : cargo-deny / workspace 構成。
+      C# (.NET 8+) : ProjectReference 方向検査 + Roslyn
+                     analyzer。
+      Go           : depguard。
+      TypeScript   : eslint-plugin-boundaries。
+  - tier2 内部のドメイン層から tier1 Library / Service への
+    直接依存を禁止（クリーンアーキテクチャの依存方向。「05_
+    ドメイン分割方針」参照）。
+
+■ 層 4 ：第二業界 stub conformance
+  - 業界横断層の API が第二業界 stub（CI 専用、サービス業想定）
+    から素直に消費できることを CI 必須とする（「03_業界拡張
+    モデル」(3) 参照）。stub で破綻する API はその時点で「業界
+    横断層に適格でない」とみなし、業界共通 Lv 以下に降格させる
+    （major version up として扱う。「13_互換性ポリシー」参照）。
+
+■ 層 5 ：tier2 リポジトリ抽象による強制注入
+  - tenant_id 述語の強制注入 :
+      - tier2 リポジトリ抽象は tenant_id 述語を強制注入する。
+        業務コードから tenant_id を省略した検索 / 更新を行う
+        API を提供しない。
+      - 「テナント識別子を引数で受ける API」を tier2 公開 API
+        に置くことを CI で禁止する。識別子は必ず Authorization
+        context から取得（「06_マルチテナント方針」参照）。
+  - 業務イベント emit の必須化 :
+      - aggregate 状態変更は必ず Domain Event を emit する経路
+        に乗る。emit を抑制する API（raw SQL 実行等）を tier2
+        公開 API に置かない（「14_業務エラー監査コンプライア
+        ンス」参照）。
+
+■ 層 6 ：供給経路（内部レジストリ）
+  - tier1 と同枠で、tier2 配布物（NuGet / crate / Go module /
+    npm package / OCI image）も内部レジストリを唯一の取得元に
+    固定する。
+      crate        : 内部 cargo registry を [source.crates-io]
+                     で置換。
+      C#           : 内部 NuGet feed のみ nuget.config に登録。
+      Go           : 内部 Athens module proxy を GOPROXY に固定。
+      TypeScript   : 内部 Verdaccio を npm registry に固定。
+      Service image: 内部 Harbor を OCI registry に固定。
+  - 内部レジストリには tier1 / tier2 の承認済み配布物のみを
+    公開する（「05_tier1/04_Library」強制機構層 3 と整合）。
+
+■ 層 7 ：Library / Service 等価性
+  - 同一機能を Library / Service の両形態で提供するカテゴリは、
+    共通 conformance test suite で両方 green を merge 条件と
+    する（「08_配布形態」「15_テスト方針」参照）。
+  - 等価性破れを検出した API は両形態併存対象から外し、Library
+    専用 / Service 専用にカタログ上で明示分類する
+    （「10_提供機能カテゴリ」と同期）。
+
+■ 層 8 ：監査 / 観測可能性のスキーマ整合
+  - tier2 が emit する span / metric / 監査エントリの属性
+    スキーマを OpenTelemetry Semantic Conventions の tier2
+    拡張として宣言し、各言語の定数コードを OpenTelemetry Weaver
+    で生成する（tier1 Companion と同枠：「05_tier1/04_Library」
+    Companion 役割 A 節）。
+  - 実行時に emit される属性をゴールデン値と CI で照合する
+    （「15_テスト方針」観測可能性のゴールデン値テスト節）。
+
+■ サプライチェーン
+  - tier1 と整合し、Harbor / Cosign / Trivy / SBOM 生成 を
+    tier2 配布物にも適用する（「02_採用OSS一覧」記載のチェーン
+    と整合）。
+  - 各層の CI 設定は Backstage の Software Template に同梱し
+    て、tier2 / tier3 リポジトリ生成時点で組み込む。

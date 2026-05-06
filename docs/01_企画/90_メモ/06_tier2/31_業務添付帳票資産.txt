@@ -1,0 +1,153 @@
+============================================================
+tier2 の業務添付ファイルと帳票資産管理
+============================================================
+
+■ 方針
+  - 製造業の業務（規制対応 / 検査 / 仕入先資格認定 / 図面 /
+    操作マニュアル等）には大量のドキュメント資産が伴う。
+    tier2 が業務 entity と紐付く形で添付ファイル / 帳票生成を
+    一元管理する。
+  - 添付ファイル本体は tier1 Object Storage（Ceph RGW）に
+    保管し、tier2 はメタデータと業務的な紐付けを所有する。
+
+■ 添付ファイル管理
+  - 業務 entity との紐付け :
+      - 任意の業務 entity（aggregate root）に複数添付を関連
+        付け可能。関連は「entity ID + 添付種別 + 添付バー
+        ジョン」で識別する。
+      - 添付種別は業界 pack ごとに enum 宣言（製造業 :
+        inspection_photo / supplier_certificate / drawing /
+        regulatory_doc 等）。
+  - メタデータ :
+      - 添付 ID（tier2 採番、UUID）
+      - tenant_id、業務 entity 参照、添付種別、バージョン番号
+      - ファイル名（業務的）/ 物理保存先 URL / サイズ /
+        Content-Type / SHA-256 ハッシュ
+      - 作成者 / 作成時刻 / 説明文
+      - retention policy 参照（「26_データ保持」と整合）
+  - 物理保存 :
+      - tier1 Object Storage に保存。bucket 構成は tenant_id
+        前置で分離。
+      - オブジェクトキーは tier2 の添付 ID をベースとし、
+        ファイル名をパスに含めない（XSS / 文字エンコード問題
+        回避）。
+
+■ 受入時の検査
+  - 受入経路 : 業務 API（添付追加 endpoint、「18_API設計規約」
+    参照）。受入時に以下を実施 :
+      - サイズ上限検査（既定 100 MB、業務種別ごとに上書き可）。
+      - Content-Type 検査（マジックナンバーで検証、HTTP
+        header の Content-Type だけを信用しない）。
+      - ウイルススキャン（受入後の非同期スキャン、結果が出る
+        まで quarantine 状態）。
+      - SHA-256 ハッシュ算出と保管（改竄検知 / 重複検出）。
+  - 受入形式 :
+      - 既定許容 : PDF / PNG / JPEG / SVG / CSV / Excel
+        （xlsx）/ Word（docx）。
+      - 業務種別ごとに許容形式を上書き可（例：図面 → DWG /
+        PDF のみ）。
+      - 実行可能ファイル / アーカイブ（zip / tar 等）は既定
+        禁止。
+  - quarantine 解除 :
+      - ウイルススキャン clean → 解除して active 状態へ。
+      - 検出 → 業務管理者にアラート + 物理削除（「23_管理
+        境界」緊急対応経路と整合）。
+
+■ ダウンロード
+  - 認可 :
+      - 業務 entity の read 権限（「22_権限モデル」参照）+
+        添付種別ごとの追加権限（規制対応 doc 等は別 role）。
+      - tenant_id 越境を防ぐ強制注入（「16_強制機構」層 5 と
+        同枠）。
+  - 配送 :
+      - 小サイズ : tier2 Service 経由でストリーミング。
+      - 大サイズ : tier1 Object Storage の署名 URL を発行
+        （短時間有効）、クライアントが直接ダウンロード。署名
+        URL 発行を監査エントリ emit。
+  - Content-Disposition :
+      - 既定は attachment（download 強制）。inline 表示は
+        Content-Type の安全性が確認できる種別（PDF / 画像 /
+        CSV）に限定。HTML / SVG は inline 禁止（XSS 防止）。
+  - PII を含む添付の追加保護 :
+      - PII 含有添付は tier2 が flag を保持し、ダウンロード
+        時に追加認可を要求（「28_セキュリティアーキテクチャ」
+        サポート用アクセス と同枠）。
+      - PII 含有添付の物理削除は GDPR 対応として「26_データ
+        保持」削除ライフサイクル に従う。
+
+■ ライフサイクル
+  - 添付のバージョニング :
+      - 同一業務 entity + 同一添付種別に複数バージョンを保持
+        可能。最新版 / 過去版を区別。
+      - 「修正」は新バージョン追加で表現（旧版を上書きしない）。
+        過去版の参照可否は業務 entity の状態（「19_状態遷移
+        パターン」）と業界規制で定める。
+  - retention :
+      - 添付の retention は紐付く業務 entity と独立に設定可能
+        （業務 entity 削除後も法的保管期間は残す等）。
+      - 既定は業務 entity と同じ retention。業界規制で長期
+        保管が必要な添付（医療機器の検査写真 / 自動車安全
+        関連の図面 等）は専用 retention policy を適用（「26_
+        データ保持」テナント別 / 業界 pack 別 policy 宣言と
+        整合）。
+  - archive :
+      - hot / warm / cold の階層は業務 entity と整合（「26_
+        データ保持」アーカイブ階層）。Object Storage の階層
+        管理（hot bucket / cold bucket）で実装。
+
+■ 改竄検知（規制対応）
+  - 規制対応添付（製造業の生産記録 / 検査写真等）には改竄
+    検知を必須とする :
+      - 受入時の SHA-256 ハッシュを業務 entity の hash chain
+        に組み込む。
+      - 監査ログの hash chain（「14_業務エラー監査コンプラ
+        イアンス」参照）と連動して改竄検知。
+      - オプションで外部公証 / Trusted Timestamp Authority
+        への hash 提出。
+
+■ 帳票生成
+  - tier2 が業界横断 / 業界 pack ごとに帳票テンプレート機構
+    を提供する :
+      - テンプレート : LaTeX / Typst / HTML+CSS（PDF 化）/
+        OpenDocument 形式から選択。
+      - 入力 : 業務 entity / マスタ / 業務集計（「24_読み取り
+        モデル方針」集計節）から組み立てた帳票データオブ
+        ジェクト。
+      - 多言語対応 : テンプレートは i18n / TZ / 単位 / 通貨
+        の規約（「21_国際化方針」）に従う。
+  - 出力形態 :
+      - PDF（既定）。署名つき PDF（電子署名 / Trusted
+        Timestamp）はオプション。
+      - 一括帳票（複数 entity を 1 ファイルに）は LRO（「18_
+        API設計規約」LRO 節）として実行。
+      - 出力結果は添付ファイルとして同じ機構に保管する
+        （「整合性 / retention / 監査」を統一する）。
+  - template injection 対策 :
+      - テンプレート内のユーザー入力は escape 必須。
+      - 動的 LaTeX / 動的 SVG の eval を禁止（テンプレート
+        エンジンの safe mode を使用）。
+      - 検証 : テンプレート登録時に静的解析を CI で実施
+        （「16_強制機構」と同枠）。
+
+■ tier3 の拡張点
+  - 添付種別の追加（業界 pack 内 / テナント固有）。
+  - 帳票テンプレートの override / 追加。
+  - 受入時の追加検査 hook（業務固有 validation）。
+  - ダウンロード時の追加認可 hook。
+  - 不変条件（override 不可）:
+      - SHA-256 ハッシュ算出 / hash chain 組込み
+      - ウイルススキャン bypass
+      - PII 含有 flag による追加認可
+      - 監査エントリ emit
+      - 受入形式 enum の execrable 形式（exe / bat 等）の
+        許容化
+
+■ 1.0.0 出荷時の対応範囲
+  - 添付ファイル CRUD / ライフサイクル / 改竄検知 / 帳票生成
+    の機構を 1.0.0 で揃える。
+  - 製造業 pack の業務種別（inspection_photo / supplier_
+    certificate / drawing / regulatory_doc 等）と帳票テンプ
+    レート（発注書 / 検収書 / 検査成績書 / 不良票 等）を 1.0.0
+    で同梱。
+  - 外部公証 / Trusted Timestamp の連携 partner は需要発生時
+    に追加。

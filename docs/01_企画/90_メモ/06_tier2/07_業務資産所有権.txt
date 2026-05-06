@@ -1,0 +1,121 @@
+============================================================
+tier2 業務資産の所有権と override 契約
+============================================================
+
+■ 既定原則
+  - tier2 が業務資産を所有する。tier3 は override 拡張点を
+    通じて業務固有の差分のみを表現する。
+  - 「tier2 所有 / tier3 override」は tier2 のすべての業務
+    資産（Domain Event / Workflow 定義 / 決定表 / DB schema /
+    業務マスタ / API 振る舞い）に適用する。
+  - tier3 が tier2 を経由せず業務資産を独自に再実装すること
+    は禁止する（強制機構は「16_強制機構」を参照）。
+
+■ 対象資産（tier2 所有のもの）
+  - Domain Event の schema と発行責務
+  - Workflow / Saga の定義（tier1 Temporal の Workflow /
+    Activity 境界、WorkflowID 体系、補償処理）
+  - 決定表 / ルール（tier1 ZEN Engine の決定表 DSL）
+  - DB schema（テーブル / カラム / インデックス / 制約）
+  - 業務マスタの構造（テナント別データそのものは「06_マルチ
+    テナント方針」記載の通りテナント所有）
+  - API 振る舞い（バリデーション / 業務不変条件 / 認可規則）
+
+■ 拡張点 vs 不変条件
+  - tier2 の業務資産は「拡張点」と「不変条件」の 2 種に明確に
+    分類して提供する。
+  - 拡張点（override 可） :
+      - 業務ロジックの一部（バリデーション規則 / 業務計算式 /
+        承認規則 / 通知先選定 等）で、tier3 が業務固有の差分を
+        表現する正規の出口。
+      - schema 拡張（既存テーブルへのカラム追加、既存 Domain
+        Event への属性追加等の前方互換変更）。
+  - 不変条件（override 不可） :
+      - 業務不変条件（例：在庫数 ≥ 0、検査結果は確定後に変更
+        不可）。
+      - 整合性境界（aggregate 境界 / トランザクション境界）。
+      - 認可規則のうち規制対応に関わる部分。
+      - Domain Event の必須属性 / 既存属性の削除・型変更。
+  - tier2 が公開する全 API・Workflow・schema について、拡張点
+    と不変条件を機械可読な宣言（YAML）として保持し、強制機構
+    の入力とする（「16_強制機構」参照）。
+
+■ override 機構（言語別の標準化）
+  - 言語ごとに override 手段が ad-hoc に乱れることを避けるため、
+    以下を標準とする。
+      Rust         : tier2 は trait の既定実装を提供し、tier3
+                     は trait 実装を差し替える。コンポジション
+                     を基本とし、継承的な振る舞い変更は禁止
+                     する。拡張点は #[doc(hidden)] せず公開
+                     trait 上に明示する。
+      C# (.NET 8+) : tier2 は virtual / abstract メソッドで
+                     拡張点を露出する。不変条件メソッドは
+                     sealed とする。tier3 の override 実装は
+                     DI 経由で注入する。
+      Go           : tier2 は interface で拡張点を定義する。
+                     tier3 は interface 実装を差し替える。
+                     embed による構造体内部状態の override
+                     は禁止する。
+      TypeScript   : tier2 は class の protected メソッドまた
+                     は関数型 hook で拡張点を露出する。class
+                     の場合は readonly フィールドで不変条件を
+                     守る。
+  - 拡張点の Schema / Workflow / 決定表 :
+      - schema は tier2 が提供する base schema に対し、tier3
+        が override schema を分離 YAML / 分離 .proto で提供
+        し、tier2 のビルド時に merge する形態を取る。
+      - Workflow は tier2 が Workflow 骨格を提供し、tier3 が
+        Activity 実装またはステップを拡張点で差し替える。
+      - 決定表は tier2 が base 決定表を提供し、tier3 が「上書
+        き決定表」を ZEN Engine 経由で評価チェーンに挿入する
+        形を取る。
+
+■ override 拡張点の contract test
+  - tier2 は拡張点ごとに contract test suite を提供する。tier3
+    は override 実装を組み込んだ状態で contract test を CI で
+    実行することを必須とする。
+  - contract test の green を tier3 リポジトリの merge 条件と
+    する（tier2 リポジトリ側でも、tier2 のバージョンアップ時
+    に contract test 自体の互換性を CI で検査する）。
+  - tier2 がバージョンアップで拡張点 contract を変更する場合、
+    必ず major version up として扱い、変更内容を override 移行
+    ガイドに明示する（「13_互換性ポリシー」参照）。
+  - tier3 が contract test を skip / 改変している場合、Backstage
+    Software Template 由来の CI 設定で fail させる（「16_強制
+    機構」参照）。
+
+■ override 後の互換性責務（tier2 がサポートする）
+  - tier3 が拡張点の規約（contract）に従って override している
+    限り、tier2 のマイナーバージョンアップで silently 壊れない
+    ことを tier2 が保証する。
+  - 保証の手段 :
+      - 拡張点の公開シグネチャ snapshot を CI で守る（tier1 の
+        「05_tier1/04_Library」強制機構層 2 と同枠）。
+      - 拡張点 contract test を tier2 リポジトリ側で常時 green
+        に保つ。
+      - tier2 の major version up 時には、override 移行 toolchain
+        を成果物として提供する（「13_互換性ポリシー」tier2 移行
+        コミットメント節を参照）。
+  - tier3 が拡張点を超えた領域を override で踏み抜いている場合
+    （例：private 状態への reflection 経由アクセス、不変条件
+    メソッドの差し替え）は本保証の対象外。
+
+■ override で禁止される範囲
+  - 不変条件の改変（前項参照）。
+  - tier1 Library / Companion を tier2 を経由せず直接 import
+    して業務処理を構築すること。
+  - tier2 公開 API が要求するテナント識別子・認証コンテキスト
+    を省略・偽装する経路を作ること。
+  - 別テナントのデータへのアクセス（リポジトリ抽象が強制注入
+    する tenant_id 述語を回避すること）。
+  - 監査ログ / 業務イベントの emit を抑制すること。
+
+■ override 利用例（製造業 pack）
+  - 検査結果確定の判定式 : tier2 が base 判定式（「規格内」）
+    を提供。tier3 が業界規制 / 顧客要件に応じて閾値・複合条件
+    を override で表現する。不変条件「確定済み検査結果は再変更
+    不可」は override 不可。
+  - 発注承認 workflow : tier2 が承認段数・承認者解決ロジックの
+    既定実装を提供。tier3 が組織図に応じた承認者解決ロジックを
+    override する。Workflow の補償処理（発注取消時のキャンセル
+    処理）は不変条件として override 不可。

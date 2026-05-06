@@ -1,0 +1,83 @@
+============================================================
+tier2 のドメイン分割方針
+============================================================
+
+■ 方針
+  - tier2 はクリーンアーキテクチャ + ドメイン駆動開発を採用
+    する（「03_プラットフォーム構成」参照）。本ファイルでは
+    tier2 内部のドメイン分割と module 間の依存ポリシーを定める。
+
+■ bounded context の切り方
+  - 業界横断層 / 業界 pack（業界共通 + 業界固有）の 2 層構造で
+    切る。詳細は「03_業界拡張モデル」「04_抽象化レベル」を
+    参照。
+  - 業界 pack 内では「業務上の意思決定単位」を bounded context
+    の境界とする。同一の業務不変条件・整合性境界・トランザク
+    ション境界を共有する範囲を 1 context にまとめる。
+  - 製造業 pack の bounded context 例（1.0.0 出荷時）：
+      - FA       : 設備・生産指示・実績収集
+      - 調達     : 仕入先・発注・検収
+      - 検査     : 検査計画・実施・不良管理
+      - 共通     : 品目・拠点・BOM・組織
+
+■ aggregate / entity / value object のガイド
+  - aggregate : トランザクション境界。1 トランザクションで 1
+    aggregate の整合性のみを保証する。複数 aggregate を跨ぐ
+    整合性は eventual consistency（Domain Event）で確保する。
+  - entity : 同一性を持つドメイン概念。aggregate 内に閉じ、
+    外部から直接参照させない（root aggregate 経由でのみ取得）。
+  - value object : 同一性を持たない、属性で同値判断するドメイン
+    概念（金額 / 数量 / 期間 / 品番 等）。不変オブジェクトと
+    して実装する。
+  - aggregate のサイズ : 「整合性が必要な範囲」のみとする。
+    便宜上の grouping で大きく取らない（ロック競合・性能劣化・
+    ドメインモデル腐敗の温床）。
+
+■ tier2 module 間の依存ポリシー
+  - 業界横断層 → 業界 pack の依存禁止（強制機構は「16_強制
+    機構」参照）。
+  - 業界 pack 間の相互依存禁止。製造業 pack の FA から調達 pack
+    を直接呼ぶ等は不可（業界 pack は 1 業界 = 1 pack 原則のため
+    1.0.0 では 1 つしかないが、構造として禁止する）。
+  - 同一業界 pack 内のドメイン間（FA / 調達 / 検査）の依存
+    方向 :
+      - 直接参照（同期 API 呼び出し）は原則禁止。Domain Event
+        経由の eventual consistency に統一する。
+      - 例外として「読み取り専用の参照（マスタ参照等）」は
+        同一 pack 内の共通モジュール（manufacturing/common）
+        に集約し、各ドメインから共通モジュールへの単方向依存
+        のみ許可する。
+  - 循環依存禁止 : module 間 / context 間で循環依存が発生したら
+    CI fail とする（言語別検査ツールは「16_強制機構」参照）。
+
+■ Domain Event による結合度低減
+  - bounded context を跨ぐ業務通信は Domain Event を一次手段
+    とする。tier1 の Messaging / EventBus（Apache Kafka）を
+    tier2 が業務語彙でラップして提供する（「10_提供機能カテ
+    ゴリ」参照）。
+  - Domain Event の所有 : event を発行する context が schema
+    を所有する。subscribe 側は schema 互換性を tier1 Schema
+    Registry で検証する（「05_tier1/05_提供機能カテゴリ」L2*
+    Schema Registry を参照）。
+  - Outbox パターンを既定とする。aggregate のトランザクション
+    と event 発行を 1 トランザクションに収める（tier1 Library
+    が Outbox 連携を提供。詳細は「05_tier1/05_提供機能カテゴ
+    リ」を参照）。
+
+■ ドメイン層への外部依存制限
+  - ドメイン層（entity / value object / domain service / domain
+    event）は tier1 Library / Service への直接依存を持たない。
+    DB / RPC / Workflow 等への依存はアプリケーション層・インフラ
+    アダプタ層に閉じる（クリーンアーキテクチャの依存方向に
+    従う）。
+  - ドメイン層は純粋に業務語彙のみで構成し、フレームワーク
+    非依存で単体テスト可能であることを設計目標とする。
+
+■ 製造業 pack の分割例（1.0.0 出荷時）
+  - manufacturing/common      : 業界共通（品目 / 拠点 / BOM /
+                                組織）
+  - manufacturing/fa          : FA ドメイン
+  - manufacturing/procurement : 調達ドメイン
+  - manufacturing/inspection  : 検査ドメイン
+  - 各ドメインは独立 module として配置し、依存方向は
+    domain → common の単方向のみ。

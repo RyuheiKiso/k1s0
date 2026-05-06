@@ -1,0 +1,92 @@
+============================================================
+tier2 のスケジューラ / バッチ / 定期処理
+============================================================
+
+■ 方針
+  - 製造業では「夜間棚卸」「月次締め」「日次サマリ」「定期
+    通知」等の定期処理が必須。tier2 はこれらを統一的に支える
+    機構を提供する。
+  - 既定実装は tier1 Workflow（Temporal）の Cron Schedule を
+    業務語彙でラップして提供する。tier3 が cron を独自に組む
+    経路は禁止する（「07_業務資産所有権」「16_強制機構」
+    参照）。
+
+■ スケジューラ機構
+  - tier2 が ScheduledJob 抽象を Library / Service の両形態で
+    提供する :
+      - 定義 : job 名（業務語彙）、schedule 式（cron / interval
+        / calendar-based）、実行する Workflow / Activity、
+        テナント識別子、TZ。
+      - 登録 / 更新 / 一時停止 / 削除の管理 API を提供。
+  - 内部実装 : 各 ScheduledJob を tier1 Temporal の Schedule
+    にマップ。Schedule の所有権・改廃は tier2 が一元管理する。
+
+■ テナント別実行
+  - schedule は tenant_id 必須。テナントごとに異なる schedule
+    を設定可能。
+  - 実行時刻はテナントの TZ で評価する（「21_国際化方針」TZ
+    規約と整合）。例：「日本テナントの 23:00 棚卸」と「ドイツ
+    テナントの 23:00 棚卸」は別時刻に実行される。
+  - テナント追加時の初期 schedule deploy は Onboarding
+    Workflow で行う（「06_マルチテナント方針」テナントライフ
+    サイクル節と整合）。
+
+■ 重複実行防止
+  - 同一 ScheduledJob の重複起動を防ぐため、Temporal の
+    Schedule の overlap policy を SKIP（先行実行中は新規実行
+    skip）または BUFFER_ONE で運用する。
+  - 業務的な冪等性は「18_API設計規約」冪等性節に従う。バッチ
+    実行のユニーク性は (job_name, tenant_id, scheduled_time)
+    で定義する。
+
+■ リトライポリシー
+  - 失敗時の自動リトライは Temporal の RetryPolicy で設定
+    する。既定 : initial 1 分 → 最大 1 時間、最大 5 回。
+  - 失敗確定後は DLQ 相当の「failed_jobs」テーブルに記録し、
+    監査エントリを emit する（「14_業務エラー監査コンプライア
+    ンス」参照）。
+  - 運用者（業界規制対応の業務管理者）が失敗ジョブを手動
+    再実行できる API を提供（「23_管理境界」管理 API 節と
+    整合）。
+
+■ 長時間バッチの設計
+  - 長時間（数時間〜）のバッチは Workflow + Activity に分割
+    する。Activity は冪等で、リトライ可能であること。
+  - 進捗観測 : Activity 単位の完了 metric を OpenTelemetry で
+    emit する（「09_Service運用方針」観測可能性 / 「15_テスト
+    方針」ゴールデン値テスト と整合）。
+  - 並列度 : テナントごとの並列度 / 全体並列度を tier2 が
+    制御。tier1 backend（DB / Kafka 等）への負荷は per-tenant
+    rate limiter で抑制（「09_Service運用方針」リソース
+    isolation 節 参照）。
+
+■ schedule 式の業務語彙化
+  - cron 式（"0 23 * * *" 等）を tier3 / 業務担当が直接書か
+    ないよう、業務語彙の DSL を tier2 が提供する :
+      - 「営業日 19:00」「月末日 23:00」「シフト交代時刻」 等
+      - 業務カレンダー（「10_提供機能カテゴリ」業界横断 業務
+        カレンダー）と連動。
+  - 内部で cron 式に変換し、Temporal Schedule に登録する。
+
+■ 業界横断 / 業界 pack での扱い
+  - 業界横断 ScheduledJob : 通知配信 / 監査ログ集計 / マスタ
+    同期 等。
+  - 業界 pack ScheduledJob :
+      - 製造業 FA : 設備実績集計、生産進捗サマリ
+      - 製造業 調達 : 発注締め、納期リマインド
+      - 製造業 検査 : 定期検査計画展開、不良集計
+  - 業界横断 Lv の ScheduledJob 定義は第二業界 stub からも
+    消費可能であること（「03_業界拡張モデル」業界中立性の
+    機械的担保 (3) 参照）。
+
+■ tier3 への提供形態
+  - schedule 定義の登録 / 更新 / 削除 API を Library / Service
+    両形態で提供（「08_配布形態」両形態 API 等価性節と整合）。
+  - tier3 の override 拡張点（「07_業務資産所有権」参照）:
+      - 業界 pack の既定 schedule にテナント差分を override
+        （実行時刻 / 対象範囲）
+      - Activity の業務固有実装を override
+  - 不変条件（override 不可）:
+      - 重複実行防止 / 冪等性
+      - 監査エントリ emit
+      - failed_jobs への記録

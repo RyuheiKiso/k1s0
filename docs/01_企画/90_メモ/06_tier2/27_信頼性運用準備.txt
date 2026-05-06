@@ -1,0 +1,154 @@
+============================================================
+tier2 の信頼性 / 運用準備（DR / SLO / Workflow 運用 / 障害対応）
+============================================================
+
+■ 方針
+  - tier2 が共有運用される Service として 1.0.0 出荷される
+    以上、災害復旧（DR）/ SLO 定義 / アラート方針 / Workflow
+    運用 / インシデント対応の枠組みが揃っていることを出荷
+    条件とする。
+  - tier1 が infra 層の reliability を担い、tier2 は業務層の
+    reliability を担う。両者の責任分界を本ファイルで明示する。
+
+■ DR / BCP（災害復旧 / 事業継続）
+  - 復旧目標の宣言 :
+      - RPO（Recovery Point Objective）: tier2 業務データ
+        5 分、Domain Event 0（at-least-once 配送による）、
+        監査ログ 0（Outbox + replication）、PII は業務データ
+        と同じ。
+      - RTO（Recovery Time Objective）: tier2 Service の起動
+        15 分、業務 API 復旧 30 分、跨 region failover を含む
+        場合 60 分。
+      - 規制 / SLA で個別 RPO/RTO が必要な顧客は専用 Service
+        / 専用 region で対応（「09_Service運用方針」専用 Pod
+        昇格条件と整合）。
+  - 復旧手順 :
+      - tier1 backend（PostgreSQL / Kafka / Temporal）の復旧
+        後、tier2 Service を再起動する。tier2 自身は stateless
+        に近い（永続状態は tier1 backend にある）ため、起動
+        順序の整理だけで業務再開する。
+      - read model / 集計テーブル等の派生状態は Domain Event
+        からの replay で再構築する手順を tier2 が runbook と
+        して提供する（「24_読み取りモデル方針」と整合）。
+  - DR 演習 : 年 2 回の実演習を必須とする。tier2 移行コミット
+    メント（「13_互換性ポリシー」）の dry-run と同枠。
+  - PII バックアップ分離 : 「26_データ保持」backup 分離方針と
+    整合し、PII テーブルは別 backup policy で運用する。
+
+■ SLO / SLA フレームワーク
+  - SLI（指標）の標準セット :
+      - 業務 API : availability（成功率）、latency p50/p95/
+        p99、throughput
+      - Workflow : 開始 → 完了 latency p50/p95/p99、完了率、
+        失敗率
+      - Domain Event : Outbox → publish までの latency、
+        subscriber 処理 lag
+      - 業務管理 API : availability、操作完了 latency
+  - SLO の宣言粒度 :
+      - 業界横断 / 業界 pack ごと、API カテゴリごとに SLO を
+        宣言する。
+      - 既定値（tier2 出荷時）: 業務 API availability 99.9%、
+        latency p95 < 200ms、p99 < 500ms。
+      - テナント別 SLO（規制 / 契約での個別合意）はテナント
+        マスタに保持し、共有運用でも per-tenant 計測する。
+  - error budget :
+      - SLO 違反量を月次で計算。budget 残高に応じて変更管理
+        を厳格化（残量わずかなら deploy 凍結）。
+      - error budget 消費の業務インパクト分析を四半期ごとに
+        review。
+  - 計測基盤 : tier1 Metrics（Prometheus）/ Logging
+    （ClickHouse）/ Tracing（Jaeger v2）の上に SLO 計算
+    queries を tier2 が定義し、tier1 のプラットフォーム標準
+    UI（Perses）でダッシュボード化する。
+
+■ アラート方針
+  - 階層 :
+      - page（即応） : SLO 違反予兆、業務インパクトのある
+        失敗（Workflow 大量失敗、Domain Event publish 停止、
+        マスタ管理 API 全断 等）。
+      - ticket（営業時間内） : SLO 達成中だが調査が必要な
+        兆候（特定テナント遅延、特定 partner outbound 失敗
+        増 等）。
+      - log only : 監視のみ、アラート不要。
+  - アラート品質 :
+      - false positive 率 5% 以下を目標。アラート発火後の
+        post-mortem で品質改善。
+      - すべての page アラートは runbook へのリンクを必須と
+        する。
+  - エスカレーション : 一次（業務管理者 / 業界 pack 担当）→
+    二次（tier2 dev チーム）→ 三次（tier1 / インフラチーム）。
+    エスカレーション基準は SLO 影響と復旧時間で定める。
+
+■ キャパシティプランニング
+  - 容量モデル :
+      - per-tenant 容量予測 : 業務 entity 数 / Workflow 数 /
+        Domain Event 量 / 監査エントリ量。テナント onboarding
+        時に予測を取得し、共有運用 capacity と照合する。
+      - 共有運用 headroom : 平常時に CPU / Memory 50% 以下を
+        維持。HPA で短期 burst を吸収（「09_Service運用方針」
+        参照）。
+  - tenant quota :
+      - 業務 API rate limit : per-tenant に既定 quota（業務
+        操作 / 秒、bulk op / 時 等）を設定。超過は 429 相当
+        の BusinessConflict / RateLimitExceeded（「14_業務
+        エラー監査コンプライアンス」業務例外 taxonomy 拡張）
+        で返す。
+      - 集計レート / Workflow concurrency も per-tenant
+        quota。
+  - quota の運用 : テナント契約で個別 quota 上書き可。quota
+    変更は業務管理 API（「23_管理境界」参照）経由。
+
+■ Workflow 運用
+  - Workflow 可視化 :
+      - tier1 Temporal Web UI を業務管理者向けに公開する
+        （「23_管理境界」プラットフォーム運営者と業務管理者
+        の境界 と整合）。
+      - tier2 が Workflow ID を業務識別子（aggregate ID +
+        operation 種別）と紐付けて命名する。Web UI 上で業務
+        識別子から Workflow を逆引き可能とする。
+  - 手動 signal :
+      - 長時間 Workflow（承認待ち、外部応答待ち）に対して
+        業務管理者が手動 signal を送信する API を提供（業務
+        管理 API として）。
+      - 手動 signal は監査エントリを emit し、事後レビュー
+        必須。
+  - 手動補償 / 手動完了 :
+      - 業務的に正常完了不可能な Workflow（外部システム長期
+        断 等）に対して手動補償 / 手動完了の API を提供。
+      - emergency_override（「22_権限モデル」「23_管理境界」）
+        必須。
+  - replay :
+      - 業務監査 / 障害分析のために、過去 Workflow を
+        historical events から replay できる経路を tier1
+        Temporal の機構で確保する。
+      - replay 結果は本番状態に影響しない（read-only）。
+
+■ インシデント response runbook
+  - 代表的障害パターンに対する runbook を tier2 が成果物と
+    して提供する :
+      - tier1 backend 全断 : 業務 API は fail-fast、Workflow
+        は Temporal が再開機構で対応。tier2 Service 自身は
+        再起動待ち。
+      - 特定テナント急増負荷 : per-tenant rate limiter 強化、
+        必要なら一時 quota 引下げ、共有 capacity が逼迫すれば
+        専用 Service 昇格を提案。
+      - Domain Event publish 停止 : Outbox 滞留検出、Kafka
+        側障害切り分け、subscriber lag による派生影響評価。
+      - Workflow 大量失敗 : 失敗パターン分析（特定 Activity
+        / 特定 partner outbound）、影響テナント特定、補償
+        実行。
+      - 規制 / 監査要件違反の検出 : 即座に該当機能を停止、
+        emergency_override で業務影響最小化、規制対応報告。
+  - runbook は Backstage TechDocs で公開し、CI で「対応する
+    アラートからリンクされていること」を検査する。
+
+■ Post-incident review（事後レビュー）
+  - 全 page インシデントは事後レビュー必須。
+  - レビューは blameless（責任追及でなく構造改善）。
+  - 改善アクションは tier2 のロードマップに組み込み、進捗を
+    四半期ごとに review する。
+
+■ 1.0.0 出荷時の対応範囲
+  - DR / SLO / アラート / runbook / Workflow 運用機構を 1.0.0
+    で揃える。
+  - DR 演習 / SLO 計測 / アラート品質改善は出荷後の継続運用。

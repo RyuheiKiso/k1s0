@@ -1,0 +1,94 @@
+============================================================
+tier2 提供機能カテゴリ
+============================================================
+
+■ 1.0.0 出荷スコープ
+  - 1.0.0 で出荷するのは「業界横断機能」と「製造業 pack」のみ。
+    その他業界は本ファイルに記載しない（記載は誤解を招くため）。
+    将来追加は「03_業界拡張モデル」の手順に従う。
+
+■ 業界横断機能（業界に依存しない業務語彙）
+
+  カテゴリ          | Lv         | 既定形態     | 既定実装 / 依存                        | 説明
+  ------------------+------------+--------------+----------------------------------------+----------------------------------
+  通知              | 業界横断   | Service      | tier1 Messaging + 通知 channel adapter | メール / SMS / push を業務語彙で送信
+  監査ログ          | 業界横断   | Library+Svc  | tier1 Logging + 監査専用 sink          | 業務観点の監査エントリ蓄積 / 検索
+  承認 Workflow     | 業界横断   | Service      | tier1 Workflow（Temporal）             | 多段承認 / 差し戻し / 期限管理
+  帳票生成          | 業界横断   | Service      | tier1 Object Storage + tier2 帳票内部  | 業務データから帳票（PDF 等）生成
+  マスタ管理        | 業界横断   | Service      | tier1 Relational Store                 | テナント別マスタ CRUD / 履歴
+  ユーザー / 組織   | 業界横断   | Service      | tier1 Authentication（Keycloak）       | 組織図 / 役職 / メンバ管理
+  業務カレンダー    | 業界横断   | Library+Svc  | tier1 Relational Store                 | 営業日 / 休業日 / シフトの判定
+  業務ルール評価    | 業界横断   | Service      | tier1 Rule Engine（ZEN Engine）        | 決定表評価のラッパ
+  Domain Event Hub  | 業界横断   | Library*     | tier1 Messaging（Kafka）+ Outbox       | tier2 内部基盤（tier3 から直接利用させない）
+
+■ 製造業 pack（manufacturing/*）
+
+  ── 業界共通モジュール（manufacturing/common）
+  カテゴリ        | Lv          | 既定形態     | 既定実装 / 依存          | 説明
+  ----------------+-------------+--------------+--------------------------+----------------------------------
+  品目            | 業界共通    | Library+Svc  | tier1 Relational Store   | 品番 / 品目属性 / 派生品の管理
+  拠点            | 業界共通    | Library+Svc  | tier1 Relational Store   | 工場 / 倉庫 / ライン
+  BOM             | 業界共通    | Library+Svc  | tier1 Relational Store   | 部品構成 / 工程展開
+  組織            | 業界共通    | Library+Svc  | tier1 Authentication     | 製造業組織図（部 / 課 / 班）
+
+  ── FA ドメイン（manufacturing/fa）
+  カテゴリ          | Lv         | 既定形態     | 既定実装 / 依存          | 説明
+  ------------------+------------+--------------+--------------------------+----------------------------------
+  生産指示          | 業界固有   | Service      | tier1 Workflow + RDB     | 生産計画から指示生成
+  実績収集          | 業界固有   | Service      | tier1 Messaging + RDB    | 設備実績の取り込み / 集計
+  進捗管理          | 業界固有   | Library+Svc  | tier1 RDB                | 工程進捗の追跡
+
+  ── 調達ドメイン（manufacturing/procurement）
+  カテゴリ        | Lv         | 既定形態     | 既定実装 / 依存          | 説明
+  ----------------+------------+--------------+--------------------------+----------------------------------
+  仕入先          | 業界固有   | Library+Svc  | tier1 RDB                | 仕入先情報 / 取引条件
+  発注            | 業界固有   | Service      | tier1 Workflow + RDB     | 発注 → 納期確認 → 検収の Saga
+  検収            | 業界固有   | Service      | tier1 Workflow + RDB     | 検収 → 入庫 → 支払依頼
+
+  ── 検査ドメイン（manufacturing/inspection）
+  カテゴリ        | Lv         | 既定形態     | 既定実装 / 依存          | 説明
+  ----------------+------------+--------------+--------------------------+----------------------------------
+  検査計画        | 業界固有   | Library+Svc  | tier1 RDB                | 検査基準 / サンプリング計画
+  検査実施        | 業界固有   | Service      | tier1 Workflow + RDB     | 検査記録 / 確定 / 監査
+  不良管理        | 業界固有   | Service      | tier1 Workflow + RDB     | 不良票 / 是正処置 / 再発防止
+
+■ Lv 割付の根拠
+  - 業界横断 Lv に置くカテゴリは、第二業界 stub（「03_業界拡張
+    モデル」業界中立性の機械的担保 (3) 参照）でも素直に消費
+    可能なものに限定する。stub で API が破綻するカテゴリは
+    業界共通 Lv 以下に降格させる。
+  - 業界共通 Lv は製造業 pack 内の複数ドメインから参照される
+    語彙のみ。単一ドメインからしか参照されないものは業界固有
+    Lv に置く。
+
+■ 既定形態の根拠
+  - Library+Svc（両形態）：tier3 が in-process で完結したい
+    ケースと、複数 tier3 / Companion 経由 tier3 から共有したい
+    ケースの両方が存在するカテゴリ。
+  - Service のみ：tier1 Workflow / Messaging を内部で長時間
+    保持するもの、または規制 / 監査で集中管理が必須のもの。
+  - Library のみ（tier3-facing 公開 API として）：1.0.0 出荷時
+    は採用せず（「02_位置づけ」表面 API 対称性節 / 「08_配布
+    形態」Companion 配慮節と整合）。
+  - 例外（Library*）: Domain Event Hub は Outbox + Kafka
+    publisher が in-process トランザクション境界を必要とする
+    ため Library 形態のみで提供する。ただしこれは tier2 実装
+    内部から呼ばれるインフラであり、tier3 へは「業務 API で
+    発行 → Hub が内部的に publish」「業務 API で subscribe
+    登録 → tier2 内 subscriber が Hub から購読 → tier3 拡張点
+    呼び出し」という間接利用となる（「24_読み取りモデル方針」
+    Read model 更新の責務節 / 「07_業務資産所有権」「16_強制
+    機構」参照）。Hub を tier3 から直接利用させる経路は
+    提供しない。
+
+■ 露出される tier1 概念（業務側に染み出す部分）
+  - tier1 L1+ カテゴリの露出概念（「05_tier1/05_提供機能カテ
+    ゴリ」L1+ 露出概念一覧）は tier2 の API 表面で業務語彙に
+    翻訳する。翻訳できないものは業務語彙ではなく tier1 概念の
+    まま露出する（無理な翻訳は業務不変条件の腐敗を招く）。
+      - Workflow / Activity 境界、WorkflowID 体系
+      - Outbox 連携、Domain Event の順序保証
+      - トランザクション分離レベル（Repeatable Read 既定）
+      - 決定表 DSL のセマンティクス
+  - 翻訳の正解は「07_業務資産所有権」拡張点 / 不変条件 YAML
+    宣言と同期させる（「16_強制機構」参照）。
