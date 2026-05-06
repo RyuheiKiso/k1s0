@@ -11,8 +11,8 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   Authentication / Authorization  | both     | L3 | OIDC クライアント、トークン検証、認可   | Keycloak
   Secret Management               | backend  | L3 | シークレット取得、ローテーション通知    | OpenBao + External Secrets Operator
   Configuration / Feature Flag    | both     | L2 | フラグ評価、動的設定読込                | OpenFeature + flagd
-  KeyValue / Cache                | backend  | L2 | KV 操作、TTL、分散ロック                | Valkey
-  Object Storage                  | backend  | L2 | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
+  KeyValue / Cache                | backend  | L3 | KV 操作、TTL、分散ロック                | Valkey
+  Object Storage                  | backend  | L3 | オブジェクト put / get、署名付き URL    | Rook + Ceph (RGW)
   RPC / Gateway                   | both     | L3 | inter-service RPC クライアント / サーバ | Envoy Gateway + gRPC
   Messaging / EventBus            | backend  | L2 | publish / subscribe、Outbox 連携        | Apache Kafka (Strimzi)
   Schema Registry                 | backend  | L2 | イベントスキーマ登録 / 取得 / 互換検証  | Apicurio Registry + Buf
@@ -30,6 +30,10 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - レベル定義および各レベルの受け入れ基準は「04_Library」を参照。
 
 ■ L1 / L2 カテゴリで露出する代表的な OSS 概念（差し替え時影響箇所）
+  - Profiling                      : profile 種別（cpu / heap / goroutine 等）、
+                                     サンプリングレート、ラベル基数
+  - Configuration / Feature Flag   : evaluation context、ターゲティング規則、
+                                     セグメント定義
   - Messaging / EventBus           : 分割キー、順序保証、consumer pool、
                                      再試行 / DLQ ポリシー、Outbox 設計
   - Schema Registry                : 互換性モード、グループ / artifact 体系
@@ -39,3 +43,36 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - Workflow / Long-running Saga   : Workflow / Activity 境界、WorkflowID 体系、
                                      補償処理の書き方、決定論実行の制約
   - Rule Engine                    : 決定表 DSL、ルール評価セマンティクス
+
+■ L2 カテゴリの同族定義（差し替え保証対象範囲）
+  - Profiling                      : pprof 族（Parca / Pyroscope）
+  - Configuration / Feature Flag   : OpenFeature provider 族
+                                     （flagd / GO Feature Flag / GrowthBook 等）
+  - Messaging / EventBus           : log-stream 族（Kafka / RedPanda / Pulsar）
+  - Schema Registry                : Confluent Schema Registry 互換族
+                                     （Apicurio / Confluent SR）
+  - Relational Store               : PostgreSQL wire 互換族
+                                     （PostgreSQL / CockroachDB / YugabyteDB）
+  - Vector Search                  : k-NN 族
+                                     （pgvector / Qdrant / Milvus、profile API 経由）
+  族の外への差し替えは保証対象外。族の改廃自体は Library の破壊的変更
+  （major version up）として扱う。
+
+■ L3 カテゴリの wire 互換前提（業務コード無変更を成立させる根拠）
+  - Logging / Tracing / Metrics    : OpenTelemetry SDK + OTLP
+  - Authentication / Authorization : OIDC / OAuth 2.1
+  - Secret Management              : External Secrets Operator 経由
+                                     （Provider 差し替えに対し Library API 不変）
+  - RPC / Gateway                  : gRPC（Library 経由言語向け） +
+                                     gRPC-JSON Transcoder 派生（External 経路）
+  - KeyValue / Cache               : RESP 族
+                                     （Valkey / Dragonfly / KeyDB）
+  - Object Storage                 : S3 API 族
+                                     （Ceph RGW / MinIO / SeaweedFS）
+
+■ L1 カテゴリの実装固定
+  - Workflow / Long-running Saga   : Temporal 単独
+  - Rule Engine                    : ZEN Engine 単独
+  L1 は OSS 中立を放棄しているカテゴリのため、差し替え検討は OSS そのもの
+  の改廃時にのみ発生する。差し替え時は当該カテゴリの業務コードに設計
+  レベルの修正が入る。

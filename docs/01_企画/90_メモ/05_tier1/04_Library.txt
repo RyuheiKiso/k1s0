@@ -47,18 +47,25 @@ tier1 Library 設計方針
   - L3 : OSS 中立
       - OSS 固有の型 / 概念を API 表面に一切出さない。
       - 受け入れ基準 : OSS 差し替え時、業務コード（tier2 / tier3）は無変更。
-      - 想定対象 : Logging / Tracing / Metrics / Profiling / Authentication /
-        Secret / Feature Flag / KeyValue / Object Storage / RPC。
+      - 前提 : 当該カテゴリの wire / プロトコル仕様が業界標準として
+        確立しており、複数 OSS 実装が同じ表面を提供できること
+        （例：S3 API、RESP、OpenTelemetry、OIDC、gRPC）。
+      - 想定対象 : Logging / Tracing / Metrics / Authentication / Secret /
+        RPC / KeyValue / Object Storage。
 
-  - L2 : 概念再定義
-      - OSS 固有の語彙は Library 独自語彙に翻訳するが、分割キー / 順序
-        保証 / 再試行境界 / トランザクション境界 / インデックス種別など
-        の概念は API 表面に残す。
-      - 受け入れ基準 : OSS 差し替え時、業務コードは型置換 + 一部チュー
-        ニング（パラメータ調整・索引再設計など）で済み、業務ロジックの
-        再設計は不要。
-      - 想定対象 : Messaging / EventBus、Schema Registry、Relational
-        Store、Vector Search。
+  - L2 : 同族内 OSS 中立
+      - OSS 固有の語彙は Library 独自語彙に翻訳する。分割キー / 順序
+        保証 / 再試行境界 / トランザクション境界 / インデックス種別
+        などの概念は API 表面に残す。
+      - カテゴリごとに「同族」を明示列挙し、その範囲内での差し替えを
+        保証対象とする。族の外への差し替えは保証外であり、族の改廃
+        そのものを Library の破壊的変更（major version up）として扱う。
+      - 受け入れ基準 : 族内差し替え時、業務コードは型置換 + 一部チュー
+        ニング（パラメータ調整・索引再設計など）で済み、業務ロジック
+        の再設計は不要。
+      - 想定対象 : Profiling、Feature Flag、Messaging / EventBus、
+        Schema Registry、Relational Store、Vector Search。
+      - 同族の具体定義は「05_提供機能カテゴリ」を参照。
 
   - L1 : 概念露出
       - OSS 固有の概念（Workflow / Activity 境界、補償処理の書き方、
@@ -131,6 +138,50 @@ tier1 Library 設計方針
         置かない。Library リポジトリの CI に限り、外部 feed を許可する。
       - 「02_採用OSS一覧」[6] サプライチェーン / セキュリティ の
         Harbor / Cosign / Trivy と整合する形で構築する。
+
+■ L2 同族保証の機械的担保
+  - 「同族内 OSS 中立」を文書上の願望で終わらせないため、以下を CI と
+    出荷物の両面で強制する。
+  - 二バックエンド conformance（最重要）
+      - 各 L2 カテゴリで、本命 OSS と同族内代替 OSS の最低 2 実装を
+        Testcontainers で同時に立ち上げ、共通の統合テストを両方で green
+        にすることを merge 条件とする。
+      - 想定の組合せ（例）：
+          Messaging              : Kafka (Strimzi) + RedPanda
+          Schema Registry        : Apicurio + Confluent SR (OSS)
+          Relational Store       : PostgreSQL (CNPG) + CockroachDB
+          Vector Search          : pgvector + Qdrant
+          Profiling              : Parca + Pyroscope
+          Feature Flag           : flagd + GO Feature Flag
+      - 片側でしか通らないテストが発生した時点で「その API は L2 として
+        適格でない」とみなし、API を族内ポータブル範囲まで縮める、
+        または当該機能を L1 拡張へ降格する。
+  - capability negotiation
+      - Library の初期化 API で、業務コード側が要求する能力（配信保証 /
+        順序保証 / トランザクション境界 / 距離関数など）を宣言させる。
+      - backend が要求能力を満たさない場合、起動時に fail-fast する。
+        本番投入後の差し替えで silent な意味論変化が起きるのを防ぐ。
+  - 露出概念 / 禁止概念の機械可読宣言
+      - 「05_提供機能カテゴリ」の露出概念一覧をカテゴリごとに YAML で
+        宣言し、許可概念 / 禁止概念を明示する。
+      - 公開 API snapshot（cargo public-api、PublicApiAnalyzers、
+        api-extractor、go-apidiff）と CI で照合し、禁止概念に該当する
+        語が API 表面に出現したら fail させる。
+      - これは「強制機構」層 2 と同じ枠で動かす。
+
+■ 出荷時の二バックエンド方針
+  - L2 / L3 のうち、族内差し替えの実用可能性を継続的に保証したい
+    カテゴリは、CI conformance に加えて出荷時から複数バックエンドを
+    サポート対象として併走させる。
+  - day-1 で複数バックエンドを併走させる初期対象（最低限）：
+      Messaging              : Kafka + RedPanda
+      KeyValue / Cache       : Valkey + Dragonfly
+      Object Storage         : Ceph RGW + MinIO
+  - tier2 / tier3 リポジトリは Backstage Software Template で backend
+    を選択できる状態とし、テンプレート選択肢の存在自体を「族内差し替え
+    が機能している」生きた証跡として運用する。
+  - CI conformance のみだと運用 1 年で片側が腐るため、出荷物として
+    並走させること自体を保証手段に含める。
 
 ■ Observability Companion（Library 非対応言語向け追加提供）
   - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に
