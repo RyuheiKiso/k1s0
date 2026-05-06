@@ -10,8 +10,12 @@ tier1 Library スコープ外（非提供）
     （Library としては配布しない）。
 
 ■ 可視化 UI
-  - 可視化ダッシュボードは Perses をプラットフォーム標準として採用する。
-    Library としては配布せず、プラットフォーム側で運用する。
+  - メトリクス可視化は Perses をプラットフォーム標準として採用する
+    （Prometheus データソース）。
+  - ログ / トレースの ad-hoc 探索 UI は Apache Superset を併用する
+    （ClickHouse データソース）。
+  - トレース調査 UI は Jaeger v2 UI を併用する（ClickHouse storage）。
+  - いずれも Library としては配布せず、プラットフォーム側で運用する。
   - tier2 / tier3 はダッシュボード UI に直接アクセスし、Library 経由では
     扱わない。
 

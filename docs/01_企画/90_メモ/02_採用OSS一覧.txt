@@ -29,20 +29,38 @@
   分散トレース SDK               | OpenTelemetry                    | Apache 2.0
   テレメトリパイプライン         | OpenTelemetry Collector          | Apache 2.0
   メトリクス                     | Prometheus                       | Apache 2.0
-  ログ                           | OpenSearch                       | Apache 2.0
-  トレーシングバックエンド       | Jaeger                           | Apache 2.0
+  ログ / トレース SoR            | ClickHouse                       | Apache 2.0
+  ClickHouse Operator            | Altinity ClickHouse Operator     | Apache 2.0
+  トレース UI                    | Jaeger v2 (UI + Query)           | Apache 2.0
+  ログ / ad-hoc 探索 UI          | Apache Superset                  | Apache 2.0
   Continuous Profiling           | Parca                            | Apache 2.0
   k8s 状態メトリクス             | kube-state-metrics               | Apache 2.0
   k8s Web UI                     | Headlamp                         | Apache 2.0
   API トラフィックビューア       | Kubeshark                        | Apache 2.0
-  可視化ダッシュボード           | Perses                           | Apache 2.0
+  メトリクス可視化               | Perses                           | Apache 2.0
 
-  ※ 可視化基盤は Grafana の AGPL を回避するため Perses（CNCF Sandbox、
-    Apache 2.0）を標準採用する。
-    Perses のデータソース対応は Prometheus 系を中心としており、
-    Jaeger / OpenSearch については対応状況を都度確認のうえ、
-    必要に応じて専用 UI（Jaeger UI、OpenSearch Dashboards 等）を併用する。
-  ※ Jaeger のストレージバックエンドにはログ用 OpenSearch を共用する想定。
+  ※ 観測可能性 SoR は ClickHouse 一本に集約する。ログ・トレースを単一の
+    カラムナストアに格納し、trace_id を軸にした SQL JOIN や横断集計を
+    可能にする。OpenSearch は採用しない（観測可能性ワークロードは
+    BM25 ランキングや形態素解析を業務 SLO に持たず、構造化集計が支配
+    的なため、カラムナ OLAP のほうが構造的に最適）。
+  ※ Jaeger は v2 を採用し、storage exporter として ClickHouse を指定する。
+    Jaeger UI / Query は OTLP 受信を Collector 側に委ね、トレース調査
+    専用 UI として位置付ける。
+  ※ メトリクス可視化は Perses（CNCF Sandbox、Apache 2.0）を標準採用する
+    （Grafana の AGPL 回避方針は維持）。データソースは Prometheus 系に
+    限定する。
+  ※ ログ / トレースの ad-hoc 探索 UI は Apache Superset（Apache 2.0）
+    を併用する（ClickHouse データソース）。tier3 が「テナント × エンド
+    ポイント × latency」等を SQL ベースで探索する経路として位置付ける。
+  ※ 全文検索（BM25・形態素解析）は観測可能性 SoR の業務要件に入らない
+    ため、Library カテゴリには含めない。tier3 業務固有で必要な場合は
+    Library 抽象の外で個別に検索エンジンを立てる。
+  ※ ClickHouse の運用は Altinity ClickHouse Operator を採用する。
+    Tiered storage（hot SSD + cold S3 = Ceph RGW）は MergeTree の
+    disk_s3 で透過化する。tail-based sampling は OpenTelemetry
+    Collector の tail_sampling processor で実施する（Library 表面には
+    出さない）。
   ※ .NET Framework 向けには OpenTelemetry .NET Auto-Instrumentation
     （CLR Profiler アタッチ方式、Apache 2.0）を併用する。tier1 Library
     を直接組み込めない言語向けの観測可能性 Companion として位置付ける。

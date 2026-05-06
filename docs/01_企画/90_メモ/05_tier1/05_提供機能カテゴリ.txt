@@ -4,8 +4,8 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
 
   カテゴリ                                | 対象     | Lv  | 主な提供 API                            | 現行実装 OSS
   ----------------------------------------+----------+-----+-----------------------------------------+--------------------------------------
-  Observability / Logging                 | both     | L3  | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry Library + Collector → OpenSearch
-  Observability / Tracing                 | both     | L3  | 分散トレース span 発行、伝播            | OpenTelemetry Library + Jaeger
+  Observability / Logging                 | both     | L3  | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry Library + Collector → ClickHouse
+  Observability / Tracing                 | both     | L3  | 分散トレース span 発行、伝播            | OpenTelemetry Library + Jaeger v2 (ClickHouse storage)
   Observability / Metrics                 | both     | L3  | カウンタ / ヒストグラム / ゲージ        | OpenTelemetry Library + Prometheus
   Observability / Profiling               | backend  | L2* | Continuous Profiling 有効化、ラベル付与 | Parca
   Authentication / Authorization          | both     | L3  | OIDC クライアント、トークン検証、認可   | Keycloak
