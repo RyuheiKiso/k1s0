@@ -1,0 +1,197 @@
+============================================================
+tier3 のフォーム設計規約
+============================================================
+
+■ 方針
+  - tier3 の業務系フォームは「数十フィールド / 依存関係 / 長時間
+    編集 / IME 入力」を前提とする。一般 web の問い合わせフォーム
+    と同じ実装方針を持ち込まない。
+  - フォームは tier2 の aggregate と 1:1 対応させ、tier2 業務語彙
+    （Draft / Confirmed / Cancelled）と状態遷移を UI に正しく
+    反映する（「14_状態遷移UI」「06_tier2/19_状態遷移パターン」
+    整合）。
+  - validation は field-level / form-level / server-level の 3 段
+    階で表現し、それぞれの責務を混在させない。
+  - 全フォームはデザインシステムの Form / Field / Section /
+    Stepper を組み合わせて構築する（「09_デザインシステム」整合）。
+
+■ 構造化（Section / Step / Wizard）
+  - Section :
+      - 同一画面内でフィールドを業務的にグループ化（基本情報 /
+        明細 / 添付 / 承認情報 等）。
+      - 数十フィールドの 1 画面表示を Section で整理。
+  - Step :
+      - 1 つの aggregate を複数画面に分割する。各 Step ごとに
+        部分 validation を行う。
+      - 戻る / 進むで状態を保持。下書きは IndexedDB（「08_状態
+        管理」整合）。
+  - Wizard :
+      - 業務的な順序が強制される登録フロー（新規発注作成 →
+        承認依頼 → 確定 等）に使用。
+      - 多段承認との接続は後述。
+  - 1 つの業務に対し Section / Step / Wizard のどれを採用するかは
+    「フィールド数」「依存関係の深さ」「業務上の段階性」で決める。
+    迷ったら Section（単一画面）を既定とする。
+
+■ Validation 表示
+  - field-level（即時）:
+      - フォーマット / 必須 / 長さ / 数値範囲など、入力値単独で
+        判定可能なもの。
+      - blur / IME 確定後に判定。input 中の判定は日本語入力で
+        誤判定が出るため避ける。
+  - form-level（送信前）:
+      - フィールド間の依存関係（開始日 ≤ 終了日 等）。
+      - 送信ボタン押下時に一括判定し、最初のエラー位置に
+        フォーカスを移す。
+  - server-level（送信後）:
+      - tier2 が返す ValidationError / DomainError / Business
+        Conflict / AuthorizationDenied に基づく差戻し（「19_業務
+        エラーUX」「06_tier2/14_業務エラー監査コンプライアンス」
+        整合）。
+      - tier2 から受領したエラーを field に紐付けて表示する。
+        紐付け不能なエラーは form-level バナーで表示。
+
+■ ValidationError と DomainError の UI 区別
+  - ValidationError : 入力値の業務妥当性違反（品番フォーマット /
+    金額桁超過等）。該当 field に inline エラー表示。
+  - DomainError : aggregate 内部の不変条件違反（在庫マイナス /
+    確定済み改変等）。form-level バナー（業務エラーバナー、
+    「09_デザインシステム」整合）で表示し、recovery_hints を
+    必ず提示する。
+  - BusinessConflict : 並行操作競合。form-level バナー +
+    最新サーバ状態への refresh action を提示する（「08_状態管理」
+    楽観更新整合）。
+  - AuthorizationDenied : 認可拒否。fields は readonly に切替。
+    バナーで業務語彙の理由を表示（「18_権限UI制御」整合）。
+
+■ 入力支援
+  - autocomplete : 品目 / 拠点 / 取引先等の業務マスタを入力中に
+    検索 / 選択。tier2 のマスタ検索 API（pg_trgm、「06_tier2/24_
+    読み取りモデル方針」整合）を debounce 200〜300ms で呼ぶ。PII
+    を含むマスタ検索結果はクライアント cache 不可（「08_状態管理」
+    永続化整合）。
+  - サジェスト : 直近入力履歴 / 前回入力値の補完。actor 単位 +
+    業務単位で IndexedDB に保持（PII 不可）。
+  - 履歴 : 同一フォームの過去確定値からのテンプレート選択。tier2
+    read model（「06_tier2/24_読み取りモデル方針」）から取得。
+
+■ IME / 全半角 / 桁区切り / 数値 / Decimal
+  - IME 入力 :
+      - composition イベント（compositionstart / compositionend）
+        で確定前テキストを field-level validation 対象から除外。
+      - Enter キーで送信される実装は IME 確定 Enter と区別する
+        （compositionend 後の Enter のみ送信）。
+  - 全半角変換 :
+      - 業務上半角必須の field（品番 / 通貨記号等）は IME 確定後
+        に半角へ自動変換し、原文と並記しない（誤入力混入防止）。
+      - 全角必須の field（日本語名等）は逆方向の自動変換は行わ
+        ない（人名等を破壊するため）。
+  - 桁区切り表示 :
+      - 数値 / 金額表示時に Locale 別の千区切りを表示する
+        （表示時のみ。入力中は無区切りでも受け付ける）。
+  - Decimal :
+      - tier2 と同じ wire 表現（「06_tier2/18_API設計規約」数値
+        節整合）として string で送受する。クライアントの IEEE 754
+        浮動小数で精度欠損させない。
+      - Decimal 入力は専用 input コンポーネント（Domain 層の
+        Decimal 値オブジェクト経由、「07_内部アーキテクチャ」整合）。
+
+■ 単位 / 通貨入力
+  - 単位 / 通貨は tier2 値オブジェクト（金額 = 数値 + 通貨コード、
+    数量 = 数値 + 単位コード）に従って表示・入力する。
+  - 表示時の桁数 / 区切り / 通貨記号位置は ICU MessageFormat /
+    Intl.NumberFormat 相当で Locale 別フォーマット（「21_アクセシ
+    ビリティ国際化」整合）。
+  - 単位換算は tier2 の換算 API（業務マスタの換算係数経由）を
+    呼ぶ。クライアント側の固定係数を使わない。
+
+■ 楽観更新と server validation 後の差戻し
+  - 楽観更新で UI を即時更新（「08_状態管理」楽観更新整合）。
+  - tier2 から ValidationError / DomainError 受領時 :
+      - 楽観値を rollback。
+      - field-level エラーを該当 field に紐付け表示。
+      - フォーカスを最初のエラー field に移す。
+  - BusinessConflict 受領時 :
+      - 楽観値を rollback。
+      - 「他者が先に更新しました。最新を読込みます」を toast
+        表示。最新サーバ状態を refetch 後、ユーザーに編集続行 /
+        破棄を選択させる。
+
+■ 自動保存 / Draft 状態
+  - 自動保存（tier2 Draft 状態への保存）:
+      - tier2 の Draft 状態（「06_tier2/19_状態遷移パターン」
+        Draft 節整合）に保存することで、サーバに永続化する。
+      - 保存タイミング : フィールド変更後の debounce 2 秒、Section
+        切替時、Step 切替時、ブラウザ非アクティブ化時。
+      - 保存単位 : aggregate 全体（partial 保存しない）。
+  - クライアント側下書き（IndexedDB）:
+      - サーバ Draft 保存に失敗した場合 / 回線断時のフォールバック
+        として IndexedDB に保存（「08_状態管理」フォーム下書き
+        保存整合）。
+      - 復帰時に IndexedDB → tier2 Draft へ送信を試行。
+  - 自動保存中はステータス表示（最終保存 : 〇秒前 / 保存失敗）。
+    保存失敗時は再試行ボタンを提示。
+
+■ 未保存変更の破棄警告
+  - dirty 状態で画面遷移 / タブ閉じが発生したら確認モーダル
+    （「11_画面遷移ルーティング」未保存変更の破棄警告整合）。
+  - 自動保存が成功している場合は警告を出さずに遷移可能。
+  - 「破棄」を選択した場合は IndexedDB / tier2 Draft の両方を
+    purge する。
+
+■ ファイル添付
+  - 画像 / PDF / Office 文書 / CAD / 業務帳票等の添付の操作 /
+    プレビュー / アップロード規約は「20_添付帳票UX」を参照。
+    フォーム内では添付フィールドコンポーネント（「09_デザイン
+    システム」業務 UI 特有のコンポーネント整合）として埋め込む。
+  - アップロード結果（ウィルススキャン / MIME 検査）の failed は
+    field-level エラー扱いとし、送信前 form-level validation で
+    阻止する。
+
+■ キーボード操作
+  - Tab 順序 : DOM 順 = 視覚順 = 業務上の入力順を一致させる
+    （「21_アクセシビリティ国際化」整合）。tabindex の手動指定は
+    禁止（例外は modal focus trap のみ）。
+  - Enter : 単一行 input 内は form 送信（IME 確定 Enter は除外）。
+    textarea 内は改行（送信は Ctrl/Cmd+Enter）。
+  - Esc : モーダル閉じ / インライン編集キャンセル。dirty 状態は
+    破棄確認を経由する。
+  - ショートカット : 共通は Ctrl/Cmd+S 保存、Ctrl/Cmd+Z undo、
+    Ctrl/Cmd+Y redo、Ctrl/Cmd+Enter 送信、Esc キャンセル。フォーム
+    固有は業界 pack 別に追加可（help 画面に一覧、「10_UX原則」整合）。
+
+■ 大量フィールドの仮想化
+  - 100 フィールド超のフォームは Section 単位で virtual scroll を
+    有効化する（off-screen フィールドを DOM から外す）。
+  - 全 field の DOM を持たないため、form-level validation は
+    server-side で完結させる（クライアントで全部回さない）。
+  - 大量明細行（行追加で動的増殖）は仮想スクロール + 行単位
+    validation。
+
+■ 多段承認との接続
+  - 多段承認を伴う aggregate は Confirmed への遷移前に
+    PendingApproval state を経由する（「14_状態遷移UI」「06_tier2
+    /19_状態遷移パターン」Approval Workflow 整合）。
+  - フォーム送信 → tier2 Workflow 起動 → 承認 step 進行の連鎖を
+    多段承認ステッパ（「09_デザインシステム」整合）で可視化。
+    起動レスポンスに operation_id / workflow_id を含める（「06_
+    tier2/18_API設計規約」LRO 整合）。
+  - 申請取下げ / 差戻し : tier2 cancel API / 差戻 API を呼び、
+    Cancelled 遷移 + 補償処理 / Draft 復帰を tier2 が実行する
+    （「06_tier2/19_状態遷移パターン」補償処理整合）。
+  - 承認依頼 / 差戻し / 承認完了の通知は「17_通知UI」整合。
+
+■ tier3 内部のフォーム override 拡張点
+  - 業界 pack / テナント別の override は features/<domain>/forms/
+    内の field 拡張点で表現する（「24_override実装規約」整合）。
+  - override 可能 :
+      - 追加 field（tier2 拡張点で aggregate 拡張属性として登録
+        済みのもの）
+      - field-level validation の追加チェック（不変条件は override
+        不可、追加チェックのみ可）
+      - autocomplete のマスタ参照先差替え
+  - override 禁止 :
+      - 必須 field の削除
+      - tier2 業務不変条件の事前チェックを「実は通す」実装
+      - エラー表示の抑制
+============================================================

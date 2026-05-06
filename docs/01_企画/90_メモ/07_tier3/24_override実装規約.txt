@@ -1,0 +1,167 @@
+============================================================
+tier3 の override 拡張点実装規約
+============================================================
+
+■ 方針
+  - 「06_tier2/07_業務資産所有権」の tier3 側実装手順を本ファイルで
+    定める。tier3 は tier2 が公開する拡張点（contract）に対しての
+    み override 実装を提供する。拡張点を超えた領域への override は
+    禁止する（後述）。
+  - override 機構は言語ごとに ad-hoc に乱れないよう、tier2 と同枠
+    の標準パターンで揃える。tier3 の override 実装は tier2 SDK の
+    DI 注入経路（「23_tier2消費方針」整合）でのみ差替える。
+
+■ 言語別 override 実装パターン
+  - Rust :
+      - tier2 が提供する trait の既定実装を、tier3 が trait 実装の
+        差替えで override する。
+      - コンポジションのみ。継承的な振る舞い変更（unsafe な vtable
+        書換等）は禁止する。
+      - reflection / 内部状態への RTTI 経由アクセスは禁止する。
+      - 拡張点は tier2 の公開 trait 上に明示されており、#[doc(hidden)]
+        ではない（「06_tier2/07_業務資産所有権」整合）。
+  - C# (.NET 8+) :
+      - tier2 の virtual / abstract メソッドを override する。
+      - DI 注入で具象を差替える（composition root で実装クラスを
+        登録）。
+      - sealed メソッド / sealed class の改変は禁止する。
+      - private / internal メンバへの reflection / unsafe / IL 書換
+        を禁止する。
+  - Go :
+      - tier2 の interface 実装を tier3 で差替える。
+      - embed による構造体内部状態の override は禁止する（tier2 の
+        unexported field 改変経路）。
+      - reflect で unexported field 取得を行わない。
+  - TypeScript :
+      - tier2 が公開する protected メソッドを override、または関数型
+        hook（tier2 が公開する hook 関数を tier3 が実装）で拡張する。
+      - private 状態への reflection / Symbol 経由アクセスは禁止する。
+      - any / as unknown as による型強制 cast を override 経路に
+        含めない。
+
+■ override 範囲（拡張点）
+  - tier2 が公開する拡張点に限定する :
+      - バリデーション規則（フォーム入力 / ビジネス事前条件）
+      - 業務計算式（金額計算 / 数量換算 / 製造業計算式 等）
+      - 承認規則（多段承認の条件分岐）
+      - 通知先選定（誰に通知するかのロジック）
+      - Activity 実装（Workflow の個別ステップ実装、後述）
+  - 各拡張点は tier2 の YAML 宣言（拡張点と不変条件、「06_tier2/07_
+    業務資産所有権」整合）で機械可読に管理されている。tier3 は宣言
+    された拡張点のみを実装する。
+
+■ 不変条件への抵触検出
+  - tier2 は拡張点ごとに contract test suite を提供する。tier3 の
+    override 実装は contract test を CI で必須実行する（「29_テスト
+    方針」整合）。
+  - contract test の green を tier3 リポジトリの merge 条件とする。
+  - 不変条件（在庫 ≥ 0、確定後変更不可、tenant_id 越境禁止 等）に
+    抵触する override は contract test で fail し、merge を阻止する。
+  - skip / 改変は CI で fail（後述、「31_強制機構」整合）。
+
+■ DI / 注入経路
+  - tier2 SDK の差替えポイント（「23_tier2消費方針」整合）に DI で
+    注入する。
+      - Library 形態 : tier2 が提供する trait / interface に対し、
+        tier3 の override 実装を composition root で登録。
+      - Service 形態 : tier3 アプリ内部の Application 層で override
+        を呼ぶ前段 / 後段の hook を Adapter 層で配置。
+  - DI コンテナの設定は tier3 アプリ起動時の composition root に
+    集約し、Application 層 / Presentation 層からは具象 import を
+    禁止する（「07_内部アーキテクチャ」整合）。
+  - 環境別 / テナント別 / 業界 pack 別の override 切替は composition
+    root の設定で表現する。実行時に override を動的書換することは
+    禁止する（reasoning 困難 / 監査困難のため）。
+
+■ override の単体テスト
+  - 拡張点ごとにケース網羅した単体テストを必須とする。
+      例：「自社調達ルートの追加承認者解決ロジック」 override に
+          対し、組織図パターン / 委譲（Delegation）パターン /
+          欠員パターン の境界ケースを網羅。
+  - tier2 が提供する fixture（マスタ初期値 / aggregate サンプル）を
+    使用し、tier3 独自の業務マスタ再定義は禁止する（「23_tier2消費
+    方針」整合）。
+  - 単体テスト + contract test の両方を CI で要求する。
+
+■ override の Schema 拡張
+  - tier2 base schema に対し、tier3 が override schema を分離 YAML /
+    分離 .proto として提供する（「06_tier2/07_業務資産所有権」
+    Schema / Workflow / 決定表整合）。
+  - merge は tier2 のビルド時に実施する（tier3 リポジトリで base
+    schema を改変しない）。
+  - 拡張カラム / 拡張イベント属性は前方互換のみ（既存属性の削除 /
+    型変更は不変条件で禁止される）。
+
+■ override の Workflow 拡張
+  - tier2 が Workflow 骨格（Workflow ID 体系 / 補償処理境界）を
+    所有する。tier3 は Activity 実装または拡張点 step を override
+    する。
+  - Workflow 自体の構造（補償処理の有無 / 段数 / 並列性）は不変
+    条件として override 不可。
+  - tier3 の Activity 実装は冪等性を保証する（同一 input で再実行
+    可能）。tier2 の Activity contract に従う限り、Workflow の
+    再実行で silently 壊れない。
+
+■ override の決定表拡張
+  - 「上書き決定表」を tier3 が提供し、tier2 が ZEN Engine の評価
+    チェーンに挿入する（「06_tier2/07_業務資産所有権」決定表
+    override 整合）。
+  - tier3 は ZEN Engine を直接呼ばない（tier2 wrapper 経由のみ、
+    「23_tier2消費方針」整合）。
+  - 上書き決定表は base 決定表の出力を上書きする位置に挿入される。
+    base 決定表の改変ではない（base は tier2 所有）。
+
+■ override 後の互換性責務
+  - tier3 が拡張点の規約（contract）に従って override している
+    限り、tier2 の minor 上げで silently 壊れないことを tier2 が
+    保証する（「06_tier2/07_業務資産所有権」override 後の互換性
+    責務整合）。
+  - tier2 major version up 時は tier2 が override 移行 toolchain を
+    成果物として提供する（「30_互換性ポリシー」整合）。tier3 は
+    並行運用期間（最長 6 ヶ月）内に移行する。
+  - tier3 が拡張点を超えた領域に踏み込んでいる場合（後述）は本保証
+    の対象外。
+
+■ 拡張点を超えた領域への override 禁止
+  - 以下を tier3 の override コードで行うことを禁止する :
+      - 不変条件の改変（「06_tier2/07_業務資産所有権」不変条件
+        節整合）
+      - tier1 直接 import（「31_強制機構」整合、「02_位置づけ」
+        tier1 横断的共通要素以外の直接消費禁止整合）
+      - tenant_id 偽装 / 別テナントアクセス（「25_認証認可マルチ
+        テナント」整合）
+      - 監査 emit の抑制（業務イベント / Domain Event の発行を
+        bypass する経路）
+      - reflection / unsafe による private 状態書換
+      - tier2 の sealed / 不変メソッドの差替え
+  - これらは contract test + CI 検査で機械的に検出する（「31_強制
+    機構」「29_テスト方針」整合）。
+
+■ override 利用例（製造業 pack）
+  - 検査結果確定の判定式追加 :
+      - tier2 base 判定式 :「規格内であれば確定」。
+      - tier3 override : 顧客 A の追加閾値 / 複合条件を上書き決定
+        表で挿入。
+      - 不変条件 :「確定済み検査結果は再変更不可」は override 不可。
+  - 発注承認者解決ロジック :
+      - tier2 base : 承認段数と承認者解決の既定実装。
+      - tier3 override : テナント組織図に応じた解決ロジック。
+        Delegation（「06_tier2/22_権限モデル」整合）と組合せる。
+      - 不変条件 : 補償処理（発注取消時のキャンセル）は override
+        不可。
+
+■ contract test の skip / 改変は CI で fail（「31_強制機構」整合）
+  - tier3 リポジトリが Backstage Software Template 由来の CI 設定を
+    継承する（「06_tier2/16_強制機構」と同枠）。
+  - contract test の skip / 削除 / 改変は CI で fail とする。
+  - tier2 が contract test 自体を更新した場合（major up）、tier3 は
+    新 contract に従って override を更新する。
+
+■ override コードのレビュー観点
+  - 不変条件への抵触有無（contract test 結果）。
+  - 拡張点の正規入口を経由しているか（tier2 の hook / interface /
+    virtual / trait のみを経由しているか）。
+  - 並行制御 / 冪等性の保証（Activity 実装の場合）。
+  - PII / 監査制約の遵守（「32_セキュリティアーキテクチャ」整合）。
+  - 上記をレビュー必須項目として PR テンプレートに含める。
+============================================================

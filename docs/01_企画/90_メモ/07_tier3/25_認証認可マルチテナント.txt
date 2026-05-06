@@ -1,0 +1,176 @@
+============================================================
+tier3 の認証認可とマルチテナント
+============================================================
+
+■ 方針
+  - tier3 の認証は OIDC を tier1 Keycloak（「05_tier1/05_提供機能
+    カテゴリ」Authentication / Authorization 整合）経由で行う。tier3
+    は OIDC クライアント実装を独自に持たず、tier1 Library / Companion
+    runtime に委譲する（「02_位置づけ」tier1 横断的共通要素整合）。
+  - tier3 はテナント識別子をクライアント引数で扱わない。サーバが
+    Authorization context から取得する経路のみ使用する（「06_tier2
+    /06_マルチテナント方針」識別子漏洩防止整合）。
+  - 認可判定はサーバ（tier2 / tier1）が行う。tier3 は判定結果を
+    UI に反映する責務に留まる（「18_権限UI制御」整合）。
+
+■ 認証フロー（OIDC）
+  - tier1 Keycloak と OIDC で連携する。tier3 のフロー種別はアプリ
+    ケーション形態（「04_アプリケーション形態」）ごとに分岐する。
+
+■ フロー種別
+  - Web SPA :
+      - Authorization Code + PKCE。
+      - public client として登録（client_secret を持たない）。
+      - リダイレクト URI は tier3 アプリ origin に固定。
+      - silent renew は iframe + prompt=none を使用。
+  - デスクトップ exe（Tauri / WinUI / WPF / egui 等）:
+      - Authorization Code + PKCE。
+      - システムブラウザを起動して認証画面を表示する（embedded
+        browser を使用しない、phishing 耐性のため）。
+      - loopback redirect（http://127.0.0.1:<port>/callback）で
+        code を受領。
+  - レガシー (.NET Framework) :
+      - Companion 経由（「36_レガシー資産統合」整合）。
+      - Companion runtime が OIDC フローを担当し、業務アプリは
+        token を直接扱わない（「05_tier1/04_Library」Companion
+        役割 A 整合）。
+
+■ token 保管
+  - Web :
+      - httpOnly Secure SameSite=Strict cookie に access_token /
+        refresh_token を保管する。
+      - JavaScript からアクセス可能な領域（localStorage / session
+        Storage / メモリ平文）に置かない（XSS 耐性、「32_セキュリ
+        ティアーキテクチャ」整合）。
+      - CSRF 対策 : SameSite + 二重送信トークン（CSRF token）を
+        併用する。
+  - デスクトップ :
+      - OS keychain に保管する :
+          Windows : DPAPI 経由の Credential Manager。
+          macOS   : Keychain Services。
+          Linux   : libsecret（GNOME Keyring 等）。
+      - キーは current user スコープでバインドする。他ユーザから
+        アクセス不可とする。
+  - 禁止 :
+      - localStorage / sessionStorage に access_token / refresh_token
+        を直接保管することを禁止する。
+      - Service Worker キャッシュへの token 保管を禁止する。
+      - JavaScript から取得可能な領域（in-memory も含む、export
+        可能な状態）に置かないよう、Adapter 層に閉じる。
+
+■ リフレッシュフロー
+  - silent renew :
+      - Web : access_token expiry 直前に prompt=none で renew。
+      - デスクトップ : refresh_token grant でバックグラウンド更新。
+  - refresh token rotation :
+      - 毎回 refresh で新 refresh_token が発行され、旧 refresh_token
+        は失効する（reuse 検出で全 session 失効、「32_セキュリティ
+        アーキテクチャ」整合）。
+  - renew 失敗時 :
+      - 編集中フォームの保護（後述）→ 再ログイン誘導。
+      - 自動 logout は行わず、ユーザに再ログイン操作を選択させる。
+
+■ ログアウト
+  - front-channel logout : tier3 アプリからの logout 操作で Keycloak
+    の logout endpoint へリダイレクト。
+  - back-channel logout : Keycloak が tier3 アプリへ logout 通知を
+    送信し、tier3 がローカル session を破棄する。
+  - SSO 連動（「27_複数tier3連携」整合）:
+      - 同一テナント内の他 tier3 アプリにも logout を波及させる。
+      - 各 tier3 は back-channel logout 受信エンドポイントを持つ。
+
+■ セッション切れ
+  - 編集中フォームの保護（「12_フォーム設計規約」自動保存節整合）:
+      - セッション切れ検出時、フォーム dirty state を IndexedDB に
+        即時保存する（「08_状態管理」フォーム下書き保存整合）。
+      - PII 含むフィールドは保存しない（「32_セキュリティアーキ
+        テクチャ」整合）。
+  - 再ログイン後の復元 :
+      - 同一 actor + tenant + form_id で保存値を検出し、ユーザに
+        復元 / 破棄を選択させる（silent な上書きは行わない）。
+      - 復元時にサーバ状態の version と保存時 version を比較し、
+        ずれていたら明示提示する。
+
+■ テナント識別子の取扱
+  - クライアントから tenant_id を引数で送信しない（「06_tier2/06_
+    マルチテナント方針」識別子漏洩防止整合）。
+  - サーバが Authorization context から tenant_id を取得する。
+  - tier3 業務コードからは「現在の tenant_id」を read-only で
+    Application 層が参照する（表示・cache key 等）。書込経路には
+    含めない。
+  - クエリ parameter / request body / URL path に tenant_id を
+    含める実装を CI で禁止する（「31_強制機構」整合）。
+
+■ 複数テナント所属ユーザー
+  - 切替 UI :
+      - 共通ヘッダにテナント切替メニューを提示する（複数テナント
+        所属ユーザのみ表示）。
+      - 切替操作は OIDC の token を新テナント claim に切替えて再
+        取得する。
+  - 切替時の cache 全クリア :
+      - サーバ状態 cache（TanStack Query 等）/ クライアント状態
+        ストア / IndexedDB の業務データを全 purge する（「08_状態
+        管理」整合）。
+      - フォーム下書きはテナント単位で別空間として保持される
+        （key に tenant_id 含む）。
+      - リアルタイム subscription は再接続して新テナント context
+        で再 subscribe する。
+
+■ ABAC 判定属性の供給
+  - aggregate 由来属性（created_by / tenant_org_id / equipment_
+    location 等、「06_tier2/22_権限モデル」整合）は tier2 が供給
+    する。クライアントは触らない。
+  - tier3 が aggregate 由来属性をクライアントで再構築 / 上書き
+    することを禁止する（認可結果の偽装を防ぐ）。
+  - tier3 が見るのは tier2 が判定済の認可結果（行可 / 不可、状態色
+    / disable 等）のみ。
+
+■ 認可結果の cache
+  - クライアント cache 禁止 : tier3 は認可結果をクライアント cache
+    しない。必ずサーバ判定の都度結果を受領する。
+  - 例外 : 1 画面表示単位の短期 memoize は許容（同一画面内で同一
+    判定を複数回問い合わせない）。画面遷移 / aggregate 状態変化で
+    必ず再判定する。
+  - 認可判定の結果に応じて UI を活性 / 非活性 / 表示 / 非表示する
+    （「18_権限UI制御」整合）。
+
+■ Companion 経由認証の特殊性
+  - Companion runtime が token 取得 / 伝播 / refresh を担当する
+    （「05_tier1/04_Library」Companion 役割 A 整合）。
+  - 業務アプリ（.NET Framework 等）は token を直接扱わず、HttpClient
+    の DelegatingHandler 経由で Authorization header が自動付与される。
+  - refresh / renew も Companion 内部で完結し、業務アプリのコード
+    変更を伴わない。
+  - logout / セッション切れも Companion がハンドリングし、業務
+    アプリへは event として通知される。
+
+■ emergency_override 中の UI 表示（「18_権限UI制御」整合）
+  - tier2 が emergency_override 中であることを返した場合、tier3 は
+    UI 上で明示する :
+      - グローバルバナー : 「緊急対応モード（残り XX 分）」を常時
+        表示。
+      - 操作ログ追加表示 : この期間の操作は詳細監査対象である旨を
+        全画面の footer 等で告知。
+      - 通常時非活性なボタン / 機能が活性化される場合、活性化
+        理由（emergency_override）を tooltip / 補助文言で示す。
+  - emergency_override の起動 / 解除は業務管理 UI の責務であり、
+    tier3 業務 UI からは行わない（「26_業務管理UI境界」整合）。
+
+■ ABAC debug endpoint 利用（開発環境のみ）
+  - tier2 が提供する ABAC 判定 debug endpoint を、開発環境の tier3
+    から利用可能とする。
+      - 用途 : 認可判定の入力属性 / 判定結果 / 適用ポリシーを確認。
+      - 本番環境では disable する（feature flag、「31_強制機構」
+        整合）。
+  - debug endpoint の利用はすべて監査エントリ emit 対象（「06_tier2
+    /14_業務エラー監査コンプライアンス」整合）。
+
+■ 認証 / 認可の境界整理
+  - 認証（誰か）: tier1 Keycloak。
+  - 認可（何が可能か）: tier2 のロール / ABAC 判定式（「06_tier2/22_
+    権限モデル」整合）。
+  - tier3 は認証 / 認可ロジックを再実装しない。判定結果を UI に
+    反映するのみ。
+  - 上記境界違反（tier3 がローカル認可判定 / token 検証を実装する
+    こと）を CI で禁止する（「31_強制機構」整合）。
+============================================================

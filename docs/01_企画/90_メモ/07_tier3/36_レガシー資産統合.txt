@@ -1,0 +1,171 @@
+============================================================
+tier3 のレガシー資産統合（.NET Framework + Companion）
+============================================================
+
+■ 方針
+  - 既存の .NET Framework 4.6.2+ アプリを tier3 として活用する
+    ため、Companion + Envoy Gateway 経由の tier2 Service 消費
+    に固定する（「01_概要」既存資産への配慮 / 「05_tier1/04_
+    Library」Companion 節 / 「06_tier2/12_言語スタック」整合）。
+  - レガシー資産は段階的移行の対象として尊重するが、tier1
+    Library を直接組み込めない以上、業務 API 利用と観測可能性
+    の経路は tier1 / tier2 が定める Companion 機構に乗せ、
+    tier3 個別の独自統合経路を作らない。
+  - 1.0.0 出荷物として「Companion + Gateway 経由 tier2 Service
+    消費」を完全サポートする。レガシーのまま新規業務を構築
+    可能にし、無理な書き換えを強制しない。
+
+■ 構築フロー
+  - .NET Framework アプリの組込 :
+      - 既存 .NET Framework 4.6.2+ アプリに Companion runtime
+        を組み込む。
+      - 既定形態 : OpenTelemetry .NET Auto-Instrumentation
+        （CLR Profiler アタッチ、コード変更不要）。
+      - 補助形態 : NuGet 参照型 Companion（Auto-Instrumentation
+        非対応環境向け）。
+  - 業務 API 消費 :
+      - 業務 API は Envoy Gateway 経由で HTTP/1.1 + JSON /
+        NDJSON 形式で消費する（「05_tier1/04_Library」整合）。
+      - .proto を単一の真とし、Gateway の gRPC-JSON Transcoder
+        で派生されたエンドポイントを利用する。
+  - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation :
+      - Companion が担当する。アプリ側コード変更を最小化する。
+
+■ 観測可能性 Auto-Instrumentation
+  - .NET Framework 4.6.2+ :
+      - OpenTelemetry .NET Auto-Instrumentation を既定とする。
+      - CLR Profiler アタッチ方式で HttpClient / ASP.NET /
+        ADO.NET / WCF 等を自動計装する。
+      - 配布形態は環境変数 + DLL 配置 + 再起動で完結
+        （「05_tier1/04_Library」Companion 節整合）。
+  - Auto-Instrumentation 非対応環境（4.6.1 以前等）:
+      - NuGet 参照型 Companion を使う。
+      - HttpClient 用 DelegatingHandler / 認証伝播ヘルパ /
+        Logger 拡張のみを含む最小 NuGet。
+  - 観測属性スキーマ :
+      - tier3 拡張属性（「33_観測可能性」整合）を OpenTelemetry
+        Weaver で生成し、Companion が読み込む。
+      - スキーマ定義 → 生成定数 → 実行時出力の 3 点を CI で
+        連結（tier2 / Web SPA tier3 と同枠）。
+
+■ 認証伝播
+  - OIDC token 取得 :
+      - Companion 経由で Keycloak の OIDC 認証フローを実行
+        （「25_認証認可マルチテナント」整合）。
+      - Authorization Code Flow + PKCE を既定とする。
+      - .NET Framework アプリ側のブラウザ起動 / リダイレクト
+        受領は Companion が担う。
+  - token refresh / propagation :
+      - refresh token は Companion が OS keychain に保管する
+        （「32_セキュリティアーキテクチャ」整合）。
+      - 業務 API 呼出時に Authorization header / traceparent /
+        テナント識別子を Companion が自動付与する。
+  - SSO :
+      - Web SPA tier3 と同一テナントの SSO を Companion 経由
+        で共有する（「27_複数tier3連携」整合）。
+
+■ 業務 API 消費の制約
+  - Library 直接組込不可 :
+      - tier1 Library / tier2 Library は .NET Framework に
+        対応しない。NuGet で直接参照することを禁止する。
+      - 強制機構（「31_強制機構」整合）でレジストリレベル
+        の取得遮断を行う。
+  - Service 形態の Gateway 経由のみ :
+      - 業務処理は Service 形態（「06_tier2/08_配布形態」
+        整合）の API を Envoy Gateway 経由で呼び出す。
+      - in-process API（Library 専用機能）は利用不可。
+  - bidi RPC を含む全 RPC :
+      - Companion adapter で transport 非依存に実行する
+        （「05_tier1/04_Library」Companion 役割 B 整合）。
+      - 同梱 adapter : sse_paired（既定）/ long_poll /
+        webhook / websocket / messaging_bridge。
+      - .NET Framework Companion には web_transport は載らない
+        （QUIC 非対応のため）。
+  - resume の透過化 :
+      - bidi RPC が resumable: REQUIRED の場合、Companion が
+        transport 切替を跨いで session 継続する。
+      - アプリ側は onMessage / send の API のみ見える。
+
+■ レガシー UI 技術
+  - 既存資産の活用 :
+      - WinForms / WPF / WebForms / WCF を伴うクライアントの
+        活用は許容する（既存資産尊重）。
+      - tier1 / tier2 が標準 UI 技術を強制しない。
+  - 新規 tier3 :
+      - 新規 tier3 でレガシー UI 技術を採用しない。新規は
+        クロスプラットフォーム（「06_UI技術スタック」整合）
+        を推奨する。
+      - 既存資産の延長としてのみレガシー UI を許容する。
+
+■ 制約
+  - .NET Framework は EOL を見据えた段階的移行を推奨 :
+      - Microsoft の .NET Framework サポートサイクルに合わせ、
+        段階的に .NET 8+ への移行を計画する。
+      - 1.0.0 出荷時点では強制しない。
+  - .NET 8+ 専用 API の不可 :
+      - tier2 SDK のうち .NET 8+ 専用 API（async stream の
+        高度機能、source generator 利用部分等）は .NET
+        Framework Companion から利用不可。
+      - 利用可能 API の一覧は tier2 SDK ドキュメント
+        （「35_開発者体験」整合）に明示する。
+  - Library 専用機能（in-process API）の不可 :
+      - Library のみで提供される in-process API は Companion
+        では利用不可（「06_tier2/08_配布形態」表面 API 対称性
+        整合）。
+      - Service 形態の機能のみが Companion 経由で利用可能。
+
+■ 段階的移行戦略
+  - 機能単位の移行 :
+      - 既存 .NET Framework アプリを一括書換せず、機能単位で
+        新規 tier3（.NET 8+ / Web SPA）に移行する。
+      - 移行中は新旧両アプリが同一テナントで並走する
+        （「27_複数tier3連携」「34_配布デプロイ運用」整合）。
+  - 並行運用機構 :
+      - 「06_tier2/29_データライフサイクル」既存基幹との並行
+        運用機構と整合する dual-write 期間を活用する。
+      - 同一業務に関する書込が新旧両経路で発生しても、tier2
+        が業務不変条件を担保する。
+  - 移行優先度 :
+      - 業務頻度が高い機能 / レガシー UI が運用負担の機能を
+        優先的に移行する判断を運用組織で行う。
+      - tier2 / tier3 共通の API 互換性ポリシー（「30_互換性
+        ポリシー」整合）の下で移行可能性を保つ。
+
+■ 配布
+  - ClickOnce / MSI :
+      - 内部配布のみ。Companion 同梱（「34_配布デプロイ運用」
+        整合）。
+      - インストーラ署名 / SBOM / Cosign 署名は Web SPA / exe
+        と同枠で扱う。
+  - 自動更新 :
+      - ClickOnce 経由は ClickOnce 機構。
+      - MSI 経由は Group Policy / 内部配信ツール（テナント
+        運用に依存）。
+
+■ 観測 / 監視
+  - tier3 RUM の対象外 :
+      - .NET Framework アプリは Web ブラウザではないため
+        Web Vitals / RUM の対象外。
+      - 代替として Auto-Instrumentation が span / log /
+        metric を tier1 Collector に送信する。
+  - 業務エラー UX :
+      - tier3 共通の業務エラー UX 規約（「19_業務エラーUX」
+        整合）を可能な範囲で採用する。
+      - レガシー UI フレームワークの制約で完全準拠が困難な
+        場合、business 用語表記 / trace_id 提示 / リトライ
+        提示の 3 点は最低担保する。
+
+■ 退役と長期収斂
+  - レガシー言語が対象 fleet から退役した時点で Companion
+    自体の保守も終了する（「05_tier1/04_Library」長期収斂
+    整合）。
+  - 退役判定はテナント運用組織が行う。tier1 / tier2 は退役
+    まで Companion を維持する。
+
+■ 1.0.0 出荷時の対応範囲
+  - Companion + Envoy Gateway 経由の tier2 Service 消費を
+    完全サポートする。
+  - .NET Framework 4.6.2+ 向け Auto-Instrumentation /
+    NuGet 参照型 Companion / OIDC 認証 / 全 RPC adapter /
+    ClickOnce / MSI 配布 / SBOM / Cosign を 1.0.0 で揃える。
+============================================================

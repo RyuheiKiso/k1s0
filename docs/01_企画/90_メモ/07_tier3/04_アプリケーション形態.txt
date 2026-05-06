@@ -1,0 +1,124 @@
+============================================================
+tier3 のアプリケーション形態
+============================================================
+
+■ 提供形態（3 形態）
+  - Web SPA :
+      - ブラウザ上で動作する Single Page Application。
+      - 主要言語は TypeScript（「05_言語スタック」参照）。
+      - tier2 への接続は tier1 Gateway 経由 HTTP/1.1 + JSON /
+        NDJSON、または将来 HTTP/3 + WebTransport（Transport
+        Adapter Layer の capability negotiation で自動選択。
+        「05_tier1/03_Server系」参照）。
+  - デスクトップ exe（クロスプラットフォーム） :
+      - Windows / macOS / Linux で動作するデスクトップアプリ。
+      - 主要言語は C# (.NET 8+) または Rust（Tauri）。
+      - tier2 Library を直接組込、または tier2 Service を Gateway
+        経由で消費する。
+  - レガシー (.NET Framework 4.6.2+) :
+      - .NET Framework 上で動作するデスクトップアプリ（WinForms /
+        WPF）。
+      - tier2 Library 直接組込は不可。tier2 Service を Companion
+        + Gateway 経由で消費する（「05_tier1/02_言語スタック」
+        「05_tier1/04_Library」Companion 節と整合）。
+
+■ 形態選定基準
+  - 端末 :
+      - PC（事務所） : Web SPA を既定とする。デスクトップ exe は
+        端末配布管理コストが許容できる場合に選ぶ。
+      - タブレット（現場巡回 / 携行） : Web SPA（PWA）を既定と
+        する。手書き入力 / カメラ統合が深く必要な場合のみネイティ
+        ブ寄りを検討するが、1.0.0 出荷外（後述）。
+      - 現場端末（工場 / 検査ライン / 倉庫） : 既存端末が
+        Windows + .NET Framework に固定されていればレガシー形態。
+        新規端末ではデスクトップ exe（クロスプラットフォーム）。
+      - 共用端末（受付 / kiosk 等） : Web SPA（kiosk mode）。
+  - オフライン要件 :
+      - 連続オフライン業務（電波が届かない場所での入力等）が
+        要件にある場合はデスクトップ exe またはレガシー形態を
+        選ぶ。
+      - 短時間の通信瞬断のみであれば Web SPA（PWA）で十分
+        （「22_端末オフラインデバイス」参照）。
+  - OS 依存 :
+      - OS 固有 API（プリンタ制御 / シリアルポート / 専用 SDK）
+        が必要であればデスクトップ exe または レガシー形態。
+      - OS 中立で済むならば Web SPA。
+  - 配布要件 :
+      - 全社一斉アップデートが必要であれば Web SPA（サーバ更新で
+        即時反映）。
+      - 端末ごとに署名・配布管理がある場合はデスクトップ exe /
+        レガシー形態（MSI / MSIX / 独自インストーラ）。
+  - 既存資産制約 :
+      - 既存の .NET Framework アプリの段階的移行が要件であれば
+        レガシー形態を選ぶ。新規はデスクトップ exe またはモダン
+        Web SPA を推奨する（「36_レガシー資産統合」参照）。
+  - セキュリティ要件 :
+      - ブラウザ環境を許容できない閉域網要件はデスクトップ exe /
+        レガシー形態。
+      - 通常の業務であれば Web SPA で十分（mTLS / OIDC は tier1
+        が透過に担う）。
+
+■ ハイブリッド構成（多形態同時提供）
+  - 同一業務を Web SPA + デスクトップ exe + レガシーの複数形態で
+    並行提供する場合、業務語彙は tier2 で一致しているため、tier3
+    側で業務処理を再設計しない。
+  - tier3 側で形態ごとに分岐するのは UI 規約のみ :
+      - 画面遷移 / フォームレイアウト（「11_画面遷移ルーティング」
+        「12_フォーム設計規約」参照）。
+      - 入力デバイス（マウス・キーボード・タッチ・バーコード）。
+      - 帳票出力経路（ブラウザ印刷 / OS プリンタ / PDF 保存）。
+      - オフラインキャッシュ戦略（「22_端末オフラインデバイス」
+        参照）。
+  - 業務処理コード（tier2 の API 呼出 / Domain Event 購読 / Work
+    flow 起動）は形態間で共有する設計を既定とする。
+
+■ 形態切替（業務コード再設計の回避）
+  - tier2 が Library / Service の両形態を表面 API 対称性を保って
+    提供する以上（「06_tier2/02_位置づけ」「06_tier2/08_配布形態」）、
+    tier3 の形態切替で業務コードを再設計しない。
+  - 切替範囲 :
+      - Web SPA → デスクトップ exe : tier2 Library 組込可否は
+        言語次第。Web SPA も TypeScript の tier2 Library を消費
+        できるが、Service 形態の方が SPA との親和性が高い場合は
+        Service を選ぶ。
+      - Web SPA / デスクトップ exe ↔ レガシー : Library 直接組込
+        の有無で接続方式が変わるが、業務コードの語彙は同一。
+        Companion + Gateway を経由するか、tier2 Library を直接
+        呼ぶかの差にとどまる。
+
+■ レガシー (.NET Framework) 形態の固定方針
+  - .NET Framework 4.6.2+ では tier2 Library / tier1 Library の
+    直接組込は不可（「05_tier1/02_言語スタック」「06_tier2/12_言
+    語スタック」）。
+  - tier2 Service を Gateway 経由 HTTP/1.1 + JSON / NDJSON で消費
+    する形態に固定する。
+  - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation は
+    Companion（役割 A / 役割 B）が担う（「05_tier1/04_Library」
+    Companion 節）。
+  - tier3 業務コードからは「Companion runtime + tier2 Service の
+    proto 派生 SDK」のみが見える。OSS クライアントへの直接アクセ
+    スは禁止する（「03_非提供スコープ」参照）。
+  - 詳細は「36_レガシー資産統合」参照。
+
+■ モバイル（iOS / Android）ネイティブ
+  - 1.0.0 出荷時点で iOS / Android のネイティブアプリ形態は出荷
+    外とする。理由 :
+      - tier1 Library / tier2 Library の対応言語に Swift / Kotlin
+        が含まれない（「05_tier1/02_言語スタック」「06_tier2/12_
+        言語スタック」と整合）。
+      - 業務要件の多くは PWA で代替可能（「22_端末オフラインデバ
+        イス」参照）。
+  - 1.0.0 出荷後にネイティブモバイル形態を追加する場合、tier1 /
+    tier2 の言語追加手順（「06_tier2/12_言語スタック」言語追加
+    の手順節）が先行することを要件とする。
+
+■ 1.0.0 出荷時の対応範囲
+  - Web SPA : TypeScript + React を既定。製造業 pack 消費の代表
+    tier3（発注 / 検査 / FA など）で出荷する。
+  - デスクトップ exe : C# (.NET 8+) または Rust + Tauri。製造業
+    現場端末向け業務 tier3 で出荷する。
+  - レガシー : .NET Framework 4.6.2+ + WinForms / WPF。既存資産
+    との並行運用が要件のテナント向けに出荷する。
+  - 上記 3 形態を同一の業務 pack（製造業 pack）から派生する形で
+    出荷する。業務処理は tier2 で一致する。
+============================================================

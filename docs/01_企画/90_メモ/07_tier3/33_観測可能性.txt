@@ -1,0 +1,176 @@
+============================================================
+tier3 の観測可能性（クライアントテレメトリ）
+============================================================
+
+■ 方針
+  - tier3 観測は tier1 OpenTelemetry スキーマに乗る。tier3 の
+    RUM / フロントエンドテレメトリは tier1 が運用する Collector
+    に集約する（「05_tier1/04_Library」横断的共通要素 /
+    「06_tier2/09_Service運用方針」観測可能性節整合）。
+  - tier3 が独自の観測基盤を持たない。tier3 が emit する span /
+    metric / log は tier1 / tier2 と同一の trace_id 体系で接続
+    される（cross-tier trace、「35_開発者体験」整合）。
+  - 1.0.0 出荷物として、RUM / Web Vitals / cross-tier trace /
+    業務 metric / 同意管理 を全面に揃える。観測可能性を後付け
+    にしない。
+
+■ RUM（Real User Monitoring）
+  - Web Vitals の継続計測 :
+      - LCP / FID / INP / CLS を全画面で計測する。
+      - p50 / p75 / p95 / p99 を tier1 Metrics（Prometheus）に
+        集約。Perses ダッシュボードでテナント別 / 画面別に表示。
+  - 業務操作への span 付与 :
+      - aggregate 状態遷移操作（確定 / 取消 / 修正等、「14_状
+        態遷移UI」整合）に span を付与。
+      - Workflow 起動操作（承認 submit 等）に span を付与。
+      - 検索 / 一覧表示（「13_検索一覧UX」整合）に span を付与。
+      - span 名は業務語彙（例：order.confirm / inspection.
+        finalize）で命名し、tier2 業務語彙と整合させる。
+  - tier2 / tier1 への trace 接続 :
+      - tier3 → tier2 → tier1 backend を貫く 1 trace に統合
+        する（「06_tier2/30_開発者体験」cross-tier trace 整合）。
+      - traceparent / tracestate を tier2 業務 API 呼出時に
+        伝播する（W3C Trace Context 準拠）。
+  - サンプリング :
+      - 既定は head-based sampling（10%）+ エラー span の
+        always sampling。
+      - 重大業務操作（確定 / 監査対象）は always sampling。
+
+■ frontend エラー収集
+  - 収集対象 :
+      - 未捕捉例外（window.onerror / unhandledrejection）。
+      - Promise rejection（unhandledrejection）。
+      - リソース読込失敗（script / image / stylesheet 等の
+        load error）。
+      - フレームワーク特有のエラー境界（React Error Boundary
+        等）からの emit。
+  - 業務エラー UX との接続 :
+      - trace_id を業務エラー UX（「19_業務エラーUX」整合）
+        の表示に含め、ユーザがサポート問合せ時に提示できる
+        ようにする。
+      - 操作再現手順（直前の navigation / クリック / 入力
+        フィールド名のみ。値は除外）を span attribute として
+        記録。
+      - PII を含む可能性のある入力値は記録しない（「32_セキュ
+        リティアーキテクチャ」整合）。
+
+■ セッション再生 / リプレイ
+  - PII 自動 redact を必須とする :
+      - 入力フィールドの値、表示中の業務データ、添付ファイル
+        プレビュー、画面内の氏名 / メール / 電話 / 住所等は
+        自動 redact。
+      - redact ルールは tier1 Collector のプロセッサで一元化
+        し、tier3 個別実装に持たせない（「05_tier1/04_Library」
+        Companion 整合の枠組みと同様）。
+  - 同意管理下でのみ実行 :
+      - cookie consent でリプレイ収集を opt-in した利用者に
+        限定する。本節「同意管理」整合。
+  - 録画は短期保管 :
+      - 障害解析用途のため最長 14 日保管。期間経過で自動消去。
+
+■ ユーザ行動分析
+  - 業務 KPI（tier2 集計）と区別する。tier3 で扱うのは UI 利用
+    ログのみとする :
+      - 画面到達 / 滞在時間 / 操作完了率 / フォーム放棄率 /
+        バリデーション失敗頻度等。
+      - 業務 KPI（発注件数 / 検査確定件数 / 不良率等）は tier2
+        の集計領域（「06_tier2/24_読み取りモデル方針」整合）
+        であり、tier3 RUM では算出しない。
+  - 行動分析データの actor 記述 :
+      - actor は Keycloak subject（sub claim）のみで識別する。
+        メール / 氏名 / 端末情報を attribute に含めない。
+
+■ 計測カテゴリ
+  - 操作完了率 / 操作 latency / エラー率 :
+      - 業務操作単位で集計し、SLO 監視（「06_tier2/27_信頼性
+        運用準備」整合）と接続する。
+  - フォーム放棄率 / バリデーション失敗頻度 :
+      - 業務改善ヒントとして tier2 業務 KPI 担当者に提供する
+        （フォームのどの項目で離脱したか / 何回バリデーション
+        が失敗したか）。
+      - フォーム値そのものは送らず、フィールド名 / エラー
+        コードのみを送る。
+  - 業務エラー frequency :
+      - 業務語彙のエラー（「19_業務エラーUX」業務例外 taxonomy
+        整合）の発生頻度を画面 / 操作別に集計する。
+
+■ アラート / エスカレーション
+  - tier3 RUM の異常はすべて tier1 観測基盤に送信し、tier1 の
+    アラート方針（「06_tier2/27_信頼性運用準備」アラート方針
+    整合）に乗る。
+  - tier3 個別のアラート系は持たない。
+  - page アラートの例 :
+      - Web Vitals p95 が閾値超過。
+      - frontend エラー率の急増（直近 5 分平均が日次基準値の
+        3 倍）。
+      - 認証失敗率の急増（OIDC redirect 失敗等）。
+
+■ 観測属性スキーマ
+  - OpenTelemetry Semantic Conventions の tier3 拡張を YAML で
+    宣言し、OpenTelemetry Weaver で各言語の定数コードを生成
+    する（tier2 と同枠、「06_tier2/09_Service運用方針」
+    観測可能性節整合）。
+  - tier3 拡張属性の例 :
+      - tenant.id / user.role / aggregate.id /
+        screen.id / interaction.kind。
+  - HTTP / RPC / 認証等の標準計装は OpenTelemetry Semantic
+    Conventions に従う。tier3 が独自の re-name を行わない。
+
+■ ゴールデン値テスト
+  - 出力 span / metric 属性を CI で照合する :
+      - Testcontainers で Collector を起動し、tier3 から実際に
+        emit される属性をゴールデン値と比較する（「29_テスト
+        方針」整合）。
+      - スキーマ定義 → 生成定数 → 実行時出力 の 3 点を CI で
+        連結する（tier2 / Companion と同手順）。
+  - スキーマ違反は merge 条件で fail とする。
+
+■ ログ / RUM への PII 漏洩防止
+  - 入力値の自動 redact :
+      - 業務語彙で「PII フィールド」と宣言された項目（氏名 /
+        メール / 電話 / 住所 / マイナンバー等）は span /
+        log attribute に出さない。
+      - redact 設定は Collector プロセッサで一元化（「05_tier1
+        /04_Library」Companion 節整合）。
+  - actor 表現は Keycloak subject のみ :
+      - 監査ログ（「06_tier2/14_業務エラー監査コンプライアン
+        ス」整合）と整合させ、メール / 氏名等の identifier を
+        log に書き込まない。
+
+■ 同意管理（GDPR / DNT / GPC）
+  - cookie consent :
+      - GDPR 適用テナントでは初回起動時に同意 banner を出し、
+        「必須 / 機能 / 解析 / マーケティング」のカテゴリ別に
+        opt-in を取得する。
+      - 必須以外（解析 / マーケ）は同意取得後にのみ収集を開始
+        する。
+  - DNT（Do Not Track）/ Global Privacy Control（GPC）:
+      - DNT: 1 / Sec-GPC: 1 が送信されている場合は解析カテゴリ
+        を強制 off とする。
+      - 「32_セキュリティアーキテクチャ」整合。
+  - 同意撤回 :
+      - ユーザは UI から同意撤回が可能。撤回後は再起動なしで
+        即座に収集停止する。
+
+■ offline 中のテレメトリ buffer
+  - IndexedDB に蓄積し、復帰時にバッチ送信する（「22_端末オフ
+    ラインデバイス」整合）。
+  - buffer の上限は 1000 件 / 5 MB を目安とし、上限到達時は古い
+    エントリから破棄する。
+  - 同意取得前 / 同意撤回後の蓄積は行わない。
+
+■ 環境別動作
+  - 開発環境 :
+      - 同意 banner / DNT を考慮せず全 telemetry を取得する
+        （ローカル開発の demand があるため）。
+      - debug 表示で送信内容をコンソールに出力可能。
+  - 本番環境 :
+      - 同意ある範囲のみ収集する。
+      - debug 表示は禁止（「34_配布デプロイ運用」整合）。
+
+■ 1.0.0 出荷時の対応範囲
+  - RUM / Web Vitals / frontend エラー収集 / cross-tier trace /
+    業務 metric / 同意管理 / offline buffer / ゴールデン値
+    テストを 1.0.0 で揃える。
+  - 出荷後の継続改善は DX / 観測チームの責務とする。
+============================================================

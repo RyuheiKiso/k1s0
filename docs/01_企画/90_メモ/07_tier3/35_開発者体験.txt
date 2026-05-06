@@ -1,0 +1,197 @@
+============================================================
+tier3 の開発者体験（onboarding / starter / debugging）
+============================================================
+
+■ 方針
+  - tier3 開発者層はジュニア中心とする（「04_推奨の開発体制」
+    整合）。tier2 が tier3 開発者向けに整備する開発体験
+    （「06_tier2/30_開発者体験」整合）を tier3 視点で具体化
+    し、onboarding / starter / デバッグツールを 1.0.0 出荷時に
+    揃える。
+  - tier3 担当が「業務 UI 実装に集中できる」ことを最優先とする。
+    tier1 / tier2 / インフラに関する知識を最小限の学習で済む
+    形で提供する。
+  - 1.0.0 出荷物として「ローカル開発 / Software Template /
+    onboarding playbook / starter / デバッグツール / cross-tier
+    trace」を全面に揃える。
+
+■ ローカル開発環境
+  - tier1 backend :
+      - Testcontainers で起動（PostgreSQL / Kafka / Temporal /
+        Keycloak / Valkey 等、「06_tier2/30_開発者体験」整合）。
+      - 起動 profile を提供し、必要な backend のみ起動する
+        ことで起動時間を削減する。
+  - tier2 Service :
+      - tier3 開発者の手元で起動（または Tilt 経由で k8s
+        ローカル起動）。
+      - Backstage Software Template が docker-compose / Tilt
+        Tiltfile を同梱する。
+  - tier3 自身 :
+      - dev server で hot reload する（「06_UI技術スタック」
+        整合）。
+      - TypeScript 即時型チェック / Lint がエディタ統合される
+        構成を template 同梱とする。
+  - 起動時間目標 :
+      - tier1 backend + tier2 Service + tier3 dev server を
+        合計 5 分以内に起動可能とする。
+      - profile / cache 戦略でローカル起動を高速化する。
+
+■ Backstage Software Template
+  - tier3 リポジトリ生成時の自動同梱物 :
+      - CI 設定（型 / Lint / 単体 / 統合 / contract test /
+        観測スキーマ照合 / バンドルサイズ検査）。
+      - 強制機構（「31_強制機構」整合）の検査群。
+      - サンプル業務シナリオ（hello-world）。
+      - Backstage TechDocs ベースのドキュメント雛形。
+  - 形態別テンプレート :
+      - Web SPA テンプレート。
+      - デスクトップ exe テンプレート（Tauri / WinUI 系、
+        「05_言語スタック」整合）。
+      - レガシー（.NET Framework + Companion）テンプレート
+        （「36_レガシー資産統合」整合）。
+  - テンプレート更新 :
+      - tier2 のバージョンアップに合わせてテンプレートも更新
+        する。tier3 リポジトリは generator で再生成可能な構造
+        を保つ。
+
+■ サンプルデータ
+  - tier2 提供の seed をそのまま利用する :
+      - 業界横断 seed（既定テナント / 既定ユーザ / 既定組織 /
+        既定マスタ、「06_tier2/30_開発者体験」整合）。
+      - 製造業 pack seed（品目 / 拠点 / BOM / 発注 1 件 /
+        検査 1 件等）。
+  - tier3 が独自に seed を持たない。tier2 seed を介して
+    再現性を担保する。
+  - 起動時の自動投入 option を template が提供する。
+
+■ onboarding playbook
+  - 初日 :
+      - Backstage で新規 tier3 リポジトリ生成。
+      - ローカル起動（tier1 backend Testcontainers + tier2
+        Service + tier3 dev server）。
+      - hello-world の動作確認（tier2 通知 API を呼ぶ）。
+  - 1 週目 :
+      - tier2 業務 API の利用学習（API ドキュメント /
+        サンプルコード経由）。
+      - 1 業務シナリオの実装（例：発注 1 件の作成 → 承認 →
+        確定）。
+      - 1 拡張点の override 実装（「24_override実装規約」
+        整合）。
+  - 2 週目 :
+      - 認証 / マルチテナント識別子伝播の理解と動作確認
+        （「25_認証認可マルチテナント」整合）。
+      - contract test の通過確認（「24_override実装規約」
+        整合）。
+      - 統合テスト（Testcontainers 経由）の作成（「29_テスト
+        方針」整合）。
+  - 1 ヶ月目 :
+      - ステージング環境への deploy（「34_配布デプロイ運用」
+        整合）。
+      - 業務管理 UI への deep link 連携（「26_業務管理UI境界」
+        整合）。
+      - 本番 roll-out 計画の作成。
+  - playbook は Backstage TechDocs で公開し、各ステップに
+    対応するサンプル PR / サンプルテストへのリンクを含む。
+
+■ starter / hello-world
+  - tier3 hello-world :
+      - tier2 通知 API を 1 回呼ぶだけの最小アプリ。
+      - 認証 → 業務 API 呼出 → レスポンス受領のフルパスを
+        最小コードで体験できる。
+      - 認証は Keycloak の dev realm を使う（「25_認証認可
+        マルチテナント」整合）。
+  - 製造業 pack starter :
+      - 発注 1 件 / 検査 1 件のシナリオを実装した tier3 アプリ
+        （「38_製造業pack適用例」整合）。
+      - tier3 開発者が fork して新規業務を作る出発点。
+  - starter の更新 :
+      - tier2 のバージョンアップと同期して更新する（tier2
+        と同じリポジトリ構造で配布）。
+
+■ デバッグツール
+  - tier2 業務 API :
+      - curl / grpcurl サンプル（認証 token 取得込み）を各
+        API ドキュメントに同梱（「06_tier2/30_開発者体験」
+        整合）。
+      - Postman / Insomnia の collection を Backstage TechDocs
+        からダウンロード可能。
+  - Domain Event inspect :
+      - tier2 が業務管理 API として Domain Event 履歴の検索
+        を提供する（「26_業務管理UI境界」「06_tier2/23_管理
+        境界」整合）。
+      - tier3 開発時はサンプル subscriber を starter に同梱
+        し、subscribe ログを開発者がローカルで確認可能。
+  - Workflow inspect :
+      - tier1 Temporal Web UI で進行中 Workflow を確認する
+        （業務管理者経路、「06_tier2/27_信頼性運用準備」
+        Workflow 可視化整合）。
+      - 開発環境では Web UI を制限なく公開する。
+  - 認可 debug endpoint :
+      - tier2 が「この呼出はなぜ拒否されたか」を返す debug
+        endpoint を提供（「18_権限UI制御」「25_認証認可
+        マルチテナント」整合）。
+      - 開発環境のみ有効（「34_配布デプロイ運用」環境別
+        配布整合）。
+  - cross-tier trace :
+      - tier3 の特定リクエストで発火した trace_id を取得し、
+        tier1 Jaeger v2 UI（「06_tier2/30_開発者体験」整合）
+        で全 span を確認する。
+      - tier3 → tier2 業務処理 → Domain Event → Workflow →
+        tier1 backend を 1 trace で追える。
+
+■ ドキュメント参照
+  - Backstage TechDocs に集約 :
+      - tier1 / tier2 / tier3 のドキュメントを単一ポータルから
+        参照可能（「06_tier2/30_開発者体験」整合）。
+      - 各ページに業務語彙の説明 / 利用例コード / curl /
+        grpcurl サンプル / 関連拡張点 / 関連 SLO を含む。
+  - 版管理 :
+      - tier2 / tier3 のバージョンと同期。古いバージョンも
+        参照可能。
+
+■ ホットリロード / 即時型チェック / Lint
+  - Web SPA :
+      - Vite / 同等 dev server の HMR で hot reload。
+      - TypeScript watch mode で即時型チェック。
+      - ESLint / Stylelint の auto-fix を保存時に適用。
+  - デスクトップ exe :
+      - Tauri 系は Web 部分が HMR 対応。
+  - エディタ統合 :
+      - VS Code / IntelliJ / Rider 等の主要エディタで動作する
+        構成を template に同梱。
+  - 強制機構（「31_強制機構」整合）はローカルでも実行可能と
+    し、push 前にエラー検出可能とする。
+
+■ mock 戦略
+  - tier2 を mock せず Testcontainers を使うことを既定とする
+    （tier2 と同枠、「06_tier2/30_開発者体験」整合）。
+  - 単体テストでも Testcontainers + tier2 Service 起動を採用
+    する（「29_テスト方針」整合）。
+  - mock 採用は tier2 が未実装の機能 / 外部 partner 連携の
+    failure シナリオ等の限定領域に限る。
+
+■ 開発時の RUM / 観測
+  - 開発時の RUM 全量送信 :
+      - 開発環境では RUM を全量送信し、debug 表示も有効
+        （「33_観測可能性」整合）。
+  - 本番 RUM の無効化 :
+      - 本番ビルドから debug 機能を物理的に除去（「34_配布
+        デプロイ運用」整合）。
+  - 開発時に「本番と同じスキーマ」で観測値が出ることを
+    ゴールデン値テスト（「33_観測可能性」整合）が保証する。
+
+■ tier2 → tier3 知識共有
+  - tier3 開発者が tier2 拡張点の意図を学べるよう、拡張点
+    ごとに「業務不変条件 / 拡張点の根拠 / 典型 override 例」
+    を Backstage TechDocs に記載する（「06_tier2/07_業務資産
+    所有権」整合）。
+  - tier2 開発者と tier3 開発者の合同レビュー会を 1.0.0 出荷
+    時の onboarding 期間に設定する運用を template が想定する。
+
+■ 1.0.0 出荷時の対応範囲
+  - ローカル開発 / Software Template / onboarding playbook /
+    starter / デバッグツール / cross-tier trace / TechDocs /
+    エディタ統合 / mock 戦略 を 1.0.0 で揃える。
+  - 開発体験の継続改善は出荷後の DX チーム責務（tier1 / tier2
+    と協働）。
+============================================================

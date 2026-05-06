@@ -1,0 +1,170 @@
+============================================================
+tier3 の対応端末・オフライン・デバイス連携
+============================================================
+
+■ 方針
+  - 製造業の業務シナリオは PC（事務所）/ タブレット / 工場端末
+    （堅牢タブレット / ハンドヘルド）の混在運用が前提となる。
+    tier3 はこれらの端末で同一の業務操作を実現可能にする。
+  - 工場 LAN は断続接続が頻発するため、tier3 はオフライン耐性を
+    アプリケーション形態（「04_アプリケーション形態」）の選択軸と
+    して扱う。
+  - デバイス連携（バーコード / RFID / IoT / プリンタ / カメラ）は
+    Adapter 層に集約し、業務 UI コードからは抽象 API でしか触らない
+    （「07_内部アーキテクチャ」整合）。
+
+■ 対応端末マトリクス
+  - PC :
+      - Windows / macOS / Linux。Web SPA とデスクトップ exe の
+        両形態に対応。
+  - タブレット :
+      - iPad（Safari）、Android タブレット（Chrome）。
+      - 縦横両対応のレイアウトを既定とする。
+  - 工場端末 :
+      - 堅牢タブレット（Panasonic TOUGHBOOK 等）。
+      - ハンドヘルド（Honeywell / Zebra 等の業務端末）。
+      - 解像度 / DPI / 入力デバイス（物理キー / トリガ）の差異を
+        想定する。
+  - デスクトップ exe :
+      - Windows メイン。Tauri / .NET（WinUI / WPF）を選択肢に
+        含める（「05_言語スタック」整合）。
+
+■ 対応ブラウザ
+  - 主要モダンブラウザの最新 + 1 を出荷時の対応範囲とする。
+      対象 : Chrome / Edge / Firefox / Safari。
+  - Internet Explorer 系は対応外。.NET Framework アプリ（「36_レガ
+    シー資産統合」整合）は別経路で対応する。
+  - polyfill は最小限に留め、対応ブラウザで標準実装されている API を
+    優先利用する。
+
+■ 解像度 / DPI
+  - タブレット縦横（約 768〜1366 px）/ HiDPI（Retina）/ 現場端末の
+    低解像度（800x480 等）に対応する。
+  - レスポンシブブレークポイントを「09_デザインシステム」のトークン
+    で管理し、UI コンポーネントは breakpoint に応じて密度（密 /
+    通常 / ゆとり）を切替える。
+  - 画像 / アイコンは SVG / 高解像度 raster を用意し、HiDPI で滲ま
+    ない表示を保証する。
+
+■ モバイル（iOS / Android）ネイティブ
+  - 1.0.0 出荷外。React Native / MAUI 等のクロスプラットフォーム
+    ネイティブ実装は提供しない。
+  - 1.0.0 ではモバイル対応は PWA（Progressive Web App）形態で対応
+    する。
+      例：iOS Safari / Android Chrome から「ホームに追加」で
+          installable とする。
+
+■ PWA
+  - Service Worker : 静的アセット / オフライン shell を cache。
+    更新は skipWaiting + clientsClaim を Adapter 層で制御し、UI 操作
+    中の強制リロードを避ける。
+  - manifest.json : テナント / 業務 pack 別のアイコン / theme_color
+    を提供する。
+  - installable : install prompt をユーザ操作の文脈で表示する
+    （初回起動時のスパムを避ける）。
+  - offline shell : オフライン時にもアプリ起動 / ナビゲーションが
+    可能な最小骨格を提供する。
+  - PWA の更新通知 : 新バージョン検出時にユーザに reload を促す
+    バナーを表示する（「17_通知UI」整合）。
+
+■ オフライン対応（製造現場の断続接続前提）
+  - 読取 :
+      - cache-first 戦略を IndexedDB に対し適用する（「08_状態管理」
+        永続化整合）。
+      - オフライン中は cache 値を表示し、stale 表示インジケータを
+        併記する（最終取得時刻を提示）。
+      - 接続復帰時は backround で再フェッチ（stale-while-revalidate）。
+  - 書込 :
+      - queue を IndexedDB に蓄積する。送信前のリクエストは Idempotency
+        -Key（UUID v4、「23_tier2消費方針」整合）を付与した状態で
+        永続化する。
+      - 接続復帰で順次送信。送信順は queue の enqueue 順を保つ。
+      - queue 内のリクエストは複数端末同期させない（端末別 queue）。
+  - コンフリクト :
+      - 接続復帰後の送信で BusinessConflict（「23_tier2消費方針」整合）
+        が返った場合、queue は止め、ユーザに「他者が先に更新した」を
+        提示し再確認を促す（自動再送 / silent merge は禁止）。
+      - 解決後にユーザが明示的に retry / 破棄を選択。
+  - PII の IndexedDB 保管制限 :
+      - PII 含む業務データは IndexedDB に保管しない（「08_状態管理」
+        「32_セキュリティアーキテクチャ」整合）。
+      - 氏名 / メール / 電話 / 住所等は queue 送信時のみ保持し、
+        送信完了で即削除する。
+      - 暗号化保管にしても、オフライン端末紛失時の漏洩を考慮して
+        保管自体を最小化する。
+
+■ デバイス連携
+  - 全デバイス連携を Adapter 層に集約し、Application 層からは
+    interface 経由のみで参照する（「07_内部アーキテクチャ」整合）。
+  - バーコード / QR スキャナ :
+      - HID（キーボード wedge）: input event を Adapter で吸収。
+      - Web Serial : 専用スキャナ（Honeywell / Zebra 等）の制御。
+      - Bluetooth : Web Bluetooth でペアリング。
+      - スキャン結果は Application 層のユースケース（「07_内部
+        アーキテクチャ」）に投入する。
+  - RFID リーダ :
+      - 業務端末（ハンドヘルド）内蔵リーダは vendor SDK + デスク
+        トップ exe で対応。
+      - 読取イベントは Application 層に「タグ ID 読取」ユースケース
+        として渡す。
+  - IoT 機器（生産設備実績取込）:
+      - 既定経路は tier2 経由。tier2 が外部システム統合（「06_tier2
+        /25_外部システム統合」整合）として実績を取り込む。
+      - デバイス → tier3 直接の経路は緊急時のみ許容（emergency_
+        override 相当の例外、「25_認証認可マルチテナント」整合）。
+      - 緊急経路で取り込んだ実績も最終的には tier2 に同期する。
+  - プリンタ :
+      - 業務帳票 : OS 印刷ダイアログ（「20_添付帳票UX」整合）。
+      - ラベルプリンタ（Zebra / SATO 等）: Web USB / ベンダ SDK
+        経由で Adapter 層で対応。
+      - 一括印刷は LRO（「15_非同期処理UX」整合）。
+  - カメラ（検査写真）:
+      - getUserMedia / Media Capture API を Adapter 層で吸収。
+      - 撮影画像は添付経路（「20_添付帳票UX」整合）でアップロード。
+
+■ Web API 利用方針
+  - WebUSB : ベンダ製業務デバイス（バーコードスキャナ / プリンタ等）
+    の制御に限定。汎用ストレージデバイス制御は禁止。
+  - Web Bluetooth : ペアリング済みデバイスのみ対応（業務 UI 上の
+    pair 操作で permission を取得）。
+  - Web Serial : Adapter 層に集約。直接の serial.requestPort() を
+    Presentation 層から呼ばない。
+  - File System Access : ローカルファイル一括 read / write が必要な
+    場合のみ。アプリ起動時に permission を要求し、permission scope は
+    最小化する。
+  - これら Web API は Chrome / Edge のみで利用可能なため、未対応
+    ブラウザでは fallback（ファイル選択ダイアログ等）を Adapter
+    層で提供する。
+
+■ バッテリー / 電力
+  - モバイル端末 / タブレットでのバッテリー消費を抑える :
+      - リアルタイム subscription は端末がバックグラウンドの間
+        suspend する（「16_リアルタイム更新UX」整合）。
+      - 高頻度 polling を避け、Server-Streaming / EventSource を
+        既定とする。
+      - レンダリングのフレームレート制限 : 不要な再レンダリングを
+        メモ化 / 仮想化で抑制する。
+  - 工場端末（給電型ハンドヘルド）は電力制約を緩和できる構成を
+    Application 層の設定で切替可能とする。
+
+■ 環境別の動作差
+  - 工場 LAN（オフライン頻発）:
+      - PWA + IndexedDB queue + cache-first 読取 を既定構成とする。
+      - 業務データの真は tier2 にあるため、長時間オフラインでも
+        最終整合は tier2 が決定する。
+  - 事務所（常時オンライン）:
+      - cache + リアルタイム subscription による即時反映を優先。
+      - queue 構成は維持するが、enqueue → 即送信が常態となる。
+  - DMZ / 顧客拠点 :
+      - VPN / プロキシ越しの通信制約を考慮し、Companion 経由
+        （Service 形態）の構成を選択可能にする（「23_tier2消費
+        方針」整合）。
+
+■ 端末選択の判断基準（tier3 アプリ単位）
+  - 事務系業務（発注 / 承認） : Web SPA。
+  - 現場系業務（検査記録 / FA 操作）: タブレット PWA + デスクトップ
+    exe（オフライン強需要）。
+  - 監視系業務（リアルタイムダッシュボード）: Web SPA + 大画面 PC。
+  - レガシー基幹連携（既存 .NET Framework クライアント、「36_レガ
+    シー資産統合」整合）: Companion + Service 経由。
+============================================================

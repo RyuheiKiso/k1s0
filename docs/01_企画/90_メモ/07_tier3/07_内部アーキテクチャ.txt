@@ -1,0 +1,144 @@
+============================================================
+tier3 の内部アーキテクチャ
+============================================================
+
+■ 方針
+  - tier3 はクリーンアーキテクチャを UI に適用する（「03_プラット
+    フォーム構成」採用方針と整合）。Presentation / Application /
+    Adapter / Domain の 4 層を明示的に分離し、tier3 内部の依存
+    方向を機械的に強制する（「31_強制機構」参照）。
+  - tier3 はドメインモデルを所有しない。業務資産（aggregate /
+    Domain Event / Workflow 定義 / 決定表 / 業務マスタ / DB
+    schema）の所有権は tier2 にある（「06_tier2/07_業務資産
+    所有権」参照）。tier3 の Domain 層は「業務語彙の値オブジェ
+    クトとフォーマッタ」のみを置く。
+  - クライアントアプリで「業務不変条件のローカル再実装」を行わ
+    ない。validation の最終判定は tier2 が行う（「19_業務エラー
+    UX」「12_フォーム設計規約」整合）。tier3 は UX 向上のための
+    軽量プリチェックに留める。
+
+■ 4 層構成
+  - Presentation 層
+      - 画面 / コンポーネント / ルーティング / 入力ハンドラ。
+      - UI フレームワーク（React / Vue / Blazor / egui 等）に依存
+        してよい唯一の層。
+      - tier2 の業務語彙をそのまま画面文言に使う（「10_UX原則」
+        認知負荷削減節と整合）。
+  - Application 層
+      - ユースケース（業務シナリオ単位の orchestration）。
+      - 例：「発注を Draft 保存する」「検査結果を Confirmed に
+        遷移させる」など、tier2 業務 API 呼出 + 状態管理 +
+        画面遷移制御を 1 つのユースケースとして表現する。
+      - UI フレームワーク非依存。Presentation からは interface
+        経由でのみ参照される。
+  - Adapter 層
+      - tier2 SDK client（gRPC-web / HTTP+JSON / Companion 経由）
+      - ローカルストレージ adapter（localStorage / IndexedDB /
+        OS keychain。「08_状態管理」永続化節と整合）
+      - デバイスアクセス adapter（カメラ / ファイル / 印刷 /
+        バーコードリーダ等。「22_端末オフラインデバイス」整合）
+      - 通知 adapter（toast / banner / native push）
+      - Adapter 層は外部 IO を集約する。Application 層は interface
+        を参照し、具象は DI で差替える。
+  - Domain 層
+      - 業務語彙の値オブジェクトのみを置く（金額 / 数量 / 期間 /
+        品番フォーマット / Decimal 文字列ヘルパ等）。
+      - aggregate / entity / domain service は置かない（tier2
+        所有のため）。
+      - フォーマッタ（表示用整形 / 単位換算ヘルパ）は Domain 層
+        ではなく Presentation 層配下の formatter モジュールに置く。
+      - 完全にフレームワーク非依存。
+
+■ 依存方向
+  - 許可方向 : Presentation → Application → Adapter / Domain。
+    Application → Adapter は interface 経由のみ。
+  - 禁止方向 :
+      - Presentation → Adapter 直接参照（tier2 client を画面から
+        直接呼ぶ）は禁止。必ず Application 経由とする。
+      - Domain → Application / Adapter / Presentation は禁止。
+      - Adapter → Presentation / Application は禁止。
+  - 循環依存禁止 : module 間 / 層間で循環依存が発生したら CI fail
+    とする（「31_強制機構」参照）。
+  - 言語別検査ツール :
+      TypeScript : eslint-plugin-boundaries + dependency-cruiser
+      C#         : NetArchTest / ArchUnitNET
+      Rust       : cargo-modules + cargo-deny
+
+■ bounded context と UI モジュール分割
+  - tier2 の業界 pack ドメイン分割（「06_tier2/05_ドメイン分割
+    方針」）を tier3 では UI モジュール分割に対応させる。
+      例：tier2 manufacturing/fa          → tier3 features/fa
+          tier2 manufacturing/procurement → tier3 features/procurement
+          tier2 manufacturing/inspection  → tier3 features/inspection
+          tier2 manufacturing/common      → tier3 features/common
+  - features/ 配下は 1 ドメインに対し Presentation /
+    Application / Adapter / Domain の 4 層をミニマムに持つ。
+  - features 間の直接依存は禁止する（tier2 のドメイン間直接参照
+    禁止と同じポリシー）。features 横断の連携が必要な場合は
+    Application 層の上位ユースケース（feature_compositions/）か、
+    tier2 業務 API 経由とする。
+  - features/common は features 横断で参照可。逆方向（common →
+    features）は禁止する。
+
+■ DI / 注入経路
+  - tier2 SDK の差替えを容易にするため、Application 層は Adapter
+    の interface のみに依存する。具象クラスへの直接 import を
+    禁止する。
+      例：IOrderClient（interface） ← OrderHttpClient / OrderGrpcClient
+  - DI コンテナはアプリ起動時に composition root で組み立てる。
+    Presentation 層からは hook / provider / context 経由で
+    Application を取得する。
+  - テスト時は in-memory fake / mock adapter を DI で差替える。
+    tier2 業務 API のサーバ起動を伴わない単体テストを成立させる
+    （「29_テスト方針」整合）。
+  - SDK 差替え対象 :
+      - tier2 SDK の major version 切替（「30_互換性ポリシー」
+        並行運用期間中の差替え）
+      - Library / Service 形態の切替（「06_tier2/02_位置づけ」
+        Library / Service 表面 API 対称性）
+      - Companion 経由 / 直接 grpc-web 経由の切替
+
+■ ディレクトリ構造リファレンス
+  - TypeScript（React / Vue 等）
+      src/
+        presentation/       (pages, components, layouts, routes)
+        application/        (use_cases, view_models)
+        adapter/            (http_clients, storage, devices, notify)
+        domain/             (value_objects, formatters)
+        features/<domain>/  (上記 4 層を 1 ドメイン単位で内包)
+        shared/             (UI primitives, design system local)
+  - C#（Blazor / WPF / WinUI 等）
+      Tier3.<App>.Presentation/  (Razor / XAML / View)
+      Tier3.<App>.Application/   (UseCase / ViewModel)
+      Tier3.<App>.Adapter/       (Client / Storage / Device)
+      Tier3.<App>.Domain/        (ValueObject / Formatter)
+      Tier3.<App>.Features.<Domain>/  (4 層を内包)
+  - Rust（egui / Tauri 等）
+      crates/
+        presentation/
+        application/
+        adapter/
+        domain/
+        features-<domain>/
+  - 言語に依らずディレクトリ名で 4 層境界を表面化する（grep /
+    review が容易になる）。
+
+■ フレームワーク非依存テスト可能性
+  - Application 層 + Domain 層は UI フレームワーク非依存で単体
+    テスト可能であることを設計目標とする。
+  - Presentation 層は UI 単体テスト + visual regression test
+    （「09_デザインシステム」「29_テスト方針」整合）。
+  - Adapter 層は contract test を tier2 SDK 側 fixture と整合
+    させる（tier2 のバージョンアップで silently 壊れない）。
+  - 統合テストは Testcontainers + tier2 Service 起動で実施
+    （「06_tier2/30_開発者体験」整合）。
+
+■ tier3 内部アーキテクチャの override 拡張点
+  - 業界 pack 別 / テナント別の override は features/<domain>/
+    内の Application 層拡張点で表現する（「24_override実装規約」
+    参照）。Presentation 層の差替えはデザイントークン / コンポー
+    ネント既定値の override に限定する（「09_デザインシステム」
+    整合）。
+  - Adapter 層 / Domain 層の override は禁止する（tier2 SDK
+    contract / 値オブジェクト fmt は tier3 内で 1 種に固定）。
+============================================================

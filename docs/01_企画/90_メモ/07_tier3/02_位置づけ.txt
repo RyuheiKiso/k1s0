@@ -1,0 +1,98 @@
+============================================================
+tier3 の位置づけ（tier2 / tier1 / Companion / レガシー基幹との境界）
+============================================================
+
+■ 階層関係
+  - tier1 : システム共通処理（infra 隠蔽）。
+  - tier2 : ドメイン業務共通化処理。tier3 はこれを一次消費する。
+  - tier3 : 個別業務に特化した Web サイト・exe。本ディレクトリ。
+  - infra : インフラ層。tier1 がラップする。
+  - data  : データ層。tier1 / tier2 を経由してアクセスする。
+  - 詳細は「03_プラットフォーム構成」を参照。
+
+■ tier2 への依存方針
+  - tier3 が業務処理を行う唯一の経路は tier2 の API である。
+      - 業務 API（業務 query / command）：tier2 Library または
+        tier2 Service（Gateway 経由）を消費する。
+      - Domain Event 購読：tier2 が公開する購読 API を消費する。
+        Kafka / NATS 等の OSS クライアントへの直接接続は禁止する。
+      - マスタ参照：tier2 が公開するマスタ参照 API を消費する。
+      - Workflow 起動：tier2 の Workflow API を消費する。Temporal
+        への直接接続は禁止する。
+  - tier3 から tier1 Library / Companion / OSS クライアントへの
+    直接呼出は禁止する（強制機構は「31_強制機構」を参照）。
+  - tier2 の API / Service が満たさない業務要件が発生した場合、
+    その差分は tier2 の override 拡張点で吸収できないかを先に
+    検討する。拡張点で吸収できない場合は tier2 への新規 API 追加
+    要求として扱い、tier3 内で代替実装することは禁止する
+    （「06_tier2/17_非提供スコープ」と整合）。
+
+■ tier1 の横断的共通要素への許容例外
+  - 「tier3 は tier1 を直接消費しない」原則の例外として、tier1 の
+    横断的共通要素のうち runtime としてプロセスに常駐するもの
+    だけは tier3 から透過に利用してよい。
+      - 自動計装（OpenTelemetry 自動計装 ランタイム / Companion
+        役割 A / .NET Auto-Instrumentation）。
+      - 認証 token 取得 / 検証 / 伝播の runtime（Authorization
+        header の自動付与、トレース context の伝播）。
+      - Transport Negotiation Runtime（Companion 役割 B）。
+      - 詳細は「05_tier1/04_Library」横断的共通要素節および
+        Companion 節を参照。
+  - これらは「business API ではなく runtime」であり、tier3 業務
+    コードからは API として見えない（DI 構成 / 環境変数 / DLL
+    配置で完結する）。tier3 業務コードに OSS クライアントの
+    import / 型参照が出ることは引き続き禁止する（「31_強制機構」
+    参照）。
+
+■ レガシー基幹システムとの境界
+  - レガシー基幹システム（既存 ERP / 生産管理 / 在庫管理 等）への
+    outbound 統合は tier2 の責務（「06_tier2/25_外部システム統合」
+    参照）。tier3 は触らない。
+  - tier3 はレガシー基幹を「ユーザに見せる必要のあるデータの一次
+    元」としては扱わない。tier2 が同期 / event-driven 統合で取得
+    した業務データを、tier2 の API として消費する。
+  - tier3 自身が新規構築されるアプリ（Web SPA / デスクトップ exe /
+    .NET Framework アプリ）である点と、レガシー基幹を tier2 が
+    後方統合する点を混同しない。tier3 が .NET Framework 形態を
+    取ることはあるが、それは「レガシー言語ランタイム上の新規
+    tier3」であり、レガシー基幹そのものではない（「36_レガシー
+    資産統合」参照）。
+
+■ 複数 tier3 同居前提
+  - 同一テナント内で複数の tier3 アプリケーション（発注 / 検査 /
+    FA 等）が同居する。tier3 は他 tier3 と直接通信しない。tier3
+    間の業務連携は tier2 の Domain Event / Workflow を経由する
+    （「27_複数tier3連携」参照）。
+  - 共通の認証 / セッション / 通知体験は tier1 / tier2 / プラット
+    フォーム側が一元化し、tier3 ごとに再実装しない。
+
+■ 業務管理 UI（Backstage プラグイン）との境界
+  - マスタ管理 / 監査検索 / 緊急対応 / schedule 編集 / partner
+    連携設定などの業務管理機能は、tier3 業務 UI ではなく Backstage
+    プラグインとして提供する（「26_業務管理UI境界」参照）。
+  - tier3 は「日々の業務操作」、業務管理 UI は「業務資産の管理操
+    作」として責務を分離する。tier3 業務 UI 内に管理機能を埋め
+    込むことは禁止する。
+
+■ 表面 API の対称性（Library / Service 形態に対する透過性）
+  - tier2 が同一機能を Library / Service の両形態で提供する以上
+    （「06_tier2/02_位置づけ」「06_tier2/08_配布形態」）、tier3
+    から見える業務語彙はどちらの形態でも等価である。
+  - tier3 の業務コードは形態切替（Library 直接組込 ↔ Service
+    Gateway 経由）で再設計を伴わない。tier3 が形態を選ぶ基準は
+    アプリケーション形態（「04_アプリケーション形態」）に従う。
+  - .NET Framework 形態の tier3 は Library 直接組込が不可能で
+    あり、Service 形態を Companion + Gateway 経由で消費する。
+    proto に書かれた意味論を Companion 役割 B が transport 非依存
+    に実行する（「05_tier1/04_Library」Companion 節と整合）。
+
+■ data 層 / infra 層との境界
+  - tier3 は data 層（DB / オブジェクトストレージ / データウェア
+    ハウス等）に直接接続しない。すべて tier2 経由とする。
+  - tier3 がローカルで保持するデータは UI 状態 / 入力中フォーム /
+    オフラインキャッシュに限定する（「08_状態管理」「22_端末
+    オフラインデバイス」参照）。
+  - infra 層の OSS / ミドルウェアは tier1 が抽象化する。tier3 から
+    見えるのは「tier2 の業務語彙」のみであり、infra 層は不可視と
+    する。
+============================================================

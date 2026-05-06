@@ -1,0 +1,126 @@
+============================================================
+tier3 のリアルタイム更新 UX
+============================================================
+
+■ 方針
+  - tier2 の Server-Streaming subscription（「06_tier2/18_API設計
+    規約」「06_tier2/24_読み取りモデル方針」）を消費し、Domain
+    Event を受信して画面の表示を最新化する。
+  - subscription は「自身が見ている / 自身が関与する範囲」に
+    限定し、広範な subscription（テナント全体 Domain Event 等）は
+    tier3 業務 UI から張らない（負荷・権限・UX のいずれにも害が
+    あるため）。
+  - リアルタイム反映と業務不変条件は別物として扱う。確定の真は
+    tier2 で取り、UI の即時反映は楽観更新 + 差戻しで表現する。
+
+■ subscription の対象
+  - 既定の subscribe 単位:
+      - 表示中 aggregate の状態変化（一覧・詳細とも）
+      - 自身が起票・関与する Workflow / 承認の進捗
+      - 自身宛の通知（「17_通知UI」整合）
+  - 禁止する subscribe:
+      - テナント全 entity / 全 Domain Event の購読（業務管理 UI
+        スコープ。「26_業務管理UI境界」整合）
+      - 他者個人領域の購読（ABAC で拒否されるが、UI 側でも
+        張らない設計とする）
+  - subscribe 開始は画面 mount 時、解除は unmount / 非可視化
+    （タブ非アクティブ / バックグラウンド遷移）時とする。
+
+■ cache invalidation
+  - subscription で受信した Domain Event を query cache の
+    invalidation に対応付ける。Adapter 層（「07_内部アーキテクチャ」）
+    に集約する。
+  - invalidation 戦略:
+      - 該当 aggregate ID の query を invalidate（最も狭い範囲）
+      - 集約系 query（一覧 / 集計）は event 種別に応じて選別
+        invalidate する
+  - 全件再取得（全 query を invalidate）は禁止する。サーバ負荷
+    と UX の双方を悪化させるため。
+
+■ 楽観更新（optimistic update）
+  - 自身の操作は送信と同時に UI に即時反映する。送信 RPC の
+    結果が成功なら確定、失敗なら状態を巻き戻す。
+  - 巻き戻し時はユーザに失敗理由を業務語彙で伝える
+    （「19_業務エラーUX」整合）。
+  - 楽観更新が複数並行する場合は順序保証ができないため、
+    aggregate 単位で in-flight 1 件までに制限する（同 aggregate
+    への並行送信を UI 側で直列化する）。
+
+■ 競合解決 UI
+  - tier2 の楽観 lock（「06_tier2/24_読み取りモデル方針」並行
+    制御節）で version 列不一致時、BusinessConflict が返る。
+    UI は以下を提示する:
+      - 「他者が更新しました」の通知（モーダルまたは banner）
+      - 自身の入力差分の保持（自動破棄しない）
+      - 「最新を取得して比較」ボタン（差分マージ画面に遷移、
+        または最新版を再取得して再入力を促す）
+  - 自動マージは行わない（業務不変条件を踏み抜くため）。
+
+■ 同時編集の警告（presence indicator）
+  - 同 aggregate を別 user が表示・編集中であることを表示する
+    （「○○さんが閲覧中」「○○さんが編集中」）。
+  - tier2 が presence subscription を提供する範囲のみで実装し、
+    tier3 が独自に presence を実装しない。
+  - presence 情報の PII 取扱は tier2 規約に従う（業務語彙の
+    氏名表示の許否は「06_tier2/14_業務エラー監査コンプライ
+    アンス」PII 節で制御される）。
+
+■ eventual consistency と書込直後の即時取得
+  - Domain Event subscriber 経由の read model（「06_tier2/24_
+    読み取りモデル方針」）は eventual consistency。書込確定 →
+    read model 反映までに 1 秒未満の遅延が出る。
+  - 書込直後の即時取得が業務的に必須な箇所（「自分が直前に
+    作成した発注をすぐ詳細表示」など）は tier2 が用意する
+    「書込モデル直接取得」API を呼ぶ。
+  - tier3 はどちらの API を呼ぶかをユースケースごとに選定し、
+    Application 層に明示する（「07_内部アーキテクチャ」整合）。
+
+■ 接続断 / resume
+  - WebSocket / gRPC streaming の自動再接続を Adapter 層に
+    実装する。
+  - 接続断検知 → 一定間隔（指数バックオフ）で再接続 →
+    resume_token（tier2 規約）で取り溢れ防止する。
+  - 接続断中の表示:
+      - 一定時間内（数秒以内）の瞬断は表示しない（ちらつき
+        回避）。
+      - それ以上の断は画面端に「接続再確立中」表示を出す。
+      - 長時間断（30 秒以上目安）はユーザに明示し、再読込
+        導線を提示する。
+
+■ subscription の解除
+  - ページ離脱（route 遷移）/ unmount 時は対応 subscription を
+    解除する。
+  - タブ非アクティブ / ウィンドウ最小化時は subscribe を停止
+    または間引く（Page Visibility API 等を Adapter で抽象化）。
+  - モバイルバックグラウンド時は完全停止し、復帰時に再開
+    （「22_端末オフラインデバイス」整合）。
+
+■ subscription の負荷管理
+  - per-tab 上限:
+      - 1 タブあたり同時 subscription 数の上限を tier3 アプリで
+        宣言する（既定 16 程度）。超過は LRU で古いものから解除。
+  - per-user 上限:
+      - tier2 の per-tenant rate limiter / concurrency limiter
+        （「06_tier2/27_信頼性運用準備」）と整合する範囲で
+        per-user の上限を意識する。
+      - 上限到達時は subscription を控えめに張り、画面端に
+        「自動更新が一部停止中」表示を出して手動更新導線を
+        提示する。
+  - subscribe メッセージレートの抑制:
+      - 高頻度 event は client 側で coalesce（一定時間内の最後の
+        値だけを反映）する Adapter 層 hook を提供する。
+
+■ バッテリー / モバイルでの subscription 抑制
+  - 「22_端末オフラインデバイス」のモバイル / バッテリー考慮に
+    従い、低電力モード / 低速回線では subscription を間引く /
+    polling に切替える経路を持つ。
+  - 切替えは Adapter 層で完結させ、Application / Presentation 層
+    にロジックを染み出させない（「07_内部アーキテクチャ」整合）。
+
+■ subscription と通知の境界
+  - subscription は「画面表示の最新化」に用いる。
+  - 永続的に届いてほしい完了 / 期限予告などの業務通知は通知
+    機構（「17_通知UI」）で受信する。
+  - 両者の用途を混在させない（subscription を切ると通知も
+    届かなくなる、のような設計を避ける）。
+============================================================
