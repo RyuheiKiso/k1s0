@@ -1,0 +1,721 @@
+============================================================
+tier1 テナント容量適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」Envoy Gateway / Istio / Kafka / KEDA / Temporal
+    / Rook+Ceph / Longhorn、「05_提供機能カテゴリ」全カテゴリの
+    per-tenant 利用面、「06_tier2/06_マルチテナント方針」テナント
+    識別子、「06_tier2/27_信頼性運用準備」（noisy neighbor / 公平
+    性記述）、「06_tier2/32_テナント分離適合仕様」（data 軸）、
+    「07_tier3/04_アプリケーション形態」「07_tier3/22_端末オフライ
+    ンデバイス」（client-side 容量制限）、「05_tier1/07_Bidi適合
+    仕様」（messaging_bridge constraints の partition_count）が散
+    在的に宣言する per-tenant quota / fairness model / burst window
+    / exhaustion response / enforcement layer を、機械可読な単一
+    の真として一箇所に固定する仕様書。
+  - 「05_tier1/07/08/09」「06_tier2/32」「05_tier1/10/11/12/13/14」
+    と同型の枠組みを capacity 軸に転写したもの。dimension override
+    禁止 / dead spec 殺し / build artifact 化 / 5 層 defense-in-depth
+    の規律はそのまま継承する。
+  - tier1 が物理的に唯一の quota facade として振る舞う。tier2 / tier3
+    から「テナント別 quota 上限値」を coding で flag するのではなく、
+    quota_class を Library 公開 API に注釈する形で宣言する。
+  - 6 軸の最終、cross-axis enforcement integrator として、本仕様が
+    07 transport / 08 migration / 09 observability / 10 auth / 11
+    key / 12 schema / 13 SLO / 14 OSS lifecycle / 32 data の各軸に
+    跨る per-tenant 利用面を統合する。
+
+■ 設計原則
+  - quota_class は bundle である。
+      yaml に書く tier1.capacity.* attribute のうち、quota_class 1
+      つの値が他 4 dimension（enforcement_layer / fairness_model /
+      burst_window / exhaustion_response）を一意に導出する。Library
+      作者 / 業務作者が dimension を個別に override する経路は持た
+      ない。
+  - dimension override は禁止する。
+      「v1_per_tenant_qps のうち exhaustion を queue に変えたい」
+      要望は新 class を切ることで表現する。class 数の爆発は意味論
+      の規律として受け入れる。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に登録された
+      全 assertion id、enforcement_points.lock.yaml に列挙された全
+      enforcement point は、いずれも参照されなくなった時点で CI
+      fail とする。Library 公開 API のうち quota_class 注釈が無い
+      ものも CI fail（quota 未宣言の API 追加を deny by default）。
+  - 4 階層 enforcement を全 quota_class に必須化する。
+      envoy_local_rate_limit / library_token_bucket / oss_native_quota
+      / storage_layer_quota / broker_layer の 5 enforcement_layer
+      は、各 class が必要とする層を宣言する。同一 quota は複数層に
+      分散しないが、同一 fleet では複数 class が複数層を併用する。
+  - noisy neighbor isolation を物理 property とする。
+      「1 テナントの burst が他テナントの SLO を破らない」を chaos
+      test で必ず検証する。13 の v1_request_availability / v1_request
+      _latency_p99 が tenant_label 付き metric で隣接テナントを観測
+      し、isolation 破綻を即時 alert + freeze 経路に流す。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（Library 公開 API は quota_class 注釈必須）
+      層 B : lint（quota_class 注釈の存在 / 値域検査）
+      層 C : noisy neighbor chaos test（Litmus）
+      層 D : runtime（4 階層 enforcement の実 deploy）
+      層 E : physical（storage layer reject / Kafka broker quota /
+              KEDA scale-to-zero の物理層強制）
+      任意の単層が破れても他層が必ず止める。物理 enforcement は
+      最終 safety net。
+
+■ v1 quota_class セット（5 class）
+  - yaml に書ける quota_class は次の 5 値のみ。各 enforcement
+    backend は enforcement_points.lock.yaml の枝で classes.yaml の
+    keys と照合する。
+
+      class                       | enforcement_layer        | fairness_model           | burst_window | exhaustion_response
+      ----------------------------+--------------------------+--------------------------+--------------+--------------------------
+      v1_per_tenant_qps           | envoy_local_rate_limit   | per_tenant               | short_1s     | reject_429
+      v1_per_tenant_concurrency   | library_token_bucket     | per_tenant_per_action    | medium_1m    | queue_with_timeout
+      v1_per_tenant_volume        | storage_layer_quota      | per_tenant               | long_1h      | overflow_to_cold
+      v1_per_tenant_compute       | oss_native_quota         | per_tenant_per_action    | medium_1m    | shed_by_priority
+      v1_global_fair_queue        | broker_layer             | global_share             | continuous   | partition_rebalance
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_per_tenant_qps
+          - per-tenant 単位の API QPS（Library カテゴリ × tenant）。
+            Envoy Gateway の Local Rate Limit filter で enforcement。
+          - burst window：1 秒の token bucket、burst 倍率 2x まで
+            許容。
+          - exhaustion：429 Too Many Requests を即時返却、Retry-
+            After header で次回 retry 推奨時刻提示。
+          - 典型：tier1 / tier2 公開 RPC、tier3 アプリの API 呼出、
+            Companion 経路の API 呼出。
+
+      - v1_per_tenant_concurrency
+          - per-tenant 同時実行上限（Library token bucket、Workflow
+            concurrent execution、long-poll 同時保持数等）。
+          - burst window：1 分（中時間スケール、queue 滞留を許容）。
+          - exhaustion：queue に積み、deadline 超過で打ち切り。
+            queue 自体も per_tenant 上限を持ち、超過は reject_429
+            に降格（4 階層の上位連動）。
+          - 典型：Temporal Workflow 同時実行、bulk import job、
+            tier1/03_Server系 long_poll adapter の保持セッション数、
+            07 messaging_bridge の partition_count 制約。
+
+      - v1_per_tenant_volume
+          - per-tenant ストレージ byte / event count / row count。
+            Rook+Ceph + CloudNativePG + ClickHouse + Kafka 等の
+            storage layer で enforcement。
+          - burst window：1 時間（長時間スケール）、容量超過は
+            背景 batch で cold tier に押し出す形で吸収。
+          - exhaustion：overflow_to_cold（hot SSD → cold S3=Ceph
+            RGW）、cold tier 自体の上限超過は archive_to_offline
+            （手動 / 別契約）まで段階。
+          - 典型：tier2 業務 entity 数、Outbox / audit_local row 数、
+            添付ファイル合計 byte（31）、ClickHouse signal 量、
+            Kafka topic byte。
+
+      - v1_per_tenant_compute
+          - per-tenant CPU / GPU / memory（Workflow execution 時間、
+            vector search QPS、ML inference 時間等）。
+          - 専用 OSS native quota（Temporal の Workflow per-namespace
+            quota、KEDA scaledobject の per-tenant scope、pgvector
+            workload pool 等）で enforcement。
+          - exhaustion：shed_by_priority（低 priority job を停止
+            して高 priority に compute を集中）、4 階層上位の queue
+            に降格。
+          - 典型：vector search、ZEN Engine 評価、Temporal Workflow
+            実行時間、business reporting batch。
+
+      - v1_global_fair_queue
+          - 全テナント横断の公平 share。Kafka partition rebalance、
+            broker layer での global I/O fairness、Istio destination
+            rule の outlier detection。
+          - per_tenant ではなく global_share の fairness model：
+            partition / quota slice を public goods として分配。
+          - burst window：continuous（連続的な rebalance）。
+          - exhaustion：partition_rebalance（Kafka）/ outlier
+            detection eject（Istio）/ KEDA scaling event。
+          - 典型：Kafka topic partition、Istio L7 流量、Apache
+            Superset の query slot、Backstage の build queue。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+    の stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - enforcement_layer は物理 enforcement の所在を決める：
+        envoy_local_rate_limit  → ingress / mesh、L7 short window
+        library_token_bucket    → Library 内、in-process state
+        oss_native_quota        → OSS 個別の quota（Temporal /
+                                  KEDA / pgvector pool 等）
+        storage_layer_quota     → DB / object store / message broker
+        broker_layer            → Kafka / messaging substrate
+    複数層に同 quota を分散すると整合性が崩れるため、class が単一
+    層を選ぶ規律。
+  - fairness_model は per_tenant / per_tenant_per_action / per_workload
+    / global_share の 4 種：tenant 公平 / tenant × action 公平 /
+    workload 公平 / 全体公平。混合は class 内 fixed。
+  - burst_window は exhaustion 検出の時定数。short_1s（rate-limit
+    系）、medium_1m（concurrency 系）、long_1h（volume 系）、
+    continuous（broker rebalance）。
+  - exhaustion_response は枯渇時の挙動：reject_429 / queue_with_
+    timeout / overflow_to_cold / shed_by_priority / partition_
+    rebalance。各 class で 1 つに固定。
+
+■ derived dimension（per-action threshold）を独立次元にしない理由
+  - per-action の閾値（v1_alert RPC の QPS=100 vs v1_event_feed
+    の QPS=10）は本来 dimension たり得るが、5 class それぞれで
+    「同じ enforcement_layer / fairness_model / burst_window /
+    exhaustion_response 構造で閾値だけが instance 別」という同形
+    操作になる。
+  - 閾値は class instantiate 時の instance 属性として宣言し、build
+    artifact が enforcement rule を生成する形に統一。
+  - 業務側 / 運用側で迷う余地がないため、独立 dimension 化する利得
+    が乏しい。
+
+■ 4 階層 enforcement の責務分離（特殊機構）
+  - 階層 1: ingress（Envoy Gateway Local Rate Limit）
+      - v1_per_tenant_qps の主担当。tenant_id を JWT claim から
+        ingress filter で抽出し、per-tenant rate-limit token bucket
+        を Envoy 内 in-memory で評価。
+      - 高速 / 揮発性、cluster restart で reset するため、business
+        critical な永続 quota には別階層を併用。
+
+  - 階層 2: Library token bucket（in-process）
+      - v1_per_tenant_concurrency の主担当。Library 内の semaphore
+        / token bucket で同時実行数を制御。
+      - tier2 Service に組み込まれ、tenant_id を AuthContext から
+        取得して enforce。
+
+  - 階層 3: OSS native quota
+      - v1_per_tenant_compute の主担当。
+        - Temporal: namespace 別 maximum running workflows
+        - KEDA: ScaledObject の per-tenant trigger threshold
+        - pgvector: workload group / connection pool quota
+        - Apache Superset: row limit / query queue
+      - OSS 固有の API で quota 設定を declarative に注入。
+
+  - 階層 4: storage / broker layer
+      - v1_per_tenant_volume と v1_global_fair_queue。
+        - Rook+Ceph: namespace / pool quota（byte 上限）
+        - CloudNativePG: tablespace / relfilenode-level metering
+        - ClickHouse: tenant 別 retention TTL + SoR archive
+        - Kafka: per-tenant topic quota + partition fairness
+      - 物理 enforcement が unbypassable な最終 layer。
+
+  - 4 階層は順次評価される（ingress → Library → OSS → storage）が、
+    各 quota_class は 1 階層を「主担当」として宣言。他層は補助的
+    に協調動作（例：v1_per_tenant_qps の主担当は Envoy だが、上限
+    に達した場合 Library 側で circuit breaker を発火する経路を持つ）。
+
+■ spec の 3 ファイル構成（単一の真）
+
+  ── tier1/capacity/classes.yaml
+      - class bundle 定義。quota_class 名 → 5 dimension + instance
+        attributes_required の純粋関数テーブル。
+      - スケッチ：
+            classes:
+              v1_per_tenant_qps:
+                enforcement_layer: envoy_local_rate_limit
+                fairness_model: per_tenant
+                burst_window:
+                  bucket: short_1s
+                  refill_seconds: 1
+                  burst_multiplier_max: 2.0
+                exhaustion_response:
+                  primary: reject_429
+                  retry_after_header: required
+                instance_attributes_required:
+                  - qps_limit          # 例：100 rps
+                  - burst_capacity     # 例：200 token
+                tenant_label_required: true
+                emits_audit_signal_on_exhaustion: true
+
+              v1_per_tenant_concurrency:
+                enforcement_layer: library_token_bucket
+                fairness_model: per_tenant_per_action
+                burst_window:
+                  bucket: medium_1m
+                  queue_capacity_required: true
+                exhaustion_response:
+                  primary: queue_with_timeout
+                  fallback: reject_429   # queue 自体が満杯なら降格
+                instance_attributes_required:
+                  - max_concurrent
+                  - queue_size
+                  - timeout_ms
+                tenant_label_required: true
+
+              v1_per_tenant_volume:
+                enforcement_layer: storage_layer_quota
+                fairness_model: per_tenant
+                burst_window:
+                  bucket: long_1h
+                exhaustion_response:
+                  primary: overflow_to_cold
+                  fallback: archive_to_offline
+                instance_attributes_required:
+                  - hot_byte_limit
+                  - cold_byte_limit
+                  - row_count_limit
+                tenant_label_required: true
+                requires_data_lifecycle_integration: true   # 06_tier2/29 と接続
+
+              v1_per_tenant_compute:
+                enforcement_layer: oss_native_quota
+                fairness_model: per_tenant_per_action
+                burst_window:
+                  bucket: medium_1m
+                exhaustion_response:
+                  primary: shed_by_priority
+                  fallback: queue_with_timeout
+                instance_attributes_required:
+                  - max_concurrent_jobs
+                  - priority_levels
+                  - cpu_seconds_limit
+                tenant_label_required: true
+
+              v1_global_fair_queue:
+                enforcement_layer: broker_layer
+                fairness_model: global_share
+                burst_window:
+                  bucket: continuous
+                exhaustion_response:
+                  primary: partition_rebalance
+                  fallback: outlier_eject
+                instance_attributes_required:
+                  - partition_count_min
+                  - rebalance_strategy   # cooperative / sticky 等
+                tenant_label_required: false  # 公平性は全体共有
+                emits_audit_signal_on_rebalance: true
+
+  ── tier1/capacity/scenarios.yaml
+      - scenario × class / 状況 → assertion id のマトリクス。
+      - スケッチ：
+            scenarios:
+              steady_state:
+                description: "通常 traffic 下での quota 通過"
+                matrix:
+                  - when: { class: any }
+                    assertions:
+                      - ss_within_quota_passes
+                      - ss_no_429_emitted
+                      - ss_p99_latency_within_slo
+
+              burst_within_window:
+                description: "burst が window 内に収まる場合"
+                matrix:
+                  - when: { class: v1_per_tenant_qps }
+                    assertions:
+                      - bw_burst_consumed_from_token
+                      - bw_no_429_during_burst_window
+                      - bw_recover_after_refill
+
+              burst_exceeds_window_to_429:
+                description: "burst が window を超え reject_429"
+                matrix:
+                  - when: { exhaustion_response: reject_429 }
+                    assertions:
+                      - br_429_emitted
+                      - br_retry_after_header_present
+                      - br_audit_signal_emitted
+                      - br_other_tenants_unaffected
+
+              concurrency_queue_with_timeout:
+                description: "concurrency 上限 → queue → timeout"
+                matrix:
+                  - when: { exhaustion_response: queue_with_timeout }
+                    assertions:
+                      - cq_queue_accepts_until_capacity
+                      - cq_queue_full_falls_back_to_reject
+                      - cq_timeout_emits_business_error
+                      - cq_dequeue_order_fifo
+
+              volume_overflow_to_cold:
+                description: "volume 上限 → cold tier に押し出し"
+                matrix:
+                  - when: { exhaustion_response: overflow_to_cold }
+                    assertions:
+                      - vo_hot_full_triggers_archive_batch
+                      - vo_data_remains_readable_via_cold_tier
+                      - vo_audit_signal_recorded
+
+              compute_shed_by_priority:
+                description: "compute 枯渇で低 priority job 停止"
+                matrix:
+                  - when: { exhaustion_response: shed_by_priority }
+                    assertions:
+                      - cs_low_priority_paused
+                      - cs_high_priority_continues
+                      - cs_resume_when_capacity_recovers
+
+              partition_rebalance:
+                description: "Kafka rebalance / Istio outlier eject"
+                matrix:
+                  - when: { class: v1_global_fair_queue }
+                    assertions:
+                      - pr_rebalance_completes_within_window
+                      - pr_in_flight_messages_not_lost
+                      - pr_isolation_property_preserved
+
+              noisy_neighbor_isolation:
+                description: "1 テナント burst で他テナントの SLO を破らない"
+                matrix:
+                  - when: { class: { in: [v1_per_tenant_qps,
+                                          v1_per_tenant_concurrency,
+                                          v1_per_tenant_volume,
+                                          v1_per_tenant_compute] } }
+                    assertions:
+                      - nn_neighbor_p99_latency_unchanged
+                      - nn_neighbor_availability_unchanged
+                      - nn_offending_tenant_isolated_in_metrics
+
+              dr_failover_quota_continuity:
+                description: "cross-region failover 時の quota 継続"
+                matrix:
+                  - when: { class: any }
+                    assertions:
+                      - dr_quota_state_replicated
+                      - dr_post_failover_quota_consistent
+                      - dr_no_double_charge_during_cutover
+
+              cross_axis_constraint_alignment:
+                description: "07 messaging_bridge constraint 等との整合"
+                matrix:
+                  - when: { class: v1_per_tenant_concurrency,
+                            integration: bidi_messaging_bridge }
+                    assertions:
+                      - ca_max_concurrent_le_partition_count
+                      - ca_session_id_partition_key_preserved
+
+      - corpus 全体は 10 scenario を最小コーパスとする。
+
+  ── tier1/capacity/enforcement_points.lock.yaml（build artifact）
+      - 各 enforcement backend の static 自己宣言を tier1 build script
+        が集約して生成する build artifact。手書き禁止。
+      - スケッチ：
+            # AUTO-GENERATED. DO NOT EDIT.
+            enforcement_backends:
+              envoy_v1:
+                supports: [v1_per_tenant_qps]
+                features:
+                  local_rate_limit_filter: true
+                  jwt_authn_extract_tenant_id: true
+                  rate_limit_descriptor_template: per_tenant_action
+                constraints:
+                  v1_per_tenant_qps:
+                    cluster_local_only: true   # global rate limit は v2
+
+              library_token_bucket_v1:
+                supports: [v1_per_tenant_concurrency]
+                features:
+                  language_implementations: [rust, csharp, typescript]
+                  context_propagation: AuthContext
+                  fairness: lottery_or_token_bucket
+
+              temporal_v1:
+                supports: [v1_per_tenant_compute]
+                features:
+                  per_namespace_quota: true
+                  workflow_concurrent_max: true
+                role: oss_native_quota
+
+              keda_v1:
+                supports: [v1_per_tenant_compute]
+                features:
+                  scaledobject_per_tenant: true
+                  trigger_thresholds: [prometheus, kafka]
+                role: oss_native_quota
+
+              ceph_rgw_v1:
+                supports: [v1_per_tenant_volume]
+                features:
+                  bucket_quota: true
+                  lifecycle_to_cold_tier: true
+
+              cloudnative_pg_v1:
+                supports: [v1_per_tenant_volume]
+                features:
+                  per_database_quota: true
+                  tablespace_isolation: true
+
+              clickhouse_v1:
+                supports: [v1_per_tenant_volume]
+                features:
+                  ttl_per_tenant: true
+                  tiered_storage_disk_s3: true
+
+              kafka_strimzi_v1:
+                supports: [v1_per_tenant_volume, v1_global_fair_queue]
+                features:
+                  topic_quota: byte_per_second
+                  partition_fairness: true
+                  cooperative_rebalance: true
+                constraints:
+                  v1_global_fair_queue:
+                    rebalance_strategy_required:
+                      - cooperative
+                      - sticky
+
+              istio_v1:
+                supports: [v1_global_fair_queue]
+                features:
+                  outlier_detection: true
+                  destination_rule_load_balancer: round_robin
+
+      - constraints は physical な substrate 制約。Capability Negotiation
+        は本制約を起動時に読み込み、宣言違反する fleet では当該
+        backend × class を不採用とする（例：cluster_local_only な
+        Envoy では cross-cluster rate-limit を採用しない）。
+
+■ 5 層 defense-in-depth
+
+  ── 層 A : compile 時（Library 公開 API は quota_class 注釈必須）
+      - tier1 Library が公開する全 API method（RPC / Repository /
+        UnitOfWork / Companion entrypoint）に `tier1.capacity.
+        quota_class` 注釈が必須。注釈なしの API は build fail。
+      - 注釈は proto option / Rust attribute / C# Attribute / TS
+        decorator で表現。生成 stub も注釈を運ぶ。
+      - 注釈に書ける quota_class 値は classes.yaml の keys のみ。
+        12 v1_external_proto / v1_internal_proto の bundle 内 lint
+        と同型。
+
+  ── 層 B : lint
+      - Buf custom lint：proto に書かれた tier1.capacity.quota_class
+        が classes.yaml に存在し、instance_attributes_required を
+        満たす値が config yaml で declare されていること。
+      - cargo public-api / PublicApiAnalyzers / api-extractor の
+        snapshot に対し、quota_class 注釈なしの公開 method を fail。
+      - tier3 SPA の API client（codegen 経由）は注釈を消費し、
+        client 側 retry policy / queue 表示を quota_class から
+        導出する（tier3 17 通知 UI / 19 業務エラー UX と整合）。
+
+  ── 層 C : noisy neighbor chaos test（Litmus）
+      - 13 SLO 適合仕様の chaos_injection_validates_alert と同型に、
+        本仕様は noisy_neighbor_isolation scenario を chaos test
+        として実装。
+      - シナリオ：tenant A が burst を継続的に送出、tenant B / C
+        / D の v1_request_availability / v1_request_latency_p99 /
+        v1_event_freshness が SLO 違反しないことを property test
+        で検証。
+      - 違反検出時は 13 の error budget freeze 経路と直結し、当該
+        Library の deploy が物理的に block される（13 と 15 の
+        cross-axis 連動）。
+
+  ── 層 D : runtime（4 階層 enforcement の実 deploy）
+      - Envoy / Library / Temporal / KEDA / Ceph / Kafka / Istio
+        の各 enforcement が deploy されていることを Kyverno
+        admission policy で確認。
+      - tier2 Service が tier1 quota_class 注釈と異なる runtime
+        config（envoy filter / Library token bucket / Temporal
+        namespace 設定等）を持っていたら admission reject。
+      - quota 枯渇 event は 09 audit signal sub-class `capacity
+        .exhaustion.event` として ClickHouse に bulk insert。
+
+  ── 層 E : 物理 enforcement（unbypassable な layer）
+      - storage_layer_quota：Ceph RGW bucket quota / Kafka topic
+        quota / ClickHouse TTL は OSS 内部の物理層で強制され、
+        Library bypass / 直接 SQL 経路でも回避不能。
+      - broker_layer：Kafka partition rebalance は broker process
+        が cooperative にハンドル。Library 経路に依存しない。
+      - KEDA scale-to-zero：compute 枯渇時に Pod を 0 に縮退して
+        物理 resource を解放。
+      - 本層は文章運用に頼らず物理 enforcement に転写する最終
+        safety net（13 / 14 と同型）。
+
+■ noisy neighbor isolation property（特殊機構）
+  - 「1 テナントの burst が他テナントの SLO を破らない」を property
+    test として CI で必ず green を返すことを必須化：
+        ∀ tenants A, B with A ≠ B:
+          burst(A) → SLO_violation(B) MUST NOT hold
+
+  - 検証手順：
+      1. Litmus で tenant A の各 quota_class を上限まで burst。
+      2. tenant B / C / D / ... の v1_request_availability /
+         v1_request_latency_p99 / v1_event_freshness の recording
+         rule を観測。
+      3. 観測 window（30s, 1m, 5m）で全テナントの SLO target を
+         維持していることを assertion。
+      4. 違反検出は 13 alert + 15 audit signal + 14 lifecycle
+         signal（OSS の noisy_neighbor 性質起因の場合）を同時 emit。
+
+  - property に違反した場合の対応：
+      - quota_class 設定不備（限界値が緩すぎ）→ instance attribute
+        の調整 PR。
+      - enforcement layer の bypass 経路発覚 → 層 D / E で塞ぐ
+        admission policy 追加 PR。
+      - OSS 固有の isolation 機能不足 → 14 の v1_l1plus_pair_target
+        への移行 trigger 候補（fork / pair_target reevaluation）。
+
+■ Capability Negotiation との関係
+  - 03 / 10 / 11 / 12 / 13 / 14 と並ぶ chosen_capacity_backend を
+    起動時に決める：
+      1. 全 quota_class C を取得。
+      2. lock.yaml で C を supports に含む backend 集合 B を抽出。
+      3. constraints 節を満たさない backend を B から除外。
+      4. サーバ側で定義された優先順位でソートして chosen_capacity_
+         backend を返却。
+  - lock.yaml は build artifact、deploy 中に動的に書き換わらない。
+
+■ 既存軸との接続関係
+  - 07_Bidi適合仕様：
+      - 07 capabilities.lock.yaml の messaging_bridge constraints
+        の partition_count / max_concurrent_sessions と本仕様
+        v1_per_tenant_concurrency の instance_attributes が同期。
+        cross_axis_constraint_alignment scenario で 07 ↔ 15 双方向
+        整合を CI 必須化。
+  - 08_移行Pair適合仕様：
+      - L1+ pair 移行発動の trigger に「quota 違反頻度」を加える
+        余地（14 v1_l1plus_primary の cve_backlog_threshold と同
+        枠で本仕様 v1 では加えない、v2 候補）。
+  - 09_観測適合仕様：
+      - 本仕様の exhaustion event / rebalance event / quota_class
+        x tenant_id の signal は 09 audit signal sub-class
+        `capacity.exhaustion.event` として ClickHouse に bulk insert。
+        redaction.yaml は tenant_id / quota_class / class instance
+        を keep、内部 token bucket state を drop。
+  - 10_認証適合仕様：
+      - tenant_id は AuthContext から取得。auth_class が v1_workload
+        _jwt の場合の quota は別 dimension（tenant_id ではなく
+        workload_id）として扱う余地は v2 候補。v1 は v1_workload_jwt
+        が固有 tenant_id（infrastructure tenant 等）に紐付く前提。
+  - 11_鍵管理適合仕様：
+      - HSM PKCS#11 backend は per-process 同時 session 数の物理
+        上限を持つ。本仕様の v1_per_tenant_compute としては扱わず、
+        backend constraints として 11 enforcement_points で表現。
+  - 12_スキーマ進化適合仕様：
+      - 本仕様の classes.yaml / scenarios.yaml は v1_config_yaml
+        class、enforcement_points.lock.yaml は build artifact
+        （v1_config_yaml）として 12 codegen hermeticity invariant
+        の対象。
+  - 13_SLO適合仕様：
+      - noisy_neighbor_isolation の SLO 違反は 13 の v1_request_
+        availability / v1_request_latency_p99 sub-class として直結。
+        13 の error budget freeze が本仕様の chaos test 違反時に
+        発動する。
+  - 14_OSSライフサイクル適合仕様：
+      - 本仕様の enforcement_points.lock.yaml の各 backend は 14
+        の oss_inventory.lock.yaml と double-bound。Envoy / Temporal
+        / KEDA / Kafka / Istio / Ceph RGW / ClickHouse はいずれも
+        v1_l1plus_primary。
+  - 32_テナント分離適合仕様：
+      - tenant_id GUC（32 app.tenant_id）と本仕様の tenant_label が
+        同一 identifier。32 RLS は data 軸の isolation、本仕様は
+        capacity 軸の isolation。両者は orthogonal だが噛み合う：
+        RLS が 0 行を返す経路と、本仕様の reject_429 / overflow_
+        to_cold が同 tenant に対して整合的に動作する。
+  - 39_クライアント状態適合仕様：
+      - tier3 client-side 容量制限（39 の Pending Queue capacity /
+        Draft 保持数 / IndexedDB byte 等）は本仕様の v1_per_tenant_
+        volume / v1_per_tenant_concurrency と同型扱い。tier3 側
+        durability_policy が本仕様 instance attributes と整合。
+
+■ Buf custom lint と各 toolchain の責務（縮約）
+  - Buf custom lint の責務：
+      1. proto に書かれた tier1.capacity.quota_class が classes
+         .yaml の keys に存在すること。
+      2. RPC / Library 公開 method に quota_class option 必須、
+         instance attribute（qps_limit 等）が config yaml で declare
+         されていること。
+      3. 12 schema 進化適合仕様の v1_external_proto に書く quota_
+         class が削除される場合、deprecation 期間（12 ヶ月）を経過
+         していること。
+
+  - Envoy filter generator の責務：
+      1. classes.yaml + instance attributes から Envoy local rate
+         limit filter config を生成（build artifact）。
+      2. 手書き drift があれば CI fail。
+
+  - Library token bucket generator の責務：
+      1. classes.yaml + instance attributes から各言語実装の token
+         bucket struct / decorator を codegen。
+
+  - Kyverno admission policy generator の責務：
+      1. classes.yaml + enforcement_points.lock.yaml から各 backend
+         の deploy 必須 admission policy を生成。
+      2. tier2 Service の runtime config が tier1 quota_class 注釈
+         と一致しない場合 reject する policy を含む。
+
+■ CI 不変条件（3 ファイル + 5 層の関係性検査）
+  - 違反は merge 不可。
+      整合 1 : classes.yaml の全 class が scenarios.yaml の matrix
+               条件で少なくとも 1 scenario によりカバーされる。
+      整合 2 : scenarios.yaml の全 assertion id が、それを必要とする
+               全 class × 全 backend × 全対応言語で実装されている。
+      整合 3 : enforcement_points.lock.yaml で claim される class が
+               classes.yaml に存在する。
+      整合 4 : classes.yaml の全 class がいずれかの backend から
+               supports される（unreachable class 検出）。
+      整合 5 : enforcement_points.lock.yaml は手書き禁止のため、
+               build script が生成した内容と git 上の内容が完全
+               一致する。
+      整合 6 : Library 公開 API snapshot に quota_class 注釈なしの
+               method が無い（公開 API quota 完全性）。
+      整合 7 : 全 RPC で proto に tier1.capacity.quota_class option
+               が宣言されている（Buf custom lint）。
+      整合 8 : noisy_neighbor_isolation scenario が全 quota_class
+               × 隣接テナント数 (≥ 3) の cell で green を返す。
+      整合 9 : 07 messaging_bridge constraints の partition_count
+               / max_concurrent_sessions と v1_per_tenant_concurrency
+               の instance_attributes が同期（cross-axis）。
+      整合 10: 13 v1_request_availability / v1_request_latency_p99
+               の tenant_label_required: true な class が本仕様の
+               quota_class 違反 event を sub-class として消費して
+               いる（cross-axis 連結）。
+      整合 11: 14 oss_inventory.lock.yaml の各 enforcement backend
+               OSS（Envoy / Temporal / KEDA / Kafka / Istio / Ceph
+               RGW / ClickHouse）が登録されている（cross-axis）。
+      整合 12: dr_failover_quota_continuity scenario が cross-region
+               failover で全 quota_class について green を返す（27
+               信頼性運用準備の RPO / RTO と整合）。
+      整合 13: 32 app.tenant_id と本仕様 tenant_label が完全一致
+               （cross-axis identifier consistency）。
+
+■ 製造業 pack stress test（v1 の正当性証跡）
+  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+
+      # | シナリオ                                | class                       | 主要検証ポイント
+      --+-----------------------------------------+-----------------------------+----------------------------------------------------
+      1 | 1 テナント burst で他テナント SLO 維持  | (cross-class)               | nn_neighbor_*_unchanged / 13 と直結
+      2 | v1_event_feed の partition concurrency  | v1_per_tenant_concurrency   | 07 messaging_bridge constraint と整合
+      3 | Temporal Workflow 同時実行上限          | v1_per_tenant_compute       | shed_by_priority、low priority paused
+      4 | vector search QPS spike                 | v1_per_tenant_qps           | reject_429 + Retry-After、429 audit emit
+      5 | 添付 storage byte 上限到達              | v1_per_tenant_volume        | overflow_to_cold (31 と接続)、Ceph RGW lifecycle
+      6 | cross-region failover 中の quota 継続   | (cross-class)               | dr_quota_state_replicated、no_double_charge
+      7 | Kafka rebalance 中の global fair queue  | v1_global_fair_queue        | partition_rebalance、in-flight loss なし
+      8 | quota_class 注釈なし API 追加 PR        | (cross-class)               | 公開 API snapshot CI fail、merge 拒否
+
+  - stress test は Testcontainers で Envoy + Temporal + KEDA + Kafka
+    (Strimzi) + Ceph (Rook) + Istio + Library sample + tier2 sample
+    Service を立ち上げ、8 シナリオを property test として実装する。
+    新業務 capacity pattern が 5 class のいずれにも収まらないと
+    判明した時点で、本仕様は v2 候補として class 追加検討に入る。
+
+■ v2 拡張ルール
+  - 新 class の追加は purely additive：v1 class はそのまま残し、v2
+    で新規 class（例：v2_per_workload_qps、v2_cross_cluster_global_
+    rate_limit、v2_realtime_priority_lane）を追加する。
+  - 既存 class の dimension 値変更は破壊的変更（major version up）。
+  - 命名は vN_<scope>_<sli_kind> 形式に固定。
+  - dimension override 禁止の規律は v1 → v2 跨ぎでも維持する。
+  - cross-cluster global rate limit / Envoy Cluster External Rate
+    Limit（gRPC RLS service）採用は v2 候補。v1 は cluster_local_only
+    で固定。
+
+■ 長期収斂への作用
+  - 本仕様の 3 ファイルに対し、新業界 pack / 新 quota instance の
+    追加は purely additive。tier2 / tier3 アプリは proto に quota_
+    class 注釈を書き、yaml に instance attribute（qps_limit 等）を
+    宣言すれば残りは機械的に降りる。
+  - L1+「単一 OSS 深耕 + 移行コミットメント」の哲学を capacity 軸
+    に転写したもの（単一 enforcement 規律 + backend 移行コミット
+    メント）。Envoy / Temporal / KEDA / Kafka / Istio / Ceph RGW /
+    ClickHouse が L1+ primary、各々の lifecycle event は 14_OSS
+    ライフサイクル適合仕様で管理。
+  - noisy neighbor isolation property の機械検証により、運用上
+    「煩い隣人」事故の物理的不可能化を 1.0.0 で確立する。これは
+    至高路線の「文章運用ではなく物理 enforcement」原則の最終 form
+    として 6 軸の終端を担う。
+  - 6 新軸（10 auth / 11 key / 12 schema / 13 SLO / 14 OSS lifecycle
+    / 15 capacity）と既存 5 軸（07 transport / 08 migration / 09
+    observability / 32 data / 39 client）の合計 11 軸が同型構造で
+    結合し、tier1 / tier2 / tier3 の責務分離と接合面が機械的に
+    検証可能になる。本仕様 15 はその最終 piece として、cross-axis
+    enforcement integrator の役割を担う。

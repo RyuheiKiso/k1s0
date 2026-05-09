@@ -1,0 +1,675 @@
+============================================================
+tier1 OSS ライフサイクル適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」で確定された全 OSS、「05_提供機能カテゴリ」
+    L1+ / L2* / 予約カテゴリ、「05_tier1/04_Library」L1+ 移行コミット
+    メント / L2* 同族保証、「05_tier1/08_移行Pair適合仕様」primary
+    pair（CloudNativePG↔StackGres、Kafka↔RedPanda、Temporal↔Cadence、
+    ZEN↔自製 DSL）、「02_採用OSS一覧」L2* 同族（Apicurio↔Karapace、
+    flagd↔GFF、Parca↔Pyroscope、pgvector↔Qdrant 等）、Companion
+    runtime（Keycloak / Backstage / Argo CD / Apicurio 等）が散在的
+    に宣言する OSS 採用区分 / health check cadence / 移行発動 trigger
+    / response policy を、機械可読な単一の真として一箇所に固定する
+    仕様書。
+  - 「05_tier1/07/08/09」「06_tier2/32」「05_tier1/10/11/12/13」と同型
+    の枠組みを OSS lifecycle 軸に転写したもの。dimension override
+    禁止 / dead spec 殺し / build artifact 化 / 5 層 defense-in-depth
+    の規律はそのまま継承する。
+  - 08 が「移行 pair の機構（dry_run / phase / assertion）」を定義
+    するのに対し、本仕様は「いつ / どの signal で移行を発動するか」
+    の発火条件と全 OSS の inventory を単一所有する。両者は
+    orthogonal だが、本仕様の v1_l1plus_primary の trigger が 08
+    の dry_run cadence と直結する。
+  - 「単一 OSS 深耕 + 移行コミットメント」（04_Library L1+ 哲学）の
+    governance 軸として、本仕様が全 8 仕様（07/08/09/10/11/12/13/
+    32/39 + 本仕様 + 15）の OSS 選定の妥当性を定期的に再評価する
+    機構を提供する。
+
+■ 設計原則
+  - lifecycle_class は bundle である。
+      yaml に書く tier1.lifecycle.* attribute のうち、lifecycle_class
+      1 つの値が他 4 dimension（adoption_status / health_check_cadence
+      / migration_trigger_set / response_action）を一意に導出する。
+      OSS 登録者が dimension を個別に override する経路は持たない。
+  - dimension override は禁止する。
+      「v1_l1plus_primary のうち health check を年次に伸ばしたい」
+      要望は新 class を切ることで表現する。class 数の爆発は意味論
+      の規律として受け入れる。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に登録された
+      全 assertion id、oss_inventory.lock.yaml に列挙された全 OSS は、
+      いずれも参照されなくなった時点で CI fail とする。かつ、本仕様
+      / 02_採用OSS一覧 / 04_Library / 08_移行Pair / 02_OSS リスト /
+      他 5 軸 spec から参照されない OSS は dead inventory として CI
+      fail。
+  - 移行 trigger は構造化された signal の集合とする。
+      「ライセンスが変わったら」のような自然文ではなく、license_
+      change / eol_announced / cve_backlog_threshold / maintainer_
+      turnover / fork_event / conformance_drift / major_up の 7
+      signal を class が purely additive に enumerate する。各 signal
+      は 09 audit signal の sub-class `oss.lifecycle.event` として
+      物理 emit する。
+  - inventory.lock.yaml は build artifact とする。
+      02_採用OSS一覧（人間可読）と本仕様の oss_inventory.lock.yaml
+      （機械可読）の双方向整合を build script で担保。手書き drift
+      は CI fail。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（採用 OSS は inventory 登録必須、image build
+              時に inventory tag 必須）
+      層 B : lint（採用 OSS リスト変更が PR 上で必須承認）
+      層 C : 08 dry_run scenarios と接続して L1+ pair の conformance
+              を CI 検証
+      層 D : runtime monitoring（signal を 09 audit に emit）
+      層 E : license 違反 / EoL OSS の物理拒否（Kyverno admission
+              policy + Cosign 署名検証）
+      任意の単層が破れても他層が必ず止める。Kyverno admission policy
+      が最終 safety net。
+
+■ v1 lifecycle_class セット（5 class）
+  - yaml に書ける lifecycle_class は次の 5 値のみ。各 build script
+    は oss_inventory.lock.yaml の枝で classes.yaml の keys と照合
+    する。
+
+      class                    | adoption_status        | health_check_cadence | primary migration_trigger      | response_action
+      -------------------------+------------------------+----------------------+--------------------------------+-----------------------------------
+      v1_l1plus_primary        | primary_l1plus         | quarterly            | license_change / eol_announced | pair_switch_to_target
+                               |                        |                      | / cve_backlog_threshold        |   (08 dry_run の lock 切替)
+                               |                        |                      | / maintainer_turnover / fork   |
+      v1_l1plus_pair_target    | pair_l1plus            | annual               | dry_run_cadence_elapsed        | conformance_dry_run_run
+                               |                        |                      |   (365 日)                     |
+      v1_l2star_member         | l2star_member          | quarterly            | conformance_drift / license_   | family_substitute_or_demote
+                               |                        |                      | change / eol_announced         |
+      v1_l3_runtime            | l3_companion_runtime   | semi_annual          | major_up / eol_announced /     | runtime_upgrade_with_compat_test
+                               |                        |                      | cve_backlog_threshold          |
+      v1_reserved_category     | reserved               | annual               | adoption_demand /              | promote_to_primary_or_remove
+                               |                        |                      | blocker_resolution             |
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_l1plus_primary
+          - 「単一 OSS 深耕」哲学（04_Library L1+）の現役採用 OSS。
+          - 7 signal いずれかの発生で移行 trigger を発動し、08 の
+            primary pair（pair_target）を新 primary に切替える。
+          - 切替は 08 の dry_run.lock.yaml の last_green_at 365 日
+            以内が必須（ship blocker と同型）。
+          - quarterly health check：CVE backlog / maintainer
+            commit cadence / Foundation status / license の 4
+            指標を毎四半期 09 audit signal で観測。
+          - 典型：CloudNativePG / Strimzi (Kafka) / Temporal /
+            ZEN Engine / Buf / Apicurio / sqlx / OpenBao / Keycloak
+            / Argo CD / Backstage / Prometheus / OpenTelemetry
+            Collector / ClickHouse / Cosign / Trivy / Kyverno /
+            cert-manager / SPIRE / Litmus / Weaver。
+
+      - v1_l1plus_pair_target
+          - L1+ 移行 pair の控え。08 dry_run.lock.yaml で年次 dry_run
+            を完了し、last_green_at が 365 日以内であること。
+          - dry_run cadence elapsed が migration trigger そのもの
+            （他の trigger は primary 側）。
+          - 切替が発動した時点で primary に格上げ（class 移動は
+            purely additive：旧 primary は post-migration として
+            archive）。
+          - 典型：StackGres、RedPanda、Cadence、自製 DSL backend。
+
+      - v1_l2star_member
+          - 同族二重採用カテゴリ（L2*）の各メンバ。
+          - 例：Apicurio + Karapace（Schema Registry）、flagd + GFF
+            （feature flag）、Parca + Pyroscope（continuous profiling）、
+            pgvector + Qdrant（vector search）。
+          - 各 member は四半期 conformance test を 04_Library
+            l2star_families.yaml の scenarios で green を返す必要
+            がある（conformance_drift で trigger）。
+          - license_change / eol_announced で当該 member を family
+            から demote、family が member 1 個になった場合は当該
+            family を v1_l1plus_primary 候補に reclassify する
+            か、別 OSS を追加採用する判断を四半期 review で実施。
+
+      - v1_l3_runtime
+          - Companion runtime（業務的に併走する OSS）。
+          - 例：Headlamp、Kubeshark、Perses、Apache Superset、
+            Jaeger UI、Backstage、PgBouncer、kube-state-metrics、
+            kube-vip、KEDA、MetalLB、OpenTofu、Tilt、Helm、
+            Kustomize、Tekton、cert-manager、ESO、Harbor。
+          - 半期 health check：major_up / eol_announced / CVE
+            backlog の 3 trigger。
+          - response：runtime_upgrade_with_compat_test（既存業務
+            への影響を Litmus + Testcontainers で確認後、Argo CD
+            で rolling）。
+
+      - v1_reserved_category
+          - 「予約カテゴリ」（05_提供機能カテゴリ）。Distributed
+            SQL、Document Store、Time-Series 専用 DB 等、L1+ 候補
+            だが本仕様 v1 では非採用。
+          - 年次 review で adoption_demand（業務側からの要請）
+            または blocker_resolution（OSS 成熟）を trigger とし、
+            promote_to_primary（v1_l1plus_primary に格上げ）or
+            remove（reserved 解除）の判断を実施。
+          - 典型：Distributed SQL（CockroachDB / Spanner-API）、
+            graph DB、document store、search engine（OpenSearch 等）。
+          - 「dead spec を CI で殺す」規律と整合：reserved 状態
+            のまま 5 年経過した category は強制 review、再判断
+            必須（自動 dead 化を防ぐ）。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+    の stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - adoption_status は OSS の戦略的位置を決める。primary は単一深
+    耕、pair は移行控え、l2star_member は同族二重、l3_runtime は
+    周辺、reserved は未採用。混同すると governance 判断が rigorous
+    でなくなるため独立 dimension。
+  - health_check_cadence は監視頻度。primary / l2star は四半期
+    （事故影響大）、l3_runtime は半期、pair_target / reserved は
+    年次（dry_run 1 年と整合）。
+  - migration_trigger_set は class により発動条件が異なる。primary
+    は 5+ trigger、pair は cadence のみ、l2star は drift 含む、
+    l3_runtime は major_up / eol / CVE、reserved は adoption_demand
+    / blocker_resolution。dimension にすると指数化するため class に
+    bundle。
+  - response_action は class 即移行 / 段階移行 / 二重採用変更 /
+    runtime upgrade / 採用判断を区別。各 class は固有の response
+    flow を持つ。
+
+■ migration trigger signal の宣言形式（9 redaction.yaml と同型）
+  - 各 trigger signal は 09 の audit signal sub-class `oss.lifecycle
+    .event` として SoR に入る。signal source は本仕様が単一所有：
+
+        signal_kind                  | source_endpoint                                  | threshold
+        -----------------------------+--------------------------------------------------+------------------------
+        license_change               | spdx_license_scanner                             | NOT-Apache-2.0/MIT/BSD/MPL/PG/ISC
+        eol_announced                | github_releases / vendor announcement webhook    | EoL date <= today + 365d
+        cve_backlog_threshold        | grype + osv.dev                                  | high+critical >= 5 over 30d
+        maintainer_turnover          | github_contributors_api                          | top-5 maintainer 4+ leave / 12m
+        fork_event                   | github_forks_api / community signal              | new fork with >100 stars / 90d
+        conformance_drift            | 04_Library l2star scenarios CI                   | green=false / 3+ scenarios
+        major_up                     | github_releases / semver detection               | new major version published
+
+  - signal source は oss_inventory.lock.yaml の各 OSS entry に endpoint
+    / cadence / threshold を declare する。
+  - 09 redaction.yaml は本仕様の signal を drop しない（OSS 名は
+    PII でないため publish 可）。
+  - 各 signal の発火は 13_SLO 適合仕様 の v1_request_availability
+    sub-class として「OSS health SLI」の劣化シグナルにも接続する
+    （SLO violation を独立に持たせる選択肢を残す、本仕様 v2 候補）。
+
+■ spec の 3 ファイル構成（単一の真）
+
+  ── tier1/lifecycle/classes.yaml
+      - class bundle 定義。lifecycle_class 名 → 4 dimension + trigger
+        signal リスト + response_action の純粋関数テーブル。
+      - スケッチ：
+            classes:
+              v1_l1plus_primary:
+                adoption_status: primary_l1plus
+                health_check_cadence:
+                  bucket: quarterly
+                  max_seconds: 7889400      # 91.25 days
+                migration_trigger_set:
+                  - license_change
+                  - eol_announced
+                  - cve_backlog_threshold
+                  - maintainer_turnover
+                  - fork_event
+                  - major_up                # major up は trigger だが
+                                            # 必ず response が pair_switch
+                                            # ではない（次節）
+                response_action:
+                  primary: pair_switch_to_target
+                  fallback_for_major_up: stay_primary_with_compat_assessment
+                requires_pair_target_lock_within_days: 365   # 08 と同期
+                emits_to_audit_signal: oss.lifecycle.event
+
+              v1_l1plus_pair_target:
+                adoption_status: pair_l1plus
+                health_check_cadence:
+                  bucket: annual
+                  max_seconds: 31536000
+                migration_trigger_set:
+                  - dry_run_cadence_elapsed
+                response_action:
+                  primary: conformance_dry_run_run
+                paired_with_primary_required: true
+
+              v1_l2star_member:
+                adoption_status: l2star_member
+                health_check_cadence:
+                  bucket: quarterly
+                  max_seconds: 7889400
+                migration_trigger_set:
+                  - conformance_drift
+                  - license_change
+                  - eol_announced
+                response_action:
+                  primary: family_substitute_or_demote
+                requires_family_membership_min: 2
+
+              v1_l3_runtime:
+                adoption_status: l3_companion_runtime
+                health_check_cadence:
+                  bucket: semi_annual
+                  max_seconds: 15780000     # 6 month
+                migration_trigger_set:
+                  - major_up
+                  - eol_announced
+                  - cve_backlog_threshold
+                response_action:
+                  primary: runtime_upgrade_with_compat_test
+
+              v1_reserved_category:
+                adoption_status: reserved
+                health_check_cadence:
+                  bucket: annual
+                  max_seconds: 31536000
+                migration_trigger_set:
+                  - adoption_demand
+                  - blocker_resolution
+                response_action:
+                  primary: promote_to_primary_or_remove
+                review_max_years_in_reserved: 5
+
+  ── tier1/lifecycle/scenarios.yaml
+      - scenario × class / trigger → assertion id のマトリクス。
+      - スケッチ：
+            scenarios:
+              license_change_detected:
+                description: "primary OSS のライセンス非互換変更検知"
+                matrix:
+                  - when: { class: v1_l1plus_primary, trigger: license_change }
+                    assertions:
+                      - lc_signal_emitted_to_audit
+                      - lc_pair_switch_eligibility_evaluated
+                      - lc_dry_run_lock_within_365d_required
+                      - lc_release_blocked_if_lock_stale
+                  - when: { class: v1_l2star_member, trigger: license_change }
+                    assertions:
+                      - lc_member_demoted
+                      - lc_family_membership_check
+
+              eol_announced:
+                description: "EoL 通告検知"
+                matrix:
+                  - when: { class: { in: [v1_l1plus_primary, v1_l3_runtime,
+                                          v1_l2star_member] } }
+                    assertions:
+                      - eol_signal_emitted
+                      - eol_response_action_initiated
+                      - eol_runbook_referenced
+
+              cve_backlog_threshold:
+                description: "CVE backlog の閾値超過検知"
+                matrix:
+                  - when: { class: { in: [v1_l1plus_primary, v1_l3_runtime] } }
+                    assertions:
+                      - cv_grype_count_exceeds_threshold
+                      - cv_signal_emitted
+                      - cv_pair_or_upgrade_evaluation_initiated
+
+              maintainer_turnover:
+                description: "top maintainer の大量離脱検知"
+                matrix:
+                  - when: { class: v1_l1plus_primary }
+                    assertions:
+                      - mt_contributors_api_observed
+                      - mt_health_score_degraded
+                      - mt_quarterly_review_flagged
+
+              fork_event:
+                description: "新しい fork が community signal を持つ"
+                matrix:
+                  - when: { class: v1_l1plus_primary }
+                    assertions:
+                      - fe_signal_emitted
+                      - fe_pair_target_reevaluation_optional
+
+              dry_run_cadence_elapsed:
+                description: "L1+ pair の年次 dry_run 実行"
+                matrix:
+                  - when: { class: v1_l1plus_pair_target }
+                    assertions:
+                      - dr_dry_run_executed
+                      - dr_lock_yaml_updated
+                      - dr_assertion_corpus_green
+                      - dr_release_unblocked_after_lock_refresh
+
+              conformance_drift:
+                description: "L2* member の conformance scenarios drift"
+                matrix:
+                  - when: { class: v1_l2star_member }
+                    assertions:
+                      - cd_l2star_scenarios_failure_detected
+                      - cd_member_demote_or_substitute_decision
+
+              major_up:
+                description: "primary OSS の major up 取扱"
+                matrix:
+                  - when: { class: { in: [v1_l1plus_primary, v1_l3_runtime] } }
+                    assertions:
+                      - mu_compat_assessment_initiated
+                      - mu_litmus_compat_test_run
+                      - mu_decision_recorded_in_audit
+
+              reserved_category_review:
+                description: "予約カテゴリの年次 review"
+                matrix:
+                  - when: { class: v1_reserved_category }
+                    assertions:
+                      - rc_annual_review_executed
+                      - rc_adoption_demand_signal_observed
+                      - rc_max_5_year_in_reserved_check
+
+              admission_policy_block:
+                description: "license 違反 / EoL OSS の物理拒否"
+                matrix:
+                  - when: { trigger: license_change_to_non_oss }
+                    assertions:
+                      - ap_kyverno_blocks_image_admission
+                      - ap_audit_signal_emitted
+
+      - corpus 全体は 10 scenario を最小コーパスとする。
+
+  ── tier1/lifecycle/oss_inventory.lock.yaml（build artifact）
+      - 全 OSS の static 自己宣言を tier1 build script が集約して
+        生成する build artifact。02_採用OSS一覧（人間可読）と本
+        ファイル（機械可読）の双方向整合を build script で担保。
+      - スケッチ：
+            # AUTO-GENERATED FROM 02_採用OSS一覧 + 04_Library + 08_pair. DO NOT EDIT.
+            oss:
+              kubernetes:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/kubernetes/kubernetes
+                role: container_orchestration
+                cve_endpoint: osv.dev
+                contributor_endpoint: github_api
+                spdx_scan_endpoint: spdx_scanner
+                paired_target: ~
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+
+              cloudnative_pg:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/cloudnative-pg/cloudnative-pg
+                paired_target: stackgres
+                role: rdbms_operator
+
+              stackgres:
+                lifecycle_class: v1_l1plus_pair_target
+                license: AGPL-3.0   # 例：採用条件として review の対象
+                paired_with_primary: cloudnative_pg
+                last_dry_run_at: 2026-04-15T00:00:00Z
+
+              apicurio_registry:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                paired_target: karapace
+                family: schema_registry
+                family_role: l1plus_primary
+
+              karapace:
+                lifecycle_class: v1_l2star_member
+                license: Apache-2.0
+                family: schema_registry
+                family_role: l2star_alternate
+                conformance_scenarios_id: schema_registry_l2star
+
+              keycloak:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                paired_target: ~        # pair target は 14 review で確定予定
+                role: idp
+
+              backstage:
+                lifecycle_class: v1_l3_runtime
+                license: Apache-2.0
+                role: developer_portal
+
+              perses:
+                lifecycle_class: v1_l3_runtime
+                license: Apache-2.0
+                role: dashboard_consumer
+
+              distributed_sql_pair:
+                lifecycle_class: v1_reserved_category
+                category: distributed_sql
+                first_added_year: 2026
+                review_due: 2027-Q4
+                blockers:
+                  - tier3_arch_decision_required
+                  - row_level_policy_isomorphism_with_pg_rls
+
+              # ... 全 OSS（02_採用OSS一覧 と一致）...
+
+      - constraints は physical な substrate 制約。Capability Negotiation
+        は本制約を起動時に読み込み、宣言違反する fleet では当該
+        OSS を採用しない（例：FIPS 認証必須 fleet で非 FIPS OSS を
+        deploy しない、image 署名必須 fleet で署名なし image を
+        admission 拒否、等）。
+
+■ 5 層 defense-in-depth
+
+  ── 層 A : compile 時（採用 OSS は inventory 登録必須）
+      - K8s manifest（Helm chart / Kustomize / Argo CD Application）
+        の image 参照は oss_inventory.lock.yaml に存在する OSS の
+        official image のみ許容。
+      - tier1 build script が manifest 内 image 名を inventory と
+        照合し、未登録 image は build fail。
+      - tier2 / tier3 アプリの container image 中に登録されていない
+        OSS の binary を含む場合（SBOM で検出）、image build 自体
+        が fail。
+
+  ── 層 B : lint（採用 OSS リスト変更が PR 上で必須承認）
+      - 02_採用OSS一覧.txt と oss_inventory.lock.yaml の双方向 diff
+        を CI で検査。一方だけ変更は fail。
+      - 採用 OSS 追加 / 削除 PR は CODEOWNERS で「OSS governance
+        team」必須承認に。
+      - 既存 OSS の lifecycle_class 変更（promote / demote）は
+        history 行を追加する形で記録（pure additive）。
+
+  ── 層 C : 08 dry_run scenarios と接続
+      - v1_l1plus_pair_target の各 OSS は 08 の dry_run.lock.yaml
+        の last_green_at と本仕様の last_dry_run_at が一致すること
+        を CI で検査。
+      - dry_run cadence elapsed signal が発生した時点で 08 の
+        dry_run runner を発火、conformance corpus を全 green で
+        通過させ last_green_at / last_dry_run_at を atomic に更新。
+      - L2* family の conformance scenarios（04_Library
+        l2star_families.yaml）は本仕様の conformance_drift signal
+        の入口として接続。drift 検出で family_substitute_or_demote
+        の response_action 発動。
+
+  ── 層 D : runtime monitoring（signal を 09 audit に emit）
+      - migration trigger signal は cron / webhook / polling で集約
+        する：
+            license_change          → 日次 SPDX 走査（Argo Workflows）
+            eol_announced           → 各 OSS GitHub Releases / 公式
+                                       announcement の RSS / webhook
+            cve_backlog_threshold   → 日次 grype + osv.dev 結合走査
+            maintainer_turnover     → 月次 GitHub Contributors API
+            fork_event              → 月次 GitHub Forks API + signal
+            conformance_drift       → 04_Library l2star CI の毎回
+            major_up                → 日次 GitHub Releases semver 比較
+      - 集約結果は 09 audit signal sub-class `oss.lifecycle.event`
+        として ClickHouse にロード。Perses dashboard / Superset で
+        可視化。
+      - threshold 超過は alertmanager に渡し、page_business_hours
+        で運用 channel に通知（13 と整合）。
+
+  ── 層 E : 物理拒否（Kyverno admission policy + Cosign 署名検証）
+      - 全 image admission は Cosign 署名必須（02_OSS）+ SBOM 必須
+        + license SPDX が許容リストに含まれることを Kyverno で検証。
+      - oss_inventory.lock.yaml の license フィールドが許容リスト
+        外 SPDX に変更されると、admission 自体が新 image deploy を
+        reject。
+      - EoL date <= today + 90 日に達すると、当該 OSS の image を
+        含む新 deploy を Kyverno が warn → 30 日後 reject へ自動
+        promote。
+      - reserved category の OSS image を deploy しようとすると
+        Kyverno が hard reject（deny by default）。
+      - 本層は文章運用に頼らず物理 enforcement に転写する最終
+        safety net（13 の error budget freeze と同型）。
+
+■ 02_採用OSS一覧 との双方向整合（generation 機構）
+  - 02_採用OSS一覧.txt は人間可読の OSS 採用方針宣言、本仕様の
+    oss_inventory.lock.yaml は機械可読 inventory。
+  - build script の責務：
+      1. 02_採用OSS一覧.txt のテーブル行を parse、OSS 名 / プロ
+         ダクト / ライセンス / カテゴリを抽出。
+      2. 04_Library L1+ / L2* 宣言、08 primary pair 宣言と重ね合
+         わせて lifecycle_class を機械的に決定。
+      3. oss_inventory.lock.yaml に reflect。
+      4. 逆方向：oss_inventory.lock.yaml に新規追加 / 削除があれ
+         ば 02_採用OSS一覧.txt にも反映する PR を Backstage が
+         自動生成（人間 review）。
+  - 双方向 drift（人間が片側だけ編集）は CI fail。
+  - 人間の意図変更（lifecycle_class promote / demote）は 02_採用
+    OSS一覧.txt 側で「※」注釈として記述、oss_inventory.lock.yaml
+    に反映。
+
+■ Capability Negotiation との関係
+  - 03 / 10 / 11 / 12 / 13 と並ぶ chosen_oss_substrate を起動時に
+    決める：
+      1. 全 lifecycle_class C を取得。
+      2. lock.yaml で C を supports に含む OSS 集合 O を抽出。
+      3. constraints 節（FIPS 必須 / Cosign 署名必須 / 特定 namespace
+         のみ deploy 等）を満たさない OSS を O から除外。
+      4. サーバ側で定義された優先順位でソートして chosen_oss_substrate
+         を返却。
+  - lock.yaml は build artifact、deploy 中に動的に書き換わらない。
+
+■ 既存軸との接続関係
+  - 07_Bidi適合仕様：
+      - Envoy Gateway / Strimzi / etc. は v1_l1plus_primary、
+        adapter capabilities.lock.yaml に列挙される backend OSS
+        は本仕様 inventory と整合。
+  - 08_移行Pair適合仕様：
+      - 4 primary pair（CloudNativePG↔StackGres、Strimzi↔RedPanda、
+        Temporal↔Cadence、ZEN↔自製 DSL）は本仕様の
+        v1_l1plus_primary / v1_l1plus_pair_target に必ず登録。
+      - 08 dry_run.lock.yaml の last_green_at と本仕様の
+        last_dry_run_at が atomic 一致することを CI 必須化。
+      - dry_run_cadence_elapsed signal の発火は 08 dry_run runner
+        の起動と直結。
+  - 09_観測適合仕様：
+      - 本仕様の trigger signal は 09 audit signal sub-class
+        `oss.lifecycle.event` の単一 producer。redaction.yaml で
+        OSS 名 / version は keep（PII でない）、内部設定値は drop。
+  - 10_認証適合仕様：
+      - Keycloak / SPIRE は v1_l1plus_primary。Keycloak の major_up
+        signal が 10 の test_runner conformance corpus を再実行する
+        trigger となる。
+  - 11_鍵管理適合仕様：
+      - OpenBao / HSM PKCS#11 vendor / SPIRE は v1_l1plus_primary。
+        HSM vendor の license_change / eol_announced は本仕様の
+        primary trigger。
+  - 12_スキーマ進化適合仕様：
+      - Buf BSR / Apicurio / Karapace / sqlx / Weaver は 12 の
+        registries.lock.yaml と本仕様 inventory が同期。
+  - 13_SLO適合仕様：
+      - 13 v1_request_availability の sub-class として「OSS health
+        SLI」を導入する余地（v2 候補）。本仕様 v1 では trigger
+        signal の emit のみで、SLI 化は未実施。
+  - 32_テナント分離適合仕様：
+      - PostgreSQL / pgaudit / pgvector は本仕様 inventory に登録、
+        major_up signal が 32 conformance corpus を再実行する trigger。
+  - 39_クライアント状態適合仕様：
+      - tier3 OSS（React 等）は v1_l3_runtime 区分（tier3 adoption
+        は tier3 担当 + tier1 inventory 登録の二段階）。
+
+■ Kyverno admission policy / Argo Workflows / 02_OSS リスト builder の責務（縮約）
+  - Kyverno admission policy generator の責務：
+      1. oss_inventory.lock.yaml を読み、license / EoL date / Cosign
+         署名必須を組合わせた ClusterPolicy を生成。
+      2. EoL 30 日前から 4xx warn、当日以降 reject。
+      3. 生成と git の差分検出（手書き drift 禁止）。
+  - Argo Workflows / cron job の責務：
+      1. 7 trigger signal の polling / webhook receiver を schedule。
+      2. 各 signal を 09 audit signal sub-class として emit。
+      3. threshold 超過時は alertmanager（13 と接続）へ通知。
+  - 02_OSS リスト builder の責務：
+      1. 02_採用OSS一覧.txt と oss_inventory.lock.yaml の双方向整合
+         を build script で確認。
+      2. 04_Library L1+ / L2* 宣言、08 primary pair 宣言との重複
+         除去 / 整合検査。
+      3. drift があれば CI fail、整合 PR を bot が自動生成。
+
+■ CI 不変条件（3 ファイル + 5 層の関係性検査）
+  - 違反は merge 不可。
+      整合 1 : classes.yaml の全 class が scenarios.yaml の matrix
+               条件で少なくとも 1 scenario によりカバーされる。
+      整合 2 : scenarios.yaml の全 assertion id が、それを必要とする
+               全 class × 全 OSS × 対応 toolchain で実装されている。
+      整合 3 : oss_inventory.lock.yaml で claim される class が
+               classes.yaml に存在する。
+      整合 4 : classes.yaml の全 class がいずれかの OSS から supports
+               される（unreachable class 検出）。
+      整合 5 : oss_inventory.lock.yaml は手書き禁止のため、build
+               script が生成した内容と git 上の内容が完全一致。
+      整合 6 : 02_採用OSS一覧.txt と oss_inventory.lock.yaml の OSS
+               集合が完全一致（一方だけの追加 / 削除を fail）。
+      整合 7 : 04_Library L1+ / L2* / l3 宣言と oss_inventory の
+               lifecycle_class が一致（cross-spec consistency）。
+      整合 8 : 08_移行Pair適合仕様 の 4 primary pair が本仕様の
+               v1_l1plus_primary / v1_l1plus_pair_target に登録
+               されており、last_green_at / last_dry_run_at が
+               atomic 一致する（08 ↔ 14 双方向）。
+      整合 9 : v1_l2star_member が family 単位で必ず 2 名以上 member
+               を持つ（family member 1 名は v1_l1plus_primary
+               昇格 or 別 OSS 追加）。
+      整合 10: v1_reserved_category の OSS は 5 年以内に annual
+               review が完了している（review log を audit に記録）。
+      整合 11: 全 v1_l1plus_primary OSS が cve_endpoint / contributor
+               _endpoint / spdx_scan_endpoint を declare している
+               （signal source 完全性）。
+      整合 12: Kyverno admission policy が 5 class の image 全て
+               に対し validation rule を持つ（admission gap 検出）。
+      整合 13: 09 audit signal sub-class `oss.lifecycle.event` が
+               定義されており、本仕様の 7 trigger signal を全数
+               emit する path を持つ（cross-axis 連結）。
+
+■ 製造業 pack stress test（v1 の正当性証跡）
+  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+
+      # | シナリオ                                  | class                    | 主要検証ポイント
+      --+-------------------------------------------+--------------------------+----------------------------------------------------
+      1 | ZEN Engine ライセンス変更検知             | v1_l1plus_primary        | license_change signal、自製 DSL backend 切替発動
+      2 | Apicurio EoL 通告 → Karapace 全面切替     | v1_l2star_member         | eol_announced、family demote、Karapace primary 化
+      3 | CloudNativePG → StackGres 年次 dry_run    | v1_l1plus_pair_target    | dry_run cadence、08 lock 更新、conformance green
+      4 | Keycloak 年次 major_up                    | v1_l3_runtime / l1plus   | major_up signal、10 conformance 再実行、互換性検証
+      5 | Distributed SQL 採用判断                  | v1_reserved_category     | annual review、blocker_resolution evaluate
+      6 | CVE backlog 閾値超過 (PostgreSQL ext)     | v1_l1plus_primary        | grype + osv.dev、threshold breach、page emit
+      7 | maintainer turnover 検知 (Apicurio)       | v1_l2star_member         | top-5 maintainer 4 leave / 12m、health 低下 alert
+      8 | non-OSS license image の admission 拒否   | (cross-class)            | Kyverno deploy reject、audit signal emit
+
+  - stress test は Testcontainers で Argo Workflows + Kyverno +
+    Prometheus + alertmanager + sample inventory を立ち上げ、8
+    シナリオを property test として実装する。新 lifecycle pattern
+    が 5 class のいずれにも収まらないと判明した時点で、本仕様は
+    v2 候補として class 追加検討に入る。
+
+■ v2 拡張ルール
+  - 新 class の追加は purely additive：v1 class はそのまま残し、v2
+    で新規 class（例：v2_internal_fork（自製 fork OSS 管理）、
+    v2_emergency_replacement（緊急差替えルート））を追加する。
+  - 既存 class の dimension 値変更は破壊的変更（major version up）。
+    例えば v1_l3_runtime の health_check_cadence を annual に伸ばす
+    場合、新 class v2_l3_runtime_relaxed を切る。
+  - 命名は vN_<adoption_status> 形式に固定。
+  - dimension override 禁止の規律は v1 → v2 跨ぎでも維持する。
+  - OSS health SLI 化（13 v1_request_availability sub-class として
+    OSS lifecycle の劣化を直接 SLO として持つ）は v2 候補。
+
+■ 長期収斂への作用
+  - 本仕様の 3 ファイル + 02_採用OSS一覧.txt の整合により、新 OSS
+    採用 / 既存 OSS の demote / family 編成変更は purely additive
+    に進行する。Backstage Software Template が新 OSS 採用 PR の
+    生成を支援。
+  - L1+「単一 OSS 深耕 + 移行コミットメント」（04_Library）の
+    governance を本仕様が単一所有することで、08 の primary pair
+    が「ship blocker」になる規律と整合する。primary OSS の脆弱化
+    が検知された時点で、08 の dry_run.lock.yaml が atomic に新
+    primary を反映し、release tag 生成が物理的に gate される。
+  - 「dead spec を CI で殺す」規律と「reserved category 5 年強制
+    review」の組合せにより、未採用カテゴリが惰性で残ることを防ぐ。
+    至高路線の「未活用空間を CI で検出」原則と整合。

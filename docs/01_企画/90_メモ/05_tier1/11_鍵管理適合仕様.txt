@@ -1,0 +1,748 @@
+============================================================
+tier1 鍵管理適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」OpenBao / cert-manager / Cosign / SPIRE
+    （導入予定）、「05_提供機能カテゴリ」Cryptography / Secrets、
+    「06_非提供スコープ」（証明書配布はプラットフォーム責務）、
+    「06_tier2/14_業務エラー監査コンプライアンス」（hash chain）、
+    「06_tier2/26_データ保持」（PII 物理削除）、「06_tier2/28_セキュリ
+    ティアーキテクチャ」（暗号 agility / Secret rotation）、「06_tier2/29
+    _データライフサイクル」（テナント export 公開鍵）、「06_tier2/32_
+    テナント分離適合仕様」（pii_segregated 暗号列）、「07_tier3/32_
+    セキュリティアーキテクチャ」（client device_bound_key）が散在的に
+    宣言する key purpose / rotation cadence / destruction proof / scope
+    / backend を、機械可読な単一の真として一箇所に固定する仕様書。
+  - 「05_tier1/07_Bidi適合仕様」「06_tier2/32_テナント分離適合仕様」
+    「05_tier1/10_認証適合仕様」と同型の枠組みを key 軸に転写したもの。
+    dimension override 禁止 / dead spec 殺し / build artifact 化 / 5 層
+    defense-in-depth の規律はそのまま継承する。
+  - tier1 が物理的に唯一の key facade として振る舞う。tier2 / tier3 /
+    Companion から「生 key bytes」「Secret 文字列」を扱う経路は提供
+    しない。全ての鍵操作は KeyHandle 抽象を経由する。
+
+■ 設計原則
+  - key_class は bundle である。
+      yaml に書く tier1.key.* attribute のうち、key_class 1 つの値が
+      他 5 dimension（purpose / rotation_cadence / scope / backend /
+      destruction_method）を一意に導出する。業務側 / 運用側が dimension
+      を個別に override する経路は持たない。
+  - dimension override は禁止する。
+      「v1_data_dek の rotation を 30 日に縮めたい」要望は新 class を
+      切ることで表現する。class 数の爆発は意味論の規律として受け
+      入れる。実務上、key の意味論パターンは数えられる粒度に収束
+      する（本仕様 v1 では 5）。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に登録された
+      全 assertion id、backends.lock.yaml に列挙された全 backend は、
+      いずれも参照されなくなった時点で CI fail とする。
+  - envelope encryption を data 軸の規範形とする。
+      pii_segregated（32）の column 暗号は DEK で行い、DEK は KEK で
+      wrap して at-rest に置く。KEK rotation は DEK の re-wrap で済み、
+      data 再暗号化を強制しない。DEK rotation は background batch で
+      data 再暗号化を行う。crypto-shred は KEK destroy で全 DEK を
+      不可逆に失効させる方式を採る（GDPR 物理削除と論理整合）。
+  - destruction proof は外部公証で物理担保する。
+      audit hash chain の root（tenant 別年次 root）は外部公証
+      （RFC 3161 trusted timestamp / Cosign transparency log）で
+      attest し、tier1 内で改竄しても外部攻撃面で検出可能にする。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（KeyHandle 必須引数化、生 key bytes 不可視）
+      層 B : lint / 公開 API snapshot
+      層 C : cross-class integration test（rotation / destruction）
+      層 D : runtime（HSM PKCS#11 / SPIRE / OpenBao audit log）
+      層 E : 外部公証 attestation（tamper evidence、HSM の audit
+              event を独立 SoR に流す）
+      任意の単層が破れても他層が必ず止める。HSM zeroize と外部
+      公証は最終 safety net。
+
+■ v1 key_class セット（5 class）
+  - yaml に書ける key_class は次の 5 値のみ。生成 / rotation / 監査
+    の各 toolchain は backends.lock.yaml の枝で classes.yaml の
+    keys と照合する。
+
+      class                    | purpose            | rotation_cadence  | scope          | backend                | destruction_method
+      -------------------------+--------------------+-------------------+----------------+------------------------+---------------------------
+      v1_data_dek              | data_encryption    | days_90           | per_tenant     | software_kms_wrapped   | crypto_shred (KEK 削除)
+      v1_data_kek              | kek_wrapping       | years_1           | per_tenant_or_ | hsm_pkcs11             | hsm_zeroize
+                               |                    |                   |   platform     |                        |
+      v1_token_signing         | signing_jwt        | days_90           | platform       | hsm_pkcs11             | jwks_revoke
+      v1_audit_root_signing    | signing_audit_root | years_1           | per_tenant     | hsm_pkcs11             | external_notary_attest
+      v1_mtls_workload         | mtls_identity      | hours_6           | per_workload   | spire                  | spire_revoke
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_data_dek
+          - column-level 暗号化用の Data Encryption Key。
+          - 1 KEK で N 個の DEK を wrap し、wrapped DEK は AAD で
+            紐付けて pii_segregated table の専用 KMS column に保存。
+          - rotation：90 日で新 DEK を発行、旧 DEK 暗号文は
+            background batch で再暗号化し旧 DEK を destroy。
+          - destruction：当該 tenant の KEK を削除すると、その
+            tenant の wrapped DEK が unwrap 不能になり、全 PII
+            列が物理的に読めなくなる（crypto-shred、26 物理削除と
+            同期）。
+          - 典型：tier2 pii_segregated table の暗号列、業務添付
+            ファイル本体（31）の objstore 暗号鍵。
+
+      - v1_data_kek
+          - DEK を wrap する Key Encryption Key。
+          - per_tenant or platform：「テナント別 KEK」が原則
+            （crypto-shred の単位）。platform KEK は cross-tenant
+            な platform_global table 用に限定。
+          - rotation：1 年で新 KEK を発行、全 wrapped DEK を re-wrap
+            （data 再暗号化は不要）。旧 KEK は HSM 上で zeroize。
+          - destruction：HSM PKCS#11 destroy command で zeroize、
+            HSM の audit event と外部公証で削除を attest。
+          - 典型：crypto-shred 単位の root、KMS root。
+
+      - v1_token_signing
+          - Keycloak JWT 署名鍵（OIDC / OAuth / DPoP / token exchange
+            の発行側）、Companion 検証用 JWKS の公開先。
+          - rotation：90 日で新鍵を発行、JWKS endpoint で 30 日
+            overlap 期間を設けて旧鍵を invalidate。
+          - destruction：JWKS から削除 + Keycloak revocation。
+            検証側 cache（Envoy filter / Library TokenValidator）
+            の TTL（5 分）以内に伝播。
+          - 典型：v1_human_session / v1_workload_jwt 等の発行署名、
+            Companion 認証コンテキスト伝播の整合検証。
+
+      - v1_audit_root_signing
+          - tier2 audit_local hash chain（32:295-310）の年次 root
+            に署名する key。tenant 別、年次。
+          - 各 tenant の年次 audit hash root を本鍵で署名し、
+            外部公証（RFC 3161 trusted timestamp + Sigstore
+            transparency log）に提出。署名と公証の二重証跡を保持。
+          - rotation：1 年で新鍵、署名済み root はそのまま不変
+            （旧鍵は verify only として zeroize 後も JWKS-like
+            archive に保持）。
+          - destruction：external_notary_attest 経路、削除自体を
+            外部公証 entity に通知して record を残す。
+          - 典型：金融監査 / 業務監査の改竄検知、外部第三者
+            audit chain への提示。
+
+      - v1_mtls_workload
+          - K8s pod 間 mTLS / SPIRE SVID（X.509 SVID）。
+          - rotation：6 時間で新証明書、SPIRE workload API が
+            kubelet 経由で pod 内に automatic rotation。
+          - destruction：SPIRE が trust domain entry を削除すると
+            SVID 検証側が即時 reject。
+          - 典型：tier1 Sidecar / Outbox relay / Audit relay /
+            Backstage 等の inter-pod mTLS、KafkaConnect の broker
+            接続。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+    の stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - purpose は backend selection の鍵となる。data_encryption は KEK
+    + DEK の二段、signing 系は HSM 内に private key を留め public
+    key だけを export、mtls_identity は SPIRE が第一級扱い。混合
+    すると key 流出時の影響範囲が分割不能になるため独立 dimension。
+  - rotation_cadence は revocation 戦略を決める。短い rotation
+    （hours_6）は revocation list を持たず期限切れに任せる、長い
+    rotation（years_1）は明示的 revoke API + 公証を必要とする。
+  - scope は crypto-shred / blast radius を分ける単位。per_tenant
+    は GDPR 物理削除の単位、platform は cross-tenant resource、
+    per_workload は workload 単位の compromise 局所化。
+  - backend は physical layer の確度を決める。software_kms_wrapped
+    は速い / 弱い、hsm_pkcs11 は遅い / 強い、spire は workload
+    bootstrap 専用。混合や再選択を classes.yaml が機械的に決める。
+  - destruction_method は「削除した」の証跡形を決める。crypto_shred
+    （KEK 削除で wrapped data を不可読化）は可逆性ゼロ、hsm_zeroize
+    は HSM audit event で attest、jwks_revoke は network 伝播時間を
+    考慮、external_notary_attest は外部 entity への record で改竄
+    不能、spire_revoke は trust domain entry の機械削除。
+
+■ derived dimension（key_use / wrapping_relation）を独立次元にしない理由
+  - 「key の用途」（encrypt / sign / verify）は purpose dimension に
+    自然に従属する：
+        v1_data_dek           → encrypt / decrypt
+        v1_data_kek           → wrap / unwrap
+        v1_token_signing      → sign / verify
+        v1_audit_root_signing → sign / verify
+        v1_mtls_workload      → sign（mTLS handshake）
+  - wrapping relation（DEK is wrapped by KEK）は class 間の関係
+    として classes.yaml の wrapped_by 節で表現し、独立 dimension
+    にしない。
+  - 業務 / 運用側で迷う余地がないため、独立 dimension 化する利得
+    が乏しい。dimension override 禁止規律下では「class が暗黙の
+    不変条件として保持する」形に留める。
+
+■ KeyHandle / KeyMaterial の言語横断型（11 表現手段の同型適用）
+  - tier1 Library が公開する KeyHandle は opaque newtype で、生 key
+    bytes を保持しない。鍵操作は handle に対する method として公開
+    される：
+        Rust:
+            pub struct KeyHandle { class: KeyClass, alias: KeyAlias, /* private */ }
+            impl KeyHandle {
+                pub fn encrypt(&self, plaintext: &[u8], aad: &Aad) -> Result<Ciphertext>;
+                pub fn decrypt(&self, ciphertext: &Ciphertext, aad: &Aad) -> Result<Plaintext>;
+                pub fn sign(&self, message: &[u8]) -> Result<Signature>;
+                pub fn verify(&self, message: &[u8], sig: &Signature) -> Result<()>;
+            }
+        C# (Companion):
+            public sealed class KeyHandle { /* internal ctor only */ }
+        TypeScript (browser、tier3 連携用):
+            export class KeyHandle { /* WebCrypto-backed, non-extractable */ }
+
+  - KeyMaterial（生 key bytes）は Library 内部 trait としてのみ存在
+    し、HSM PKCS#11 / OpenBao Transit / SPIRE workload API の back-
+    end 層からのみ参照される。tier2 / tier3 / 業務コードに型として
+    流出しない。
+  - tier3（39_クライアント状態適合仕様）の device_bound_key は
+    WebCrypto の non-extractable CryptoKey を本仕様の KeyHandle と
+    同型扱いする。`extractable=false` を物理的に守る点で 5 層 D の
+    runtime 強制と整合。
+
+■ spec の 3 ファイル構成（単一の真）
+
+  ── tier1/key/classes.yaml
+      - class bundle 定義。key_class 名 → 5 dimension + wrapping
+        relation + 不変条件 の純粋関数テーブル。
+      - スケッチ：
+            classes:
+              v1_data_dek:
+                purpose: data_encryption
+                algorithm:
+                  kind: symmetric
+                  primary: AES-256-GCM
+                  fallback_for_legacy: ~
+                rotation_cadence:
+                  bucket: days_90
+                  max_seconds: 7776000
+                scope: per_tenant
+                backend: software_kms_wrapped
+                wrapped_by: v1_data_kek
+                destruction_method: crypto_shred
+                exposes_public: false
+                requires_aad: true
+                rewrap_on_kek_rotation: true
+                reencrypt_data_on_dek_rotation: true
+                allowed_purpose_in_session_context: [business_op, support, export, migration]
+              v1_data_kek:
+                purpose: kek_wrapping
+                algorithm:
+                  kind: aead_wrap
+                  primary: AES-256-GCM-SIV
+                rotation_cadence:
+                  bucket: years_1
+                  max_seconds: 31536000
+                scope: per_tenant_or_platform
+                backend: hsm_pkcs11
+                destruction_method: hsm_zeroize
+                exposes_public: false
+                rewrap_on_rotation: true
+                hsm_attestation_required: true
+              v1_token_signing:
+                purpose: signing_jwt
+                algorithm:
+                  kind: asymmetric
+                  primary: ES256
+                  fallback_for_legacy: RS256
+                rotation_cadence:
+                  bucket: days_90
+                  max_seconds: 7776000
+                scope: platform
+                backend: hsm_pkcs11
+                destruction_method: jwks_revoke
+                exposes_public: true
+                publication: jwks_endpoint
+                cache_ttl_seconds_max: 300
+                overlap_window_days: 30
+              v1_audit_root_signing:
+                purpose: signing_audit_root
+                algorithm:
+                  kind: asymmetric
+                  primary: Ed25519
+                rotation_cadence:
+                  bucket: years_1
+                  max_seconds: 31536000
+                scope: per_tenant
+                backend: hsm_pkcs11
+                destruction_method: external_notary_attest
+                exposes_public: true
+                external_notary:
+                  rfc3161_tsa: required
+                  sigstore_transparency: required
+                signs_per_year: 1
+              v1_mtls_workload:
+                purpose: mtls_identity
+                algorithm:
+                  kind: asymmetric
+                  primary: ECDSA-P256
+                rotation_cadence:
+                  bucket: hours_6
+                  max_seconds: 21600
+                scope: per_workload
+                backend: spire
+                destruction_method: spire_revoke
+                exposes_public: true
+                publication: spire_workload_api
+                workload_bootstrap: kubelet_projected_volume
+
+      - wrapped_by 関係は v1_data_dek が v1_data_kek にのみ wrap
+        される片方向制約として CI が強制する（cyclic wrap 検出）。
+
+  ── tier1/key/scenarios.yaml
+      - scenario × class / dimension 値 → assertion id のマトリクス。
+      - assertion id は各 backend adapter / 各言語 / 各 toolchain の
+        test runner が attribute / decorator で claim する索引。
+      - スケッチ：
+            scenarios:
+              key_provisioning:
+                description: "テナント追加 / workload 追加時の初期発行"
+                matrix:
+                  - when: { class: v1_data_dek }
+                    assertions:
+                      - kp_kek_exists_before_dek_provision
+                      - kp_dek_aad_binds_tenant_id
+                  - when: { class: v1_data_kek }
+                    assertions:
+                      - kp_hsm_attestation_recorded
+                      - kp_per_tenant_kek_isolated
+                  - when: { class: v1_mtls_workload }
+                    assertions:
+                      - kp_spire_node_attested
+                      - kp_workload_selector_unique
+
+              rotation_under_traffic:
+                description: "rotation 中の業務継続"
+                matrix:
+                  - when: { class: v1_token_signing }
+                    assertions:
+                      - ru_overlap_window_keys_both_valid
+                      - ru_old_jwks_remains_until_ttl
+                      - ru_no_5xx_during_rotation
+                  - when: { class: v1_data_kek }
+                    assertions:
+                      - ru_dek_rewrap_progresses_in_background
+                      - ru_no_data_unreadability_during_rewrap
+                  - when: { class: v1_data_dek }
+                    assertions:
+                      - ru_data_reencrypt_progresses_idempotent
+                      - ru_old_dek_destroyed_after_full_reencrypt
+                  - when: { class: v1_mtls_workload }
+                    assertions:
+                      - ru_spire_rotation_no_handshake_failure
+                      - ru_traffic_uninterrupted
+
+              destruction_and_attestation:
+                description: "destruction の実行と証跡"
+                matrix:
+                  - when: { destruction_method: crypto_shred }
+                    assertions:
+                      - da_kek_destroyed_implies_dek_unwrap_fails
+                      - da_pii_select_returns_decryption_failed
+                      - da_audit_signal_emitted
+                  - when: { destruction_method: hsm_zeroize }
+                    assertions:
+                      - da_hsm_audit_event_emitted
+                      - da_pkcs11_destroy_attested
+                  - when: { destruction_method: jwks_revoke }
+                    assertions:
+                      - da_jwks_no_longer_serves_key
+                      - da_validators_reject_within_ttl
+                  - when: { destruction_method: external_notary_attest }
+                    assertions:
+                      - da_rfc3161_tsa_record_present
+                      - da_sigstore_log_inclusion_proof_present
+                  - when: { destruction_method: spire_revoke }
+                    assertions:
+                      - da_spire_entry_removed
+                      - da_existing_handshakes_terminate
+
+              key_revocation_propagation:
+                description: "compromise 想定の即時 revoke"
+                matrix:
+                  - when: { class: v1_token_signing }
+                    assertions:
+                      - kr_revocation_propagates_within_5min
+                      - kr_in_flight_tokens_invalidated
+                  - when: { class: v1_data_kek }
+                    assertions:
+                      - kr_emergency_kek_replacement_protocol_runs
+
+              external_notary_year_close:
+                description: "audit hash root の年次公証"
+                matrix:
+                  - when: { class: v1_audit_root_signing }
+                    assertions:
+                      - en_root_computed_per_tenant
+                      - en_signed_with_audit_root_signing_key
+                      - en_rfc3161_timestamp_obtained
+                      - en_sigstore_transparency_inclusion
+                      - en_attestation_archived
+
+              context_propagation_to_data:
+                description: "32 session_context との接続"
+                matrix:
+                  - when: { class: v1_data_dek, op: decrypt }
+                    assertions:
+                      - cd_app_tenant_id_matches_aad
+                      - cd_app_purpose_in_allowlist
+                      - cd_session_lacking_purpose_rejected
+
+              hsm_failure_modes:
+                description: "HSM 障害時のフェイルクローズ"
+                matrix:
+                  - when: { backend: hsm_pkcs11 }
+                    assertions:
+                      - hf_hsm_unreachable_blocks_signing
+                      - hf_no_software_fallback_for_signing
+                      - hf_circuit_breaker_emits_audit
+
+              dr_cross_region_failover:
+                description: "DR cutover での鍵連続性"
+                matrix:
+                  - when: { class: { in: [v1_data_kek, v1_audit_root_signing] } }
+                    assertions:
+                      - dr_replicated_hsm_present_in_secondary_region
+                      - dr_attestation_chain_continuous
+                      - dr_no_key_loss_during_failover
+
+      - corpus 全体は 8 scenario を最小コーパスとする。
+
+  ── tier1/key/backends.lock.yaml（build artifact）
+      - 各 backend adapter crate の static 自己宣言を tier1 build
+        script が集約して生成する build artifact。手書き禁止。
+      - スケッチ：
+            # AUTO-GENERATED. DO NOT EDIT.
+            backends:
+              openbao_transit_v1:
+                supports: [v1_data_dek, v1_data_kek_software_only_test_use]
+                features:
+                  envelope_encryption: true
+                  per_key_rotation: true
+                  audit_log_endpoint: required
+                constraints:
+                  v1_data_dek:
+                    aad_required: true
+                    max_keys_per_tenant: ">= 1024"
+
+              hsm_pkcs11_v1:
+                supports:
+                  - v1_data_kek
+                  - v1_token_signing
+                  - v1_audit_root_signing
+                features:
+                  fips_140_3_level_3: required_in_prod
+                  pkcs11_v3: true
+                  attestation: vendor_specific
+                  zeroize_audit: required
+                constraints:
+                  v1_data_kek:
+                    multi_tenant_partition: required
+
+              spire_v1:
+                supports: [v1_mtls_workload]
+                features:
+                  jwt_svid: true
+                  x509_svid: true
+                  attestation_node: kubelet_psat
+                  attestation_workload: k8s_psat
+                constraints:
+                  v1_mtls_workload:
+                    rotation_seconds_max: 21600
+
+              cert_manager_v1:
+                supports: []
+                features:
+                  acme_external_ca_only: true
+                role: external_certificate_issuance_only
+                # 本仕様の key_class とは独立、外部 CA 証明書発行に
+                # 限定する役割（02_OSS 記載と整合）。
+
+      - constraints 節は physical な substrate 制約を backend が静的
+        に宣言する領域。Capability Negotiation は本制約を起動時に
+        読み込み、宣言違反する fleet では当該 backend × class を
+        不採用とする（例：FIPS 140-3 Level 3 HSM が deploy されて
+        いない fleet では v1_data_kek prod を採用しない）。
+
+■ 5 層 defense-in-depth
+
+  ── 層 A : compile 時（KeyHandle 必須引数化）
+      - tier1 Library が公開する暗号操作は KeyHandle を必須引数
+        として受ける。生 key bytes を扱う型を一切公開しない。
+      - KeyHandle は newtype で wrap され、Library 内部の
+        KeyResolver のみが構築できる。tier2 / tier3 / Companion
+        からは const fn / Builder / 環境変数 / config からは構築
+        経路を持たない。
+      - SessionContext（10 + 32 同期）に紐付かない暗号操作は
+        compile 時に拒否する（Repository abstraction と同枠）。
+
+  ── 層 B : lint / 公開 API snapshot
+      - 「16_強制機構」層 5 と整合。Library / Companion 公開 API
+        に String / [u8] / Base64 型 key 引数が現れたら CI fail。
+      - cargo public-api / PublicApiAnalyzers / api-extractor の
+        snapshot に対し、key_id / key_alias を文字列で受ける関数
+        が現れたら fail。
+      - 言語別 analyzer：環境変数 / config からの key 文字列読込
+        を Rust feature flag、C# Roslyn analyzer、Go go/analysis、
+        TS ESLint rule で検出（10 と同枠）。
+
+  ── 層 C : cross-class integration test
+      - Testcontainers で OpenBao + softhsm（v1_data_kek 検証用）
+        + SPIRE server を立ち上げ、5 class の handle 操作 ×
+        scenario の cell が全て green を返すことを property test で
+        検証。
+      - rotation 中の業務継続：traffic を流しながら rotation を
+        発火し、5xx / 認証失敗が発生しないこと。
+      - destruction 後の access：crypto_shred 後の SELECT が必ず
+        DecryptionFailed を返し、PII 平文に到達しないこと。
+      - cross-tenant isolation：tenant A の KEK で wrap された DEK
+        を tenant B の context で unwrap 試行 → AAD 不一致で fail。
+
+  ── 層 D : runtime（HSM PKCS#11 / SPIRE / OpenBao audit）
+      - HSM PKCS#11 は SUPERUSER role を持たない最小権限 token で
+        operation を行う。zeroize は別 admin token、operator role
+        と分離。
+      - SPIRE workload API は kubelet projected SAT で attest し、
+        non-attested pod は SVID を取得できない。
+      - OpenBao audit log は append-only sink（local file + 09 audit
+        signal sub-class `key.operation`）に二重出力。
+      - 層 A〜C のいずれもが破れた最悪シナリオでも、層 D の HSM
+        が物理的に key 流出を塞ぐ。これは 32 RLS / 09 audit DDL
+        と同型の物理 safety net。
+
+  ── 層 E : 外部公証 attestation（tamper evidence）
+      - v1_audit_root_signing による年次 root 署名は RFC 3161 TSA
+        + Sigstore transparency log に並行送信し、両者の inclusion
+        proof を archive する。tier1 内で改竄しても外部攻撃面で
+        検出可能にする。
+      - HSM zeroize の audit event は HSM vendor の attestation
+        chain（PKCS#11 拡張 attribute）と OpenBao audit log の双方
+        に記録され、09 audit signal の独立 sub-class として SoR に
+        入る（drift 検出）。
+      - Cosign signature transparency に SBOM / image 署名と並んで
+        key destruction event を記録する経路は v2 候補（本仕様で
+        は audit signal sub-class に留める）。
+
+■ envelope encryption / crypto-shred / rotation 機構
+
+  - envelope 配置（at-rest）：
+        pii_segregated table の暗号列は次の 3 column を持つ
+        （32 の必須列に追加される sub schema）：
+            ciphertext        bytea NOT NULL  -- AES-GCM (key=DEK)
+            wrapped_dek       bytea NOT NULL  -- AES-GCM-SIV (key=KEK)
+            dek_metadata      jsonb NOT NULL  -- { dek_id, kek_id, alg, aad_hash }
+        AAD は (tenant_id || aggregate_id || column_name) を SHA-256
+        で hash した値を含む。tenant 越境 unwrap を AAD で拒否。
+
+  - rotation flow：
+      - v1_token_signing：90 日。新鍵生成 → JWKS 公開（30 日 overlap）
+        → 旧鍵 jwks_revoke → 検証 cache TTL 5 分後に旧鍵失効。
+      - v1_data_kek：1 年。HSM で新 KEK 発行 → 全 wrapped DEK を
+        re-wrap（data 再暗号化は不要）→ 旧 KEK を hsm_zeroize。
+        re-wrap は background batch + 整合性 marker で再開可能。
+      - v1_data_dek：90 日。新 DEK 発行 → KEK で wrap → 当該
+        column の row を background batch で re-encrypt → 旧 DEK
+        を destroy（KEK 上の wrapped 削除）。
+      - v1_audit_root_signing：1 年。新鍵 → 旧鍵での年内残署名
+        を完了 → 新鍵で次年 root を署名。旧鍵は zeroize しないで
+        verify only として archive 保存。
+      - v1_mtls_workload：6 時間。SPIRE workload API が透過 rotate。
+        in-flight handshake は旧 SVID で完了、新 handshake から
+        新 SVID。
+
+  - crypto-shred（テナント物理削除、26 と整合）：
+      - 流れ：
+          1. 当該 tenant の v1_data_kek を hsm_zeroize。
+          2. wrapped_dek が unwrap 不能 → ciphertext が復号不能 →
+             PII 列が物理的に読めない。
+          3. 関連 row の物理削除（DELETE）は別途 background で実行
+             するが、列暗号化により読めない時点で GDPR Right to
+             Erasure を満たす扱いとする。
+          4. 09 audit signal に `key.crypto_shred` event を emit、
+             外部公証 entity に通知 record を提出。
+      - 不可逆性：HSM zeroize 後は HSM partition 内に key material
+        が物理的に存在しない。バックアップ / replica にも KEK は
+        存在しない（HSM は replicate しても key material は生で
+        export しない方式の vendor を選定）。
+
+  - hash chain root の年次 root 計算：
+      - 32 audit_local の hash chain は per_tenant / per_day で
+        segment 化する（既存提案の 2 段化）。
+      - 年次 root = 当該年の全 day_root の Merkle root。
+      - v1_audit_root_signing 鍵で root に署名 → RFC 3161 TSA で
+        timestamp 取得 → Sigstore transparency log に inclusion。
+      - inclusion proof は永続 archive（オブジェクトストレージ：
+        Rook + Ceph RGW）に保存、別途 publish 可能。
+
+■ SessionContext との接続（10 / 32 同期）
+  - 32 の session_context（app.tenant_id / app.actor_id / app.purpose
+    / app.delegation_chain）と 10 の AuthContext（app.auth_class /
+    app.subject_kind / 等）に対し、本仕様は SessionContext を読む
+    のみで、新規 GUC を追加しない。
+  - 暗号操作の許可は次で評価される：
+      1. Library 内 KeyResolver が KeyHandle を取得する際、当該
+         class の allowed_purpose_in_session_context と app.purpose
+         を check。一致しなければ AuthorizationDenied。
+      2. v1_data_dek の操作は app.tenant_id 必須、AAD と一致確認。
+      3. v1_audit_root_signing の操作は app.purpose=migration かつ
+         platform_admin role 必須。
+  - これらは classes.yaml の宣言を Library 内部 KeyResolver が機械
+    的に評価する（手書き分岐を持たない）。
+
+■ Capability Negotiation との関係
+  - 03_Server系 Capability Negotiation 節の chosen_transport / 10
+    の chosen_idp_adapter に並ぶ chosen_key_backend 選択を起動時に
+    行う：
+      1. 全 key_class C を取得。
+      2. lock.yaml で C を supports に含む backend 集合 B を抽出。
+      3. constraints 節（FIPS 140-3 Level 3 等）を満たさない backend
+         を B から除外。
+      4. fleet 設定（HSM partition 数 / SPIRE trust domain 設定）と
+         照合し、宣言違反する backend × class を不採用とする。
+      5. サーバ側で定義された優先順位でソートして chosen_key_backend
+         を返却。
+  - lock.yaml は build artifact のため、サーバの起動とともに固定
+    される。deploy 中に動的に書き換わらない。
+
+■ 既存軸との接続関係
+  - 07_Bidi適合仕様：
+      - mTLS workload SVID は全 transport adapter の TLS 終端と
+        Library 内部 RPC 経路で消費される。SVID rotation は 07 の
+        slow_consumer / proxy_buffering scenario と独立に進行
+        （rotation_under_traffic scenario）。
+  - 08_移行Pair適合仕様：
+      - HSM vendor / OpenBao の lifecycle event（EoL / 仕様変更 /
+        FIPS 認証失効）が 14_OSSライフサイクル適合仕様の
+        v1_l1plus_primary 監視対象。pair_target は別 HSM vendor
+        / SoftHSM-not-for-prod-but-for-dev 等。
+  - 09_観測適合仕様：
+      - 全 key 操作（encrypt / decrypt / sign / verify / rotate /
+        destroy）を audit signal の sub-class `key.operation` として
+        ClickHouse に bulk insert。redaction.yaml で key bytes を
+        必ず drop、key_id / class / outcome のみ keep。
+  - 10_認証適合仕様：
+      - v1_token_signing は 10 の token_type=jwt_short / dpop_bound_jwt
+        / jwt_attested / exchange_jwt の発行署名。Keycloak 内 HSM
+        partition と紐付け、rotation 周期は 10 の context_propagation
+        scenario と整合。
+  - 32_テナント分離適合仕様：
+      - pii_segregated の暗号列は v1_data_dek + v1_data_kek の
+        envelope。crypto-shred は 32 の class カタログに「テナント
+        論理削除」フローとして接続（26 物理削除と論理整合）。
+      - audit_local hash chain root は v1_audit_root_signing で
+        署名（hash chain は 32 整合 12 として明記）。
+  - 39_クライアント状態適合仕様：
+      - tier3 device_bound_key（39:323-327, 400-407）は WebCrypto
+        non-extractable で本仕様の KeyHandle と同型扱い。tenant_switch
+        の per-tenant IndexedDB 物理分離（C7 改善案）と組合せて
+        crypto-shred 単位を tier3 まで物理一貫させる。
+
+■ Buf custom lint と key tooling の責務（縮約）
+  - Buf custom lint の責務（proto / event 側）：
+      1. proto に書かれた `tier1.encryption.column_class` が classes.yaml
+         の data_encryption purpose の class（v1_data_dek）に存在する
+         こと。
+      2. event proto に PII field option が付く場合、redaction marker
+         + 暗号 class の宣言が必須（32 Buf custom lint と整合）。
+
+  - key tooling（terraform / bao CLI / pkcs11-tool 由来 yaml の
+    機械化）：
+      1. backends.lock.yaml は build artifact として生成される。
+         手書き diff があれば CI fail。
+      2. 5 class それぞれに対応する OpenBao policy / HSM PKCS#11
+         partition 設定 / SPIRE registration entry を yaml から
+         生成。
+      3. rotation cadence は classes.yaml の max_seconds 内に収まって
+         いること。
+      4. HSM 設定（FIPS level / partition 数）は Kyverno admission
+         policy で物理確認（KeyManagementBackend CR の差分検査）。
+
+■ CI 不変条件（3 ファイル + 5 層の関係性検査）
+  - 違反は merge 不可。
+      整合 1 : classes.yaml の全 class が scenarios.yaml の matrix
+               条件で少なくとも 1 scenario によりカバーされる
+               （dead class 検出）。
+      整合 2 : scenarios.yaml の全 assertion id が、それを必要とする
+               全 class × 全 backend × 全対応言語で実装されて
+               いる。
+      整合 3 : backends.lock.yaml で claim される class が classes.yaml
+               に存在する（dangling reference 検出）。
+      整合 4 : classes.yaml に登録された class のうち、いずれの
+               backend からも supports されない class が存在しない
+               こと（unreachable class 検出）。
+      整合 5 : classes.yaml の wrapped_by 関係が DAG（cycle 不在）
+               であり、wrapped_by の参照先 class が同 yaml に存在
+               すること。
+      整合 6 : backends.lock.yaml は手書き禁止のため、build script
+               が生成した内容と git 上の内容が完全一致すること
+               （generation drift 検出）。
+      整合 7 : Library / Companion 公開 API snapshot に String / Vec<u8>
+               型 key 引数が存在しないこと。KeyHandle 経由の API
+               のみ exposed であること。
+      整合 8 : cross-class scenario × backend × 言語の cell が全
+               実装されている。rotation_under_traffic / destruction
+               _and_attestation の全 cell green。
+      整合 9 : rotation cadence が classes.yaml の max_seconds を
+               実運用 metric（最終 rotation 時刻）で超過していない
+               こと（runtime instrumentation で daily 検査）。
+      整合 10: external_notary_attest の年次 record（RFC 3161 TSA +
+               Sigstore log inclusion proof）が tenant 別に archive
+               されており、欠落 tenant が存在しないこと。
+      整合 11: HSM PKCS#11 backend が prod fleet で deploy されて
+               いることを Kyverno admission policy で物理確認
+               （HSM 不在 fleet では v1_data_kek / v1_token_signing
+               / v1_audit_root_signing の deploy CR を reject）。
+      整合 12: crypto_shred 後の pii_segregated SELECT が必ず
+               DecryptionFailed を返す property test が全テナント
+               sample に対し green を返すこと（destruction 物理
+               担保）。
+      整合 13: classes.yaml の allowed_purpose_in_session_context が
+               32 の app.purpose 値域 + 10 の class の allowed_purpose
+               と整合（cross-spec consistency、purpose 越境組合せ
+               不在）。
+
+■ 製造業 pack stress test（v1 の正当性証跡）
+  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+    class が漏れなく機能している証跡として保持する。
+
+      # | シナリオ                                  | class                    | 主要検証ポイント
+      --+-------------------------------------------+--------------------------+---------------------------------------------
+      1 | 新規テナント作成 → DEK / KEK 払出         | v1_data_kek + v1_data_dek| 初回 KEK HSM 発行、DEK wrapped、AAD バインド
+      2 | 製造業 PII column 暗号化（受発注の取引先）| v1_data_dek              | encrypt with AAD、tenant 越境 unwrap reject
+      3 | KEK 年次 rotation 中の業務継続            | v1_data_kek              | re-wrap background、5xx ゼロ
+      4 | DEK 90 日 rotation の background batch    | v1_data_dek              | 再暗号化 idempotent、進捗再開可、旧 DEK destroy
+      5 | Keycloak token 署名鍵 90 日 rotation      | v1_token_signing         | JWKS 30 日 overlap、Companion 検証側 cache 5 分
+      6 | 監査 hash root 年次署名 → 外部公証        | v1_audit_root_signing    | RFC 3161 timestamp + Sigstore inclusion
+      7 | テナント crypto-shred（GDPR 請求対応）    | v1_data_kek              | HSM zeroize → SELECT DecryptionFailed
+      8 | Outbox relay sidecar の SVID rotation     | v1_mtls_workload         | SPIRE 6h rotate、broker 接続継続
+
+  - stress test は Testcontainers で OpenBao + softhsm（v1_data_kek
+    検証用）+ SPIRE + Keycloak + Envoy + Library + tier3 sample app
+    を立ち上げ、8 シナリオを property test として実装する。新業務
+    pattern が 5 class のいずれにも収まらないと判明した時点で、
+    本仕様は v2 候補として class 追加検討に入る。
+
+■ v2 拡張ルール
+  - 新 class の追加は purely additive：v1 class はそのまま残し、
+    v2 で新規 class（例：v2_post_quantum_signing、v2_threshold_signing、
+    v2_homomorphic_compute_key）を追加する。
+  - 既存 class の dimension 値変更は破壊的変更（major version up）。
+    例えば v1_data_dek の rotation を 30 日に縮める場合、新 class
+    v2_data_dek_short を切り、移行 toolchain（08 と同型）を tier1
+    が成果物として提供する。
+  - 命名は vN_<usage> 形式に固定。
+  - dimension override 禁止の規律は v1 → v2 跨ぎでも維持する。
+  - HSM vendor / OpenBao の major up は 14_OSSライフサイクル適合
+    仕様の v1_l1plus_primary 経路で吸収。本仕様の class / scenario
+    は無変更で backend lock のみ更新。
+
+■ 長期収斂への作用
+  - 本仕様の 3 ファイルに対し、新 backend / 新業界 pack の追加は
+    purely additive な変更として進行する。class を選び yaml に
+    declare すれば残りは機械的に降りる。
+  - L1+「単一 OSS 深耕 + 移行コミットメント」（04_Library）の哲学
+    を key 軸に転写したもの。単一 KMS 深耕（OpenBao Transit）+
+    HSM PKCS#11 + SPIRE + Keycloak signing の四本柱を据え、各々
+    に L1+ 移行コミットメント（OpenBao→別 KMS、HSM vendor lock
+    回避用 PKCS#11 抽象、SPIRE→Istio Workload Identity 等）を
+    08 に登録する。
+  - Post-Quantum 暗号への移行は v2 の major up で行う。v1 の class
+    定義はアルゴリズム agility（algorithm.fallback_for_legacy）を
+    bundle に持つため、PQ migration 時に既存 class の意味を維持
+    したまま algorithm 変更が可能（ただし破壊的）。

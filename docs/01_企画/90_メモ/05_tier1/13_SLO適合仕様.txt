@@ -1,0 +1,667 @@
+============================================================
+tier1 SLO 適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」Prometheus / Perses / OpenTelemetry Collector
+    / Litmus、「05_提供機能カテゴリ」Observability / Reliability、
+    「05_tier1/09_観測適合仕様」5 signal SoR、「06_tier2/27_信頼性運用
+    準備」（RTO/RPO/SLO 文章記述）が散在的に宣言する SLI 種別 / SLO
+    target / 計測 window / multi-window burn-rate / alert policy /
+    error budget を、機械可読な単一の真として一箇所に固定する仕様書。
+  - 「05_tier1/07_Bidi適合仕様」「06_tier2/32_テナント分離適合仕様」
+    「05_tier1/10_認証適合仕様」「05_tier1/11_鍵管理適合仕様」「05_
+    tier1/12_スキーマ進化適合仕様」と同型の枠組みを SLO 軸に転写
+    したもの。dimension override 禁止 / dead spec 殺し / build artifact
+    化 / 5 層 defense-in-depth の規律はそのまま継承する。
+  - 09 観測適合仕様が「signal の入口」を定義するのに対し、本仕様は
+    「signal を SLO に変換し、error budget を物理 enforcement に流す
+    出口」を定義する。両者は orthogonal だが、09 の signal × dimension
+    _layer と本仕様の slo_class は aggregate_qualified_name（12）で
+    結節される。
+
+■ 設計原則
+  - slo_class は bundle である。
+      yaml に書く tier1.slo.* attribute のうち、slo_class 1 つの値が
+      他 5 dimension（sli_kind / target_level / window_class / multi
+      _window_burn / alert_severity）を一意に導出する。SLO 作者が
+      dimension を個別に override する経路は持たない。
+  - dimension override は禁止する。
+      「v1_request_latency_p99 のうち target を p99<150ms に縮めたい」
+      要望は新 class を切ることで表現する。class 数の爆発は意味論
+      の規律として受け入れる。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に登録された
+      全 assertion id、instruments.lock.yaml に列挙された全 instrument
+      は、いずれも参照されなくなった時点で CI fail とする。
+  - error budget は物理 enforcement する。
+      error budget が一定閾値以下になると、当該 service の Deployment
+      / Argo Rollout CR を Kyverno admission policy で物理拒否する。
+      文章運用ではなく、リリース pipeline 上の物理 gate として機能
+      する（27_信頼性運用準備 の文章運用を本仕様が機械化）。
+  - SLI 計測式は build artifact とする。
+      Prometheus recording rule / alertmanager rule / Perses dashboard
+      / Litmus chaos scenario は全て classes.yaml + scenarios.yaml
+      + instruments.lock.yaml から build script で生成される。手書き
+      diff は CI fail（11 / 12 と同枠）。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（SLO は yaml 単一の真、coding 不要）
+      層 B : lint（alert / dashboard / chaos が yaml 由来かを CI 検査）
+      層 C : chaos test（Litmus）で burn-rate alert が fire すること
+              を検証
+      層 D : runtime（Prometheus + alertmanager + PagerDuty / Slack）
+      層 E : error budget の物理 freeze（budget 枯渇で Kyverno が
+              deploy CR を reject）
+      任意の単層が破れても他層が必ず止める。Kyverno gate が最終
+      safety net。
+
+■ v1 slo_class セット（5 class）
+  - yaml に書ける slo_class は次の 5 値のみ。各 build script は
+    instruments.lock.yaml の枝で classes.yaml の keys と照合する。
+
+      class                       | sli_kind         | target               | window  | multi_window_burn          | alert_severity
+      ----------------------------+------------------+----------------------+---------+----------------------------+--------------------
+      v1_request_availability     | availability     | 99.9%                | 30d     | fast_2h_14.4x + slow_24h_3x| page_immediate
+      v1_request_latency_p99      | latency          | p99 <= class.target  | 30d     | fast_1h_14x  + slow_6h_3x  | page_immediate
+      v1_event_freshness          | freshness        | p95 <= class.target  | 7d      | fast_30m_14x + slow_4h_3x  | page_business_hours
+      v1_workflow_completion      | completion_rate  | 99.5%                | 30d     | fast_4h_14x  + slow_3d_3x  | ticket_only
+      v1_data_durability          | durability       | 100% (zero loss)     | 365d    | any_loss=immediate         | page_immediate
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_request_availability
+          - HTTP / gRPC API 等の request 経路の可用性。
+          - SLI 算出式：good_events / total_events、good = 5xx 以外
+            かつ deadline 内 response。
+          - target 99.9% / 30 日 = 月間 error budget 約 43.2 分。
+          - multi-window：fast 2h で 14.4x burn（=月間予算の 2% を
+            2h で消費）と slow 24h で 3x burn（=月間予算の 10% を
+            24h で消費）の AND 条件で page。
+          - 典型：tier1 Backend-for-Library、tier2 Service の
+            external/internal proto RPC、Outbox relay availability。
+
+      - v1_request_latency_p99
+          - request 経路の p99 latency。
+          - SLI 算出式：proportion of requests with latency <= target。
+            target は class instantiate 時に latency_threshold_ms を
+            指定（例：v1_alert RPC = 200ms、07 の class.lag と整合）。
+          - target 99.9% / 30 日 = 月間 0.1% が threshold 超過許容。
+          - multi-window：fast 1h で 14x burn と slow 6h で 3x burn
+            の AND 条件で page。
+          - 典型：07 v1_interactive / v1_alert / v1_event_feed の
+            class.max_msg_lag_ms と connect、production の p99 latency
+            SLO。
+
+      - v1_event_freshness
+          - server-driven event 配信の freshness（end-to-end lag）。
+          - SLI 算出式：events with (consumer_observed_at - producer_
+            published_at) <= target 比率。target は instantiate 時に
+            latency_threshold_ms 指定（v1_event_feed = 5000ms）。
+          - target 99.5% / 7 日 = 週間予算 0.5%。
+          - multi-window：fast 30m で 14x burn と slow 4h で 3x burn。
+          - 典型：07 v1_event_feed / v1_live_snapshot の遅延、Outbox
+            relay の publish lag、ClickHouse audit relay の ingestion
+            lag。
+
+      - v1_workflow_completion
+          - Temporal Workflow / Saga の完了率。
+          - SLI 算出式：completed workflows / started workflows、
+            timeout / cancellation を fail 扱い。
+          - target 99.5% / 30 日 = 月間 0.5% が未完許容（リトライ
+            込みで完了する分は good 扱い）。
+          - multi-window：fast 4h と slow 3d の組合せ（workflow は
+            長時間性質のため大きめ window）。
+          - 典型：受注処理 saga、bulk import workflow、tier2 業務
+            長時間処理。
+
+      - v1_data_durability
+          - tenant data の永続性。
+          - SLI 算出式：persisted_records / acknowledged_records、
+            一切の loss を tolerate しない（target=100%）。
+          - window 365 日 = 年間 zero loss。
+          - alert：any_loss = immediate page。loss 検出は 32 の
+            outbox relay reconciliation / audit hash chain
+            mismatch / DB checksum 等の signal が発生した瞬間。
+          - 典型：tier2 atomic 三表書込（32）の loss 0 担保、key
+            crypto-shred 以外での data 不可逆損失監視。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+    の stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - sli_kind は SLI 算出式と numerator/denominator semantics を決める。
+    availability は good/total、latency は threshold ratio、freshness
+    は produce-consume time delta、completion_rate は workflow 完了
+    率、durability は loss 検出 binary。混合すると burn-rate 計算が
+    分解不能になるため独立 dimension。
+  - target_level は class により semantics が異なる：availability /
+    completion_rate は %（99.9% 等）、latency / freshness は閾値
+    （200ms 等）+ ratio（99.9% が threshold 内）、durability は
+    100%。class instantiate 時に instance 別に拡張属性で具体値を
+    宣言する形を取り、dimension としては「target を class と instance
+    の合成で持つ」semantics に固定。
+  - window_class は SRE Workbook 流の budget 計算 window。30d は
+    request 系、7d は freshness、365d は durability、24h はサンプル
+    用途。短い window は budget が早く回復、長い window は budget
+    保護が長期的。
+  - multi_window_burn は false positive 抑制と早期検出の両立。SRE
+    Workbook 推奨パターン（fast = 高 burn-rate 短時間、slow = 中
+    burn-rate 長時間、AND で page）。
+  - alert_severity は人間の応答 latency を決める。page_immediate
+    は分単位、page_business_hours は時間単位、ticket_only は日単位。
+
+■ derived dimension（per-tenant SLO）を独立次元にしない理由
+  - per-tenant SLO（テナント別 availability target）は本来 dimension
+    たり得るが、5 class それぞれで「tenant_id ラベルで分割した
+    metric を multi-window 評価する」という同形操作になる。
+  - tenant 別 target を class 内 instance 属性として宣言し、recording
+    rule の生成時に tenant_id ラベルを残す形に統一する。class に
+    bundle されない理由は、tenant 数が増えても class 数は不変だから。
+  - tenant 別 SLO は 15_テナント容量適合仕様 と接続し、quota
+    enforcement と SLO 違反の双方向シグナルを単一所有とする。
+
+■ SLI 算出式と recording rule（build artifact 同型）
+  - 各 slo_class は recording rule template を持つ。Prometheus 用に
+    build script が template を展開し、tier1/slo/recording_rules.gen
+    .yaml（build artifact）を生成する。手書き禁止。
+  - スケッチ：
+        # AUTO-GENERATED. DO NOT EDIT.
+        groups:
+          - name: tier1_slo_v1_request_availability
+            rules:
+              - record: slo:request_availability:good_30d
+                expr: |
+                  sum by (service, tenant_id) (
+                    rate(http_requests_total{status!~"5..", deadline_violated="false"}[30d])
+                  )
+              - record: slo:request_availability:total_30d
+                expr: |
+                  sum by (service, tenant_id) (
+                    rate(http_requests_total[30d])
+                  )
+              - record: slo:request_availability:burn_2h
+                expr: |
+                  (1 - slo:request_availability:good_2h
+                       / slo:request_availability:total_2h)
+                  / (1 - 0.999)
+              - record: slo:request_availability:burn_24h
+                expr: ...
+        # alertmanager rule:
+          - alert: SLOFastBurn_v1_request_availability
+            expr: |
+              slo:request_availability:burn_2h{service=...} > 14.4
+              and
+              slo:request_availability:burn_1h{service=...} > 14.4
+            for: 2m
+            labels:
+              severity: page_immediate
+            annotations:
+              runbook_url: tier1-slo/runbooks/availability_fast_burn.md
+
+  - alertmanager rule / Perses dashboard / Litmus chaos の各 yaml
+    も同型に build artifact として生成される。
+
+■ spec の 3 ファイル構成（単一の真）
+
+  ── tier1/slo/classes.yaml
+      - class bundle 定義。slo_class 名 → 5 dimension + recording
+        rule template + alert rule template 純粋関数テーブル。
+      - スケッチ：
+            classes:
+              v1_request_availability:
+                sli_kind: availability
+                target_default: 0.999
+                window_class:
+                  primary_seconds: 2592000     # 30d
+                multi_window_burn:
+                  fast:
+                    window_seconds: 7200       # 2h
+                    burn_rate_threshold: 14.4
+                  slow:
+                    window_seconds: 86400      # 24h
+                    burn_rate_threshold: 3
+                alert_severity: page_immediate
+                tenant_label_required: true
+                recording_rule_template_id: tmpl_request_availability
+                alert_rule_template_id: tmpl_request_availability_burn
+
+              v1_request_latency_p99:
+                sli_kind: latency
+                target_definition:
+                  good_event: "request_latency_ms <= class_instance.threshold_ms"
+                target_default: 0.999
+                window_class: { primary_seconds: 2592000 }
+                multi_window_burn:
+                  fast: { window_seconds: 3600,  burn_rate_threshold: 14 }
+                  slow: { window_seconds: 21600, burn_rate_threshold: 3  }
+                alert_severity: page_immediate
+                tenant_label_required: true
+                instance_attributes_required: [threshold_ms]
+                recording_rule_template_id: tmpl_request_latency
+                alert_rule_template_id: tmpl_request_latency_burn
+
+              v1_event_freshness:        { ... }
+              v1_workflow_completion:    { ... }
+              v1_data_durability:
+                sli_kind: durability
+                target_default: 1.0
+                window_class: { primary_seconds: 31536000 }   # 365d
+                multi_window_burn:
+                  any_loss:
+                    window_seconds: 60
+                    burn_rate_threshold: 0
+                alert_severity: page_immediate
+                signal_sources:
+                  - outbox_relay_reconciliation_mismatch
+                  - audit_hash_chain_mismatch
+                  - storage_layer_checksum_failure
+                tenant_label_required: true
+                recording_rule_template_id: tmpl_durability_loss_event
+                alert_rule_template_id: tmpl_durability_loss_immediate
+
+  ── tier1/slo/scenarios.yaml
+      - scenario × class / 操作 → assertion id のマトリクス。
+      - スケッチ：
+            scenarios:
+              fast_burn_alert_fires:
+                description: "fast burn 閾値超過で page 発火"
+                matrix:
+                  - when: { class: { in: [v1_request_availability,
+                                          v1_request_latency_p99,
+                                          v1_event_freshness,
+                                          v1_workflow_completion] } }
+                    assertions:
+                      - fb_alert_fires_within_2x_window
+                      - fb_severity_label_correct
+                      - fb_runbook_url_present
+
+              slow_burn_alert_dampens_flap:
+                description: "slow burn のみで fast burn なしの場合 flap 抑制"
+                matrix:
+                  - when: { class: { in: [v1_request_availability,
+                                          v1_request_latency_p99] } }
+                    assertions:
+                      - sb_no_alert_when_only_slow_burn
+                      - sb_alert_when_both_fast_and_slow
+
+              error_budget_calculation:
+                description: "budget 残量計算の正しさ"
+                matrix:
+                  - when: { sli_kind: { in: [availability, completion_rate] } }
+                    assertions:
+                      - eb_remaining_eq_one_minus_observed_error_rate_div_target
+                  - when: { sli_kind: durability }
+                    assertions:
+                      - eb_any_loss_collapses_budget
+
+              error_budget_freeze:
+                description: "budget 枯渇で deploy CR を reject"
+                matrix:
+                  - when: { class: { in: [v1_request_availability,
+                                          v1_request_latency_p99,
+                                          v1_event_freshness] } }
+                    assertions:
+                      - ef_kyverno_admission_blocks_rollout
+                      - ef_unfreeze_after_recovery_window
+                  - when: { class: v1_data_durability }
+                    assertions:
+                      - ef_durability_loss_freezes_immediately
+                      - ef_unfreeze_only_after_root_cause_fix
+
+              chaos_injection_validates_alert:
+                description: "Litmus chaos で SLO 違反を再現し alert が発火"
+                matrix:
+                  - when: { class: v1_request_availability }
+                    assertions:
+                      - cv_pod_kill_increases_5xx
+                      - cv_alert_fires_within_window
+                  - when: { class: v1_request_latency_p99 }
+                    assertions:
+                      - cv_network_latency_inject_increases_p99
+                      - cv_alert_fires_within_window
+                  - when: { class: v1_event_freshness }
+                    assertions:
+                      - cv_kafka_partition_pause_increases_lag
+                      - cv_alert_fires_within_window
+
+              tenant_label_propagation:
+                description: "tenant_id label が SLI / alert で保持"
+                matrix:
+                  - when: { tenant_label_required: true }
+                    assertions:
+                      - tl_recording_rule_has_tenant_id
+                      - tl_alert_label_includes_tenant_id
+                      - tl_dashboard_filterable_by_tenant_id
+
+              recording_rule_hermeticity:
+                description: "recording rule / alert rule が yaml 由来"
+                matrix:
+                  - when: { class: any }
+                    assertions:
+                      - rr_generated_yaml_matches_template
+                      - rr_no_handwritten_drift
+
+              window_correctness:
+                description: "window 計算の境界条件"
+                matrix:
+                  - when: { window_class.primary_seconds: 31536000 }
+                    assertions:
+                      - wc_yearly_window_no_off_by_one
+                      - wc_leap_year_handled
+                  - when: { window_class.primary_seconds: 2592000 }
+                    assertions:
+                      - wc_30d_rolling_window_correct
+
+      - corpus 全体は 8 scenario を最小コーパスとする。
+
+  ── tier1/slo/instruments.lock.yaml（build artifact）
+      - 各 instrument backend の static 自己宣言を tier1 build script
+        が集約して生成する build artifact。手書き禁止。
+      - スケッチ：
+            # AUTO-GENERATED. DO NOT EDIT.
+            instruments:
+              prometheus_v1:
+                supports:
+                  - v1_request_availability
+                  - v1_request_latency_p99
+                  - v1_event_freshness
+                  - v1_workflow_completion
+                features:
+                  recording_rules: true
+                  alerting_rules: true
+                  remote_write_to_clickhouse: true   # 09 と接続
+                constraints:
+                  retention_seconds_min_for_class:
+                    v1_request_availability: 2592000
+                    v1_data_durability: 31536000
+
+              alertmanager_v1:
+                supports: [all]
+                features:
+                  notifiers: [pagerduty, slack, email]
+                  inhibition_rules: true
+                  silence_window: true
+
+              perses_v1:
+                supports: [all]
+                features:
+                  cnf_sandbox_apache_2_0: true
+                role: dashboard_consumer
+
+              litmus_v1:
+                supports: [all]
+                features:
+                  experiment_chaos_kinds:
+                    - pod_kill
+                    - network_latency
+                    - kafka_partition_pause
+                    - postgres_kill
+                  e2e_chaos_runtime: argo_workflows
+
+              kyverno_v1:
+                supports: [all]
+                role: error_budget_freeze_enforcer
+                features:
+                  admission_policy: Deployment, ArgoRollout
+                  budget_query: prometheus_remote
+
+              clickhouse_v1:
+                supports: [v1_data_durability]
+                role: durability_loss_signal_source
+
+      - constraints は physical な substrate 制約。Capability Negotiation
+        は本制約を起動時に読み込み、宣言違反する fleet では当該
+        instrument × class を不採用とする（例：retention 短い
+        Prometheus では v1_data_durability を採用しない）。
+
+■ 5 層 defense-in-depth
+
+  ── 層 A : compile 時（SLO は yaml 単一の真）
+      - tier2 / tier3 アプリ層は SLO target を coding で定義しない。
+        全 SLO は tier2/<service>/slo.yaml に slo_class + instance
+        属性を宣言する形で記述。
+      - tier1 build script が yaml を読んで recording rule / alert
+        rule / dashboard / chaos scenario を生成する。生成物は
+        build artifact、手書き禁止。
+      - SLO target 値の compile 時 lookup は build artifact 経由で
+        のみ可能（コード内に魔法定数を埋めない規律）。
+
+  ── 層 B : lint
+      - alert rule yaml が build artifact 起源かを CI で git diff
+        検査。手書き drift があれば fail。
+      - Perses dashboard が build artifact 起源かを同様に検査。
+      - Kyverno admission policy（error budget gate）が yaml 由来
+        かを検査。
+      - 12 schema 進化適合仕様の v1_config_yaml class として slo
+        .yaml schema 検証。
+
+  ── 層 C : chaos test（Litmus）で burn-rate alert fire を検証
+      - Litmus（02 OSS）で各 class に対応する chaos experiment を
+        実装：
+            v1_request_availability  → pod_kill / 5xx_inject
+            v1_request_latency_p99   → network_latency_inject
+            v1_event_freshness       → kafka_partition_pause
+            v1_workflow_completion   → temporal_worker_kill
+            v1_data_durability       → outbox_relay_lag_inject
+                                        + reconciliation hash mismatch inject
+      - 各 chaos が SLO 違反を再現し、対応 alert が時間内に fire
+        することを CI で property test として検証。
+
+  ── 層 D : runtime（Prometheus + alertmanager + PagerDuty / Slack）
+      - Prometheus が recording rule を 30s scrape interval で評価。
+      - alertmanager が grouping / inhibition / silence を適用。
+      - 通知先は class.alert_severity に従い PagerDuty（page_immediate）
+        / business hours rotation（page_business_hours）/ ticket
+        sink（ticket_only）に振り分け。
+      - 通知 receiver の bootstrap は yaml 由来（receivers.yaml が
+        v1_config_yaml class）。
+
+  ── 層 E : error budget の物理 freeze（Kyverno admission gate）
+      - 各 service の error budget が classes.yaml 定義の閾値以下
+        になると、Kyverno admission policy が当該 service の
+        Deployment / Argo Rollout CR を 4xx で reject。
+      - Kyverno が Prometheus remote query で budget を取得する
+        custom validate hook。query 失敗時は安全側（deploy 拒否）
+        に倒す。
+      - freeze 解除条件：budget が回復閾値（例：50% 回復）に達する
+        か、運用 override（platform_admin の明示 override）。
+      - v1_data_durability は any_loss で immediate freeze、解除
+        は root cause fix を必須とする post-mortem 完了 CR に紐付
+        く（手動 unfreeze）。
+      - 本層は 「27_信頼性運用準備」の SLO 文章を物理 enforcement
+        に転写したもの。最終 safety net として deploy pipeline 上
+        で機能する。
+
+■ error budget freeze の admission policy（特殊機構）
+  - 機構：
+        ─ Kyverno ClusterPolicy `error-budget-freeze`
+            apiVersion: kyverno.io/v1
+            kind: ClusterPolicy
+            metadata: { name: error-budget-freeze }
+            spec:
+              validationFailureAction: Enforce
+              rules:
+                - name: block-rollout-when-budget-exhausted
+                  match:
+                    resources:
+                      kinds: [Deployment, Rollout]
+                  context:
+                    - name: budget
+                      apiCall:
+                        urlPath: ".../prometheus_query?slo_class=...&service=..."
+                        jmesPath: "data.budget_remaining"
+                  validate:
+                    deny:
+                      conditions:
+                        any:
+                          - key: "{{ budget }}"
+                            operator: LessThan
+                            value: 0.1   # 10% 残以下で deploy 拒否
+
+  - 各 SLO instance に対し budget_remaining recording rule が build
+    artifact として存在し、Kyverno が同 query を呼ぶ。
+  - 例外：emergency override（platform_admin の Kubernetes
+    annotation `tier1.slo.override_freeze=true`）は deploy 通過する
+    が、09 audit signal に強制 emit + 本仕様の v1_data_durability
+    を直接 freeze 候補に追加する（override 自体が durability 違反
+    として扱われる事故防止）。
+
+■ Capability Negotiation との関係
+  - 03 / 10 / 11 / 12 と並ぶ chosen_slo_instrument を起動時に決める：
+      1. 全 slo_class C を取得。
+      2. lock.yaml で C を supports に含む instrument 集合 I を抽出。
+      3. constraints 節（Prometheus retention 等）を満たさない
+         instrument を I から除外。
+      4. サーバ側で定義された優先順位でソートして chosen_slo_
+         instrument を返却。
+  - lock.yaml は build artifact、deploy 中に動的に書き換わらない。
+
+■ 既存軸との接続関係
+  - 07_Bidi適合仕様：
+      - 07 class.max_msg_lag_ms と本仕様 v1_request_latency_p99 /
+        v1_event_freshness の threshold_ms の整合を CI 必須化
+        （cross-spec consistency）。07 の slow_consumer_backpressure
+        scenario と本仕様の chaos_injection_validates_alert は同型
+        signal を扱う。
+  - 08_移行Pair適合仕様：
+      - L1+ pair 移行発動 trigger の一つとして、現在 primary OSS
+        の SLO 違反履歴（30 日 burn 率 / 365 日 freeze 累積）を
+        14_OSSライフサイクル適合仕様に渡す。
+  - 09_観測適合仕様：
+      - 本仕様の SLI 計測元 metric は 09 の signal × dimension_layer
+        を消費。redaction.yaml で tenant_id 等 dimension が drop
+        されないことを CI 必須化（slo recording rule で必要）。
+  - 10_認証適合仕様：
+      - 認証イベントの error budget は 09 audit signal の sub-class
+        `auth.token_validation` の failure rate を SLI 化（v1_request
+        _availability の特殊 instance）。step_up_required=always な
+        v1_emergency_step_up は SLO target を別 instance 値で持つ。
+  - 11_鍵管理適合仕様：
+      - HSM 不可達時の signing 拒否は v1_request_availability の SLI
+        として記録、v1_data_durability にも事故 signal として連動。
+        rotation_under_traffic scenario は SLO 違反を 0 で通過する
+        ことを property 検証。
+  - 12_スキーマ進化適合仕様：
+      - 本仕様の SLO yaml は v1_config_yaml class、recording rule /
+        alert rule yaml は v1_config_yaml class（build artifact）と
+        して 12 の codegen hermeticity invariant の対象。
+  - 32_テナント分離適合仕様：
+      - tenant_label_required: true により全 recording rule に
+        tenant_id label を保持。32 の app.tenant_id GUC と同一の
+        identifier。tenant 別 SLO 違反は 32 isolation context に
+        紐付く。
+      - v1_data_durability は 32 atomic 三表書込の P1〜P4 property
+        test と同型 signal を消費する。
+
+■ Buf custom lint と各 toolchain の責務（縮約）
+  - SLO yaml plugin の責務：
+      1. tier2/<service>/slo.yaml に書かれた slo_class が classes
+         .yaml の keys に存在すること。
+      2. instance_attributes_required が宣言された class について、
+         instance に必要属性（threshold_ms 等）が存在すること。
+      3. tenant_label_required: true な class について、対象 metric
+         が tenant_id label を持つことを 09 metric registry と照合。
+      4. SLO instance の service 名が 12 aggregate_registry に登録
+         された aggregate_qualified_name と紐付くこと。
+
+  - Prometheus rules generator の責務：
+      1. classes.yaml の recording_rule_template_id を解決し、
+         tier1/slo/recording_rules.gen.yaml を生成。
+      2. tier1/slo/alerts.gen.yaml を同様に生成。
+      3. 手書き diff があれば CI fail。
+
+  - Litmus chaos plugin の責務：
+      1. classes.yaml の各 class に対応する chaos experiment が
+         tier1/slo/chaos.gen.yaml に存在すること。
+      2. CI 上で chaos を実行し、対応 alert が fire することを property
+         test として記録。
+
+  - Kyverno admission policy generator の責務：
+      1. error-budget-freeze policy を classes.yaml + instruments
+         .lock.yaml から生成。
+      2. 生成 policy と git 上の policy の差分を CI 検査。
+      3. emergency override annotation 経路の audit signal emit を
+         policy 内に必ず含むこと。
+
+■ CI 不変条件（3 ファイル + 5 層の関係性検査）
+  - 違反は merge 不可。
+      整合 1 : classes.yaml の全 class が scenarios.yaml の matrix
+               条件で少なくとも 1 scenario によりカバーされる。
+      整合 2 : scenarios.yaml の全 assertion id が、それを必要とする
+               全 class × 全 instrument × 全対応言語で実装されて
+               いる。
+      整合 3 : instruments.lock.yaml で claim される class が classes
+               .yaml に存在する（dangling reference 検出）。
+      整合 4 : classes.yaml の全 class がいずれかの instrument から
+               supports される（unreachable class 検出）。
+      整合 5 : instruments.lock.yaml は手書き禁止のため、build script
+               が生成した内容と git 上の内容が完全一致する。
+      整合 6 : recording_rules.gen.yaml / alerts.gen.yaml / chaos
+               .gen.yaml / kyverno_policies.gen.yaml が全て build
+               artifact として生成され、手書き drift が無い。
+      整合 7 : tenant_label_required: true な class について、対応
+               metric が 09 redaction.yaml で tenant_id を drop して
+               いない（cross-spec consistency）。
+      整合 8 : 07 の class.max_msg_lag_ms と v1_request_latency_p99
+               / v1_event_freshness の threshold_ms が整合（07
+               v1_alert=200ms → SLO threshold_ms=200ms 等）。
+      整合 9 : Litmus chaos が CI で全 class に対し fire し、対応
+               alert が時間内に通知される（chaos_injection_validates
+               _alert の全 cell green）。
+      整合 10: error_budget_freeze の Kyverno policy が全 class を
+               カバーし、emergency override 時の audit signal emit
+               を含む。
+      整合 11: SLO instance の service 名が 12 aggregate_registry の
+               aggregate_qualified_name と紐付く（孤立 SLO 検出）。
+      整合 12: v1_data_durability の signal_sources が 32 / 11 / 09
+               の事故 signal と接続されている（cross-axis 連結）。
+      整合 13: window 境界条件（leap year / DST / month boundary）
+               の wc_* assertion が全 cell green を返す。
+
+■ 製造業 pack stress test（v1 の正当性証跡）
+  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+
+      # | シナリオ                                | class                       | 主要検証ポイント
+      --+-----------------------------------------+-----------------------------+----------------------------------------------------
+      1 | 設備リモート操作 RPC の latency SLO     | v1_request_latency_p99      | 200ms (07 v1_alert) / fast 1h burn fire
+      2 | 受注 API availability                   | v1_request_availability     | 99.9% / 30d、tenant_id label 保持
+      3 | 品質検査結果配信の freshness            | v1_event_freshness          | p95<5s (07 v1_event_feed) / kafka_pause chaos
+      4 | 受注処理 saga の completion             | v1_workflow_completion      | 99.5% / 30d、Temporal worker kill chaos
+      5 | tenant data durability (32 atomic)      | v1_data_durability          | hash mismatch / outbox lag → immediate freeze
+      6 | 倉庫端末 PWA loading availability       | v1_request_availability     | 99.0% / 7d (tier3 加味で別 target instance)
+      7 | error budget 枯渇による deploy 拒否     | (cross-class)               | Kyverno admission が Rollout reject、override audit
+      8 | step_up_required=always の v1_emergency | v1_request_availability     | 認証 sub-class、別 budget instance、09 audit と相関
+                                                  | (sub-class 認証経路)        |
+
+  - stress test は Testcontainers で Prometheus + alertmanager +
+    Litmus + Kyverno + Argo Rollouts + tier2 sample service を立ち
+    上げ、8 シナリオを property test として実装する。新業務 SLO
+    pattern が 5 class のいずれにも収まらないと判明した時点で、本
+    仕様は v2 候補として class 追加検討に入る。
+
+■ v2 拡張ルール
+  - 新 class の追加は purely additive：v1 class はそのまま残し、v2
+    で新規 class（例：v2_capacity_saturation、v2_cold_start_latency、
+    v2_query_correctness）を追加する。
+  - 既存 class の dimension 値変更は破壊的変更（major version up）。
+    例えば v1_request_availability の target を 99.95% に上げる場合、
+    新 class v2_request_availability_95 を切り、移行 toolchain を
+    tier1 が提供する。
+  - 命名は vN_<sli_kind>_<variant?> 形式。
+  - dimension override 禁止の規律は v1 → v2 跨ぎでも維持する。
+  - error budget freeze の閾値変更は実装 detail（kyverno policy）の
+    minor version up で可、ただし classes.yaml の宣言と乖離させない。
+
+■ 長期収斂への作用
+  - 本仕様の 3 ファイルに対し、新業界 pack / 新 SLO instance の追加
+    は purely additive。tier2 / tier3 アプリは slo.yaml 1 行追加で
+    SLO 計測 / alert / dashboard / chaos / freeze gate が機械的に
+    降りる。
+  - L1+「単一 OSS 深耕 + 移行コミットメント」の哲学を SLO 軸に
+    転写したもの（単一 SLO 規律 + instrument backend 移行コミット
+    メント）。Prometheus / alertmanager / Perses / Litmus / Kyverno
+    が L1+ primary、各々の lifecycle event は 14_OSSライフサイクル
+    適合仕様で管理。
+  - error budget freeze は「至高路線」と整合：1.0.0 完璧リリース後
+    の運用において、SLO を物理的に守る gate として deploy pipeline
+    に常駐し、文章運用に頼らない構造を持つ。

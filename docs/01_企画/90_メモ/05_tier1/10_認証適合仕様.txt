@@ -1,0 +1,678 @@
+============================================================
+tier1 認証適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「05_提供機能カテゴリ」Authentication / Authorization、「02_採用OSS
+    一覧」Keycloak、「03_Server系」Backend-for-Library / Capability
+    Negotiation、「04_Library」Companion 認証コンテキスト伝播、「06_tier2
+    /22_権限モデル」「06_tier2/28_セキュリティアーキテクチャ」「07_tier3
+    /25_認証認可マルチテナント」が散在的に宣言する subject identity /
+    token lifetime / refresh / step-up / federation / impersonation を、
+    機械可読な単一の真として一箇所に固定する仕様書。
+  - 「05_tier1/07_Bidi適合仕様」が transport 軸、「06_tier2/32_テナント
+    分離適合仕様」が data 軸の単一の真であるのと同型の枠組みを auth 軸
+    に転写したもの。dimension override 禁止 / dead spec 殺し / build
+    artifact 化 / 5 層 defense-in-depth の規律はそのまま継承する。
+  - tier1 が物理的に唯一の認証 facade として振る舞う。tier2 / tier3 /
+    Companion から「生 access_token 文字列」を扱う経路は提供しない。
+
+■ 設計原則
+  - auth_class は bundle である。
+      proto に書く tier1.auth.* option のうち、auth_class 1 つの値が
+      他 5 dimension（subject_kind / token_type / lifetime_class /
+      refresh_policy / step_up_required）を一意に導出する。RPC 作者が
+      dimension を個別に override する経路は持たない。
+  - dimension override は禁止する。
+      「v1_workload_jwt のうち lifetime だけ伸ばしたい」要望は新 class
+      を切ることで表現する。class 数の爆発は意味論の規律として受け入
+      れる。実務上、業務 subject の意味論パターンは数えられる粒度に
+      収束する（本仕様 v1 では 5）。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に登録された
+      全 assertion id、idp_capabilities.lock.yaml に列挙された全 IdP
+      adapter は、いずれも参照されなくなった時点で CI fail とする。
+  - delegation / impersonation / purpose は AuthContext attribute と
+    する。
+      auth_class は subject の本質（誰が・どんな種別の token で）を
+      決め、delegation_chain や purpose は session attribute として
+      32_テナント分離適合仕様 の session_context と直交させる。両者
+      の組合せ表は Library 内部で機械的に評価される（tier2/22 ABAC
+      policy 入力）。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（AuthContext 必須引数化、生 token 不可視）
+      層 B : lint / 公開 API snapshot
+      層 C : cross-class integration test
+      層 D : runtime（Envoy + Keycloak + DPoP / mTLS）
+      層 E : token validation 全数監査（→ 09 audit signal）
+      任意の単層が破れても他層が必ず止める。Envoy + Keycloak の
+      runtime 検証は最終 safety net。
+
+■ v1 auth_class セット（5 class）
+  - proto に書ける auth_class は次の 5 値のみ。Buf custom lint で
+    classes.yaml の keys と照合する。
+
+      class                  | subject_kind      | token_type        | lifetime    | refresh         | step_up
+      -----------------------+-------------------+-------------------+-------------+-----------------+-----------------
+      v1_human_session       | human             | dpop_bound_jwt    | medium(<1h) | rotating        | on_high_risk
+      v1_workload_jwt        | workload          | jwt_short         | short(<5m)  | not_applicable  | never
+      v1_device_attest       | device            | jwt_attested      | long(<24h)  | one_shot        | on_first_use
+      v1_federated_exchange  | external_subject  | exchange_jwt      | short(<5m)  | not_applicable  | never
+      v1_emergency_step_up   | human             | dpop_bound_jwt    | very_short  | not_applicable  | always
+                             |                   |                   |   (<10m)    |                 |
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_human_session
+          - 業務担当者のブラウザ / SPA セッション。OIDC code flow +
+            DPoP 鍵束縛（RFC 9449）。
+          - rotating refresh：refresh_token は使用ごとに rotate、
+            replay 検出で session 全消滅。
+          - step_up：高リスク action 直前に WebAuthn / FIDO2 / TOTP
+            で再認証、step_up_proven_at の有効期間内のみ高リスク
+            access が通る。
+          - 典型：tier3 業務 SPA、運用 console、tier2 admin UI。
+
+      - v1_workload_jwt
+          - K8s ServiceAccount projection or SPIFFE/SPIRE 由来 SVID。
+            短 TTL の JWT（or X.509 SVID 内 JWT-SVID）。
+          - 自動 renew は workload runtime（kubelet projected
+            volume / spire-agent）が担う。Library は提示時に
+            verify するのみ。
+          - 典型：tier2 Service 間 RPC、tier1 Sidecar、Outbox relay、
+            CI/CD deploy 操作。
+
+      - v1_device_attest
+          - 工場端末・KIOSK・現場ハンドヘルド。TPM / 専用 HSM /
+            WebAuthn platform authenticator による device cert を
+            根拠に、長 TTL token を 1 度発行（one_shot refresh）。
+          - on_first_use step_up：初回登録時のみ管理者承認 + device
+            attestation chain 検証。以降は token 期限まで通過。
+          - 期限切れは再 attestation を要求（自動 refresh 不可）。
+          - 典型：ライン端末、SCADA HMI、24h 連続稼働の据置端末。
+
+      - v1_federated_exchange
+          - 親会社 IdP / 取引先 IdP / 別 SaaS から token exchange
+            （RFC 8693）で audience-restricted な短命 JWT を取得。
+          - audience claim によりアクセス可能な resource server を
+            機械的に絞る。
+          - 典型：親会社共通 ID 基盤、SAML 連携の gateway 経由、
+            B2B 取引先パートナーアクセス。
+
+      - v1_emergency_step_up
+          - 業務停滞 / 障害対応 / コンプライアンス監査の break-glass。
+            通常 session を持つ admin が emergency procedure を発動
+            して取得する very_short の DPoP-bound JWT。
+          - always step_up：取得時に必ず WebAuthn 等で再認証 +
+            理由文記入。発動は audit signal に強制 emit。
+          - lifetime <10 分、refresh 不可、自動 revoke。
+          - purpose='emergency' を必ず claim に含み、32 の
+            app.purpose と直結。pii_segregated の RLS / pgaudit
+            挙動が変化する。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+    の stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - subject_kind は token validation の鍵検索 path を分ける。human /
+    workload / device / external_subject はそれぞれ異なる JWKS / SVID
+    bundle / device cert chain / federation issuer と紐付くため、
+    dispatcher として最上位に置く。
+  - token_type は wire 上の検証アルゴリズムを決める。
+      - dpop_bound_jwt：proof-of-possession（DPoP nonce + jkt）必須。
+      - jwt_short：通常 JWT、short TTL でリスク減。
+      - jwt_attested：attestation_level claim 必須、device cert chain
+        verify。
+      - exchange_jwt：act / may_act claim、audience-restricted。
+  - lifetime_class は revocation 戦略を決める。very_short / short は
+    revocation list を持たず期限切れに任せる、medium / long は
+    Keycloak revocation API + JWKS rotation で revoke。
+  - refresh_policy = rotating は refresh_token 再使用を replay 攻撃と
+    みなして session 全削除する OIDC 推奨パターン。one_shot は
+    device 初期登録時のみ、not_applicable は workload / federated /
+    emergency。
+  - step_up_required は high-risk action 前の再認証要求の発動条件。
+    never / on_first_use / on_high_risk / always の 4 段階で、業務側
+    が混乱なく選べる粒度に収める。
+
+■ delivery dimension（impersonation / delegation）を独立次元にしない理由
+  - impersonation_policy / delegation_chain は本来 dimension たり
+    得るが、5 class それぞれに自然な値が 1 つ決まる：
+        v1_human_session       → impersonation forbidden
+        v1_workload_jwt        → impersonation forbidden（workload は人を装わない）
+        v1_device_attest       → impersonation forbidden
+        v1_federated_exchange  → impersonation scoped（act / may_act claim）
+        v1_emergency_step_up   → impersonation forbidden（自分名義で実行）
+  - delegation（admin が user を代行する Delegation：tier2/22）は
+    auth_class とは直交し、AuthContext.delegation_chain attribute
+    として表現する。32 の app.delegation_chain と同期。
+  - impersonation を class dimension に昇格する余地は残す（v2 で
+    需要が出た場合の major version up）。
+
+■ AuthContext スキーマ（32 session_context の拡張・同型）
+  - tier1 Library が transaction 開始時に SET LOCAL する GUC を、
+    32 の session_context に対し追加宣言する。Repository abstraction
+    の transaction begin path で必ず設定され、業務コードからは設定
+    経路を持たない。
+
+      app.auth_class            : text       # v1_human_session 等
+      app.subject_id            : text       # canonical subject (Keycloak sub)
+      app.subject_kind          : text       # human|workload|device|external_subject
+      app.token_id              : text       # jti（revocation tracking）
+      app.session_id            : text       # human/device の session 識別
+      app.audience              : text       # token aud（federated に必須）
+      app.scopes                : text[]     # OAuth scopes
+      app.dpop_jkt              : text       # DPoP key thumbprint（dpop_bound_jwt のみ）
+      app.attestation_level     : text       # device attestation level（jwt_attested のみ）
+      app.step_up_proven_at     : timestamptz # 最終 step_up challenge 時刻
+
+  - 32 で既に存在する app.tenant_id / app.actor_id / app.purpose /
+    app.delegation_chain と組合せて、AuthContext + TenantContext は
+    一つの session_context として PostgreSQL transaction に提示する。
+  - 設定漏れの transaction で auth-bound table を SELECT すると、
+    32 の RLS により 0 行（fail-safe default）。app.auth_class が
+    未設定の transaction で `pii_segregated` を SELECT する経路は
+    32 の RLS が物理的に塞ぐ。
+  - app.auth_class の値は 32 の app.purpose 評価と組み合わさる：
+        v1_emergency_step_up は purpose='emergency' を必ず取り、
+        v1_federated_exchange は purpose='business_op' のみ許容、
+        v1_device_attest は purpose='business_op' のみ許容、
+        v1_workload_jwt は purpose='business_op' | 'migration'、
+        v1_human_session は purpose='business_op' | 'support' |
+                            'export' | 'migration' | 'emergency'
+        （emergency 化は v1_emergency_step_up に格上げ取得が必須）。
+    上の制約は table_classes.yaml と同型の純粋関数テーブルとして
+    classes.yaml の allowed_purpose 節で機械化する。
+
+■ spec の 3 ファイル構成（単一の真）
+
+  ── tier1/auth/classes.yaml
+      - class bundle 定義。auth_class 名 → 5 dimension + 不変条件 +
+        allowed_purpose の純粋関数テーブル。
+      - スケッチ：
+            classes:
+              v1_human_session:
+                subject_kind: human
+                token_type: dpop_bound_jwt
+                lifetime_class:
+                  bucket: medium
+                  ttl_seconds_max: 3600
+                refresh_policy: rotating
+                step_up_required: on_high_risk
+                impersonation_policy: forbidden
+                allowed_purpose:
+                  - business_op
+                  - support
+                  - export
+                  - migration
+                step_up:
+                  factors_accepted: [webauthn_platform, webauthn_roaming, totp]
+                  proof_validity_seconds: 600
+                  required_for_action_classes: [high_risk]   # tier2/22 連動
+                claims_required:
+                  - sub
+                  - sid
+                  - jti
+                  - cnf.jkt
+                  - acr
+              v1_workload_jwt:
+                subject_kind: workload
+                token_type: jwt_short
+                lifetime_class:
+                  bucket: short
+                  ttl_seconds_max: 300
+                refresh_policy: not_applicable
+                step_up_required: never
+                impersonation_policy: forbidden
+                allowed_purpose: [business_op, migration]
+                claims_required: [sub, jti, aud, exp, iat]
+                workload_identity_sources:
+                  - kubernetes_serviceaccount_projection
+                  - spiffe_jwt_svid
+              v1_device_attest:    { ... }
+              v1_federated_exchange:
+                subject_kind: external_subject
+                token_type: exchange_jwt
+                lifetime_class:
+                  bucket: short
+                  ttl_seconds_max: 300
+                refresh_policy: not_applicable
+                step_up_required: never
+                impersonation_policy: scoped
+                allowed_purpose: [business_op]
+                claims_required: [sub, aud, act, jti, exp, iat]
+                token_exchange_grant: rfc8693
+              v1_emergency_step_up:
+                subject_kind: human
+                token_type: dpop_bound_jwt
+                lifetime_class:
+                  bucket: very_short
+                  ttl_seconds_max: 600
+                refresh_policy: not_applicable
+                step_up_required: always
+                impersonation_policy: forbidden
+                allowed_purpose: [emergency]
+                claims_required: [sub, sid, jti, cnf.jkt, acr, purpose, reason]
+                requires_audit_signal_emit: true
+                auto_revoke_on_session_end: true
+
+  ── tier1/auth/scenarios.yaml
+      - scenario × auth_class / dimension 値 → assertion id のマトリクス。
+      - assertion id は各言語 / 各 IdP adapter の test runner が
+        attribute / decorator で claim する索引。
+      - スケッチ：
+            scenarios:
+              token_validation:
+                description: "発行済み token の検証（署名・aud・exp・jkt）"
+                matrix:
+                  - when: { token_type: dpop_bound_jwt }
+                    assertions:
+                      - tv_signature_valid
+                      - tv_aud_matches
+                      - tv_exp_in_window
+                      - tv_dpop_proof_present
+                      - tv_dpop_jkt_matches_cnf
+                  - when: { token_type: jwt_attested }
+                    assertions:
+                      - tv_signature_valid
+                      - tv_attestation_chain_verified
+                      - tv_attestation_level_present
+                  - when: { token_type: exchange_jwt }
+                    assertions:
+                      - tv_signature_valid
+                      - tv_act_claim_present
+                      - tv_aud_audience_restricted
+
+              refresh_rotation:
+                description: "refresh_token の rotation と replay 検出"
+                matrix:
+                  - when: { refresh_policy: rotating }
+                    assertions:
+                      - rr_old_refresh_invalidated
+                      - rr_replay_detected_destroys_session
+                  - when: { refresh_policy: one_shot }
+                    assertions:
+                      - rr_first_use_succeeds
+                      - rr_second_use_rejected
+                  - when: { refresh_policy: not_applicable }
+                    assertions:
+                      - rr_no_refresh_endpoint_exposed
+
+              step_up_challenge:
+                description: "高リスク action 前の step-up 要求"
+                matrix:
+                  - when: { step_up_required: on_high_risk }
+                    assertions:
+                      - su_challenge_when_proven_at_stale
+                      - su_passthrough_within_validity_window
+                      - su_factor_acr_recorded
+                  - when: { step_up_required: always }
+                    assertions:
+                      - su_challenge_required_every_request
+                  - when: { step_up_required: never }
+                    assertions:
+                      - su_no_challenge_emitted
+
+              federated_token_exchange:
+                description: "外部 IdP token を audience-restricted exchange"
+                matrix:
+                  - when: { token_type: exchange_jwt }
+                    assertions:
+                      - fe_external_issuer_trusted
+                      - fe_aud_restricted_to_target_rs
+                      - fe_act_chain_recorded
+
+              device_attestation:
+                description: "device 初回登録時の attestation chain 検証"
+                matrix:
+                  - when: { token_type: jwt_attested }
+                    assertions:
+                      - da_chain_to_known_root
+                      - da_attestation_level_in_allowlist
+                      - da_one_shot_refresh_consumed
+
+              emergency_break_glass:
+                description: "emergency 取得から audit signal emit まで"
+                matrix:
+                  - when: { class: v1_emergency_step_up }
+                    assertions:
+                      - eb_reason_field_required
+                      - eb_audit_signal_emitted_on_issue
+                      - eb_auto_revoke_on_session_end
+                      - eb_purpose_propagated_to_app_purpose
+
+              cross_class_action:
+                description: "auth_class 不一致 RPC 呼び出しの拒否"
+                matrix:
+                  - when: { rpc_required: v1_human_session, presented: v1_workload_jwt }
+                    assertions:
+                      - cc_authorization_denied
+                      - cc_no_partial_effect
+
+              token_revocation:
+                description: "token revocation の伝播"
+                matrix:
+                  - when: { lifetime_class: { in: [medium, long] } }
+                    assertions:
+                      - tr_revoke_api_invalidates_within_propagation_window
+                      - tr_jwks_rotation_invalidates_pre_rotation_signatures
+
+              context_propagation:
+                description: "Library / Companion 経路で AuthContext が無損失伝播"
+                matrix:
+                  - when: { transport: any }
+                    assertions:
+                      - cp_subject_id_preserved
+                      - cp_jkt_preserved_with_dpop
+                      - cp_delegation_chain_preserved
+                      - cp_purpose_preserved
+
+      - corpus 全体は 9 scenario を最小コーパスとする。
+      - 各 assertion id は IdP adapter（Keycloak v1）/ Companion 言語
+        (Rust / C# / TS) の test runner で実装。
+
+  ── tier1/auth/idp_capabilities.lock.yaml（build artifact）
+      - 各 IdP adapter crate の static 自己宣言を tier1 build script
+        が集約して生成する build artifact。手書き禁止。
+      - スケッチ：
+            # AUTO-GENERATED. DO NOT EDIT.
+            idp_adapters:
+              keycloak_v1:
+                supports:
+                  - v1_human_session
+                  - v1_workload_jwt
+                  - v1_device_attest
+                  - v1_federated_exchange
+                  - v1_emergency_step_up
+                features:
+                  oidc_discovery: true
+                  dpop_rfc9449: true
+                  token_exchange_rfc8693: true
+                  webauthn: true
+                  totp: true
+                  jwks_rotation_interval_max_seconds: 86400
+                constraints:
+                  v1_device_attest:
+                    attestation_root_bundle: required
+                  v1_federated_exchange:
+                    external_issuers_allowlist: required
+              spire_jwt_svid_v1:
+                supports: [v1_workload_jwt]
+                features:
+                  jwt_svid: true
+                  attestation_node: true
+
+      - constraints 節は physical な substrate 制約を IdP adapter が
+        静的に宣言するための領域。Capability Negotiation は本制約を
+        起動時に読み込み、宣言違反する fleet では当該 IdP × class を
+        不採用とする（例：attestation root bundle が無い fleet では
+        v1_device_attest を採用しない）。
+
+■ 5 層 defense-in-depth
+
+  ── 層 A : compile 時（AuthContext 必須引数化）
+      - tier1 Library の Repository<T> / RpcHandler trait は
+        &AuthContext を必須引数として受ける。生 access_token / 生
+        refresh_token を扱う型を一切公開しない。
+      - AuthContext は newtype で wrap され、Library 内部の
+        TokenValidator のみが構築できる。tier2 / tier3 / Companion
+        からは const fn / Builder で構築する経路を持たない。
+      - 32 の TenantContext と AuthContext は SessionContext に合成
+        され、transaction begin で SET LOCAL される GUC として
+        Repository abstraction の transaction path にのみ流れる。
+
+  ── 層 B : lint / 公開 API snapshot
+      - 「16_強制機構」層 5 と整合。Library / Companion 公開 API に
+        String 型 token / cookie / header 引数が現れたら CI fail。
+      - cargo public-api / PublicApiAnalyzers / api-extractor の
+        snapshot に対し、subject_id / token_id を引数で受ける関数
+        が現れたら fail（tenant_id 漏洩防止と同型）。
+      - Buf custom lint：proto に `tier1.auth.required_class` option
+        が無い RPC を merge fail（default 値は許容しない）。
+
+  ── 層 C : cross-class integration test
+      - Testcontainers で Keycloak v1 を立ち上げ、5 class の token
+        を発行 → 各 RPC handler が required_class と一致しない
+        token に対し AuthorizationDenied を返すことを property test
+        で検証。
+      - federated_exchange の audience-restricted 越境（aud=A の
+        token で aud=B の RS に PUT）は AuthorizationDenied。
+      - delegation_chain による越権試行（chain に含まれない subject
+        で代行）は AuthorizationDenied。
+
+  ── 層 D : runtime（Envoy + Keycloak + DPoP / mTLS）
+      - Envoy ingress に Keycloak の OIDC discovery / JWKS / DPoP
+        nonce 検証 filter を必須配置。filter chain の順序は 03 /
+        16 と整合：tenant_extract → token_validate → dpop_proof →
+        scope_check → step_up_check → biz_handler。
+      - claim 不在 / 検証失敗の request は biz_handler に到達しない
+        ことを runtime で物理的に塞ぐ。
+      - workload 経路は SPIFFE/SPIRE の SVID を mTLS で検証する。
+        Library が Envoy filter から AuthContext を Header 経由で
+        受け取り、Library 内 TokenValidator が再検証（depth-in-depth）。
+      - 層 A〜C のいずれもが破れた最悪シナリオでも、層 D が必ず
+        止める。これが本仕様の最終 safety net（32 RLS と同型）。
+
+  ── 層 E : token validation 全数監査（→ 09 audit signal）
+      - 全 token validation 結果（success / failure 双方）を 09
+        audit signal の sub-class `auth.token_validation` として
+        ClickHouse に bulk insert。属性は OpenTelemetry SemConv
+        tier1 拡張（「16_強制機構」層 8）が共通の真として担保。
+      - 失敗の理由（signature_invalid / aud_mismatch / exp_expired
+        / dpop_proof_missing / step_up_required 等）を構造化属性
+        で保持し、SLI（v1_request_availability）の SLO 計測経路と
+        分離して認証イベント独自の error budget を 13_SLO 適合
+        仕様で管理する。
+      - emergency_break_glass の発行は audit signal に強制 emit
+        する（claims_required.requires_audit_signal_emit: true）。
+
+■ token validation / step-up / refresh 機構
+
+  - validation flow（Envoy + Library 二重検証）：
+      1. Envoy ingress filter で OIDC discovery JWKS を fetch（cache
+         max-age = 5 min）。署名・aud・exp・iss を検証。
+      2. token_type = dpop_bound_jwt なら DPoP proof header を検証
+         （RFC 9449：jkt = SHA-256(JWK)、nonce 一致、htu / htm 一致、
+         iat 範囲、jti 重複防止 cache）。
+      3. 検証通過した claim を内部 Header（X-Tier1-Auth-Claims）に
+         protobuf エンコードして biz handler の前段 Library で
+         AuthContext に再構築。Library 側 TokenValidator が同 claim
+         を再検証（depth-in-depth、Envoy bypass 攻撃に対する保険）。
+      4. transaction begin で SessionContext = TenantContext +
+         AuthContext を SET LOCAL（32 の session_context 同期）。
+
+  - refresh flow（v1_human_session のみ）：
+      - rotating refresh：Keycloak refresh endpoint に refresh_token
+        を提示するたびに新 refresh_token を発行し旧を invalidate。
+      - replay 検出：Keycloak が DB に refresh_token jti の使用済み
+        bitmap を持つ。再使用検出で当該 session_id の全 token を
+        revoke。
+      - rotating 中の network race（client が新 RT を保存できない）
+        は client 側 single-flight + jitter で吸収。
+
+  - step-up flow（v1_human_session / v1_emergency_step_up）：
+      - tier2/22 ABAC policy が action を high_risk に分類した場合、
+        step_up_proven_at + step_up.proof_validity_seconds を check。
+      - 期限切れなら 401 に WWW-Authenticate: AuthMethod=step-up,
+        challenge_url=... を返す（API 経路）or 302 redirect（web 経路）。
+      - WebAuthn / FIDO2 / TOTP のいずれかで再認証し、Keycloak が
+        新 token を発行（acr claim に step-up factor を反映）。
+
+  - emergency flow（v1_emergency_step_up 取得）：
+      - 通常 v1_human_session を持つ admin が break-glass UI で
+        理由文を記入 + 強い step-up（WebAuthn 必須）を行うと、
+        Keycloak が purpose='emergency' / lifetime <10 分 / refresh
+        不可の DPoP-bound JWT を発行。
+      - 09 audit signal に強制 emit。
+      - session 終了で auto revoke。
+
+  - federation flow：
+      - 外部 IdP（親会社 / B2B）の OIDC issuer を allowlist 登録。
+      - 外部 token を提示すると Keycloak が token_exchange（RFC 8693）
+        で audience-restricted exchange_jwt を発行。act / may_act
+        claim に元 subject を残す。
+      - aud 値は target resource server の URI に固定。
+
+■ Buf custom lint と Keycloak admin 経路の責務（縮約）
+  - Buf custom lint の責務：
+      1. proto に書かれた tier1.auth.required_class が classes.yaml
+         の keys に存在すること。
+      2. proto に他 tier1.auth.* option が併記されている場合、その
+         値が classes.yaml の bundle 値と一致すること（不一致は
+         fail）。
+      3. RPC で tier1.auth.required_class option が欠落していたら
+         fail（default 値は許容しない、明示宣言を強制）。
+      4. 廃止予定 class（v2 で deprecated）の使用に warn。
+      5. external proto（03_Server系 二層化）に v1_emergency_step_up
+         を required_class として宣言する RPC が存在しないこと
+         （emergency は internal 操作のみ、wire 上に出さない）。
+
+  - Keycloak admin 経路の責務（terraform / kcadm 由来 yaml の
+    機械化）：
+      1. realm 定義 yaml は build artifact として生成される
+         （tier1/auth/realm.lock.yaml）。手書き diff があれば
+         CI fail。
+      2. 5 class それぞれに対応する Keycloak client / scope /
+         flow / required-action を yaml から生成。
+      3. JWKS rotation 周期は idp_capabilities.lock.yaml の
+         jwks_rotation_interval_max_seconds 内に収まっていること。
+      4. 外部 issuer allowlist は yaml 単一の真として管理し、
+         手動 admin console 操作経由の追加を Kyverno admission
+         policy で物理拒否（KeycloakRealmImport CR の差分検査）。
+
+■ Capability Negotiation との関係
+  - 03_Server系 Capability Negotiation 節の chosen_transport 選択は
+    07 の capabilities.lock.yaml に従うが、本仕様は同型の
+    chosen_idp_adapter 選択を起動時に行う：
+      1. proto の required_auth_class C を取得。
+      2. lock.yaml で C を supports に含む IdP adapter 集合 I を抽出。
+      3. constraints 節で fleet の物理条件（attestation root bundle
+         が deploy 済みか等）を満たさない adapter を I から除外。
+      4. クライアントが Open RPC で宣言した auth_capabilities ∩ I
+         を算出。
+      5. サーバ側で定義された優先順位でソートして chosen_idp_adapter
+         を返却。
+  - lock.yaml は build artifact のため、サーバの起動とともに固定
+    される。deploy 中に動的に書き換わらない。
+  - 32 の session_context 設定パスと本仕様の AuthContext 構築パス
+    は Library 内部で同期される。両者は SessionContext 単一の真
+    として transaction にのみ流入する。
+
+■ 既存軸との接続関係
+  - 07_Bidi適合仕様：
+      - 全 conformance scenario で AuthContext が transport 跨ぎで
+        無損失伝播する（context_propagation scenario）。Companion
+        経路（webhook / sse_paired / long_poll / messaging_bridge）
+        でも auth claim が wire に出ない形（envelope 暗号化 or
+        sidecar 経由）で保持。
+  - 08_移行Pair適合仕様：
+      - Keycloak EoL / fork が L1+ pair_target になる場合、本仕様
+        の 5 class 不変条件を新 IdP backend で再証明する dry_run
+        scenario を 08 に登録。
+  - 09_観測適合仕様：
+      - 層 E の token validation 全数監査が 09 の audit signal sub-
+        class として登録される。redaction.yaml に DPoP jkt は
+        keep、access_token 本体は drop を宣言。
+  - 32_テナント分離適合仕様：
+      - SessionContext は 32 の session_context（app.tenant_id /
+        app.actor_id / app.purpose / app.delegation_chain）に本仕様
+        の app.auth_class / app.subject_kind / app.session_id /
+        app.dpop_jkt / app.attestation_level / app.step_up_proven_at
+        を追加した拡張として、両仕様で同一の machine 表現を共有。
+  - 39_クライアント状態適合仕様：
+      - tenant_switch / actor_switch / logout（39:323-327）で
+        AuthContext 切替が device_bound_key rotation と同 atomic
+        境界に入ることを invariant 化。
+
+■ CI 不変条件（3 ファイル + 5 層の関係性検査）
+  - 違反は merge 不可。
+      整合 1 : classes.yaml の全 class が scenarios.yaml の matrix
+               条件で少なくとも 1 scenario によりカバーされる
+               （dead class 検出）。
+      整合 2 : scenarios.yaml の全 assertion id が、それを必要とする
+               全 class × 全 IdP adapter × 全対応言語で実装されて
+               いる。
+      整合 3 : idp_capabilities.lock.yaml で claim される class が
+               classes.yaml に存在する（dangling reference 検出）。
+      整合 4 : classes.yaml に登録された class のうち、いずれの IdP
+               adapter からも supports されない class が存在しない
+               こと（unreachable class 検出）。
+      整合 5 : proto に required_auth_class フィールドが書かれた全
+               RPC が、いずれかの IdP adapter から到達可能である
+               こと（unreachable RPC 検出）。
+      整合 6 : idp_capabilities.lock.yaml / realm.lock.yaml は手書き
+               禁止のため、build script が生成した内容と git 上の
+               内容が完全一致すること（generation drift 検出）。
+      整合 7 : Library / Companion 公開 API snapshot に String 型
+               token / cookie / header 引数が存在しないこと（公開
+               API snapshot 検査）。
+      整合 8 : cross-class integration test の cell（required_class
+               × presented_class の 5×5 = 25 cell）が全実装されて
+               いる。required==presented の対角線は green、それ
+               以外は AuthorizationDenied を返す。
+      整合 9 : 全 RPC で proto に tier1.auth.required_class option
+               が宣言されている（Buf custom lint）。
+      整合 10: 全 token validation 経路が層 E（audit signal emit）
+               を通過する property（runtime instrumentation 検査）。
+      整合 11: classes.yaml の allowed_purpose が 32 の app.purpose
+               の値域 {business_op, support, export, migration,
+               emergency} の subset であり、purpose 越境組合せが
+               無い（cross-spec consistency）。
+      整合 12: emergency_break_glass scenario の eb_audit_signal_
+               emitted_on_issue が 09 audit signal の sub-class に
+               接続されている（cross-axis 同型確認）。
+
+■ 製造業 pack stress test（v1 の正当性証跡）
+  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+    class が漏れなく機能している証跡として保持する。
+
+      # | シナリオ                                | class                  | 主要検証ポイント
+      --+-----------------------------------------+------------------------+----------------------------------------------------
+      1 | 製造担当者の発注確定 (web SPA)          | v1_human_session       | DPoP 鍵束縛、step_up 高リスク、refresh rotation
+      2 | Outbox relay sidecar の Kafka publish   | v1_workload_jwt        | SPIRE SVID、short TTL、never step_up
+      3 | ライン端末 (KIOSK) 24h 連続稼働         | v1_device_attest       | TPM attestation chain、long TTL、one_shot refresh
+      4 | 親会社 IdP からの取引先パートナー閲覧   | v1_federated_exchange  | RFC 8693 token exchange、audience-restricted、act 残存
+      5 | 緊急時の在庫マスタ強制更新 (admin)      | v1_emergency_step_up   | always step_up、purpose=emergency、09 audit emit
+      6 | CI/CD pipeline の deploy CR 適用        | v1_workload_jwt        | k8s SA projection、purpose=migration
+      7 | 監督者の Delegation で代理発注          | v1_human_session +     | delegation_chain attribute、22 ABAC で被代行者検査
+        |                                         | delegation_chain       |
+      8 | 第三者監査人 (read-only) の audit 閲覧  | v1_federated_exchange  | aud=audit-rs に restrict、scopes=[audit:read]
+                                                  | (scoped impersonation) |   purpose=support、PII redaction (29) と整合
+
+  - stress test は Testcontainers で Keycloak v1 + Envoy + Library
+    + tier3 sample app を立ち上げ、8 シナリオを property test として
+    実装する。新業務 subject pattern が 5 class のいずれにも収まら
+    ないと判明した時点で、本仕様は v2 候補として class 追加検討に
+    入る。
+
+■ v2 拡張ルール
+  - 新 class の追加は purely additive：v1 class はそのまま残し、v2
+    で新規 class（例：v2_passkey_passwordless、v2_zero_trust_continuous_eval、
+    v2_workload_attested_pod）を追加する。
+  - 既存 class の dimension 値変更は破壊的変更（major version up）。
+    例えば v1_human_session の lifetime を 30 分に縮めたい場合、
+    新 class v2_human_session_short を切り、移行 toolchain（08 と
+    同型）を tier1 が成果物として提供する。
+  - 命名は vN_<usage> 形式に固定。N は本仕様のメジャー版数。usage
+    は subject の業務的認識ラベル（human_session / workload_jwt
+    / device_attest / federated_exchange / emergency_step_up 等）。
+  - dimension override 禁止の規律は v1 → v2 跨ぎでも維持する。
+  - impersonation_policy / continuous_evaluation 等の独立次元昇格
+    は v2 以降で検討する。昇格時は既存 class の不変条件を昇格次元
+    の固定値として残し、新 class が昇格次元を可変にする形を取る。
+
+■ 長期収斂への作用
+  - 03_Server系 Proto 二層化、Library 非対応言語の退役、Companion
+    廃止可能性は、いずれも本仕様の 3 ファイル + Keycloak realm.lock
+    に対する purely additive / purely subtractive 変更として進行する：
+      - IdP adapter 退役 = idp_capabilities.lock.yaml から自動的に
+        消える（crate 削除と連動）。
+      - class 退役 = classes.yaml から removal、scenarios.yaml の
+        該当 matrix 行が unreachable 検出により誘導的に整理される。
+      - proto / 業務コードはいずれも無変更で遷移する。
+  - 本仕様は「単一 OSS 深耕 + 移行コミットメント」（04_Library L1+）
+    の哲学を auth 軸に転写したもの（単一 IdP 深耕：Keycloak +
+    SPIRE 連携 + 認証 semantics 深耕 + IdP 移行コミットメント）の
+    具体形である。08_移行Pair適合仕様 における Keycloak の pair_target
+    が確定した時点で、本仕様の 5 class 不変条件を新 IdP backend で
+    再証明する dry_run scenario を 08 に登録する。
