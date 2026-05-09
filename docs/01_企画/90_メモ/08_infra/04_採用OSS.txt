@@ -156,8 +156,11 @@ infra 採用 OSS（infra 層 subset）
     の software template を提供。
 
 ■ 他層所有の OSS（cross 参照）
-  - tier1 観測可能性 SoR：ClickHouse / Jaeger v2 / OpenTelemetry
-    Collector / Prometheus / Apache Superset / Parca / Perses
+  - tier1 観測可能性 SoR：ClickHouse / Jaeger Query + ClickHouse plugin
+    (community, jaegertracing/jaeger-clickhouse) / OpenTelemetry Collector
+    （DaemonSet（per-node gateway）+ Deployment（aggregator with
+    tail_sampling）の 2 段構成、09_観測適合仕様 参照）/ Prometheus /
+    Apache Superset / Parca / Perses
     → 05_tier1/09_観測適合仕様
   - tier2 アプリケーション基盤：Temporal / ZEN Engine / OpenFeature
     / flagd / Apicurio Registry / Buf

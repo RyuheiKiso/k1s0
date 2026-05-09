@@ -122,7 +122,13 @@ tier1 OSS ライフサイクル適合仕様（v1）
             standalone vector engine（Qdrant / Milvus / Weaviate）の
             差が業務ロジックに染み出すため、L1+ 単一深耕（pgvector）+
             移行コミットメント枠に再分類した（04_Library / 05_提供機能
-            カテゴリ参照）。
+            カテゴリ参照）。Vector Search の migration_trigger 発火時
+            response は族外移行を pair_switch_to_target で扱わず、
+            PG ecosystem 内移行（pgvector index 種別 / 距離関数 /
+            別 PG operator）のみ pair_switch_to_target、族外
+            standalone vector engine への移行は `project_spawn`
+            （業務コード再設計プロジェクト発足）として扱う（L1+
+            toolchain 保証範囲外、独立プロジェクト）。
           - 各 member は四半期 conformance test を 04_Library
             l2star_families.yaml の scenarios で green を返す必要
             がある（conformance_drift で trigger）。
@@ -134,14 +140,23 @@ tier1 OSS ライフサイクル適合仕様（v1）
       - v1_l3_runtime
           - Companion runtime（業務的に併走する OSS）。
           - 例：Headlamp、Kubeshark、Perses、Apache Superset、
-            Jaeger UI、Backstage、PgBouncer、kube-state-metrics、
-            kube-vip、KEDA、MetalLB、OpenTofu、Tilt、Helm、
-            Kustomize、Tekton、cert-manager、ESO、Harbor。
+            Jaeger Query、jaegertracing/jaeger-clickhouse
+            (community plugin)、Backstage、PgBouncer、
+            kube-state-metrics、kube-vip、KEDA、MetalLB、OpenTofu、
+            Tilt、Helm、Kustomize、Tekton、cert-manager、ESO、
+            Harbor。
           - 半期 health check：major_up / eol_announced / CVE
-            backlog の 3 trigger。
+            backlog の 3 trigger。community plugin 系（jaegertracing
+            /jaeger-clickhouse 等）は加えて
+            community_plugin_stagnation trigger を持つ
+            （commit cadence < 1/quarter or open critical issue
+            >= 10/90d）。
           - response：runtime_upgrade_with_compat_test（既存業務
             への影響を Litmus + Testcontainers で確認後、Argo CD
-            で rolling）。
+            で rolling）。community_plugin_stagnation 発火時は
+            in_house_fork または migrate_to_jaeger_native_ch_storage
+            （upstream 公式 ClickHouse storage が GA / non-experimental
+            に成熟次第）を選択。
 
       - v1_reserved_category
           - 「予約カテゴリ」（05_提供機能カテゴリ）。Distributed
@@ -181,15 +196,23 @@ tier1 OSS ライフサイクル適合仕様（v1）
   - 各 trigger signal は 09 の audit signal sub-class `oss.lifecycle
     .event` として SoR に入る。signal source は本仕様が単一所有：
 
-        signal_kind                  | source_endpoint                                  | threshold
-        -----------------------------+--------------------------------------------------+------------------------
-        license_change               | spdx_license_scanner                             | NOT-Apache-2.0/MIT/BSD/MPL/PG/ISC
-        eol_announced                | github_releases / vendor announcement webhook    | EoL date <= today + 365d
-        cve_backlog_threshold        | grype + osv.dev                                  | high+critical >= 5 over 30d
-        maintainer_turnover          | github_contributors_api                          | top-5 maintainer 4+ leave / 12m
-        fork_event                   | github_forks_api / community signal              | new fork with >100 stars / 90d
-        conformance_drift            | 04_Library l2star scenarios CI                   | green=false / 3+ scenarios
-        major_up                     | github_releases / semver detection               | new major version published
+        signal_kind                          | source_endpoint                                  | threshold
+        -------------------------------------+--------------------------------------------------+--------------------------------
+        license_change                       | spdx_license_scanner                             | NOT-Apache-2.0/MIT/BSD/MPL/PG/ISC
+        eol_announced                        | github_releases / vendor announcement webhook    | EoL date <= today + 365d
+        cve_backlog_threshold                | grype + osv.dev                                  | high+critical >= 5 over 30d
+        maintainer_turnover                  | github_contributors_api                          | top-5 maintainer 4+ leave / 12m
+        fork_event                           | github_forks_api / community signal              | new fork with >100 stars / 90d
+        conformance_drift                    | 04_Library l2star scenarios CI                   | green=false / 3+ scenarios
+        major_up                             | github_releases / semver detection               | new major version published
+        community_plugin_stagnation          | github_commits_api / github_issues_api           | commit cadence < 1/quarter or
+                                             |                                                  |   open critical issue >= 10/90d
+                                             |                                                  |   (jaegertracing/jaeger-clickhouse
+                                             |                                                  |   等の community plugin に対象限定)
+        webtransport_upstream_maturity_event | envoy github_releases + chrome/edge release      | Envoy WebTransport native GA
+                                             |   notes / caniuse api                            |   (non-experimental) かつ Chrome
+                                             |                                                  |   / Edge stable で WebTransport
+                                             |                                                  |   default-on を満たす
 
   - signal source は oss_inventory.lock.yaml の各 OSS entry に endpoint
     / cadence / threshold を declare する。

@@ -46,12 +46,15 @@ infra ネットワーク方針
 
 ■ Envoy Gateway
   - role：tier1 Transport Adapter Layer の substrate。HTTP/2
-    + gRPC / HTTP/3 + WebTransport / HTTP/1.1 Upgrade
-    （WebSocket）/ HTTP/1.1 chunked + SSE（text/event-stream、
-    tier1 Rust ハンドラが SSE フレーミングを直接生成、Envoy
-    gRPC-JSON Transcoder は unary 専用）を同一 cluster で
-    並立。詳細は 05_tier1/03_Server系「External Proto」server-
-    streaming の項を参照。
+    + gRPC / HTTP/3 plain（v1 必須）/ HTTP/3 + WebTransport
+    （v1 opt-in、v2 必須化候補。本ファイル下の HTTP/3 +
+    WebTransport 節参照）/ HTTP/1.1 Upgrade（WebSocket）/
+    HTTP/1.1 chunked + SSE（text/event-stream、tier1 Rust
+    ハンドラが SSE フレーミングを直接生成、Envoy gRPC-JSON
+    Transcoder は unary 専用）を同一 cluster で並立。詳細は
+    05_tier1/03_Server系「External Proto」server-streaming
+    の項を参照。upstream の tier1 Rust ハンドラは別 Pod、
+    Pod 間 mTLS は Istio sidecar で保護する（同節参照）。
   - rate limit：Local Rate Limit filter で 15_テナント容量
     適合仕様 の v1_per_tenant_qps を enforcement。cluster
     跨ぎ global rate limit は v2 候補。
@@ -60,7 +63,13 @@ infra ネットワーク方針
     整合。
   - TLS：cert-manager + Let's Encrypt / 内部 CA。TLS 1.3
     必須、TLS 1.2 は legacy 経路（.NET Framework Companion）
-    のみ許容、deprecation timeline は 12 ヶ月。
+    のみ許容、deprecation timeline は 12 ヶ月。conformance
+    scenario（07_Bidi適合仕様 scenarios.yaml）は TLS バー
+    ジョン非依存に設計し、TLS 1.2 を許容する .NET Framework
+    Companion adapter も全 assertion を green にできるよう
+    保つ。TLS バージョン / cipher suite / ALPN は 09_観測適合
+    仕様 の transport metadata（tier1.transport.tls_version）
+    として観測 SoR に記録する。
 
 ■ DNS
   - cluster 内：CoreDNS（Kubernetes default）。
@@ -86,11 +95,24 @@ infra ネットワーク方針
     cluster の identity を destination 側で validate。
 
 ■ HTTP/3 + WebTransport
-  - Envoy Gateway HTTP/3 listener を本番 cluster で必須化。
-  - QUIC は UDP/443、firewall で許可。
-  - HTTP/3 fallback：クライアントが HTTP/3 を notiate しない
-    場合は Alt-Svc header で advertise、HTTP/2 にも fall back
-    可能。
+  - HTTP/3 plain（QUIC + HTTP semantics）の Envoy Gateway
+    listener は v1 本番必須。QUIC は UDP/443、firewall で許可。
+    HTTP/3 を negotiate しないクライアントは Alt-Svc header
+    advertise 経由で HTTP/2 fallback 可能。
+  - WebTransport over HTTP/3（RFC 9220 extended-connect /
+    Datagram）の Envoy native サポートは現状 alpha /
+    experimental 段階のため、v1 では capability_negotiation
+    経由の opt-in 採用とし、必ず fallback transport
+    （websocket / sse_paired）を chosen_transport として
+    併存させる。WebTransport を要求した client が websocket
+    へ自動降格しても業務コード変更は不要（capability 宣言から
+    自動降格、05_tier1/04_Library Companion 役割 B 参照）。
+  - WebTransport の本番必須化は v2 に降格。Envoy upstream の
+    sustained release（GA / non-experimental）と RFC 9220
+    client 実装（Chrome / Edge stable）の両方が成熟した時点で
+    v2 候補として 14_OSSライフサイクル適合仕様 の
+    `webtransport_upstream_maturity_event` trigger 経由で
+    再評価する。
 
 ■ WebSocket / Long-poll
   - Envoy Gateway HTTP/1.1 Upgrade で WebSocket、long-poll

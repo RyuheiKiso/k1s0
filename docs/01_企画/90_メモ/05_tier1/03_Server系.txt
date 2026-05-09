@@ -90,11 +90,16 @@ tier1 Server系（ランタイム成果物）
         Transcoder に行わせない。
           - server-streaming RPC は許容するが、Transcoder の streaming
             派生機能（stream_newline_delimited による NDJSON 等）には
-            依存しない。Envoy Gateway は server-streaming RPC を
-            tier1 Rust ハンドラ（Gateway 配下、本ファイル「分類」節の
-            Gateway 実装と同一プロセス）にルーティングし、Rust ハンドラ
-            内部で text/event-stream の SSE フレーミング（id: / event:
-            / data: / retry: の各フィールド）を直接生成する。HTTP/1.1
+            依存しない。Envoy Gateway（C++ プロセス）は server-streaming
+            RPC を独立 upstream の tier1 Rust SSE ハンドラ Pod へ
+            HTTP/1.1 chunked で proxy する。Envoy と Rust ハンドラは
+            別プロセス・別 Pod として配置し、Pod 間通信は Istio sidecar
+            の mTLS で保護する。Envoy access log と Rust ハンドラ側 span
+            は trace_id（W3C traceparent）で連結し、ClickHouse 側 SQL
+            JOIN で end-to-end レイテンシを観測可能にする（09_観測適合
+            仕様 cross-signal join 契約 参照）。Rust ハンドラ内部で
+            text/event-stream の SSE フレーミング（id: / event: / data:
+            / retry: の各フィールド）を直接生成する。HTTP/1.1
             listener の chunked transfer encoding と組み合わせ、event
             単位での逐次消費を担保する。SSE を採用する理由は、id: フィー
             ルドが Last-Event-ID として標準化されており resume semantics
@@ -243,6 +248,15 @@ tier1 Server系（ランタイム成果物）
         を満たす adapter set の中から、サーバ側で定義した優先順位に
         従って chosen_transport を返す。クライアント側は本ストリーム
         を chosen_transport に切り替える。
+      - direction × adapter の構造的不両立を Negotiation の起動時
+        制約として固定する。direction = client→server の class
+        （v1_bulk_upload）は、server→client 単方向 wire を内包する
+        adapter（sse_paired、webhook）の supports から除外され
+        （07_Bidi適合仕様 capabilities.lock.yaml）、bulk 経路は
+        grpc_native / web_transport / websocket / messaging_bridge
+        のみが選択肢となる。SSE / webhook の id / Last-Event-ID
+        経路では client→server seq の連続性を救えないため、resume
+        前提の bulk 等価実装は原理的に成立しない。
       - 同一 fleet 内で transport の混在を許容する。古いクライアント
         は next-best へ自動的に落ち、新しいクライアントは最良 transport
         を享受する。

@@ -14,10 +14,14 @@
   メッセージング                 | Apache Kafka (Strimzi Operator)  | Apache 2.0
 
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
-    Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 +
-    WebTransport、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1 + chunked
+    Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 plain
+    （QUIC + HTTP semantics、v1 必須）、HTTP/3 + WebTransport
+    （RFC 9220 extended-connect / Datagram、v1 opt-in、v2 必須化
+    候補）、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1 + chunked
     SSE（text/event-stream）等の transport を同一クラスタ内で並立
-    させる。本企画では Envoy Gateway 配下の tier1 Rust ハンドラが
+    させる。本企画では Envoy Gateway（C++）が独立 upstream Pod の
+    tier1 Rust SSE ハンドラへ HTTP/1.1 chunked で proxy し、Pod 間
+    mTLS は Istio sidecar が担う。tier1 Rust ハンドラ Pod が
     server-streaming RPC を text/event-stream として直接生成し、
     Envoy gRPC-JSON Transcoder は unary の HTTP/1.1 + JSON 派生に
     限定する（Transcoder upstream に SSE 派生 option
@@ -44,7 +48,9 @@
   メトリクス                     | Prometheus                       | Apache 2.0
   ログ / トレース SoR            | ClickHouse                       | Apache 2.0
   ClickHouse Operator            | Altinity ClickHouse Operator     | Apache 2.0
-  トレース UI                    | Jaeger v2 (UI + Query)           | Apache 2.0
+  トレース UI                    | Jaeger Query + ClickHouse plugin | Apache 2.0
+                                 |   (jaegertracing/jaeger-clickhouse,|
+                                 |    community)                      |
   ログ / ad-hoc 探索 UI          | Apache Superset                  | Apache 2.0
   Continuous Profiling           | Parca                            | Apache 2.0
   k8s 状態メトリクス             | kube-state-metrics               | Apache 2.0
@@ -57,9 +63,15 @@
     可能にする。OpenSearch は採用しない（観測可能性ワークロードは
     BM25 ランキングや形態素解析を業務 SLO に持たず、構造化集計が支配
     的なため、カラムナ OLAP のほうが構造的に最適）。
-  ※ Jaeger は v2 を採用し、storage exporter として ClickHouse を指定する。
-    Jaeger UI / Query は OTLP 受信を Collector 側に委ね、トレース調査
-    専用 UI として位置付ける。
+  ※ trace の SoR 化は OpenTelemetry Collector の clickhouseexporter
+    （CNCF OTel Contrib、Apache 2.0）で行い、Jaeger Query は ClickHouse
+    plugin（community 実装、jaegertracing/jaeger-clickhouse、Apache 2.0）
+    を被せて UI 経路を提供する。Jaeger v2 公式 first-party の ClickHouse
+    storage は upstream 未成熟のため v1 では採用しない。Jaeger UI は
+    トレース調査専用 UI として位置付け、ad-hoc 解析は Apache Superset
+    over ClickHouse に寄せる。community plugin の health check は
+    14_OSSライフサイクル適合仕様 の community_plugin_stagnation
+    trigger で監視する。
   ※ メトリクス可視化は Perses（CNCF Sandbox、Apache 2.0）を標準採用する
     （Grafana の AGPL 回避方針は維持）。データソースは Prometheus 系に
     限定する。
@@ -79,9 +91,14 @@
     を直接組み込めない言語向けの Companion（観測可能性 + Transport
     Negotiation の二役割）の観測可能性役割の標準形態として位置付ける。
     Auto-Instrumentation 非対応環境（4.6.1 以前など）向けには NuGet
-    参照型の Companion を補助的に提供する。Transport Negotiation 役割
-    は OpenTelemetry Auto-Instrumentation とは独立に NuGet 参照で配布
-    する（詳細は「05_tier1/04_Library」Companion 節）。
+    参照型の Companion を補助的に提供する。CLR Profiler は HTTP/2 /
+    HTTP/3 stack を持たない WinHTTP / HttpWebRequest の上に新たな
+    wire protocol（WebSocket / SSE / HTTP/3）を生やせないため、
+    Transport Negotiation 役割（役割 B）は OpenTelemetry
+    Auto-Instrumentation の CLR Profiler 経路から独立した NuGet 参照
+    （k1s0.Companion.NetFx、IL rewrite ではない通常のライブラリ参照）
+    として配布する（詳細は「05_tier1/04_Library」Companion 節 役割
+    A / 役割 B）。
 
 ------------------------------------------------------------
 [3] 開発言語

@@ -5,7 +5,7 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   カテゴリ                                | 対象     | Lv  | 主な提供 API                            | 現行実装 OSS
   ----------------------------------------+----------+-----+-----------------------------------------+--------------------------------------
   Observability / Logging                 | both     | L3  | 構造化ログ出力、コンテキスト伝播        | OpenTelemetry Library + Collector → ClickHouse
-  Observability / Tracing                 | both     | L3  | 分散トレース span 発行、伝播            | OpenTelemetry Library + Jaeger v2 (ClickHouse storage)
+  Observability / Tracing                 | both     | L3  | 分散トレース span 発行、伝播            | OpenTelemetry Library + Collector (clickhouseexporter) → ClickHouse + Jaeger Query (CH plugin)
   Observability / Metrics                 | both     | L3  | カウンタ / ヒストグラム / ゲージ        | OpenTelemetry Library + Prometheus
   Observability / Profiling               | backend  | L2* | Continuous Profiling 有効化、ラベル付与 | Parca
   Authentication / Authorization          | both     | L3  | OIDC クライアント、トークン検証、認可   | Keycloak
@@ -109,11 +109,20 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - Rule Engine                       : 本命       ZEN Engine
                                         移行先候補 自製 DSL、別 OSS
   - Vector Search                     : 本命       pgvector
-                                        移行先候補 Qdrant、Milvus、Weaviate
-                                                   （standalone vector engine。
-                                                    transactional ANN / SQL JOIN
-                                                    を持たないため業務コードに
-                                                    設計レベルの修正が入る）
+                                        移行先候補 PG ecosystem 内のみ
+                                                   toolchain 保証（pgvector
+                                                   index 種別 / 距離関数 /
+                                                   別 PG operator）。
+                                                   族外 standalone vector
+                                                   engine（Qdrant、Milvus、
+                                                   Weaviate）への移行は
+                                                   transactional ANN /
+                                                   SQL JOIN を持たないため
+                                                   業務コード再設計が必要、
+                                                   L1+ toolchain 保証範囲外
+                                                   （14_OSSライフサイクル
+                                                   適合仕様 の `project_spawn`
+                                                   経路で扱う独立プロジェクト）。
   L1+ では day-1 で複数 backend を並走させない。OSS ライフサイクル
   イベント時に tier1 が移行 toolchain を成果物として提供する
   （詳細は「04_Library」L1+ 移行コミットメント節を参照）。

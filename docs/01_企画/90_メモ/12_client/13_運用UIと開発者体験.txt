@@ -98,8 +98,8 @@ client 運用 UI と開発者体験
 ■ 観察 UI
   - Perses（メトリクス）：sdk.* metric series を tenant 別
     dashboard で確認
-  - Jaeger v2（トレース）：trace_id 検索、SDK 側 RPC span
-    と server 側 span が stitch される
+  - Jaeger Query + CH plugin（トレース）：trace_id 検索、
+    SDK 側 RPC span と server 側 span が stitch される
   - Apache Superset（ad-hoc）：ClickHouse 直接 SQL で SDK
     deprecation warn 出現頻度や retry exhaust 件数を集計
 

@@ -14,7 +14,10 @@ tier1 Library スコープ外（非提供）
     （Prometheus データソース）。
   - ログ / トレースの ad-hoc 探索 UI は Apache Superset を併用する
     （ClickHouse データソース）。
-  - トレース調査 UI は Jaeger v2 UI を併用する（ClickHouse storage）。
+  - トレース調査 UI は Jaeger Query + ClickHouse plugin
+    （community 実装、jaegertracing/jaeger-clickhouse、
+    OTel Collector clickhouseexporter で SoR 化、
+    詳細は 02_採用OSS一覧 / 09_観測適合仕様）を併用する。
   - いずれも Library としては配布せず、プラットフォーム側で運用する。
   - tier2 / tier3 はダッシュボード UI に直接アクセスし、Library 経由では
     扱わない。

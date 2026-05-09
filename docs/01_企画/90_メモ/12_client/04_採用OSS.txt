@@ -179,7 +179,7 @@ client 採用 OSS（client 層 subset）
     Apicurio Registry が単一の真
     → 05_tier1/03_Server系 / 04_Library
   - tier1 認証 / 観測可能性 SoR：Keycloak / OpenTelemetry
-    Collector / ClickHouse / Jaeger v2 / Perses
+    Collector / ClickHouse / Jaeger Query + CH plugin / Perses
     → 05_tier1/09_観測適合仕様 / 10_認証適合仕様
   - tier1 Server 系 transport substrate：Envoy Gateway / Istio
     → 08_infra/04_採用OSS

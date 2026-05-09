@@ -46,7 +46,8 @@ client 非提供スコープ
   - infra cluster の物理基盤
       → 08_infra の責務。client は Harbor mirror から SDK
         パッケージを pull する経路のみ持つ。
-  - 観測可能性 SoR の storage 設計（ClickHouse / Jaeger v2）
+  - 観測可能性 SoR の storage 設計（ClickHouse / Jaeger Query
+    + CH plugin）
       → tier1/09 観測適合仕様。client は SDK 側で OTel SDK
         を初期化し OTLP exporter で emit するまで。
 

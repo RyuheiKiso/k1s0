@@ -116,8 +116,15 @@ tier1 Library 設計方針
         がアーキテクチャ設計時に Single-leader と排他選択する位置付け）。
         Vector Search は pgvector 単独深耕（PostgreSQL extension として
         の transactional ANN / SQL JOIN 内 ANN を Library API に深く
-        露出）、移行先候補は Qdrant / Milvus / Weaviate（standalone
-        vector engine、L1+ 移行コミットメント枠で toolchain 提供）。
+        露出）。族外（Qdrant / Milvus / Weaviate 等の standalone
+        vector engine、transactional ANN / SQL JOIN 内 ANN を持たない）
+        への移行は業務コード再設計を伴うため、L1+ 移行コミットメントの
+        toolchain 保証範囲外（PG ecosystem 内移行、すなわち pgvector
+        の index 種別 / 距離関数 / 別 PG operator への移行のみ
+        toolchain 保証）として位置付ける。族外移行は本仕様 v1 の
+        射程を超える独立プロジェクト（業務コード再設計）として
+        14_OSSライフサイクル適合仕様 の response 経路で `project_spawn`
+        として扱う。
 
   - L1+ / L2* で API 表面に露出する OSS 概念は、カテゴリごとに「露出概念
     一覧」として Library 側ドキュメントに明示する。
@@ -269,11 +276,18 @@ tier1 Library 設計方針
       Messaging / EventBus              : RedPanda、AWS MSK、Confluent Cloud
       Workflow / Long-running Saga      : Cadence、Temporal Cloud
       Rule Engine                       : 自製 DSL、別 OSS
-      Vector Search                     : Qdrant、Milvus、Weaviate
-                                          （standalone vector engine、
-                                           transactional ANN / SQL JOIN
-                                           を持たないため業務コードに
-                                           設計レベルの修正が入る）
+      Vector Search                     : PG ecosystem 内のみ toolchain
+                                          保証（pgvector の index 種別
+                                          / 距離関数変更、別 PG operator
+                                          への移行）。族外（Qdrant /
+                                          Milvus / Weaviate 等 standalone
+                                          vector engine、transactional
+                                          ANN / SQL JOIN を持たない）
+                                          への移行は業務コード再設計を
+                                          伴うため L1+ toolchain 保証
+                                          範囲外、独立プロジェクトとして
+                                          14_OSSライフサイクル適合仕様
+                                          の `project_spawn` 経路で扱う。
   - 移行先候補は ライフサイクル監視の対象であり、本命 OSS にライセンス
     変更等の予兆が出た時点で候補のうち 1 つを正式移行先として toolchain
     実装に進める。
@@ -297,6 +311,12 @@ tier1 Library 設計方針
     スタックの上で透過に実行する runtime」と位置付ける。
 
   ── 役割 A : Observability / 認証コンテキスト伝播
+  - 役割 A の射程は span / log / metric の自動生成および認証コン
+    テキスト伝播のみで、transport stack には及ばない。CLR Profiler
+    の自動 attach は呼び出しの観測（IL rewrite で span を埋め込む）
+    に閉じ、HTTP/2 / HTTP/3 / WebSocket / SSE 等の wire protocol
+    を新規に生やすことはできない。Transport Negotiation は役割 B
+    の Companion NuGet（明示参照）が独立に担う（本節下流参照）。
   - 標準形態：.NET Framework 4.6.2+ 向けに OpenTelemetry .NET
     Auto-Instrumentation を採用する。CLR Profiler によるアタッチ方式
     で、アプリケーションのソースコード変更を不要とする。HttpClient /
@@ -343,7 +363,11 @@ tier1 Library 設計方針
                          そのまま使う（Last-Event-ID リクエストヘッダ
                          で再接続時に server へ送出。.NET Framework に
                          EventSource ネイティブはないため、パーサは
-                         Companion 内で実装する）。
+                         Companion 内で実装する）。送信は server→
+                         client 方向の SSE と paired な unary POST のみ
+                         で、client→server bulk（v1_bulk_upload）は
+                         構造的に対象外（07_Bidi適合仕様 capabilities
+                         .lock.yaml の sse_paired.supports から除外）。
       long_poll        : cursor 付き short poll の組合せ。長時間
                          接続を切る proxy 越えに用いる。
       webhook          : レガシー側で IIS / WCF / HttpListener が
@@ -353,7 +377,18 @@ tier1 Library 設計方針
                          4.6.2+ で動作確認可能な範囲のみ提供する。
       web_transport    : .NET 8+ 等、QUIC / WebTransport クライアント
                          を持つ環境向け。.NET Framework Companion
-                         には載せない。
+                         には載せない。v1 では opt-in adapter 扱い
+                         （Envoy upstream の WebTransport native
+                         サポートが alpha / experimental 段階のため、
+                         transport_capability_class として
+                         v1_optional_experimental に分類、Capability
+                         Negotiation で fallback transport の併存
+                         必須）。v2 で transport_capability_class が
+                         v2_required_general に昇格した時点で全
+                         distribution_class 必須化を再評価する
+                         （08_infra/06 / 14_OSSライフサイクル適合
+                         仕様 の `webtransport_upstream_maturity_event`
+                         trigger 参照）。
       messaging_bridge : Kafka / AMQP の REST Proxy / 単純クライアント
                          越しに bidi メッセージを搬送する形態。
                          ネットワーク完全分離環境向け。

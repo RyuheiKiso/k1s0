@@ -113,10 +113,29 @@ client 観測 Auto-Instrumentation 方針
   - Companion NuGet（k1s0.Companion.NetFx）が初期化時に
     OTel exporter / sampler を default 設定で wire up
   - Windows Service / IIS hosted ASP.NET 双方サポート
+  - Companion NuGet（k1s0.Companion.NetFx）は IL rewrite では
+    なく通常の NuGet 参照。CLR Profiler 経路（観測専用、役割
+    A）と独立し、Transport Negotiation 役割（05_tier1/04_Library
+    Companion 役割 B）は本 NuGet が明示参照で提供する。CLR
+    Profiler は HTTP/2 / HTTP/3 stack を持たない WinHTTP /
+    HttpWebRequest の上に新たな wire protocol（WebSocket / SSE
+    / HTTP/3）を生やせないため、Transport Negotiation は
+    Auto-Instrumentation の経路で自動化されない。
 
 ■ exporter / collector の物理冗長
-  - SDK 出口の OTel Collector は infra DaemonSet 配置（08_
-    infra/04_採用OSS）。
+  - SDK 出口の OTel Collector は 2 段構成（09_観測適合仕様
+    「観測 Collector の 2 段 pipeline」参照）:
+      段 1: per-node DaemonSet（infra DaemonSet 配置、08_
+            infra/04_採用OSS）が SDK OTLP を受け、
+            loadbalancingexporter (routing_key: traceId) で
+            段 2 へ転送。consistent hashing 必須。
+      段 2: gateway-aggregator Deployment（trace 単位に集約）が
+            tail_sampling processor を実行し、clickhouseexporter
+            で ClickHouse traces table へ送出。tail_sampling は
+            単一 Collector プロセス内でしか trace grouping できない
+            ため、段 1 のみで完結させる構成は不可。
+  - logs / metrics / profiles 経路は段 1 から直接 SoR（ClickHouse
+    / Prometheus / Parca）へ送出（trace 集約を要しないため）。
   - SDK 内 buffer：500 span / 1000 metric で BatchSpanProcessor
     の queue を持ち、Collector 失敗時は SDK 内 retry（10_
     リトライバックオフ方針 v1_idempotent_safe 相当）。

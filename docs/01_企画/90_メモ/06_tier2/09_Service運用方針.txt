@@ -87,7 +87,7 @@ tier2 Service の運用方針（プラットフォーム共有運用）
     生成する（「05_tier1/04_Library」Companion 役割 A 節と
     同枠）。
   - 可視化は tier1 のプラットフォーム標準 UI（Perses / Apache
-    Superset / Jaeger v2 UI）を使用する。tier2 自身は可視化 UI
+    Superset / Jaeger Query UI（CH plugin））を使用する。tier2 自身は可視化 UI
     を提供しない。
 
 ■ SLO

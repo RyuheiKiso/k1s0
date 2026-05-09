@@ -81,6 +81,15 @@ tier1 Bidi 適合仕様（v1）
     抜ける、は業務的にレアな矛盾形のため。
   - UNORDERED + REQUIRED も v1 では採らない。順不同で resume は意味論
     として薄い。
+  - direction × adapter の構造的不両立として、direction = client→server
+    の class（v1_bulk_upload）は server→client 一方向の wire を内包する
+    adapter（sse_paired、webhook）からは原理的に supports され得ない。
+    SSE / webhook の id / Last-Event-ID 経路では client→server seq の
+    連続性を救えず、conformance corpus の rd_seq_continuous_across_resume
+    を等価実装する経路が存在しないため、capabilities.lock.yaml の supports
+    宣言から除外する（整合 4「unreachable class 検出」は v1_bulk_upload を
+    grpc_native / web_transport / websocket / messaging_bridge から到達
+    可能にすることで満たす）。
   - half_close = SUPPORTED は client から終端を伝える局面が要る class
     にだけ付く（v1_interactive、v1_bulk_upload）。それ以外の server
     push 系（v1_alert、v1_event_feed、v1_live_snapshot）は UNUSED。
@@ -190,6 +199,24 @@ tier1 Bidi 適合仕様（v1）
       - corpus 全体は 03_Server系 Conformance Equivalence 節と整合し、
         9 scenario を最小コーパスとする。
 
+      ■ scenario assertion の transport metadata 中立性
+        - scenario assertion は TLS バージョン依存挙動を assert しない。
+          例：tls_disconnect scenario は「切断後 resume_token 経由で
+          再接続時に rd_seq_continuous_across_resume が green」を
+          assert するが、切断トリガが TLS 1.3 close_notify か TLS 1.2
+          close_notify かは assertion 対象としない（adapter 内 transport
+          抽象が両者を統一 event として normalize する）。
+        - TLS バージョン / cipher suite / ALPN は 09_観測適合仕様 の
+          transport metadata（tier1.transport.tls_version 等の attribute
+          namespace）として別経路で SoR に記録する。assertion から
+          外すことで transport metadata は観測軸に閉じ、conformance
+          軸からは独立する。
+        - 本制約により .NET Framework Companion（TLS 1.2 legacy 例外、
+          08_infra/06 deprecation 12 ヶ月）も同じ scenarios.yaml の
+          全 assertion を green にできる。Companion 役割 B の
+          sse_paired / websocket adapter が TLS 1.2 で動作しても、
+          conformance corpus 上の等価性は保たれる。
+
   ── tier1/adapters/capabilities.lock.yaml
       - 各 adapter crate の static 自己宣言（pub const
         ADAPTER_DECLARATION）を tier1 build script が集約して生成する
@@ -204,12 +231,30 @@ tier1 Bidi 適合仕様（v1）
               web_transport:
                 supports: [v1_interactive, v1_alert, v1_event_feed,
                            v1_live_snapshot, v1_bulk_upload]
+                constraints:
+                  transport_capability_class: v1_optional_experimental
+                  requires_fallback: true   # Envoy upstream の
+                                            # WebTransport native
+                                            # サポートが alpha /
+                                            # experimental 段階のため、
+                                            # Capability Negotiation
+                                            # で websocket / sse_paired
+                                            # 等の fallback 併存必須。
+                                            # 詳細は 08_infra/06
+                                            # HTTP/3 + WebTransport
+                                            # 節 / 04_Library Companion
+                                            # 役割 B web_transport 行。
               websocket:
                 supports: [v1_interactive, v1_alert, v1_event_feed,
                            v1_live_snapshot, v1_bulk_upload]
               sse_paired:
-                supports: [v1_alert, v1_event_feed, v1_live_snapshot,
-                           v1_bulk_upload]
+                supports: [v1_alert, v1_event_feed, v1_live_snapshot]
+                # v1_bulk_upload (direction: client→server) は SSE 一方向性
+                # （text/event-stream は server→client の HTTP response body
+                # chunked stream）により構造的に non-supported。client→server
+                # の bulk 投入は順序保証 / resume を SSE id field では救えな
+                # いため、grpc_native / web_transport / websocket /
+                # messaging_bridge のみが supports する。
               long_poll:
                 supports: [v1_event_feed]
               webhook:
