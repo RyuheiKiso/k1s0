@@ -14,6 +14,13 @@ tier3 のクライアント状態管理
   - クライアント状態は UI ローカルな揮発状態（フォーム編集中 /
     モーダル開閉 / 選択範囲 / ウィザード進行 / アンドゥスタック）
     に限定する。
+  - 本ファイルは方針定義に留め、Server Truth / Optimistic Local /
+    Pending Queue / Draft の 4 layer 分離、決定論的衝突解決 tree、
+    BusinessConflict subtype による UI 分岐の 1:1 固定、永続化と
+    PII 取扱の機械可読仕様は「39_クライアント状態適合仕様」に分離
+    する。Application 層 reducer・lint・headless browser test・
+    WebCrypto runtime のいずれも 39 が宣言する 4 つの YAML を共通
+    入力とする。
 
 ■ サーバ状態管理
   - 推奨ライブラリ :

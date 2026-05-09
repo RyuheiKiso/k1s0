@@ -80,6 +80,11 @@ tier2 の強制機構
         に乗る。emit を抑制する API（raw SQL 実行等）を tier2
         公開 API に置かない（「14_業務エラー監査コンプライア
         ンス」参照）。
+  - 上記 2 項は方針宣言に留め、static / runtime 二重防御の機械可読
+    仕様（compile 時 Repository abstraction、lint、cross-tenant
+    integration test、PostgreSQL Row Level Security、pgaudit の
+    5 層）は「32_テナント分離適合仕様」に分離する。本層 5 の検査
+    は同仕様の整合 1〜10 を CI 必須として組み込むことで実体化する。
 
 ■ 層 6 ：供給経路（内部レジストリ）
   - tier1 と同枠で、tier2 配布物（NuGet / crate / Go module /
@@ -110,6 +115,14 @@ tier2 の強制機構
     Companion 役割 A 節）。
   - 実行時に emit される属性をゴールデン値と CI で照合する
     （「15_テスト方針」観測可能性のゴールデン値テスト節）。
+  - 5 signal class（logs / metrics / traces / profiles / audit）の
+    SoR / 派生関係、4 dimension layer の合成、trace_id を primary
+    key とする cross-signal cross-tier 相関契約、PII redaction の
+    単一の真、Collector プロセッサ設定の build artifact 化、
+    Companion 最小 NuGet との接合の機械可読仕様は「05_tier1/09_
+    観測適合仕様」に分離する。tier2_ext の aggregate_class /
+    purpose / actor_id / business_event の attribute 集合も同仕様
+    が保持する。
 
 ■ サプライチェーン
   - tier1 と整合し、Harbor / Cosign / Trivy / SBOM 生成 を

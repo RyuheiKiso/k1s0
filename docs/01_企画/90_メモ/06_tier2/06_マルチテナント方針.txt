@@ -46,6 +46,13 @@ tier2 のマルチテナント方針
     トリ抽象が tenant_id 述語を強制注入し、業務コードからの
     省略・別テナント参照を不可能にする。
   - 強制注入の機械的担保は「16_強制機構」を参照。
+  - 本節は方針定義に留め、tenant_scoped / tenant_master /
+    platform_global / pii_segregated の class カタログ、PostgreSQL
+    Row Level Security の policy 定義、5 層 defense-in-depth の
+    機械可読仕様は「32_テナント分離適合仕様」に分離する。Repository
+    abstraction・sqlx-cli migration plugin・Buf custom lint・
+    cross-tenant integration test のいずれも 32 が宣言する 3 つの
+    YAML を共通入力とする。
 
 ■ 専用 Service への昇格条件
   - 既定は共有 Pod / 共有 DB だが、特定テナントが以下のいずれ

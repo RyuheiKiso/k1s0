@@ -115,6 +115,12 @@ tier3 の観測可能性（クライアントテレメトリ）
         screen.id / interaction.kind。
   - HTTP / RPC / 認証等の標準計装は OpenTelemetry Semantic
     Conventions に従う。tier3 が独自の re-name を行わない。
+  - tier3_ext の attribute 集合（client_layer / conflict_event /
+    web_vitals.* / interaction.kind / screen.id）の確定形と、
+    cross-tier trace_id の transport adapter 別 propagation 規約、
+    PII redaction の Collector プロセッサ生成、ゴールデン値テスト
+    の機械可読仕様は「05_tier1/09_観測適合仕様」に分離する。
+    本ファイルは tier3 RUM の方針定義に留める。
 
 ■ ゴールデン値テスト
   - 出力 span / metric 属性を CI で照合する :

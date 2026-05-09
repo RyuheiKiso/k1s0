@@ -158,6 +158,11 @@ tier1 Server系（ランタイム成果物）
     から切り離して提供する Gateway 内部のレイヤ。tier2 / tier3 から
     見える .proto を「bidi semantics の単一の真」とし、それを実現する
     transport を複数並立させる。
+  - 本節は方針定義に留め、conformance_class の bundle 定義 / scenario
+    × class assertion id マトリクス / adapter capability matrix の
+    機械可読仕様は本ディレクトリ「07_Bidi適合仕様」に分離する。Buf
+    custom lint・conformance test runner・Capability Negotiation の
+    いずれも 07 が宣言する 3 つの YAML を共通入力とする。
   - 設計の核：
       - bidi semantics を proto で形式化する（次項）。
       - Internal の bidi state machine を一つだけ持ち、複数の
@@ -180,6 +185,10 @@ tier1 Server系（ランタイム成果物）
         の射影テンプレートと並ぶ第二の意味論宣言として扱う。射影
         テンプレートが「フィールド構造の宣言」であるのに対し、本
         option は「意味論的不変量の宣言」となる。
+      - conformance_class は bundle として他 4 option の値を一意に
+        導出する。RPC 作者が dimension を個別に override する経路は
+        持たない。class カタログ（v1 では 5 class）の確定形と
+        bundle 値は「07_Bidi適合仕様」classes.yaml 節を参照。
   - Adapter 一覧（初期セット）：
       adapter             | substrate                    | 主な対象
       --------------------+------------------------------+----------------------------------

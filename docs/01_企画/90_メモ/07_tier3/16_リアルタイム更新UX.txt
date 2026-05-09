@@ -55,6 +55,11 @@ tier3 のリアルタイム更新 UX
       - 「最新を取得して比較」ボタン（差分マージ画面に遷移、
         または最新版を再取得して再入力を促す）
   - 自動マージは行わない（業務不変条件を踏み抜くため）。
+  - BusinessConflict は subtype（stale_write / lost_update /
+    supersede / concurrent_edit）で UI 分岐が 1:1 に固定される。
+    決定論的衝突解決 tree と subtype 別 UI 分岐の機械可読仕様は
+    「39_クライアント状態適合仕様」conflict event カタログ /
+    BusinessConflict subtype 節を参照。
 
 ■ 同時編集の警告（presence indicator）
   - 同 aggregate を別 user が表示・編集中であることを表示する

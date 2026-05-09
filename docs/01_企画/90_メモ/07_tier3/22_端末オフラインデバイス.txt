@@ -85,6 +85,10 @@ tier3 の対応端末・オフライン・デバイス連携
         が返った場合、queue は止め、ユーザに「他者が先に更新した」を
         提示し再確認を促す（自動再送 / silent merge は禁止）。
       - 解決後にユーザが明示的に retry / 破棄を選択。
+      - subtype 別の決定論的分岐（stale_write の rebase / lost_update
+        の 3way merge / supersede の自動 delete / concurrent_edit の
+        presence 連動）は「39_クライアント状態適合仕様」conflict tree
+        節に集約する。本節は方針宣言に留め、機構詳細は 39 を参照。
   - PII の IndexedDB 保管制限 :
       - PII 含む業務データは IndexedDB に保管しない（「08_状態管理」
         「32_セキュリティアーキテクチャ」整合）。

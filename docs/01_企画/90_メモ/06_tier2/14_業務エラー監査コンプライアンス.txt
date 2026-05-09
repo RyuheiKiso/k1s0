@@ -20,6 +20,16 @@ tier2 の業務エラー / 監査 / コンプライアンス
       - BusinessConflict         : 並行操作 / 別 actor の操作と
                                    の業務上の不整合。例：「他者
                                    が先に承認した発注の再承認」。
+                                   subtype フィールドを必須とし、
+                                   stale_write / lost_update /
+                                   supersede / concurrent_edit の
+                                   4 値で UI 分岐を 1:1 固定する
+                                   （詳細は「07_tier3/39_クライ
+                                    アント状態適合仕様」BusinessConflict
+                                    subtype 節 / Repository
+                                    abstraction での判定ロジック
+                                    は「32_テナント分離適合仕様」
+                                    との整合）。
       - AuthorizationDenied      : 認可拒否（tier1 認可結果を
                                    業務語彙で表現）。例：「他
                                    テナント resource への参照」。
@@ -108,3 +118,8 @@ tier2 の業務エラー / 監査 / コンプライアンス
         後続処理を駆動しない。
   - 両者を物理的に分離して管理する（混在させると、subscribe
     失敗時に監査も欠落する事故が起きる）。
+  - 物理分離の懸念（subscribe 失敗時の監査欠落）は、State change /
+    Outbox / Audit を同一 DB トランザクションで書く atomic 三表
+    書込により構造的に解消する。具体機構と integrity property
+    (P1)〜(P4) の CI 検証は「32_テナント分離適合仕様」atomic 三表
+    書込節を参照。

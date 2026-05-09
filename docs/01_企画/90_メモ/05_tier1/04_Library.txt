@@ -267,6 +267,11 @@ tier1 Library 設計方針
   - 移行先候補は ライフサイクル監視の対象であり、本命 OSS にライセンス
     変更等の予兆が出た時点で候補のうち 1 つを正式移行先として toolchain
     実装に進める。
+  - 1.0.0 ship 前 dry-run green 必須 pair（4 カテゴリ × primary 1 pair）
+    の確定形と、5 phase × assertion id matrix、dry_run.lock.yaml、
+    cross-axis assertions（07 / 32 / 39 との接合）の機械可読仕様は
+    本ディレクトリ「08_移行Pair適合仕様」に分離する。Testcontainers
+    での dry-run と CI の release blocker 連動も同仕様に集約する。
 
 ■ Companion（Library 非対応言語向け追加提供）
   - 位置づけ：本 Library を組み込めない言語（.NET Framework など）に
