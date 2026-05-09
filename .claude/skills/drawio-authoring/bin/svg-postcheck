@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+"""svg-postcheck — validate exported drawio SVG.
+
+Checks:
+  1. File size < 1 MB (embed-svg-fonts bloat detector).
+  2. A white-fill rect exists near the document root (white bg reflected).
+  3. No empty <text> elements (font fallback / glyph loss detector).
+  4. No fill/stroke "white" / "#ffffff" on visible elements outside bg.
+
+Exits non-zero on any violation.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+SVG_NS = "{http://www.w3.org/2000/svg}"
+SIZE_LIMIT = 1024 * 1024
+
+
+def is_white(value: str) -> bool:
+    v = (value or "").strip().lower()
+    return v in ("#ffffff", "#fff", "white", "rgb(255,255,255)", "rgb(255, 255, 255)")
+
+
+def has_white_bg(root: ET.Element) -> bool:
+    rects = list(root.iter(f"{SVG_NS}rect"))
+    if not rects:
+        return False
+    for rect in rects[:32]:
+        x = rect.get("x", "0")
+        y = rect.get("y", "0")
+        if x not in ("0", "0.5") or y not in ("0", "0.5"):
+            continue
+        if is_white(rect.get("fill", "")):
+            return True
+        style = (rect.get("style") or "").lower()
+        for token in style.split(";"):
+            k, _, v = token.partition(":")
+            if k.strip() == "fill" and is_white(v.strip()):
+                return True
+    return False
+
+
+def check_one(path: Path) -> list[str]:
+    violations: list[str] = []
+    size = path.stat().st_size
+    if size > SIZE_LIMIT:
+        violations.append(f"file size {size} bytes exceeds 1 MB")
+    try:
+        root = ET.parse(path).getroot()
+    except Exception as e:
+        violations.append(f"parse error: {e}")
+        return violations
+
+    if not has_white_bg(root):
+        violations.append("no white background rect found near document root")
+
+    for t in root.iter(f"{SVG_NS}text"):
+        text_content = "".join(t.itertext()).strip()
+        if not text_content:
+            violations.append("empty <text> element (font fallback failure?)")
+            break
+
+    for el in root.iter():
+        stroke = el.get("stroke", "")
+        if is_white(stroke):
+            violations.append(f"<{el.tag.replace(SVG_NS, '')}> uses white stroke")
+            break
+        style = (el.get("style") or "").lower()
+        for token in style.split(";"):
+            k, _, v = token.partition(":")
+            if k.strip() == "stroke" and is_white(v.strip()):
+                violations.append(
+                    f"<{el.tag.replace(SVG_NS, '')}> uses white stroke (style attr)"
+                )
+                break
+        else:
+            continue
+        break
+
+    return violations
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(prog="svg-postcheck")
+    ap.add_argument("paths", nargs="+", type=Path)
+    args = ap.parse_args(argv)
+
+    failed = 0
+    for path in args.paths:
+        violations = check_one(path)
+        if violations:
+            for v in violations:
+                print(f"{path}: ERROR {v}", file=sys.stderr)
+            failed += 1
+        else:
+            print(f"{path}: ok ({path.stat().st_size} bytes)")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

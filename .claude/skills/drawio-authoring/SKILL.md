@@ -1,49 +1,46 @@
 ---
 name: drawio-authoring
-description: k1s0 リポジトリで drawio 図を作成または編集する時に必ず参照する規約。矢印重なり禁止・白背景矩形・交差判定・ラベル間隔・白矢印禁止の遵守を強制する。
+description: drawio 図の作図規約。白背景・矢印重なり禁止・交差判定・ラベル間隔・1 図 1 ページ・コントラスト下限を強制する。WSL からの SVG エクスポート手順、検証スクリプト drawio-lint と svg-postcheck の併用、テンプレート参照を含む。
 ---
 
-# drawio 作図規約
+# drawio 作図 / SVG エクスポート規約
 
-k1s0 の drawio 図を新規作成、もしくは既存図を編集する時は、**本 Skill の全項目を満たしてから SVG エクスポートすること**。過去に「SVG エクスポート時の背景透過」「矢印が要素を覆い隠す」「責務レイヤの違うコンポーネントを同じビジュアルで描いた」ことで読解不能になった事故が**複数セッションで発生済み**（`8253bbdd` / `2f723e66` / `7694a878`）。本規約はその再発防止のために存在する。
+drawio 図を新規作成または編集する時は、本 Skill の全項目を満たしてから SVG エクスポートする。SVG が正典資産として md に埋め込まれる以上、生成物の質は再生成なしで読み手に届く品質でなければならない。
+
+過去 3 セッションで透過背景 / 矢印重なり / レイヤ責務取り違えの事故が再発済 (`8253bbdd` / `2f723e66` / `7694a878`)。本規約はその再発防止のために存在する。
+
+## なぜ SVG 一択か
+
+- **拡大耐性**: GitHub の任意ズームでも文字が潰れない。
+- **再加工可能**: `.drawio` を編集して再エクスポートできる。
+- **テキスト検索可能**: SVG 内の `<text>` が検索ヒットする。
+
+PNG/JPG ラスタ出力は禁止。
 
 ## 作業工程（厳守）
 
-drawio は「**生成 → 検証 → エクスポート**」の 3 段階で進める。初回生成で満足せず必ず検証ステップを挟むこと。過去セッション `2f723e66` で「初回生成時にこの検証を怠り、`orthogonalEdgeStyle` の自動ルーティングに依存して経路を確認しなかった」と明記されている。
+drawio は「**生成 → 検証 → エクスポート**」の 3 段階で進める。
 
-1. **生成**: drawio XML を書く。この時点では仮組み。
-2. **検証**: 本 Skill の「交差判定」「ラベル間隔」「背景矩形」「レイヤ分離」を全て自己チェックする。
-3. **エクスポート**: 検証がすべて通ったら SVG を出力する。
+1. **生成** — `.claude/skills/drawio-authoring/templates/canvas.drawio` を雛形に取り、drawio XML を書く。
+2. **検証** — `drawio-lint` をエラーゼロにし、自己チェックリストを全項目通す。違反があれば**矢印の迂回ではなく要素の配置自体を見直す**。
+3. **エクスポート** — `drawio-export` で SVG を出力し、続けて `svg-postcheck` をエラーゼロにし、最後に GitHub のダークテーマで別タブ目視確認する。
 
-検証で違反が見つかった場合、**矢印の迂回ではなく要素の配置自体を見直す**こと。
+検証ステップを省略して `orthogonalEdgeStyle` の自動ルーティングに依存すると、矢印が要素を覆い隠して読解不能になる。
 
-## 矢印の取り扱い
+## ファイル配置と命名
 
-- 白の矢印は視認性を損なうため禁止する。
-- 矢印がボックスやテキストの上に重なることを禁止する。
-- 矢印は常にボックスやテキストに重ならないように折り曲げたりして配置すること。
-- `orthogonalEdgeStyle` の自動ルーティングは他の要素を迂回しないため、依存してはならない。
+- md と同階層に `img/` ディレクトリを作り、`.drawio`（編集ソース）と `.svg`（エクスポート結果）の両方を格納する。
+- ファイル名は `<topic>_<subtopic>_<concept>` のスネークケース（例: `rust_basics_ownership.drawio` / `rust_basics_ownership.svg`）。
+- md からは `.svg` を埋め込み、`alt` 属性必須・空 alt 禁止。`.drawio` は編集ソースとして併置する。
+- **1 ファイル 1 ページ**: `<diagram>` 要素は 1 つだけ。図を分割したい時は別 `.drawio` を作る。
+- `.drawio` を更新したら必ず `.svg` を再エクスポートし、両者を**同一コミットに含める**。古い `.svg` を残してはならない。
+- `/knowledge` skill 経由で md を生成する場合も同じ `img/` 配下規律に従う。
 
-## 交差判定（SVG エクスポート前に必ず実施）
+## drawio XML の必須要素
 
-XML 生成後、SVG エクスポート前に以下の手順で交差を検証する:
+### 白背景矩形（必須・第一要素）
 
-1. 全ボックス・テキストの占有領域（x, y, width, height）を列挙する。
-2. 全矢印の経路（source 出口 → 中間点 → target 入口）が通過する座標範囲を算出する。
-3. 矢印の経路が他のボックス・テキストの領域と交差しないことを確認する。
-4. 交差が見つかった場合は矢印の迂回ではなく**要素の配置自体を見直す**こと。
-
-## ラベル
-
-- 矢印のラベルが矢印自体を覆い隠すことを禁止する。
-- ラベル付き矢印の接続元と接続先の間隔は、ラベルの文字列幅より十分に広くとること（目安: ラベル幅の 1.5 倍以上）。
-- 間隔が不足する場合は要素の配置を見直して間隔を確保すること。
-
-## 背景（SVG エクスポート対応）
-
-- GitHub のダークテーマに対応するために全体の背景は白で統一すること。
-- 背景色を透明にすることは禁止する。
-- SVG エクスポート時、mxGraphModel の `background` 属性は無視される。`<root>` 直下の最初の要素としてページ全体を覆う白矩形を配置すること。
+`<root>` 直下、`id="0"` `id="1"` の基底 cell に続く**最初の vertex として**ページ全体を覆う白矩形を配置する。`mxGraphModel` の `background` 属性は SVG エクスポート時に無視される。
 
 ```xml
 <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
@@ -51,38 +48,139 @@ XML 生成後、SVG エクスポート前に以下の手順で交差を検証す
 </mxCell>
 ```
 
-## 複数レイヤが登場する場合
+### 推奨スタイル定数（迷ったらこれをコピー）
 
-アプリ層・ネットワーク層・インフラ層・データ層のうち 2 つ以上が登場する drawio を書く場合は、必ず `docs/00_format/drawio_layer_convention.md` の記法規約に従うこと。色・線種・配置の 3 軸で責務レイヤを常に明示的に分離する。
+vertex 既定:
 
-要点のみ抜粋:
-
-- アプリ層: 暖色 (`#fff2cc` / `#d79b00`) — アプリから明示的に呼び出す抽象（Dapr 等）
-- ネットワーク層: 寒色 (`#dae8fc` / `#6c8ebf`) — アプリから透過的に効く機構（Istio Ambient 等）
-- インフラ層: 中性灰 (`#f5f5f5` / `#666666`) — Kubernetes / Node
-- データ層: 薄紫 (`#e1d5e7` / `#9673a6`) — 状態保持コンポーネント（Postgres / Kafka 等）
-- 線種: 実線太=明示呼び出し / 点線細=透過捕捉 / 破線=非同期
-- 凡例ブロックを右下に配置する
-
-詳細（レーン構造、凡例の具体寸法、状態色、線種の全バリエーション、チェックリスト）は `docs/00_format/drawio_layer_convention.md` を直接参照すること。
-
-## SVG エクスポート手順
-
-```bash
-"/c/Program Files/draw.io/draw.io.exe" --export --format svg --output <出力先.svg> <入力.drawio>
+```
+rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#333333
 ```
 
-md と同階層に `img/` ディレクトリを作成し、`.drawio` と `.svg` の両方を格納する。md からは svg を埋め込む。
+edge 既定:
+
+```
+endArrow=classic;endFill=1;html=1;strokeColor=#333333;edgeStyle=none
+```
+
+### コントラスト下限
+
+線・文字色は `#333333` 以上の濃さ（背景白に対し WCAG AA 相当）。`#000000` は GitHub ダークで潰れる。レイヤ色は `figure-layer-convention` のパレットに従う。
+
+### 矢印
+
+- 白系ストローク（`#FFFFFF` / `white`）禁止。背景白で消える。
+- 矢印がボックス・テキスト・他の矢印と重ならないよう、経由点を**明示指定**する（`orthogonalEdgeStyle` の自動ルーティングに経路判断を任せない）。
+- 経由点は `<mxGeometry>` 内の `<Array as="points">` に書く:
+
+```xml
+<mxCell id="e1" edge="1" parent="1" source="A" target="B"
+        style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;edgeStyle=none;">
+  <mxGeometry relative="1" as="geometry">
+    <Array as="points">
+      <mxPoint x="240" y="120" />
+      <mxPoint x="240" y="280" />
+    </Array>
+  </mxGeometry>
+</mxCell>
+```
+
+### ラベル
+
+- ラベルが矢印自体を覆い隠してはならない。
+- ラベル付き矢印の接続元と接続先の間隔は、ラベル幅近似値の **1.5 倍以上**を確保する。
+- ラベル幅近似値（px）= `全角文字数 × fontSize + 半角文字数 × fontSize × 0.55`。
+- 間隔不足は要素の配置を見直して解消する（矢印の迂回では解決しない）。
+
+### 形状ボキャブラリ
+
+形状の意味付け（角丸矩形 / 楕円 / 菱形 / 円柱 / 平行四辺形）は `figure-layer-convention` Skill の役割表に従う。同じ形・色で異なる責務レイヤのコンポーネントを並べてはならない。
+
+## 検証（drawio-lint）
+
+XML 生成後、エクスポート前に必ず実行する:
+
+```bash
+.claude/skills/drawio-authoring/bin/drawio-lint <input.drawio>
+```
+
+機械検証項目:
+
+1. 白背景矩形が `<root>` 直下の最初の vertex に存在し (0,0) を起点にしている。
+2. 全 edge が白系ストロークでない。
+3. `orthogonalEdgeStyle` を使う edge は `<Array as="points">` で経由点が明示されている。
+4. 全 edge セグメントが **source/target/それらを含むコンテナ/bg 以外**の vertex bbox と交差していない。
+5. ラベル付き edge の source–target 間距離がラベル幅近似値の 1.5 倍以上ある。
+6. `<diagram>` 要素は 1 つだけ。
+
+ERROR が 1 つでも残っている間は SVG エクスポートしない。WARN（透明背景テキストとの交差等）は許容するが、`--strict` でエラー扱いに引き上げ可。
+
+## 複数レイヤが登場する場合
+
+アプリ層・ネットワーク層・インフラ層・データ層のうち 2 つ以上が同一図に登場する場合は、**`figure-layer-convention` Skill の色・線種・配置 3 軸の規約を併せて遵守する**。同じビジュアルで責務レイヤの異なるコンポーネントを並べてはならない。凡例ブロックの雛形は `templates/legend.xml` を参照。
+
+## SVG エクスポート手順（WSL）
+
+専用ラッパーを使う:
+
+```bash
+.claude/skills/drawio-authoring/bin/drawio-export <input.drawio>
+# → <input>.svg を同階層に出力（border=8 / embed-svg-fonts=true）
+```
+
+主要オプション:
+
+| オプション | 意味 | 既定 |
+|---|---|---|
+| `-o, --output <path>` | 出力先 SVG パス | `<input>.svg` |
+| `-b, --border <px>` | 図の外周マージン | `8` |
+| `--crop` | 余白を自動詰めて出力 | off |
+| `--page-index <N>` | マルチページ図の特定ページ | `0` |
+
+CLI の場所が異なる環境では `DRAWIO_BIN` 環境変数で上書きする。生 CLI を直接叩く場合は:
+
+```bash
+"/mnt/c/Program Files/draw.io/draw.io.exe" --export --format svg \
+  --embed-svg-fonts true --border 8 \
+  --output <出力先.svg> <入力.drawio>
+```
+
+## エクスポート後検証（svg-postcheck）
+
+```bash
+.claude/skills/drawio-authoring/bin/svg-postcheck <output.svg>
+```
+
+機械検証項目:
+
+- ファイルサイズ < 1 MB（embed-svg-fonts 暴走の検知）。
+- 文書ルート付近に白塗り `<rect>` が存在（白背景の反映確認）。
+- 空 `<text>` 要素が存在しない（フォント未解決の文字化け検知）。
+- 白系 stroke で消えている要素がない。
+
+最後に GitHub ダークテーマで別タブ目視確認する。
 
 ## 自己チェックリスト（エクスポート前に必ず通す）
 
-1. [ ] 白矢印を使っていない。
-2. [ ] 矢印がボックス・テキストに重なっていない（交差判定 4 ステップを実施済み）。
-3. [ ] `orthogonalEdgeStyle` の自動ルーティングに経路を任せず、経由点を明示指定している。
-4. [ ] ラベル付き矢印の接続元と接続先の間隔がラベル幅の 1.5 倍以上。
-5. [ ] ラベルが矢印自体を覆っていない。
-6. [ ] `<root>` 直下の最初の要素としてページ全体を覆う白矩形を配置した。
-7. [ ] 複数レイヤが登場する場合、`figure-layer-convention` Skill のレイヤ色・線種を遵守している。
-8. [ ] 同じビジュアル（形・色）で異なる責務レイヤのコンポーネントを並べていない。
-9. [ ] 凡例ブロックが右下に配置されている（レイヤ色・線種サンプル）。
-10. [ ] SVG エクスポート後、GitHub のダークテーマでも視認可能か確認した（別タブで開いて目視）。
+1. [ ] `drawio-lint` が ERROR ゼロで通った。
+2. [ ] `<root>` 直下の最初の vertex がページ全体を覆う白矩形である。
+3. [ ] 白系ストロークの矢印を使っていない。
+4. [ ] 矢印がボックス・テキストに重なっていない（lint の交差判定が緑）。
+5. [ ] `orthogonalEdgeStyle` 使用時は `<Array as="points">` で経由点を明示指定している。
+6. [ ] ラベル付き矢印の接続元と接続先の間隔がラベル幅近似値の 1.5 倍以上ある。
+7. [ ] ラベルが矢印自体を覆っていない。
+8. [ ] 線・文字に `#333333` 以上のコントラストを確保している。
+9. [ ] 同じビジュアル（形・色）で異なる責務レイヤのコンポーネントを並べていない。
+10. [ ] 複数レイヤ図の場合、`figure-layer-convention` の色・線種・凡例配置を遵守している。
+11. [ ] `<diagram>` 要素は 1 つだけ（マルチページではない）。
+12. [ ] ファイルが md と同階層の `img/` 配下に `<topic>_<subtopic>_<concept>.{drawio,svg}` で配置されている。
+13. [ ] `.drawio` 更新と `.svg` 再エクスポートを同一コミットに含める。
+14. [ ] `drawio-export` で出力した SVG が `svg-postcheck` を ERROR ゼロで通った。
+15. [ ] GitHub ダークテーマで別タブ目視確認した。
+
+## 同梱資産
+
+- `bin/drawio-lint` — `.drawio` XML の規約検証（Python 3.10+）
+- `bin/svg-postcheck` — エクスポート済 SVG の規約検証（Python 3.10+）
+- `bin/drawio-export` — WSL から draw.io.exe を呼ぶ統一ラッパー
+- `templates/canvas.drawio` — 白背景＋タイトル付き 1200×800 雛形
+- `templates/legend.xml` — 複数レイヤ図用の凡例ブロック雛形

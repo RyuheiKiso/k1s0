@@ -1,0 +1,380 @@
+#!/usr/bin/env python3
+"""drawio-lint — validate drawio XML against k1s0 authoring rules.
+
+Checks:
+  1. White background rect is the first non-base vertex, sits at (0,0), no stroke.
+  2. No edge with white stroke (#FFFFFF / white).
+  3. orthogonalEdgeStyle edges declare explicit waypoints.
+  4. Edge segments do not intersect non-endpoint vertex bboxes.
+  5. Labeled edge source-target distance >= 1.5 * approximate label width.
+  6. Single <diagram> element (one figure per file).
+
+Exits non-zero on any violation.
+"""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import re
+import sys
+import urllib.parse
+import xml.etree.ElementTree as ET
+import zlib
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+@dataclass
+class Vertex:
+    id: str
+    x: float
+    y: float
+    w: float
+    h: float
+    style: str
+
+    @property
+    def cx(self) -> float:
+        return self.x + self.w / 2
+
+    @property
+    def cy(self) -> float:
+        return self.y + self.h / 2
+
+
+@dataclass
+class Edge:
+    id: str
+    source: str | None
+    target: str | None
+    style: str
+    value: str
+    source_pt: tuple[float, float] | None
+    target_pt: tuple[float, float] | None
+    waypoints: list[tuple[float, float]] = field(default_factory=list)
+
+
+def parse_style(style: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for kv in style.split(";"):
+        if "=" in kv:
+            k, _, v = kv.partition("=")
+            out[k.strip()] = v.strip()
+    return out
+
+
+def load_graph(path: Path) -> tuple[ET.Element, int]:
+    tree = ET.parse(path)
+    root = tree.getroot()
+    if root.tag == "mxGraphModel":
+        return root, 1
+    diagrams = list(root.findall(".//diagram"))
+    if not diagrams:
+        raise RuntimeError("no <diagram> element")
+    inner = diagrams[0].find("mxGraphModel")
+    if inner is not None:
+        return inner, len(diagrams)
+    text = (diagrams[0].text or "").strip()
+    if not text:
+        raise RuntimeError("empty <diagram>")
+    raw = base64.b64decode(text)
+    decompressed = zlib.decompress(raw, -15)
+    decoded = urllib.parse.unquote(decompressed.decode("utf-8"))
+    return ET.fromstring(decoded), len(diagrams)
+
+
+def collect(graph: ET.Element) -> tuple[list[Vertex], list[Edge]]:
+    vertices: list[Vertex] = []
+    edges: list[Edge] = []
+    root = graph.find("root")
+    if root is None:
+        raise RuntimeError("no <root>")
+    for cell in root.findall("mxCell"):
+        cid = cell.get("id", "")
+        if cell.get("vertex") == "1":
+            geom = cell.find("mxGeometry")
+            if geom is None:
+                continue
+            try:
+                x = float(geom.get("x", "0"))
+                y = float(geom.get("y", "0"))
+                w = float(geom.get("width", "0"))
+                h = float(geom.get("height", "0"))
+            except ValueError:
+                continue
+            vertices.append(
+                Vertex(id=cid, x=x, y=y, w=w, h=h, style=cell.get("style", ""))
+            )
+        elif cell.get("edge") == "1":
+            geom = cell.find("mxGeometry")
+            sp = tp = None
+            wps: list[tuple[float, float]] = []
+            if geom is not None:
+                for pt in geom.findall("mxPoint"):
+                    role = pt.get("as", "")
+                    try:
+                        px = float(pt.get("x", "0"))
+                        py = float(pt.get("y", "0"))
+                    except ValueError:
+                        continue
+                    if role == "sourcePoint":
+                        sp = (px, py)
+                    elif role == "targetPoint":
+                        tp = (px, py)
+                arr = geom.find("Array[@as='points']")
+                if arr is not None:
+                    for pt in arr.findall("mxPoint"):
+                        try:
+                            wps.append(
+                                (float(pt.get("x", "0")), float(pt.get("y", "0")))
+                            )
+                        except ValueError:
+                            pass
+            edges.append(
+                Edge(
+                    id=cid,
+                    source=cell.get("source"),
+                    target=cell.get("target"),
+                    style=cell.get("style", ""),
+                    value=cell.get("value") or "",
+                    source_pt=sp,
+                    target_pt=tp,
+                    waypoints=wps,
+                )
+            )
+    return vertices, edges
+
+
+def segment_rect_intersects(
+    x0: float, y0: float, x1: float, y1: float,
+    xmin: float, ymin: float, xmax: float, ymax: float,
+    eps: float = 1e-6,
+) -> bool:
+    """Liang-Barsky: True iff segment crosses the rectangle interior."""
+    dx = x1 - x0
+    dy = y1 - y0
+    p = (-dx, dx, -dy, dy)
+    q = (x0 - xmin, xmax - x0, y0 - ymin, ymax - y0)
+    t_enter = 0.0
+    t_exit = 1.0
+    for pi, qi in zip(p, q):
+        if abs(pi) < eps:
+            if qi < 0:
+                return False
+        else:
+            t = qi / pi
+            if pi < 0:
+                if t > t_exit:
+                    return False
+                if t > t_enter:
+                    t_enter = t
+            else:
+                if t < t_enter:
+                    return False
+                if t < t_exit:
+                    t_exit = t
+    return t_exit - t_enter > eps
+
+
+def label_text(value: str) -> str:
+    text = re.sub(r"<[^>]+>", "", value)
+    text = (
+        text.replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+    )
+    return text.strip()
+
+
+def label_width(text: str, font_size: float) -> float:
+    full = sum(1 for ch in text if ord(ch) > 0x7F)
+    half = len(text) - full
+    return full * font_size + half * font_size * 0.55
+
+
+def lint_one(path: Path) -> tuple[list[str], list[str]]:
+    violations: list[str] = []
+    warnings: list[str] = []
+
+    graph, ndiagrams = load_graph(path)
+    if ndiagrams > 1:
+        violations.append(
+            f"multi-page drawio ({ndiagrams} diagrams) — split into separate files"
+        )
+
+    vertices, edges = collect(graph)
+    non_base = [v for v in vertices if v.id not in ("0", "1")]
+    if not non_base:
+        violations.append("no vertices found")
+        return violations, warnings
+
+    bg = non_base[0]
+    bg_style = parse_style(bg.style)
+    if bg_style.get("fillColor", "").lower() not in ("#ffffff", "white"):
+        violations.append(
+            f"first vertex '{bg.id}' is not a white background rect "
+            f"(fillColor={bg_style.get('fillColor', '<none>')})"
+        )
+    if bg_style.get("strokeColor", "none").lower() != "none":
+        warnings.append(
+            f"background rect '{bg.id}' has visible stroke "
+            f"({bg_style.get('strokeColor')})"
+        )
+    if bg.x != 0 or bg.y != 0:
+        warnings.append(
+            f"background rect '{bg.id}' should sit at (0,0); found ({bg.x},{bg.y})"
+        )
+
+    bg_id = bg.id
+    vmap = {v.id: v for v in vertices}
+
+    for e in edges:
+        st = parse_style(e.style)
+        sc = st.get("strokeColor", "").lower()
+        if sc in ("#ffffff", "white"):
+            violations.append(f"edge '{e.id}' has white stroke")
+        if st.get("edgeStyle") == "orthogonalEdgeStyle" and not e.waypoints:
+            violations.append(
+                f"edge '{e.id}' uses orthogonalEdgeStyle without explicit waypoints"
+            )
+
+    def contains(outer: Vertex, inner: Vertex) -> bool:
+        return (
+            outer.x <= inner.x
+            and outer.y <= inner.y
+            and outer.x + outer.w >= inner.x + inner.w
+            and outer.y + outer.h >= inner.y + inner.h
+            and outer.id != inner.id
+        )
+
+    def contains_point(outer: Vertex, px: float, py: float) -> bool:
+        return outer.x <= px <= outer.x + outer.w and outer.y <= py <= outer.y + outer.h
+
+    def is_transparent_annotation(v: Vertex) -> bool:
+        # drawio 'text;' shape defaults to transparent fill+stroke; treat as
+        # transparent annotation unless the user explicitly added a fill/stroke.
+        st = parse_style(v.style)
+        fill = st.get("fillColor", "").lower()
+        stroke = st.get("strokeColor", "").lower()
+        if fill == "none" and stroke == "none":
+            return True
+        starts_text = v.style.lstrip().startswith("text;") or v.style.lstrip().startswith("text ")
+        if starts_text and fill in ("", "none") and stroke in ("", "none"):
+            return True
+        return False
+
+    for e in edges:
+        pts: list[tuple[float, float]] = []
+        if e.source and e.source in vmap:
+            v = vmap[e.source]
+            pts.append((v.cx, v.cy))
+        elif e.source_pt:
+            pts.append(e.source_pt)
+        pts.extend(e.waypoints)
+        if e.target and e.target in vmap:
+            v = vmap[e.target]
+            pts.append((v.cx, v.cy))
+        elif e.target_pt:
+            pts.append(e.target_pt)
+        if len(pts) < 2:
+            continue
+        ignore = {e.source, e.target, bg_id, "0", "1", None}
+        src_v = vmap.get(e.source) if e.source else None
+        tgt_v = vmap.get(e.target) if e.target else None
+        sp = (src_v.cx, src_v.cy) if src_v else e.source_pt
+        tp = (tgt_v.cx, tgt_v.cy) if tgt_v else e.target_pt
+        for i in range(len(pts) - 1):
+            x0, y0 = pts[i]
+            x1, y1 = pts[i + 1]
+            for v in vertices:
+                if v.id in ignore:
+                    continue
+                if src_v and contains(v, src_v):
+                    continue
+                if tgt_v and contains(v, tgt_v):
+                    continue
+                if sp and contains_point(v, sp[0], sp[1]):
+                    continue
+                if tp and contains_point(v, tp[0], tp[1]):
+                    continue
+                pad = 0.5
+                if segment_rect_intersects(
+                    x0, y0, x1, y1,
+                    v.x + pad, v.y + pad,
+                    v.x + v.w - pad, v.y + v.h - pad,
+                ):
+                    msg = (
+                        f"edge '{e.id}' segment {i} crosses vertex '{v.id}' bbox"
+                    )
+                    if is_transparent_annotation(v):
+                        warnings.append(msg + " (transparent annotation)")
+                    else:
+                        violations.append(msg)
+
+    for e in edges:
+        text = label_text(e.value)
+        if not text:
+            continue
+        st = parse_style(e.style)
+        try:
+            fs = float(st.get("fontSize", "12"))
+        except ValueError:
+            fs = 12.0
+        lw = label_width(text, fs)
+        if lw <= 0:
+            continue
+        if e.source and e.source in vmap:
+            sx, sy = vmap[e.source].cx, vmap[e.source].cy
+        elif e.source_pt:
+            sx, sy = e.source_pt
+        else:
+            continue
+        if e.target and e.target in vmap:
+            tx, ty = vmap[e.target].cx, vmap[e.target].cy
+        elif e.target_pt:
+            tx, ty = e.target_pt
+        else:
+            continue
+        dist = ((sx - tx) ** 2 + (sy - ty) ** 2) ** 0.5
+        if dist < lw * 1.5:
+            violations.append(
+                f"edge '{e.id}' label '{text[:24]}' width≈{lw:.0f}px violates 1.5x rule "
+                f"(source-target distance {dist:.0f}px)"
+            )
+
+    return violations, warnings
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(prog="drawio-lint")
+    ap.add_argument("paths", nargs="+", type=Path)
+    ap.add_argument(
+        "--strict", action="store_true", help="treat warnings as errors"
+    )
+    args = ap.parse_args(argv)
+
+    failed = 0
+    for path in args.paths:
+        try:
+            violations, warnings = lint_one(path)
+        except Exception as e:
+            print(f"{path}: parse error: {e}", file=sys.stderr)
+            failed += 1
+            continue
+        for v in violations:
+            print(f"{path}: ERROR {v}", file=sys.stderr)
+        for w in warnings:
+            print(f"{path}: WARN  {w}", file=sys.stderr)
+        if violations:
+            failed += 1
+        elif args.strict and warnings:
+            failed += 1
+        else:
+            print(f"{path}: ok")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
