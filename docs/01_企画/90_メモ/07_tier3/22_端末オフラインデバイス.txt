@@ -53,6 +53,12 @@ tier3 の対応端末・オフライン・デバイス連携
     する。
       例：iOS Safari / Android Chrome から「ホームに追加」で
           installable とする。
+  - iOS は工場 deploy（25h+ 連続オフライン運用）の prerequisite
+    として **iOS 16.4 以降の Add-to-Home-Screen インストール済
+    PWA**（display-mode standalone）を必須化する。Safari タブ
+    起動は ITP（7 日未訪問で IndexedDB 等 script-writable
+    storage を自動削除）の対象であり、25h SLO の対象外として
+    capability_matrix で明示する（以下「オフライン対応」節整合）。
 
 ■ PWA
   - Service Worker : 静的アセット / オフライン shell を cache。
@@ -68,12 +74,25 @@ tier3 の対応端末・オフライン・デバイス連携
     バナーを表示する（「17_通知UI」整合）。
 
 ■ オフライン対応（製造現場の断続接続前提）
+  - 端末別の前提 :
+      - Windows / Android Chrome / 堅牢タブレット / ハンドヘルド :
+        通常の PWA 起動で navigator.storage.persist() granted を
+        条件に 25h 連続オフライン運用を前提化する。
+      - iOS（Safari エンジン）: Safari タブ単独では ITP により
+        7 日間未訪問の origin の script-writable storage（Indexed
+        DB / Cache Storage / LocalStorage 等）が自動削除されるた
+        め、persist() granted の有無に関わらず 25h 連続オフライン
+        運用が成立しない。25h 運用前提は **iOS 16.4 以降の
+        Add-to-Home-Screen インストール済 PWA**（display-mode
+        standalone）に限り対応する（iOS の installed PWA は
+        Safari タブとは別 storage scope を持ち ITP の 7 日 rule
+        の対象外）。Safari タブ単独は工場 deploy 対象外。
   - permanent storage の取得 :
       - アプリ起動時に navigator.storage.persist() を要求する。
         granted=true なら IndexedDB が長期未使用 origin の
         eviction 対象から外れる（Chrome は origin あたり
-        ディスクの ~60%、iOS Safari は ~1GB の quota 上限の
-        中で永続化）。
+        ディスクの ~60%、iOS installed PWA は ~1GB の quota 上限
+        の中で永続化）。
       - granted=false の端末では IndexedDB.estimate() で残容量
         を見積り、requested_quota_bytes（端末別 default 500MB、
         添付写真を queue する現場では 2GB）未満なら queue 拒否
@@ -82,10 +101,19 @@ tier3 の対応端末・オフライン・デバイス連携
         は破壊しない（「39_クライアント状態適合仕様」整合、
         ClientCapabilityError は client SDK / tier1 Library
         レベルのクライアント環境エラーカテゴリ）。
-      - 25h 以上の連続オフライン運用が前提の端末では persist
-        granted を必須化（granted=false の端末は工場現場
-        deploy 対象から除外、Kyverno admission policy 相当の
-        端末側 health probe で物理 enforce）。
+      - 25h 以上の連続オフライン運用が前提の端末では次の
+        いずれかを必須化する :
+          (a) Windows / Android Chrome の persist granted。
+          (b) iOS 16.4+ の Add-to-Home-Screen インストール済
+              PWA（display-mode standalone）。
+        条件不成立の端末は工場現場 deploy 対象から除外、端末側
+        health probe（navigator.storage.persisted() に加え、
+        iOS では window.matchMedia('(display-mode: standalone)')
+        .matches と navigator.standalone === true を併用判定）で
+        起動時 enforce する。capability_matrix.lock.yaml に
+        installed_pwa_required 列を持ち（iOS=true、Windows /
+        Android=false）、Backstage onboarding workflow の
+        prerequisite step で installed-PWA 判定を必須化する。
   - 読取 :
       - cache-first 戦略を IndexedDB に対し適用する（「08_状態管理」
         永続化整合）。

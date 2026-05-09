@@ -150,8 +150,11 @@ client オフライン耐性方針
   - LocalStorage / SessionStorage への PII 平文書込：禁止
     （lint で deny）。
   - cookie への refresh_token 永続化：HttpOnly + Secure +
-    SameSite=Strict のみ許容、SDK 内 JavaScript からは触
-    れない。
+    SameSite=Lax のみ許容（OIDC redirect 戻りでの cookie 失効を
+    回避するため、07_tier3/25_認証認可マルチテナント /
+    07_tier3/40_BFF_auth_edge / 07_tier3/32_セキュリティアーキ
+    テクチャ と整合。CSRF は Double-Submit Cookie + Origin/
+    Referer 二重検査で担保）、SDK 内 JavaScript からは触れない。
   - 自製 crypto：禁止。
   - PII を含むまま enqueue：禁止。strip → in-memory 再 attach
     のフローを物理 enforce。

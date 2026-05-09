@@ -210,9 +210,11 @@ tier1 OSS ライフサイクル適合仕様（v1）
                                              |                                                  |    対象限定、v1 では該当 OSS 無し
                                              |                                                  |    、4-A 参照)
         webtransport_upstream_maturity_event | envoy github_releases + chrome/edge release      | Envoy WebTransport native GA
-                                             |   notes / caniuse api                            |   (non-experimental) かつ Chrome
-                                             |                                                  |   / Edge stable で WebTransport
-                                             |                                                  |   default-on を満たす
+                                             |   notes / caniuse api / IETF datatracker         |   (non-experimental) かつ Chrome
+                                             |   (draft-ietf-webtrans-http3 status)             |   / Edge stable で WebTransport
+                                             |                                                  |   default-on かつ draft-ietf-
+                                             |                                                  |   webtrans-http3 の RFC 昇格を
+                                             |                                                  |   満たす（3 条件 AND）
 
   - signal source は oss_inventory.lock.yaml の各 OSS entry に endpoint
     / cadence / threshold を declare する。

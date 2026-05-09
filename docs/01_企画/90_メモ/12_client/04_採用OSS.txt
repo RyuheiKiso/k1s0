@@ -100,16 +100,21 @@ client 採用 OSS（client 層 subset）
       Kotlin / Connect Swift / connectrpc-net）は Browser SPA 経路と
       同一 .proto から並走 codegen され、必要に応じて adapter 選択
       可能（v1_l1plus_primary）。
-    - v1_legacy_dotnet_framework (.NET Framework 4.6.2+): Grpc.Net.
-      Client は WinHttpHandler 経由で .NET Framework 4.6.2+ にも動作
-      するが、client-streaming / bidi に構造的制約があり、tier1
-      Library 抽象（bidi RPC を含む）を素直に載せられないため本
-      class では採用しない（05_tier1/02_言語スタック 整合）。
-      Companion 役割 B の sse_paired adapter が HTTP/1.1 chunked +
-      SSE の自製パーサで server-streaming を、HTTP/1.1 POST で unary
-      を担う（自製 SSE parser 行参照）。Connect-RPC bidi も .NET
-      Framework は WinHttpHandler の HTTP/2 制約により不安定なため
-      採用しない（sse_paired を既定とする）。
+    - v1_legacy_dotnet_framework (.NET Framework 4.6.2+ かつ
+      Windows 10 1607+ / Server 2016+): Grpc.Net.Client は
+      WinHttpHandler 経由で当該条件下に動作するが、client-streaming
+      / bidi に構造的制約があり、tier1 Library 抽象（bidi RPC を
+      含む）を素直に載せられないため本 class では採用しない
+      （05_tier1/02_言語スタック 整合、05_tier1/16_HTTP2_enforcement
+      の OS prerequisite と双方向 lock）。Companion 役割 B の
+      sse_paired adapter が HTTP/1.1 chunked + SSE の自製パーサで
+      server-streaming を、HTTP/1.1 POST で unary を担う（自製 SSE
+      parser 行参照）。Connect-RPC bidi も .NET Framework は
+      WinHttpHandler の HTTP/2 制約（OS 版数依存 + client-streaming
+      制約）により不安定なため採用しない（sse_paired を既定とする）。
+      OS 版数下限（Windows 10 1607 / Server 2016）未満の端末は
+      v1_legacy_http11 capability_class に fall back（per-tab
+      subscription 上限 6）し、ALPN h2 を要求しない。
     - v1_browser_spa_typescript: 本 class の bidi primary は
       Connect-RPC over HTTP/2 / HTTP/3（Browser fetch full-duplex
       streams）。grpc-web は unary / server-streaming 用、bidi の

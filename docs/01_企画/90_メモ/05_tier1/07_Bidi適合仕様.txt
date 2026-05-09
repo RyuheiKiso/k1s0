@@ -257,13 +257,20 @@ tier1 Bidi 適合仕様（v1）
                   requires_fallback: true   # Envoy upstream の
                                             # WebTransport native
                                             # サポートが alpha /
-                                            # experimental 段階のため、
-                                            # Capability Negotiation
-                                            # で connect_bidi /
-                                            # sse_paired 等の fallback
-                                            # 併存必須。詳細は 08_infra
-                                            # /06 HTTP/3 + WebTransport
-                                            # 節 / 04_Library Companion
+                                            # experimental 段階かつ
+                                            # WebTransport over HTTP/3
+                                            # 自体が IETF Internet-
+                                            # Draft（draft-ietf-
+                                            # webtrans-http3、RFC 化
+                                            # 前段階）+ RFC 9297 HTTP
+                                            # Datagrams で標準化進行中
+                                            # のため、Capability
+                                            # Negotiation で connect_
+                                            # bidi / sse_paired 等の
+                                            # fallback 併存必須。詳細
+                                            # は 08_infra/06 HTTP/3 +
+                                            # WebTransport 節 /
+                                            # 04_Library Companion
                                             # 役割 B web_transport 行。
               sse_paired:
                 supports: [v1_alert, v1_event_feed, v1_live_snapshot]

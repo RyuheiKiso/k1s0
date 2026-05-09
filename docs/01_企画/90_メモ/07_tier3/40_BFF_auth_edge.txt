@@ -24,8 +24,7 @@ tier3 BFF auth-edge（v1）
           ホスティングは listener を持たない）。
       (c) iframe + prompt=none による silent renew（Safari ITP /
           Firefox ETP / Chrome の third-party cookie 既定ブロック
-          下で IdP cookie が抑止され interaction_required となる。
-          25 自身が記述する SameSite=Lax 必須とも相互矛盾）。
+          下で IdP cookie が抑止され interaction_required となる）。
   - これらを解消する唯一の現実解として、tier3 ごとに first-party
     な auth/session edge（本 BFF）を立てる。
 
@@ -45,10 +44,16 @@ tier3 BFF auth-edge（v1）
   - 役割 BFF-A : session / cookie 管理
       - login 成功時に Keycloak から OIDC code flow + PKCE で取得
         した tokens を BFF process memory + Valkey に保管。
-      - SPA に対しては httpOnly + Secure + SameSite=Strict +
+      - SPA に対しては httpOnly + Secure + SameSite=Lax +
         Path=/ + Domain=<tier3>.<tenant>.<root_domain> の
         session_id cookie のみを発行する（access_token 自体は
-        SPA に渡さない）。
+        SPA に渡さない）。SameSite は Lax 固定とする。Strict は
+        Keycloak → BFF callback（OIDC code flow の cross-site
+        top-level navigation）で BFF が事前に発行した state /
+        PKCE / nonce cookie が落ち、code 検証が破綻するため採ら
+        ない（07_tier3/25_認証認可マルチテナント の Lax 判断を
+        BFF も継承）。CSRF は SameSite=Lax + Double-Submit
+        Cookie + Origin/Referer 二重検査で担保する（後述 BFF-E）。
   - 役割 BFF-B : Authorization header 付与
       - SPA → BFF は fetch credentials:'include' で session_id
         cookie のみを送出。BFF は cookie から server-side state
@@ -71,7 +76,14 @@ tier3 BFF auth-edge（v1）
         受信して即座に画面遷移）。
   - 役割 BFF-E : CSRF / CORS 規律
       - SPA → BFF の全 mutation request に CSRF token 必須
-        （Double-Submit Cookie pattern、SameSite=Strict と二重持ち）。
+        （Double-Submit Cookie pattern + Origin/Referer 二重検査、
+        SameSite=Lax と二重持ち。SameSite=Lax は GET 以外の
+        cross-site request を防ぐが POST 等 idempotent でない
+        top-level navigation の余地が残るため、二重送信 CSRF
+        token を fetch のカスタムヘッダ X-CSRF-Token で必須送出
+        + サーバ側で Origin / Referer を二重検査する、
+        25_認証認可マルチテナント / 32_セキュリティアーキテクチャ
+        と整合）。
       - CORS は Origin allowlist を tier3 manifest から導出、
         wildcard 禁止、preflight cache 5 min 上限。
 
@@ -99,9 +111,12 @@ tier3 BFF auth-edge（v1）
     これらは tier3 manifest の `bff_auth_edge` セクションに集約し、
     Backstage Software Template で生成する（手書き禁止）。
   - sub-domain ごとの TLS 証明書を cert-manager + ACME で自動発行。
-  - tier3 間の cookie 漏洩は cookie Domain scope と SameSite=Strict
-    で構造的に遮断、追加で CI が `Set-Cookie Domain` のスコープ
-    違反を検出。
+  - tier3 間の cookie 漏洩は cookie Domain scope
+    （Domain=<tier3>.<tenant>.<root_domain>、別 tier3 sub-domain
+    から構造的に到達不能）で遮断、追加で CI が `Set-Cookie
+    Domain` のスコープ違反を検出。SameSite は OIDC redirect 整合
+    のため Lax を採るが、tier3 間の遮断は Domain scope が担う
+    ため SameSite 値に依存しない。
   - back-channel logout の Keycloak 側登録は Keycloak Realm
     Operator で Backstage から自動登録。
 
@@ -121,3 +136,12 @@ tier3 BFF auth-edge（v1）
             session_renew_latency_seconds（refresh_token
             rotation の P99 latency）を追加し、BFF 障害が
             業務 latency に化けないことを CI で確認。
+  - 整合 6 : 07_tier3/25_認証認可マルチテナント の SameSite=Lax
+            判断（Keycloak SSO redirect 戻りで Strict cookie が
+            落ちる根拠）を BFF も継承。BFF が発行する全 cookie
+            （session_id / state / PKCE / nonce / CSRF token）は
+            SameSite=Lax 固定、CSRF は Double-Submit Cookie +
+            Origin/Referer 二重検査で担保（BFF-E）。
+            12_client/07_オフライン耐性方針 / 12_client/15_クラ
+            イアントSDK配布適合仕様 の cookie SameSite 規約も
+            本整合に従って Lax に揃える。

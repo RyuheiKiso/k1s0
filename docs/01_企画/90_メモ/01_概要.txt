@@ -48,14 +48,18 @@
           transport 非依存に実行する。役割 B は CLR Profiler 経由
           ではなく、明示的な NuGet 参照（k1s0.Companion.NetFx
           パッケージ、IL rewrite ではない通常のライブラリ参照）
-          として配布する。CLR Profiler は HTTP/2 / HTTP/3 stack を
-          持たない WinHTTP / HttpWebRequest の上に WebSocket / SSE /
-          HTTP/3 を生やすことはできないため、Transport Negotiation
-          を観測可能性と同経路で自動化することはできず、別 NuGet で
-          生やす。.NET Framework Companion の bidi 経路は WinHttp
-          Handler の HTTP/2 制約により Connect-RPC bidi を採用せず、
-          引き続き sse_paired（HTTP/1.1 chunked + SSE + 自製パーサ）
-          を既定とする。Browser SPA の bidi primary は Connect-RPC
+          として配布する。CLR Profiler は HttpWebRequest（h2 非対応
+          stack）と、Windows 10 1607 / Server 2016 未満ホスト OS の
+          WinHTTP（OS 側 WinHTTP API が h2 を実装しない版数）の上に
+          WebSocket / SSE / HTTP/3 を生やすことはできないため、
+          Transport Negotiation を観測可能性と同経路で自動化する
+          ことはできず、別 NuGet で生やす。.NET Framework Companion
+          の bidi 経路は WinHttpHandler の HTTP/2 ALPN がホスト OS
+          側 WinHTTP の h2 対応版数（Windows 10 1607+ / Server
+          2016+）に依存し、かつ WinHttpHandler 自体に client-
+          streaming / bidi の構造的制約があるため Connect-RPC bidi
+          を採用せず、引き続き sse_paired（HTTP/1.1 chunked + SSE
+          + 自製パーサ）を既定とする。Browser SPA の bidi primary は Connect-RPC
           が担い、本経路は .NET Framework Companion とは独立に成立
           する（詳細は「05_tier1/03_Server系」Transport Adapter
           Layer /「05_tier1/04_Library」Companion 役割 A / 役割 B

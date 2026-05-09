@@ -33,14 +33,35 @@ tier1 ingress HTTP/2 強制（v1）
         WinHttpHandler を必須依存として NuGet 配布、
         WinHttpHandler の H2 サポートを利用して ALPN h2 を
         ネゴシエート。
-      - 4.6.2 + WinHttpHandler 必須を Companion 配布時の
-        prerequisite として明示（4.6.1 以前は v1_legacy_http11
-        にしか fall back しない）。
+      - WinHttpHandler の HTTP/2 ALPN は「.NET Framework
+        4.6.2 以上」だけでは決まらず、ホスト OS 側の
+        WinHTTP API が h2 を実装している版数（**Windows 10
+        version 1607 以降 / Windows Server 2016 以降**）が
+        合わさって初めて成立する。WinHttpHandler は内部で
+        WinHTTP を呼ぶため、OS が h2 を持たない環境では
+        ALPN h2 ネゴシエーションは失敗する。
+      - したがって Companion 配布時の prerequisite は
+        「**.NET Framework 4.6.2+ かつ Windows 10 1607+ /
+        Server 2016+ かつ WinHttpHandler 必須**」を 3 条件の
+        合成として明示する（いずれか欠ける環境は
+        v1_legacy_http11 にのみ fall back）。
+      - prerequisite check は Companion 起動時に
+        `Environment.OSVersion`（10.0.14393 = Windows 10 1607
+        の build number 14393、または同等の Server 2016 build
+        14393）を probe し、不足端末は v1_legacy_http11 へ
+        起動時 fall back（H2-C）。さらに Backstage onboarding
+        workflow の prerequisite step として OS 版数 check を
+        H2 reachability check と並列必須化する。
   - 役割 H2-C : v1_legacy_http11 capability_class
-      - h2 prior-knowledge / ALPN h2 が不可な企業 FW 環境
-        （古い proxy / DLP appliance / TLS インスペクション
-        appliance）向けに v1_legacy_http11 を別 capability_class
-        として維持。
+      - h2 prior-knowledge / ALPN h2 が不可な環境向けに
+        v1_legacy_http11 を別 capability_class として維持。
+        該当する物理条件は次のいずれか :
+          - 企業 FW / DLP / TLS インスペクション appliance が
+            ALPN h2 を遮断する。
+          - Windows 7 / 8.1 / Server 2008R2 / Server 2012 等、
+            ホスト OS の WinHTTP が h2 を持たない版数
+            （Windows 10 1607 未満）。
+          - .NET Framework 4.6.1 以前。
       - v1_legacy_http11 の per-tab subscription 上限は 6（HTTP/1.1
         の物理上限）と honest に明示、機能は同等だが connection
         数縛りで縮退する。
@@ -68,11 +89,16 @@ tier1 ingress HTTP/2 強制（v1）
 ■ 副作用
   - h2 prior-knowledge / ALPN h2 不可な企業 FW 環境は
     v1_legacy_http11 経路に fall back する以外接続不能。
-  - .NET Framework 4.6.1 以下は v1_legacy_http11 にのみ fall
+  - .NET Framework 4.6.1 以下、または OS 版数が Windows 10
+    1607 / Server 2016 未満（Windows 7 / 8.1 / Server 2008R2
+    / Server 2012 等）の端末は v1_legacy_http11 にのみ fall
     back（4 stack 観測経路は server 側 Collector 補完に依存）。
   - 既存社内 proxy / DLP / TLS インスペクション appliance の
-    H2 互換性確認が tier3 導入前の prerequisite。Backstage の
-    onboarding workflow で「H2 reachability check」を必須化。
+    H2 互換性確認、および Companion 利用端末の OS 版数確認が
+    tier3 導入前の prerequisite。Backstage の onboarding
+    workflow で「H2 reachability check」と「Companion OS
+    version check（Windows 10 1607+ / Server 2016+）」を並列
+    必須化する。
 
 ■ 整合
   - 整合 1 : 07_tier3/16_リアルタイム更新UX の per-tab 16 を

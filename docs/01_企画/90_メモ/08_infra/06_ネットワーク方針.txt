@@ -99,17 +99,18 @@ infra ネットワーク方針
     listener は v1 本番必須。QUIC は UDP/443、firewall で許可。
     HTTP/3 を negotiate しないクライアントは Alt-Svc header
     advertise 経由で HTTP/2 fallback 可能。
-  - WebTransport over HTTP/3（RFC 9220 extended-connect /
-    Datagram）の Envoy native サポートは現状 alpha /
-    experimental 段階のため、v1 では capability_negotiation
-    経由の opt-in 採用とし、必ず fallback transport
-    （websocket / sse_paired）を chosen_transport として
+  - WebTransport over HTTP/3（`draft-ietf-webtrans-http3` の
+    extended-connect + RFC 9297 HTTP Datagrams）の Envoy native
+    サポートは現状 alpha / experimental 段階のため、v1 では
+    capability_negotiation 経由の opt-in 採用とし、必ず fallback
+    transport（websocket / sse_paired）を chosen_transport として
     併存させる。WebTransport を要求した client が websocket
     へ自動降格しても業務コード変更は不要（capability 宣言から
     自動降格、05_tier1/04_Library Companion 役割 B 参照）。
   - WebTransport の本番必須化は v2 に降格。Envoy upstream の
-    sustained release（GA / non-experimental）と RFC 9220
-    client 実装（Chrome / Edge stable）の両方が成熟した時点で
+    sustained release（GA / non-experimental）と
+    `draft-ietf-webtrans-http3` の RFC 昇格、および主要ブラウザ
+    （Chrome / Edge stable）の WebTransport 実装が成熟した時点で
     v2 候補として 14_OSSライフサイクル適合仕様 の
     `webtransport_upstream_maturity_event` trigger 経由で
     再評価する。

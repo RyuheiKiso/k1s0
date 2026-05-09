@@ -65,9 +65,11 @@
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
     Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 plain
     （QUIC + HTTP semantics、v1 必須）、HTTP/3 + WebTransport
-    （RFC 9220 extended-connect / Datagram、v1 opt-in、v2 必須化
-    候補）、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1 + chunked
-    SSE（text/event-stream）等の transport を同一クラスタ内で並立
+    （`draft-ietf-webtrans-http3`（IETF Internet-Draft、RFC 化前
+    段階）の extended-connect + RFC 9297 HTTP Datagrams、v1 opt-
+    in、v2 必須化候補）、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1
+    + chunked SSE（text/event-stream）等の transport を同一クラスタ
+    内で並立
     させる。本企画では Envoy Gateway（C++）が独立 upstream Pod の
     tier1 Rust SSE ハンドラへ HTTP/1.1 chunked で proxy し、Pod 間
     mTLS は Istio sidecar が担う。tier1 Rust ハンドラ Pod が

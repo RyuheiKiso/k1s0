@@ -190,8 +190,13 @@ client クライアント SDK 配布適合仕様（v1）
             non-extractable）。
           - refresh_token_storage_mode: in_memory_only +
             httponly_cookie_for_refresh（access_token は memory、
-            refresh_token は HttpOnly + Secure + SameSite=
-            Strict cookie + JS access 不能）。
+            refresh_token は HttpOnly + Secure + SameSite=Lax
+            cookie + JS access 不能。SameSite は OIDC redirect
+            戻りでの cookie 失効を回避するため Lax 固定、
+            07_tier3/25_認証認可マルチテナント / 07_tier3/40_
+            BFF_auth_edge / 12_client/07_オフライン耐性方針 と
+            整合。CSRF は Double-Submit Cookie + Origin/Referer
+            二重検査で担保）。
           - conformance_cadence_days: 14 日。
 
       - v1_thick_native_via_tauri
@@ -509,6 +514,31 @@ client クライアント SDK 配布適合仕様（v1）
                   capability_class_supported:
                     - web
                     - business_api_only
+              device_offline_requirements:
+                - capability_class: web
+                  ua_subclass: ios_safari
+                  installed_pwa_required: true
+                  # iOS Safari タブ単独は ITP（7 日未訪問で
+                  # script-writable storage 自動削除）の対象。
+                  # 25h 以上の連続オフライン運用は iOS 16.4+
+                  # Add-to-Home-Screen インストール済 PWA
+                  # （display-mode standalone）に限り対応
+                  # （07_tier3/22_端末オフラインデバイス 整合）。
+                  min_os_version: "16.4"
+                  health_probe_required:
+                    - navigator_storage_persisted
+                    - display_mode_standalone
+                    - navigator_standalone_true
+                - capability_class: web
+                  ua_subclass: android_chrome
+                  installed_pwa_required: false
+                  health_probe_required:
+                    - navigator_storage_persisted
+                - capability_class: web
+                  ua_subclass: windows_chromium_edge
+                  installed_pwa_required: false
+                  health_probe_required:
+                    - navigator_storage_persisted
 
   ── client/distribution/sdk_conformance.lock.yaml
       - 各 sdk_distribution_class の最新 conformance 実演履歴。
