@@ -41,7 +41,7 @@ client 採用 OSS（client 層 subset）
   カテゴリ                       | プロダクト                        | ライセンス
   -------------------------------+-----------------------------------+---------------
   gRPC C++ コア                  | gRPC                              | Apache 2.0
-  gRPC .NET                      | grpc-dotnet (Grpc.Net.Client)     | Apache 2.0
+  gRPC .NET (8 LTS のみ)         | grpc-dotnet (Grpc.Net.Client)     | Apache 2.0
   gRPC Java                      | grpc-java                         | Apache 2.0
   gRPC Node                      | @grpc/grpc-js                     | Apache 2.0
   gRPC-Web TypeScript            | grpc-web (improbable / official)  | Apache 2.0
@@ -56,9 +56,23 @@ client 採用 OSS（client 層 subset）
   SSE parser (Browser)           | native EventSource                | -
   SSE parser (.NET / 他言語)     | 自製（言語別、Buf 生成側で固定）  | Apache 2.0
 
-  - SDK 内部で利用する transport library。gRPC bidi が default、
-    Browser は gRPC-Web、HTTP/3 + WebTransport / WebSocket /
-    SSE は capability matrix で明示宣言された case のみ。
+  - SDK 内部で利用する transport library。distribution_class 別:
+    - v1_full_native_with_companion (.NET 8 LTS / Java 21 / Node 20
+      / Rust / Go / Python / Ruby): gRPC bidi が default、HTTP/3 +
+      WebTransport / WebSocket は capability matrix で明示宣言された
+      case のみ。
+    - v1_legacy_dotnet_framework (.NET Framework 4.6.2+): grpc-dotnet
+      （Grpc.Net.Client）は .NET Standard 2.1+ / .NET 6+ 必須のため
+      本 class では採用しない。Companion 役割 B の sse_paired adapter
+      が HTTP/1.1 chunked + SSE の自製パーサで server-streaming を、
+      HTTP/1.1 POST で unary を担う（自製 SSE parser 行参照）。
+    - v1_browser_spa_typescript: gRPC-Web、bidi primary fallback は
+      WebSocket、HTTP/3 + WebTransport は browser native API で opt-in。
+    - v1_thick_native_via_tauri: Rust 側 tonic（gRPC bidi）、WebView 側は
+      v1_browser_spa_typescript と同じ。
+    - v1_thin_business_api_only: HTTP/1.1 + JSON unary（Transcoder 派生）
+      + HTTP/1.1 chunked + SSE server-streaming（tier1 Rust ハンドラ
+      直接生成）のみ。SDK パッケージは提供しない。
   - SSE parser は data: / id: / event: / retry: の 4 directive
     を解釈する。id: は resume_token として用い、再接続時に
     Last-Event-ID リクエストヘッダで server へ送出する。

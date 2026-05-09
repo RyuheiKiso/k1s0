@@ -32,8 +32,13 @@ client Transport 適応方針
                           | bidi-streaming（gRPC bidi 完全）
       web                 | unary / server-streaming（gRPC-Web 標準）+
                           | WebSocket fallback bidi + WebTransport optional
-      limited             | unary / server-streaming（HTTP/2 over TLS、
-                          | bidi なし。.NET Framework Companion 経路）
+      limited             | unary / server-streaming（HTTP/1.1 + JSON
+                          | unary は Envoy gRPC-JSON Transcoder 派生、
+                          | HTTP/1.1 chunked + SSE server-streaming は
+                          | tier1 Rust ハンドラ直接生成。bidi
+                          | （v1_interactive）と client-streaming
+                          | （v1_bulk_upload）は対象外。.NET Framework
+                          | Companion 経路）
       business_api_only   | unary（HTTP/1.1 + JSON、Envoy Gateway
                           | gRPC-JSON Transcoder 経由）。server-streaming
                           | が必要な場合のみ HTTP/1.1 + SSE
@@ -80,8 +85,16 @@ client Transport 適応方針
                             webtransport_quic[opt]}
       web               → {grpc_web_grpc_only, websocket_bidi[bidi 用],
                             webtransport_quic[opt]}
-      limited           → {grpc_web_grpc_only, sse_streaming[server-
-                            streaming], http_json_unary[unary]}
+      limited           → {sse_streaming[server-streaming],
+                            http_json_unary[unary]}
+                            # 04_Library Companion 役割 B sse_paired
+                            # adapter と双方向 lock。grpc_web_grpc_only
+                            # は web capability_class（Browser SPA）
+                            # 専用、.NET Framework Companion には載せ
+                            # ない（02_採用OSS一覧 / 04_Library
+                            # 「CLR Profiler は HTTP/2 stack を持たない
+                            # WinHTTP / HttpWebRequest 上に新 wire
+                            # protocol を生やせない」原則の transposition）
       business_api_only → {sse_streaming[server-streaming], http_json_unary}
 
   - 各 RPC 呼出に対し SDK は次の決定論的順序で adapter を選択：
@@ -171,8 +184,14 @@ client Transport 適応方針
   - HTTP/3 + WebTransport は QUIC level で encryption 必須。
 
 ■ 採用しない transport
-  - SignalR / SSE primary：v1 では fallback として WebSocket
-    のみ採用、SSE は v2 候補。
+  - SignalR：採用しない（自製 frame protocol 禁止と整合）。
+  - Browser SPA における bidi primary：v1 では WebSocket
+    fallback のみ採用、Browser primary としての SSE bidi
+    emulation（POST + SSE pair の Browser 内実装）は v2
+    候補。サーバ→クライアント単方向の SSE server-streaming
+    そのものは v1 primary として 04_Library Companion 役割
+    B sse_paired / 03_Server系 External Proto server-
+    streaming で採用済（本節の対象外）。
   - HTTP/2 over Cleartext (h2c)：完全禁止。
   - 自製 frame protocol：禁止。全 transport は OSS 標準実装。
 

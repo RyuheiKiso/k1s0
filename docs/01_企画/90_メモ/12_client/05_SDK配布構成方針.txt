@@ -94,9 +94,13 @@ client SDK 配布構成方針
       - v1_legacy_dotnet_framework
           - language_runtime: .NET Framework 4.6.2+
           - distribution_channel: NuGet（Harbor mirror）
-          - transport_capability_class: limited（gRPC unary +
-            server-streaming、bidi は HTTP/2 over TLS が前提
-            のため Companion の HTTP/2 polyfill 経由）
+          - transport_capability_class: limited（HTTP/1.1 + JSON
+            unary は Envoy gRPC-JSON Transcoder 派生、HTTP/1.1
+            chunked + SSE server-streaming は tier1 Rust ハンドラ
+            直接生成、Companion 役割 B の sse_paired adapter で
+            受信。bidi（v1_interactive）と client-streaming
+            （v1_bulk_upload）は capability から除外、External
+            Proto の射影で取扱う）
           - auto_instrumentation_mode: clr_profiler_attach
             （opentelemetry-dotnet-instrumentation）
           - companion_provision_mode: required（k1s0.Companion

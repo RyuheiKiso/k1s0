@@ -70,14 +70,24 @@ client 観測 Auto-Instrumentation 方針
     しない）。最小 sampling rate は 0.001（千件に 1）。
 
 ■ exporter
-  - OTLP gRPC を default、 OTLP HTTP/JSON を fallback。
-    distribution_class 別：
+  - OTLP exporter wire は distribution_class 別に固定（default /
+    fallback の override 経路は SDK 公開 API として持たない）：
       - v1_full_native_with_companion       : OTLP gRPC →
                                               OTel Collector sidecar
                                               （DaemonSet on infra）
-      - v1_legacy_dotnet_framework          : OTLP gRPC over
-                                              HTTP/2、CLR Profiler
-                                              attach の標準 exporter
+      - v1_legacy_dotnet_framework          : OTLP HTTP/protobuf over
+                                              HTTP/1.1（CLR Profiler
+                                              経由の OTel .NET
+                                              Auto-Instrumentation は
+                                              環境変数
+                                              OTEL_EXPORTER_OTLP_PROTOCOL=
+                                              http/protobuf を Companion
+                                              NuGet（k1s0.Companion.NetFx）
+                                              起動時に強制 set し、HTTP/2
+                                              stack 不在の WinHTTP /
+                                              HttpWebRequest 経路と整合。
+                                              送出先は OTel Collector
+                                              edge endpoint）
       - v1_browser_spa_typescript           : OTLP HTTP/JSON →
                                               browser fetch、
                                               CORS-allowed Collector

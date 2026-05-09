@@ -146,9 +146,15 @@ client クライアント SDK 配布適合仕様（v1）
             （4.6.2 / 4.7.2 / 4.8 / 4.8.1 を classes.yaml で
             allowed_versions として列挙）。
           - distribution_channel: NuGet（Harbor mirror）。
-          - transport_capability_class: limited（gRPC unary +
-            server-streaming、bidi なし）。HTTP/2 over TLS が
-            前提のため Companion の HTTP/2 polyfill 経由。
+          - transport_capability_class: limited（HTTP/1.1 + JSON
+            unary は Envoy gRPC-JSON Transcoder 派生、HTTP/1.1
+            chunked + SSE server-streaming は tier1 Rust ハンドラ
+            直接生成。bidi（v1_interactive）と client-streaming
+            （v1_bulk_upload）は構造的非対応（前者は External Proto
+            の射影、後者は resumable upload 形式の unary 3 連 RPC
+            に射影、05_tier1/03_Server系 RPC 形式の射影方針 参照）。
+            Companion は k1s0.Companion.NetFx の sse_paired adapter
+            で受信実装を担う（05_tier1/04_Library 役割 B 参照）。
           - auto_instrumentation_mode: clr_profiler_attach。
             opentelemetry-dotnet-instrumentation の msi で
             attach、コード変更不要。
