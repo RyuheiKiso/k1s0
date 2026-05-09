@@ -105,6 +105,8 @@ XML 生成後、エクスポート前に必ず実行する:
 
 機械検証項目:
 
+基本ルール:
+
 1. 白背景矩形が `<root>` 直下の最初の vertex に存在し (0,0) を起点にしている。
 2. 全 edge が白系ストロークでない。
 3. `orthogonalEdgeStyle` を使う edge は `<Array as="points">` で経由点が明示されている。
@@ -112,7 +114,19 @@ XML 生成後、エクスポート前に必ず実行する:
 5. ラベル付き edge の source–target 間距離がラベル幅近似値の 1.5 倍以上ある。
 6. `<diagram>` 要素は 1 つだけ。
 
-ERROR が 1 つでも残っている間は SVG エクスポートしない。WARN（透明背景テキストとの交差等）は許容するが、`--strict` でエラー扱いに引き上げ可。
+拡張ルール:
+
+7. **ラベル bbox の干渉禁止**: edge ラベルの bbox（中点起点・幅 = ラベル幅近似値、高さ = fontSize × 1.4）が、自身以外の vertex や他 edge セグメントと重ならない。
+8. **text vertex 同士の重なり禁止**: 透明注釈テキストの bbox が他 text vertex と重ならない（WARN）。
+9. **ページ枠はみ出し検出**: `mxGraphModel` の `pageWidth × pageHeight` から vertex bbox がはみ出していない（コンテナ子要素は除外）。
+10. **重複 ID / 孤立 edge 検出**: 同一 ID の cell が複数存在しない。edge の source/target が解決可能であるか、解決不能なら `sourcePoint`/`targetPoint` で座標補完されている。
+11. **自己ループ / ゼロ長 edge 検出**: source==target、または polyline 総長 < 4px の edge を禁止。
+12. **parent 階層整合**: vertex の `parent` 属性が `0`/`1` または既存 vertex を指していること。コンテナ親が指定された場合、子 bbox が親 bbox 内に収まっているか（WARN）。
+13. **コントラスト下限 (WCAG AA)**: 背景白に対する `fontColor` および edge の `strokeColor` のコントラスト比が 4.5:1 以上。レイヤパレットの装飾枠色（`#d79b00` / `#6c8ebf` / `#666666` / `#9673a6`）は許容例外。`#333333` 相当（>= 7.5:1）に達しない場合は WARN。
+14. **レイヤパレット遵守**: vertex の `(fillColor, strokeColor)` ペアが `figure-layer-convention` の 4 ペアのいずれか、または中性色（white/none/`#333333`/`#666666`）。逸脱は WARN。
+15. **ラスタ画像埋め込み禁止**: `shape=image` および `image=data:` URI の検出。SVG 一択ポリシー違反は ERROR。
+
+ERROR が 1 つでも残っている間は SVG エクスポートしない。WARN（透明背景テキストとの交差、レイヤパレット逸脱、コントラスト推奨値割れ等）は許容するが、`--strict` でエラー扱いに引き上げ可。
 
 ## 複数レイヤが登場する場合
 

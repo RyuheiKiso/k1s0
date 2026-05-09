@@ -9,7 +9,18 @@ Checks:
   5. Labeled edge source-target distance >= 1.5 * approximate label width.
   6. Single <diagram> element (one figure per file).
 
-Exits non-zero on any violation.
+  A1. Edge label bbox does not overlap unrelated vertices / other edges.
+  A2. Text-style vertices do not overlap each other.
+  A3. No vertex bbox extends past pageWidth/pageHeight.
+  A4. No duplicate cell ids; edges have resolvable endpoints.
+  A5. No self-loop / zero-length edges.
+  A6. Vertex parent references resolve; child fits within parent bbox.
+  A7. fontColor / strokeColor meets WCAG AA (>= 4.5:1) on white background.
+  A8. Vertex (fill, stroke) pair stays within figure-layer-convention palette
+      (or is white/none/transparent).
+  A9. No raster image embedding (shape=image / image=data:).
+
+Exits non-zero on any violation. Use --strict to elevate warnings to errors.
 """
 
 from __future__ import annotations
@@ -21,13 +32,33 @@ import sys
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zlib
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+# Layer palette from figure-layer-convention skill (fill, stroke) pairs.
+LAYER_PALETTE: dict[str, tuple[str, str]] = {
+    "app":   ("#fff2cc", "#d79b00"),
+    "net":   ("#dae8fc", "#6c8ebf"),
+    "infra": ("#f5f5f5", "#666666"),
+    "data":  ("#e1d5e7", "#9673a6"),
+}
+NEUTRAL_FILLS = {"", "none", "#ffffff", "white"}
+NEUTRAL_STROKES = {"", "none", "#333333", "#666666"}
+
+# WCAG AA contrast ratio threshold for normal text on white background.
+CONTRAST_AA = 4.5
+CONTRAST_RECOMMENDED = 7.5  # AAA-ish; #333333 yields ~12.6.
+
+# Self-loop / zero-length edge threshold (px).
+MIN_EDGE_LEN = 4.0
 
 
 @dataclass
 class Vertex:
     id: str
+    parent: str
     x: float
     y: float
     w: float
@@ -46,6 +77,7 @@ class Vertex:
 @dataclass
 class Edge:
     id: str
+    parent: str
     source: str | None
     target: str | None
     style: str
@@ -62,6 +94,17 @@ def parse_style(style: str) -> dict[str, str]:
             k, _, v = kv.partition("=")
             out[k.strip()] = v.strip()
     return out
+
+
+def normalize_color(c: str) -> str:
+    c = (c or "").strip().lower()
+    if c in ("white",):
+        return "#ffffff"
+    if c in ("black",):
+        return "#000000"
+    if re.fullmatch(r"#[0-9a-f]{3}", c):
+        return "#" + "".join(ch * 2 for ch in c[1:])
+    return c
 
 
 def load_graph(path: Path) -> tuple[ET.Element, int]:
@@ -84,14 +127,29 @@ def load_graph(path: Path) -> tuple[ET.Element, int]:
     return ET.fromstring(decoded), len(diagrams)
 
 
-def collect(graph: ET.Element) -> tuple[list[Vertex], list[Edge]]:
+def page_size(graph: ET.Element) -> tuple[float, float]:
+    try:
+        pw = float(graph.get("pageWidth", "0"))
+        ph = float(graph.get("pageHeight", "0"))
+    except ValueError:
+        pw = ph = 0.0
+    return pw, ph
+
+
+def collect(
+    graph: ET.Element,
+) -> tuple[list[Vertex], list[Edge], list[str]]:
+    """Return vertices, edges, and the list of every cell id (for dup check)."""
     vertices: list[Vertex] = []
     edges: list[Edge] = []
+    all_ids: list[str] = []
     root = graph.find("root")
     if root is None:
         raise RuntimeError("no <root>")
     for cell in root.findall("mxCell"):
         cid = cell.get("id", "")
+        all_ids.append(cid)
+        parent = cell.get("parent", "")
         if cell.get("vertex") == "1":
             geom = cell.find("mxGeometry")
             if geom is None:
@@ -104,7 +162,11 @@ def collect(graph: ET.Element) -> tuple[list[Vertex], list[Edge]]:
             except ValueError:
                 continue
             vertices.append(
-                Vertex(id=cid, x=x, y=y, w=w, h=h, style=cell.get("style", ""))
+                Vertex(
+                    id=cid, parent=parent,
+                    x=x, y=y, w=w, h=h,
+                    style=cell.get("style", ""),
+                )
             )
         elif cell.get("edge") == "1":
             geom = cell.find("mxGeometry")
@@ -133,7 +195,7 @@ def collect(graph: ET.Element) -> tuple[list[Vertex], list[Edge]]:
                             pass
             edges.append(
                 Edge(
-                    id=cid,
+                    id=cid, parent=parent,
                     source=cell.get("source"),
                     target=cell.get("target"),
                     style=cell.get("style", ""),
@@ -143,7 +205,7 @@ def collect(graph: ET.Element) -> tuple[list[Vertex], list[Edge]]:
                     waypoints=wps,
                 )
             )
-    return vertices, edges
+    return vertices, edges, all_ids
 
 
 def segment_rect_intersects(
@@ -177,6 +239,25 @@ def segment_rect_intersects(
     return t_exit - t_enter > eps
 
 
+def segments_intersect(
+    a: tuple[float, float], b: tuple[float, float],
+    c: tuple[float, float], d: tuple[float, float],
+    eps: float = 1e-6,
+) -> bool:
+    def cross(p, q, r):
+        return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+
+    d1 = cross(c, d, a)
+    d2 = cross(c, d, b)
+    d3 = cross(a, b, c)
+    d4 = cross(a, b, d)
+    if ((d1 > eps and d2 < -eps) or (d1 < -eps and d2 > eps)) and (
+        (d3 > eps and d4 < -eps) or (d3 < -eps and d4 > eps)
+    ):
+        return True
+    return False
+
+
 def label_text(value: str) -> str:
     text = re.sub(r"<[^>]+>", "", value)
     text = (
@@ -194,6 +275,61 @@ def label_width(text: str, font_size: float) -> float:
     return full * font_size + half * font_size * 0.55
 
 
+def is_transparent_annotation(v: Vertex) -> bool:
+    st = parse_style(v.style)
+    fill = normalize_color(st.get("fillColor", ""))
+    stroke = normalize_color(st.get("strokeColor", ""))
+    if fill == "none" and stroke == "none":
+        return True
+    starts_text = v.style.lstrip().startswith("text;") or v.style.lstrip().startswith(
+        "text "
+    )
+    if starts_text and fill in ("", "none") and stroke in ("", "none"):
+        return True
+    return False
+
+
+def is_text_vertex(v: Vertex) -> bool:
+    if v.style.lstrip().startswith("text;") or v.style.lstrip().startswith("text "):
+        return True
+    return is_transparent_annotation(v)
+
+
+def relative_luminance(hex_color: str) -> float | None:
+    c = normalize_color(hex_color)
+    if not re.fullmatch(r"#[0-9a-f]{6}", c):
+        return None
+    r = int(c[1:3], 16) / 255.0
+    g = int(c[3:5], 16) / 255.0
+    b = int(c[5:7], 16) / 255.0
+
+    def lin(v: float) -> float:
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def contrast_on_white(hex_color: str) -> float | None:
+    L = relative_luminance(hex_color)
+    if L is None:
+        return None
+    return (1.0 + 0.05) / (L + 0.05)
+
+
+def contains(outer: Vertex, inner: Vertex) -> bool:
+    return (
+        outer.x <= inner.x
+        and outer.y <= inner.y
+        and outer.x + outer.w >= inner.x + inner.w
+        and outer.y + outer.h >= inner.y + inner.h
+        and outer.id != inner.id
+    )
+
+
+def contains_point(outer: Vertex, px: float, py: float) -> bool:
+    return outer.x <= px <= outer.x + outer.w and outer.y <= py <= outer.y + outer.h
+
+
 def lint_one(path: Path) -> tuple[list[str], list[str]]:
     violations: list[str] = []
     warnings: list[str] = []
@@ -204,7 +340,8 @@ def lint_one(path: Path) -> tuple[list[str], list[str]]:
             f"multi-page drawio ({ndiagrams} diagrams) — split into separate files"
         )
 
-    vertices, edges = collect(graph)
+    pw, ph = page_size(graph)
+    vertices, edges, all_ids = collect(graph)
     non_base = [v for v in vertices if v.id not in ("0", "1")]
     if not non_base:
         violations.append("no vertices found")
@@ -212,12 +349,12 @@ def lint_one(path: Path) -> tuple[list[str], list[str]]:
 
     bg = non_base[0]
     bg_style = parse_style(bg.style)
-    if bg_style.get("fillColor", "").lower() not in ("#ffffff", "white"):
+    if normalize_color(bg_style.get("fillColor", "")) not in ("#ffffff",):
         violations.append(
             f"first vertex '{bg.id}' is not a white background rect "
             f"(fillColor={bg_style.get('fillColor', '<none>')})"
         )
-    if bg_style.get("strokeColor", "none").lower() != "none":
+    if normalize_color(bg_style.get("strokeColor", "none")) != "none":
         warnings.append(
             f"background rect '{bg.id}' has visible stroke "
             f"({bg_style.get('strokeColor')})"
@@ -230,43 +367,185 @@ def lint_one(path: Path) -> tuple[list[str], list[str]]:
     bg_id = bg.id
     vmap = {v.id: v for v in vertices}
 
+    # --- A4: duplicate ids -----------------------------------------------
+    dup_counts = Counter(all_ids)
+    for cid, n in dup_counts.items():
+        if n > 1 and cid:
+            violations.append(f"duplicate cell id '{cid}' appears {n} times")
+
+    # --- A9: raster image embedding --------------------------------------
+    for v in vertices:
+        st_raw = v.style.lstrip().lower()
+        if st_raw.startswith("shape=image") or ";shape=image" in st_raw:
+            violations.append(
+                f"vertex '{v.id}' embeds a raster image (shape=image) — SVG only"
+            )
+        st = parse_style(v.style)
+        img = st.get("image", "")
+        if img.lower().startswith("data:"):
+            violations.append(
+                f"vertex '{v.id}' embeds a raster via data: URI — SVG only"
+            )
+
+    # --- white-stroke / orthogonal-without-waypoints (existing rules) ---
     for e in edges:
         st = parse_style(e.style)
-        sc = st.get("strokeColor", "").lower()
-        if sc in ("#ffffff", "white"):
+        sc = normalize_color(st.get("strokeColor", ""))
+        if sc == "#ffffff":
             violations.append(f"edge '{e.id}' has white stroke")
         if st.get("edgeStyle") == "orthogonalEdgeStyle" and not e.waypoints:
             violations.append(
                 f"edge '{e.id}' uses orthogonalEdgeStyle without explicit waypoints"
             )
 
-    def contains(outer: Vertex, inner: Vertex) -> bool:
-        return (
-            outer.x <= inner.x
-            and outer.y <= inner.y
-            and outer.x + outer.w >= inner.x + inner.w
-            and outer.y + outer.h >= inner.y + inner.h
-            and outer.id != inner.id
-        )
+    # --- A4 (cont): edge endpoint resolvability --------------------------
+    for e in edges:
+        if e.source and e.source not in vmap:
+            violations.append(
+                f"edge '{e.id}' references unknown source vertex '{e.source}'"
+            )
+        if e.target and e.target not in vmap:
+            violations.append(
+                f"edge '{e.id}' references unknown target vertex '{e.target}'"
+            )
+        if not e.source and not e.source_pt:
+            violations.append(f"edge '{e.id}' has no source vertex or sourcePoint")
+        if not e.target and not e.target_pt:
+            violations.append(f"edge '{e.id}' has no target vertex or targetPoint")
 
-    def contains_point(outer: Vertex, px: float, py: float) -> bool:
-        return outer.x <= px <= outer.x + outer.w and outer.y <= py <= outer.y + outer.h
+    # --- A5: self-loop / zero-length edges -------------------------------
+    for e in edges:
+        if e.source and e.target and e.source == e.target:
+            violations.append(f"edge '{e.id}' is a self-loop (source==target)")
+            continue
+        # Compute polyline length.
+        pts: list[tuple[float, float]] = []
+        if e.source and e.source in vmap:
+            pts.append((vmap[e.source].cx, vmap[e.source].cy))
+        elif e.source_pt:
+            pts.append(e.source_pt)
+        pts.extend(e.waypoints)
+        if e.target and e.target in vmap:
+            pts.append((vmap[e.target].cx, vmap[e.target].cy))
+        elif e.target_pt:
+            pts.append(e.target_pt)
+        if len(pts) >= 2:
+            total = sum(
+                ((pts[i + 1][0] - pts[i][0]) ** 2
+                 + (pts[i + 1][1] - pts[i][1]) ** 2) ** 0.5
+                for i in range(len(pts) - 1)
+            )
+            if total < MIN_EDGE_LEN:
+                violations.append(
+                    f"edge '{e.id}' has zero-length polyline ({total:.1f}px)"
+                )
 
-    def is_transparent_annotation(v: Vertex) -> bool:
-        # drawio 'text;' shape defaults to transparent fill+stroke; treat as
-        # transparent annotation unless the user explicitly added a fill/stroke.
+    # --- A6: parent reference / containment ------------------------------
+    valid_parents = {"0", "1", ""} | {v.id for v in vertices}
+    for v in vertices:
+        if v.parent and v.parent not in valid_parents:
+            violations.append(
+                f"vertex '{v.id}' has unknown parent '{v.parent}'"
+            )
+        if v.parent and v.parent not in ("0", "1", "") and v.parent in vmap:
+            p = vmap[v.parent]
+            # In drawio, child x/y is parent-relative. Bounds check accordingly.
+            if (
+                v.x < -0.5
+                or v.y < -0.5
+                or v.x + v.w > p.w + 0.5
+                or v.y + v.h > p.h + 0.5
+            ):
+                warnings.append(
+                    f"vertex '{v.id}' extends outside parent '{p.id}' bbox "
+                    f"(child {v.x},{v.y} {v.w}x{v.h} vs parent {p.w}x{p.h})"
+                )
+
+    # --- A3: page-bounds containment -------------------------------------
+    if pw > 0 and ph > 0:
+        for v in non_base:
+            # Skip children of containers; their coords are parent-relative.
+            if v.parent and v.parent not in ("0", "1", "") and v.parent in vmap:
+                continue
+            if (
+                v.x < -0.5
+                or v.y < -0.5
+                or v.x + v.w > pw + 0.5
+                or v.y + v.h > ph + 0.5
+            ):
+                violations.append(
+                    f"vertex '{v.id}' extends outside page bounds "
+                    f"({pw:.0f}x{ph:.0f}); bbox ({v.x},{v.y} {v.w}x{v.h})"
+                )
+
+    # --- A7: contrast on white background --------------------------------
+    palette_strokes = {
+        normalize_color(s) for _, s in LAYER_PALETTE.values()
+    }
+
+    def check_contrast(target: str, kind: str, owner_id: str) -> None:
+        c = normalize_color(target)
+        if not c or c == "none":
+            return
+        # Layer-palette stroke colors are sanctioned decoration; allow them
+        # for vertex/edge stroke but keep fontColor strict (text legibility).
+        if kind == "strokeColor" and c in palette_strokes:
+            return
+        ratio = contrast_on_white(c)
+        if ratio is None:
+            return
+        if ratio < CONTRAST_AA:
+            violations.append(
+                f"{kind} '{c}' on '{owner_id}' fails WCAG AA "
+                f"(contrast {ratio:.1f}:1 < {CONTRAST_AA})"
+            )
+        elif ratio < CONTRAST_RECOMMENDED:
+            warnings.append(
+                f"{kind} '{c}' on '{owner_id}' below recommended "
+                f"(contrast {ratio:.1f}:1; aim for #333333 / >= {CONTRAST_RECOMMENDED}:1)"
+            )
+
+    for v in vertices:
+        if v.id == bg_id:
+            continue
         st = parse_style(v.style)
-        fill = st.get("fillColor", "").lower()
-        stroke = st.get("strokeColor", "").lower()
-        if fill == "none" and stroke == "none":
-            return True
-        starts_text = v.style.lstrip().startswith("text;") or v.style.lstrip().startswith("text ")
-        if starts_text and fill in ("", "none") and stroke in ("", "none"):
-            return True
-        return False
+        check_contrast(st.get("fontColor", ""), "fontColor", v.id)
+        # Skip strokeColor for the text-only annotations (often fillColor=none).
+        if not is_text_vertex(v):
+            check_contrast(st.get("strokeColor", ""), "strokeColor", v.id)
 
     for e in edges:
-        pts: list[tuple[float, float]] = []
+        st = parse_style(e.style)
+        check_contrast(st.get("strokeColor", ""), "strokeColor", e.id)
+        check_contrast(st.get("fontColor", ""), "fontColor", e.id)
+
+    # --- A8: layer palette adherence -------------------------------------
+    palette_pairs = set(
+        (normalize_color(f), normalize_color(s)) for f, s in LAYER_PALETTE.values()
+    )
+    for v in vertices:
+        if v.id == bg_id:
+            continue
+        if is_text_vertex(v):
+            continue
+        st = parse_style(v.style)
+        fill = normalize_color(st.get("fillColor", ""))
+        stroke = normalize_color(st.get("strokeColor", ""))
+        if fill in NEUTRAL_FILLS and stroke in NEUTRAL_STROKES:
+            continue
+        # Allow default-themed (fill empty) shapes.
+        if fill in ("", "none"):
+            continue
+        if (fill, stroke) in palette_pairs:
+            continue
+        warnings.append(
+            f"vertex '{v.id}' uses palette pair (fill={fill or '<none>'}, "
+            f"stroke={stroke or '<none>'}) outside figure-layer-convention"
+        )
+
+    # --- existing edge intersection (rule 4) -----------------------------
+    for e in edges:
+        pts = []
         if e.source and e.source in vmap:
             v = vmap[e.source]
             pts.append((v.cx, v.cy))
@@ -313,6 +592,7 @@ def lint_one(path: Path) -> tuple[list[str], list[str]]:
                     else:
                         violations.append(msg)
 
+    # --- existing label-distance rule (rule 5) ---------------------------
     for e in edges:
         text = label_text(e.value)
         if not text:
@@ -343,6 +623,123 @@ def lint_one(path: Path) -> tuple[list[str], list[str]]:
                 f"edge '{e.id}' label '{text[:24]}' width≈{lw:.0f}px violates 1.5x rule "
                 f"(source-target distance {dist:.0f}px)"
             )
+
+    # --- A1: edge label bbox vs other vertices / other edges -------------
+    for e in edges:
+        text = label_text(e.value)
+        if not text:
+            continue
+        st = parse_style(e.style)
+        try:
+            fs = float(st.get("fontSize", "12"))
+        except ValueError:
+            fs = 12.0
+        lw = label_width(text, fs)
+        lh = fs * 1.4
+        if lw <= 0:
+            continue
+        # Approximate label center: edge polyline midpoint.
+        pts = []
+        if e.source and e.source in vmap:
+            pts.append((vmap[e.source].cx, vmap[e.source].cy))
+        elif e.source_pt:
+            pts.append(e.source_pt)
+        pts.extend(e.waypoints)
+        if e.target and e.target in vmap:
+            pts.append((vmap[e.target].cx, vmap[e.target].cy))
+        elif e.target_pt:
+            pts.append(e.target_pt)
+        if len(pts) < 2:
+            continue
+        total = sum(
+            ((pts[i + 1][0] - pts[i][0]) ** 2
+             + (pts[i + 1][1] - pts[i][1]) ** 2) ** 0.5
+            for i in range(len(pts) - 1)
+        )
+        if total <= 0:
+            continue
+        # Walk to midpoint.
+        target_d = total / 2
+        acc = 0.0
+        cx = cy = 0.0
+        for i in range(len(pts) - 1):
+            x0, y0 = pts[i]
+            x1, y1 = pts[i + 1]
+            seg = ((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5
+            if acc + seg >= target_d:
+                t = (target_d - acc) / seg if seg else 0
+                cx = x0 + (x1 - x0) * t
+                cy = y0 + (y1 - y0) * t
+                break
+            acc += seg
+        else:
+            cx, cy = pts[-1]
+        lx0, ly0 = cx - lw / 2, cy - lh / 2
+        lx1, ly1 = cx + lw / 2, cy + lh / 2
+
+        # vs other vertices (skip own endpoints, bg, transparent annotations,
+        # and vertices that contain the endpoint).
+        ignore = {e.source, e.target, bg_id, "0", "1", None}
+        src_v = vmap.get(e.source) if e.source else None
+        tgt_v = vmap.get(e.target) if e.target else None
+        for v in vertices:
+            if v.id in ignore:
+                continue
+            if is_text_vertex(v):
+                continue
+            if src_v and contains(v, src_v):
+                continue
+            if tgt_v and contains(v, tgt_v):
+                continue
+            if not (lx1 < v.x or lx0 > v.x + v.w or ly1 < v.y or ly0 > v.y + v.h):
+                violations.append(
+                    f"edge '{e.id}' label '{text[:24]}' bbox overlaps vertex '{v.id}'"
+                )
+
+        # vs other edges' segments
+        for other in edges:
+            if other.id == e.id:
+                continue
+            opts = []
+            if other.source and other.source in vmap:
+                opts.append((vmap[other.source].cx, vmap[other.source].cy))
+            elif other.source_pt:
+                opts.append(other.source_pt)
+            opts.extend(other.waypoints)
+            if other.target and other.target in vmap:
+                opts.append((vmap[other.target].cx, vmap[other.target].cy))
+            elif other.target_pt:
+                opts.append(other.target_pt)
+            if len(opts) < 2:
+                continue
+            for i in range(len(opts) - 1):
+                if segment_rect_intersects(
+                    opts[i][0], opts[i][1], opts[i + 1][0], opts[i + 1][1],
+                    lx0, ly0, lx1, ly1,
+                ):
+                    warnings.append(
+                        f"edge '{e.id}' label '{text[:24]}' bbox crosses "
+                        f"edge '{other.id}' segment {i}"
+                    )
+                    break
+            else:
+                continue
+            break
+
+    # --- A2: text vertices overlap each other ----------------------------
+    text_vs = [v for v in vertices if v.id != bg_id and is_text_vertex(v)]
+    for i, a in enumerate(text_vs):
+        for b in text_vs[i + 1 :]:
+            # Skip parent/child relationships.
+            if a.parent == b.id or b.parent == a.id:
+                continue
+            if not (
+                a.x + a.w <= b.x or b.x + b.w <= a.x
+                or a.y + a.h <= b.y or b.y + b.h <= a.y
+            ):
+                warnings.append(
+                    f"text vertex '{a.id}' overlaps text vertex '{b.id}'"
+                )
 
     return violations, warnings
 
