@@ -16,7 +16,8 @@
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
     Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 +
     WebTransport、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1 + chunked
-    NDJSON（gRPC-JSON Transcoder の stream_json_responses 経由）等の
+    NDJSON（gRPC-JSON Transcoder の print_options.stream_newline_delimited
+    経由）等の
     transport を同一クラスタ内で並立させる。bidi semantics は proto
     に宣言された意味論を単一の真とし、各 transport adapter が
     conformance proof で等価実装する。client-streaming は当面 External

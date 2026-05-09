@@ -1,0 +1,198 @@
+============================================================
+ops runbook 方針
+============================================================
+
+■ 一文方針
+  - 全 page-level alert / 全 incident class / 全 break-
+    glass 経路に対し runbook を Backstage TechDocs（人間
+    向け Markdown）+ Tekton Pipeline（実行可能 yaml）の
+    二段構えで必須化し、runbook_catalog.lock.yaml に build
+    artifact として固定、runbook 不在の page / incident は
+    CI fail とする。Markdown only runbook は cap 5%（手作業
+    step 残存例外のみ）、Tekton 実行可能 runbook が default。
+
+■ runbook の二段構え
+  - 段 1：human-readable（Backstage TechDocs）
+        - 目的：on-call が 5 分以内に状況把握 → 行動を
+          取れる短い Markdown
+        - 内容：summary / preconditions / steps（番号付き）
+          / verification / rollback / escalation / linked_
+          alerts / linked_postmortems
+        - 量：steps が 30 以下、推定実行時間が 30 分以下
+        - 検索：Backstage search で alert / incident class
+          / SLI 名 / 軸名 から到達可能
+  - 段 2：machine-executable（Tekton Pipeline）
+        - 目的：人間 ack 不要 / 部分自動化 / chatops 経由
+          実行を可能にする pipeline yaml
+        - 内容：Tekton Task 連結、各 Task は idempotent /
+          rollback 可能 / dry-run mode を持つ
+        - trigger 経路：Alertmanager webhook → Tekton
+          Triggers / Mattermost slash command → Tekton
+          Triggers / 手動 kubectl create
+        - 量：1 pipeline = 1 runbook task class、複数 task
+          を連結する場合は subWorkflow（Argo Workflows）
+          で wrap
+
+  - 全 runbook は段 1 + 段 2 の両方が build artifact
+    （docs/runbook/<id>.md + runbooks/<id>/pipeline.yaml）
+    として cosign signed で publish、片方欠落は CI fail。
+    ただし手作業 step 残存例外は段 1 のみ allow（cap 5%）。
+
+■ runbook class（5 class）
+  - v1_alert_runbook：
+        - alert_catalog.lock.yaml の page-level alert に
+          1:1 で bind
+        - alert ⇔ runbook の双方向 lock を CI 検証
+        - 例：tier1-latency-triage / data-rpo-triage /
+          replication-lag-triage / cve-patch-overdue
+  - v1_incident_runbook：
+        - incident_classes.yaml の 5 class に bind、
+          triage / mitigate phase の自動 / 半自動 step
+        - 例：slo-breach-triage / capacity-throttle /
+          change-rollback / dependency-failover
+  - v1_break_glass_runbook：
+        - break-glass token 発行 / cluster-admin 操作 /
+          DB superuser 操作の standardized procedure
+        - 例：emergency-deploy-freeze / break-glass-token-
+          issue / break-glass-revoke
+  - v1_drill_runbook：
+        - chaos drill / restore drill / red team drill の
+          実行 pipeline
+        - 例：chaos-zone-partition / restore-rpo-test /
+          red-team-table-top-replay
+  - v1_change_runbook：
+        - change management の orchestration（topology
+          cutover / migration pair cutover / cluster
+          upgrade）
+        - 例：cluster-upgrade-pipeline / topology-cutover
+          / migration-pair-cutover
+
+■ runbook_catalog.lock.yaml（build artifact）
+  - 1 row = (runbook_id, class, alert_ref, incident_class
+    _ref, break_glass_ref, drill_class_ref, change_class
+    _ref, markdown_ref, pipeline_ref, executable, last_
+    drill_at, last_drill_outcome)。
+  - executable：v1_full_auto / v1_partial_auto / v1_human
+    only の三値。v1_human_only は cap 5%（手作業 step 残存
+    例外、CI で count enforce）。
+  - last_drill_at：当 runbook の最後の演習実行 timestamp、
+    cadence 内（class 別 drill cadence）に演習実行されて
+    いることを CI 検証、cadence 違反は service deploy
+    block。
+
+■ runbook の演習 cadence
+  - v1_alert_runbook：90 日に 1 回（alert simulation +
+    runbook execution）
+  - v1_incident_runbook：90 日に 1 回（chaos drill /
+    table top exercise）
+  - v1_break_glass_runbook：30 日に 1 回（実 token 発行
+    + 即時 revoke）
+  - v1_drill_runbook：cadence 自体が drill class の
+    primary，本 runbook 演習は drill class 別 cadence と
+    同等
+  - v1_change_runbook：60 日に 1 回（dry-run mode で実 cluster
+    に対し idempotent 検証）
+
+  - 演習結果は drill_progress.lock.yaml（10_security と
+    共有）の対応 entry に書き込み、runbook_catalog の
+    last_drill_at と双方向 lock。
+
+■ runbook の品質規律
+  - precondition の機械検証：
+        - runbook 実行前に Tekton Task で「現在の cluster
+          state が precondition を満たすか」を assert、
+          不一致時は実行 abort
+        - 例：active incident_id が存在 / break-glass
+          token 有効 / target service が known service
+  - idempotency：
+        - Tekton Task 単位で idempotent（同 input で複数回
+          実行しても同 outcome）、retry-safe
+        - 例外は dry-run mode で明示宣言、副作用ありの
+          Task は audit_event 必須
+  - rollback：
+        - 各 step に rollback procedure を必ず付随、
+          step 半ばで abort された場合の cleanup pipeline
+          を別 Tekton Pipeline として宣言
+  - dry-run mode：
+        - 全 runbook は --dry-run flag で副作用なし実行
+          可能、CI / pre-flight で routinely 実行
+  - timeout：
+        - 各 step に timeout 必須、timeout 超過時は escalate
+          flag を Mattermost incident channel に投稿
+
+■ ChatOps integration
+  - Mattermost slash command 経由で runbook 実行：
+        - /runbook list <alert_id>           ：候補表示
+        - /runbook describe <runbook_id>     ：詳細表示
+        - /runbook run <runbook_id> --dry-run：dry-run
+        - /runbook run <runbook_id>          ：本番実行
+          （incident_ref 必須）
+  - 全 ChatOps 操作は audit_event subject に v1_chatops
+    fact emit、actor / runbook_id / incident_ref / outcome
+    必須記録。
+  - ChatOps 実行は Tekton Triggers 経由、runbook_role.lock
+    .yaml で「誰がどの runbook を実行できるか」を rotation
+    階層別に制御。
+  - severity = freeze / security_bridge の runbook 実行は
+    on-call primary + secondary の二人承認 ChatOps 必須
+    （single-actor で freeze 解除等を防止）。
+
+■ runbook の自動生成（partial）
+  - 軸別 spec の defense-in-depth 層 D（runtime）から
+    runbook の skeleton を自動生成：
+        - alert_catalog.lock.yaml の各 alert に対し
+          template runbook を generator が出力
+        - generator output は draft、人間が steps 詳細を
+          書き加えて build artifact 化
+  - runbook 自動生成器は infra 11 / data 11 / security 12
+    の drill scenario と双方向 lock、scenario 追加 → 対応
+    runbook 自動生成 → 人間補完 → cosign signed publish の
+    flow を強制。
+
+■ runbook の deprecation
+  - alert / incident class が deprecate される際は対応
+    runbook も deprecation phase へ移行：
+        1. runbook_catalog.lock.yaml に deprecated=true
+          注釈
+        2. 30 日間は warn-only（実行は可能だが warning 表示）
+        3. 30 日後 catalog から removal、Tekton Pipeline
+          も削除
+  - removal 後の runbook 文献は archive_index に永続
+    retention（Backstage 内 archived section）、過去
+    incident の trace に必要。
+
+■ 同型構造（13 軸 + meta + security との整合）
+  - 5 yaml 単一の真：
+        runbook_classes.yaml（5 class enum）
+        runbook_catalog.lock.yaml（build artifact、catalog
+          完全列挙）
+        runbook_role.lock.yaml（build artifact、role ↔
+          runbook ↔ rotation 三項関係）
+        runbook_drill_progress.lock.yaml（build artifact、
+          演習 cadence 進行状況、10_security と共有）
+        runbook_archive_index.lock.yaml（build artifact、
+          deprecated runbook の archive index）
+  - 5 層 defense-in-depth：runbook は層 D / E に必ず物理
+    実行経路を持つ（Tekton Pipeline / Backstage TechDocs）。
+  - CI 不変条件：runbook ↔ alert / incident / break-glass
+    / drill / change の 1:1 coverage / executable cap /
+    drill cadence within / dry-run pass / idempotency
+    declared / audit_event coverage 等を CI で物理確認。
+
+■ 採用しない方針
+  - Markdown only runbook を default：禁止、Tekton 実行可能
+    runbook が default、Markdown only は cap 5%。
+  - runbook 不在の page / incident：禁止、CI fail。
+  - 演習 skip：禁止、cadence violation は service deploy
+    block。
+  - precondition なし runbook：禁止、機械検証必須。
+  - rollback なし runbook：禁止、step 単位で rollback 必須。
+  - 商用 runbook automation SaaS（Rundeck Enterprise /
+    StackStorm Pro 等）採用：採用しない、Tekton + Backstage
+    で完結。
+  - runbook の personal storage（個人 wiki / Notion / 個人
+    GitHub Gist）：禁止、Backstage TechDocs に集約。
+  - severity_freeze / security_bridge の single-actor 実行：
+    禁止、二人承認 ChatOps 必須。
+  - audit_event なし runbook 実行：禁止、全 ChatOps / 手動
+    kubectl create 経路で audit emit 必須。

@@ -1,0 +1,161 @@
+============================================================
+client リトライバックオフ方針
+============================================================
+
+■ 一文方針
+  - リトライ / バックオフ / circuit breaker / retry budget は
+    全言語 SDK で同一規約。method / error / deadline / retry
+    budget の組合せから一意に動作が決まり、SDK 公開 API として
+    individual override を受けない。
+
+■ retry policy class（v1、5 class）
+  - 全 RPC は次の 5 retry_policy_class のいずれかに属する。
+    method annotation `(k1s0.retry_policy) = "..."` で proto
+    から宣言。
+
+      class                          | unary | server-streaming | client-streaming | bidi
+      -------------------------------+-------+------------------+------------------+-----
+      v1_idempotent_safe             | yes   | yes              | no               | no
+      v1_idempotent_with_key         | yes   | yes              | no               | no
+      v1_non_idempotent              | no    | no               | no               | no
+      v1_long_streaming_resumable    | no    | yes              | no               | yes
+      v1_eventual_via_pending_queue  | yes   | no               | no               | no
+
+  - 各 class の動作：
+      - v1_idempotent_safe
+          - retry 条件：UNAVAILABLE / DEADLINE_EXCEEDED（
+            tier1 Server timeout 起因）/ INTERNAL（transient）
+          - max_attempts: 5
+          - backoff: exponential_with_jitter, base=200ms,
+                     factor=2.0, cap=4s, jitter=full
+          - retry budget: 30 retry / 60s（後述）
+          - 用途: read 系（Get / List / Search）
+      - v1_idempotent_with_key
+          - retry 条件：v1_idempotent_safe 同等
+          - 必須 metadata: x-idempotency-key（SDK 自動採番）
+          - server 側は idempotency_key で dedup（tier2 32
+            atomic 三表書込）
+          - max_attempts: 5
+          - backoff: 同上
+          - 用途: write 系で server-side dedup を持つもの
+      - v1_non_idempotent
+          - retry: しない
+          - 失敗時はアプリに即時 throw
+          - 用途: 副作用が dedup できない write（ファイル
+            アップロード multipart の中間 chunk 等）
+      - v1_long_streaming_resumable
+          - 切断時に resume_token で再接続（06_Transport適応
+            方針 / tier1 03_Server系 Resume / Replay 整合）
+          - max_attempts: 無制限（exponential cap=30s）
+          - retry budget: per-stream 別（後述）
+          - 用途: Domain Event subscription / log tail
+      - v1_eventual_via_pending_queue
+          - 失敗時は pending_queue に enqueue（07_オフライン
+            耐性方針 / 39 適合仕様）
+          - SDK は同期 retry を行わず、queue 経由の eventual
+            send に委ねる
+          - 用途: tier3 SPA から tier2 への mutation
+
+  - retry_policy_class は method 単位で proto annotation され、
+    Buf workflow が SDK codegen 時に固定。アプリ作者が個別
+    override する経路は持たない（dimension override 禁止）。
+
+■ exponential backoff
+  - 算出式：base * factor ^ (attempt - 1) + random_jitter
+  - 全言語 SDK で完全に同一の動作（property test で確認、
+    14_強制機構）。
+  - jitter: AWS Architecture Blog の "full jitter"
+    （sleep = random(0, base * factor ^ (attempt - 1))）を
+    default。
+  - cap：1 RPC class につき固定 cap（v1_idempotent_safe は
+    4s、v1_long_streaming_resumable は 30s）。
+
+■ deadline 残量との連動
+  - 各 retry attempt 前に deadline 残量を check：
+      - 残量が次の attempt 推定時間より少なければ retry を
+        中止して DEADLINE_EXCEEDED で throw
+      - server-side のレスポンス時間 + network RTT を SDK
+        内部統計（OTel SemConv）から推定
+  - deadline は SDK が必ず attach（08_認証コンテキスト伝播
+    方針）、未指定時は method annotation の slo_class（13
+    SLO 適合仕様）から default を導出。
+
+■ retry budget
+  - tier1 15 capacity 適合仕様の noisy_neighbor_isolation と
+    整合する SDK 側 retry budget 機構：
+      - per-tenant: 30 retry / 60s sliding window
+      - per-method: 10 retry / 60s sliding window
+      - per-aggregate (mutation の場合): 5 retry / 60s
+  - budget 枯渇時は retry を停止して RESOURCE_EXHAUSTED で
+    throw。アプリは BusinessConflict ではなく RetryBudgetExhausted
+    として扱う。
+  - per-stream（v1_long_streaming_resumable）は budget 別管理：
+      - per-stream: 100 reconnect / hour
+      - per-tenant: 1000 reconnect / hour
+
+■ circuit breaker
+  - SDK 側 circuit breaker：endpoint 単位で次の状態遷移：
+      - Closed   : 通常動作
+      - Open     : 直近 60s で error_rate > 50% かつ request
+                   数 ≥ 20 で open、retry を即時 fail
+      - Half-Open: open 後 30s 経過で 1 request だけ probe、
+                   success で Closed 復帰、failure で Open 維持
+  - circuit breaker 状態は OTel metric で emit：
+      - client.circuit_breaker.state{endpoint, state}
+      - client.circuit_breaker.transition.event{endpoint,
+        from, to}
+  - SDK ユーザに circuit breaker を override する API は提供
+    しない（個別 endpoint 単位の hard cap のみ宣言可能）。
+
+■ hedging（v1 unsupport, v2 候補）
+  - gRPC hedging は v1 では採用しない（複数並走の retry budget
+    管理が複雑なため）。v2_hedging_with_retry_budget 候補。
+
+■ DNS / TCP / TLS handshake failure
+  - DNS 解決失敗：SDK 内部 5 attempts、exponential backoff、
+    その後 OnEndpointUnreachable event 発火。
+  - TCP connect 失敗：Socket level retry は OS / runtime に
+    委ねる、SDK は connection pool の health check で reconnect
+    判定。
+  - TLS handshake failure：1 度だけ retry（cert rotation
+    タイミング考慮）、それ以上は OnAuthRequired or
+    OnEndpointMisconfigured 発火。
+
+■ deadlocks / starvation 防止
+  - 各 SDK は per-aggregate write の concurrent in-flight 1
+    を強制（07_オフライン耐性方針 / 39 適合仕様）。
+  - read-side は同 aggregate の並行 read を制限しない。
+
+■ jitter property の検査
+  - property based test：SDK ランダム seed 1000 回で計算した
+    backoff 系列が「monotonic non-decreasing without jitter」
+    かつ「平均 sleep が exponential 期待値の ±5% 以内」を
+    満たす（14_強制機構 で property test 必須化）。
+
+■ 観測 emit
+  - 全 retry attempt は OTel span として emit、attribute は
+    SemConv compatible：
+      - rpc.service / rpc.method
+      - retry.attempt_number
+      - retry.policy_class
+      - retry.backoff_ms
+      - retry.budget_remaining
+      - error.class / error.message
+  - retry exhaust（max_attempts or budget exhaust）は WARN
+    log + audit event（client.retry_exhaust.event）。
+
+■ 採用しない選択肢
+  - SDK ユーザによる個別 retry_policy_class override：禁止。
+    method 単位の proto annotation のみが正規。
+  - hedging（v1）：unsupport。
+  - 自製 retry library 利用：禁止。SDK 内蔵の機構のみ。
+  - 「ENG が判断して retry を 10 attempts に増やす」型の
+    runtime override：禁止。
+
+■ 至高路線の整合
+  - 全言語 SDK の retry semantics が完全同一（property test
+    で物理検証）。「.NET HttpClient の retry に依存して SDK は
+    薄く」を採らない。SDK が一意の retry 機構を持つ。
+  - retry budget は noisy neighbor 防止のため SDK 側で物理
+    enforce。tier1 15 capacity 適合仕様の v1_global_fair_queue
+    と SDK の budget enforcement が双方向 lock。

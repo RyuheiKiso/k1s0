@@ -1,0 +1,156 @@
+============================================================
+ops SLO 駆動運用方針
+============================================================
+
+■ 一文方針
+  - 全 SLO（13 軸 error_budget.lock.yaml の全 entry）に対し、
+    error budget の burn rate を 5 段階の運用 action（observe
+    / notify / page / freeze / rollback）に物理 bind した
+    budget_action_bindings.lock.yaml を build artifact として
+    固定し、burn rate threshold 越えは Alertmanager →
+    Argo Rollouts / Argo CD / Kyverno で物理発火する。
+    文章 only の budget policy は CI fail。
+
+■ multi-window multi-burn-rate（MWMBR）方式
+  - 全 SLO に対し短窓 fast burn と長窓 slow burn の二重
+    alert を default 必須化、単窓は採用しない。
+  - 短窓 fast burn：1h burn rate ≥ 14.4x（30 日 budget の
+    2% を 1h で消費）→ page。
+  - 長窓 slow burn：6h burn rate ≥ 6x（30 日 budget の 5%
+    を 6h で消費）→ page。
+  - 長窓 medium burn：3d burn rate ≥ 1x（30 日 budget の
+    10% を 3 日で消費）→ ticket。
+  - threshold 値は SLO target に応じて Sloth + Pyrra で
+    自動算出、手書き threshold は cap 0%。
+
+■ 5 段階の運用 action（burn rate に応じて escalate）
+  - phase 1：observe
+        - burn rate < 1x（slow burn ≤ budget 想定消費）
+        - 何もしない（dashboard 観測のみ）
+  - phase 2：notify
+        - burn rate ∈ [1x, 6x)
+        - Mattermost channel（#ops-notify-<service>）に
+          informational 投稿、page しない
+        - quarterly review で恒常的な notify を SLO 再
+          tuning の input にする（13 SLO budget 修正候補）
+  - phase 3：page
+        - burn rate ∈ [6x, 14.4x)
+        - Grafana OnCall 経由で primary on-call へ page
+        - runbook pointer 必須（page-to-runbook 1:1）
+  - phase 4：freeze
+        - burn rate ≥ 14.4x or budget 残 < 25%
+        - Kyverno admission policy が関連 namespace への
+          deploy（除く emergency rollback）を block
+        - freeze 解除は budget 復活 or break-glass + audit
+          経由のみ、PR merge を通常経路で受け入れない
+  - phase 5：rollback
+        - canary / progressive delivery 中の rollout で
+          AnalysisTemplate が SLO 違反を detect
+        - Argo Rollouts が自動 rollback、active version
+          を直前の stable に revert
+        - 自動 rollback 後 1h 以内に postmortem PR 起票
+          必須（merged まで再 deploy 不可）
+
+■ budget_action_bindings.lock.yaml（build artifact）
+  - 1 row = (slo_id, window_class, threshold_burn_rate,
+    action_class, action_pointer, runbook_pointer)。
+  - action_pointer の物理形式：
+        kind: alertmanager_route   ref: <route_id>
+        kind: kyverno_policy        ref: <policy_name>
+        kind: argo_rollouts         ref: <rollout_name>
+        kind: tekton_pipeline       ref: <pipeline_name>
+        kind: oncall_escalation     ref: <escalation_id>
+  - 文章 only action（kind: textual）は禁止、CI fail。
+    例外：post-incident review reference のみ kind:
+    runbook で limited-allow（cap 5% 以下、超過は CI fail）。
+  - 全 SLO（v1 で約 50 entry）× 3 window class（fast /
+    slow / medium）= 150 row が完全列挙、空欄は coverage
+    gap として CI fail。
+
+■ budget arithmetic の物理化
+  - error budget 残量 = (1 - SLO_target) - actual_failure_
+    rate × elapsed / window。Sloth が recording rule で
+    Prometheus に物化、Pyrra が dashboard panel として
+    visualize。
+  - budget burn rate は VictoriaMetrics 内で per-SLO の
+    metric として永続、ClickHouse に長期 archive
+    （preservation v1_zone_replicated 以上）。
+  - budget 復活：window 経過後の自動 rolling、手動 reset
+    は禁止（reset 経路ゼロ）。
+  - budget consumption 履歴は postmortem の必須 section
+    （budget_delta = before - after）として記録。
+
+■ SLO 別の binding 例（v1）
+  - tier1/13 の v1_request_latency_p99（p99 < 500ms /
+    rolling 30d）：
+        - phase 3 page → runbook:tier1-latency-triage
+        - phase 4 freeze → kyverno-policy:tier1-deploy-
+          freeze-on-latency-burn
+        - phase 5 rollback → argo-rollouts:tier1-server
+  - tier1/13 の v1_data_durability（preservation_class
+    別 RPO）：
+        - phase 3 page → runbook:data-rpo-triage
+        - phase 4 freeze → kyverno-policy:data-migration-
+          freeze
+  - 09_data の v1_replication_lag：
+        - phase 3 page → runbook:replication-lag-triage
+        - phase 4 freeze → kyverno-policy:data-write-
+          freeze（writes は continue だが schema 変更は
+          block）
+  - 14 OSS lifecycle の v1_patch_window_compliance：
+        - phase 3 page → runbook:cve-patch-overdue
+        - phase 4 freeze → kyverno-policy:cve-deploy-block
+  - 32 tenant の v1_tenant_isolation_violation_count：
+        - phase 3 page → security incident bridge
+        - phase 4 freeze → security 14 と AND-gate
+  - infra01 の v1_topology_drift：
+        - phase 3 page → runbook:topology-drift-triage
+        - phase 4 freeze → argo-cd:disable-auto-sync
+
+■ budget 干渉の禁止（cross-SLO override）
+  - SLO 間で budget の貸し借り / 流用は禁止。例：tier1
+    latency budget が余っているからといって tenant
+    isolation budget を緩める path はゼロ。
+  - 例外：incident 発火時の budget 再配分は postmortem
+    で必ず audit_event 化、文章 only 再配分は禁止。
+
+■ at-large pause（全 SLO 一斉 freeze）
+  - infrastructure 起因の同時 multi-SLO breach 時に
+    cluster-wide deploy freeze を一斉発動する経路を保持
+    （infra incident 等）。
+  - 発動条件：複数 SLO の phase 4 freeze が 30 分以内
+    重複、or infra incident class（cluster_unreachable
+    / control_plane_failure）。
+  - 発動経路：Kyverno cluster-wide policy（namespace
+    label invariant）、解除は ops 主管 break-glass。
+
+■ 同型構造（13 軸 + meta + security との整合）
+  - 5〜6 yaml 単一の真：
+        slo_classes.yaml（13 SLO の 5 class enum）
+        budget_action_bindings.lock.yaml（build artifact、
+          上記 5 段階 binding の物理化）
+        burn_rate_thresholds.lock.yaml（build artifact、
+          MWMBR threshold の SLO 別 enumerate）
+        freeze_history.lock.yaml（build artifact、freeze
+          の audit trail）
+        rollback_history.lock.yaml（build artifact、auto
+          rollback の audit trail）
+  - 5 層 defense-in-depth：budget は層 D / E に必ず物理
+    action を持つ（層 A / B / C は augment）。
+  - CI 不変条件：binding の coverage_full / pointer_
+    physical / no_textual_only 等を CI で物理確認。
+
+■ 採用しない方針
+  - 単窓 alert：MWMBR 必須、単窓は採用しない（false
+    positive / negative の最小化のため）。
+  - SLO 外 alert の page 化：page-level alert は SLO
+    bind 必須、SLO 外 alert は cap 10%（infrastructure
+    例外）、超過は CI fail。
+  - budget 残 0% でも deploy 続行：禁止、freeze は物理
+    発火（admission block）。
+  - 手動 budget reset：禁止、window rolling 経路のみ。
+  - SLO target の business 都合 緩和：禁止、tier1/13 の
+    pair_target migration を経由した場合のみ class
+    入れ替え可能。
+  - rollback の手動運用 default：auto rollback が default、
+    手動は break-glass。

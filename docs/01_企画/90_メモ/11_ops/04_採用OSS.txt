@@ -1,0 +1,217 @@
+============================================================
+ops 採用 OSS（ops 層 subset）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」の grand catalog のうち、ops 層が
+    cross-axis に bind する OSS（SLO platform / alerting /
+    on-call escalation / progressive delivery / IR ticketing
+    / postmortem / runbook 実行 / feature flag）を抽出して
+    整理したもの。infra / data / security が所有する OSS は
+    cross 参照で明記する（ops は使用面を宣言するのみ）。
+  - 本ファイルの全 OSS は 05_tier1/14_OSSライフサイクル適合
+    仕様 の oss_inventory.lock.yaml に v1_l1plus_primary と
+    して登録される。
+
+------------------------------------------------------------
+[1] SLO platform / error budget
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  SLO definition / budget        | Sloth                  | Apache 2.0
+  SLO recording rule generator   | Pyrra                  | Apache 2.0
+  Multi-window multi-burn-rate   | Sloth + Pyrra          | Apache 2.0
+  Time-series store              | VictoriaMetrics        | Apache 2.0
+                                 | （tier1/09 / infra）   |
+  PromQL adapter                 | Prometheus             | Apache 2.0
+                                 | （tier1/09 / infra）   |
+
+  - Sloth は SLO 定義 yaml → Prometheus recording rule の
+    generator として L1+。Pyrra は MWMBR alert rule
+    generator として cross-check（pair_target ではなく
+    double-bound 必須化）。
+  - SLO target 値は tier1/13 が宣言、ops は SLO の error
+    budget burn rate を運用 action（freeze / page）に bind
+    する規律のみ管掌。
+  - VictoriaMetrics は本企画の Prometheus 互換 TSDB
+    L1+、Thanos / Cortex は採用しない（infra 04 と整合）。
+
+------------------------------------------------------------
+[2] alerting / routing
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Alert routing                  | Alertmanager           | Apache 2.0
+  Alert deduplication            | Alertmanager           | Apache 2.0
+  Notification channel           | Alertmanager           | Apache 2.0
+                                 | + webhook              |
+  Burn rate alert generator      | Sloth + Pyrra          | Apache 2.0
+  Synthetic monitoring           | Grafana k6             | AGPL-3
+  Probe / blackbox monitor       | blackbox_exporter      | Apache 2.0
+
+  - Alertmanager は alert routing / deduplication / silence
+    の L1+、Karma は dashboard として cross-check（infra
+    14 / 04 と整合）。
+  - PagerDuty / Opsgenie 商用は採用しない、Grafana OnCall
+    へ webhook で routing。
+  - Sloth + Pyrra の二重 generator で MWMBR alert rule を
+    生成、手書き alert rule は cap 5%（infrastructure 例外
+    のみ）。
+  - Grafana k6 は synthetic / external probe 用、外形監視
+    は blackbox_exporter（http / tcp / dns / icmp）で吸収。
+
+------------------------------------------------------------
+[3] on-call / escalation
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  on-call escalation             | Grafana OnCall         | AGPL-3
+  rotation schedule              | Grafana OnCall         | AGPL-3
+  notification channel           | Slack OSS / Mattermost | MIT / AGPL-3
+                                 | / Telegram OSS bot     | / GPLv3
+  Identity provider              | Keycloak               | Apache 2.0
+                                 | （infra / tier1/10）   |
+
+  - Grafana OnCall は escalation / rotation の L1+ 単独深耕、
+    PagerDuty は採用しない。
+  - 通知 channel は OSS Mattermost を default、Slack は
+    商用 SaaS だが本企画では internal communication channel
+    に許容（rotation page 通知のみ、機密 incident 内容は
+    Mattermost に分離）。
+  - rotation roster は build artifact（roster.lock.yaml）
+    として宣言、UI 上の手動 swap は audit_event 必須。
+
+------------------------------------------------------------
+[4] incident management / postmortem
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  IR ticketing                   | incident.io OSS        | (custom OSS)
+                                 | / GitHub Issue         |
+  IR command bridge              | Mattermost incident    | AGPL-3
+                                 | response plugin        |
+  postmortem 文書                | Markdown + GitHub PR   | (workflow)
+  postmortem template            | Backstage TechDocs     | Apache 2.0
+                                 | （infra 13 共有）      |
+  action item 追跡               | GitHub Issue + Project | (workflow)
+
+  - incident.io OSS（または GitHub Issue）の minimal
+    経路を default、商用 SLA / on-call 機能（incident.io
+    本体の有償面）は採用しない。
+  - postmortem は Markdown + GitHub PR、template は
+    Backstage TechDocs に集約。security 11 の IR
+    postmortem と同形式 + ops 専用 section（SLO budget
+    consumption / runbook coverage / toil delta）。
+  - action item は別 GitHub Issue + Project board に登録、
+    expires_at と owner 必須、未完了 action item は
+    quarterly review で再評価。
+
+------------------------------------------------------------
+[5] progressive delivery / change management
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Progressive delivery           | Argo Rollouts          | Apache 2.0
+  Canary analysis                | Argo Rollouts          | Apache 2.0
+                                 | AnalysisTemplate       |
+  GitOps                         | Argo CD                | Apache 2.0
+                                 | （infra 提供）         |
+  Workflow / pipeline            | Argo Workflows         | Apache 2.0
+                                 | （infra 提供）         |
+  Sync wave / hook               | Argo CD                | Apache 2.0
+                                 | （infra 提供）         |
+  Pull-request preview env       | Argo CD ApplicationSet | Apache 2.0
+  Feature flag                   | flagd / OpenFeature    | Apache 2.0
+  Feature flag rule              | flagd JSON-schema      | Apache 2.0
+
+  - Argo Rollouts は canary / blue-green / experiment の
+    L1+、Spinnaker / Flagger は採用しない（infra 04 / 09
+    と整合、Flagger は Istio 依存度が高く差し替え困難なため
+    回避）。
+  - AnalysisTemplate に Prometheus query / SLO burn rate
+    metric を入力、threshold 超過で auto rollback。
+  - flagd（OpenFeature 公式 OSS reference）を L1+、
+    LaunchDarkly / Split.io 商用は採用しない。flag
+    definition は build artifact（flags.lock.yaml）。
+  - Argo Workflows は ops の change management pipeline
+    用（rolling drain / topology cutover / multi-stage
+    upgrade）、infra 04 と共有。
+
+------------------------------------------------------------
+[6] runbook 実行 / 自動化
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Runbook 文書                   | Backstage TechDocs     | Apache 2.0
+                                 | （infra 13 共有）      |
+  Runbook 実行 engine            | Tekton Pipelines       | Apache 2.0
+                                 | （infra 04 共有）      |
+  Runbook trigger                | Tekton Triggers        | Apache 2.0
+                                 | + Alertmanager webhook |
+  ChatOps                        | Mattermost slash       | AGPL-3
+                                 | command + Tekton       |
+                                 | trigger                |
+  Workflow scheduling            | Argo Workflows         | Apache 2.0
+                                 | CronWorkflow           |
+  Chaos drill                    | Litmus                 | Apache 2.0
+                                 | （infra 11 共有）      |
+  Game day scenario              | Litmus + Tekton        | Apache 2.0
+
+  - Tekton Pipelines は runbook 実行 engine の L1+、
+    Rundeck / StackStorm は採用しない。
+  - 全 runbook は Backstage TechDocs（人間向け Markdown）+
+    Tekton Pipeline（実行可能 yaml）の二段構え必須、片方
+    欠落は CI fail。
+  - Alertmanager webhook → Tekton Triggers → Pipeline
+    実行、ChatOps 経路は audit_event 必須。
+  - Litmus は ops + infra 11 が共有、game day は ops が
+    scenario 主管、infra 11 が chaos engine 提供。
+
+------------------------------------------------------------
+[7] observability / dashboard
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Dashboard                      | Grafana                | AGPL-3
+                                 | （tier1/09 / infra 共有）|
+  Trace store                    | Tempo                  | AGPL-3
+                                 | （tier1/09 / data 共有）|
+  Log store                      | Loki                   | AGPL-3
+                                 | （tier1/09 / data 共有）|
+  Audit / ops_event store        | ClickHouse             | Apache 2.0
+                                 | （data / security 共有）|
+  Log shipping                   | Vector                 | MPL 2.0
+                                 | （security / data 共有）|
+
+  - ops は新規 SoR を持ち込まず、Grafana / Tempo / Loki /
+    ClickHouse / Vector を共用。ops_event subject schema
+    は ops が宣言（security audit_event とは別 subject、
+    immutability 規律は同等）。
+  - dashboard yaml は build artifact（dashboards/*.yaml）、
+    手書き drift は CI 検出 + Argo CD self-heal（infra 09
+    と整合）。
+
+■ 他層所有の OSS（cross 参照）
+  - Kyverno / cert-manager / OpenBao / External Secrets /
+    Argo CD / Argo Rollouts / Tekton / Harbor / Trivy →
+    08_infra（GitOps 配信 / 04 採用OSS）
+  - VictoriaMetrics / Prometheus / Grafana / Tempo / Loki
+    → 05_tier1/09_観測適合仕様 / infra
+  - ClickHouse / Vector → 09_data（保全 SoR）/ 10_security
+    （audit）
+  - Grafana OnCall（escalation の物理 deploy）→ infra
+  - Litmus（chaos engine）→ 08_infra/11_Chaos工学方針
+  - flagd / OpenFeature SDK → tier1 Library 提供
+    （Server-side / client-side SDK）
+
+■ L1+ 深耕の徹底
+  - 同一カテゴリで横並びの OSS を本番運用しない（cluster
+    単位で 1 つに固定）。例外：Sloth / Pyrra（SLO rule
+    generator は double-bound 必須として並走）、Mattermost
+    / Slack（社内 channel と機密 channel の分離必須として
+    二系統維持）。
+  - 既採用 OSS の機能で吸収できる用件を、別 OSS の追加で
+    解決しない（progressive delivery は Argo Rollouts のみ、
+    Flagger / Spinnaker 追加 ×）。
+  - 新 OSS の追加は 14_OSSライフサイクル適合仕様 の
+    pair_target 移行手続を必ず経る。

@@ -1,0 +1,124 @@
+============================================================
+security 秘密管理方針
+============================================================
+
+■ 一文方針
+  - 全ての secret（authn token / API key / DB password /
+    KEK / DEK / TLS private key / signing key / SSH key）は
+    OpenBao の lease ベース短期発行のみで配信、source repo
+    / image / config map / 環境変数（plaintext）への secret
+    含有は CI / runtime / build-time の三重層で物理 block、
+    rotation overdue は admission block する。
+
+■ secret class taxonomy
+  - v1_authn_token：OIDC ID token / refresh token / JWT
+        lifetime ≤ 1 時間（refresh 含めて ≤ 24 時間）
+        rotation：lifetime 期限（自動）
+        store：OpenBao + External Secrets（短期 secret）
+  - v1_api_key：B2B 連携用 API key
+        lifetime ≤ 90 日
+        rotation：90 日強制（v1）、v2 で 30 日へ短縮検討
+        store：OpenBao kv2 + External Secrets
+  - v1_db_password：CloudNativePG superuser / app role
+        lifetime ≤ 24 時間（response wrapping、break-glass
+                  以外は app role 短期）
+        rotation：24 時間（自動 lease 更新）
+        store：OpenBao Database secret engine
+  - v1_kek：Key Encryption Key（OpenBao Transit）
+        rotation：tier1/11 鍵管理適合仕様 が決定（v1 で
+                   90 日標準、機微度別に短縮）
+        store：OpenBao Transit + HSM-backed（infra 提供）
+  - v1_dek：Data Encryption Key（envelope encryption）
+        rotation：tier1/11 鍵管理適合仕様 が決定
+        store：DEK 自体は data store 内（KEK で wrap 済）
+  - v1_tls_private_key：cert-manager 管掌
+        lifetime ≤ 90 日（Let's Encrypt 風 cadence）
+        rotation：cert-manager 自動更新
+        store：Kubernetes Secret（cert-manager 管掌）+
+                 OpenBao 経由 root CA private key
+  - v1_signing_key：cosign signing key（KMS-backed）
+        lifetime：永続（rotation cadence は 365 日強制）
+        rotation：365 日強制（v1）、cosign の rotation
+                  protocol で旧 key を一定期間 verify 用に
+                  保持
+        store：OpenBao Transit / KMS（HSM-backed）
+  - v1_ssh_key：CI runner / break-glass SSH
+        lifetime ≤ 1 時間（OpenBao SSH secret engine）
+        rotation：lifetime 期限（自動）
+        store：OpenBao SSH secret engine（CA-based）
+
+■ secret hygiene の三重層
+  - build-time：
+        gitleaks（pre-commit hook + CI push）+ trufflehog
+        （CI push）+ Trivy secret scan（image build）+
+        SBOM 内 secret 検出（Syft）。検出時は merge / push
+        / image push 全 block。
+  - source-of-truth：
+        全 secret は OpenBao 内のみ、Kubernetes Secret は
+        External Secrets 経由で同期される ephemeral copy
+        として扱う。Kubernetes Secret に直接書き込む経路
+        は admission block。
+  - runtime：
+        Falco rule で「環境変数 / file / argv に secret-
+        like pattern」を detect、検出時は audit_event +
+        on-call page。
+        Tetragon eBPF で secret file open の監査。
+
+■ rotation cadence 違反の admission block
+  - rotation_progress.lock.yaml（tier1/11 鍵管理適合仕様
+    で build artifact 化）に各 secret class の last_
+    rotated_at を記録。
+  - cadence 超過した secret class が 1 つでもあれば、
+    本番 cluster への新規 deploy を Kyverno admission
+    policy（block-on-rotation-overdue）で物理 block。
+  - 例外経路は break-glass のみ、postmortem PR が義務。
+
+■ secret 配信経路（OpenBao → application）
+  - External Secrets Operator が OpenBao の lease を
+    Kubernetes Secret に同期、application は Kubernetes
+    Secret から read（直接 OpenBao を読まない）。
+  - 例外：CI runner / Tekton job は OpenBao の short-
+    lived token を OIDC exchange で直接取得、Kubernetes
+    Secret 経由ではない。
+  - 全配信経路で secret は memory only、disk persist は
+    禁止（tmpfs / in-memory volume のみ）。
+
+■ secret exposure 検知時の IR 経路
+  - exposure 検知 → 11_インシデント対応方針 の class =
+    secret_exposure playbook を起動。
+  - 該当 secret class 全 instance を OpenBao 側で即時
+    revoke（lease revoke）。
+  - rotate された新 secret を External Secrets で再配信、
+    application は Kubernetes Secret reload で吸収。
+  - exposure された場所（git history / image layer / log）
+    の cleanup PR を起票（git history 改竄不可、purge は
+    新規 commit + history 警告で対応、cluster 全層で
+    rotation を物理保証する方が安価）。
+  - 全工程の audit_event を 09 観測 SoR に emit、
+    postmortem PR が ship blocker（次 release 不可）。
+
+■ 採用しない方針
+  - .env file / direnv / dotenv の本番運用：禁止、開発
+    でも Testcontainers 経由の OpenBao dev mode のみ許容。
+  - Kubernetes Secret への直接書き込み：禁止、External
+    Secrets 経由のみ。
+  - long-lived API key の運用：禁止、API key も rotation
+    cadence 必須。
+  - secret を環境変数で渡す経路の plaintext 環境変数値：
+    禁止、必ず Kubernetes Secret reference 経由。
+  - ad-hoc な secret rotation：rotation は tier1/11 の
+    rotation_progress.lock.yaml に必ず記録される
+    schedule のみ。手動 rotation は break-glass のみ。
+  - secret rotation の opt-out：cadence 超過は admission
+    block、opt-out 経路を持たない。
+
+■ 同型構造（13 軸との整合）
+  - secret class taxonomy（8 class）は本層が宣言、
+    rotation の意味論は tier1/11 鍵管理適合仕様、配信
+    経路は infra（OpenBao + External Secrets）が物理担当。
+  - secret exposure threat は 05_脅威モデル方針 の actor =
+    insider_application × asset = credential として登録、
+    mitigation pointer が本ファイル + tier1/11 + infra
+    14 に分散して bind。
+  - secret hygiene CI 経路は 14_強制機構 の admission
+    policy ＋ build-time check として codify。

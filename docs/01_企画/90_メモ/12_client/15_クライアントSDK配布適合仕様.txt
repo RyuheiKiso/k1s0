@@ -1,0 +1,801 @@
+============================================================
+client クライアント SDK 配布適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」OpenTelemetry .NET Auto-Instrumentation
+    / OpenTelemetry Java Agent / OTel JS / OTel Browser SDK /
+    grpc-dotnet / grpc-java / @grpc/grpc-js / grpc-web /
+    grpcio / tonic / protoc / Buf / Apicurio Registry / Pact /
+    Tauri / Tilt / Harbor / Cosign / Syft / Grype、「03_プラ
+    ットフォーム構成」の 5 階層、「12_client/01_責務」「12_
+    client/02_位置づけ」「12_client/05_SDK配布構成方針」「12_
+    client/06_Transport適応方針」「12_client/07_オフライン
+    耐性方針」「12_client/08_認証コンテキスト伝播方針」「12_
+    client/09_配布SemVer方針」「12_client/10_リトライバック
+    オフ方針」「12_client/11_観測Auto-Instrumentation方針」
+    「12_client/12_コード生成方針」、および「05_tier1/03_
+    Server系」「05_tier1/04_Library」「05_tier1/07_Bidi適合
+    仕様」「05_tier1/09_観測適合仕様」「05_tier1/10_認証適
+    合仕様」「05_tier1/11_鍵管理適合仕様」「05_tier1/12_ス
+    キーマ進化適合仕様」「05_tier1/13_SLO適合仕様」「05_
+    tier1/14_OSSライフサイクル適合仕様」「05_tier1/15_テナ
+    ント容量適合仕様」「06_tier2/32_テナント分離適合仕様」
+    「07_tier3/39_クライアント状態適合仕様」「08_infra/15_
+    クラスタ位相適合仕様」「09_data/15_データ保全適合仕様」
+    「10_security/15_脅威モデル適合仕様」が散在的に宣言する
+    SDK 配布形 / capability matrix / Auto-Instrumentation
+    モード / refresh_token storage / device_at_rest_encryption
+    / language runtime version / package registry / Cosign
+    署名形式 / SemVer lockstep を、機械可読な単一の真として
+    一箇所に固定する仕様書。
+  - 「05_tier1/07/08/09/10/11/12/13/14/15」「06_tier2/32」
+    「07_tier3/39」「08_infra/15」「09_data/15」「10_security
+    /15」と同型の枠組みを client SDK distribution 軸に転写
+    したもの。dimension override 禁止 / dead spec 殺し /
+    build artifact 化 / 5 層 defense-in-depth の規律はその
+    まま継承する。
+  - client が物理的に唯一の SDK 配布 facade として振る舞う。
+    tier1 / tier2 / tier3 / infra / data から「どの言語 SDK
+    として / どの transport / どの auto_instr で投影するか」
+    を coding で flag するのではなく、sdk_distribution_class
+    を proto annotation / Buf workflow / Harbor admission
+    policy に注釈する形で宣言する。
+  - 14 軸 + meta の 1 軸として、本仕様が 07 transport / 09
+    observability / 10 auth / 11 key / 12 schema / 13 SLO /
+    14 OSS lifecycle / 15 capacity / 32 data-tenant / 39
+    client-state / infra01 topology / data01 preservation /
+    security15 threat-model の各軸の SDK 投影面を統合する。
+
+■ 設計原則
+  - sdk_distribution_class は bundle である。
+      yaml に書く client.distribution.* attribute のうち、
+      sdk_distribution_class 1 つの値が他 6 dimension（
+      language_runtime / distribution_channel / transport_
+      capability_class / auto_instrumentation_mode / companion
+      _provision_mode / device_at_rest_encryption_mode /
+      refresh_token_storage_mode）を一意に導出する。Buf
+      workflow / Harbor admission policy / SDK init の作者
+      が dimension を個別に override する経路は持たない。
+      （※ 7 dimension あるが「他 6」と数えるのは class 自体が
+       1 dimension であることに対する従属 dimension の数え方。）
+  - dimension override は禁止する。
+      「v1_browser_spa_typescript の refresh_token_storage_
+      mode を localstorage に変えたい」要望は新 class を切る
+      ことで表現する。class 数の爆発は意味論の規律として受
+      け入れる。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に
+      登録された全 assertion id、sdk_inventory.lock.yaml に
+      列挙された全 SDK package、sdk_conformance.lock.yaml に
+      列挙された全 conformance record は、いずれも参照され
+      なくなった時点で CI fail とする。proto に含まれる全
+      RPC method のうち annotation（retry / slo / quota /
+      observability / capability）が 1 つでも欠けたものは
+      buf lint で fail。
+  - 5 種類 enforcement orchestrator を全 sdk_distribution_class
+    に必須化する。
+      buf_codegen_pipeline / cosign_supply_chain / language_
+      lint_analyzer / pact_contract_test / property_based_
+      test の 5 orchestrator は、各 class が必要とする層を
+      宣言する。同一 enforcement は複数 orchestrator に分散
+      しないが、同一 SDK では複数 class が複数 orchestrator
+      を併用する。
+  - sdk_conformance を物理 property とする。
+      「conformance_cadence_days 以内に必ず 5 distribution_
+      class 全てで全 conformance scenario を実演し、宣言された
+      期待値内に収束する」を CI で必ず検証する。13 の v1_
+      request_availability / v1_request_latency_p99 が SDK
+      side OTel metric で隣接 region を観測し、isolation 破綻
+      を即時 alert + admission block に流す。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile（codegen / 型 check）
+      層 B : lint（規約 check）
+      層 C : integration / contract test（Pact / Testcontainers
+              / Playwright）
+      層 D : runtime（SDK ランタイムの物理 enforcement、
+              WebCrypto / OS keychain / DPAPI / 24h TTL /
+              retry budget / circuit breaker）
+      層 E : 物理（Cosign signed package / Kyverno admission
+              policy / OS keychain / WebCrypto non-extractable
+              CryptoKey / Browser CSP）
+      任意の単層が破れても他層が必ず止める。物理 enforcement
+      は最終 safety net。
+
+■ v1 sdk_distribution_class セット（5 class）
+  - yaml に書ける sdk_distribution_class は次の 5 値のみ。
+    各 SDK パッケージ実体は sdk_inventory.lock.yaml の枝で
+    classes.yaml の keys と照合する。
+
+      class                                | language_runtime                     | distribution_channel       | transport_capability_class | auto_instrumentation_mode    | companion_provision_mode  | device_at_rest_encryption_mode               | refresh_token_storage_mode
+      -------------------------------------+--------------------------------------+----------------------------+----------------------------+------------------------------+---------------------------+----------------------------------------------+-----------------------------------
+      v1_full_native_with_companion        | dotnet8 / java21 / node20 / rust /   | nuget / maven / npm /      | full                       | agent_attach (.NET / Java)   | optional                  | os_native                                    | process_memory_only
+                                           | go122 / python312 / ruby33           | cargo / go / pypi / gems   |                            | / library_auto (others)      |                           |                                              |
+      v1_legacy_dotnet_framework           | dotnet_framework_4_6_2_plus          | nuget                      | limited                    | clr_profiler_attach          | required                  | dpapi                                        | dpapi_protected_blob
+      v1_browser_spa_typescript            | browser (Chromium / Firefox / Safari | npm                        | web                        | library_auto                 | required                  | webcrypto_aes_gcm_non_extractable_cryptokey  | in_memory + httponly_cookie
+                                           | latest LTS)                          |                            |                            |                              |                           |                                              |
+      v1_thick_native_via_tauri            | tauri (rust + webview)               | cargo + npm + tauri bundle | full                       | dual                         | required (sidecar)        | webcrypto_aes_gcm_with_os_keychain_key_wrap  | os_keychain_secure_storage
+      v1_thin_business_api_only            | any (polyglot, OpenAPI generated)    | not_provided               | business_api_only          | side_companion_proxy         | side_companion_proxy      | not_applicable                               | not_applicable
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_full_native_with_companion
+          - 用途：tier1 Library を直接組み込めるサーバ側 / 太い
+            client。.NET 8 LTS / OpenJDK 21 LTS / Node.js 20 /
+            Rust stable / Go 1.22 / Python 3.12 / Ruby 3.3 の
+            7 言語が該当。
+          - language_runtime: 同上 7 言語、minor version skew
+            ≤ 1（14 OSS lifecycle 適合仕様）。
+          - distribution_channel: 各言語 official + Harbor
+            mirror。enterprise は Harbor 必須。
+          - transport_capability_class: full（gRPC bidi 完全 +
+            HTTP/3 + WebTransport optional）。
+          - auto_instrumentation_mode: agent_attach (.NET /
+            Java は CLR Profiler / Java Agent)、library_auto
+            (Node / Python / Ruby / Go / Rust)。
+          - companion_provision_mode: optional（基本不要）。
+          - device_at_rest_encryption_mode: os_native（OS
+            keychain / DPAPI / SecretService）。
+          - refresh_token_storage_mode: process_memory_only
+            （長期 storage は OS keychain への明示 store のみ）。
+          - conformance_cadence_days: 14 日（高頻度 release）。
+
+      - v1_legacy_dotnet_framework
+          - 用途：レガシー .NET Framework 4.6.2+ exe / Service。
+          - language_runtime: dotnet_framework_4_6_2_plus
+            （4.6.2 / 4.7.2 / 4.8 / 4.8.1 を classes.yaml で
+            allowed_versions として列挙）。
+          - distribution_channel: NuGet（Harbor mirror）。
+          - transport_capability_class: limited（gRPC unary +
+            server-streaming、bidi なし）。HTTP/2 over TLS が
+            前提のため Companion の HTTP/2 polyfill 経由。
+          - auto_instrumentation_mode: clr_profiler_attach。
+            opentelemetry-dotnet-instrumentation の msi で
+            attach、コード変更不要。
+          - companion_provision_mode: required（k1s0.Companion
+            .NetFx）。
+          - device_at_rest_encryption_mode: dpapi（Windows
+            Data Protection API、CurrentUser scope）。
+          - refresh_token_storage_mode: dpapi_protected_blob
+            （DPAPI Protect で encrypt して file system rest）。
+          - conformance_cadence_days: 30 日（変更頻度低、
+            stability 重視）。
+
+      - v1_browser_spa_typescript
+          - 用途：Browser SPA（TypeScript / React / Vue /
+            Svelte / Angular / Blazor WASM 等のいずれの UI
+            framework でも組み込み可能、framework 非依存）。
+          - language_runtime: Browser、Chromium / Firefox /
+            Safari の latest LTS のみサポート（IE / Edge
+            Legacy 不可）。
+          - distribution_channel: npm（Harbor + Verdaccio
+            mirror）。
+          - transport_capability_class: web（gRPC-Web binary
+            + WebSocket fallback bidi + HTTP/3 + WebTransport
+            optional）。
+          - auto_instrumentation_mode: library_auto
+            （@otel/sdk-trace-web + @otel/auto-instrumentations
+            -web）。
+          - companion_provision_mode: required（@k1s0/
+            companion-web、Service Worker registration を含む）。
+          - device_at_rest_encryption_mode: webcrypto_aes_gcm_
+            non_extractable_cryptokey（IndexedDB に encrypted
+            blob、鍵は WebCrypto.subtle.generateKey で
+            non-extractable）。
+          - refresh_token_storage_mode: in_memory_only +
+            httponly_cookie_for_refresh（access_token は memory、
+            refresh_token は HttpOnly + Secure + SameSite=
+            Strict cookie + JS access 不能）。
+          - conformance_cadence_days: 14 日。
+
+      - v1_thick_native_via_tauri
+          - 用途：Tauri デスクトップアプリ（Rust + WebView）。
+            Browser SPA 相当の UI を Native window で展開、
+            OS keychain access / file I/O 可能。
+          - language_runtime: tauri（Rust + system WebView：
+            macOS WebKit / Windows WebView2 / Linux WebKitGTK）。
+          - distribution_channel: cargo + npm（フロント TS）+
+            Tauri バンドル（msi / dmg / AppImage）。
+          - transport_capability_class: full（Tauri sidecar が
+            Rust 側で gRPC bidi / HTTP/3 + WebTransport /
+            WebSocket を担当、WebView は IPC 経由で sidecar に
+            request）。
+          - auto_instrumentation_mode: dual（Rust 側 OTel Rust
+            + WebView 側 OTel Browser、context propagation
+            で stitch）。
+          - companion_provision_mode: required（k1s0-companion
+            -tauri sidecar）。
+          - device_at_rest_encryption_mode: webcrypto_aes_gcm_
+            with_os_keychain_key_wrap（IndexedDB に encrypted
+            blob、KEK は OS keychain plugin 経由で OS が保管）。
+          - refresh_token_storage_mode: os_keychain_secure_
+            storage（macOS Keychain / Windows DPAPI / Linux
+            SecretService）。
+          - conformance_cadence_days: 14 日。
+
+      - v1_thin_business_api_only
+          - 用途：tier1 Library / Companion を組み込めない
+            polyglot 環境（C++ / Erlang / Elixir / COBOL /
+            その他）向け。HTTP/JSON via Envoy Gateway gRPC-
+            JSON Transcoder。
+          - language_runtime: any。本企画は SDK パッケージを
+            提供しない（OpenAPI 仕様 + curl / Postman /
+            generator は提供）。
+          - distribution_channel: not_provided。OpenAPI yaml
+            のみ Harbor 配信。
+          - transport_capability_class: business_api_only
+            （HTTP/1.1 + JSON / NDJSON）。
+          - auto_instrumentation_mode: side_companion_proxy
+            （独立 OTel Collector sidecar が観測引受、infra
+            08 配下）。
+          - companion_provision_mode: side_companion_proxy
+            （独立 sidecar pod、infra 08 配下に置く）。
+          - device_at_rest_encryption_mode: not_applicable。
+          - refresh_token_storage_mode: not_applicable
+            （token は infra Envoy Gateway 配下が処理）。
+          - conformance_cadence_days: 30 日（OpenAPI 仕様 +
+            sample の互換性確認のみ）。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務
+    シナリオの stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - language_runtime は SDK の宿主 ランタイム：
+        dotnet8 / java21 / node20 / rust / go122 / python312
+        / ruby33   → サーバ側 / 太い client
+        dotnet_framework_4_6_2_plus → レガシー .NET FW
+        browser    → SPA
+        tauri      → デスクトップ Native
+        any        → polyglot business API only
+    複数粒度を重ねた表現（dotnet8 + dotnet_framework）は
+    class 内 fixed。
+  - distribution_channel は SDK の配布経路：
+        各言語 official registry + Harbor mirror（enterprise）
+        / OpenAPI yaml only / Tauri bundle 形式
+    混合は class 内 fixed。
+  - transport_capability_class は wire 能力：
+        full / web / limited / business_api_only
+        （06_Transport適応方針 と同型）
+  - auto_instrumentation_mode は OTel Auto-Instrumentation
+    の attach 方式：
+        agent_attach / library_auto / clr_profiler_attach /
+        dual / side_companion_proxy
+        （11_観測Auto-Instrumentation方針 と同期）
+  - companion_provision_mode は Companion 配布形態：
+        optional / required / required(sidecar) /
+        side_companion_proxy
+  - device_at_rest_encryption_mode は SDK 側 offline storage
+    の暗号化機構：
+        os_native / dpapi / webcrypto_aes_gcm_non_extractable_
+        cryptokey / webcrypto_aes_gcm_with_os_keychain_key_
+        wrap / not_applicable
+        （07_オフライン耐性方針 と同期）
+  - refresh_token_storage_mode は refresh_token 永続化の物理
+    保管：
+        process_memory_only / dpapi_protected_blob / in_memory
+        + httponly_cookie / os_keychain_secure_storage /
+        not_applicable
+        （08_認証コンテキスト伝播方針 と同期）
+
+■ derived dimension（per-language threshold）を独立次元にしない理由
+  - per-language の閾値（v1_full_native_with_companion 内の
+    .NET 8 vs Java 21 vs Node.js 20 のそれぞれの runtime
+    minor version、依存 NuGet / Maven / npm のバージョン）は
+    本来 dimension たり得るが、5 class それぞれで「同じ
+    transport_capability_class / auto_instrumentation_mode /
+    companion_provision_mode / device_at_rest_encryption_mode
+    / refresh_token_storage_mode 構造で言語と version だけが
+    instance 別」という同形操作になる。
+  - 閾値は class instantiate 時の instance 属性として宣言し、
+    build artifact が Buf workflow generator config / Cosign
+    signed package metadata / Kyverno admission policy 適用
+    対象を生成する形に統一。
+  - SDK 開発者 / 業務側で迷う余地がないため、独立 dimension
+    化する利得が乏しい。
+
+■ 5 種類 enforcement orchestrator の責務分離（特殊機構）
+  - orchestrator 1: buf_codegen_pipeline
+      - 全 class 共通の主担当。proto / Apicurio schema を input
+        として全言語 SDK の RPC stub / type / SemConv helper /
+        capability matrix / retry policy table / PII field map
+        を 1 pipeline で生成（12_コード生成方針）。
+      - generated code が compile できることが層 A の物理 trigger。
+
+  - orchestrator 2: cosign_supply_chain
+      - 全 class 共通の主担当。SDK package の Cosign signed +
+        SBOM (Syft) + 脆弱性スキャン (Grype) + SLSA provenance
+        attestation を物理 enforce（09_配布SemVer方針 / 14_
+        強制機構）。
+      - Harbor admission policy が unsigned package を物理
+        reject する層 E。
+
+  - orchestrator 3: language_lint_analyzer
+      - 全 class が必要とする言語別 lint（Roslyn / SpotBugs /
+        ESLint / clippy / pylint / rubocop / golangci-lint）。
+        各 SDK 内 公開 API として「生 HTTP」「LocalStorage 直
+        書込」「access_token getter」「自製 crypto」「dimension
+        override」の存在を物理 reject（14_強制機構 整合 12）。
+
+  - orchestrator 4: pact_contract_test
+      - 全 capability_class について Pact provider / consumer
+        contract test を実行（14_強制機構 整合 5 / 13_運用UI
+        と開発者体験 contract test 節）。
+      - SDK 利用者が tier1 Server 側 API と契約上整合している
+        ことを 物理 verify。
+
+  - orchestrator 5: property_based_test
+      - 全 9 言語 SDK で property based test を実行：
+        retry backoff の monotonicity / idempotency_key の
+        uniqueness / capability negotiation の決定論性 / 4
+        layer reducer の決定論性（39 conflict_tree.yaml の
+        actions 投影）。
+      - 言語別 property test ライブラリ（FsCheck / fast-check
+        / Hypothesis / proptest 等）を統一 spec で駆動。
+
+  - 5 orchestrator は順次評価される（codegen → contract →
+    property → lint → cosign）が、各 sdk_distribution_class
+    は 1 orchestrator を「主担当」として宣言。他層は補助的
+    に協調動作（例：v1_browser_spa_typescript の主担当は
+    pact_contract_test だが、property_based_test が capability
+    negotiation を補助）。
+
+■ spec の 5 ファイル構成（単一の真）
+
+  ── client/distribution/classes.yaml
+      - class bundle 定義。sdk_distribution_class 名 → 6
+        dimension + instance attributes_required の純粋関数
+        テーブル。
+      - スケッチ：
+            classes:
+              v1_full_native_with_companion:
+                language_runtime:
+                  - dotnet8
+                  - java21
+                  - node20
+                  - rust_stable
+                  - go122
+                  - python312
+                  - ruby33
+                distribution_channel:
+                  - nuget
+                  - maven
+                  - npm
+                  - cargo
+                  - go_module
+                  - pypi
+                  - rubygems
+                transport_capability_class: full
+                auto_instrumentation_mode:
+                  dotnet8: agent_attach
+                  java21: agent_attach
+                  node20: library_auto
+                  rust_stable: library_auto
+                  go122: library_auto
+                  python312: library_auto
+                  ruby33: library_auto
+                companion_provision_mode: optional
+                device_at_rest_encryption_mode: os_native
+                refresh_token_storage_mode: process_memory_only
+                conformance_cadence_days: 14
+                attributes_required:
+                  - language_runtime_minor_version
+                  - distribution_channel_endpoint
+                  - cosign_public_key_uri
+              v1_legacy_dotnet_framework:
+                language_runtime: dotnet_framework_4_6_2_plus
+                allowed_runtime_versions:
+                  - 4.6.2
+                  - 4.7.2
+                  - 4.8
+                  - 4.8.1
+                distribution_channel: nuget
+                transport_capability_class: limited
+                auto_instrumentation_mode: clr_profiler_attach
+                companion_provision_mode: required
+                device_at_rest_encryption_mode: dpapi
+                refresh_token_storage_mode: dpapi_protected_blob
+                conformance_cadence_days: 30
+                attributes_required:
+                  - dpapi_scope
+                  - companion_nuget_id
+                  - companion_min_version
+              v1_browser_spa_typescript:
+                language_runtime: browser
+                allowed_browser_engines:
+                  - chromium_latest_lts
+                  - firefox_latest_lts
+                  - safari_latest_lts
+                distribution_channel: npm
+                transport_capability_class: web
+                auto_instrumentation_mode: library_auto
+                companion_provision_mode: required
+                device_at_rest_encryption_mode: webcrypto_aes_gcm_non_extractable_cryptokey
+                refresh_token_storage_mode: in_memory_plus_httponly_cookie
+                conformance_cadence_days: 14
+                attributes_required:
+                  - csp_strictness
+                  - service_worker_scope
+                  - companion_npm_id
+              v1_thick_native_via_tauri:
+                language_runtime: tauri
+                allowed_webview_engines:
+                  - macos_webkit
+                  - windows_webview2
+                  - linux_webkitgtk
+                distribution_channel:
+                  - cargo
+                  - npm
+                  - tauri_bundle
+                transport_capability_class: full
+                auto_instrumentation_mode: dual
+                companion_provision_mode: required_sidecar
+                device_at_rest_encryption_mode: webcrypto_aes_gcm_with_os_keychain_key_wrap
+                refresh_token_storage_mode: os_keychain_secure_storage
+                conformance_cadence_days: 14
+                attributes_required:
+                  - tauri_min_version
+                  - keychain_plugin_id
+                  - sidecar_grpc_port
+              v1_thin_business_api_only:
+                language_runtime: any
+                distribution_channel: not_provided
+                openapi_artifact_uri_required: true
+                transport_capability_class: business_api_only
+                auto_instrumentation_mode: side_companion_proxy
+                companion_provision_mode: side_companion_proxy
+                device_at_rest_encryption_mode: not_applicable
+                refresh_token_storage_mode: not_applicable
+                conformance_cadence_days: 30
+                attributes_required:
+                  - openapi_artifact_uri
+                  - companion_proxy_helm_chart_id
+
+  ── client/distribution/sdk_inventory.lock.yaml
+      - 全 SDK package のバージョン / SHA / SBOM 場所 / Cosign
+        signature / SLSA provenance を build artifact として記録。
+      - スケッチ：
+            sdk_inventory:
+              major_minor: "1.0"
+              languages:
+                - id: dotnet8
+                  registry: nuget
+                  package: k1s0.Library.Net8
+                  current_patch: 0
+                  sha: "sha256:..."
+                  sbom_uri: harbor://k1s0/sbom/dotnet8/1.0.0
+                  cosign_signature_uri: harbor://k1s0/cosign/dotnet8/1.0.0
+                  slsa_provenance_uri: harbor://k1s0/slsa/dotnet8/1.0.0
+                - id: dotnet_framework
+                  registry: nuget
+                  package: k1s0.Library.NetFx
+                  companion_package: k1s0.Companion.NetFx
+                  current_patch: 0
+                  sha: "sha256:..."
+                # ... 全 9 言語 + Companion + OpenAPI artifact
+
+  ── client/distribution/capability_matrix.lock.yaml
+      - tier1 03_Server系 が公開する actual capability descriptor
+        と SDK 側 expected capability の双方向 lock。
+      - スケッチ：
+            capability_matrix:
+              endpoints:
+                - id: tier1_server_grpc_main
+                  expected:
+                    supports_bidi: true
+                    supports_webtransport: false
+                    max_message_bytes: 16777216
+                    supports_compression: [gzip, zstd]
+                    observed_semconv_version: "1.32"
+                  actual_source: tier1/transport/server_capability.lock.yaml
+                  capability_class_supported:
+                    - full
+                    - limited
+                    - business_api_only
+                - id: tier1_server_web_edge
+                  expected:
+                    supports_bidi: false
+                    supports_webtransport: true
+                    max_message_bytes: 4194304
+                    supports_compression: [gzip, brotli]
+                    observed_semconv_version: "1.32"
+                  capability_class_supported:
+                    - web
+                    - business_api_only
+
+  ── client/distribution/sdk_conformance.lock.yaml
+      - 各 sdk_distribution_class の最新 conformance 実演履歴。
+      - スケッチ：
+            sdk_conformance:
+              records:
+                - class: v1_full_native_with_companion
+                  conformance_cadence_days: 14
+                  last_green_at: "2026-05-09T00:00:00Z"
+                  scenarios_green:
+                    - dotnet8_pact_full_capability
+                    - java21_pact_full_capability
+                    - node20_pact_full_capability
+                    - rust_pact_full_capability
+                    - go122_pact_full_capability
+                    - python312_pact_full_capability
+                    - ruby33_pact_full_capability
+                    - cross_language_property_test
+                    - cosign_signed_attestation_verify
+                  status: green
+                - class: v1_legacy_dotnet_framework
+                  conformance_cadence_days: 30
+                  last_green_at: "2026-05-08T00:00:00Z"
+                  scenarios_green:
+                    - dotnet_framework_clr_profiler_attach
+                    - companion_netfx_round_trip
+                    - dpapi_at_rest_encryption
+                  status: green
+                - class: v1_browser_spa_typescript
+                  ...
+                - class: v1_thick_native_via_tauri
+                  ...
+                - class: v1_thin_business_api_only
+                  ...
+
+  ── client/distribution/scenarios.yaml
+      - conformance / contract / property / E2E test の単一カタ
+        ログ。各 scenario の id / class / level / 期待 / 実装
+        場所を宣言。
+      - スケッチ：
+            scenarios:
+              - id: dotnet8_pact_full_capability
+                class: v1_full_native_with_companion
+                level: contract
+                provider: tier1_server_grpc_main
+                consumer: dotnet8_sdk
+                expect:
+                  - all_methods_in_proto_have_pact_interaction
+                  - retry_policy_class_observed_per_method
+                  - capability_negotiation_succeeds_for_full
+              - id: cross_language_property_test
+                class: v1_full_native_with_companion
+                level: property
+                expect:
+                  - same_input_proto_produces_same_method_signature
+                    _across_all_seven_languages
+                  - retry_backoff_series_within_5pct_of_expected
+                  - idempotency_key_no_collision_in_10m_samples
+              - id: browser_offline_resume_clean
+                class: v1_browser_spa_typescript
+                level: e2e
+                expect:
+                  - playwright_offline_edit_then_reconnect_acks
+                  - indexeddb_dump_contains_no_pii_plaintext
+              - id: tauri_keychain_rotation
+                class: v1_thick_native_via_tauri
+                level: e2e
+                expect:
+                  - refresh_token_expiry_purges_indexeddb
+                  - new_device_bound_key_makes_old_blob_undecryptable
+              - id: thin_openapi_curl_smoke
+                class: v1_thin_business_api_only
+                level: contract
+                expect:
+                  - openapi_yaml_renders_valid_swagger
+                  - curl_examples_produce_2xx_against_envoy_transcoder
+              # ...
+
+■ 5 層 defense-in-depth
+
+  ── 層 A : compile（codegen / 型 check）
+      - protoc + Buf による単一 codegen pipeline（12_コード
+        生成方針）。
+      - 全 SDK の generated code が compile すること（言語別
+        compiler／rustc／tsc／csc／javac／pyflakes／rubocop
+        type-check）。
+      - method annotation（retry_policy / slo_class /
+        quota_class / observability_class / capability_class）
+        が proto に必須化、buf lint で検出。
+      - sdk_inventory.lock.yaml / capability_matrix.lock.yaml
+        / sdk_conformance.lock.yaml は build artifact、手書き
+        禁止。
+
+  ── 層 B : lint（規約 check）
+      - 言語別 lint / analyzer（14_強制機構 言語別 lint 一覧）。
+      - SDK 公開 API として「生 HTTP」「LocalStorage 直書込」
+        「access_token getter」「自製 crypto」が露出していない
+        こと。
+      - sdk_distribution_class 注釈の存在 / 値域検査 /
+        sdk_inventory.lock.yaml と整合。
+      - SDK 公開 API snapshot diff があれば release notes /
+        codemod の存在を CI gate で要求。
+
+  ── 層 C : integration test / contract test
+      - Pact provider / consumer contract test（全 9 言語 ×
+        全 capability_class）。
+      - Testcontainers で tier1 Server + Companion Mock +
+        tier2 atomic 三表書込 + Outbox + Keycloak + OpenBao
+        を起動、SDK が round-trip。
+      - Playwright で Browser SPA + Tauri SDK の E2E。
+      - 39 適合仕様 8 製造業 pack stress test scenario の SDK
+        投影テスト。
+      - merge 条件：全 scenario が green。skip された scenario
+        があれば fail。
+
+  ── 層 D : runtime（SDK ランタイムの物理 enforcement）
+      - WebCrypto / OS keychain / DPAPI による at-rest
+        encryption（07_オフライン耐性方針）。
+      - 24h Idempotency-Key TTL の SDK ランタイム enforcement。
+      - retry budget の per-tenant / per-method / per-aggregate
+        sliding window enforcement。
+      - circuit breaker open/half-open/closed の状態遷移。
+      - capability negotiation の決定論性（自動選択、override
+        不能）。
+      - OTel Auto-Instrumentation の attach（disable 不能、
+        最小 sampling rate 0.001）。
+
+  ── 層 E : 物理 enforcement（OS / Browser / Kubernetes 物理機構）
+      - WebCrypto API の non-extractable CryptoKey は
+        JavaScript が export 不能（browser engine 物理機構）。
+      - OS keychain（macOS Keychain / Windows DPAPI / Linux
+        SecretService）の secret 取出は OS user 認証必須。
+      - Cosign signed package のみ install 可能（Harbor
+        admission policy で unsigned reject、infra 14 と同期）。
+      - Kyverno admission policy（infra 側、08_infra/14）：
+        require-image-from-harbor / block-on-cve-backlog-
+        threshold / require-cosign-signature / block-host-
+        network-host-pid / require-tls-1.3-or-higher。
+      - Browser engine の CSP（Content Security Policy）が
+        default 'self' で SDK が外部 script eval 不能。
+      - mTLS：Istio mesh STRICT、外向きは Envoy Gateway front
+        の TLS 1.3 + cert-manager。
+
+■ tier1 / tier2 / tier3 / infra / data / security との接合
+
+  - 本仕様の sdk_distribution_class は次の対応関係で噛み合う：
+
+      client (本仕様)                       | server / infra / data / security 側
+      --------------------------------------+----------------------------------------------------------
+      transport_capability_class            | tier1/07_Bidi適合仕様 conformance_class（双方向 lock）
+      auto_instrumentation_mode             | tier1/09_観測適合仕様 semconv_version（双方向 lock）
+      refresh_token_storage_mode            | tier1/10_認証適合仕様 SessionContext + tier1/11_鍵管理
+                                            | 適合仕様 device_bound_key（共有）
+      retry_policy_class（method 単位）     | tier1/13_SLO適合仕様 deadline propagation（共有）
+      retry_budget                          | tier1/15_テナント容量適合仕様 noisy_neighbor_isolation
+                                            |（双方向 lock）
+      Buf workflow + method annotation     | tier1/12_スキーマ進化適合仕様 compatibility（共有）
+      Cosign signed package                 | 10_security/15_脅威モデル適合仕様 supply chain
+                                            | attestation（共有）
+      class device_at_rest_encryption_mode | data01_データ保全適合仕様 at_rest_encryption（共有）
+      class refresh_token_storage_mode      | tier1/11_鍵管理適合仕様 secret storage（共有）
+      capability_matrix.lock.yaml           | tier1/07/03 server actual capability descriptor
+                                            |（双方向 lock）
+      sdk_distribution_class 注釈           | infra/15_クラスタ位相適合仕様 topology_class（cross-axis
+                                            | enumerate、preferred_locality routing）
+      4 layer reducer の SDK 投影           | tier3/39_クライアント状態適合仕様 4 layer / conflict
+                                            | tree（SDK が 39 を 1:1 投影）
+      sdk_conformance.lock.yaml             | 00_軸登録適合仕様 release_gate.lock.yaml AND-gate
+                                            |（cosign signed tag が物理 prerequisite）
+
+  - tier1 03_Server系 / 04_Library / 14 OSS lifecycle / 32 RLS
+    / 39 client-state は本仕様の単一の真と双方向 lock。drift
+    は 12_コード生成方針 + 14_強制機構 の CI 不変条件で検出。
+
+■ CI 不変条件（5 ファイル + 5 層の関係性検査）
+  - 違反は merge 不可。
+      整合 1 : classes.yaml の全 class が sdk_inventory.lock
+               .yaml の少なくとも 1 entry でカバーされる
+               （v1_thin_business_api_only は OpenAPI artifact
+                entry でカバー）。
+      整合 2 : sdk_inventory.lock.yaml の全 SDK package が
+               classes.yaml のいずれかの class に属する
+               （dead package 検出）。
+      整合 3 : capability_matrix.lock.yaml の expected が
+               tier1/07/03 server actual capability descriptor
+               と双方向一致（drift 検出）。
+      整合 4 : 全 RPC method に retry_policy_class /
+               slo_class / quota_class / observability_class /
+               capability_class annotation。
+      整合 5 : 全 PII field に field_pii / redaction_class
+               annotation。
+      整合 6 : 全言語 SDK の MAJOR.MINOR が一致
+               （sdk_inventory.lock.yaml）。
+      整合 7 : 全 capability_class について Pact provider /
+               consumer contract test green。
+      整合 8 : 全言語 SDK で property test green
+               （retry backoff / idempotency_key / capability
+                negotiation / 4 layer reducer）。
+      整合 9 : SemConv attribute 名が tier1 09 適合仕様の
+               semconv バージョンと一致。
+      整合 10: scenarios.yaml の全 scenario が CI で実行され、
+               last_green_at が conformance_cadence_days
+               以内。
+      整合 11: 全 SDK package に Cosign signature + SBOM
+               attestation + SLSA provenance attestation 添付。
+      整合 12: SDK 公開 API snapshot drift なし、または PR で
+               codemod / migration 提供。
+      整合 13: SDK 内部で生 HTTP / LocalStorage / access_token
+               getter / 自製 crypto 利用ゼロ。
+      整合 14: 全 9 言語 SDK の公開 API が同型（method 名 /
+               type 名 / annotation 値の言語横断 diff = 0）。
+      整合 15: dead spec 検出：参照されない class / scenario /
+               capability / SDK package は CI fail。
+      整合 16: refresh_token_storage_mode と device_at_rest_
+               encryption_mode の組合せが各 class で固定値
+               （dimension override 検出）。
+
+■ 製造業 pack stress test（v1 の正当性証跡）
+  - 9 業務シナリオを v1 sdk_distribution_class に classify
+    した結果、全て 5 class の枠で機構が成立する。
+
+      # | 業務シナリオ                                                     | class                                | 補足
+      --+------------------------------------------------------------------+--------------------------------------+----------------------------------
+      1 | tier2 業務 Service（注文集約）が tier1 Library を直接組み込み   | v1_full_native_with_companion        | dotnet8 + agent_attach
+        | bidi gRPC で出庫イベントを subscribe                            |                                      |
+      2 | レガシー .NET Framework 4.8 ERP が NuGet で k1s0.Library.NetFx | v1_legacy_dotnet_framework           | clr_profiler_attach + Companion
+        | を組み込み、CLR Profiler で観測 attach、Companion 経由で送信    |                                      |
+      3 | 工場現場の検査担当が React SPA で 5 件オフライン記録 → 復帰     | v1_browser_spa_typescript            | webcrypto_aes_gcm + 39 PQ resume
+      4 | 同 React SPA で 25h オフライン → idempotency_key TTL 超過       | v1_browser_spa_typescript            | over_ttl_policy + WebCrypto rotate
+      5 | Tauri デスクトップアプリ（製品マスタ管理）で OS keychain        | v1_thick_native_via_tauri            | os_keychain wrap + Tauri sidecar
+        | 使用、refresh_token を Native secure storage に保管             |                                      |
+      6 | Java 21 Spring Service が k1s0.Library.Java を組み込み、Java   | v1_full_native_with_companion        | java21 + agent_attach
+        | Agent で観測 attach、tier2 atomic 三表書込に bidi 接続          |                                      |
+      7 | Python 3.12 業務 Service（在庫予測 ML）が grpcio で接続、       | v1_full_native_with_companion        | python312 + library_auto
+        | OTel auto-instr で trace、retry budget で noisy 防止             |                                      |
+      8 | C++ レガシー MES が SDK 提供なしで HTTP/JSON via gRPC-JSON       | v1_thin_business_api_only            | openapi.yaml + side companion proxy
+        | Transcoder 経由で tier2 に接続、独立 Companion sidecar が観測   |                                      |
+      9 | Browser SPA で BusinessConflict（lost_update）→ 3way merge       | v1_browser_spa_typescript            | 39 conflict_tree + SDK reducer
+        | UI を提示し、resume 後 ack 受領                                  |                                      |
+
+  - 全 scenario が「07_tier3/09_デザインシステム」「07_tier3
+    /19_業務エラーUX」「07_tier3/16_リアルタイム更新UX」の UI
+    パターンに 1:1 で割付く（subtype 分岐が UI コンポーネント
+    分岐と一致、39 適合仕様と双方向）。これは「ジュニア級が
+    書く tier3 でも事故が起きにくい」設計圧力の表れ。
+  - stress test は Testcontainers + Playwright で全自動。新
+    業務シナリオが v1 のいずれの class にも収まらないと判明
+    した時点で、本仕様は v2 候補として class 追加検討に入る。
+
+■ v2 拡張ルール
+  - 新 class / 新 capability_class / 新 auto_instrumentation_
+    mode の追加は purely additive。
+  - 既存 class の dimension 変更（例：v1_browser_spa_typescript
+    の refresh_token_storage_mode を localstorage に変更）は
+    破壊的変更（major version up、09_配布SemVer方針 と整合）。
+    dual-write 移行 toolchain を tier1 / client が成果物として
+    提供する（codemod / migration script）。
+  - 命名は class / capability / mode / channel ともに英小文字
+    snake_case 固定。
+  - WebGPU 利用の SDK 内 cryptographic acceleration（v2_
+    webgpu_aead_offload）/ Service Worker background sync（v2
+    _sw_background_sync）/ Connect-go Web 評価 / WASI 化 /
+    eBPF user-space probe / .NET Native AOT / Cilium ServiceMesh
+    協調観測 等は v2 候補。
+
+■ 長期収斂への作用
+  - 本仕様の 5 ファイル（classes / sdk_inventory.lock /
+    capability_matrix.lock / sdk_conformance.lock / scenarios）
+    に対し、新業務 / 新言語 / 新 OSS 採用は purely additive
+    な変更として進行する。scenarios.yaml に scenario を足し、
+    classes.yaml の既存 class のみで覆える形を保つ。
+  - 14 軸（07 transport / 08 migration / 09 observability /
+    10 auth / 11 key / 12 schema / 13 SLO / 14 OSS lifecycle /
+    15 capacity / 32 data-tenant / 39 client-state / infra01
+    topology / data01 preservation / security15 threat-model）
+    + meta + client distribution（本仕様、15 軸目候補）が
+    同型構造で固まったことにより、tier1 / tier2 / tier3 /
+    infra / data / security / client の責務分離と接合面が
+    機械的に検証可能になる。軸間の接合は次の対応関係に閉じる：
+
+      transport 軸 conformance_class      ↔  client 軸 capability_class
+      observability 軸 semconv_version    ↔  client 軸 auto_instrumentation_mode
+      auth 軸 SessionContext              ↔  client 軸 refresh_token_storage_mode
+      key 軸 device_bound_key             ↔  client 軸 device_at_rest_encryption_mode
+      capacity 軸 noisy_neighbor_isolation ↔  client 軸 retry_budget
+      schema 軸 compatibility             ↔  client 軸 buf workflow + breaking check
+      threat-model 軸 supply chain        ↔  client 軸 cosign + sbom + slsa attestation
+      data preservation 軸 at_rest        ↔  client 軸 device_at_rest_encryption_mode
+      infra topology 軸 region locality   ↔  client 軸 preferred_locality routing
+      client-state 軸 4 layer reducer     ↔  client 軸 SDK reducer/queue 実装契約
+
+  - 15 軸の同型は「単一 OSS 深耕 + 移行コミットメント」（「05
+    _tier1/04_Library」L1+）の哲学を全 layer に転写したもの。
+    各軸とも purely additive な拡張と決定論的な不変条件で成熟
+    する。00 meta-spec が「軸自体の追加削除を物理 enforce」
+    （cosign signed tag + release_gate.lock.yaml AND-gate）
+    する構造の中で、本仕様の sdk_conformance.lock.yaml が
+    AND-gate の一入力として記録される。

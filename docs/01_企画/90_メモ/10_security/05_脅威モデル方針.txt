@@ -1,0 +1,126 @@
+============================================================
+security 脅威モデル方針
+============================================================
+
+■ 一文方針
+  - 脅威モデルは threat_model.lock.yaml に build artifact と
+    して固定し、actor / capability / surface / asset /
+    mitigation の 5 軸 cross-product で完全列挙、各 cell に
+    必ず物理 mitigation pointer を持つ。文章 only の脅威
+    記述は CI fail。
+
+■ 5 軸の class 列挙
+  - actor 軸（5 class）：
+        v1_external_unauth：未認証外部攻撃者
+        v1_external_auth：認証済み外部 actor（tenant 内
+                          または別 tenant 越境）
+        v1_insider_application：tier1 / tier2 / tier3
+                          application identity の compromise
+        v1_insider_operator：cluster operator / SRE 権限
+                          identity の compromise
+        v1_supply_chain：build / image / dep 経路からの
+                          compromise
+
+  - capability 軸（5 class、actor とは独立）：
+        v1_read：機密情報を読む
+        v1_write：書き換える / 仕込む
+        v1_delete：消す / 失効させる
+        v1_dos：可用性を奪う
+        v1_lateral：別 tenant / 別軸へ越境する
+
+  - surface 軸（5 class、actor が触れる外面）：
+        v1_north_south：tier1 RPC / Server 系 ingress
+        v1_east_west：cluster 内 service ↔ service
+        v1_control_plane：Argo CD / etcd / Kyverno /
+                          External Secrets / OpenBao API
+        v1_persistence：DB / topic / object store の
+                          物理 store 直接アクセス
+        v1_supply_chain_surface：CI runner / Harbor /
+                          Tekton / source repo
+
+  - asset 軸（5 class、被害対象）：
+        v1_pii：tier2/22 で分類された PII / sensitive
+        v1_business_data：業務 entity（非 PII）
+        v1_audit_log：audit_event subject
+        v1_credential：authn token / secret / KEK / DEK
+        v1_availability：可用性そのもの（SLO 違反）
+
+  - mitigation 軸（5 class、物理機構の class）：
+        v1_authn_authz：認証 / 認可 token / OIDC / RLS
+                          POLICY
+        v1_crypto：rest 暗号化 / transit 暗号化 / 鍵階層
+        v1_isolation：tenant_id / RLS FORCE / network
+                          policy / namespace
+        v1_admission_block：Kyverno admission policy /
+                          schema check / sqlx prepare
+        v1_audit_detect：audit_event / Falco / Tetragon /
+                          k8s audit
+
+■ threat catalog の構造（threat_model.lock.yaml）
+  - 1 threat = 1 row、key = (actor, capability, surface,
+    asset)。mitigation は複数を列挙可能（必須 1 以上）。
+  - 全 5⁴ = 625 cell の組合せうち、論理的に成立しない
+    組合せ（例：external_unauth × control_plane）は
+    explicit_unreachable=true で marking。残り全 cell に
+    mitigation 1 以上を必須化、空欄は CI fail。
+  - mitigation pointer の物理形式：
+        kind: kyverno_policy   ref: <policy_name>
+        kind: db_engine        ref: <option>=<value>
+        kind: rls_policy       ref: <table>.<policy>
+        kind: cosign_verify    ref: <image_pattern>
+        kind: oss_runtime      ref: falco-rule:<rule_id>
+        kind: schema_rule      ref: apicurio:<subject>:<rule>
+        kind: encryption       ref: tier1/11:<key_class>
+        kind: admission_audit  ref: <audit_subject>
+  - 文章 only mitigation（kind: textual）は禁止、CI fail。
+    例外：actor 教育 / IR playbook reference のみ kind:
+    runbook で limited-allow（cap 5% 以下、超過は CI fail）。
+
+■ STRIDE / LINDDUN との関係
+  - STRIDE（Spoofing / Tampering / Repudiation / Information
+    disclosure / Denial of service / Elevation of privilege）
+    は capability 軸の cross-cut tag として markup、独立
+    軸とはしない（重複を避けるため）。
+  - LINDDUN（Linkability / Identifiability / Non-
+    repudiation / Detectability / Disclosure of information
+    / Unawareness / Non-compliance）は asset = v1_pii の
+    sub-class として markup、PII 専用脅威を網羅する。
+  - 両 framework は coverage check の補助 lens として CI が
+    使用、catalog の primary key にはならない。
+
+■ weight / 優先度
+  - 各 threat に likelihood ∈ {low, mid, high} と impact
+    ∈ {low, mid, high} を attribute として宣言。weight =
+    likelihood × impact。
+  - weight に応じた SLO budget consumption を 13 SLO の
+    error_budget.lock.yaml に bind。high × high の threat
+    が detect された場合は admission block かつ on-call
+    page。
+  - weight が low × low でも mitigation 登録は省略しない。
+    省略は coverage gap として CI fail。
+
+■ 同型構造（13 軸との整合）
+  - 3〜5 yaml 単一の真：
+        classes.yaml（threat_class 5 actor）
+        threat_model.lock.yaml（build artifact、上記
+          catalog の物理化）
+        mitigation_bindings.lock.yaml（build artifact、
+          mitigation pointer ⇔ 各軸 spec の cross-axis
+          assertion）
+  - 5 層 defense-in-depth：脅威 catalog は層 D / E に
+    必ず物理 mitigation を持つ（層 A / B / C は augment）。
+  - CI 不変条件：catalog の coverage_full / mitigation_
+    physical / no_textual_only 等を CI で物理確認。
+
+■ 採用しない方針
+  - ad-hoc な脅威 brainstorm のみ：catalog は機械可読 lock
+    で固定、PR 経由でのみ entry 増減。文章 only review は
+    補助。
+  - 「現実的に低 impact だから登録しない」：登録省略は
+    coverage gap として CI fail、低 impact は weight で
+    表現。
+  - mitigation の優先度を文章で表現：weight は数値（low /
+    mid / high の三値 enum）で表現、CI で機械検証。
+  - actor 軸を「内部 / 外部」の 2 値のみに縮約：5 class を
+    保持（external_unauth / external_auth / insider_
+    application / insider_operator / supply_chain）。

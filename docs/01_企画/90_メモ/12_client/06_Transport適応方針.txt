@@ -1,0 +1,172 @@
+============================================================
+client Transport 適応方針
+============================================================
+
+■ 一文方針
+  - SDK Transport は tier1 07_Bidi適合仕様 の conformance_class
+    に従い、capability matrix を SDK 側 transport_capability
+    _class として投影する。adapter 切替を SDK 公開 API として
+    露出せず、内部で自動 negotiation する。
+
+■ Transport の三層
+  - 上位（公開 API 層）：SDK が公開する Method / Stream / Event
+    Subscription の API。アプリ作者はこの層しか触らない。
+  - 中位（Adapter 層）：gRPC / gRPC-Web / HTTP/3 + WebTransport
+    / WebSocket / NDJSON / business-API-only HTTP-JSON の各
+    adapter。distribution_class と endpoint capability から
+    自動選択。
+  - 下位（wire 層）：実際の TCP / QUIC / WebSocket frame /
+    HTTP/1.1 chunk。SDK ユーザは触らない。
+
+  - 三層分離は tier1 03_Server系 Transport Adapter Layer と
+    対をなす。同型の adapter テーブルが server 側と client
+    側で双方向 lock される（CI 検査）。
+
+■ transport_capability_class（v1）
+  - 各 distribution_class が宣言する capability_class は次の
+    4 値のいずれかに固定する：
+
+      capability_class    | サポート RPC 形式
+      --------------------+--------------------------------------------------------
+      full                | unary / server-streaming / client-streaming /
+                          | bidi-streaming（gRPC bidi 完全）
+      web                 | unary / server-streaming（gRPC-Web 標準）+
+                          | WebSocket fallback bidi + WebTransport optional
+      limited             | unary / server-streaming（HTTP/2 over TLS、
+                          | bidi なし。.NET Framework Companion 経路）
+      business_api_only   | unary（HTTP/1.1 + JSON / NDJSON、Envoy Gateway
+                          | gRPC-JSON Transcoder 経由）
+
+  - distribution_class → capability_class の bundle 関係：
+      v1_full_native_with_companion       → full
+      v1_legacy_dotnet_framework          → limited
+      v1_browser_spa_typescript           → web
+      v1_thick_native_via_tauri           → full（Tauri sidecar 経由）
+      v1_thin_business_api_only           → business_api_only
+
+  - これは bundle であり、sdk_distribution_class が決まれば
+    capability_class が一意に決まる。アプリ作者が個別に
+    override する経路は持たない（dimension override 禁止）。
+
+■ adapter テーブル（client 側、tier1 03 と双方向 lock）
+  - SDK が選択する adapter は次の 6 種類：
+      1. grpc_native            : gRPC Core / grpc-dotnet / grpc-java /
+                                   tonic / @grpc/grpc-js（HTTP/2）
+      2. grpc_web_grpc_only     : gRPC-Web binary（HTTP/1.1 over Envoy
+                                   gRPC-Web filter）
+      3. websocket_bidi         : WebSocket、frame は protobuf binary
+                                   （gRPC-Web bidi 不可時の fallback）
+      4. webtransport_quic      : HTTP/3 + WebTransport（QUIC stream）
+      5. ndjson_streaming       : HTTP/1.1 chunked + NDJSON line-delimited
+                                   protobuf-json（gRPC-JSON Transcoder server
+                                   streaming）
+      6. http_json_unary        : HTTP/1.1 + JSON unary（Envoy Gateway
+                                   gRPC-JSON Transcoder unary）
+
+  - capability_class → adapter 集合：
+      full              → {grpc_native, websocket_bidi[fallback],
+                            webtransport_quic[opt]}
+      web               → {grpc_web_grpc_only, websocket_bidi[bidi 用],
+                            webtransport_quic[opt]}
+      limited           → {grpc_web_grpc_only, ndjson_streaming[server-
+                            streaming], http_json_unary[unary]}
+      business_api_only → {ndjson_streaming, http_json_unary}
+
+  - 各 RPC 呼出に対し SDK は次の決定論的順序で adapter を選択：
+      1. RPC method の form（unary / server-streaming / client-
+         streaming / bidi-streaming）を proto から取得
+      2. capability_class が許容する adapter 集合に form が
+         入るか check
+      3. 入らなければ compile error（codegen 段階で型 reject）
+      4. 入るなら preferred_adapter table に従い 1 つを選ぶ
+      5. preferred_adapter が endpoint capability negotiation
+         で利用不可なら fallback_adapter を選ぶ
+
+  - 「実装者の判断」の余地を持たない。adapter 選択は SDK
+    内部の純粋関数。
+
+■ endpoint capability negotiation
+  - SDK 起動時 / 周期的 health probe 時に、tier1 Server から
+    capability descriptor を取得：
+      - GET /capability/probe → JSON / proto descriptor
+      - 内容：endpoint の supports_bidi / supports_webtransport
+        / max_message_bytes / supports_compression / observed
+        _semconv_version 等
+  - probe の cache TTL は 5 分（短期）。endpoint failover で
+    capability が変わる場合は SDK 内部で再 probe + adapter
+    再選択。
+  - capability 不一致が検出された RPC（例：bidi を要求するが
+    endpoint が unary しか提供しない）は SDK 内部で BusinessConflict
+    ではなく ConfigurationError として throw（修正は server 側
+    か SDK 側 contract test の整備）。
+
+■ negotiation の build artifact 化
+  - capability matrix は build artifact として client/transport/
+    capability_matrix.lock.yaml に固定（後述 15 適合仕様）。
+  - server 側 03_Server系 が公開する capability descriptor との
+    双方向整合は CI で検査（client.lock の expected と server
+    actual が一致）。
+
+■ deadline propagation
+  - 全 RPC に grpc-timeout / x-k1s0-deadline-unix-ms ヘッダで
+    deadline を必ず attach（13 SLO 適合仕様の deadline propagation
+    と整合）。
+  - SDK ユーザが明示しない場合、SDK が default deadline（method
+    annotation の slo_class から導出）を attach する。
+  - deadline 残量を retry budget の判定に組込む（10_リトライ
+    バックオフ方針）。
+
+■ flow control / backpressure
+  - bidi-streaming / client-streaming は HTTP/2 / WebSocket /
+    QUIC の native flow control を尊重し、SDK 側で send buffer
+    が溢れた場合は async iteration の back-pressure として
+    propagate。SDK ユーザに「socket buffer 溢れ」を意識させ
+    ない。
+  - server-streaming は read-side で block 可能、SDK ユーザが
+    iter 速度を制御する。
+
+■ 切断・resume
+  - tier1 03_Server系 の Resume / Replay 節と整合。SDK は
+    resume_token を opaque blob として保持し、再接続時に attach。
+  - resume_token TTL を超えた場合は SDK 公開 API として
+    OnResumeExpired event を発火。アプリ側で再 fetch を選択
+    可能（39 適合仕様の domain_event_received と接続）。
+  - Browser SPA / Tauri では Service Worker（v1 では cache
+    only、v2 で background sync）と協調。
+
+■ 圧縮
+  - default は gzip / zstd の HTTP-level（gRPC compression）。
+    Browser SPA は brotli を優先利用、Node.js は zstd（gRPC
+    side car nginx 経由）を使用。
+  - 圧縮 algorithm は capability_matrix.lock.yaml で endpoint
+    別に固定、SDK の choice の余地を持たない。
+
+■ リダイレクト・LB
+  - SDK は Envoy Gateway / Istio mesh の 3xx redirect / xDS
+    cluster discovery を尊重。SDK は内部的に round-robin /
+    least-request を実装するが、preferred は endpoint からの
+    weighted endpoint discovery（infra01 topology_class の
+    region locality と整合）。
+  - cluster locality に基づく closest endpoint preference を
+    SDK 内部で持つ：x-k1s0-region / x-k1s0-zone をレスポンスに
+    含めて受領、closest 同 zone を優先。
+
+■ wire 経路の物理 enforcement（層 E）
+  - mTLS 必須（Istio mesh 内 STRICT、外向きは Envoy Gateway
+    front の TLS 1.3 + Cosign signed cert by cert-manager）。
+  - 平文 HTTP は SDK 公開 API として一切提供しない。テスト
+    用 plaintext mode は CI fail。
+  - HTTP/3 + WebTransport は QUIC level で encryption 必須。
+
+■ 採用しない transport
+  - SignalR / SSE primary：v1 では fallback として WebSocket
+    のみ採用、SSE は v2 候補。
+  - HTTP/2 over Cleartext (h2c)：完全禁止。
+  - 自製 frame protocol：禁止。全 transport は OSS 標準実装。
+
+■ 至高路線の整合
+  - SDK ユーザに「どの transport を使うか」を選ばせない。
+    自動 negotiation + decompose しないテーブル lookup で
+    一意に決まる。
+  - capability_class は固定 4 値、新しい capability は新 class
+    として追加（dimension override 禁止）。

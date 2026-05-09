@@ -83,8 +83,12 @@ tier1 Server系（ランタイム成果物）
       - 制約：Transcoder で安全に JSON / NDJSON 派生できるサブセット
         に限定する。
           - server-streaming RPC は許容する。Transcoder の
-            stream_json_responses を有効化し、レスポンスを NDJSON
-            （application/x-ndjson）で派生させる。
+            print_options.stream_newline_delimited を有効化し、
+            レスポンスを NDJSON（application/x-ndjson）で派生させる。
+            HTTP/1.1 listener の chunked transfer encoding と組み合わ
+            せ、行単位での逐次消費を担保する。Transcoder のデフォルト
+            （カンマ区切り JSON 配列）はレガシー側のストリーム消費に
+            適さないため採用しない。
           - client-streaming / bidirectional streaming は External
             に直接出さず、後述「RPC 形式の射影方針」に従って unary
             の組み合わせに射影する。
@@ -118,9 +122,10 @@ tier1 Server系（ランタイム成果物）
           - External はそのまま JSON 派生（既存のとおり）。
       - server-streaming
           - External は NDJSON 派生（Transcoder の
-            stream_json_responses）。レガシー側のチャンク消費は
-            Companion 役割 B の sse_paired adapter に委譲する
-            （詳細は「05_tier1/04_Library」Companion 節を参照）。
+            print_options.stream_newline_delimited）。レガシー側の
+            チャンク消費は Companion 役割 B の sse_paired adapter に
+            委譲する（詳細は「05_tier1/04_Library」Companion 節を
+            参照）。
       - client-streaming
           - External には直接出さない。External Proto では
             resumable upload 形式（Init → 分割 PUT → Commit）の

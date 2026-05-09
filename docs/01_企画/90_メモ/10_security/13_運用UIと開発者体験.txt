@@ -1,0 +1,116 @@
+============================================================
+security 運用 UI と開発者体験
+============================================================
+
+■ 一文方針
+  - 運用 UI は Backstage（infra 13 と共有）+ Grafana
+    （audit query / SLO / drill 状態 dashboard）+ 内部
+    custom plugin（threat_model coverage / mitigation
+    binding visualization）の 3 OSS 経由のみで提供し、
+    開発者は IDE 拡張 + pre-commit hook + Testcontainers
+    で同等の security check を local で完結できる。
+
+■ 運用 UI（operator 視点）
+  - Backstage TechDocs：
+        - threat_model.lock.yaml の visualization
+          （actor × capability × surface × asset の
+            heatmap、各 cell の mitigation 列挙）
+        - PII class taxonomy 一覧 + 列レベル mapping
+        - secret class lifecycle / rotation status
+        - incident playbook（class 別、6 phase 全 step）
+        - drill_progress.lock.yaml の cadence 状況
+  - Grafana dashboard：
+        - audit_event ingestion lag（ClickHouse query）
+        - SLO 状況（patch_window / drill / audit_chain
+          health）
+        - admission policy decision rate（allow / deny /
+          audit）
+        - CVE open critical count（severity 別）
+        - drill last_green_at 一覧
+  - Grafana OnCall：
+        - 班 rotation 状況、escalation history、active
+          incident の page log
+        - postmortem PR の merge 状況（GitHub integration）
+  - 内部 custom plugin（Backstage）：
+        - threat_model_coverage_visualizer：未 mitigation
+          cell を highlight、PR diff で coverage gap
+          before/after 比較
+        - mitigation_pointer_navigator：mitigation pointer
+          から物理機構（policy yaml / rule / 設定）への
+          deep link
+
+■ 開発者 UI（developer 視点）
+  - IDE 拡張：
+        - VSCode 拡張（自社 / OSS、v1 では README + 設定
+          guide のみ提供、v2 で自社 拡張 検討）：
+          - schema 編集時に PII class 宣言 lint
+          - secret-like pattern 警告（gitleaks integration）
+          - threat_model coverage hint（編集中 column が
+            登録されている threat_id を表示）
+  - pre-commit hook（git pre-commit、自社 boilerplate 提供）：
+        - gitleaks（secret scan）
+        - trufflehog（secret scan、補強）
+        - Semgrep（SAST、軽量 ruleset）
+        - schema lint（pii_class 宣言 check）
+        - cargo deny / govulncheck / pnpm audit（dep
+          audit、変更があった package のみ）
+  - PR 上の自動 comment：
+        - PR で touched された PII column / threat_class
+          の変化点 summary
+        - mitigation pointer の bind 状況（before/after）
+        - drift 警告（policy が手書き、build artifact
+          と乖離）
+  - Testcontainers ベース local：
+        - 全 Kyverno admission policy を local cluster
+          （k3d / kind）で同一 build artifact から適用、
+          local development で本番と同一 admission
+          decision を再現
+        - OpenBao dev mode で secret 配信 path を local
+          mock、long-lived secret に汚染されない経路を
+          確保
+        - Falco ruleset を local syscall に対して dry-run
+          適用、開発 commit 前に detection rule の動作
+          確認
+
+■ 自動化の規律
+  - 全 dashboard / TechDocs / Grafana panel は build
+    artifact（dashboards/ 配下 yaml）から生成、UI 上の
+    手書き編集は drift として CI 検出 + Argo CD self-
+    heal。
+  - threat_model 編集 PR は CODEOWNERS で security 層
+    reviewer 必須、自由 merge 経路を持たない。
+  - PII class 宣言の変更 PR は security 層 + 業務 owner
+    の二人 reviewer 必須。
+
+■ アクセシビリティ
+  - 全 dashboard の色指定は drawio 規約 / figure-layer-
+    convention と整合（colorblind-safe palette）、本層
+    自身の audit dashboard も同 palette。
+  - UI 操作の全認証は OIDC + WebAuthn 必須（infra 13 と
+    整合）、password-only 経路ゼロ。
+
+■ 採用しない方針
+  - 商用 dashboard SaaS（DataDog / New Relic）：採用しない、
+    Grafana + Backstage で完結。
+  - UI 上の policy 直接編集（Kyverno UI でのトポロジ
+    操作）：禁止、PR 経由のみ。
+  - 個人 development 環境への production secret 同期：
+    禁止、local は OpenBao dev mode のみ。
+  - threat_model.lock.yaml の手書き：禁止、build artifact
+    のみ。手書き drift は CI fail。
+  - dashboard の personalization：禁止、共通 dashboard
+    のみ（個人別 view は browser 側 query parameter で
+    のみ対応）。
+  - 開発者の独自 secret store 持ち込み：禁止、OpenBao
+    dev mode のみ。
+
+■ 同型構造（13 軸との整合）
+  - 運用 UI は infra 13 / data 13 と同 OSS（Backstage /
+    Grafana）を共用、本層は dashboard / TechDocs を build
+    artifact 化する規律のみ追加。
+  - 開発者 UX 面では、infra 14 / data 14 / 本層 14 の
+    admission policy が build artifact から自動生成され
+    る限り、local 開発で同一 policy を再現可能（drift
+    risk = 0）。
+  - dashboard yaml と Grafana state は ArgoCD reconcile
+    で物理整合維持（infra 09 GitOps配信方針 と整合）。

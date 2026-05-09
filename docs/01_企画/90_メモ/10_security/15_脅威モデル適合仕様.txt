@@ -1,0 +1,374 @@
+============================================================
+脅威モデル適合仕様（v1）
+（00_軸登録適合仕様 における security 軸 = 14 軸目候補）
+============================================================
+
+■ 一文定義
+  - 脅威モデル適合仕様は、5 actor × 5 capability × 5
+    surface × 5 asset の cross-product として完全列挙
+    される threat catalog の各 cell に対し、5 mitigation
+    class のいずれかを必ず物理 pointer として bind し、
+    全 13 軸 + meta + 自軸の defense-in-depth 層 D / E に
+    bind 済みであることを 5 層 defense-in-depth + 13 項
+    CI 不変条件 + 13 件製造業 pack stress test で物理
+    enforce する meta-axis である。
+
+■ 軸 class（5 class、actor 軸を primary key として採用）
+  - v1_external_unauth：未認証外部攻撃者
+        対応する drill_class：red_team_table_top /
+                              external_pen_test
+        primary defense_layers：authn / boundary / WAF /
+                                 supply_chain
+        最低限の cross-axis：tier1/10 認証 / 06 境界
+                              制御 / 14 OSS lifecycle
+        active mitigation 数（v1 cap）：≥ 30
+  - v1_external_auth：認証済み外部 actor（tenant 越境
+                        含む）
+        対応する drill_class：red_team_table_top
+        primary defense_layers：authz / RLS FORCE /
+                                  rate limit / audit
+        最低限の cross-axis：tier2/32 / tier1/10 / 09
+                              監査
+        active mitigation 数（v1 cap）：≥ 35
+  - v1_insider_application：tier1 / tier2 / tier3
+                              application identity の
+                              compromise
+        対応する drill_class：red_team_live / chaos_
+                              failure_drill
+        primary defense_layers：mTLS / SPIFFE ID /
+                                  capability scope /
+                                  audit
+        最低限の cross-axis：07 transport / 06 境界 /
+                              09 監査
+        active mitigation 数（v1 cap）：≥ 40
+  - v1_insider_operator：cluster operator / SRE 権限
+                          identity の compromise
+        対応する drill_class：red_team_live / secret_
+                              compromise_drill
+        primary defense_layers：break-glass + audit /
+                                  control-plane mTLS /
+                                  step-up auth
+        最低限の cross-axis：infra01 topology / 11 鍵
+                              管理 / 09 監査
+        active mitigation 数（v1 cap）：≥ 35
+  - v1_supply_chain：build / image / dep 経路からの
+                      compromise
+        対応する drill_class：supply_chain_drill /
+                              external_pen_test
+        primary defense_layers：cosign / SBOM / Tekton
+                                  Chains / Trivy +
+                                  Grype double-bound
+        最低限の cross-axis：14 OSS lifecycle / 08
+                              移行 Pair / infra01
+                              topology
+        active mitigation 数（v1 cap）：≥ 30
+
+  - 全 5 actor class の active mitigation 総数 ≥ 170
+    （v1）、cap 上限は v2 で +50 拡張。
+
+■ 単一の真（5 yaml、うち 2 が build artifact）
+  - classes.yaml（軸 5 class enum）
+        actor / capability / surface / asset / mitigation
+        の 5 enum 軸を宣言。class 名は version prefix
+        固定（v1_xxx）、追加は purely additive。
+  - threat_model.lock.yaml（build artifact 1）
+        生成器：threat-catalog-builder
+        input：classes.yaml + 各軸 spec の defense-in-
+              depth 層 D / E + boundary_mitigation
+              section
+        出力：5⁴ = 625 cell の row（unreachable cell の
+              explicit_unreachable=true marking 含む）、
+              各 cell に mitigation pointer ≥ 1
+        手書き禁止、CI fail。
+  - mitigation_bindings.lock.yaml（build artifact 2）
+        生成器：mitigation-binder
+        input：threat_model.lock.yaml + 13 軸 + meta の
+              全 spec の build artifact + boundary_
+              mitigation
+        出力：mitigation pointer ⇔ 物理 artifact の
+              双方向 lock 表（pointer kind / ref /
+              source_axis / source_layer）
+        手書き禁止、CI fail。
+  - pii_classification.lock.yaml（build artifact、本層
+    管掌だが 10_PII保護方針 の primary key、threat_
+    model.lock.yaml の asset = v1_pii section の primary
+    key として参照される）
+        生成器：pii-classifier
+        input：Apicurio Registry の全 subject + 各
+              column の pii_class 注釈 + tier2/22 /
+              28 / 06_tier2 の pii_class 規律
+        出力：column ↔ pii_class ↔ DEK class の三項関係
+  - drill_progress.lock.yaml（build artifact、本層 +
+    11_インシデント対応方針 + 12_セキュリティ訓練方針
+    が共有管掌、infra 11 / data 11 の failover_drill /
+    restore_drill と同型）
+        生成器：drill-runner（Tekton job）
+        input：scenario_catalog.lock.yaml + drill 実行
+              ログ + audit_event の v1_ir fact
+        出力：drill_class 別 last_green_at / next_due_at
+              / cadence_status
+
+  - 共通制約：
+        - 全 yaml は CUE schema で type 検証
+        - 全 yaml は cosign signed snapshot として periodic
+          に publish（hash chain root とも整合）
+        - drift 検出時は Argo CD が self-heal、build
+          artifact ↔ runtime の divergence ゼロ
+
+■ 5 層 defense-in-depth（脅威モデル軸全体）
+  - 層 A：compile
+        - threat_model.lock.yaml の cell = 5⁴ で完全列挙
+          （ビルド時に行数 check）
+        - mitigation pointer kind enum 検証（textual は
+          cap 5%、boundary section は cap 0%）
+        - PII column の DEK class binding が tier1/11
+          階層内に存在
+        - scenario_catalog の全 threat_class coverage
+        - CUE 型 check（class enum / pointer kind /
+          weight enum）
+
+  - 層 B：lint
+        - Conftest custom rule（Rego）：mitigation
+          pointer の重複禁止 / textual cap / 軸別最低
+          mitigation 数 / coverage gap の zero-tolerance
+        - Semgrep meta-rule：threat_class が schema /
+          policy に登場するときの命名整合
+        - Apicurio compatibility rule：pii_class_only_
+          strengthens（PII class の弱化を breaking 判定）
+
+  - 層 C：integration test
+        - chainsaw / kuttl で全 admission policy
+          （security 担当 23 policy）が intended state
+          を block / pass
+        - Testcontainers で OpenBao + ClickHouse +
+          Kafka + CloudNativePG を local 起動、PII
+          access path の audit_event emit を end-to-end
+          で確認
+        - hash chain divergence 試験（人為的 row 改竄
+          → CI 検出 verify）
+        - drill scenario の自動 replay（red_team_
+          table_top 全 scenario）
+
+  - 層 D：runtime（cluster 上の actual enforcement）
+        - Kyverno admission webhook（23 policy）
+        - Falco / Tetragon の常駐 detection
+        - cosign verify in admission（unsigned image
+          deploy block）
+        - ClickHouse mutation block（audit_event UPDATE
+          / DELETE 物理拒否）
+        - cert-manager / OpenBao の auto rotation
+        - Vector pipeline の PII redaction
+        - audit_event hash chain の online 検証（行
+          insert 時 prev hash 一致 check、ClickHouse
+          MV）
+
+  - 層 E：物理 enforcement
+        - cosign signature の cryptographic verification
+          （Sigstore 標準、公開鍵の真正性）
+        - Ceph RGW Object Lock Compliance mode（root
+          権限でも archive 物理 delete 不可）
+        - OpenBao Transit + HSM-backed KEK（鍵 export
+          物理不可）
+        - audit chain hash の cryptographic forgery
+          impossibility（SHA-256 / Blake3 等）
+        - mTLS / TLS 1.3 cipher suite OS 強制（weakcipher
+          handshake reject）
+        - ClickHouse Replicated MergeTree + Keeper Raft
+          （audit data の replication consistency 物理
+            保証）
+
+■ CI 不変条件（13 項、全て違反は merge 不可）
+  - 不変 1 ：classes.yaml の 5 軸 enum が version 別に
+            purely additive（破壊的削除 / 緩和ゼロ）
+  - 不変 2 ：threat_model.lock.yaml が build artifact、
+            手書き diff = 0
+  - 不変 3 ：threat_model.lock.yaml の全 reachable cell
+            に mitigation pointer ≥ 1（coverage_full）
+  - 不変 4 ：mitigation_bindings.lock.yaml の全 pointer
+            が実在 artifact を ref（pointer_resolution）
+  - 不変 5 ：mitigation pointer kind の textual / runbook
+            が cap 5%、boundary_mitigation cap 0%
+  - 不変 6 ：軸別 active mitigation 数が class 別最低値
+            ≥ を満たす（actor class 別 30 / 35 / 40 /
+            35 / 30 等）
+  - 不変 7 ：pii_classification.lock.yaml の全 column が
+            Apicurio subject 内、unspecified ゼロ、DEK
+            class binding 完全
+  - 不変 8 ：scenario_catalog.lock.yaml が threat_model
+            の全 threat_class を coverage（全 class
+            が一度以上演習対象）
+  - 不変 9 ：drill_progress.lock.yaml が全 drill_class
+            cadence 内、red 状態ゼロ
+  - 不変 10：mitigation_bindings.lock.yaml が 13 軸 +
+            meta の全 build artifact と双方向 lock
+            （cross-axis assertion 整合）
+  - 不変 11：cosign signed image / SBOM attached が
+            cluster-wide で runtime drift = 0
+  - 不変 12：audit_event の hash chain が日次 verify
+            green、過去 7 日 divergence ゼロ
+  - 不変 13：Trivy / Grype double-bound scan 結果が
+            critical CVE で一致、不一致は admission
+            block
+
+■ 製造業 pack stress test（13 件、全 green が 1.0.0 ship
+   blocker の前提）
+  - stress 1 ：v1_external_unauth × v1_dos × v1_north_
+              south × v1_availability：DDoS 風
+              攻撃下で WAF + rate limit + circuit
+              breaker が 13 SLO の budget を超えない
+  - stress 2 ：v1_external_auth × v1_lateral × v1_north_
+              south × v1_pii_basic：tenant A の token
+              で tenant B の PII を query 試行 →
+              RLS FORCE が 100% block + audit_event
+              emit
+  - stress 3 ：v1_insider_application × v1_read × v1_
+              persistence × v1_pii_special：app pod
+              compromise → DB 直接アクセス試行 →
+              mTLS + DB ACL + tenant_id GUC が block
+  - stress 4 ：v1_insider_operator × v1_write × v1_
+              control_plane × v1_audit_log：cluster-
+              admin 取得 → audit_event 改竄試行 →
+              mutation block + hash chain divergence
+              検出 + on-call page
+  - stress 5 ：v1_supply_chain × v1_write × v1_supply_
+              chain_surface × v1_business_data：
+              compromised image push → cosign verify
+              fail / Trivy critical detect → admission
+              block + Harbor quarantine
+  - stress 6 ：secret_compromise_drill：意図的に commit
+              された secret → gitleaks pre-commit
+              block / 万一 push されても trufflehog +
+              Trivy secret + Falco の三重検知 →
+              OpenBao revoke 完了 ≤ 30 分
+  - stress 7 ：supply_chain_drill：cosign signing key
+              rotate → 旧 key 署名 image が admission
+              block、新 key 署名 image が pass
+  - stress 8 ：v1_external_unauth × v1_write × v1_
+              north_south × v1_availability：未認証
+              actor の write 試行 → tier1/10 認証 +
+              13 SLO の availability budget 維持
+  - stress 9 ：v1_external_auth × v1_delete × v1_
+              persistence × v1_business_data：tenant
+              内 actor の destructive DDL 試行 →
+              admission policy block-destructive-ddl-
+              without-contract-phase + RLS FORCE
+  - stress 10：v1_insider_application × v1_lateral ×
+              v1_east_west × v1_pii_credential：
+              compromised pod が他 namespace の
+              OpenBao token 取得試行 → NetworkPolicy
+              default-deny + Istio AuthorizationPolicy
+              + OpenBao policy scope で block
+  - stress 11：v1_insider_operator × v1_delete × v1_
+              persistence × v1_audit_log：cluster-
+              admin で audit archive 削除試行 →
+              Ceph RGW Object Lock Compliance mode
+              で物理 block（root 権限でも不可）
+  - stress 12：v1_supply_chain × v1_read × v1_build_
+              time × v1_credential：CI runner pod の
+              compromise → ephemeral pod の memory-only
+              secret + OIDC short-lived token で被害
+              範囲限定、long-lived secret 露出ゼロ
+  - stress 13：audit_chain_break drill：人為的 audit
+              event row 改竄 → 日次 hash chain verify
+              で divergence 検出 → IR phase 6 全踏破
+              + WORM archive snapshot から chain
+              root 再構築 + postmortem PR ≤ 7 日 merge
+
+■ cross-axis 接続（13 軸 + meta との関係）
+  - 07 transport：bidi stream の TLS / mTLS が boundary_
+    mitigation の v1_north_south / east_west の transport
+    mitigation として bind
+  - 08 migration：pair 旧版 CVE 残存を threat_class
+    v1_supply_chain × v1_persistence に bind、SLO 違反
+    時 admission block を共有
+  - 09 observability：audit_event subject = 09 SoR の
+    signal、本層が subject schema + immutability 規律を
+    宣言、09 が物理 store
+  - 10 auth：authn / authz の全 mitigation pointer が
+    boundary_mitigation の v1_north_south / east_west /
+    control_plane に bind
+  - 11 key：DEK / KEK の rotation cadence が pii_
+    classification.lock.yaml の column ↔ DEK class
+    binding と double-bound、rotation overdue は本層
+    admission block と共有
+  - 12 schema：PII class 列の breaking 判定 augment を
+    本層が宣言（pii_class_only_strengthens）、Apicurio
+    compatibility rule に追加
+  - 13 SLO：本層が emit する SLI（patch_window_
+    compliance / cve_open_critical_count / audit_log_
+    ingest_latency / drill_overdue_count / postmortem_
+    pending_count）を 13 が SLO target として登録
+  - 14 OSS lifecycle：CVE 情報を oss_inventory.lock
+    .yaml に annotate、primary OSS の CVE 状況を
+    14 と double-bound
+  - 15 capacity：DoS / noisy neighbor の物理 mitigation
+    （per-tenant volume / rate limit）を threat_class
+    v1_dos の mitigation pointer として bind
+  - 32 data-tenant：RLS FORCE が threat_class v1_
+    external_auth × v1_lateral / v1_pii_basic の primary
+    mitigation、本層が cross-axis に lock
+  - 39 client：reconcile_class 別 client 暗号化要件を
+    本層が cross-axis bind、v1_pii_special の client
+    cache 禁止を物理 enforce
+  - infra01 topology：control-plane trust boundary を
+    本層が宣言、physical mitigation は infra01 の
+    topology_class 物理機構に descend
+  - data01 preservation：archive_to_offline / WORM /
+    crypto-erase が threat_class v1_data_loss / v1_
+    data_tampering の primary mitigation、本層が
+    cross-axis に lock
+  - 00 meta（軸登録）：本層が 14 軸目として meta-
+    registry に entry 追加、release_gate.lock.yaml の
+    AND-gate 入力に threat_model_coverage_green /
+    drill_overdue_count_zero / postmortem_pending_zero
+    が連結
+
+■ 1.0.0 ship blocker（本層の前提）
+  - blocker 1：threat_model.lock.yaml の coverage_full =
+              true（全 reachable cell に mitigation
+              pointer ≥ 1）
+  - blocker 2：mitigation_bindings.lock.yaml の全 pointer
+              resolution = green
+  - blocker 3：drill_progress.lock.yaml の全 drill_class
+              cadence 内、red 状態ゼロ
+  - blocker 4：audit_event の hash chain 過去 90 日
+              divergence ゼロ
+  - blocker 5：cluster-wide で cosign signed image +
+              SBOM attached drift = 0
+  - blocker 6：scenario_catalog.lock.yaml の全 threat_
+              class coverage
+  - blocker 7：pii_classification.lock.yaml の全 column
+              に DEK class binding + envelope
+              encryption + breaking 判定 augment 整合
+  - blocker 8：13 製造業 pack stress test 全 green
+  - blocker 9：23 admission policy 全件 build artifact
+              生成 + chainsaw integration test green
+  - blocker 10：active incident の postmortem PR が全
+               merged（postmortem_pending = 0）
+
+■ v2 拡張ルール（purely additive、dimension override
+   禁止維持）
+  - v2 で actor class 追加（例：v2_third_party_partner、
+    B2B 連携 actor）：classes.yaml に entry 追加、threat_
+    model.lock.yaml の cell が 5 → 6 cap で再生成、
+    既存 v1_xxx mitigation pointer の意味は保持
+  - v2 で capability 追加（例：v2_inference_extraction、
+    ML / vector store の embedding 抽出）：cell 拡張
+  - v2 で mitigation kind 追加（例：v2_tee_attestation、
+    TEE-backed signed attestation）：kind enum に
+    additive 追加、既存 pointer kind の意味保持
+  - v2 で軸 cap 拡張：00 meta-registry の cap v2=25 に
+    伴い、本層が 14 軸目として確定したまま、capacity の
+    余地内で他 B 系（idempotency / clock 等）を追加
+    可能
+  - 禁止：軸の削除 / 緩和 / class enum の意味変更 /
+    既存 mitigation の物理弱化
+
+■ 参考（同型対象）
+  - 各軸の同型 spec は memory「十三軸同型適合仕様」 +
+    00_軸登録適合仕様 を参照。本層は 14 軸目として cap
+    内に entry 追加される（v1 cap=20、現状 14 / 20）。
+  - 物理 enforcement の最終 layer は infra01 / data01 /
+    cosign / Sigstore / HSM の物理機構の coalition、
+    本層は coalition の真正性を meta-layer として lock
+    する責務のみを持つ。

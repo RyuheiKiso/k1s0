@@ -1,0 +1,191 @@
+============================================================
+data ライフサイクル方針
+============================================================
+
+■ 一文方針
+  - 全 row / event / object / signal は preservation_class
+    が決める「hot → warm → cold → archive_to_offline →
+    purge」の単一経路を辿る。retention 値は preservation_
+    class が一意に導出し、application からの override は
+    禁止。soft-delete（tombstone）と物理 purge は分離し、
+    保全期限内の物理 purge は admission block。
+
+■ ライフサイクル 4 段階
+  - hot：online primary に rest、書き込み即時反映
+        - PostgreSQL：primary table（partition latest）
+        - Kafka：active topic、retention.ms 内
+        - ClickHouse：disk_default（Longhorn SSD）
+        - Ceph：standard tier
+  - warm：read 頻度低下、cost optimization の対象
+        - PostgreSQL：partition aged-out（前月以前）、
+          tablespace 移動
+        - Kafka：retention 後段（cold archive sink 経由）
+        - ClickHouse：disk_s3（Ceph RGW hot）
+        - Ceph：infrequent access tier
+  - cold：archive 領域、検索 latency 悪化を許容
+        - PostgreSQL：別 instance の archive cluster、または
+          S3（pg_dump 互換 columnar）
+        - Kafka：sink 後の Ceph object（compressed）
+        - ClickHouse：disk_s3 cold tier、または Iceberg
+          table on Ceph（v2 候補）
+        - Ceph：cold tier、object lock 適用
+  - archive_to_offline / purge：retention 期限到達
+        - 物理媒体（tape / 別契約 cloud bucket）
+        - purge：tombstone から物理 delete
+
+■ retention の preservation_class 別固定値
+  - hot retention：
+        v1_local_only           : 1 d
+        v1_zone_replicated      : 7 d
+        v1_cluster_replicated   : 30 d
+        v1_cross_region_repl.   : 30 d
+        v1_global_replicated    : 30 d
+  - warm retention：
+        v1_local_only           : なし（hot のみ）
+        v1_zone_replicated      : 30 d
+        v1_cluster_replicated   : 90 d
+        v1_cross_region_repl.   : 365 d
+        v1_global_replicated    : 365 d
+  - cold retention：
+        v1_local_only           : なし
+        v1_zone_replicated      : 365 d
+        v1_cluster_replicated   : 1095 d (3 年)
+        v1_cross_region_repl.   : 2555 d (7 年)
+        v1_global_replicated    : 2555 d
+  - archive_to_offline retention：
+        v1_local_only           : なし
+        v1_zone_replicated      : なし
+        v1_cluster_replicated   : 7 年（offline）
+        v1_cross_region_repl.   : 10 年（offline）
+        v1_global_replicated    : 10 年 + immutable WORM
+  - retention 値は preservation_class.yaml の class bundle 内
+    に hard-coded、CR / Helm values で override 不可。
+
+■ TTL / partition aging（PostgreSQL）
+  - 大規模 table（推定 ≥ 100M row）は declarative partition
+    by RANGE on `created_at` を必須化。
+  - partition 切替：日次 cron で先月分 partition を warm
+    tablespace（archive_warm）に移動、preservation_class の
+    warm retention 経過後 cold tablespace に移動、cold
+    retention 経過後 logical export → cold archive。
+  - 物理機構：tablespace の物理ディレクトリは Longhorn
+    （hot）/ Ceph RGW PV（warm）に分離、表面 SQL は同一。
+
+■ TTL（Kafka）
+  - retention.ms：preservation_class の hot retention に固定。
+  - cleanup.policy：log-compacted topic（Outbox / event store）
+    と delete policy を明示、event store は基本 delete、
+    snapshot は compacted。
+  - tiered storage（v2 候補）：Apache Kafka 本体の tiered
+    storage feature で warm を sink、現在は MM2 + Kafka
+    Connect で外部 Ceph RGW に sink。
+
+■ TTL（ClickHouse）
+  - MergeTree の `TTL` clause で disk 移動：
+        TTL toDate(created_at) + INTERVAL 7 DAY TO DISK 's3_warm',
+            toDate(created_at) + INTERVAL 30 DAY TO DISK 's3_cold',
+            toDate(created_at) + INTERVAL 365 DAY DELETE;
+  - retention 値は preservation_class 別に固定、business
+    側で override 不可。
+
+■ TTL（Ceph RGW）
+  - bucket lifecycle policy：
+        Transition to STANDARD_IA after 30 days
+        Transition to COLD after 365 days
+        Expiration after retention 期限
+  - object lock：Compliance mode で retention 期限内 delete
+    physical block。
+
+■ Valkey TTL
+  - 全 key に TTL 必須、無期限 key は admission block
+    （Library 側で SET ... EX を必ず付与、tier1/15 capacity
+    の v1_per_tenant_volume の enforcement と整合）。
+  - default TTL：cache 用途で 24 時間、session 用途で 1 時間
+    （業務 pack で override 可、ただし上限は 7 日）。
+
+■ soft-delete と物理 purge
+  - soft-delete：deleted_at 列を更新、application 側 query は
+    `WHERE deleted_at IS NULL` を必ず付与。
+  - 物理 purge：cold retention 期限到達後、purge job が
+    日次 batch で発火：
+        1. tombstone 確認（deleted_at NOT NULL かつ
+           cold retention 経過）
+        2. 13 SLO の error budget freeze がないか確認
+        3. archive_to_offline へ最終 export（GDPR 監査用）
+        4. row 物理 delete（DELETE）
+        5. partition pruning で disk 解放
+  - purge は preservation_class の retention 期限を一切短縮
+    できない（admission block）。
+
+■ GDPR / 個人情報削除要求への対応
+  - tier2/22 権限モデル / 26 データ保持 が削除要求の意味論
+    を定義、data 層は次の物理経路を提供：
+        1. 削除対象 PII column を tombstone（deleted_at +
+          PII column の crypto-erase）
+        2. 復元不可化：column-level envelope encryption の
+          DEK を破壊（OpenBao 上で revoke）→ 鍵がない状態
+          になり、暗号文は復号不可能（cryptographic erasure）
+        3. archive copy：archive_to_offline にある copy も
+          同様に DEK 破壊で読み取り不可化
+        4. 監査 trail：削除要求の record は別 instance
+          （audit_local SoR）に preservation_class
+          v1_cross_region_replicated 以上で保管
+  - retention 期限内の物理削除：crypto-erase 経路のみ許容、
+    raw delete は禁止（preservation_class 規律と整合）。
+  - 削除 SLA：72 時間以内に crypto-erase 完了、整合は
+    audit signal で確認。
+
+■ purge job の物理 enforcement
+  - purge job は Argo CD CronJob、preservation_class 別の
+    cadence：
+        v1_local_only           : daily
+        v1_zone_replicated      : daily
+        v1_cluster_replicated   : weekly
+        v1_cross_region_repl.   : weekly
+        v1_global_replicated    : weekly
+  - purge job 失敗：13 SLO error budget burn、3 連続失敗で
+    admission block（追加 row 蓄積を防ぐ）。
+  - purge 結果：rows_purged / bytes_freed が SLI として emit、
+    capacity 軸（tier1/15）の v1_per_tenant_volume の使用量
+    に反映。
+
+■ archive_to_offline 経路
+  - cold retention 期限到達 object / row：
+        1. archive_to_offline orchestrator が export
+        2. 別 region cluster の Ceph RGW（cold-offline tier）
+          に push、または手動経路で外部 bucket / tape
+        3. encryption は 08 暗号化方針 の 3 重 wrap
+        4. archive_to_offline 完了後、原本 cluster から
+          物理 delete
+  - 復元 SLA：archive_to_offline からの復元は 24 時間以内、
+    business 側で必要な archive は restore_drill で
+    cadence を持って演習（11_復旧訓練方針）。
+
+■ retention の 整合性 invariant
+  - hot retention ≤ warm retention ≤ cold retention ≤
+    archive_to_offline retention の単調増加を CI で確認、
+    違反は preservation_class の class bundle 不正として
+    fail。
+  - retention 値の application override 試行は admission
+    block（Kyverno require-preservation-class-annotation
+    + dimension-override）。
+
+■ tier2 26 データ保持 との整合
+  - tier2/26 が業務 entity 別に「何年残すか」の業務要件を
+    宣言、その値は instance attribute として preservation_
+    class を選ぶ判断材料。preservation_class 自体は data
+    層の制御変数、tier2 は class を「選ぶ」だけで retention
+    値を直接書けない。
+  - 例：顧客マスタ 7 年 → v1_cross_region_replicated を
+    選択（cold retention 7 年、archive_to_offline 10 年で
+    上限カバー）。
+
+■ 採用しないライフサイクル機構
+  - manual TRUNCATE / DELETE：admission block。purge は
+    job 経由のみ。
+  - retention の動的設定（API / CR で運用中変更）：
+    preservation_class 切替 = 新 class への migration（
+    12_マイグレーション方針）でしか表現できない。
+  - business からの「特定行を即時削除」要求の即応：
+    crypto-erase の 72 時間 SLA、即時物理 delete 経路は
+    持たない。

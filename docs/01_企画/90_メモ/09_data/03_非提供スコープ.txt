@@ -1,0 +1,133 @@
+============================================================
+data 非提供スコープ
+============================================================
+
+■ 提供しない（明示的に out-of-scope）
+  - ビジネスロジック / ドメイン業務処理
+      → tier2 / tier3 の責務。data 層は table / topic /
+        keyspace / signal の physical container だけを提供。
+  - tier1 Library Repository / Server 系 RPC 実装
+      → 05_tier1。data 層は instance を提供するが、
+        application 側の binding / DTO / SQL builder は
+        持たない。
+  - cluster 構築 / cluster 位相 / Operator 基盤運用
+      → 08_infra。data 層は instance を所有するが、Operator
+        自体（CloudNativePG Operator / Strimzi Operator /
+        Altinity Operator）は infra 配信。
+  - schema 進化の意味論（compatibility / breaking 判定）
+      → 05_tier1/12_スキーマ進化適合仕様。data 層は物理
+        migration（sqlx-cli）の実行のみ。
+  - 鍵 rotation cadence / KEK / DEK 階層構造
+      → 05_tier1/11_鍵管理適合仕様。data 層は配信された
+        鍵で物理暗号化を行うだけ。
+  - 認証 issuer / JWT 鍵の発行
+      → 05_tier1/10_認証適合仕様。data 層は instance ↔
+        application 間の認証（mTLS / SCRAM）は受け取るが、
+        ユーザ認証は管掌しない。
+  - SLI / SLO 値の定義
+      → 05_tier1/13_SLO適合仕様。data 層は v1_data_durability
+        / v1_replication_lag / v1_restore_time SLI を emit
+        するのみ、target 値は tier1/13 が決める。
+  - テナント別 quota 値（hot_byte_limit / row_limit / topic_
+    byte_limit 等）
+      → 05_tier1/15_テナント容量適合仕様。data 層は
+        enforcement_layer の storage_layer_quota の物理層を
+        提供するだけ。
+  - tier2/32 RLS FORCE 規律の policy 文
+      → 06_tier2/32。data 層は POLICY DDL の物理生成と
+        FORCE_RLS の sealing のみ。
+  - 業務 entity の retention 値（顧客マスタ何年残す等）
+      → tier2 / tier3 instance attributes、preservation_class
+        の選択軸として data 層に降りるが、年数自体は data
+        層では決めない。
+
+■ 採用しない OSS / 技術
+  - MySQL / MariaDB：RDB は CloudNativePG（PostgreSQL）一本。
+    horizontal scale が必要な場合は per-tenant sharding ＋
+    PostgreSQL を選択する（業務 pack 単位）。
+  - MongoDB：SSPL のため。document store の必要性は JSONB
+    + GIN index で吸収する。
+  - Elasticsearch / OpenSearch：観測可能性 SoR は ClickHouse
+    一本。BM25 / 形態素解析 / vector search は ClickHouse の
+    Annoy / HNSW / pgvector（CloudNativePG side）で代替。
+  - Redis（BUSL-1.1）：cache / session は Valkey（Redis 7.2.4
+    時点 BSD-3 fork、Linux Foundation 管掌）に固定。
+  - Cassandra / ScyllaDB：active-active multi-region は
+    PostgreSQL CloudNativePG の cell-based 分割 ＋ Kafka
+    MM2 ＋ ClickHouse Replicated で吸収する。Cassandra の
+    eventual consistency model は本企画の strong_local /
+    synchronous_replicated 路線と整合しない。
+  - Confluent Schema Registry v5+：Confluent Community License
+    のため、schema registry は Apicurio Registry / Karapace
+    に固定。
+  - HashiCorp Vault：BUSL のため、シークレット管理は OpenBao
+    （MPL 2.0 fork、infra 提供）に依存。
+  - Debezium 単独運用：CDC は Kafka Connect + Debezium plugin
+    の組合せで infra/data 共同運用、独立 process としては
+    持たない。
+  - DynamoDB / Cosmos DB / 各種 cloud managed DB：vendor
+    lock-in を避けるため、DB は素の PostgreSQL / Kafka /
+    Valkey / ClickHouse / Apicurio に固定。クラウド managed
+    での動作対応はするが hard dependency は持たない。
+
+■ 採用しないアーキテクチャ
+  - manual schema migration：psql / kafka-topics.sh の手動
+    実行は本番経路では禁止。schema migration は sqlx-cli
+    の versioned migration が GitOps 経路で実行され、
+    Argo CD reconciliation が drift を検出する。
+  - mock DB / 共有 dev DB：tier1 開発者体験は Testcontainers
+    （実 PostgreSQL / Kafka / Valkey / ClickHouse）を default。
+    mock 化された DB layer での test は本企画の test 戦略
+    に登録しない。
+  - 単一 zone 本番運用：preservation_class v1_local_only は
+    dev/stage 専用。本番は最低 v1_zone_replicated。
+  - destructive DDL（DROP TABLE / DROP COLUMN with data）の
+    online 実行：online migration は expand-contract pattern
+    のみ許容、breaking DDL は drain 完了後の旧 column
+    removal cycle で代替する（12_マイグレーション方針）。
+  - dual-write between heterogeneous stores：Outbox pattern
+    + CDC のみで heterogeneous（Postgres ↔ Kafka ↔
+    ClickHouse）replication を行う。application code が直接
+    複数 store に二重書き込みする経路は持たない（drift 不可
+    避のため）。
+  - schemaless 運用：JSONB 列に schema validation を持たない
+    形での運用は禁止。JSONB 利用時は jsonschema check
+    constraint または application-layer Validator（tier1）
+    で必ず schema を持つ。
+  - replication-lag を 業務側で吸収する経路：tier1 の
+    reconcile_class が要求する read consistency は data 層
+    の synchronous_commit / read-from-primary で物理 enforce
+    する。「業務側で stale read を許容する」設計は持たない
+    （tier3/39 が選択する場合のみ、その合意を data に降ろす）。
+  - GUI 操作による DB 変更：pgAdmin / Adminer / Kafka UI は
+    読み取り / 限定的 trigger 専用。schema / topic / row 変更
+    は GitOps 経路（PR + Argo CD sync）のみ。
+
+■ v2 候補（v1 で採用しないが将来検討）
+  - 分散 SQL（CockroachDB / YugabyteDB）：cell-based
+    partitioning + CloudNativePG が v1 の方針、v2 で
+    pair_target 評価。
+  - vector store 専用 OSS（Qdrant / Milvus）：v1 は pgvector
+    + ClickHouse の Annoy/HNSW で吸収、v2 で評価。
+  - tiered storage 専用 OSS（Apache Pinot / StarRocks）：
+    Analytics は ClickHouse 一本、v2 で pair_target 評価。
+  - immutable WORM archive 専用 store（OpenObserve / iceberg
+    on Ceph）：v1 では Ceph RGW Object Lock + ClickHouse の
+    cold tier で吸収、v2 で必要性再評価。
+  - logical replication multi-master（BDR / pglogical
+    multi-master）：CloudNativePG では single-primary が
+    default、multi-master は v1_global_replicated の cell
+    分割で代替、純 multi-master は v2 候補。
+
+■ 至高路線における判断
+  - 「現実的に運用が楽」を理由に scope を縮小しない。
+    restore_drill cadence・application-layer 暗号化適用範囲・
+    cross-region 同期度は最大化する。
+  - 「業務が独自に DDL を流したい」を理由に GitOps 経路を
+    緩めない。drift は CI が必ず検出する。
+  - 「採用 OSS を増やしたい」を理由に L1+ 単一深耕を緩めない。
+    新 OSS は 14 OSS lifecycle 適合仕様の pair_target 移行
+    手続を経る。
+  - 「migration 失敗時に rollback したい」を理由に
+    expand-contract を緩めない。breaking DDL の online
+    実行は admission block。

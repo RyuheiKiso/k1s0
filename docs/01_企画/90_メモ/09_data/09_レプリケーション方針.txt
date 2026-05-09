@@ -1,0 +1,196 @@
+============================================================
+data レプリケーション方針
+============================================================
+
+■ 一文方針
+  - PostgreSQL は CloudNativePG Replica Cluster + WAL
+    streaming、Kafka は Strimzi 内 ISR + cluster 跨ぎ
+    MirrorMaker2、ClickHouse は Replicated MergeTree +
+    macro replicas、Ceph は RGW multi-site、を default と
+    する。replication topology は preservation_class が
+    一意に導出する。
+
+■ replication topology（preservation_class 別）
+  - v1_local_only
+      - PostgreSQL：primary のみ（standby なし）。
+      - Kafka：RF=1（dev/stage 限定）。
+      - ClickHouse：1 shard × 1 replica。
+      - Valkey：単一 master。
+      - cross-zone / cross-region replication なし。
+
+  - v1_zone_replicated
+      - PostgreSQL：1 primary + 2 sync standby（zone 分散）、
+        synchronous_commit=remote_write、
+        synchronous_standby_names='ANY 1 (...)'.
+      - Kafka：RF=3, ISR=2、broker.rack=zone、
+        unclean.leader.election.enable=false（split-brain
+        防止）。
+      - ClickHouse：1 shard × 3 replica（Replicated
+        MergeTree、zone 分散）、clickhouse-keeper 3 nodes
+        zone 分散。
+      - Valkey：master + 2 replica、Sentinel quorum=2。
+
+  - v1_cluster_replicated
+      - PostgreSQL：v1_zone_replicated + 別 cluster に
+        async standby（CloudNativePG cluster-to-cluster
+        streaming）。
+      - Kafka：v1_zone_replicated + MirrorMaker2 で別
+        cluster に async mirror（topic prefix で source
+        cluster を識別）。
+      - ClickHouse：≥ 2 shard × 2 replica、cluster 内
+        Replicated MergeTree + 別 cluster の Distributed
+        table 経由 async push。
+      - Valkey：Cluster mode（≥ 3 master、各 master に 1
+        replica）、cross-cluster 同期なし（cache 用途）。
+
+  - v1_cross_region_replicated
+      - PostgreSQL：primary region に 1 primary + 1 sync
+        standby、standby region に 1 sync standby（
+        synchronous_commit=remote_apply、Replica Cluster
+        モード）、RPO=0。
+      - Kafka：primary region に RF=3, ISR=2、standby
+        region に MirrorMaker2 で strict-ordering async
+        mirror、failover 時 promote。
+      - ClickHouse：primary region に Replicated MergeTree、
+        standby region に macro replicas（keeper 跨ぎ）、
+        DDL は ON CLUSTER で全 region 同期。
+      - Ceph：RGW multi-site で primary → standby async
+        replication、object lock は両 region で適用。
+
+  - v1_global_replicated
+      - PostgreSQL：cell-based partitioning、各 cell が
+        v1_cross_region_replicated 構造、tenant ↔ cell の
+        affinity で region 跨ぎ書き込みを回避。
+      - Kafka：MirrorMaker2 active-active topic（topic
+        prefix で region 識別）、または cell-partitioned
+        topic で書き込み非衝突。
+      - ClickHouse：macro replicas の active-active、
+        per-tenant region affinity で row 衝突回避、または
+        CRDT 系 MergeTree（v2）。
+      - Ceph：RGW multi-site bidirectional sync、object
+        命名に region prefix。
+
+■ CloudNativePG Replica Cluster
+  - mode：streaming replication、synchronous_commit を
+    preservation_class 別に固定：
+        v1_local_only           : off（standby なし）
+        v1_zone_replicated      : remote_write
+        v1_cluster_replicated   : remote_write（同 region）
+                                    + async（別 cluster）
+        v1_cross_region_repl.   : remote_apply（同 region）
+                                    + remote_apply（別 region）
+        v1_global_replicated    : 各 cell 内で remote_apply
+  - Replica Cluster CR：standby region 側に source primary
+    の情報を CR で宣言、CloudNativePG が WAL streaming を
+    確立。
+  - failover：Argo Events trigger で standby を promote、
+    runbook（infra01/15）と連動。promotion 後は旧 primary
+    を fence + 再 attach（fallback 後の旧 primary 復旧）。
+  - 物理機構：synchronous_commit は OS fsync 完了を待って
+    commit、remote_apply は standby が WAL apply 完了を
+    待つ。
+
+■ Strimzi（Kafka）レプリケーション
+  - cluster 内：rack awareness で broker を zone に紐付け、
+    min.insync.replicas=2 を rack 跨ぎで物理強制。
+    unclean.leader.election.enable=false で split-brain 時
+    の data loss を physical block。
+  - cluster 跨ぎ：MirrorMaker2 を Strimzi KafkaMirrorMaker2
+    CR で deploy、source cluster → target cluster 方向で
+    定義。
+        - v1_cluster_replicated     : 単方向 async mirror
+        - v1_cross_region_repl.     : 単方向 strict-ordering
+                                        + offset translation
+        - v1_global_replicated      : 双方向 active-active
+  - topic 命名：mirror 先で `<source-cluster>.<topic-name>`
+    prefix を付与（Strimzi default 規約）。
+  - schema：Apicurio Registry も MirrorMaker2 経由で同期、
+    subject の compatibility rule は両 cluster で同一に保つ。
+
+■ ClickHouse レプリケーション
+  - 単一 cluster 内：Replicated MergeTree + clickhouse-keeper
+    で part metadata を全 replica 同期、replica 障害時は
+    残存 replica が読み書き継続。
+  - 複数 cluster 間（同 region）：Distributed table を front、
+    背後の Replicated MergeTree が複数 cluster で keeper
+    cluster federation。
+  - 複数 region：macro replicas、keeper を region 内独立
+    （cross-region keeper はしない）、Distributed の
+    `internal_replication=true` で cell 内に push。
+  - DDL：ON CLUSTER 句で全 replica 同期適用、keeper が
+    順序保証。
+
+■ Valkey レプリケーション
+  - 範囲：cache 用途、永続化対象外、cross-cluster 同期
+    なし。
+  - cluster 内：Sentinel mode（≤ v1_cluster_replicated）/
+    Cluster mode（≥ v1_cross_region_replicated）。
+  - cross-region：同期しない（cache の divergence を許容、
+    application 側で再 fetch）。
+  - 永続化が必要な KV は CloudNativePG / Kafka に降ろす。
+
+■ Ceph RGW multi-site
+  - mode：master zone（primary region）+ secondary zone
+    （standby region）、bidirectional は v1_global_replicated
+    時のみ。
+  - bucket 単位 replication policy、object lock は両 zone で
+    同一適用。
+  - 物理：RGW の sync agent が pull、object 単位で eventual
+    consistency。
+
+■ replication lag SLI
+  - 各 replication 経路に lag SLI を持つ（13 SLO 適合仕様
+    と整合）：
+        v1_replication_lag_postgres     : pg_stat_replication
+                                          .replay_lag
+        v1_replication_lag_kafka_mm2    : MirrorMaker2 metric
+                                          per topic
+        v1_replication_lag_clickhouse   : keeper の queue 長
+        v1_replication_lag_ceph         : multi-site sync
+                                          status
+  - lag が preservation_class の RPO target を超過すると
+    13 SLO error budget burn として連動、admission policy
+    が新規書き込みを段階的に slow（write quota burn）。
+
+■ split-brain 防止
+  - PostgreSQL：synchronous_commit + Replica Cluster の
+    quorum 構造で primary 二重昇格を不可能化、CloudNativePG
+    が fence 制御。
+  - Kafka：unclean.leader.election=false、ZooKeeper（KRaft）
+    が leader election quorum で物理保証。
+  - ClickHouse：clickhouse-keeper の Raft quorum で part
+    metadata の整合保証、minority partition は read-only。
+  - Ceph：RGW multi-site の master / secondary は明示的、
+    split-brain 時は secondary が read-only。
+  - 物理機構：infra topology_class の v1_multi_region_active_
+    passive と data preservation_class の v1_cross_region_
+    replicated が双方向 lock、片方だけ宣言する経路は
+    admission block。
+
+■ failover orchestration（data 層担当部分）
+  - infra 15_クラスタ位相適合仕様 の 5 orchestrator のうち、
+    data 層が物理 trigger を提供するもの：
+      - external_dns_multi_region：DNS 切替後に data 層
+        endpoint（PostgreSQL primary / Kafka bootstrap）が
+        新 region を指す
+      - argo_rollouts_traffic_shift：standby promote 完了
+        を Argo Events が検知、rollout が traffic を切替
+  - data 層が単独で動かす機構：
+      - CloudNativePG の auto-promote（standby quorum
+        majority が WAL を apply 完了したら promote）
+      - clickhouse-keeper の leader election（keeper 側
+        Raft）
+      - Kafka KRaft controller の leader election
+
+■ 採用しない replication 機構
+  - PostgreSQL logical replication multi-master（pglogical
+    multi-master）：v1 では single-primary に固定。
+  - Kafka Cluster Linking（Confluent Community）：MM2 一本。
+  - ClickHouse の non-Replicated MergeTree：必ず Replicated
+    を採用（dev でも）。
+  - dual-write 同期：Outbox + CDC のみで heterogeneous
+    replication（02_非提供スコープ と整合）。
+  - manual promote（人間が runbook を叩く）：Argo Events
+    trigger による自動 promote、runbook は再現可能 script
+    として artifact 化（手動経路は dev/stage の v1_local_
+    only のみ）。

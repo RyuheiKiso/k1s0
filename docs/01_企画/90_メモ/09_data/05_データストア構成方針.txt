@@ -1,0 +1,140 @@
+============================================================
+data データストア構成方針
+============================================================
+
+■ 一文方針
+  - RDB は CloudNativePG（PostgreSQL）一本、Stream は
+    Strimzi（Kafka KRaft）一本、Cache は Valkey 一本、
+    OLAP / signal SoR は ClickHouse（Replicated MergeTree）
+    一本、Schema Registry は Apicurio Registry 一本。各
+    instance は infra Operator 上で動作し、構成は preservation
+    _class が物理 topology を一意に導出する。
+
+■ 構成のレイヤ分離
+  - 層 1：instance（OSS engine の単位）
+      - CloudNativePG Cluster CR（PostgreSQL primary + N
+        standby）
+      - Strimzi Kafka CR（broker / controller pod）
+      - Valkey StatefulSet（master + N replica）
+      - ClickHouse Cluster CR（shard × replica）
+      - Apicurio Registry Deployment（HA pod）
+  - 層 2：connection facade（client → instance の入口）
+      - CloudNativePG → PgBouncer（transaction pool）
+      - Kafka → Envoy Gateway（gRPC-translated）or
+        Strimzi が提供する LoadBalancer Service
+      - Valkey → Sentinel-aware client / Envoy Sidecar
+      - ClickHouse → ClickHouse-keeper aware client
+      - Apicurio → Envoy Gateway 経由の REST/Confluent API
+  - 層 3：persistence backing（PV / Object）
+      - PV：Longhorn（block）
+      - Object：Rook+Ceph RGW（cold tier / archive）
+      - 全 PV は LUKS 暗号化必須（infra 14_強制機構 の
+        require-encrypted-pv）
+  - 層 4：control（schema migration / topic ops / DDL）
+      - sqlx-cli（PostgreSQL）/ go-migrate（ClickHouse）/
+        Apicurio CLI（Schema Registry）/ Strimzi KafkaTopic
+        CR（topic 宣言）
+      - GitOps 経路（Argo CD）で実行、手動 CLI は禁止
+
+■ CloudNativePG（PostgreSQL）構成
+  - topology pattern：preservation_class 別に固定
+      - v1_local_only：1 primary（standby なし）、PV 1 つ。
+        dev/stage 限定。
+      - v1_zone_replicated：1 primary + 2 standby、3 zone
+        分散、synchronous_commit=remote_write、min_sync=1。
+      - v1_cluster_replicated：1 primary + 2 standby + 1
+        async standby（他 cluster）、cluster 跨ぎ logical /
+        physical replication。
+      - v1_cross_region_replicated：1 primary（primary
+        region）+ 1 sync standby（同 region）+ 1 sync
+        standby（standby region）、Replica Cluster で WAL
+        streaming、RPO=0。
+      - v1_global_replicated：cell-based 分割、各 cell が
+        v1_cross_region_replicated 構造、tenant ↔ cell の
+        affinity 注釈で region 跨ぎ書き込み回避。
+  - resource：CPU / memory は instance attribute、preservation
+    _class からは導出しない（capacity 軸 v1_per_tenant_compute
+    が enforcement）。
+  - shared_buffers：物理 RAM の 25%、effective_cache_size：
+    物理 RAM の 75% を default（CloudNativePG operator
+    template）。
+  - PgBouncer：CloudNativePG が同 namespace に StatefulSet
+    として deploy、transaction pooling mode、default_pool_
+    size=20、reserve_pool=5。
+
+■ Strimzi（Apache Kafka）構成
+  - mode：KRaft mode 一本（ZooKeeper は採用しない）。
+  - broker / controller：本番 broker ≥ 3、controller ≥ 3。
+    KRaft では combined（broker+controller）を許容するが
+    本番は dedicated 推奨。
+  - rack awareness：broker.rack = zone_id を物理 enforce、
+    Strimzi の `broker.rack: ${strimzi.broker.rack}` で
+    自動注入。
+  - topic 宣言：KafkaTopic CR で per-topic 宣言、
+    partitions / replicationFactor / min.insync.replicas /
+    cleanup.policy / retention.ms / compression.type が
+    preservation_class 別に固定（07_保全方針 と整合）。
+  - replication.factor：本番 ≥ 3、min.insync.replicas ≥ 2、
+    rack 跨ぎで物理強制。
+  - listener：Internal（mTLS）/ External（SCRAM-SHA-512 /
+    OAuth）の 2 種、認証は 10_認証適合仕様 と整合。
+
+■ Valkey 構成
+  - topology pattern：
+      - v1_local_only / v1_zone_replicated：単一 master + 2
+        replica（Sentinel mode）
+      - v1_cluster_replicated 以上：Cluster mode（≥ 3
+        master、各 master に 1 replica）
+  - persistence：AOF / RDB 共に無効（cache 用途）。
+    persistent な KV が必要な場合は CloudNativePG に降ろす。
+  - eviction policy：allkeys-lru を default、TTL 必須。
+  - maxmemory：Pod memory limit の 80%（OOMKill 防止）。
+
+■ ClickHouse（Altinity Operator）構成
+  - cluster 構成：shard × replica。preservation_class 別：
+      - v1_local_only：1 shard × 1 replica
+      - v1_zone_replicated：1 shard × 3 replica（zone 分散）
+      - v1_cluster_replicated：≥ 2 shard × 2 replica
+      - v1_cross_region_replicated：region 別 cluster + macro
+        replicas を keeper 経由で同期
+      - v1_global_replicated：cell-partitioned、tenant ↔
+        region affinity で書き込み非衝突
+  - clickhouse-keeper：ZooKeeper 互換 Raft、3 ノード以上。
+  - tiered storage（disk_s3）：hot=Longhorn / cold=Ceph RGW
+    の 2 段階を全 table に適用、TTL 移行は 10_ライフサイクル
+    方針。
+
+■ Apicurio Registry 構成
+  - deployment：HA pod ≥ 2、storage backend = PostgreSQL
+    （CloudNativePG instance、Apicurio 専用 schema）。
+  - rule：Compatibility BACKWARD / FORWARD / FULL は
+    05_tier1/12_スキーマ進化適合仕様 が決定、Apicurio は
+    その rule を physical enforce。
+  - serde：Avro / JSON Schema / Protobuf を全て support、
+    本企画は Protobuf を default。
+
+■ instance attribute（class instantiate 時）
+  - 各 instance は preservation_class 注釈に加えて、以下
+    instance attribute を宣言する：
+      - tenant_scope（system / per_tenant / shared_pool）
+      - tier_owner（tier1 / tier2 / tier3 / data 自身）
+      - capacity_class（tier1/15 と整合）
+      - schema_registry_subject（Schema Registry が結びつく
+        場合）
+      - retention_policy_id（10_ライフサイクル方針 と整合）
+  - dimension override は禁止（preservation_class が決める
+    5 dimension は instance attribute では変えられない）。
+
+■ 採用しない構成
+  - PostgreSQL の master-master（pglogical multi-master）：
+    v1 では single-primary + Replica Cluster のみ。conflict
+    resolution の運用負荷が L1+ 深耕方針と整合しない。
+  - Kafka の ZooKeeper mode：KRaft 一本。ZooKeeper の
+    Operator 別運用は持たない。
+  - Valkey の persistence enable 構成：cache を SoR にしない
+    規律のため。
+  - ClickHouse の non-Replicated MergeTree：cross-zone
+    replication が物理 enforce されないため。dev でも
+    Replicated を default。
+  - Apicurio Registry の in-memory storage：dev/stage 含めて
+    PostgreSQL backend を default（state lost 防止）。

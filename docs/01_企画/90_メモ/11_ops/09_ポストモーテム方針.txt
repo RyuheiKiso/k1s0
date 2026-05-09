@@ -1,0 +1,197 @@
+============================================================
+ops ポストモーテム方針
+============================================================
+
+■ 一文方針
+  - 全 incident（ops + security 双方）に対し postmortem PR
+    を 72h 以内に open / 14 日以内に merged を ship blocker
+    として bind し、blameless / 5whys / action item / SLO
+    budget delta / runbook coverage / toil delta の 6 必須
+    section を template 化、action item は別 issue + owner
+    + expires_at 必須で物理 enforce する。
+
+■ blameless 原則
+  - postmortem は blameless：個人 / role を責める表現を
+    禁止、行動の背景にあった system / 組織 / process の
+    欠陥を root cause として分析する。
+  - reviewer による blame 表現の検出は CODEOWNERS 必須
+    review で確認、blame 発見時は revision request 必須。
+  - blameless 違反の文言は CI で正規表現 + Semgrep custom
+    rule で覆面検出（文体 lint）、違反 PR は merge block。
+  - blameless culture 教育は 07_オンコール方針 の training
+    cadence に組み込み、新規 on-call は postmortem template
+    と blameless guidelines を必読。
+
+■ postmortem template（6 必須 section）
+  - section 1：Summary（1 段落）
+        - incident_id / class / severity / impact /
+          timeline overview
+  - section 2：Timeline
+        - detect / triage / mitigate / resolve / postmortem
+          の 5 phase 各 timestamp + key event log
+        - audit_event subject の incident_event row から
+          自動 generate（手書きは fact 確認補強のみ）
+  - section 3：Root Cause Analysis（5whys + contributing
+    factors）
+        - 5whys：1〜5 段階の why-because chain を文書化
+        - contributing factors：technical / process /
+          organizational / environmental の 4 軸
+        - blame 表現検出 lint（Semgrep）必須
+  - section 4：Mitigation Actions
+        - 既に取った mitigation の log
+        - 各 mitigation の outcome（成功 / 失敗 / 部分成功）
+        - mitigation runbook が存在した場合は runbook_ref
+          + execution_log
+  - section 5：Action Items（最重要）
+        - 別 GitHub Issue として branch out（postmortem PR
+          内に列挙のみ、実体は別 issue）
+        - 各 action item に owner / expires_at / priority
+          / type（preventive / detective / responsive /
+          tooling / runbook / SLO_tuning）必須
+        - implementation status が `merged` / `deployed`
+          になるまで recurrence detection で elevated
+          priority 維持
+  - section 6：Metrics（quantitative impact）
+        - SLO budget delta（before / after の error budget
+          残量）
+        - customer_impact_minutes（severity matrix の
+          impact × urgency × duration）
+        - mttr / mtbf 更新値（incident_history.lock.yaml
+          への寄与）
+        - runbook coverage delta（新規 runbook 化分）
+        - toil delta（toil_minutes_per_week metric への
+          影響、12_toil削減方針 と双方向 lock）
+
+  - 6 必須 section の section header 一致を CI で物理
+    確認、欠落 section は merge block。
+
+■ postmortem PR の lifecycle
+  - phase 1：open
+        - SLA：incident resolve → 72h 以内 PR open
+        - phase 1 違反は Kyverno が関連 service の image
+          deploy を block（feature flag toggle のみ allow）
+  - phase 2：draft（初稿）
+        - timeline / root cause 初稿を書き、author + IC +
+          scribe で round 1 review
+  - phase 3：review
+        - CODEOWNERS で関連 axis owner（service team /
+          infra / data / security の該当者）必須 review、
+          blameless 違反 / fact 不一致を指摘
+  - phase 4：action item branch out
+        - section 5 の全 action item を別 GitHub Issue に
+          branch out、postmortem PR 内には issue link のみ
+          残す
+        - action item issue は postmortem PR と必ず双方向
+          link、片方欠落は CI fail
+  - phase 5：merged
+        - SLA：PR open → 14 日以内 merged
+        - phase 5 違反は service 全 deploy block（feature
+          flag も含む、break-glass のみ allow）
+
+  - 各 phase の SLA は incident_lifecycle.lock.yaml と
+    双方向 lock、SLA 違反は 13 SLO の error budget
+    consumption として記録。
+
+■ action item lifecycle
+  - 全 action item は GitHub Issue + Project board で
+    管理：
+        - label：postmortem-action / type:<class> /
+          priority:<level>
+        - field：owner / expires_at / linked_postmortem
+          / linked_recurrence
+  - quarterly review：
+        - expires_at を超過した未完了 action item は
+          quarterly review で必須 re-evaluation（再 owner
+          assign / scope 変更 / cancel 判定）
+        - 同一 root cause を持つ action item の grouping
+          で集約 PR 化
+  - implementation 完了：
+        - action item issue の close は対応 PR の merged
+          を必須化（comment で linked PR 必須）
+        - close 後 30 日間は recurrence detection で
+          implementation 効果検証（同 cause の incident
+          再発がないこと）
+  - cancel：
+        - cancel は ops lead + service owner の二人承認
+          必須、cancel reason を audit_event 必須
+
+■ recurrence と action item の bind
+  - 08_運用インシデント方針 の recurrence_table.lock.yaml
+    と双方向 lock：3 回以上 recurrent な incident_class は
+    対応 action item の implementation を ship blocker
+    （次の同 cause incident 発生まで deploy block）。
+  - recurrence detection で同 root cause が確認されたら、
+    action item の priority を automatically elevated に
+    変更、quarterly review で必須 implementation
+    （implementation skip は ops lead + service team lead
+    の二人承認 audit_event 必須）。
+
+■ external incident（external dependency / SaaS outage）
+  - 外部 SaaS / IDP / DNS / CA outage 等の external
+    incident でも postmortem PR 必須化、本企画 service の
+    impact mitigation 経路（fallback / circuit breaker /
+    degradation pattern）を必ず action item 化。
+  - 外部 vendor の RCA（root cause analysis）公開時は本
+    postmortem PR に link、自社 mitigation を強化する
+    action item を branch out。
+
+■ postmortem の retention
+  - 全 postmortem PR + linked issue は GitHub に永続
+    retention（preservation v1_zone_replicated 以上）、
+    Backstage TechDocs に search index を mirror。
+  - postmortem 検索：incident_class / severity / root_
+    cause_keyword / time_range で Backstage 上 search、
+    新規 incident triage 時に類似 postmortem を on-call
+    が参照（recurrence 兆候の早期 detect）。
+
+■ 公開範囲（separation of concerns）
+  - 通常 postmortem：社内 GitHub repository に public
+    （社内全員 reviewable）
+  - 機密 postmortem（PII leak / security adjacency / legal
+    sensitive）：private repository に分離、CODEOWNERS で
+    限定 reviewer、ただし postmortem PR の open / merged
+    SLA は同一に適用
+  - 公開範囲の判定は incident class + severity + impact
+    の三項で自動算出、override は ops lead + legal lead
+    の二人承認 audit_event 必須
+
+■ 同型構造（13 軸 + meta + security との整合）
+  - 5 yaml 単一の真：
+        postmortem_section_schema.yaml（6 section の field
+          定義）
+        postmortem_progress.lock.yaml（build artifact、
+          全 active postmortem PR の phase + SLA status、
+          security 14 と共有）
+        action_item_catalog.lock.yaml（build artifact、
+          全 action item issue の status + linked
+          postmortem + linked recurrence）
+        blameless_lint_rules.yaml（Semgrep custom rule
+          の文体 lint policy）
+        postmortem_archive_index.lock.yaml（build artifact、
+          archive 検索 index）
+  - 5 層 defense-in-depth：postmortem は層 D / E に必ず
+    物理 action を持つ（Kyverno deploy block / GitHub
+    PR review automation）。
+  - CI 不変条件：postmortem PR SLA 内 / 6 必須 section 完備
+    / blameless lint pass / action item branch out 完備
+    / recurrence action bound / archive retention green
+    等を CI で物理確認。
+
+■ 採用しない方針
+  - blame culture 経路：禁止、blameless lint で物理覆面
+    検出。
+  - postmortem の short-circuit（template 省略）：禁止、
+    6 必須 section 完備が merge 条件。
+  - action item の同 PR 内記述：禁止、必ず別 issue branch
+    out（追跡性 + recurrence binding のため）。
+  - 「忙しいから来週書く」：禁止、72h open SLA / 14 日
+    merged SLA、違反は service deploy block。
+  - postmortem の internal-only memo：禁止、GitHub PR が
+    primary、私的 memo 経路ゼロ。
+  - severity 高 incident の skip：禁止、severity = notify
+    以上は postmortem 必須（severity = observe のみ skip
+    可能）。
+  - external incident の skip：禁止、external 由来でも
+    自社 mitigation 経路を action item 化。
+  - cancel の文章 only：禁止、cancel は二人承認 audit_event
+    必須。

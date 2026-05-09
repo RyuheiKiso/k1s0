@@ -1,0 +1,182 @@
+============================================================
+ops 非提供スコープ
+============================================================
+
+■ 提供しない（明示的に out-of-scope）
+  - 個別軸の物理 enforcement 機構そのもの
+      → ops は cross-axis に bind するのみ。Argo Rollouts
+        の AnalysisTemplate の DDL 生成 / Kyverno admission
+        policy の build / Tekton pipeline の実装 / Grafana
+        OnCall escalation rule の build は全て他層
+        （tier1 / tier2 / infra / data / security）。
+  - SLI / SLO target 値の意味論
+      → 05_tier1/13_SLO適合仕様。ops は budget が底を
+        ついた時の operational action 経路（page / freeze
+        / rollback / runbook）のみを管掌。
+  - 観測可能性 SoR の物理運用
+      → 05_tier1/09_観測適合仕様 / 09_data。ops は metric
+        / log / trace を入力として alert に変換する
+        downstream 経路のみを管掌。
+  - 脅威モデル / threat catalog
+      → 10_security/05_脅威モデル方針。ops は security
+        incident の triage 後 operational impact phase の
+        loop entry のみを管掌。
+  - audit_event subject schema（security 主管）
+      → 10_security/09_監査方針 + 09_data。ops は ops_event
+        subject の schema のみ追加宣言（共通 SoR は共用）。
+  - 鍵 rotation cadence / KEK / DEK 階層構造
+      → 05_tier1/11_鍵管理適合仕様。ops は rotation
+        overdue 時の page / freeze 経路のみ管掌。
+  - cluster 構築 / 廃棄 / 位相
+      → 08_infra/15_クラスタ位相適合仕様。ops は
+        topology change の change management 経路のみ。
+  - migration pair の compatibility 判定本体
+      → 05_tier1/08_マイグレーション適合仕様。ops は
+        migration window の operational risk 観測のみ。
+  - schema 進化の breaking 判定本体
+      → 05_tier1/12_スキーマ進化適合仕様。ops は schema
+        deploy 起因の SLO breach 経路のみ管掌。
+  - PV 暗号化 / Object Lock / synchronous_commit
+      → 09_data（08_暗号化方針 / 07_保全方針）。ops は
+        replication lag / restore drill cadence の
+        operational signal 経路のみ。
+  - tenant 分離規律（RLS / GUC）
+      → 06_tier2/32_テナント分離適合仕様。ops は tenant
+        越境 detect の security incident bridge のみ。
+  - 業務領域 PII 列の最終分類値
+      → tier2 / tier3 instance attributes、ops は PII
+        leak の operational alert routing のみ。
+
+■ 採用しない OSS / 技術
+  - 商用 incident management SaaS（PagerDuty / Opsgenie /
+    Splunk On-Call の有償 SLA 機能）：vendor lock-in 回避
+    と本企画の運用 SoR = ClickHouse + Grafana 一本化方針
+    のため、escalation は Grafana OnCall（AGPL-3）+
+    incident.io OSS の組合せに固定。商用 page SLA は採用
+    しない（自社 cluster の物理発火経路で代替）。
+  - Datadog / New Relic / Dynatrace / AppDynamics：商用
+    APM / observability SaaS、本企画の OSS 一本化方針と
+    衝突。Prometheus / Grafana / VictoriaMetrics（infra
+    04 と整合）+ Tempo + Loki 経路で吸収。
+  - Splunk Enterprise / Sumo Logic：log aggregation の
+    商用 license。log SoR は ClickHouse + Vector に固定
+    （09_data + 10_security と整合）。
+  - Chronosphere / Honeycomb：商用 observability SaaS、
+    採用しない（OSS 一本化）。
+  - LaunchDarkly / Split.io / Optimizely：商用 feature
+    flag SaaS、採用しない。OpenFeature SDK + Flagd OSS
+    （Apache 2.0）で吸収、flag definition は build
+    artifact 化。
+  - Spinnaker：CD pipeline の重量級 OSS、本企画の Argo
+    系 L1+ 深耕（Argo CD / Argo Rollouts / Argo
+    Workflows）と衝突。Argo Rollouts で progressive
+    delivery を物理担当。
+  - GitOps Toolkit（Flux）：Argo CD と機能重複、infra
+    04 と整合し Argo CD 単独深耕。
+  - Concourse / GoCD：CI/CD の重複 OSS、Tekton +
+    GitHub Actions で吸収。
+  - Backstage 以外の internal developer portal（Cortex /
+    OpsLevel 商用 / Roadie SaaS）：採用しない。Backstage
+    OSS 単独深耕（infra 13 / data 13 / security 13 と
+    整合）。
+  - VictorOps / xMatters：商用 incident response SaaS、
+    採用しない。Grafana OnCall + incident.io OSS で吸収。
+  - Squadcast / Better Uptime / FireHydrant 商用版：採用
+    しない。
+  - Kibana / Elastic SIEM の商用機能：採用しない、
+    Grafana + ClickHouse query 経路で吸収。
+
+■ 採用しないアーキテクチャ
+  - 文章 only の運用 loop：ops_loop.lock.yaml は build
+    artifact、手書き禁止。phase / signal / action 経路は
+    機械可読のみ。
+  - 文章 only の runbook：runbook は Markdown + Tekton
+    job 化（実行可能）の二段構え必須、Markdown only は
+    cap 5%（手作業 step が残る場合のみ）。文章 only
+    runbook は CI fail。
+  - alert の noise 放置：全 page-level alert に対して
+    page-to-incident ratio / false positive rate を SLI
+    として計測、threshold 超過は alert tuning 強制。
+    「ノイズだが残しておく」は禁止。
+  - postmortem の不発：active operational incident の
+    postmortem PR が merged になるまで関連 namespace への
+    deploy を Kyverno admission policy で物理 block。
+    「忙しいから来週書く」経路ゼロ。
+  - feature flag の文章管理：flag は flagd OSS の build
+    artifact yaml で宣言、UI 上の手動 toggle 経路は
+    限定的（break-glass のみ、audit_event 必須）。
+  - rollback の手動運用：progressive delivery における
+    rollback は AnalysisTemplate の SLO 違反 detect で
+    Argo Rollouts が自動発火、手動 rollback は audit_event
+    + postmortem PR 必須の break-glass のみ。
+  - SLO に bind されない alert：全 page-level alert は
+    必ず SLO の error budget burn rate に bind、SLO 外の
+    alert は cap 10%（infrastructure 例外のみ）。
+  - on-call 不在の merge：on-call が不在（rotation 空き）
+    の時間帯 ≥ 0% を invariant、roster の gap は CI fail。
+  - 「現実には起こりにくいから loop に登録しない」：
+    operational signal catalog は完全列挙が原則、可能性の
+    低さは weight で表現。登録省略は CI で coverage gap
+    として fail。
+  - chaos 演習の opt-out：全 service は infra 11_Chaos
+    工学方針 の演習 cadence に必須参加、ops は cadence
+    violation を page。
+  - toil の手動計測：toil は toil_minutes_per_week metric
+    の自動 emit + ClickHouse 蓄積必須、spreadsheet 管理
+    は禁止。
+  - postmortem の internal-only：postmortem PR は GitHub
+    public（社内）reviewable、blame 禁止 + 5whys 必須、
+    private memo 経路ゼロ。
+  - 商用 PenTest 結果のみで运用 loop の妥当性検証：自動
+    chaos 演習（Litmus）+ red team table top（security 12
+    と共有）+ game day（ops 主催）の三重化を必須化、
+    PenTest のみは採用しない。
+  - 単一 SLO target に依存：multi-window multi-burn-rate
+    （MWMBR）方式の二重化（短窓 fast burn / 長窓 slow
+    burn）を default、単窓 alert は採用しない。
+
+■ v2 候補（v1 で採用しないが将来検討）
+  - AIops（autonomous incident response / auto remediation
+    AI）：v1 は Tekton job ベースの決定論的 runbook、v2 で
+    LLM-augmented incident triage を pair_target 評価。
+  - Wavefront / SignalFx 相当の高 cardinality APM 自社
+    augment：v1 は VictoriaMetrics + Prometheus、v2 で
+    cardinality 上限改善を pair_target 評価。
+  - Service-Level Objective auto-tuning：v1 は手動 tuning
+    + budget consumption history、v2 で auto-tuning 候補。
+  - chaos engineering の formal verification（TLA+ /
+    model checking）：v1 は Litmus + chaos table top、
+    v2 で formal verification augment 検討。
+  - Multi-region active-active orchestration の自動
+    arbitration：v1 は manual cutover + Argo Rollouts、
+    v2 で auto-arbitration 評価。
+  - Predictive incident（capacity forecast / anomaly
+    detection の augment）：v1 は threshold based、v2 で
+    ML based forecast augment 検討（Prometheus
+    +Grafana ML plugin 評価）。
+
+■ 至高路線における判断
+  - 「page が増えると on-call が疲弊する」を理由に
+    operational signal coverage を縮小しない。疲弊は
+    fatigue_budget metric で表現、coverage itself は
+    省略しない。on-call 数を増やす / 自動化で吸収する
+    で対応。
+  - 「postmortem の merge を待っていると速度が落ちる」を
+    理由に postmortem ship blocker を緩めない。速度
+    低下は短期的、loop closure 不能の蓄積は長期的に
+    壊滅的。
+  - 「商用 PagerDuty が便利だから入れたい」を理由に
+    L1+ 単一深耕を緩めない。新 OSS は 14_OSSライフサ
+    イクル適合仕様 の pair_target 移行手続を経る。
+  - 「toil monotonic decrease は厳しすぎる」を理由に
+    cadence を緩めない。quarterly target は CI で物理
+    enforce、未達は ship blocker（少なくとも次 quarter
+    で挽回必須）。
+  - 「SLO breach の auto rollback は怖い」を理由に手動
+    rollback path を default にしない。Argo Rollouts の
+    AnalysisTemplate による auto rollback を default、
+    手動 rollback は break-glass。
+  - 「runbook は Markdown だけで充分」を理由に Tekton
+    job 化を skip しない。手作業 step が残る場合のみ
+    Markdown allow（cap 5%）、それ以外は実行可能 runbook
+    が ship blocker。

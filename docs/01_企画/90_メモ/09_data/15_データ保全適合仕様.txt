@@ -1,0 +1,930 @@
+============================================================
+data データ保全適合仕様（v1）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」CloudNativePG / PostgreSQL / PgBouncer
+    / Kafka(Strimzi) / Apicurio Registry / Valkey / ClickHouse
+    / Rook+Ceph / Longhorn、「03_プラットフォーム構成」の
+    data 階層、「09_data/05_データストア構成方針」「09_data
+    /06_スキーマ運用方針」「09_data/07_保全方針」「09_data/
+    08_暗号化方針」「09_data/09_レプリケーション方針」「09_
+    data/10_ライフサイクル方針」「09_data/11_復旧訓練方針」
+    「09_data/12_マイグレーション方針」、および「05_tier1/
+    11_鍵管理適合仕様」（KEK / DEK 階層）/「05_tier1/12_
+    スキーマ進化適合仕様」（compatibility）/「05_tier1/13_
+    SLO適合仕様」（v1_data_durability / v1_replication_lag）
+    /「05_tier1/14_OSSライフサイクル適合仕様」（oss_inventory
+    .lock.yaml）/「05_tier1/15_テナント容量適合仕様」（v1_
+    per_tenant_volume）/「06_tier2/26_データ保持」（業務
+    retention 要件）/「06_tier2/29_データライフサイクル」
+    （業務 lifecycle 要件）/「06_tier2/32_テナント分離適合
+    仕様」（RLS FORCE）/「07_tier3/22_端末オフラインデバイス」
+    （client copy）/「08_infra/15_クラスタ位相適合仕様」
+    （topology_class、双方向 lock）が散在的に宣言する
+    durability / replication_topology / encryption_layer /
+    restore_window / drill_cadence を、機械可読な単一の真
+    として一箇所に固定する仕様書。
+  - 「05_tier1/07/08/09/10/11/12/13/14/15」「06_tier2/32」
+    「07_tier3/39」「08_infra/15」と同型の枠組みを data 保全
+    軸に転写したもの。dimension override 禁止 / dead spec
+    殺し / build artifact 化 / 5 層 defense-in-depth の規律
+    はそのまま継承する。
+  - data が物理的に唯一の preservation facade として振る舞う。
+    tier1 / tier2 / tier3 から「どの保全度合で永続化するか」
+    を coding で flag するのではなく、preservation_class を
+    CloudNativePG Cluster CR / KafkaTopic CR / ClickHouse
+    table annotation / Kustomize overlay / Kyverno admission
+    policy に注釈する形で宣言する。
+  - 13 軸 + meta の 1 軸として、本仕様が 07 transport / 08
+    migration / 09 observability / 10 auth / 11 key / 12
+    schema / 13 SLO / 14 OSS lifecycle / 15 capacity / 32
+    data-tenant / 39 client / infra01 topology の各軸の
+    永続化局面を統合する。
+
+■ 設計原則
+  - preservation_class は bundle である。
+      yaml に書く data.preservation.* attribute のうち、
+      preservation_class 1 つの値が他 5 dimension（durability
+      / replication_topology / encryption_layer / restore_
+      window_seconds / drill_cadence_days）を一意に導出する。
+      Library 作者 / 業務作者 / DBA が dimension を個別に
+      override する経路は持たない。
+  - dimension override は禁止する。
+      「v1_zone_replicated のうち encryption_layer を at-
+      rest-only に弱めたい」要望は新 class を切ることで表現
+      する。class 数の爆発は意味論の規律として受け入れる。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、scenarios.yaml に
+      登録された全 assertion id、preservation_substrates.
+      lock.yaml に列挙された全 substrate、restore_drill.
+      lock.yaml に列挙された全 drill record は、いずれも
+      参照されなくなった時点で CI fail とする。CR のうち
+      preservation_class 注釈が無いものも CI fail（preservation
+      未宣言の persistence を deny by default）。
+  - 5 種類 preservation orchestrator を全 preservation_class
+    に必須化する。
+      postgres_wal_streaming / kafka_replication_quorum /
+      clickhouse_keeper_replication / ceph_multi_site /
+      object_lock_compliance の 5 orchestrator は、各 class
+      が必要とする層を宣言する。同一 preservation は複数
+      orchestrator に分散しないが、同一 instance では複数
+      class が複数 orchestrator を併用する。
+  - restore_drill を物理 property とする。
+      「drill_cadence_days 以内に必ず restore を実演し、
+      宣言された RPO / RTO 内に収束する」を Litmus chaos
+      test で必ず検証する。13 の v1_data_durability /
+      v1_replication_lag が cluster_label 付き metric で
+      隣接 cluster を観測し、保全破綻を即時 alert + admission
+      block に流す。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（CR / migration ファイルの preservation
+              _class 注釈必須、sqlx prepare 通過）
+      層 B : lint（preservation_class 注釈の存在 / 値域検査 /
+              preservation_substrates.lock.yaml と整合）
+      層 C : restore_drill chaos test（Litmus）
+      層 D : runtime（5 orchestrator の実 deploy）
+      層 E : physical（CloudNativePG synchronous_commit /
+              Kafka min.insync.replicas / clickhouse-keeper
+              Raft / Ceph CRUSH zone failure_domain / Longhorn
+              LUKS の物理層強制）
+      任意の単層が破れても他層が必ず止める。物理 enforcement
+      は最終 safety net。
+
+■ v1 preservation_class セット（5 class）
+  - yaml に書ける preservation_class は次の 5 値のみ。各
+    instance 実体は preservation_substrates.lock.yaml の枝で
+    classes.yaml の keys と照合する。
+
+      class                          | durability       | replication_topology       | encryption_layer            | restore_window_seconds | drill_cadence_days
+      -------------------------------+------------------+----------------------------+-----------------------------+------------------------+--------------------
+      v1_local_only                  | local            | none                       | at_rest_only                | 14400 (4 h)            | 180
+      v1_zone_replicated             | zone_quorum      | sync_within_cluster        | at_rest + column_envelope   | 60                     | 90
+      v1_cluster_replicated          | cluster_quorum   | async_cross_cluster        | at_rest + column_envelope   | 300 (5 min)            | 60
+      v1_cross_region_replicated     | region_quorum    | sync_cross_region          | at_rest + column_envelope + | 300 (5 min)            | 30
+                                     |                  |                            |   topic_payload_envelope    |                        |
+      v1_global_replicated           | global_quorum    | active_active_multi_region | at_rest + column_envelope + | 0 (continuous)         | 14
+                                     |                  |                            |   topic_payload_envelope +  |                        |
+                                     |                  |                            |   archive_triple_wrap       |                        |
+
+  - 各 class の不変条件と典型用途：
+
+      - v1_local_only
+          - 単一 zone 内の単一 instance。dev / stage / 検証
+            用途。CloudNativePG 1 primary（standby なし）、
+            Kafka RF=1、ClickHouse 1 replica。
+          - durability：local（fsync 完了で commit 確定、
+            zone 障害で永続喪失の可能性）。
+          - replication_topology：none（cross-zone 同期なし）。
+          - encryption_layer：at_rest_only（PV LUKS のみ、
+            column-level envelope は適用 optional だが推奨）。
+          - restore_window：4 時間（manual restore、PITR
+            base backup + WAL）。
+          - drill：6 ヶ月に 1 回、full restore の dry-run。
+          - 典型：開発 namespace、PoC、internal tool。本番
+            業務は採用しない（DR 不可能なため、infra topology
+            v1_single_zone とのみ整合）。
+
+      - v1_zone_replicated
+          - 単一 region 内の複数 AZ（≥ 3 zone）にまたがる
+            単一 cluster。本番業務の標準 default。CloudNativePG
+            1 primary + 2 sync standby（zone 分散）、Kafka
+            RF=3 ISR=2 rack 跨ぎ、ClickHouse 1 shard × 3
+            replica（zone 分散）、Apicurio HA pod。
+          - durability：zone_quorum（zone failure 時 quorum
+            維持で書き込み継続）。
+          - replication_topology：sync_within_cluster
+            （synchronous_commit=remote_write、min.insync.
+            replicas=2 rack 跨ぎ）。
+          - encryption_layer：at_rest（Longhorn LUKS）+
+            column_envelope（PII / monetary 列）。
+          - restore_window：60 秒（automatic recovery、新
+            primary 昇格）。
+          - drill：90 日に 1 回、Litmus で 1 zone を network
+            partition、SLO 維持確認。
+          - 典型：本番 production 業務の default 採用。tier2
+            業務 entity、tier1 Library Repository、tier1/09
+            観測 SoR。
+
+      - v1_cluster_replicated
+          - 同 region 内の複数 cluster（≥ 2 cluster）が
+            active-active。CloudNativePG 内 zone_replicated
+            + 別 cluster に async standby、Kafka MirrorMaker2
+            cross-cluster mirror、ClickHouse 別 cluster の
+            Distributed table 経由 async push、Apicurio
+            cross-cluster sync。
+          - durability：cluster_quorum（1 cluster 完全断
+            でも他 cluster が即時 traffic 引受、async lag
+            分の data loss は容認）。
+          - replication_topology：async_cross_cluster
+            （cluster 跨ぎは eventual consistency）。
+          - encryption_layer：v1_zone_replicated と同等。
+          - restore_window：5 分（automatic、cluster 跨ぎ
+            failover）。
+          - drill：60 日に 1 回、Litmus で 1 cluster を
+            network partition、SLO + data lag 維持確認。
+          - 典型：region 内 HA を最大化、計画 maintenance を
+            online で実施。tier2 高 throughput Service、
+            tier1 transport mesh の messaging_bridge。
+
+      - v1_cross_region_replicated
+          - 複数 region（primary + standby ≥ 1）。standby
+            region は読み取り可能だが書き込みは primary のみ。
+            CloudNativePG Replica Cluster で WAL streaming
+            sync、Kafka MM2 strict-ordering、ClickHouse macro
+            replicas、Ceph multi-site。
+          - durability：region_quorum（region 障害でも
+            standby が同期受信済の WAL を持つ、RPO=0）。
+          - replication_topology：sync_cross_region
+            （synchronous_commit=remote_apply）。
+          - encryption_layer：at_rest + column_envelope +
+            topic_payload_envelope（Kafka payload にも
+            envelope）。
+          - restore_window：5 分（Argo Events trigger で
+            standby promote）。
+          - drill：30 日に 1 回、Litmus で primary region を
+            network partition、standby promote → traffic
+            shift → fallback の full cycle。
+          - 典型：規制要件で cross-region DR が必須な業務、
+            data 軸の PII / monetary を扱う Service、tier2
+            の業務 SoR。
+
+      - v1_global_replicated
+          - 複数 region（≥ 2）が active-active。CloudNativePG
+            cell-based partitioning（per-tenant region affinity）、
+            Kafka MM2 active-active、ClickHouse macro
+            replicas、Ceph RGW multi-site bidirectional。
+          - durability：global_quorum（region 障害でも他
+            region が即時引受、external_dns_multi_region で
+            DNS 切替が秒オーダ）。
+          - replication_topology：active_active_multi_region
+            （cell-partitioned で衝突回避、または CRDT 系）。
+          - encryption_layer：at_rest + column_envelope +
+            topic_payload_envelope + archive_triple_wrap
+            （archive_to_offline で 3 重 wrap）。
+          - restore_window：0（continuous、書き込みは常時
+            可能）。
+          - drill：14 日に 1 回、Litmus で 1 region を完全
+            isolation、他 region 全 traffic 引受 + data
+            consistency 維持確認。
+          - 典型：global SaaS、24/7 zero-downtime 業務。本
+            企画の 1.0.0 では「採用可能 class」として宣言、
+            特定業務 pack（製造業 global SCM など）が選択
+            する。
+
+  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務
+    シナリオの stress test を本仕様末尾に示す。
+
+■ dimension の根拠
+  - durability は喪失時の単位：
+        local            → fsync 完了 / 単一 disk 喪失で全失
+        zone_quorum      → zone 単一断 / AZ 障害が想定上限
+        cluster_quorum   → cluster 単一断が上限
+        region_quorum    → region 全断 / regional outage が
+                           上限
+        global_quorum    → 複数 region 同時 / 大陸障害が
+                           上限
+    複数粒度を重ねた表現（zone+region 等）は class 内 fixed。
+  - replication_topology は同期 model：
+        none                       → 単一 instance のみ
+        sync_within_cluster        → cluster 内 sync
+        async_cross_cluster        → cluster 跨ぎ async
+        sync_cross_region          → region 跨ぎ sync
+        active_active_multi_region → 複数 region が双方向
+                                     write
+    混合は class 内 fixed。
+  - encryption_layer は暗号化の depth：
+        at_rest_only                          → PV LUKS のみ
+        at_rest + column_envelope             → 加えて
+                                                 column-level
+                                                 envelope
+        at_rest + column_envelope +           → 加えて Kafka
+          topic_payload_envelope                payload envelope
+        at_rest + column_envelope +           → 加えて archive
+          topic_payload_envelope +              の 3 重 wrap
+          archive_triple_wrap
+  - restore_window_seconds は復旧の時間 SLA：
+        14400 → 4 時間（manual）
+        300   → 5 分（automatic, region failover 含む）
+        60    → 60 秒（automatic within zone）
+        0     → continuous（active-active）
+    class の risk profile が低いほど短い。
+  - drill_cadence_days は restore_drill の最大 interval。
+    class の risk profile が高いほど短い（global_replicated
+    が 14 日、local_only が 180 日）。
+
+■ derived dimension（per-instance threshold）を独立次元に
+  しない理由
+  - per-instance の閾値（v1_zone_replicated の zone 数=3
+    vs v1_cross_region_replicated の primary_zone_count=3
+    + standby_region_count=1）は本来 dimension たり得るが、
+    5 class それぞれで「同じ durability / replication_topology
+    / encryption_layer / restore_window_seconds / drill_
+    cadence_days 構造で閾値だけが instance 別」という同形
+    操作になる。
+  - 閾値は class instantiate 時の instance attribute として
+    宣言し、build artifact が CloudNativePG Cluster CR /
+    KafkaTopic CR / Kyverno admission policy / Litmus chaos
+    experiment を生成する形に統一。
+  - data オペレータ / 業務側で迷う余地がないため、独立
+    dimension 化する利得が乏しい。
+
+■ 5 種類 preservation orchestrator の責務分離（特殊機構）
+  - orchestrator 1: postgres_wal_streaming
+      - v1_zone_replicated 以上の主担当。CloudNativePG の
+        synchronous_commit + Replica Cluster で WAL streaming、
+        commit 確定を OS fsync 物理層で強制。
+      - synchronous_standby_names が層 E の物理 trigger。
+
+  - orchestrator 2: kafka_replication_quorum
+      - v1_zone_replicated 以上の主担当。Strimzi Kafka の
+        replication.factor + min.insync.replicas + rack
+        awareness + unclean.leader.election=false で broker
+        層に物理 enforce。
+      - 07 transport の messaging_bridge constraints と整合。
+
+  - orchestrator 3: clickhouse_keeper_replication
+      - v1_zone_replicated 以上の主担当。Replicated MergeTree
+        + clickhouse-keeper の Raft quorum で part metadata
+        を全 replica 同期、leader election quorum で物理
+        保証。
+
+  - orchestrator 4: ceph_multi_site
+      - v1_cross_region_replicated 以上の主担当。Rook+Ceph
+        RGW の master / secondary zone 双方向同期（v1_global
+        _replicated）または master → secondary 単方向同期
+        （v1_cross_region_replicated）で、object 単位の
+        eventual consistency を保証。
+      - object lock は両 zone 同一適用。
+
+  - orchestrator 5: object_lock_compliance
+      - 全 preservation_class（v1_local_only を除く）の archive
+        担当。Ceph RGW Object Lock の Compliance mode で、
+        retention 期限内の物理 delete を不可能化する。
+        crypto-erase（DEK 破壊）以外で対象 object に手を出せ
+        ない。
+      - 11 鍵管理適合仕様 の rotation cadence と双方向 lock。
+
+  - 5 orchestrator は順次評価される（postgres_wal → kafka_
+    replication → clickhouse_keeper → ceph_multi_site →
+    object_lock）が、各 preservation_class は 1 instance 種
+    に対して該当 orchestrator を「主担当」として宣言。他
+    instance 種は補助的に協調動作（例：v1_zone_replicated
+    の主担当は postgres_wal_streaming だが、同 instance に
+    kafka_replication_quorum が併用される）。
+
+■ spec の 5 ファイル構成（単一の真）
+
+  ── data/preservation/classes.yaml
+      - class bundle 定義。preservation_class 名 → 5 dimension
+        + instance attributes_required の純粋関数テーブル。
+      - スケッチ：
+            classes:
+              v1_local_only:
+                durability: local
+                replication_topology: none
+                encryption_layer: at_rest_only
+                restore_window_seconds: 14400
+                drill_cadence_days: 180
+                instance_attributes_required:
+                  - region_id
+                  - zone_id
+                  - cluster_id
+                  - instance_id
+                wal_archive_required: true
+                column_envelope_optional: true
+                emits_audit_signal_on_drill: true
+
+              v1_zone_replicated:
+                durability: zone_quorum
+                replication_topology: sync_within_cluster
+                encryption_layer: at_rest_plus_column_envelope
+                restore_window_seconds: 60
+                drill_cadence_days: 90
+                instance_attributes_required:
+                  - region_id
+                  - zone_ids        # ≥ 3
+                  - cluster_id
+                  - instance_id
+                  - rpo_seconds_max # ≤ 5
+                  - rto_seconds_max # ≤ 60
+                postgres_synchronous_commit: remote_write
+                kafka_min_insync_replicas: 2
+                kafka_rack_awareness_required: true
+                clickhouse_replicated_required: true
+                column_envelope_required_on_pii: true
+
+              v1_cluster_replicated:
+                durability: cluster_quorum
+                replication_topology: async_cross_cluster
+                encryption_layer: at_rest_plus_column_envelope
+                restore_window_seconds: 300
+                drill_cadence_days: 60
+                instance_attributes_required:
+                  - region_id
+                  - cluster_ids     # ≥ 2
+                  - instance_id
+                  - data_lag_max_seconds
+                kafka_mirrormaker2_required: true
+                clickhouse_distributed_required: true
+                cnp_async_standby_cluster_required: true
+
+              v1_cross_region_replicated:
+                durability: region_quorum
+                replication_topology: sync_cross_region
+                encryption_layer:
+                  at_rest_plus_column_envelope_plus_topic_payload
+                restore_window_seconds: 300
+                drill_cadence_days: 30
+                instance_attributes_required:
+                  - primary_region_id
+                  - standby_region_ids   # ≥ 1
+                  - instance_id
+                  - rpo_seconds_max      # ≤ 0 (sync)
+                  - rto_seconds_max      # ≤ 300
+                  - promotion_runbook_id
+                cnp_replica_cluster_required: true
+                kafka_mm2_strict_ordering_required: true
+                ceph_multi_site_required: true
+                topic_payload_envelope_required: true
+
+              v1_global_replicated:
+                durability: global_quorum
+                replication_topology: active_active_multi_region
+                encryption_layer:
+                  at_rest_plus_column_envelope_plus_topic_payload_plus_archive_triple_wrap
+                restore_window_seconds: 0
+                drill_cadence_days: 14
+                instance_attributes_required:
+                  - region_ids           # ≥ 2
+                  - instance_id
+                  - cell_partitioning    # per_tenant_affinity
+                                          # | crdt
+                                          # | cell_per_region
+                  - external_dns_provider
+                kafka_mm2_active_active_required: true
+                clickhouse_macro_replicas_required: true
+                ceph_multi_site_bidirectional_required: true
+                archive_triple_wrap_required: true
+                emits_audit_signal_on_failover: true
+
+  ── data/preservation/scenarios.yaml
+      - scenario × class / 状況 → assertion id のマトリクス。
+      - スケッチ：
+            scenarios:
+              steady_state:
+                description: "通常運転下での preservation 維持"
+                matrix:
+                  - when: { class: any }
+                    assertions:
+                      - ss_replication_lag_within_target
+                      - ss_wal_archive_lag_within_target
+                      - ss_drill_state_green
+                      - ss_no_data_divergence
+
+              postgres_primary_failure:
+                description: "PostgreSQL primary 障害"
+                matrix:
+                  - when: { class: v1_zone_replicated }
+                    assertions:
+                      - pgf_sync_standby_promoted
+                      - pgf_no_data_loss
+                      - pgf_rpo_zero
+                      - pgf_rto_within_60s
+                      - pgf_pgbouncer_redirected
+
+              kafka_broker_failure:
+                description: "Kafka broker 1 台喪失"
+                matrix:
+                  - when: { class: v1_zone_replicated }
+                    assertions:
+                      - kbf_isr_maintained
+                      - kbf_no_message_loss
+                      - kbf_unclean_election_blocked
+                      - kbf_producer_continues
+
+              clickhouse_replica_failure:
+                description: "ClickHouse replica 1 台喪失"
+                matrix:
+                  - when: { class: v1_zone_replicated }
+                    assertions:
+                      - chr_keeper_quorum_maintained
+                      - chr_query_continues
+                      - chr_recovery_within_drill_cadence
+
+              cross_cluster_async_lag:
+                description: "cluster 跨ぎ async replication lag"
+                matrix:
+                  - when: { class: v1_cluster_replicated }
+                    assertions:
+                      - cca_lag_within_data_lag_max
+                      - cca_alert_emitted_on_breach
+                      - cca_no_silent_divergence
+
+              region_partition_passive:
+                description: "primary region 障害 → standby promote"
+                matrix:
+                  - when: { class: v1_cross_region_replicated }
+                    assertions:
+                      - rpp_standby_promoted_via_argo_events
+                      - rpp_external_dns_switched
+                      - rpp_rpo_zero
+                      - rpp_rto_within_300s
+                      - rpp_audit_signal_emitted
+
+              region_partition_active:
+                description: "1 region 障害（active-active）"
+                matrix:
+                  - when: { class: v1_global_replicated }
+                    assertions:
+                      - rpa_other_regions_serve_writes
+                      - rpa_cell_affinity_maintains_no_conflict
+                      - rpa_external_dns_health_check_failed
+                      - rpa_no_data_divergence
+                      - rpa_drill_within_14d
+
+              key_rotation_in_flight:
+                description: "11 鍵 rotation 進行中"
+                matrix:
+                  - when: { class: { in: [v1_zone_replicated,
+                                          v1_cluster_replicated,
+                                          v1_cross_region_replicated,
+                                          v1_global_replicated] } }
+                    assertions:
+                      - kri_dual_dek_decrypt_succeeds
+                      - kri_no_silent_decrypt_failure
+                      - kri_old_dek_revoked_after_window
+                      - kri_drill_3_green
+
+              gdpr_crypto_erase:
+                description: "GDPR 削除要求 → crypto-erase"
+                matrix:
+                  - when: { class: any, integration: 11_key }
+                    assertions:
+                      - gce_dek_revoked
+                      - gce_archive_decrypt_fails
+                      - gce_audit_trail_preserved
+                      - gce_72h_sla_met
+
+              schema_migration_in_flight:
+                description: "expand-contract migration 進行中"
+                matrix:
+                  - when: { class: any, integration: 12_schema }
+                    assertions:
+                      - smi_dual_write_active
+                      - smi_backfill_progressing
+                      - smi_rpo_rto_unchanged
+                      - smi_apicurio_compatibility_satisfied
+
+              cold_archive_restore:
+                description: "archive_to_offline 復元"
+                matrix:
+                  - when: { class: { in: [v1_cluster_replicated,
+                                          v1_cross_region_replicated,
+                                          v1_global_replicated] } }
+                    assertions:
+                      - car_fetch_within_24h
+                      - car_decrypt_succeeds
+                      - car_checksum_matches
+                      - car_drill_4_green
+
+              drill_cadence_violation:
+                description: "drill 期限超過 → admission block"
+                matrix:
+                  - when: { class: any }
+                    assertions:
+                      - dcv_kyverno_blocks_new_deploys
+                      - dcv_alert_to_oncall
+                      - dcv_restore_drill_lock_red
+                      - dcv_only_drill_replay_allowed
+
+              cross_axis_topology_preservation:
+                description: "infra01 topology_class との整合"
+                matrix:
+                  - when: { class: { in: [v1_cross_region_replicated,
+                                          v1_global_replicated] },
+                            integration: infra01_topology }
+                    assertions:
+                      - catp_topology_preservation_lock_consistent
+                      - catp_failover_drill_aligned_with_restore_drill
+                      - catp_rpo_rto_consistent_across_axes
+
+      - corpus 全体は 12 scenario を最小コーパスとする。
+
+  ── data/preservation/preservation_substrates.lock.yaml
+      （build artifact）
+      - instance 実体の static 自己宣言を CloudNativePG /
+        Strimzi / Altinity / Apicurio CR registration から
+        data build script が集約して生成する build artifact。
+        手書き禁止。
+      - infra topology_class と双方向 lock：infra/topology/
+        cluster_inventory.lock.yaml の cluster_id と本 lock
+        の belongs_to_cluster_id が一意対応、片方だけの宣言
+        は admission block。
+      - スケッチ：
+            # AUTO-GENERATED. DO NOT EDIT.
+            substrates:
+              prod-jp-east-cnp-billing:
+                instance_kind: postgres_cluster
+                preservation_class: v1_zone_replicated
+                belongs_to_cluster_id: prod-jp-east-1-a
+                topology_class: v1_multi_zone_per_cluster
+                region_id: jp-east-1
+                zone_ids: [jp-east-1a, jp-east-1b, jp-east-1c]
+                primary_pod: prod-jp-east-cnp-billing-1
+                sync_standby_pods:
+                  - prod-jp-east-cnp-billing-2
+                  - prod-jp-east-cnp-billing-3
+                synchronous_commit: remote_write
+                wal_archive_destination: ceph-rgw://wal/billing
+                base_backup_destination: ceph-rgw://base/billing
+                column_envelope_columns:
+                  - {table: customer, column: email}
+                  - {table: customer, column: phone}
+                  - {table: payment, column: card_pan}
+
+              prod-jp-east-kafka-orders:
+                instance_kind: kafka_cluster
+                preservation_class: v1_cross_region_replicated
+                belongs_to_cluster_id: prod-jp-east-passive-primary
+                topology_class: v1_multi_region_active_passive
+                region_id: jp-east-1
+                broker_pods:
+                  - prod-kafka-0 (rack=jp-east-1a)
+                  - prod-kafka-1 (rack=jp-east-1b)
+                  - prod-kafka-2 (rack=jp-east-1c)
+                kraft_controllers: [c-0, c-1, c-2]
+                replication_factor: 3
+                min_insync_replicas: 2
+                unclean_leader_election: false
+                mm2_target:
+                  cluster_id: prod-jp-west-passive-standby
+                  mode: strict_ordering
+                topic_payload_envelope: true
+
+              prod-jp-east-clickhouse-signal:
+                instance_kind: clickhouse_cluster
+                preservation_class: v1_cross_region_replicated
+                belongs_to_cluster_id: prod-jp-east-passive-primary
+                topology_class: v1_multi_region_active_passive
+                region_id: jp-east-1
+                shards: 4
+                replicas_per_shard: 2
+                keeper_pods: [k-0, k-1, k-2]
+                tiered_storage_hot: longhorn
+                tiered_storage_cold: ceph-rgw://signal-cold
+                ttl_hot_days: 30
+                ttl_cold_days: 365
+                ttl_archive_days: 2555
+                cross_region_macro_replicas: jp-west-1
+
+              prod-jp-east-valkey-session:
+                instance_kind: valkey_cluster
+                preservation_class: v1_zone_replicated
+                belongs_to_cluster_id: prod-jp-east-1-a
+                topology_class: v1_multi_zone_per_cluster
+                region_id: jp-east-1
+                mode: cluster
+                masters: 6
+                replicas_per_master: 1
+                persistence: disabled
+                default_ttl_seconds: 86400
+                acl_secret_ref: vault://valkey/session
+
+              prod-jp-east-apicurio:
+                instance_kind: apicurio_registry
+                preservation_class: v1_zone_replicated
+                belongs_to_cluster_id: prod-jp-east-1-a
+                backing_postgres: prod-jp-east-cnp-apicurio
+                pods: 2
+                compatibility_default: BACKWARD
+
+  ── data/preservation/restore_drill.lock.yaml（build artifact）
+      - drill 演習の最終 green 時刻 / RPO・RTO 観測値を
+        instance 単位で持つ build artifact。手書き禁止、
+        drill orchestrator の機械的 push のみ。
+      - スケッチ：
+            # AUTO-GENERATED. DO NOT EDIT.
+            drills:
+              prod-jp-east-cnp-billing:
+                preservation_class: v1_zone_replicated
+                drill_runs:
+                  - drill_type: full_restore
+                    last_green_at: 2026-04-15T10:00:00Z
+                    rpo_seconds_observed: 3
+                    rto_seconds_observed: 47
+                    artifact_id: rd-billing-20260415
+                  - drill_type: crypto_erase
+                    last_green_at: 2026-04-01T08:00:00Z
+                    artifact_id: ce-billing-20260401
+
+              prod-jp-east-kafka-orders:
+                preservation_class: v1_cross_region_replicated
+                drill_runs:
+                  - drill_type: full_restore
+                    last_green_at: 2026-04-22T05:00:00Z
+                    rpo_seconds_observed: 0
+                    rto_seconds_observed: 142
+                    artifact_id: rd-kafka-20260422
+                  - drill_type: cross_region_failover
+                    last_green_at: 2026-04-22T05:30:00Z
+                    rpo_seconds_observed: 0
+                    rto_seconds_observed: 178
+                    artifact_id: rfd-kafka-20260422
+                  - drill_type: cold_archive_restore
+                    last_green_at: 2026-02-15T09:00:00Z
+                    artifact_id: car-kafka-20260215
+
+              prod-jp-east-clickhouse-signal:
+                preservation_class: v1_cross_region_replicated
+                drill_runs:
+                  - drill_type: full_restore
+                    last_green_at: 2026-04-25T11:00:00Z
+                    rpo_seconds_observed: 0
+                    rto_seconds_observed: 95
+                    artifact_id: rd-ch-20260425
+                  - drill_type: cross_region_failover
+                    last_green_at: 2026-04-25T11:20:00Z
+                    rpo_seconds_observed: 0
+                    rto_seconds_observed: 108
+                    artifact_id: rfd-ch-20260425
+
+  ── data/preservation/policy.rego（生成入力）
+      - Conftest custom rule の Rego policy ソース。lint
+        結果は Kyverno admission policy build artifact の
+        生成入力にもなる。
+      - スケッチ：
+            package data.preservation
+
+            deny[msg] {
+              input.kind == "Cluster"
+              input.apiVersion == "postgresql.cnpg.io/v1"
+              not input.metadata.annotations["data.preservation.preservation_class"]
+              msg := "missing preservation_class annotation"
+            }
+
+            deny[msg] {
+              input.kind == "KafkaTopic"
+              cls := input.metadata.annotations["data.preservation.preservation_class"]
+              cls == "v1_zone_replicated"
+              spec := input.spec
+              spec.replicas < 3
+              msg := sprintf("v1_zone_replicated requires replicationFactor>=3, got %d", [spec.replicas])
+            }
+
+            deny[msg] {
+              input.kind == "Cluster"
+              input.apiVersion == "postgresql.cnpg.io/v1"
+              cls := input.metadata.annotations["data.preservation.preservation_class"]
+              cls == "v1_cross_region_replicated"
+              not input.spec.replica.cluster
+              msg := "v1_cross_region_replicated requires Replica Cluster"
+            }
+
+            deny[msg] {
+              col := input.spec.columns[_]
+              col.classification == "PII"
+              not col.envelope_encryption.enabled
+              msg := sprintf("PII column %s requires envelope encryption", [col.name])
+            }
+
+            warn[msg] {
+              cls := input.metadata.annotations["data.preservation.preservation_class"]
+              cls == "v1_local_only"
+              env := input.metadata.labels["env"]
+              env == "production"
+              msg := "v1_local_only must not be used in production"
+            }
+
+■ defense-in-depth の各層（重複の物理意味）
+  - 層 A（compile）：Cluster CR / KafkaTopic CR / migration
+    ファイル / Avro/Proto schema が compile 時に preservation
+    _class 注釈を必須化。sqlx prepare で query type を check、
+    Apicurio CLI で compatibility verify。
+  - 層 B（lint）：Rego policy で classes.yaml と整合性
+    check、preservation_substrates.lock.yaml と CR の双方向
+    確認、Kyverno policy build artifact の整合確認。
+  - 層 C（restore_drill chaos test）：Litmus で per-class
+    drill scenario を起動、assertion id の機械的 evaluation、
+    restore_drill.lock.yaml の自動 update。drill 失敗で
+    admission block 発火。
+  - 層 D（runtime）：5 orchestrator の deploy 状態を Argo
+    CD reconciliation で常時確認。drift は self-heal、
+    手動変更は drift として reset。
+  - 層 E（physical）：CloudNativePG の synchronous_commit
+    が OS fsync で確定するまで commit を返さない、Kafka
+    broker が min.insync.replicas を満たさなければ produce
+    を NOT_ENOUGH_REPLICAS で reject、ClickHouse keeper の
+    Raft majority がなければ part 確定しない、Ceph CRUSH
+    map で zone failure_domain が違反すれば PG mapping 拒否、
+    Object Lock Compliance mode で retention 期限内 delete
+    physical block。
+
+■ build artifact の双方向 lock
+  - infra topology_class と data preservation_class の対応表
+    （preservation_substrates.lock.yaml の topology_class
+    フィールド）が双方向 lock：
+        - v1_local_only        ↔ v1_single_zone のみ
+        - v1_zone_replicated   ↔ v1_multi_zone_per_cluster
+                                 （同一 cluster 内）
+        - v1_cluster_replicated↔ v1_multi_cluster_active_active
+                                 （同 region 複数 cluster）
+        - v1_cross_region_repl.↔ v1_multi_region_active_passive
+        - v1_global_replicated ↔ v1_multi_region_active_active
+  - 片方だけ宣言：admission block。両方が一致しない：admission
+    block。例：preservation_class=v1_cross_region_replicated
+    で topology_class=v1_multi_zone_per_cluster は physical
+    に sync replication 不可能なので CI fail。
+
+■ 13 軸 cross integration（軸跨ぎ整合）
+  - 07 transport：preservation_class が要求する topic_payload
+    _envelope は 07 messaging_bridge constraints の payload
+    schema に encrypted=true field option として現れる。
+  - 08 migration：tier1 移行 pair の preservation_class
+    切替（旧 class ↔ 新 class）は dual phase + restore_
+    drill green を満たして初めて contract できる。
+  - 09 observability：data 層 SLI（replication_lag /
+    wal_archive_lag / restore_drill_state）は ClickHouse
+    SoR に永続、preservation_class label 必須。
+  - 10 auth：DB ↔ application の認証は preservation_class
+    に関わらず mTLS / SCRAM 必須、issuer は Keycloak。
+  - 11 key：KEK / DEK 階層の rotation cadence と
+    preservation_class の drill_3 cadence は双方向 lock、
+    rotation 進行中は dual_dek_decrypt が assertion で
+    保証される。
+  - 12 schema：schema_class の互換 rule（BACKWARD/FORWARD/
+    FULL）は preservation_class に関わらず適用、breaking
+    change は preservation_class が要求する dual phase
+    minimum 期間以上の dual-write を経て contract。
+  - 13 SLO：v1_data_durability / v1_replication_lag /
+    v1_restore_time SLI は preservation_class 別 target、
+    error budget freeze と admission block 連動。
+  - 14 OSS lifecycle：preservation 軸の依存 OSS（CloudNativePG
+    / Strimzi / Altinity / Apicurio）は oss_inventory.lock
+    .yaml に v1_l1plus_primary 登録、CVE backlog threshold
+    違反は admission block。
+  - 15 capacity：v1_per_tenant_volume の enforcement_layer
+    = storage_layer_quota は preservation_class 別の物理
+    bucket / topic 単位 quota として実 enforce。
+  - 32 data-tenant：RLS FORCE は preservation_class に関
+    わらず 100% 適用、tenant_id 列を持つ全 table が POLICY
+    + FORCE_RLS、bypass は break-glass のみ。
+  - 39 client：tier3 の reconcile_class が要求する read
+    consistency は preservation_class の synchronous_commit
+    で物理 enforce、client copy は IndexedDB に持つが
+    server-side preservation は本軸が決める。
+  - infra01 topology：上記 build artifact の双方向 lock。
+    failover_drill と restore_drill は AND-gate で 1.0.0
+    ship blocker。
+  - 00 meta：data01 軸として meta-registry に登録、cap
+    v1=20 の枠内。13 軸の整合性 invariant に preservation_
+    class の存在 / 値域検査 / 双方向 lock を含める。
+
+■ 業務シナリオ stress test（製造業 pack 想定 8 シナリオ）
+  本仕様が 5 class で覆える業務 stress を以下 8 シナリオ
+  で確認する。各シナリオは preservation_class instantiation
+  を 1 つ以上選ぶ。
+
+  - シナリオ 1：単一 zone の dev 環境（初期 PoC）
+        - preservation_class：v1_local_only
+        - instance：CloudNativePG 1 primary、Kafka RF=1
+        - 想定挙動：drill 1 を半年に 1 回、restore 4 時間
+          以内
+        - 期待結果：dev のみ運用可能、本番への昇格は
+          preservation_class 切替経由
+
+  - シナリオ 2：単一 region 本番（標準業務）
+        - preservation_class：v1_zone_replicated
+        - instance：CloudNativePG 1 primary + 2 sync standby、
+          Kafka RF=3 ISR=2、ClickHouse 3 replica、Valkey
+          Cluster
+        - 想定挙動：zone 1 つ落ちても 60 秒以内 RTO、RPO=0
+        - 期待結果：drill 2 は適用外、drill 1 と drill 3 で
+          連続 green
+
+  - シナリオ 3：region 内 HA 最大化（高 throughput 業務）
+        - preservation_class：v1_cluster_replicated
+        - instance：複数 cluster 並列、Kafka MM2 cross-
+          cluster、ClickHouse Distributed
+        - 想定挙動：1 cluster 完全断でも 5 分以内 RTO、
+          async replication lag 60 秒以下
+        - 期待結果：drill 2（cross-cluster）+ drill 1 で
+          green、async lag SLI 連続 burn 防止
+
+  - シナリオ 4：規制業務 cross-region DR（金融 / 個人情報）
+        - preservation_class：v1_cross_region_replicated
+        - instance：CNP Replica Cluster、Kafka MM2 strict-
+          ordering、ClickHouse macro replicas、Ceph multi-
+          site
+        - 想定挙動：region 障害で 5 分以内 standby promote、
+          RPO=0、column + topic envelope encrypt 必須
+        - 期待結果：drill 2（region failover）30 日 cadence
+          で green、crypto-erase drill 90 日 cadence で
+          green
+
+  - シナリオ 5：global SaaS（24/7 zero-downtime）
+        - preservation_class：v1_global_replicated
+        - instance：cell-partitioned CNP、Kafka MM2 active-
+          active、ClickHouse macro replicas、Ceph multi-site
+          bidirectional
+        - 想定挙動：region 障害でも書き込み継続、external-
+          dns で秒オーダ DNS 切替
+        - 期待結果：drill 2（per-region failover）14 日
+          cadence で green、cell affinity で row 衝突ゼロ
+
+  - シナリオ 6：rotation in-flight（11 鍵管理 cross）
+        - preservation_class：v1_zone_replicated 以上
+        - 状態：rotation 中の dual-DEK 期間
+        - 想定挙動：旧 / 新 DEK 両方で decrypt 可能、SLO 維
+          持、drill 3 の crypto-erase が rotation 完了後
+          検証
+        - 期待結果：rotation_progress.lock.yaml の
+          progress=100% 確認、dual_dek_decrypt assertion
+          green
+
+  - シナリオ 7：GDPR 削除要求（10/11/データ保持 cross）
+        - preservation_class：v1_cross_region_replicated
+        - 状態：複数 region の archive copy 含む削除要求
+        - 想定挙動：72 時間以内 crypto-erase（DEK revoke）、
+          全 archive copy で test decrypt 失敗、削除 audit
+          trail は別 instance で保全
+        - 期待結果：drill 3（crypto-erase）green、削除 SLA
+          達成、audit trail 復元演習で確認
+
+  - シナリオ 8：schema migration in-flight（12 schema cross）
+        - preservation_class：任意
+        - 状態：expand → dual → contract phase 進行中
+        - 想定挙動：preservation_class 規律不変、SLO/RPO/RTO
+          崩さない、Apicurio compatibility 適合
+        - 期待結果：smi_dual_write_active 等 assertion green、
+          backfill 完了 SLI が dual phase 期間内に 100%
+          到達、contract PR が green で merge 可能
+
+■ 採用しない preservation 機構
+  - preservation_class の動的変更（API / CR で運用中
+    変更）：禁止、新 class への migration 経路でしか表現
+    できない。
+  - dimension 個別 override：禁止。
+  - 「preservation_class 注釈を持たない instance」：dev/
+    stage を含めて admission block。
+  - mock / fake DB の本番経路：禁止（02_非提供スコープ と
+    整合）。
+  - 「business が忙しい時は drill cadence を緩める」：
+    禁止、drill cadence は preservation_class が固定。
+  - 物理 delete の即応経路：禁止、crypto-erase + retention
+    のみ。
+
+■ ship blocker（1.0.0）
+  - preservation_substrates.lock.yaml が全 instance を網羅、
+    classes.yaml と整合。
+  - restore_drill.lock.yaml で v1_local_only 以外の全 class
+    instance が green。
+  - infra01 failover_drill.lock.yaml と data01 restore_drill
+    .lock.yaml の AND-gate を release_gate.lock.yaml が
+    要求。
+  - 全 admission policy が build artifact から生成、手書き
+    ゼロ。
+  - 全 PII 分類列に envelope encryption 適用、blind index
+    対応 search column が完備。
+  - 全 13 軸の整合 invariant が CI で green、dead spec /
+    dimension override 違反ゼロ。

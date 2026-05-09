@@ -1,0 +1,106 @@
+============================================================
+data 責務
+============================================================
+
+■ 一文定義
+  - data は、tier1 / tier2 / tier3 が永続化を要求する全ての
+    業務データ・観測データ・メッセージを「物理層に堕とした
+    時にも保全 / 復元 / 失効が一意に定まる」状態で運用する
+    層である。
+
+■ 責務の境界
+  - data が責務を持つ：
+      - PostgreSQL（CloudNativePG instance） / Kafka（Strimzi
+        instance） / Valkey（Sentinel/Cluster instance） /
+        ClickHouse（Altinity instance） / Apicurio Registry
+        instance の運用・schema migration・version 整合
+      - PgBouncer connection pool の運用と pool size 規律
+      - preservation_class（保全クラス）の宣言と物理 enforcement
+      - WAL streaming / logical backup / snapshot / PITR /
+        archive_to_offline の cadence と retention
+      - cross-region replication の物理 topology（Replica
+        Cluster / MirrorMaker2 / ClickHouse Replicated /
+        Ceph multi-site）
+      - application-layer 暗号化（PII column / topic payload）
+        の rest 局面での適用、envelope encryption の実装
+      - Outbox / Change Data Capture（CDC）の物理 publisher
+      - schema migration tool（sqlx-cli）の lifecycle と
+        forward / backward migration の物理実行
+      - restore_drill（preservation_class 別の復元演習）の
+        cadence と green/red 状態管理
+
+  - data が責務を持たない：
+      - ビジネスロジック / ドメイン業務処理（→ tier2 / tier3）
+      - tier1 Library / Server 系の RPC / Repository 実装
+        （→ 05_tier1）
+      - cluster 構築 / cluster 位相 / Operator 基盤
+        （→ 08_infra、Operator 自体は infra 提供、instance は
+          data 所有）
+      - schema 進化の意味論（compatibility / breaking 判定）
+        （→ 05_tier1/12_スキーマ進化適合仕様、data 層は物理
+          実行のみ担う）
+      - 鍵 rotation cadence / KEK / DEK 階層構造
+        （→ 05_tier1/11_鍵管理適合仕様、data 層は配信された
+          鍵で実暗号化を行うのみ）
+      - 認証 issuer / JWT 鍵
+        （→ 05_tier1/10_認証適合仕様）
+      - SLI / SLO 値の定義
+        （→ 05_tier1/13_SLO適合仕様、data 層は preservation
+          軸の SLI のみを emit）
+      - テナント別 quota 値（hot_byte_limit / row_limit）
+        （→ 05_tier1/15_テナント容量適合仕様、data 層は
+          enforcement_layer の storage_layer_quota 物理層を
+          提供するのみ）
+
+■ 至高路線における立ち位置
+  - data は「永続化された後に巻き戻せない事象」（書き込み
+    確定・logical replication の divergence・物理 disk 暗号
+    化失敗・archive 期限切れ）の最終 safety net を提供する
+    層である。tier1 / tier2 / tier3 / infra のいずれかが
+    schema 互換性を破ったり cross-region replication を欠落
+    させたりしても、data 層の物理 enforcement（synchronous_
+    commit / min.insync.replicas / WAL archive / restore_drill
+    green）が必ず止める。
+  - 13 軸の各 spec の defense-in-depth 層 E（物理）のうち、
+    永続化 / 復元 / 暗号化に関する物理基盤は data 層が所有
+    する instance で実 enforcement される（infra は PV /
+    object storage substrate を提供、data は engine 物理機構
+    で強制）。
+
+■ 至高路線における原則
+  - 単一 OSS 深耕：1 機能カテゴリ（RDB / Stream / Cache /
+    Analytics / Schema Registry）に対して採用する OSS は
+    1 種類に絞り、横並びの選択肢は持たない（02_採用OSS一覧
+    の L1+ 方針を踏襲）。
+  - 宣言的真：preservation_class / replication_topology /
+    encryption_layer / restore_drill 状態は GitOps（Argo CD）
+    と build artifact（lock.yaml）でのみ表現する。psql /
+    kafka-cli から直接書き換えた状態は CI が drift として
+    検出して reset する。
+  - 不可逆性の禁止：archive_to_offline 以外の経路で物理
+    delete を発火する経路を持たない。delete は logical 化
+    （tombstone / purge_marker）を経由し、preservation_class
+    別の retention 期限後に物理 GC が走る形に固定する。
+  - 段階的 release 禁止：1.0.0 時点で 5 preservation_class
+    全てが restore_drill green であること（v1_local_only は
+    dev/stage 用、本番は他 4 class）。
+  - 「運用が大変だから restore_drill cadence を緩める」判断
+    は採らない。drill cadence 違反は即時 admission block。
+
+■ 配下ファイル（下位章）
+  - 01_責務.txt（本ファイル）
+  - 02_位置づけ.txt
+  - 03_非提供スコープ.txt
+  - 04_採用OSS.txt
+  - 05_データストア構成方針.txt
+  - 06_スキーマ運用方針.txt
+  - 07_保全方針.txt
+  - 08_暗号化方針.txt
+  - 09_レプリケーション方針.txt
+  - 10_ライフサイクル方針.txt
+  - 11_復旧訓練方針.txt
+  - 12_マイグレーション方針.txt
+  - 13_運用UIと開発者体験.txt
+  - 14_強制機構.txt
+  - 15_データ保全適合仕様.txt（structural spec、13 軸の 1 つ
+    = data01 軸）

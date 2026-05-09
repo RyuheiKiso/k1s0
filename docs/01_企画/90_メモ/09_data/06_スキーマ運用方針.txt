@@ -1,0 +1,161 @@
+============================================================
+data スキーマ運用方針
+============================================================
+
+■ 一文方針
+  - PostgreSQL の DDL は sqlx-cli で versioned migration、
+    ClickHouse の DDL は go-migrate、Kafka topic は Strimzi
+    KafkaTopic CR、Schema Registry の subject は Apicurio
+    の declarative API を、全て GitOps 経路で apply する。
+    手動 DDL は禁止、schema 進化の意味論は 05_tier1/12 が
+    決定する（data 層は物理実行のみ）。
+
+■ schema 軸 ↔ data 軸の分担
+  - 05_tier1/12_スキーマ進化適合仕様 が定める：
+      - schema_class（v1_strict_backward / v1_strict_forward /
+        v1_full_compat / 等）
+      - compatibility 判定 / breaking change 検出
+      - migration plan の expand / contract phase 区切り
+      - dual-read / dual-write 期間
+  - 09_data（本層）が定める：
+      - migration tool（sqlx-cli / go-migrate / Apicurio
+        CLI）の物理 lifecycle
+      - migration 適用順序の物理保証（forward only）
+      - phantom write / Outbox table の table 命名規約
+      - DDL apply の admission（drift 検出 / lock）
+      - schema_registry instance の物理運用
+
+■ migration 物理経路（PostgreSQL）
+  - tool：sqlx-cli。tier1 / tier2 開発者は migration ファイル
+    を `<service>/migrations/<timestamp>__<description>.sql`
+    に置く。
+  - 命名：UTC timestamp（YYYYMMDDHHMMSS）+ snake_case
+    description。同 service 内で重複不可。
+  - 構造：1 file につき forward migration 1 件。reverse
+    migration は持たない（forward only、12_マイグレーション
+    方針 の expand-contract で吸収）。
+  - apply：CI で migration ファイルが追加された PR は schema
+    diff を Apicurio Registry / atlas でレポート、merge 後
+    Argo CD が CloudNativePG 上で sqlx-cli を Job として
+    起動して apply。
+  - 実行順：CloudNativePG primary に対して serial 実行、
+    standby は streaming replication で受信。
+  - lock：実行中は schema_migrations table に row lock、
+    並行 apply は postgres advisory lock で防御。
+  - drift 検出：Argo CD reconciliation が schema_migrations
+    table と git の migration ファイル一覧を比較、divergence
+    を report。
+
+■ migration 物理経路（ClickHouse）
+  - tool：go-migrate（ClickHouse driver）。
+  - 命名：UTC timestamp + ClickHouse engine prefix（例：
+    `20260101120000__create_signal_local.up.sql`）。
+  - on cluster：Replicated MergeTree の DDL は ON CLUSTER
+    句で全 replica に同期適用。clickhouse-keeper が分散
+    調整。
+  - apply：sqlx-cli と同じく Argo CD Job 経路で apply。
+
+■ Kafka topic 宣言
+  - 全 topic は Strimzi KafkaTopic CR で declarative 宣言、
+    GitOps 経路で apply。kafka-topics.sh の手動実行は禁止。
+  - topic 命名：
+      - `<tier>.<bounded_context>.<aggregate>.<event>` 形式
+        を default（07 transport の messaging_bridge constraints
+        と整合）。
+      - per_tenant が必要な場合は `__t_<tenant_id>` suffix
+        （tier2/32 テナント分離適合仕様 と整合）。
+  - schema：Schema Registry に subject 登録、KafkaTopic CR
+    の annotation で subject id を双方向 lock。
+  - retention / cleanup.policy / partitions / replicationFactor
+    は preservation_class が一意に導出（05_データストア構成
+    方針 と整合）、KafkaTopic CR で override 不可。
+
+■ Schema Registry（Apicurio）運用
+  - subject 命名：Kafka topic と同形式 + `-key` / `-value`
+    suffix（Confluent 互換 strategy）。
+  - rule 適用：subject 単位で Compatibility BACKWARD /
+    FORWARD / FULL を設定（schema_class 連動）。BACKWARD
+    が default。
+  - 登録経路：tier1/12 の compatibility 判定が CI で gate、
+    pass した schema が Apicurio に push される。直接の
+    REST API 操作は禁止（Argo CD reconciliation 対象外で
+    drift 化）。
+  - 削除：subject の物理削除は禁止（archive のみ）。dead
+    subject は 14_強制機構 の CI 不変条件で参照ゼロが検出
+    された後に archive 化、物理 delete は v2 候補。
+
+■ Outbox table 命名規約
+  - 命名：`outbox_<bounded_context>_v<n>`（version は schema
+    進化を反映、major change 時に increment）。
+  - 列：`id UUID PK / aggregate_id / aggregate_type / event_
+    type / payload JSONB / occurred_at TIMESTAMPTZ /
+    published_at TIMESTAMPTZ NULL / partition_key TEXT /
+    schema_subject TEXT / schema_version INT`。
+  - publisher：Debezium（Kafka Connect plugin）が WAL から
+    capture して Kafka に publish、published_at を update。
+  - retention：published 完了後 30 日で物理 delete（
+    cleanup job が日次 GC）。
+  - tier2 業務 Service は Outbox table を application code
+    から直接 INSERT する（同 transaction 内）。data 層は
+    table が存在することと publisher が動作することを保証。
+
+■ phantom write / temporal column 規約
+  - update が必要な行は full row replace、列単位 in-place
+    update は禁止（OCC / version_id を必ず incl）。
+  - 全 entity table は次の列を持つ（template）：
+        id UUID PK
+        version_id BIGINT NOT NULL（楽観的 locking）
+        created_at TIMESTAMPTZ NOT NULL
+        updated_at TIMESTAMPTZ NOT NULL
+        deleted_at TIMESTAMPTZ NULL（soft delete、purge 経由
+                                    で物理 delete）
+        tenant_id TEXT NOT NULL（tier2/32 RLS 必須）
+  - INSERT は OCC version_id=1、UPDATE は WHERE version_id=
+    expected で必ず check。
+  - DELETE は logical（deleted_at = now()）、物理 delete は
+    purge job（10_ライフサイクル方針）が発火。
+
+■ Index 規約
+  - PK：UUID v7（時系列順序を持つ）、または BIGINT IDENTITY。
+  - tenant_id を含む全 table は (tenant_id, id) または
+    (tenant_id, ...) の compound index を必須化（tier2/32
+    RLS の query plan 安定化）。
+  - JSONB 列に GIN index を貼る場合は jsonb_path_ops を
+    default、JSON path query の coverage を 06_スキーマ運用
+    方針 で固定。
+  - partial index：deleted_at IS NULL の partial index を
+    soft-delete 主要 table に必須化。
+
+■ partition / sharding 規約
+  - PostgreSQL 大規模 table（推定 ≥ 1B row）は declarative
+    partition（RANGE on time、または HASH on tenant_id）を
+    必須化。
+  - ClickHouse は MergeTree の PARTITION BY（toYYYYMM(...)
+    が default）+ ORDER BY（tenant_id, time）で fixed。
+  - Kafka topic の partition 数は preservation_class に依存
+    （v1_zone_replicated=12、v1_cross_region_replicated=24
+    が default、業務 pack で override 可）。
+
+■ schema review CI gate
+  - migration ファイル追加 PR には次の CI check が gate：
+      1. SQL syntax check（sqlfluff / sqlx prepare）
+      2. forward-only 確認（reverse migration 検出 → fail）
+      3. expand-contract pattern check（DROP / RENAME 列
+        単独 PR は fail、12_マイグレーション方針）
+      4. compatibility check（Apicurio rule + tier1/12）
+      5. tenant_id / version_id / soft-delete 列 check
+      6. RLS POLICY 適用 check（tier2/32）
+      7. encrypt 列に application-layer encryption 適用
+        確認（08_暗号化方針）
+  - 全 gate green が必須、override は break-glass のみ。
+
+■ 採用しない運用
+  - reverse migration（DOWN）：forward-only に固定。rollback
+    は新 forward migration（compensate）で表現。
+  - 直接 DDL（psql / kafka-topics.sh / clickhouse-client）：
+    本番経路では admission block。
+  - schema-on-read（JSONB 完全自由）：jsonschema check
+    constraint または application-layer Validator 必須。
+  - generated migration（diff からの自動生成）：人手 review
+    を経ない PR は merge 不可、自動生成 + 確認の workflow は
+    v2 候補。

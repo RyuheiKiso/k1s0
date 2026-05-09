@@ -1,0 +1,131 @@
+============================================================
+ops 責務
+============================================================
+
+■ 一文定義
+  - ops は、tier1 / tier2 / tier3 / infra / data / security の
+    各層が宣言した個別軸の規律（SLO / observability / topology
+    / preservation / threat 等）を「単一の運用ループ
+    （detect → respond → resolve → learn → prevent）の下で
+    cross-cut に整合させる」 layer であり、層 ⊥ 軸 ⊥ 脅威 の
+    格子で発生する全 operational signal が必ず物理 action 経路
+    （page / freeze / rollback / runbook / postmortem）に bind
+    されることを meta-layer として保証する責務を持つ。
+
+■ 責務の境界
+  - ops が責務を持つ：
+      - 運用 loop（detect / respond / resolve / learn /
+        prevent の 5 phase）の宣言的真
+      - error budget（13 SLO）から運用 action（page /
+        freeze / rollback / runbook 起動 / canary 中断）への
+        物理 bind
+      - alert lifecycle（生成 / 抑制 / routing / page /
+        ack / resolve / postmortem）の cadence 規律
+      - on-call rotation の真（roster / handover / fatigue
+        budget / escalation）
+      - operational incident（SLO 違反 / capacity / deploy
+        起因の non-security incident）の playbook 定義 + 演習
+        cadence
+      - postmortem 全件の merged PR と action item の
+        ship blocker bind
+      - progressive delivery（canary / blue-green /
+        feature flag）の auto rollback 経路規律
+      - runbook の codification + 自動生成 + Tekton job
+        化（実行可能 runbook）
+      - toil の計測（toil_minutes_per_week metric）と削減
+        cadence（SRE 50% rule の物理 enforcement）
+      - 運用 loop の各 phase が空欄でないこと（cross-axis
+        operational coverage）の CI assertion
+
+  - ops が責務を持たない：
+      - 個別 OSS の選択（→ 02_採用OSS一覧 / 各層 04_採用
+        OSS、ops は L1+ 単一深耕の規律を踏襲するのみ）
+      - SLI / SLO target 値の意味論
+        （→ 05_tier1/13_SLO適合仕様、ops は budget が
+          底をついた時の運用 action 経路のみを担う）
+      - 観測可能性 SoR の物理運用
+        （→ 05_tier1/09_観測適合仕様 / 09_data、ops は
+          metric / log / trace を入力として alert に変換
+          する経路のみを管掌）
+      - 脅威モデルの宣言
+        （→ 10_security/05_脅威モデル方針、ops は
+          security incident の触発から ops loop への
+          越境経路のみを管掌）
+      - 鍵 rotation cadence / KEK / DEK 階層
+        （→ 05_tier1/11_鍵管理適合仕様、ops は rotation
+          overdue 時の page / freeze 経路のみ）
+      - cluster 構築 / 廃棄 / 位相
+        （→ 08_infra/15_クラスタ位相適合仕様、ops は
+          topology change の change management のみ）
+      - migration pair の compatibility 判定
+        （→ 05_tier1/08_マイグレーション適合仕様、ops は
+          migration による operational risk window の
+          観測のみ）
+
+■ 至高路線における立ち位置
+  - ops は 13 軸 + meta + security の更に上位に立つ「運用
+    loop invariant」の管掌者である。各軸が defense-in-depth
+    層 A〜E を持つが、層 D（runtime）と層 E（physical）の
+    あらゆる violation signal は ops が宣言する運用 loop の
+    detect phase に flow し、ops は cross-axis に「全 signal
+    が必ず loop の closure に到達する」ことを assert する。
+  - ops は「文章運用に頼らず物理 enforcement に転写する」
+    という infra / data / security の哲学を、運用ループ
+    （loop ⊥ phase ⊥ axis）次元で再保証する meta-layer
+    である。
+  - 各層の spec が「cross-axis assertion」「cross-threat
+    assertion」を持つように、ops は「cross-loop assertion」
+    を持ち、loop ⊗ phase ⊗ axis ⊗ 層 の四次元 grid の全
+    cell に物理 action 経路が宣言済みであることを CI で物理
+    enforce する。
+
+■ 至高路線における原則
+  - 運用ループの単一の真：ops_loop.lock.yaml が build
+    artifact、手書き禁止。各軸 spec の SLI / 物理機構と
+    各 incident class から生成される。
+  - action の物理転写：運用 loop 中の全 action（page /
+    freeze / rollback / canary halt / runbook 起動）は
+    Argo Rollouts / Kyverno admission policy / Grafana
+    OnCall escalation / Tekton pipeline / Argo CD sync wave
+    のいずれかに必ず物理転写される。「文章のみで運用」
+    は禁止、CI fail。
+  - alert の actionable 強制：全 page-level alert は
+    runbook pointer + auto-action pointer（freeze /
+    rollback / runbook 自動実行）を必須化、informational
+    only alert は cap 5%。
+  - postmortem の不可逆性：active incident の postmortem
+    PR が merged になるまで関連 namespace への deploy を
+    Kyverno で物理 block。文章のみで「次回気をつける」は
+    禁止、action item は必ず別 PR / issue へ branch out。
+  - 単一 OSS 深耕（ops 道具立て）：1 機能カテゴリ
+    （SLO platform / alert routing / on-call escalation /
+    progressive delivery / IR ticketing / postmortem）に
+    対し L1+ 単一深耕。横並びは持たない。
+  - 段階的 release 禁止：1.0.0 時点で 5 ops_class
+    （phase 別 / signal 別 / incident class 別）全てが
+    coverage green であること。loop closure 不能な
+    operational signal class が 1 つでも残っていれば ship
+    blocker。
+  - toil の物理計測：運用 toil は toil_minutes_per_week
+    metric として 13 SLO に登録、quarterly で必ず単調減少
+    する artifact 化された target を持つ。文章で「自動化
+    したい」は禁止、必ず toil_reduction.lock.yaml の
+    backlog entry として物理化。
+
+■ 配下ファイル（下位章）
+  - 01_責務.txt（本ファイル）
+  - 02_位置づけ.txt
+  - 03_非提供スコープ.txt
+  - 04_採用OSS.txt
+  - 05_SLO駆動運用方針.txt
+  - 06_アラート方針.txt
+  - 07_オンコール方針.txt
+  - 08_運用インシデント方針.txt
+  - 09_ポストモーテム方針.txt
+  - 10_変更管理方針.txt
+  - 11_runbook方針.txt
+  - 12_toil削減方針.txt
+  - 13_運用UIと開発者体験.txt
+  - 14_強制機構.txt
+  - 15_運用ループ適合仕様.txt（structural spec、15 軸目の
+    候補として 00_軸登録適合仕様 に entry 追加予定）

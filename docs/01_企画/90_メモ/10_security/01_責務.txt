@@ -1,0 +1,112 @@
+============================================================
+security 責務
+============================================================
+
+■ 一文定義
+  - security は、tier1 / tier2 / tier3 / infra / data の各層が
+    宣言した個別軸の規律（auth / key / observability / RLS /
+    preservation / topology 等）を「単一の脅威モデルの下で
+    cross-cut に整合させる」 layer であり、層 ⊥ 軸の交点に
+    必ず物理 enforcement の経路が存在することを meta-layer
+    として保証する責務を持つ。
+
+■ 責務の境界
+  - security が責務を持つ：
+      - 脅威モデル（asset / actor / capability / attack
+        surface / mitigation）の宣言的真
+      - cross-cut なセキュリティ境界（ingress / egress /
+        east-west / control-plane / supply-chain / build-time
+        / runtime / persistence）の trust boundary
+      - 監査 SoR（audit_event）の immutability 保証
+        （append-only / WORM / cryptographic chaining）
+      - PII / 機微情報の分類 taxonomy（PII class）と全層
+        への伝播
+      - 脆弱性管理（CVE 検知 / 配信 / 仮締め / 本締め）の
+        cadence 規律
+      - Incident response（IR）の playbook 定義と演習
+        cadence
+      - secret の hygiene 規律（exposure 検知 / 失効 /
+        rotation 強制）
+      - 各層の defense-in-depth 層 D / E が脅威モデルで
+        宣言された全 capability を physically block すること
+        の cross-axis assertion
+      - supply-chain 真正性（cosign / SBOM / provenance）の
+        meta-spec
+
+  - security が責務を持たない：
+      - 個別 OSS の選択（→ 02_採用OSS一覧 / 各層 04_採用
+        OSS、security は L1+ 単一深耕の規律を踏襲するのみ）
+      - 認証 issuer / JWT 鍵 / OIDC flow の意味論
+        （→ 05_tier1/10_認証適合仕様、security は audit
+          signal と PII boundary のみを宣言）
+      - 鍵 rotation cadence / KEK / DEK 階層
+        （→ 05_tier1/11_鍵管理適合仕様、security は鍵
+          exposure 時の crypto-erase 経路のみを担う）
+      - tenant_id 列強制 / RLS FORCE
+        （→ 06_tier2/32_テナント分離適合仕様、security は
+          PII × tenant の交点を脅威モデルに登録するのみ）
+      - 観測可能性 SoR の物理運用
+        （→ 05_tier1/09_観測適合仕様 / 09_data、security は
+          audit_event subject の immutability 規律のみ）
+      - cluster 構築 / 位相
+        （→ 08_infra/15_クラスタ位相適合仕様、security は
+          control-plane trust boundary を宣言するのみ）
+      - schema 進化の compatibility 判定
+        （→ 05_tier1/12_スキーマ進化適合仕様、security は
+          PII 列の breaking 判定のみを augment）
+
+■ 至高路線における立ち位置
+  - security は 13 軸 + meta-spec の上位に立つ「直交
+    invariant」の管掌者である。各軸が defense-in-depth 層
+    A〜E を持つが、層 D / E に登場する全ての block 機構
+    （RLS FORCE / Kyverno admission / synchronous_commit /
+    min.insync.replicas / FORCE_RLS / cosign verify /
+    cryptographic erasure 等）は、security が宣言する脅威
+    モデルの mitigation 経路として cross-axis に bind される。
+  - security は「文章運用に頼らず物理 enforcement に転写する」
+    という infra / data の哲学を、軸を跨ぐ次元（脅威 ⊥ 軸 ⊥
+    層）で再保証する meta-layer である。
+  - 各層の spec が「cross-axis assertion」を持つように、
+    security は「cross-threat assertion」を持ち、threat ⊗
+    axis ⊗ layer の三次元 grid の全 cell に mitigation が
+    宣言済みであることを CI で物理 enforce する。
+
+■ 至高路線における原則
+  - 脅威モデルの単一の真：threat_model.lock.yaml が build
+    artifact、手書き禁止。各軸 spec の defense-in-depth 層
+    から生成される。
+  - mitigation の物理転写：脅威モデル中の全 mitigation は
+    Kyverno admission policy / DB engine / OS / 暗号機構 /
+    network policy / cosign verify のいずれかに必ず物理
+    転写される。「文章のみで mitigation」は禁止、CI fail。
+  - PII 分類の伝播：tier2/22 の PII class が tier1/11 鍵
+    管理の DEK 階層 / 12 schema の breaking 判定 / data01
+    の preservation_class / 32 RLS FORCE / 39 client 暗号化
+    に物理伝播することを security 層が cross-axis に lock。
+  - 監査の不可逆性：audit_event は append-only / 暗号
+    chaining / WORM の三重化で物理 enforce、tampering 経路
+    を持たない。
+  - 単一 OSS 深耕（security 道具立て）：1 機能カテゴリ
+    （SBOM / CVE scanner / signing / OPA-equiv / IR
+    playbook 配信）に対し L1+ 単一深耕。横並びは持たない。
+  - 段階的 release 禁止：1.0.0 時点で 5 threat_class
+    （actor 別 / capability 別）全てが mitigation green で
+    あること。
+
+■ 配下ファイル（下位章）
+  - 01_責務.txt（本ファイル）
+  - 02_位置づけ.txt
+  - 03_非提供スコープ.txt
+  - 04_採用OSS.txt
+  - 05_脅威モデル方針.txt
+  - 06_境界制御方針.txt
+  - 07_秘密管理方針.txt
+  - 08_脆弱性管理方針.txt
+  - 09_監査方針.txt
+  - 10_PII保護方針.txt
+  - 11_インシデント対応方針.txt
+  - 12_セキュリティ訓練方針.txt
+  - 13_運用UIと開発者体験.txt
+  - 14_強制機構.txt
+  - 15_脅威モデル適合仕様.txt（structural spec、14 軸目の
+    候補として 00_軸登録適合仕様 に entry 追加予定）

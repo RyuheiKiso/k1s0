@@ -1,0 +1,181 @@
+============================================================
+data 運用 UI と開発者体験
+============================================================
+
+■ 一文方針
+  - data 層の運用 UI は infra Headlamp / Backstage の上に
+    薄く乗る形で提供し、独自の UI 系 OSS は採用しない。
+    全運用操作は GitOps + Argo CD reconciliation 経路、
+    UI は読み取り / 限定的 trigger 専用。開発者体験は
+    Testcontainers（実 instance）+ sqlx prepare（type-safe
+    SQL）+ Apicurio CLI（schema fetch）+ Backstage software
+    template の 4 点で構成する。
+
+■ 運用 UI の構成
+  - 層 1：infra 提供
+      - Headlamp：cluster 全体の k8s 資源 viewer、namespace
+        単位 CR 閲覧
+      - Backstage：service catalog、software template、
+        API doc viewer
+      - Kubeshark：API トラフィック viewer（read only）
+  - 層 2：data 層が提供する dashboard plugin
+      - Backstage plugin（自製）：
+            - preservation_class 一覧（class instance、
+              instance attribute、状態）
+            - restore_drill.lock.yaml の green/red ビュー
+            - replication lag SLI 一覧
+            - migration progress（phase A/B/C 状態）
+            - retention 残時間 / purge 予定
+            - rotation 進捗（KEK rotation の wrapped DEK
+              再 wrap 進捗）
+      - Headlamp plugin（自製）：
+            - CloudNativePG Cluster CR の primary/standby
+              位置、replication lag
+            - Strimzi Kafka CR の broker / KRaft controller
+              健康状態
+            - Apicurio subject の compatibility rule 状態
+            - ClickHouse cluster の shard / replica / keeper
+              quorum
+  - 層 3：observability（tier1/09 の SoR ↔ data 層の自己観測）
+      - Apache Superset / Perses（infra 提供）の dashboard
+        として data 層 SLI（replication lag / WAL archive
+        lag / backup age）を可視化
+
+■ DBA 操作経路
+  - read 系：psql / kafka-console-consumer / clickhouse-
+    client / valkey-cli は Backstage の Web shell（読み取り
+    限定 role）で発行可能。query log は ClickHouse に永続。
+  - write 系：admission policy で本番経路の手動 write を
+    block。break-glass のみで一時 superuser 権限を OpenBao
+    response wrapping で発行、使用後 1 時間以内に postmortem
+    PR 起票必須。
+  - 緊急時運用：infra 14_強制機構 の break-glass と同じ
+    経路で、role escalation は audit signal を必ず emit
+    （`data.break_glass.event`）。
+
+■ 開発者体験（local 開発）
+  - Testcontainers：tier1 / tier2 / tier3 開発者は local
+    test で 実 PostgreSQL / Kafka / Valkey / ClickHouse /
+    Apicurio container を起動、mock しない。
+  - testcontainer 構成は data 層が template として提供
+    （Backstage software template）：
+        - data-testcontainers-postgres：CloudNativePG
+          イメージで起動、初期 schema 適用済
+        - data-testcontainers-kafka：Strimzi イメージで
+          KRaft mode、Apicurio container 同梱
+        - data-testcontainers-clickhouse：keeper 内蔵
+        - data-testcontainers-valkey：cluster mode 4 node
+  - container image は Harbor から pull、Cosign signed。
+  - sqlx prepare：CI で sqlx-cli が migration 適用済 DB
+    に対して type check を行う、生成した `.sqlx/` メタ
+    ファイルを git に commit。
+
+■ schema 開発体験
+  - tier1 / tier2 開発者の workflow：
+        1. migration ファイルを `<service>/migrations/` に
+          追加
+        2. Apicurio Registry に新 subject を local で push
+          （test container）
+        3. local Testcontainers で sqlx prepare → unit
+          test 実行
+        4. PR：CI が schema diff、compatibility check、
+          expand-contract phase 確認
+        5. merge → Argo CD が staging cluster に migration
+          apply
+        6. release：production rollout、preservation_class
+          の dual phase 期間を経て contract
+  - schema diff visualization：atlas（参照のみ）が CI で
+    diff 生成、PR comment に Markdown table を post。
+
+■ migration progress UI
+  - Backstage plugin（migration progress）：
+        - 進行中の migration 一覧（service / phase / 進捗
+          %）
+        - backfill rows 残量
+        - dual phase 残日数（preservation_class 別 min を
+          basis に表示）
+        - contract 可能日（dual 期間経過 + backfill 完了）
+  - 開発者は plugin で「contract phase に進める PR を起票
+    してよい」timing を確認、勝手な早期 contract は CI が
+    block。
+
+■ schema browser
+  - Backstage plugin（schema browser）：
+        - 全 service の table / topic / subject 一覧
+        - 各 column / field の preservation 注釈、PII 分類、
+          encryption flag
+        - schema 進化履歴（version timeline）
+        - Apicurio subject の compatibility rule 状態
+  - 開発者は plugin で「この PII column は envelope encrypt
+    される」「この topic は v1_cross_region_replicated」を
+    視認できる。
+
+■ DBA 視点の monitoring dashboard
+  - Apache Superset / Perses dashboard（自製）：
+        - replication lag dashboard（per cluster / topic）
+        - WAL archive lag
+        - backup age（latest base backup からの経過）
+        - migration in-flight count
+        - purge job 完了率 / 失敗履歴
+        - rotation 進捗
+        - drill green/red ビュー（restore_drill.lock.yaml
+          の可視化）
+  - alert：lag が SLA 超過 → tier1/13 SLO error budget burn
+    と連動、PagerDuty / Slack に通知（infra 提供 alert
+    pipeline）。
+
+■ Backstage software template
+  - data 層が以下の template を Backstage に登録：
+        - cnp-cluster-template：CloudNativePG Cluster CR
+          を preservation_class 注釈付きで生成
+        - kafka-topic-template：KafkaTopic CR を生成
+        - apicurio-subject-template：subject 登録 PR を生成
+        - clickhouse-table-template：Replicated MergeTree
+          + TTL 注釈付き table を生成
+        - migration-template：sqlx-cli / go-migrate
+          forward migration の skeleton を生成
+  - template の生成物は preservation_class / 13 SLO 関連
+    annotation 必須、抜けると CI fail。
+
+■ DR 演習 UI
+  - Backstage plugin（drill cockpit）：
+        - drill 実行スケジュール（cadence カレンダー）
+        - 過去 drill の RPO/RTO 観測値推移
+        - red 状態の cluster 一覧、admission block 状態
+        - drill 起動 trigger（read-only 確認 → Argo Events
+          経由で起動）
+  - drill 起動 trigger の使用は audit signal、無断起動
+    （別経路）は admission block。
+
+■ break-glass UI
+  - Backstage plugin（break-glass cockpit）：
+        - 過去の break-glass 使用履歴
+        - postmortem PR 起票状態
+        - 期限超過 postmortem の alert
+        - 再発防止策の追跡
+  - break-glass 発行：infra の break-glass 経路と共有、
+    data 層独自の bypass 経路は持たない。
+
+■ 開発者向け CLI（data-cli）
+  - 自製 CLI（data-cli）を提供：
+        - `data-cli preservation describe <class>`：class
+          仕様の説明
+        - `data-cli migration status <service>`：migration
+          phase の現状
+        - `data-cli drill schedule <cluster>`：drill
+          cadence と次回予定
+        - `data-cli rotation status`：rotation 進捗
+  - read-only、書き込み機能は持たない（GitOps 経路に統合）。
+
+■ 採用しない UI / 開発者体験機構
+  - pgAdmin / Adminer / Kafka UI（自製ではない単独 OSS）：
+    本番接続を許す UI は admission block 対象、検証用 local
+    container ではあり得る。
+  - mock 化された DB layer での test：禁止（02_非提供
+    スコープ と整合）。
+  - 開発者の本番接続：直接接続経路を持たない、Backstage
+    の限定 role + audit signal 経由のみ。
+  - 専用 schema management OSS（Liquibase / Flyway）：
+    sqlx-cli / go-migrate に固定。
+  - 自製の DB GUI：Backstage plugin を超える独自 UI 系
+    OSS は採用しない（L1+ 深耕方針）。

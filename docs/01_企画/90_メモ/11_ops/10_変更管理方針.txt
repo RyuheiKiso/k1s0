@@ -1,0 +1,235 @@
+============================================================
+ops 変更管理方針
+============================================================
+
+■ 一文方針
+  - 全 production 変更（image deploy / migration / topology
+    change / config change / feature flag toggle）は change_
+    classes.yaml の 5 class に分類し、class 別に progressive
+    delivery（canary / blue-green / rolling）+ AnalysisTemplate
+    + auto rollback + freeze gate を Argo Rollouts /
+    Argo CD / Kyverno で物理 enforce、手動 rollback / 単一
+    big-bang deploy は CI fail とする。
+
+■ change class（5 class、blast radius / reversibility）
+  - v1_routine：
+        - blast radius：単一 service の単一 namespace
+        - reversibility：full rollback in ≤ 5 min
+        - 例：tier1 / tier2 / tier3 service の image bump、
+          minor config change
+        - delivery：canary（25% → 50% → 100%、各 step 5
+          分 soak）
+  - v1_schema：
+        - blast radius：単一 DB instance の schema
+        - reversibility：rollback 困難（migration pair
+          切替必須）
+        - 例：CloudNativePG / Apicurio Registry の schema
+          進化（tier1/12 と双方向 lock）
+        - delivery：migration pair 経由（旧版 / 新版並走、
+          tier1/08 と双方向 lock）
+  - v1_topology：
+        - blast radius：cluster / multi-cluster
+        - reversibility：cluster recreate 必須、cutover
+          unidirectional
+        - 例：cluster upgrade / node pool 増減 / region
+          追加 / topology_class 変更
+        - delivery：multi-stage（drain → shift → verify
+          → 旧 cluster 維持 → cutover → 旧 cluster 廃棄）
+  - v1_security_critical：
+        - blast radius：admission policy / secret /
+          certificate / RLS POLICY
+        - reversibility：security incident risk のため
+          段階的 rollout 必須
+        - 例：Kyverno policy 追加 / KEK rotation / RLS
+          POLICY 変更（10_security と双方向 lock）
+        - delivery：dry-run mode（warn）→ enforce mode
+          → progressive enforcement（namespace 段階）
+  - v1_emergency：
+        - blast radius：incident mitigation / break-glass
+          経路の hot-fix
+        - reversibility：原則 full rollback、ただし
+          incident impact 最小化のため deliver は短時間
+        - 例：active incident 中の hot-fix / rollback /
+          freeze 解除
+        - delivery：直接 production deploy（canary skip）、
+          ただし incident_ref + audit_event + 24h 以内
+          postmortem 必須
+
+  - 全 PR は change class 注釈必須、未注釈 PR は CI fail。
+    複数 class 該当 PR は最高 risk class に分類（例：
+    schema + image bump 同時は v1_schema として扱う）。
+
+■ progressive delivery（Argo Rollouts）
+  - canary delivery：
+        - default 25% → 50% → 75% → 100%、各 step 5 分
+          soak
+        - AnalysisTemplate で SLO burn rate を query、
+          threshold 超過は auto rollback
+        - AnalysisTemplate query：fast burn (1h) ≤ 14.4x
+          AND slow burn (6h) ≤ 6x、いずれか breach で
+          rollback
+        - canary 中の error budget 消費は通常 budget の
+          50% 上限（残 50% は通常運用 budget 確保）
+  - blue-green delivery：
+        - active / preview の二系統、preview 全 SLO green
+          確認後 active swap
+        - swap 後 30 分 soak、SLO breach 時は preview を
+          再 active に swap-back
+  - rolling delivery：
+        - 単一 instance level で順次 rollout、stage 毎の
+          SLO 確認は不要
+        - 主に v1_routine の sub-class（risk 低）に limited
+          allow、cap 20% を CI で確認
+  - manual promotion：
+        - canary 中の手動 promote / abort は break-glass
+          相当、incident_ref + audit_event 必須
+
+■ AnalysisTemplate の build artifact 化
+  - 全 service の AnalysisTemplate（Argo Rollouts）は
+    build artifact として固定、SLO target / burn rate
+    threshold は SLO yaml から自動 generator で生成。
+  - 手書き AnalysisTemplate は CI fail。
+  - generator input：error_budget.lock.yaml + budget_
+    action_bindings.lock.yaml + service_slo_mapping.lock
+    .yaml。
+  - generator output：rollouts/<service>/analysis-
+    template.yaml（cosign signed）。
+
+■ change calendar（freeze window）
+  - global freeze window：
+        - business critical period（業務 peak / 月末締め
+          / 四半期決算 / 年末年始）は global freeze、
+          v1_emergency 以外の全 change を block
+        - freeze window は change_calendar.lock.yaml に
+          build artifact 化、Kyverno admission policy が
+          物理 enforce
+  - per-service freeze：
+        - active incident / postmortem PR pending /
+          SLO budget < 25% の service は per-service
+          freeze、関連 PR の merge を block
+        - freeze の解除は budget 復活 / postmortem merged
+          / break-glass の三系統のみ
+  - 公休日 deploy ban：
+        - 土日 / 公休日の v1_topology / v1_schema deploy
+          は禁止（v1_routine / v1_security_critical /
+          v1_emergency は allow）
+        - on-call 体制が薄い時間帯の高 risk 変更を回避
+
+■ feature flag lifecycle（flagd / OpenFeature）
+  - flag definition は build artifact（flags.lock.yaml）、
+    UI 上の手動 toggle は break-glass 相当（incident_ref
+    + audit_event 必須）。
+  - flag class（4 class）：
+        v1_release_flag    ：feature rollout 用、有効後
+                              90 日以内に code に統合 +
+                              flag 削除（cleanup ship
+                              blocker）
+        v1_experiment_flag ：A/B test 用、experiment 終了
+                              + result analysis 後 30 日
+                              以内に削除
+        v1_ops_flag        ：runtime ops（kill switch /
+                              throttle）用、永続保持可、
+                              quarterly review で必要性
+                              確認
+        v1_permission_flag ：access control 用、tier1/10
+                              認証と双方向 lock、削除は
+                              security review 必須
+  - flag cleanup invariant：
+        - v1_release_flag が 90 日経過後に flag 残存は
+          CI fail（flag definition + 利用箇所 grep）
+        - v1_experiment_flag が experiment 終了後 30 日
+          経過残存は CI fail
+
+■ migration pair の cutover
+  - tier1/08_マイグレーション適合仕様 と双方向 lock。
+  - migration pair（旧版 / 新版）の compat window 期間
+    は ops が change calendar に登録、window expiration
+    の page → cutover runbook 起動。
+  - cutover 経路：
+        1. 新版 deploy（v1_schema or v1_routine class）
+        2. 並走 期間中（compat window）に新版 SLO 確認
+        3. 旧版 deprecation page（compat window 70%
+          消費時）
+        4. cutover 実行（旧版 traffic 0%、新版 100%）
+        5. 旧版 cleanup（compat window 後）
+  - cutover の各 step は Argo Workflows で pipeline 化、
+    手動 cutover は break-glass。
+
+■ topology change の orchestration
+  - infra01_topology と双方向 lock、cluster upgrade /
+    node pool 変更 / region 追加は v1_topology class、
+    multi-stage delivery 必須。
+  - topology change pipeline（Argo Workflows）：
+        1. drain target node / cluster
+        2. workload shift to spare capacity
+        3. config / image apply
+        4. health check（chaos light test 含む）
+        5. shift back（gradual）
+        6. cleanup spare
+  - 各 step の SLO breach は automatic abort、abort 後は
+    postmortem PR 必須（topology change の robustness 検証）。
+
+■ change risk pre-flight
+  - 全 PR は merge 前に pre-flight check：
+        - change class の正しさ
+        - AnalysisTemplate / runbook / rollback 経路の
+          存在
+        - active incident / postmortem pending / SLO
+          budget 状態 の freeze gate
+        - change calendar との衝突 check
+        - peer review（CODEOWNERS）完了
+  - pre-flight 不合格 PR は merge block、CI fail。
+
+■ post-deploy verification
+  - 全 deploy 後に以下を必須実施：
+        - SLO burn rate の 1h 監視（fast burn alert
+          firing がないこと）
+        - error rate / latency p99 の baseline 比較
+        - chaos drill light（Litmus 軽量 scenario）の
+          deploy 後 24h 以内 1 回（v1_topology / v1_
+          security_critical のみ）
+  - 24h 以内に上記いずれかが breach した場合は incident
+    起票 + auto rollback evaluation。
+
+■ 同型構造（13 軸 + meta + security との整合）
+  - 6 yaml 単一の真：
+        change_classes.yaml（5 class enum）
+        change_calendar.lock.yaml（build artifact、freeze
+          window の時間軸 grid）
+        rollout_strategy.lock.yaml（build artifact、
+          service ↔ delivery strategy の三項関係）
+        analysis_template_index.lock.yaml（build artifact、
+          全 AnalysisTemplate の SLO bind）
+        flag_lifecycle.lock.yaml（build artifact、全 flag
+          の class + creation_at + cleanup_due_at）
+        change_history.lock.yaml（build artifact、全 deploy
+          の audit trail）
+  - 5 層 defense-in-depth：change は層 D / E に必ず物理
+    機構を持つ（Argo Rollouts AnalysisTemplate / Kyverno
+    freeze policy / Argo CD sync wave）。
+  - CI 不変条件：change class 注釈完備 / AnalysisTemplate
+    coverage / freeze gate 物理発火 / flag cleanup 期限内
+    / migration pair window 内 / topology multi-stage
+    完遂 等を CI で物理確認。
+
+■ 採用しない方針
+  - big-bang deploy（progressive delivery skip）：禁止、
+    canary / blue-green / rolling のいずれか必須。
+  - 手動 rollback の default 化：禁止、Argo Rollouts
+    auto rollback が default、手動は break-glass。
+  - AnalysisTemplate なし canary：禁止、全 canary に SLO
+    bind AnalysisTemplate 必須。
+  - feature flag の永続放置（v1_release_flag）：禁止、
+    90 日 cleanup ship blocker。
+  - freeze 期間中の通常 deploy：禁止、Kyverno で物理 block。
+  - active incident 中の通常 deploy（emergency 以外）：
+    禁止、incident resolve まで service deploy block。
+  - postmortem PR 未 open（72h SLA 違反）の deploy：禁止、
+    Kyverno で物理 block。
+  - migration pair compat window 越えの旧版 traffic：禁止、
+    cutover runbook 自動発火。
+  - topology change の単一 step：禁止、必ず multi-stage
+    pipeline。
+  - 商用 progressive delivery SaaS（LaunchDarkly /
+    Spinnaker SaaS / Harness 等）採用：採用しない、Argo
+    Rollouts + flagd + Argo Workflows で完結。

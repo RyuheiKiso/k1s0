@@ -1,0 +1,111 @@
+============================================================
+security セキュリティ訓練方針
+============================================================
+
+■ 一文方針
+  - セキュリティ訓練は class 別 cadence と success
+    criteria を build artifact 化し、threat_model.lock.yaml
+    の全 threat_class に対し対応 drill が定義され、cadence
+    違反 / drill red 状態が 1 つでも発生した場合は本番
+    新規 deploy を admission block で物理停止する。
+
+■ drill class taxonomy
+  - v1_chaos_failure_drill：infra 11 Chaos 工学方針 が
+        担当する failure 系 drill（zone fail / network
+        partition / etcd quorum loss 等）。security 層は
+        availability_loss incident class の発火試験として
+        cross-axis に bind。
+  - v1_restore_drill：data 11 復旧訓練方針 が担当する
+        DB / topic / object store の restore 演習。security
+        層は data_tampering / data_loss incident class の
+        発火試験として bind。
+  - v1_secret_compromise_drill：secret_exposure incident
+        class の table-top + 実機演習（試験 secret を
+        意図的に commit、cleanup playbook を実行）。
+  - v1_supply_chain_drill：cosign signing key の rotation
+        試験、Harbor 上 quarantine 実機演習、affected
+        image の cluster 全領域からの撤去経路試験。
+  - v1_red_team_table_top：incident class 別 table-top
+        演習（机上）、scenario は build artifact から
+        randomly pick。
+  - v1_red_team_live：cluster 上での active red-team
+        演習（許可された scope で escalation 試行、IR
+        playbook の動作試験）。
+  - v1_external_pen_test：年次外部 firm による PenTest、
+        black-box / gray-box（white-box は v2）。
+
+■ cadence と success criteria
+  - drill class             | cadence            | success criteria
+  - --------------------------+--------------------+--------------------------
+  - chaos_failure_drill      | 月次（class 別）   | 13 SLO budget 消費 ≤ target
+  - restore_drill            | preservation_class | RPO/RTO target 内
+                             | 別（v1_zone 30 日  |
+                             | / v1_cross_region  |
+                             | 90 日 等）         |
+  - secret_compromise_drill  | 四半期             | revoke → re-issue 完了 ≤ 30 分
+  - supply_chain_drill       | 四半期             | cosign key rotation + image
+                             |                    | quarantine + cleanup ≤ 60 分
+  - red_team_table_top       | 月次（rotation）   | playbook step 全踏破 +
+                             |                    | postmortem PR
+  - red_team_live            | 半年               | escalation 経路の detection
+                             |                    | rate ≥ target
+  - external_pen_test        | 年次               | 全発見が CVE 風 catalog 化 +
+                             |                    | patch SLO 内に修正
+
+  - cadence 別 last_green_at は drill_progress.lock.yaml
+    （build artifact）に記録、cadence 違反は admission
+    block（block-on-drill-overdue）。
+  - success criteria 違反は SLO error_budget 消費 +
+    incident class化（IR phase 起動）。
+
+■ drill scenario の build artifact 化
+  - drill scenario（table-top の事象記述、live drill の
+    手順）は scenario_catalog.lock.yaml に build artifact
+    化、文章 only scenario は禁止（必須 field：
+    threat_class_ref / capability / surface / asset /
+    expected_detection_signal / expected_contain_action
+    / success_criteria）。
+  - scenario は threat_model.lock.yaml の全 threat_class
+    を coverage 必須、未 cover の threat_class は CI fail。
+  - drill 実行記録は audit_event の v1_ir fact + drill_
+    progress.lock.yaml に追記（手書き禁止、Tekton job
+    が自動更新）。
+
+■ 教育 / training
+  - 開発者 onboarding 時に security baseline 教育
+    （PII taxonomy / threat_model 概観 / IR 基本動作）が
+    git pre-merge gate（CODEOWNERS 経由 reviewer 必須）と
+    して strict enforce。
+  - 年 1 回 refresh 演習（red_team_table_top の subset を
+    全員参加 mode で実施）、未参加者は本番 deploy 権限の
+    OpenBao policy で物理剥奪（v2 で自動化、v1 は手動 +
+    checklist）。
+  - phishing 演習は v1 では scope 外（メール基盤を持た
+    ない、社内 chat / GitHub のみで運用）、v2 で範囲
+    再評価。
+
+■ 採用しない方針
+  - drill cadence の opt-out：禁止、cadence 超過は
+    admission block。
+  - 文章 only scenario：禁止、build artifact 化必須。
+  - 訓練省略を理由とした SLO 緩和：禁止、SLO は 13 で固定。
+  - 商用 training SaaS 一本化：採用しない、内部 training
+    （OSS doc + scenario_catalog）+ 外部 PenTest + red-
+    team の組合せ。
+  - drill 結果の自由形式記録：禁止、drill_progress.lock
+    .yaml への構造化記録のみ。
+  - drill 失敗の隠蔽：禁止、red 状態は admission block で
+    本番遮断、postmortem PR が ship blocker。
+
+■ 同型構造（13 軸との整合）
+  - drill_progress.lock.yaml は infra 11 / data 11 の
+    failover_drill.lock.yaml / restore_drill.lock.yaml と
+    同型構造、release_gate.lock.yaml の AND-gate 入力に
+    含まれる（drill_overdue_count = 0 が 1.0.0 ship
+    blocker）。
+  - scenario coverage は threat_model.lock.yaml の全
+    threat_class に対応する drill scenario が存在する
+    こと（全 class が一度以上演習される）を CI で物理
+    確認。
+  - drill 結果は audit_event subject に v1_ir fact として
+    emit、09 監査方針 と同 schema を使用。

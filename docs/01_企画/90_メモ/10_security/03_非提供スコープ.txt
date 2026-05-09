@@ -1,0 +1,130 @@
+============================================================
+security 非提供スコープ
+============================================================
+
+■ 提供しない（明示的に out-of-scope）
+  - 個別軸の物理 enforcement 機構そのもの
+      → security は cross-axis に bind するのみ。RLS POLICY
+        の DDL 生成 / Kyverno admission policy の build /
+        sqlx-cli migration の実行 / FORCE_RLS の sealing
+        は全て他層（tier1 / tier2 / infra / data）。
+  - 認証 issuer / OIDC discovery / JWT 鍵
+      → 05_tier1/10_認証適合仕様。security は token /
+        session compromise 脅威の登録と mitigation の
+        cross-axis assertion のみ。
+  - 鍵 rotation cadence / KEK / DEK 階層構造
+      → 05_tier1/11_鍵管理適合仕様。security は鍵
+        compromise 時の IR playbook 経路のみを管掌。
+  - SLI / SLO 値の定義
+      → 05_tier1/13_SLO適合仕様。security は audit_log_
+        ingest_latency / cve_open_critical_count などの
+        SLI を emit、target 値は tier1/13 が決める。
+  - schema 進化の compatibility 判定本体
+      → 05_tier1/12_スキーマ進化適合仕様。security は PII
+        class 列を含む schema 変更の breaking 判定 augment
+        のみ。
+  - Kubernetes RBAC / network policy の宣言
+      → 08_infra（特に 06_ネットワーク方針 / 14_強制機構）。
+        security は zero-trust east-west の脅威モデル登録
+        と cross-axis assertion のみ。
+  - cluster 構築 / 廃棄 / 位相
+      → 08_infra/15_クラスタ位相適合仕様。security は
+        control-plane trust boundary の宣言のみ。
+  - PV 暗号化 / Object Lock / synchronous_commit
+      → 09_data（08_暗号化方針 / 07_保全方針）。security
+        は data exfiltration / tampering / loss 脅威の
+        登録と mitigation bind のみ。
+  - tenant 分離規律（RLS / GUC）
+      → 06_tier2/32_テナント分離適合仕様。security は
+        tenant ⊥ PII の交点 invariant 確認のみ。
+  - 業務領域 PII 列の最終分類値
+      → tier2 / tier3 instance attributes、security は PII
+        class taxonomy（class 名・伝播ルール）のみを宣言。
+
+■ 採用しない OSS / 技術
+  - 商用 EDR / XDR / SIEM SaaS（CrowdStrike / Splunk
+    Enterprise Security 等）：vendor lock-in 回避と本企画
+    の audit SoR = ClickHouse 一本化方針のため、本番
+    audit / detection は ClickHouse + Vector + Falco の
+    OSS 経路に固定。
+  - Wazuh：Elastic 依存（Elasticsearch indexer）と本企画の
+    OpenSearch / Elasticsearch 不採用方針が衝突。Falco +
+    Tetragon + Vector + ClickHouse で吸収。
+  - HashiCorp Vault：BUSL のため、シークレット管理は OpenBao
+    （MPL 2.0 fork、infra 提供）に固定。
+  - Anchore Enterprise：商用 license。SBOM / image scan
+    は Trivy + Grype + Syft の OSS 経路で吸収（infra 04）。
+  - Sysdig Secure / Aqua Security 商用版：runtime 検知は
+    Falco + Tetragon の OSS 経路で固定。
+  - GitHub Advanced Security（商用 license の SAST 部分）：
+    SAST / secret scan は Semgrep + gitleaks + trufflehog
+    の OSS 経路で吸収。
+  - JFrog Xray：image scan は Trivy（infra 04）で吸収、
+    Harbor 経由の Trivy integration を default。
+  - 独自 audit DB / immudb 単独運用：audit_event SoR は
+    ClickHouse + Ceph RGW Object Lock の組合せで吸収、
+    immudb 単独 instance は採用しない（重複 OSS）。
+  - 商用 IR ticketing（PagerDuty / OpsGenie 等の有償面）：
+    on-call escalation は incident.io OSS 部分 / Grafana
+    OnCall のみを採用、商用 SLA 機能は採用しない。
+
+■ 採用しないアーキテクチャ
+  - 文章 only の脅威モデル：threat_model.lock.yaml は
+    build artifact、手書き禁止。STRIDE / LINDDUN を model
+    として使うが、登録は機械可読のみ。
+  - audit_event の logical delete 経路：audit subject に
+    deleted_at 列を持たない。retention 期限後は data01
+    の archive_to_offline を経由した cryptographic
+    erasure のみで物理消去（key 失効による論理消去）。
+  - audit_event の application 側生成のみ：audit signal は
+    application emit + DB trigger（CDC）+ Kyverno admission
+    audit + cluster audit log の 4 経路を必須化、application
+    一本に依存しない。
+  - mitigation の文章記述：脅威モデルの mitigation 欄は
+    必ず物理機構へのポインタ（policy 名 / engine 設定 /
+    Kyverno rule 名 / cosign verify path 等）を持つ。
+    「運用で気をつける」は禁止、CI fail。
+  - 「現実には起こりにくいから登録しない」：脅威 catalog
+    は完全列挙が原則、可能性の低さは weight で表現。登録
+    省略は CI で coverage gap として fail。
+  - 単一の SAST tool に依存：Semgrep（言語横断）+ Cargo
+    audit / npm audit / govulncheck（言語別）の二重化
+    を default、単一 tool 依存は採用しない。
+  - 商用 PenTest 結果のみで脆弱性管理：自動 CVE 配信
+    （Trivy / Grype / govulncheck）+ Renovate 経路 + 定期
+    PenTest の三重化を必須化、PenTest のみは採用しない。
+  - signed image の opt-in 化：cosign verify は Kyverno
+    admission policy で本番 cluster 全 image に required、
+    opt-in 経路は持たない（infra 14 と整合）。
+  - audit_event の sampling：audit signal は 100% 保存、
+    sampling は適用しない（13 SLO の他 signal とは別軸）。
+    cost 削減は cold tier への TTL 移行のみで対応。
+
+■ v2 候補（v1 で採用しないが将来検討）
+  - 形式手法ベースの policy 検証（Rego の formal
+    verification / Lean プロトコル証明）：v1 は CI 不変条件
+    + integration test の組合せ、v2 で形式検証 augment 検討。
+  - confidential computing（SGX / SEV-SNP / TDX）：v1 は
+    application-layer 暗号化 + 鍵階層で吸収、v2 で TEE
+    backed 鍵保管を pair_target 評価。
+  - homomorphic encryption / MPC：v1 は不要、v2 でデータ
+    共有局面（B2B 連携）を pair_target 評価。
+  - SBOM の VEX（Vulnerability Exploitability eXchange）
+    自動配信：v1 は CVE 配信のみ、v2 で VEX 化検討。
+  - eBPF based detection の自社拡張：v1 は Falco / Tetragon
+    の標準 ruleset、v2 で自社 detection ruleset 追加候補。
+
+■ 至高路線における判断
+  - 「mitigation が高コストだから登録を緩める」を理由に
+    threat_model coverage を縮小しない。コストは weight
+    で表現、登録 itself は省略しない。
+  - 「audit_event の retention は短くて良い」を理由に
+    cadence を緩めない。最低 retention は preservation_
+    class 別下限で物理 enforce（v1_audit_log は最低 7 年
+    保存 immutable）。
+  - 「商用 EDR が便利だから入れたい」を理由に L1+ 単一
+    深耕を緩めない。新 OSS は 14_OSSライフサイクル適合仕様
+    の pair_target 移行手続を経る。
+  - 「脆弱性 patch は次の sprint で良い」を理由に SLO の
+    patch_window_compliance を緩めない。critical CVE は
+    72h 以内 patch admission gate を物理 enforce。

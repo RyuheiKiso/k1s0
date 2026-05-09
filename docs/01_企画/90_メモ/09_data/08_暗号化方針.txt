@@ -1,0 +1,176 @@
+============================================================
+data 暗号化方針
+============================================================
+
+■ 一文方針
+  - 全 data store は in-transit / at-rest（PV）/ application-
+    layer（envelope）の 3 層で暗号化する。鍵階層（KEK / DEK）
+    は 05_tier1/11_鍵管理適合仕様 が定義し、data 層は配信
+    された鍵で物理暗号化を実行するのみ。鍵 rotation cadence /
+    key id 命名 / KEK の HSM bind は 11 が決め、data 層は
+    rotation event を受けて column / topic / object の DEK
+    を再暗号化する。
+
+■ 3 層 defense-in-depth
+  - 層 in-transit：client ↔ instance、instance ↔ instance の
+    通信暗号化
+      - PostgreSQL：TLS 1.3 mandatory、SCRAM-SHA-256 +
+        cert-manager 発行 server cert
+      - Kafka：listener 単位 mTLS（Internal）/ SASL_SSL
+        SCRAM-SHA-512（External）、cert-manager 発行
+      - Valkey：TLS 1.3 mandatory、client auth は ACL +
+        SCRAM
+      - ClickHouse：TLS 1.3 mandatory、HTTPS only
+      - Apicurio：TLS 1.3 mandatory、Envoy Gateway 経由
+      - admission policy：plaintext listener の openings は
+        Kyverno が reject
+
+  - 層 at-rest（PV / Object）
+      - PV：Longhorn LUKS 暗号化必須（infra 14_強制機構 の
+        require-encrypted-pv）
+      - Object（Ceph RGW）：SSE-KMS（OpenBao 経由）必須
+      - Kafka segment file：PV 暗号化で吸収（Kafka 自体は
+        message-level 暗号化を持たない、application-layer
+        で吸収）
+      - 鍵：v1_kek 階層の disk-DEK が PV 単位、object-DEK が
+        bucket 単位、HSM-bound KEK が wrap
+
+  - 層 application-layer（envelope encryption）
+      - PII column（氏名 / メール / 電話 / 住所 / SSN / 等）：
+        column-level envelope encryption
+      - monetary column：金額 + currency の組（balance / 残
+        高）は同様に envelope
+      - Kafka topic payload に含まれる PII / monetary：
+        producer 側で envelope encrypt、consumer 側で
+        decrypt（schema_class が encrypted=true を宣言）
+      - ClickHouse signal の PII：emit 前に tier1/09 で
+        redact、redact 困難な field は envelope
+      - Outbox payload：PII / monetary を含む event は
+        envelope encrypt、Kafka に publish される時点で
+        既に encrypted
+
+■ envelope encryption の物理機構
+  - 構造：DEK で実データを暗号化、KEK で DEK を wrap、
+    KEK は OpenBao（HSM-backed）に保管、wrapped DEK は
+    column / object metadata に併置。
+  - 鍵 fetch：tier1 Library が起動時に OpenBao から DEK を
+    fetch（External Secrets ではなく直接 OpenBao API、短期
+    キャッシュ）、process 内 memory で復号、process 終了
+    時に discard。
+  - rotation：11 が新 KEK を発行 → 11 の rotation 経路で
+    全 wrapped DEK を re-wrap → data 層が dual-read 期間
+    内に旧 DEK で読んで新 DEK で書き直す（migration job）。
+  - 鍵 id：column / topic / object の metadata に
+    `kek_id / wrapped_dek / iv / aad` を併置、復号時に
+    KEK 解決。
+  - algorithm：AES-256-GCM 一本（11 が pin）、鍵長 256 bit、
+    IV 96 bit、AAD は table_name / column_name / row_id を
+    含む（reuse 攻撃防止）。
+
+■ PostgreSQL 暗号化
+  - PV 層：Longhorn LUKS（infra 提供）。
+  - column 層：PII / monetary 列は envelope encrypt、SQL
+    から見ると BYTEA 列に encoded（`{kek_id, wrapped_dek,
+    iv, ciphertext, aad_meta}`）。
+  - functional index：暗号化列に直接 index を貼らない、
+    blind index（HMAC-SHA-256 with separate key）を別列に
+    貼って equality search を可能にする。range search が
+    必要な列は tokenization で代替、不可能なら preservation
+    _class を昇格させて専用 store に分離。
+  - search：full-text search が必要な PII は tier1/09 と
+    協調して redact 後の検索可能 surrogate を別 column に
+    持つ。
+
+■ Kafka 暗号化
+  - listener TLS：mTLS（Internal）/ SASL_SSL（External）。
+  - message payload：tier1 producer Library が schema 注釈
+    `encrypted=true` の field を envelope encrypt して
+    publish、consumer Library が decrypt。
+  - schema：Apicurio Registry の subject schema に
+    `encrypted` flag を Avro/Proto field option で持つ、
+    schema validation で plaintext field の混入を block。
+  - segment file：Strimzi PV LUKS で吸収。
+
+■ ClickHouse 暗号化
+  - PV 層：Longhorn LUKS。
+  - cold tier（Ceph RGW disk_s3）：SSE-KMS で per-object
+    DEK。
+  - column 層：tier1/09 観測可能性 SoR の signal は emit 前
+    に redact が default、envelope は exception 時のみ。
+    redact ルールは 09 と data 層で共有。
+  - query：暗号化された signal は decrypt して LIMIT する
+    経路を持たない（観測 SoR の query は redacted 表示が
+    default、生 PII の query は break-glass + 監査経路）。
+
+■ Valkey 暗号化
+  - 層 in-transit：TLS 1.3、ACL + SCRAM。
+  - cache の payload：cache に PII を入れる場合は envelope
+    encrypt 必須、key 自体（cache key）に PII を埋める経路
+    は禁止（key の hash 化）。
+  - persistence：無効が default のため at-rest 層は不要、
+    enable する場合は CloudNativePG への移行を検討。
+
+■ Apicurio Registry 暗号化
+  - in-transit：TLS 1.3。
+  - at-rest：backing PostgreSQL の PV 暗号化で吸収。
+  - schema 自体は plaintext で保管（schema は仕様の真、
+    暗号化対象ではない）。
+
+■ archive 暗号化
+  - cold archive object：SSE-KMS（OpenBao） + envelope の
+    二重暗号化必須。
+  - archive_to_offline（tape 等）：物理媒体出庫前に
+    envelope の上に追加 wrap 鍵で 3 重化、KEK は HSM 中で
+    rotation cadence 通りに更新。
+
+■ 鍵 rotation の物理 flow
+  - 11 鍵管理適合仕様 が定義した cadence で OpenBao が
+    新 KEK を発行：
+      1. 11 の rotation orchestrator が新 KEK を OpenBao に
+        publish
+      2. data 層の rotation Job（Argo CD CronJob）が起動、
+        全 wrapped DEK を fetch
+      3. 旧 KEK で unwrap → 新 KEK で wrap → wrapped_dek
+        を update
+      4. dual-read 期間（30 日）は旧 KEK / 新 KEK 両方で
+        decrypt 試行
+      5. 期間終了後、旧 KEK は revoke（HSM 上で disable）
+      6. revoke 後の旧 KEK 必要性は forensic 経路のみ、
+        sealed delete は 11 が決定
+  - rotation 中は preservation_class の RPO / RTO 規律を
+    崩さない（CloudNativePG の online column update は
+    soft expand で吸収、tier1/12 schema 進化適合仕様 と
+    協調）。
+
+■ blind index / tokenization
+  - 完全一致検索：HMAC-SHA-256 with index-key（KEK 配下の
+    independent DEK）で hash を別列に保管、column index を
+    その hash 列に貼る。
+  - prefix 検索：n-gram blind index（n=3）を別列に。
+  - range / partial：tokenization（surrogate id ↔ PII の
+    別 store mapping）、PII 自体には range index を貼らない。
+  - tier1 Library が blind index column を自動 derivation、
+    application code で hash を直接書かない。
+
+■ Backup / archive の鍵管理
+  - PostgreSQL base backup の中身：column が既に envelope
+    encrypted、Ceph RGW SSE-KMS で外側 wrap、archive_to_
+    offline で更に追加 wrap。
+  - WAL archive：WAL 自体に encrypted column の binary が
+    入る。WAL も Ceph RGW SSE-KMS の中、PostgreSQL は
+    pgcrypto / WAL encryption（v17+）の物理機構を
+    enable する。
+
+■ 採用しない暗号化機構
+  - PostgreSQL Transparent Data Encryption（TDE）拡張：
+    OSS では未成熟、PV LUKS + column envelope の二重で
+    吸収。
+  - Kafka message envelope encryption の broker 側適用：
+    broker に鍵を持たせない方針（producer/consumer のみ
+    鍵を持つ）、broker は ciphertext を pass through。
+  - 自家製暗号 algorithm / DIY KEK 階層：禁止、全て 11 鍵
+    管理適合仕様 の v1 algorithm（AES-256-GCM 等）に固定。
+  - 「特定 PII column を平文保存」：admission block。
+    column 名が tier2/22 権限モデル / 28 セキュリティ
+    アーキテクチャ で PII 分類された場合、envelope 適用
+    が CI gate 必須。

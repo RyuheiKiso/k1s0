@@ -1,0 +1,109 @@
+============================================================
+client 責務
+============================================================
+
+■ 一文定義
+  - client は、tier1 / tier2 / tier3 / data / infra の各層が
+    宣言する規律（07 transport / 09 observability / 10 auth /
+    11 key / 12 schema / 13 SLO / 14 OSS lifecycle / 15 capacity
+    / 32 data-tenant / 39 client-state / infra01 topology /
+    data01 preservation / security15 threat-model）を、複数
+    言語 SDK + Companion + Auto-Instrumentation の組合せで
+    「同型に投影する」層である。
+
+■ 責務の境界
+  - client が責務を持つ：
+      - 言語別パッケージング（NuGet / npm / cargo / Maven /
+        PyPI / RubyGems / Harbor mirror）
+      - Library と Companion の役割分離（tier1 Library を
+        直接組み込み可能な言語と、Companion 経由で観測 / 認証
+        / Transport Negotiation を提供する言語の境界）
+      - .proto / Apicurio Registry を単一の真とした SDK
+        コード生成（Buf）
+      - Transport Adapter Layer の SDK 側投影（gRPC / HTTP/3
+        + WebTransport / WebSocket / NDJSON / gRPC-Web）
+      - 認証コンテキスト伝播（AuthContext / SessionContext /
+        OIDC token / Idempotency-Key）の SDK 側 wire 規約
+      - リトライ / バックオフ / deadline propagation / 接続
+        断検知の共通規約
+      - 観測可能性の Auto-Instrumentation（OpenTelemetry .NET
+        Auto-Instrumentation / Java Agent / Node.js Auto-
+        Instrumentation / Browser SDK / Tauri / Native）
+      - SemVer 配布規律（全言語 SDK の lockstep バージョン）
+      - SDK 側オフライン耐性（pending queue / draft / device
+        bound key）の SDK 横断契約（39 適合仕様の SDK 投影）
+      - SDK レベル defense-in-depth と物理 enforcement
+      - SDK 開発者体験（inner loop / Tilt / dev container /
+        Companion local mock）
+
+  - client が責務を持たない：
+      - tier1 Server 系の RPC 実装（→ 05_tier1）
+      - tier2 業務 Service の Domain Logic / Repository
+        （→ 06_tier2）
+      - tier3 業務 SPA / exe の UI 実装 / フォーム規約
+        （→ 07_tier3 配下）
+      - tier3 client-state の意味論（4 layer / conflict tree /
+        BusinessConflict subtype）（→ 07_tier3/39_クライアント
+        状態適合仕様、本層は SDK 側投影規約のみ持つ）
+      - infra cluster の物理基盤（→ 08_infra）
+      - data の lifecycle / 暗号化方針（→ 09_data）
+      - 業務固有 quota / SLO 値（→ 13 / 15、本層は SDK 側
+        propagation 経路のみ提供）
+
+■ 至高路線における立ち位置
+  - client は「言語横断で同一規律を投影する単一の SDK 真」を
+    提供する層である。同じ規律（transport conformance class /
+    auth propagation / observability semconv / retry policy /
+    semver / idempotency）が、.NET Framework 4.6.2 / .NET 6+ /
+    Java 11+ / Node.js / Browser TypeScript / Browser+Tauri /
+    Rust native / Python / Ruby / Go の全 distribution_class
+    で同型に動作する。
+  - 13 軸 + meta の各 spec のうち defense-in-depth 層 A〜C
+    （compile / lint / integration test）は SDK 側で codify
+    され、層 D（runtime）が SDK ランタイムで物理 enforce、層
+    E（物理）は infra / data / OS 機能に降りる。client は
+    主として層 A〜D を SDK 側で担う。
+  - 「単一 OSS 深耕 + 移行コミットメント」（02_採用OSS / 14
+    OSS lifecycle）の哲学を SDK 配布側に転写する。横並びの
+    SDK ライブラリを並走させない。同一機能領域に対して 1
+    OSS / 1 SDK だけを L1+ primary として持つ。
+
+■ 至高路線における原則
+  - 単一 SDK 真：同一機能領域に対する SDK は 1 言語につき
+    1 パッケージ（例：tier1 Library .NET 版、Companion .NET
+    Framework 版、tier1 Library TypeScript 版、tier1 Library
+    Rust 版）。横並びの「軽量版」「拡張版」を分岐させない。
+  - 同型投影：全 distribution_class が同じ wire 規約 / 同じ
+    SemConv / 同じ retry policy / 同じ idempotency semantics
+    を実装する。「言語の都合」を理由に規約を緩めない。
+  - dimension override 禁止：sdk_distribution_class が決まれば
+    transport_capability_class / auto_instrumentation_mode /
+    companion_provision_mode / distribution_channel が一意に
+    導出される。アプリ作者が個別 dimension を override する
+    経路は持たない。
+  - Lockstep SemVer：全言語 SDK は同一 major.minor を同一
+    時刻に release する。「言語別に release tempo を変える」
+    妥協は採らない。1.0.0 は全言語同時。
+  - 段階的 release 禁止：1.0.0 時点で 5 distribution_class
+    全てが conformance test green であること。
+  - 物理 enforcement：SDK 側でも可能な限り物理層に降ろす
+    （WebCrypto による平文 PII 平文禁止 / OS keychain による
+    device bound key / non-extractable CryptoKey / Cosign
+    signed package による supply chain 検証）。
+
+■ 配下ファイル（下位章）
+  - 01_責務.txt（本ファイル）
+  - 02_位置づけ.txt
+  - 03_非提供スコープ.txt
+  - 04_採用OSS.txt
+  - 05_SDK配布構成方針.txt
+  - 06_Transport適応方針.txt
+  - 07_オフライン耐性方針.txt
+  - 08_認証コンテキスト伝播方針.txt
+  - 09_配布SemVer方針.txt
+  - 10_リトライバックオフ方針.txt
+  - 11_観測Auto-Instrumentation方針.txt
+  - 12_コード生成方針.txt
+  - 13_運用UIと開発者体験.txt
+  - 14_強制機構.txt
+  - 15_クライアントSDK配布適合仕様.txt（structural spec、軸の 1 つ）

@@ -1,0 +1,158 @@
+============================================================
+client 認証コンテキスト伝播方針
+============================================================
+
+■ 一文方針
+  - 認証コンテキストは tier1 10_認証適合仕様 + 11_鍵管理適合
+    仕様 + tier2 32_テナント分離適合仕様 が単一の真。SDK は
+    AuthContext / SessionContext / token を全 RPC / event /
+    audit に同型に attach する投影器であり、attach 漏れを
+    SDK 公開 API として物理 enforce する。
+
+■ 伝播 envelope（全 SDK 共通）
+  - 全 RPC / Domain Event publish / audit emit は次の context
+    envelope を必ず含む（attach は SDK 内部、アプリ作者が
+    意識しない）：
+
+      field                     | source                                 | wire 形
+      --------------------------+----------------------------------------+--------------------
+      tenant_id                 | OIDC token claim (tid)                 | metadata: x-tenant-id
+      actor_id                  | OIDC token claim (sub)                 | metadata: x-actor-id
+      session_context           | tier1 10/11 SessionContext binding     | metadata: x-session-context
+      authorization (bearer)    | OIDC access_token                      | header: authorization
+      idempotency_key           | SDK 自動採番（07_オフライン耐性方針） | metadata: x-idempotency-key
+      trace_context             | OTel propagator                        | header: traceparent / tracestate
+      baggage                   | OTel baggage（tenant_id 等のサブセット）| header: baggage
+      preferred_locality        | infra01 topology / SDK closest-region | metadata: x-k1s0-region
+
+  - これら envelope は SDK 内部 interceptor で attach、アプリ
+    作者が手動で setHeaders する経路を SDK 公開 API として
+    持たない（公開 API snapshot で setHeaders を deny）。
+
+■ AuthContext と SessionContext の関係
+  - AuthContext：誰として / どの tenant 配下で動作しているかの
+    最小情報。tier1 10 認証適合仕様の AuthContext を SDK 側
+    type として 1:1 mirror。
+  - SessionContext：tier1 10/11 適合仕様で定義された session
+    binding（device fingerprint / login_session_id / impersonation
+    chain 等）。SDK は session_context を opaque blob として
+    保持し、metadata に attach するだけ（中身を SDK 側で解釈
+    しない）。
+  - GUC（Postgres Grand Unified Configuration）として tier2
+    32 適合仕様の RLS で利用される SessionContext は、SDK が
+    metadata で送る → tier1 Server が GUC に投影 → tier2
+    Repository が PostgreSQL に SET LOCAL する経路。SDK 側
+    では「envelope に必ず含める」までを保証。
+
+■ token lifecycle
+  - 取得：OIDC Authorization Code Flow + PKCE。ROPC（Resource
+    Owner Password Credentials）は禁止。SDK は browser /
+    native ともに in-app browser または OS browser 経由を
+    強制。
+  - 保管：
+      - access_token : in-memory only（distribution_class 全て）
+      - refresh_token: distribution_class 別（07_オフライン
+        耐性方針 の refresh_token_storage_mode）
+          * v1_full_native_with_companion       : process_memory_only
+          * v1_legacy_dotnet_framework          : dpapi_protected_blob
+          * v1_browser_spa_typescript           : in_memory + httponly_cookie
+          * v1_thick_native_via_tauri           : os_keychain_secure_storage
+          * v1_thin_business_api_only           : N/A（API Gateway 側）
+  - rotation：
+      - access_token expiry 5 分前に SDK 内部で background
+        refresh、failure 時 1 回 retry → 失敗で OnAuthRequired
+        event 発火（アプリは OS browser を起動）
+      - refresh_token rotation：tier1 10 適合仕様の rotate-on-
+        use を default（毎回新 refresh_token を受領）
+  - 失効：
+      - SDK は logout / token revoke の API を提供
+      - logout は次を順に行う：
+          1. Keycloak end_session_endpoint へ revoke リクエスト
+          2. 全 layer storage purge（07_オフライン耐性方針）
+          3. device_bound_key rotate
+          4. audit emit（client.logout.event）
+
+■ refresh storm 抑止
+  - access_token expiry が複数 RPC で同時に検出されても、
+    SDK 内部の SingleFlight pattern で refresh request は
+    1 in-flight に集約。複数 RPC は同 refresh の completion
+    を待つ。
+  - refresh failure の指数バックオフ：1s / 2s / 4s / 8s / 16s
+    （max 5 attempts、jitter 付き）。失敗で OnAuthRequired。
+
+■ impersonation chain
+  - tier1 10 適合仕様の impersonation chain（オペレータ A が
+    user B として実行する場合）を SDK 側で type 化。SDK は
+    chain を session_context blob 内で保持、metadata 送信時
+    に tier1 Server に伝達。
+  - SDK ユーザは impersonation を能動的に開始できない（権限
+    の昇格は server 側 endpoint 経由のみ）。SDK は impersonation
+    として動作中であることを ConsoleWarning で表示する API を
+    提供。
+
+■ mTLS / client cert
+  - distribution_class 別：
+      - v1_full_native_with_companion       : optional mTLS
+        （server-to-server 間で利用、client cert は Spire
+        agent / OpenBao が配布）
+      - v1_legacy_dotnet_framework          : optional mTLS
+        （DPAPI で client cert 保管）
+      - v1_browser_spa_typescript           : N/A（browser
+        は user cert ベースのみ、enterprise SSO 連携で利用
+        可能だが SDK は意識しない）
+      - v1_thick_native_via_tauri           : optional mTLS
+        （Tauri sidecar が cert を保管）
+      - v1_thin_business_api_only           : N/A
+  - mTLS は infra 側 Istio mesh STRICT が default、外向き
+    mTLS は capability_matrix.lock.yaml で endpoint 単位に
+    宣言。SDK は cert 取得を OpenBao + External Secrets
+    経由（Spire agent または cert-manager）で受領、SDK 自体
+    が cert を生成しない。
+
+■ tenant isolation の SDK 側強制
+  - SDK init 時に tenant_id を必ず指定（環境変数 / 明示指定）。
+    指定なしの SDK 利用は SDK 公開 API として deny（compile
+    error）。
+  - 複数 tenant を同時操作する経路は SDK 公開 API として持た
+    ない。multi-tenant SDK ユーザは tenant 単位で SDK instance
+    を分離する（接続 pool / cache / queue が tenant 単位で
+    隔離）。
+  - tenant_switch は明示 API（switchTenant）として提供、内部
+    で全 layer purge + 新 tenant_id で再 init を強制。
+
+■ audit emit
+  - SDK は次の event を 09 観測可能性 SoR に audit emit する
+    （tier1 09 適合仕様の audit signal 定義と同期）：
+      - client.login.event
+      - client.logout.event
+      - client.token_refresh.event
+      - client.purge.event
+      - client.tenant_switch.event
+      - client.actor_switch.event
+      - client.impersonation_start.event / .end.event
+      - client.break_glass.event（cluster-admin token 利用時）
+  - 各 event は OTLP exporter で Collector 経由 ClickHouse
+    に bulk insert。
+
+■ OIDC provider 連携
+  - Keycloak 単一深耕（02_採用OSS / 14 OSS lifecycle）。
+    Auth0 / Okta / Azure AD などへの直接 SDK サポートは v1
+    では持たない。enterprise federation は Keycloak の identity
+    brokering 経由で取扱う。
+
+■ 採用しない選択肢
+  - SDK 内に user/password を直接渡す API：禁止。
+  - access_token を SDK 公開 API として getter で露出する経路：
+    禁止（compile time deny）。アプリ作者は SDK 経由で RPC
+    を呼ぶだけで token を意識しない。
+  - JWT 署名検証を SDK 側で実装：SDK は JWT を opaque blob
+    として扱う。検証は tier1 Server / Envoy Gateway が担当。
+    SDK 内では expiry のみ確認（refresh タイミング判定）。
+  - cookie storage の access_token：禁止（XSS リスク）。
+
+■ 至高路線の整合
+  - 「token を SDK ユーザに自由に取扱わせる」を理由に getter
+    を露出しない。token / cred の物理露出を SDK API で禁止。
+  - 「mTLS は運用が大変」を理由に server-to-server 経路から
+    削除しない。distribution_class が宣言した mTLS optional/
+    required の値を変えない。

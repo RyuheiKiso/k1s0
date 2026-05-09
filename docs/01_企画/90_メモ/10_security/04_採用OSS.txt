@@ -1,0 +1,191 @@
+============================================================
+security 採用 OSS（security 層 subset）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」の grand catalog のうち、security 層
+    が cross-axis に bind する OSS（SBOM / scan / sign /
+    runtime detection / audit / IR）を抽出して整理した
+    もの。infra / data が所有する OSS は cross 参照で
+    明記する（security は使用面を宣言するのみ）。
+  - 本ファイルの全 OSS は 05_tier1/14_OSSライフサイクル適合
+    仕様 の oss_inventory.lock.yaml に v1_l1plus_primary と
+    して登録される。
+
+------------------------------------------------------------
+[1] サプライチェーン真正性（build / sign / verify）
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Container signing              | cosign                 | Apache 2.0
+  SBOM 生成                      | Syft                   | Apache 2.0
+  SLSA provenance / attestation  | in-toto / witness      | Apache 2.0
+  binary provenance              | SLSA-GitHub-generator  | Apache 2.0
+  build-time integrity           | Tekton Chains          | Apache 2.0
+
+  - cosign は image / artifact / blob / SBOM の sign を
+    一手に担う L1+。 Notary v2（notation）は採用しない。
+  - Syft は image / source / dir からの SBOM 生成、SPDX +
+    CycloneDX 両 format 出力を物理 enforce。
+  - in-toto / witness は build-time provenance、CI runner
+    内の attestation 生成を担う。
+  - Tekton Chains は CI runner 側の自動 attestation
+    （infra 04 と共有 OSS）。
+
+------------------------------------------------------------
+[2] 脆弱性 / CVE 検知
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Image vuln scanner             | Trivy                  | Apache 2.0
+  Image vuln scanner（補強）     | Grype                  | Apache 2.0
+  Rust dep audit                 | cargo-audit            | Apache 2.0 / MIT
+  Go dep / vuln check            | govulncheck            | BSD-3
+  Node dep audit                 | npm audit / pnpm audit | Artistic 2.0
+  SAST（言語横断）               | Semgrep（OSS rules）   | LGPL-2.1
+  Secret scan                    | gitleaks               | MIT
+  Secret scan（補強）            | trufflehog             | AGPL-3
+  IaC scan                       | Trivy IaC / Checkov    | Apache 2.0
+
+  - Trivy は image scan の L1+ primary、Grype は cross-
+    check として並走（pair_target ではなく double-bound
+    必須化、scan 結果不一致は admission block）。
+  - 言語別 dep audit は CI で必須、build artifact に
+    SBOM + vuln report を embed。
+  - Semgrep の rule は build artifact 化（手書き rule
+    禁止、yaml policy 自動生成）。
+  - gitleaks + trufflehog は pre-commit hook + CI 二重化、
+    secret 漏洩は merge 不可。
+  - IaC scan は Trivy IaC を default、Checkov は cross-
+    check（Terraform / OpenTofu / Helm / Kustomize）。
+
+------------------------------------------------------------
+[3] runtime 脅威検知
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  syscall / process detect       | Falco                  | Apache 2.0
+  eBPF based observability       | Tetragon               | Apache 2.0
+  Kubernetes audit               | Falco k8s_audit        | Apache 2.0
+                                 | + audit policy         |
+
+  - Falco は syscall ruleset 標準を default、自社拡張は
+    v2 候補（v1 は標準のみ）。
+  - Tetragon は eBPF based observation を担い、Falco の
+    補強として並走（network policy 違反の物理 detect）。
+  - k8s audit policy は infra 提供、Falco の k8s_audit
+    plugin で audit_event subject に取り込む。
+
+------------------------------------------------------------
+[4] policy / admission（cross-axis）
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Admission policy engine        | Kyverno                | Apache 2.0
+                                 | （infra 提供）         |
+  Mutation engine                | Kyverno                | Apache 2.0
+  CEL based validation           | Kubernetes ValidatingAdmissionPolicy | Apache 2.0
+  Policy testing                 | chainsaw / kuttl       | Apache 2.0
+
+  - Kyverno は infra 14_強制機構 / data 14_強制機構 と共有
+    OSS、security 層は admission policy の build artifact
+    生成器を所有（threat_model.lock.yaml → kyverno-
+    security-policies.yaml）。
+  - OPA Gatekeeper は採用しない（Kyverno L1+ 深耕）。
+  - chainsaw は admission policy の integration test
+    runner、全 policy が intended state を block / pass
+    することを CI で物理確認。
+
+------------------------------------------------------------
+[5] audit / detection SoR
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  audit signal SoR               | ClickHouse             | Apache 2.0
+                                 | （data 提供）          |
+  log shipping / pipeline        | Vector                 | MPL 2.0
+  WORM object lock               | Ceph RGW Object Lock   | Apache 2.0
+                                 | （infra 提供、         | / LGPL-2.1
+                                 |   Compliance mode）    |
+  cryptographic chaining         | hashlog table          | (in-house)
+                                 | （ClickHouse 内）      |
+
+  - audit_event subject は 09 観測 SoR と同じ ClickHouse
+    instance を共用、security は subject schema と
+    immutability 規律のみ宣言。
+  - Vector は log pipeline の L1+、Fluent Bit / Logstash
+    は採用しない（infra 04 と整合）。
+  - WORM Object Lock は archive_to_offline phase で audit
+    event の物理 immutability を強制（data 04 と共有）。
+  - hashlog table（ClickHouse 内）は audit_event の hash
+    chain を記録する補助 table、cosign signed snapshot
+    と双方向 lock。
+
+------------------------------------------------------------
+[6] secret / 鍵 hygiene
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  Secret store                   | OpenBao                | MPL 2.0
+                                 | （infra 提供）         |
+  External Secrets               | External Secrets       | Apache 2.0
+                                 | Operator               |
+  Secret scan                    | gitleaks / trufflehog  | MIT / AGPL-3
+  KEK 階層                       | OpenBao Transit        | MPL 2.0
+                                 | （tier1/11 提供）      |
+
+  - OpenBao は infra 提供の L1+、HashiCorp Vault（BUSL）は
+    採用しない。
+  - External Secrets Operator は OpenBao ↔ Kubernetes
+    Secret 同期を物理担当、secret rotation は OpenBao 側
+    の lease ベース。
+  - secret hygiene の CI 経路：gitleaks（pre-commit）+
+    trufflehog（push）+ Trivy secret（image）の三重化。
+  - 鍵 rotation cadence の意味論は tier1/11、security は
+    rotation overdue 時の admission block 経路のみ管掌。
+
+------------------------------------------------------------
+[7] IR / on-call
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  on-call escalation             | Grafana OnCall         | AGPL-3
+  IR ticketing                   | incident.io OSS        | (custom OSS)
+                                 |   / GitHub Issue       |
+  postmortem                     | Markdown + GitHub PR   | (workflow)
+  runbook                        | Backstage TechDocs     | Apache 2.0
+                                 | （infra 提供）         |
+
+  - Grafana OnCall は escalation の L1+、PagerDuty 商用
+    機能は採用しない。
+  - IR ticket は incident.io OSS（または GitHub Issue）の
+    minimal 経路を default、商用 SLA 機能は採用しない。
+  - postmortem は Markdown + GitHub PR で history 管理、
+    全 incident は postmortem PR が ship blocker。
+  - runbook は Backstage TechDocs に集約（infra 13 / data
+    13 と整合）。
+
+■ 他層所有の OSS（cross 参照）
+  - Kyverno / cert-manager / OpenBao / External Secrets /
+    Argo CD / Harbor / Trivy → 08_infra（GitOps 配信）
+  - ClickHouse / Vector → 09_data（audit SoR の物理運用）
+    / 05_tier1/09_観測適合仕様（subject 定義）
+  - Ceph RGW Object Lock → 08_infra（物理 substrate）/
+    09_data/07_保全方針（archive 経路）
+  - cosign / Syft / Trivy / Grype → security 層が使用面を
+    宣言、配信 / image registry integration は infra
+  - 鍵階層（OpenBao Transit）→ 05_tier1/11_鍵管理適合仕様
+    （意味論）/ 08_infra（基盤）
+  - 認証 token（OIDC / JWT）→ 05_tier1/10_認証適合仕様
+
+■ L1+ 深耕の徹底
+  - 同一カテゴリで横並びの OSS を本番運用しない（cluster
+    単位で 1 つに固定）。例外：Trivy / Grype（image scan
+    は冗長化必須として double-bound 維持）、gitleaks /
+    trufflehog（secret scan の二重化必須）、Semgrep + 言語
+    別 tool（言語別 SAST と横断 SAST の二重化必須）。
+  - 既採用 OSS の機能で吸収できる用件を、別 OSS の追加で
+    解決しない（runtime detection は Falco + Tetragon、
+    商用 EDR 追加 ×）。
+  - 新 OSS の追加は 14_OSSライフサイクル適合仕様 の
+    pair_target 移行手続を必ず経る。

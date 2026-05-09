@@ -1,0 +1,210 @@
+============================================================
+ops toil 削減方針
+============================================================
+
+■ 一文方針
+  - 全 on-call activity を toil_classes.yaml の 5 class に
+    分類して toil_minutes_per_week metric として ClickHouse
+    に永続化し、SRE 50% rule（個人別 toil ≤ 50% / week）を
+    SLO 化、quarterly target で monotonic decrease を ship
+    blocker として bind、減少達成は automation backlog の
+    Tekton Pipeline 化 / runbook 化 / SLO 再 tuning の三本柱
+    で物理 enforce する。
+
+■ toil の定義（5 class）
+  - v1_manual_runbook：
+        - Markdown only runbook の手動実行（11_runbook方針
+          で cap 5%）
+        - 削減経路：Tekton Pipeline 化（v1_full_auto /
+          v1_partial_auto への migration）
+  - v1_alert_triage：
+        - false positive alert の triage / silence 操作
+        - 削減経路：alert tuning（noise budget violation
+          → threshold 調整 / SLO 再 tune）
+  - v1_repetitive_ops：
+        - 繰返発生する manual operation（rotation / cleanup
+          / certificate renewal の手動部分等）
+        - 削減経路：Argo Workflows CronWorkflow 化 /
+          External Secrets Operator 化 / cert-manager 化
+  - v1_human_handoff：
+        - 部分自動化されているが人間の確認 / 承認が必要な
+          step（特に severity_freeze 解除等）
+        - 削減経路：dry-run automation での pre-validation
+          + ChatOps 二人承認の standardize（人間の判断
+          時間を最小化）
+  - v1_postmortem_overhead：
+        - postmortem 記述に必要な手動 timeline 整理 /
+          metric query / artifact 収集
+        - 削減経路：postmortem auto-generator 強化（timeline
+          自動生成 / metric query 自動 embed / artifact
+          自動 link）
+
+  - non-toil（engineering work）：
+        - design / architecture / 新機能実装 / 新軸 spec
+          作成 / 新 OSS 評価 / pair_target migration の
+          設計部分 / chaos drill scenario の新規追加
+        - 上記は toil_minutes に含めない（自動化対象外、
+          削減対象は toil 5 class のみ）
+
+■ toil 計測
+  - 物理計測手段：
+        - Grafana OnCall：page response 時間 / runbook
+          execution 時間（v1_alert_triage / v1_manual_
+          runbook）
+        - GitHub Actions：CronWorkflow 化前 manual ops
+          の自己申告 timer（v1_repetitive_ops、ChatOps
+          経由 /toil-start /toil-stop）
+        - Tekton Pipeline：dry-run 後の human approval
+          時間（v1_human_handoff）
+        - postmortem PR：author 主観の time spent 自己申告
+          （v1_postmortem_overhead）
+  - 集計：ClickHouse 上の toil_event subject に永続、
+    weekly aggregation で toil_minutes_per_week metric
+    を Sloth で SLO 化（v1_individual_toil_ratio /
+    v1_team_toil_ratio）。
+  - dashboard：Grafana で個人 / team / 軸別 toil ratio
+    を可視化、quarterly review で必須 review。
+
+■ SRE 50% rule（v1 SLO 化）
+  - per-individual：
+        v1_individual_toil_ratio ≤ 0.50（toil_minutes_per
+        _week / total_working_minutes_per_week）
+  - per-team：
+        v1_team_toil_ratio ≤ 0.50（team 全 individual の
+        weighted average）
+  - 違反時の処置：
+        1. 即時 alert（noise budget alert routing 経由）
+          + Mattermost #ops-toil channel 投稿
+        2. quarterly review で恒常的 violation の根本原因
+          解析（alert tuning / automation backlog
+          priority elevation / team 増員 / SLO 再 tune）
+        3. 連続 4 週違反は automation backlog item の
+          implementation を ship blocker（次 deploy block）
+
+■ quarterly toil target（monotonic decrease ship blocker）
+  - 各 quarter で前 quarter 比 ≥ 5% 減少を target、未達成
+    は次 quarter ship blocker（ただし減少率改善 PR が
+    merged されれば release allow）。
+  - target 例（v1）：
+        - Q1 baseline：team 全体 toil_minutes_per_week
+          中央値 240 min/person
+        - Q2 target：≤ 228 min（-5%）
+        - Q3 target：≤ 217 min（-5%）
+        - Q4 target：≤ 206 min（-5%）
+  - quarterly target は toil_quarterly_target.lock.yaml
+    に build artifact 化、調整は 14_OSSライフサイクル適合
+    仕様 と同様の pair_target ベースで承認（target
+    緩和は ops lead + SRE lead の二人承認 audit_event 必須）。
+
+■ automation backlog
+  - 全 toil 識別済 item は automation_backlog.lock.yaml に
+    build artifact 化：
+        - row = (item_id, toil_class, source（identified
+          via postmortem / alert tuning / quarterly
+          review）, owner, expires_at, automation_
+          target（runbook_id / pipeline_id / SLO_tune_id）,
+          implementation_status, quarterly_priority)
+  - quarterly priority：
+        - P0：ship blocker（同 root cause の incident
+          recurrence が 3 回以上、または SRE 50% rule 連続
+          4 週違反）
+        - P1：current quarter 内 implementation target
+        - P2：next quarter 内 implementation target
+        - P3：backlog 維持（quarterly review で再評価）
+  - implementation 完了：
+        - Tekton Pipeline 化 / runbook v1_partial_auto 以上
+          への昇格 / SLO 再 tune の merged PR を伴う、
+          自己申告のみは禁止
+        - 完了後 30 日間は toil_minutes_per_week metric
+          で削減効果検証
+
+■ 三本柱の削減経路
+  - 経路 1：Tekton Pipeline 化（v1_manual_runbook → v1_
+    full_auto / v1_partial_auto）
+        - 11_runbook方針 と双方向 lock、Pipeline build
+          artifact + dry-run 検証 + ChatOps trigger を一
+          セットで delivered
+  - 経路 2：alert tuning（v1_alert_triage 削減）
+        - 06_アラート方針 の noise budget violation
+          handling と双方向 lock、threshold 調整 / SLO
+          再 tune / runbook 改善 / alert deprecation の
+          四経路
+  - 経路 3：CronWorkflow 化 / Operator 化（v1_repetitive
+    _ops 削減）
+        - 例：cert-manager 化（手動 cert renewal を回避）
+          / External Secrets Operator 化（手動 secret
+          配信回避）/ Argo Workflows CronWorkflow 化
+          （定期 cleanup の自動化）
+
+■ toil 削減と engineering balance
+  - SRE 50% rule で確保された 50% engineering time の
+    使途は本 spec の管掌外、以下に限定的なガイドのみ：
+        - automation backlog の implementation（toil 削減
+          直結）
+        - 新 OSS の pair_target 評価（14_OSSライフサイクル）
+        - chaos drill scenario の追加（infra 11 / 共有）
+        - new spec / new axis design（meta-axis）
+        - red team table top scenario の追加（security 12
+          / 共有）
+
+■ toil の anti-pattern
+  - 以下を toil として誤計上しない（CI で検出）：
+        - design review / architecture discussion
+        - new feature implementation
+        - 新軸 spec / 新 runbook scenario の新規執筆
+        - chaos drill / red team drill の scenario 設計
+          時間（実行時間は toil 対象外、設計時間も engineering）
+        - new OSS evaluation
+  - 上記を toil として計上した PR は CI で誤計上 lint
+    （description / commit message の keyword check）、
+    revision request 必須。
+
+■ toil の自己申告における honesty 規律
+  - toil_event subject の自己申告 row は audit_event に
+    chain、後追いで ChatOps の audit log（/toil-start /
+    /toil-stop / postmortem time spent）と cross check。
+  - 不一致は quarterly review で proactive な dialogue
+    （blameless）、accusatory ではなく改善志向で扱う。
+  - 過小申告のリスクが大きいため（隠れた toil が削減
+    backlog から外れる）、申告 honesty を文化として強調、
+    申告 channel を低摩擦化（Mattermost slash command で
+    1 操作）。
+
+■ 同型構造（13 軸 + meta + security との整合）
+  - 5 yaml 単一の真：
+        toil_classes.yaml（5 class enum）
+        automation_backlog.lock.yaml（build artifact、
+          backlog item の lifecycle）
+        toil_quarterly_target.lock.yaml（build artifact、
+          quarterly target の time series）
+        toil_event_history.lock.yaml（build artifact、
+          ClickHouse subject の archive index）
+        toil_slo_bindings.lock.yaml（build artifact、
+          SRE 50% rule の SLO bind）
+  - 5 層 defense-in-depth：toil 削減は層 D / E に必ず物理
+    pointer を持つ（Tekton Pipeline 化 / Operator 化 /
+    CronWorkflow 化）。
+  - CI 不変条件：toil_minutes_per_week SLO within /
+    quarterly target monotonic decrease / automation
+    backlog implementation status / SRE 50% rule violation
+    handling / non-toil mis-classification ゼロ 等を CI
+    で物理確認。
+
+■ 採用しない方針
+  - 文章 only の toil 削減目標：禁止、quarterly target
+    は build artifact、未達成は ship blocker。
+  - toil の手動 spreadsheet 管理：禁止、ClickHouse 自動
+    集計のみ。
+  - SRE 50% rule の opt-out：禁止、全 on-call rotation
+    member に必須適用。
+  - automation backlog の永久放置（P3 のまま 4 quarter
+    以上）：禁止、4 quarter 以上 P3 維持の item は cancel
+    か priority elevation のいずれか必須（quarterly
+    review）。
+  - 「toil 削減は次 quarter で」を理由に SRE 50% rule
+    違反を放置：禁止、連続 4 週違反は ship blocker。
+  - automation の half-baked 化（manual fallback path
+    残存）：禁止、Tekton Pipeline 化は full auto / partial
+    auto を必ず明示宣言、ChatOps 経由実行可能必須。
+  - toil 計上の対象を engineering work まで広げる：禁止、
+    toil 5 class 以外は計上しない（dilution 防止）。

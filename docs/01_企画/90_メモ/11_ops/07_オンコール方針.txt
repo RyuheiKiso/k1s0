@@ -1,0 +1,180 @@
+============================================================
+ops オンコール方針
+============================================================
+
+■ 一文方針
+  - on-call rotation は roster.lock.yaml に build artifact
+    として固定し、24x365 の primary / secondary / domain-
+    expert の 3 階層 escalation を必須化、rotation gap ゼロ
+    / fatigue budget 違反ゼロ / handover artifact 必須を
+    CI で物理 enforce、商用 SLA 機能には依存せず Grafana
+    OnCall + Mattermost + audit_event で全 lifecycle を
+    OSS 経路に固定する。
+
+■ rotation 構造（3 階層 escalation）
+  - 階層 1 ：primary on-call
+        - page を最初に受ける義務、ack window 5 分
+        - service tier 別に rotation 分割（tier1 / tier2
+          / tier3 / infra / data / security / ops の 7
+          rotation を独立に保持、cross-rotation は handover
+          のみ）
+  - 階層 2 ：secondary on-call
+        - primary の ack window 経過時 escalate
+        - primary 不在 / 機材故障 fallback、ack window 5 分
+  - 階層 3 ：domain expert（service owner / lead）
+        - secondary も ack window 経過時 escalate
+        - 設計者 / 技術 lead / SRE lead が交代で担当
+        - severity = freeze / security_bridge は階層 3 まで
+          parallel page
+
+■ rotation cadence
+  - primary：1 週間交代（Mon 09:00 JST handover）
+  - secondary：1 週間交代（Wed 09:00 JST handover、shift
+    by 2 days from primary で fatigue 分散）
+  - domain expert：2 週間交代（業務知識保持 / context
+    建立期間が必要なため）
+  - holiday / 年末年始：cadence 維持、休暇申請は roster
+    rebalance を必ず triger（gap allowance ゼロ）
+
+■ rotation gap invariant
+  - 任意の時刻に対し primary / secondary / domain expert
+    の 3 名が roster.lock.yaml で必ず assigned、gap 発生は
+    CI fail。
+  - 個人不在（病欠 / 緊急休暇）時は roster の自動 swap
+    proposal を Grafana OnCall が生成、ops lead が承認、
+    audit_event 必須。
+  - 連続 7 日以上の不在計画（休暇）は 14 日前までに
+    roster.lock.yaml に commit、merger は CI で gap-fill
+    を確認。
+
+■ fatigue budget（v1 SLO 化）
+  - per-individual：
+        - v1_oncall_page_per_week ≤ 3（30d rolling）
+        - v1_oncall_after_hours_page_per_month ≤ 5
+          （22:00-06:00 JST page）
+        - v1_oncall_consecutive_days ≤ 7（連続 on-call
+          shift 日数）
+  - per-team：
+        - v1_team_page_per_week ≤ 5 × team_size（チーム
+          全体の page 数 budget）
+  - 違反時の処置：
+        1. 即時 roster rebalance（個人 violation の場合
+          swap、team violation の場合 alert tuning + roster
+          増員 ticket）
+        2. quarterly review で恒常的 violation の根本原因
+          解析（alert tuning / 業務 toil 削減 / team 増員）
+        3. 連続 4 週違反は alert deprecation phase か team
+          増員 PR 起票必須
+
+■ ack / acknowledge protocol
+  - ack window：page 発火後 5 分以内（severity_freeze 時は
+    3 分）、未 ack で next 階層 escalate
+  - ack 経路：Grafana OnCall mobile app / Mattermost slash
+    command / phone call の三系統、いずれか 1 つで ack 確定
+  - ack 後の義務：30 分以内に triage 完了 → Mattermost
+    incident channel で incident.io OSS の incident 起票
+    （or GitHub Issue 起票）
+  - re-page：ack 後 60 分以内に resolved にならない場合、
+    secondary に automatic escalation page
+
+■ handover protocol（artifact 必須）
+  - rotation 切替時（毎週 Mon 09:00 JST）に handover
+    document を必ず生成：
+        - 過去 1 週間の page log（resolved / ongoing 区別）
+        - ongoing incident の context（postmortem PR の
+          status / action items pending）
+        - active freeze（解除予定時刻）
+        - active break-glass session（expiry 時刻）
+        - 来週の change management calendar（planned
+          deploy / chaos drill）
+  - handover document は Backstage TechDocs に append、
+    過去 handover は永続 retention（preservation v1_zone_
+    replicated 以上）。
+  - handover 不在 ＝ rotation gap として CI 検出（roster.
+    lock.yaml の handover_log section が空欄なら fail）。
+
+■ break-glass 経路（on-call 専用）
+  - on-call が運用上必要となる短期 elevated permission：
+        1. OpenBao response wrapping で短期 cluster-admin /
+          DB superuser / Argo CD admin token を発行
+        2. 発行は Mattermost slash command 経由、incident_
+          ref（active incident ID）必須
+        3. 全操作は audit_event subject に v1_break_glass
+          fact emit（actor / reason / ticket_ref /
+          expected_duration / actual_duration）
+        4. 使用後 1 時間以内に postmortem PR 起票必須
+        5. break-glass 使用は 13 SLO error budget の
+          v1_break_glass_count として記録
+        6. break-glass 経由の operations は再現性確保のため
+          後追いで artifact 化（migration / DDL / config
+          変更を build artifact PR に bind）
+  - on-call 以外の break-glass は通常の incident response
+    flow を経由（10_security/11 と整合）。
+
+■ on-call training cadence
+  - 新規 on-call 加入は以下の前提を必須化：
+        - 全 runbook の Backstage TechDocs を一通り読了
+          確認（self-attestation）
+        - chaos drill（Litmus）の参加 ≥ 3 回
+        - red team table top（security 12 と共有）の参加
+          ≥ 1 回
+        - shadow rotation（先輩 on-call に同伴で 2 週間）
+          完了
+  - quarterly drill（game day）：全 on-call は必須参加、
+    ops lead が scenario 主管、Litmus + Tekton で本番
+    cluster の隣接環境で実施
+
+■ rotation の 4 軸 ownership
+  - service ownership table（ownership_table.lock.yaml）
+    で 4 軸を必須化：
+        primary_team（service の primary 担当 team）
+        secondary_team（fallback / cross-team coverage）
+        domain_expert（technical lead / 設計者）
+        ops_liaison（ops lead 側担当者、cross-axis 調整）
+  - 全 service は 4 軸 ownership 必須、未宣言 service の
+    deploy は Kyverno で物理 block。
+  - service の sunset 時は ownership_table の retire entry
+    を merge、retire 後 30 日間は archive ownership 維持
+    （restore_drill / postmortem 対応のため）。
+
+■ on-call 補償（at-supreme-path 適用範囲外）
+  - CLAUDE.md の至高路線（運用コスト度外視）方針に従い、
+    on-call 補償の最適化は ops 規律の対象外。本 spec は
+    rotation 物理 enforcement と fatigue budget の規律のみ
+    宣言、補償条件は別途 HR / labor agreement に委ねる。
+  - ops は fatigue budget 違反を物理発火することで「人的
+    持続性が壊れる前に」業務調整を強制する。
+
+■ 同型構造（13 軸 + meta + security との整合）
+  - 5 yaml 単一の真：
+        rotation_classes.yaml（rotation 5 class enum）
+        roster.lock.yaml（build artifact、rotation 担当
+          者の時刻 grid）
+        ownership_table.lock.yaml（build artifact、4 軸
+          ownership 三項関係、06 アラート方針 と共有）
+        fatigue_log.lock.yaml（build artifact、fatigue
+          budget 履歴）
+        handover_log.lock.yaml（build artifact、handover
+          document の append-only 履歴）
+  - 5 層 defense-in-depth：rotation は層 D / E に必ず
+    物理機構を持つ（Grafana OnCall escalation policy /
+    Kyverno admission policy で gap deploy block）。
+  - CI 不変条件：rotation gap zero / fatigue budget within
+    / handover document complete / ownership full / break-
+    glass audit complete を CI で物理確認。
+
+■ 採用しない方針
+  - 単一 on-call（primary のみ）：禁止、3 階層 escalation
+    必須。
+  - rotation gap allowance：禁止、gap 発生は CI fail。
+  - fatigue budget の cap 緩和：禁止、緩和したい場合は
+    team 増員 / alert tuning / toil 削減で対応。
+  - on-call の 24h 連続 shift：禁止、consecutive_days ≤ 7。
+  - shadow rotation skip：禁止、新規 on-call は 2 週間
+    shadow を必ず経由。
+  - 商用 escalation SaaS（PagerDuty / VictorOps 商用 SLA）
+    依存：採用しない、Grafana OnCall + Mattermost で完結。
+  - rotation 編成の文章 only 管理：禁止、roster.lock.yaml
+    が build artifact、UI 上の swap は audit_event 必須。
+  - break-glass の常用：禁止、incident_ref 必須、reason
+    必須、postmortem PR 必須。
