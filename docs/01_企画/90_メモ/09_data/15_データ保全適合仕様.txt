@@ -103,9 +103,9 @@ data データ保全適合仕様（v1）
       v1_cluster_replicated          | cluster_quorum   | async_cross_cluster        | at_rest + column_envelope   | 300 (5 min)            | 60
       v1_cross_region_replicated     | region_quorum    | sync_cross_region          | at_rest + column_envelope + | 300 (5 min)            | 30
                                      |                  |                            |   topic_payload_envelope    |                        |
-      v1_global_replicated           | global_quorum    | active_active_multi_region | at_rest + column_envelope + | 0 (continuous)         | 14
-                                     |                  |                            |   topic_payload_envelope +  |                        |
-                                     |                  |                            |   archive_triple_wrap       |                        |
+      v1_global_replicated           | global_quorum    | cell_partitioned_multi_region | at_rest + column_envelope + | 0 (per-cell continuous) | 14
+                                     |                  |                               |   topic_payload_envelope +  |                         |
+                                     |                  |                               |   archive_triple_wrap       |                         |
 
   - 各 class の不変条件と典型用途：
 
@@ -175,8 +175,15 @@ data データ保全適合仕様（v1）
             replicas、Ceph multi-site。
           - durability：region_quorum（region 障害でも
             standby が同期受信済の WAL を持つ、RPO=0）。
+            commit latency は cross-region RTT（standby region
+            への WAL apply ack 往復）に支配される物理制約あり
+            （infra01/15 v1_multi_region_active_passive と
+            双方向 lock）。
           - replication_topology：sync_cross_region
-            （synchronous_commit=remote_apply）。
+            （synchronous_commit=remote_apply）。書き込み点は
+            単一 region に固定された active-passive 構造で、
+            CAP 観点では C/A の両立が可能（partition 発生時
+            は standby 側が read-only に縮退）。
           - encryption_layer：at_rest + column_envelope +
             topic_payload_envelope（Kafka payload にも
             envelope）。
@@ -190,27 +197,47 @@ data データ保全適合仕様（v1）
             の業務 SoR。
 
       - v1_global_replicated
-          - 複数 region（≥ 2）が active-active。CloudNativePG
-            cell-based partitioning（per-tenant region affinity）、
-            Kafka MM2 active-active、ClickHouse macro
-            replicas、Ceph RGW multi-site bidirectional。
-          - durability：global_quorum（region 障害でも他
-            region が即時引受、external_dns_multi_region で
-            DNS 切替が秒オーダ）。
-          - replication_topology：active_active_multi_region
-            （cell-partitioned で衝突回避、または CRDT 系）。
+          - 複数 region（≥ 2）が cell-partitioned active-
+            active。CloudNativePG は cell 単位の per-region
+            single-leader（v1_zone_replicated と同型を per-
+            cell で配置）、tenant ↔ cell の affinity で
+            cross-region write を物理排除。Kafka は cell-
+            partitioned topic で partition key を cell_id に
+            固定、MM2 双方向 mirror は read-replication 用途。
+            ClickHouse macro replicas は per-region replicated
+            （cross-region eventual）、Ceph RGW multi-site
+            bidirectional は object key prefix で write owner
+            を home region に固定。
+          - durability：global_quorum（per-cell 視点では
+            region_quorum、cell 集合視点で global）。region
+            障害時、未障害 region の cell は無影響、障害
+            region home の cell のみ predefined fallback cell
+            に automatic_within_window で再 affinity される。
+            external_dns_multi_region は健全 cell には適用
+            されず、被影響 tenant の DNS reassign は DNS TTL
+            に律速（標準で 30〜60 秒）。
+          - replication_topology：cell_partitioned_multi_
+            region。per-tenant region affinity で cross-region
+            write を物理発生させない（true multi-master /
+            CRDT は v1 で採用しない、v2 候補）。
           - encryption_layer：at_rest + column_envelope +
             topic_payload_envelope + archive_triple_wrap
             （archive_to_offline で 3 重 wrap）。
-          - restore_window：0（continuous、書き込みは常時
-            可能）。
+          - restore_window：0（per-cell continuous、未障害
+            cell は常時書込可能）。障害 region home cell の
+            tenant 視点では cell promote 中に短時間 unavailable
+            （RTO は cell promote window 内）。
           - drill：14 日に 1 回、Litmus で 1 region を完全
-            isolation、他 region 全 traffic 引受 + data
-            consistency 維持確認。
-          - 典型：global SaaS、24/7 zero-downtime 業務。本
-            企画の 1.0.0 では「採用可能 class」として宣言、
-            特定業務 pack（製造業 global SCM など）が選択
-            する。
+            isolation、未障害 cell 業務継続 + 障害 cell の
+            within_window 再 affinity + cross-region 同 partition
+            write が発生していない不変条件 + data divergence
+            なしを確認。
+          - 典型：global SaaS、per-tenant 視点 24/7 zero-
+            downtime 業務。本企画の 1.0.0 では「採用可能 class」
+            として宣言、特定業務 pack（製造業 global SCM など）
+            が選択する。「全 tenant 同時 zero-downtime」は cell
+            migration window 中の被影響 tenant について保証
+            しない（per-cell scope の zero-downtime）。
 
   - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務
     シナリオの stress test を本仕様末尾に示す。
@@ -226,12 +253,25 @@ data データ保全適合仕様（v1）
                            上限
     複数粒度を重ねた表現（zone+region 等）は class 内 fixed。
   - replication_topology は同期 model：
-        none                       → 単一 instance のみ
-        sync_within_cluster        → cluster 内 sync
-        async_cross_cluster        → cluster 跨ぎ async
-        sync_cross_region          → region 跨ぎ sync
-        active_active_multi_region → 複数 region が双方向
-                                     write
+        none                            → 単一 instance のみ
+        sync_within_cluster             → cluster 内 sync
+        async_cross_cluster             → cluster 跨ぎ async
+        sync_cross_region               → region 跨ぎ sync。
+                                           書き込み点は単一
+                                           region に固定（active-
+                                           passive）、commit
+                                           latency は cross-region
+                                           RTT に支配される。
+        cell_partitioned_multi_region   → 複数 region で cell
+                                           単位の single-leader、
+                                           tenant ↔ cell affinity
+                                           で cross-region write
+                                           を物理排除。per-cell
+                                           は sync_within_cluster
+                                           相当、cell 間 / region
+                                           間は eventual。CRDT
+                                           系 multi-master は v1
+                                           不採用（v2 候補）。
     混合は class 内 fixed。
   - encryption_layer は暗号化の depth：
         at_rest_only                          → PV LUKS のみ
@@ -247,7 +287,11 @@ data データ保全適合仕様（v1）
         14400 → 4 時間（manual）
         300   → 5 分（automatic, region failover 含む）
         60    → 60 秒（automatic within zone）
-        0     → continuous（active-active）
+        0     → continuous。v1_global_replicated では per-cell
+                 continuous（未障害 cell は常時書込可能）の意味
+                 で、障害 region home cell の tenant 視点では
+                 cell promote window 中に短時間 unavailable に
+                 なり得る。
     class の risk profile が低いほど短い。
   - drill_cadence_days は restore_drill の最大 interval。
     class の risk profile が高いほど短い（global_replicated
@@ -390,21 +434,35 @@ data データ保全適合仕様（v1）
 
               v1_global_replicated:
                 durability: global_quorum
-                replication_topology: active_active_multi_region
+                replication_topology: cell_partitioned_multi_region
                 encryption_layer:
                   at_rest_plus_column_envelope_plus_topic_payload_plus_archive_triple_wrap
-                restore_window_seconds: 0
+                restore_window_seconds: 0   # per-cell continuous
                 drill_cadence_days: 14
                 instance_attributes_required:
-                  - region_ids           # ≥ 2
+                  - region_ids                # ≥ 2
                   - instance_id
-                  - cell_partitioning    # per_tenant_affinity
-                                          # | crdt
-                                          # | cell_per_region
-                  - external_dns_provider
-                kafka_mm2_active_active_required: true
-                clickhouse_macro_replicas_required: true
-                ceph_multi_site_bidirectional_required: true
+                  - cell_partitioning         # per_tenant_affinity
+                                               # | cell_per_region
+                                               # （crdt は v2 候補、
+                                               #   v1 では不採用）
+                  - cell_topology             # cell ↔ home_region 写像
+                  - cell_fallback_map         # 障害時 fallback cell
+                  - external_dns_provider     # DNS TTL に律速
+                kafka_mm2_bidirectional_required: true   # cell-partitioned
+                                                          # topic 前提、
+                                                          # read-replication
+                                                          # 用途
+                clickhouse_macro_replicas_required: true # per-region
+                                                          # replicated、
+                                                          # cross-region
+                                                          # eventual
+                ceph_multi_site_bidirectional_required: true # write owner
+                                                              # は home
+                                                              # region に
+                                                              # 固定
+                cross_region_same_partition_write_forbidden: true
+                cross_region_same_object_key_write_forbidden: true
                 archive_triple_wrap_required: true
                 emits_audit_signal_on_failover: true
 
@@ -473,13 +531,16 @@ data データ保全適合仕様（v1）
                       - rpp_audit_signal_emitted
 
               region_partition_active:
-                description: "1 region 障害（active-active）"
+                description: "1 region 障害（cell-partitioned active-active）"
                 matrix:
                   - when: { class: v1_global_replicated }
                     assertions:
-                      - rpa_other_regions_serve_writes
+                      - rpa_unaffected_cells_continue_serving
+                      - rpa_affected_cells_reaffinity_within_window
                       - rpa_cell_affinity_maintains_no_conflict
-                      - rpa_external_dns_health_check_failed
+                      - rpa_no_cross_region_same_partition_write
+                      - rpa_no_cross_region_same_object_key_write
+                      - rpa_external_dns_reassign_within_ttl
                       - rpa_no_data_divergence
                       - rpa_drill_within_14d
 
@@ -862,15 +923,25 @@ data データ保全適合仕様（v1）
           で green、crypto-erase drill 90 日 cadence で
           green
 
-  - シナリオ 5：global SaaS（24/7 zero-downtime）
+  - シナリオ 5：global SaaS（per-cell 24/7 zero-downtime）
         - preservation_class：v1_global_replicated
-        - instance：cell-partitioned CNP、Kafka MM2 active-
-          active、ClickHouse macro replicas、Ceph multi-site
-          bidirectional
-        - 想定挙動：region 障害でも書き込み継続、external-
-          dns で秒オーダ DNS 切替
+        - instance：cell-partitioned CNP（per-region single-
+          leader）、Kafka cell-partitioned topic + MM2
+          双方向 mirror（read-replication）、ClickHouse
+          macro replicas（per-region replicated、cross-region
+          eventual）、Ceph multi-site bidirectional（write
+          owner home region 固定）
+        - 想定挙動：region 障害時、未障害 region 上の cell
+          は無影響で書き込み継続。障害 region home の cell
+          のみ predefined fallback cell に automatic_within_
+          window で再 affinity（被影響 tenant の DNS reassign
+          は DNS TTL に律速、標準 30〜60 秒）
         - 期待結果：drill 2（per-region failover）14 日
-          cadence で green、cell affinity で row 衝突ゼロ
+          cadence で green、no_cross_region_same_partition_
+          write / no_cross_region_same_object_key_write
+          assertion 連続 green、未障害 cell の zero-downtime
+          維持。被影響 tenant は cell promote window 内に
+          復帰
 
   - シナリオ 6：rotation in-flight（11 鍵管理 cross）
         - preservation_class：v1_zone_replicated 以上

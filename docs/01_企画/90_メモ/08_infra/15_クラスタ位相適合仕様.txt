@@ -93,8 +93,8 @@ infra クラスタ位相適合仕様（v1）
       v1_single_zone                     | zone         | manual                    | strong_local            | single                 | 180
       v1_multi_zone_per_cluster          | cluster      | automatic_within_window   | strong_local            | single                 | 90
       v1_multi_cluster_active_active     | region       | automatic_continuous      | eventual_async          | federated              | 60
-      v1_multi_region_active_passive     | region       | automatic_within_window   | synchronous_replicated  | federated              | 30
-      v1_multi_region_active_active      | global       | automatic_continuous      | synchronous_replicated  | mesh                   | 14
+      v1_multi_region_active_passive     | region       | automatic_within_window   | synchronous_replicated         | federated              | 30
+      v1_multi_region_active_active      | global       | automatic_continuous      | cell_partitioned_synchronous   | mesh                   | 14
 
   - 各 class の不変条件と典型用途：
 
@@ -146,16 +146,28 @@ infra クラスタ位相適合仕様（v1）
             transport mesh。
 
       - v1_multi_region_active_passive
-          - 複数 region（primary + standby ≥ 1）。standby region
-            は読み取り可能だが書き込みは primary のみ。region
-            障害時 Argo Events が standby を promote。
+          - 複数 region（primary + standby ≥ 1）。書き込みは
+            primary region のみ、standby region は read-only
+            replica（昇格前は書込不可、昇格後は新 primary）。
+            region 障害時 Argo Events が standby を promote。
           - failover_mode：自動 / 検出窓 5 分以内（promotion
             手順は predefined runbook、Argo Events trigger で
-            自動実行）。
-          - data_consistency：synchronous_replicated。Postgres
-            CloudNativePG Replica Cluster で WAL streaming、
-            Ceph multi-site sync、Kafka MirrorMaker2 strict
-            ordering。RPO ≈ 0、RTO ≤ 5 分。
+            自動実行）。promote 時は旧 primary を fence した
+            上で standby が新 primary になる（split-brain は
+            CloudNativePG の fence 制御 + 09 data レプリ方針
+            の split-brain 防止節と双方向 lock）。
+          - data_consistency：synchronous_replicated。書き込み
+            点は単一 region に固定された active-passive 構造
+            なので CAP 観点で C/A の両立可能（partition 発生時
+            は standby 側が read-only に縮退）。Postgres
+            CloudNativePG Replica Cluster で WAL streaming
+            （synchronous_commit=remote_apply）、Ceph multi-
+            site sync、Kafka MirrorMaker2 strict ordering。
+            RPO=0、RTO ≤ 5 分。commit latency は cross-region
+            RTT（standby region への WAL apply ack 往復）に
+            支配される物理制約あり（業務 SLO 13 v1_request_
+            latency_p99 の region-pair latency budget と双方向
+            lock）。
           - drill：30 日に 1 回、Litmus で primary region を
             network partition、standby promote → traffic shift
             → primary 復旧 → fallback の full cycle。
@@ -163,24 +175,47 @@ infra クラスタ位相適合仕様（v1）
             data 軸の PII / monetary を扱う Service。
 
       - v1_multi_region_active_active
-          - 複数 region（≥ 2）が active-active で並走、書き込
-            みも全 region 受付。conflict resolution は CRDT /
-            cell-based partitioning / per-tenant region affinity
-            のいずれかで解決。
-          - failover_mode：自動 / 連続。region 障害でも他 region
-            が即時引受、external_dns_multi_region で DNS 切替
-            が秒オーダ。
-          - data_consistency：synchronous_replicated（CRDT 系）
-            または cell-based 分割で「per-tenant に対しては
-            synchronous」。Ceph multi-site bidirectional、
-            Kafka MirrorMaker2 active-active topic、ClickHouse
-            macro replicas。
+          - 複数 region（≥ 2）が active-active で並走。書き込み
+            点は cell 単位で単一 region に固定し、tenant ↔ cell
+            の affinity（cell_per_region）で cross-region write
+            を物理発生させない。CAP 観点では全 region 同期書込
+            みは原理不可能なので、本 class は「cell-partitioned
+            による per-tenant 視点の synchronous」を採用する。
+            CRDT 系の真の multi-master 路線は v1 では採用しない
+            （現行 OSS で MergeTree ベース CRDT が存在しないため、
+            v2 候補の v2_multi_region_crdt_active_active として
+            別 class 化）。
+          - failover_mode：自動 / 連続。意味の厳密化：未障害
+            region の cell 視点では continuous（業務無影響）。
+            障害 region を home とする cell のみ predefined
+            fallback cell に automatic_within_window で再
+            affinity（cell promote 中は当該 cell の writes が
+            短時間 unavailable）。external_dns_multi_region は
+            DNS TTL に律速されるため健全 cell には適用されず、
+            被影響 tenant の DNS reassign が標準で 30〜60 秒。
+          - data_consistency：cell_partitioned_synchronous。
+            各 cell は per-region single-leader（PostgreSQL
+            CloudNativePG synchronous_commit=remote_write、
+            Kafka rack-aware ISR、ClickHouse Replicated MergeTree
+            + region 内 keeper quorum）で per-cell synchronous
+            local。cell 跨ぎ / region 跨ぎは eventual で、
+            ClickHouse macro replicas / Kafka MirrorMaker2 /
+            Ceph RGW multi-site bidirectional は cell-partitioned
+            topic / cell-partitioned bucket prefix 前提の read-
+            replication 経路として位置付ける（同一 partition /
+            object key に複数 region から同時書込まない不変条件
+            を 09 data 層と双方向 lock で保証）。
           - drill：14 日に 1 回、Litmus で 1 region を完全
-            isolation、他 region 全 traffic 引受 + data_consistency
-            維持確認。
-          - 典型：global SaaS、24/7 zero-downtime 業務。本企画
-            の 1.0.0 では「採用可能 class」として宣言、特定
-            業務 pack（製造業 global SCM など）が選択する。
+            isolation、未障害 cell の業務継続 + 障害 cell の
+            within_window 再 affinity + cell-partitioned 不変
+            条件（cross-region 同 partition write が発生していな
+            いこと）の維持確認。
+          - 典型：global SaaS、per-tenant 視点 24/7 zero-downtime
+            業務。本企画の 1.0.0 では「採用可能 class」として
+            宣言、特定業務 pack（製造業 global SCM など）が選択
+            する。「全 tenant 同時 zero-downtime」は cell
+            migration window 中の被影響 tenant について保証
+            しない（per-cell scope で zero-downtime）。
 
   - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナ
     リオの stress test を本仕様末尾に示す。
@@ -196,13 +231,40 @@ infra クラスタ位相適合仕様（v1）
         manual                  → 人間オペレータが trigger
         automatic_within_window → Argo Events / k8s controller
                                    が一定 window 内に trigger
-        automatic_continuous    → 常時 active で復旧 trigger 不要
+        automatic_continuous    → 常時 active で復旧 trigger 不要。
+                                   v1_multi_region_active_active
+                                   では「未障害 cell 視点で
+                                   continuous」を意味し、障害
+                                   region home の cell について
+                                   は automatic_within_window で
+                                   再 affinity される（per-cell
+                                   scope の continuous）。
     混合は class 内 fixed。
   - data_consistency は storage layer の合意モデル：
-        strong_local            → 単一 cluster 内で synchronous
-        eventual_async          → cluster 間で async replication
-        synchronous_replicated  → 複数 region で synchronous
-                                   commit（CRDT 系含む）
+        strong_local                  → 単一 cluster 内で
+                                         synchronous
+        eventual_async                → cluster 間で async
+                                         replication
+        synchronous_replicated        → 複数 region で synchronous
+                                         commit。書き込み点は
+                                         単一 region に固定（active-
+                                         passive 構造）。standby
+                                         region は read-only、
+                                         commit latency は cross-
+                                         region RTT に支配される。
+        cell_partitioned_synchronous  → 複数 region で cell 単位
+                                         の single-leader。tenant
+                                         ↔ cell の affinity で
+                                         cross-region write を
+                                         物理排除し、per-cell は
+                                         synchronous_local、cell
+                                         間 / region 間は eventual。
+                                         CAP 観点では「per-tenant
+                                         視点で synchronous + per-
+                                         cell partition で AP」
+                                         の合成。CRDT 系 multi-
+                                         master は v1 で採用しない
+                                         （v2 候補）。
   - control_plane_locality は kube-apiserver / Istiod / Argo CD
     の所在：
         single    → 単一 cluster の単一 control plane
@@ -341,18 +403,30 @@ infra クラスタ位相適合仕様（v1）
 
               v1_multi_region_active_active:
                 blast_radius: global
-                failover_mode: automatic_continuous
-                data_consistency: synchronous_replicated
+                failover_mode: automatic_continuous   # per-cell scope.
+                                                       # 被影響 cell は
+                                                       # within_window で
+                                                       # 再 affinity。
+                data_consistency: cell_partitioned_synchronous
                 control_plane_locality: mesh
                 drill_cadence_days: 14
                 instance_attributes_required:
-                  - region_ids           # ≥ 2
-                  - conflict_resolution  # crdt | cell_partitioned
-                                          # | per_tenant_affinity
-                  - external_dns_provider
+                  - region_ids                # ≥ 2
+                  - conflict_resolution       # cell_partitioned
+                                               # | per_tenant_affinity
+                                               # （crdt は v2 候補、v1 不採用）
+                  - cell_topology             # cell ↔ home_region 写像
+                  - cell_affinity_policy      # tenant ↔ cell 関数
+                  - cell_fallback_map         # 障害時 fallback cell
+                  - external_dns_provider     # DNS TTL に律速
                   - mesh_root_ca
-                kafka_mirrormaker2_required: true
-                clickhouse_replicated_required: true
+                kafka_mirrormaker2_required: true       # cell-partitioned
+                                                          # topic 前提
+                clickhouse_replicated_required: true    # per-region
+                                                          # replicated、
+                                                          # cross-region は
+                                                          # eventual
+                cross_region_same_partition_write_forbidden: true
                 emits_audit_signal_on_failover: true
 
   ── infra/topology/scenarios.yaml
@@ -402,13 +476,15 @@ infra クラスタ位相適合仕様（v1）
                       - rpp_audit_signal_emitted
 
               region_partition_active:
-                description: "1 region 障害（active-active）"
+                description: "1 region 障害（cell-partitioned active-active）"
                 matrix:
                   - when: { class: v1_multi_region_active_active }
                     assertions:
-                      - rpa_other_regions_serve_writes
-                      - rpa_conflict_resolution_engaged
-                      - rpa_external_dns_health_check_failed
+                      - rpa_unaffected_cells_continue_serving
+                      - rpa_affected_cells_reaffinity_within_window
+                      - rpa_no_cross_region_same_partition_write
+                      - rpa_cell_fallback_map_engaged
+                      - rpa_external_dns_reassign_within_ttl
                       - rpa_no_data_divergence
                       - rpa_drill_within_14d
 
@@ -507,6 +583,15 @@ infra クラスタ位相適合仕様（v1）
                 topology_class: v1_multi_region_active_active
                 region_ids: [jp-east-1, jp-west-1, ap-southeast-1]
                 conflict_resolution: cell_partitioned
+                cell_topology:
+                  cell_jp_e: { home_region: jp-east-1 }
+                  cell_jp_w: { home_region: jp-west-1 }
+                  cell_apse: { home_region: ap-southeast-1 }
+                cell_affinity_policy: per_tenant_hash
+                cell_fallback_map:
+                  cell_jp_e: cell_jp_w
+                  cell_jp_w: cell_jp_e
+                  cell_apse: cell_jp_e
                 external_dns_provider: route53
                 mesh_root_ca: /pki/global-aa
 
@@ -734,8 +819,14 @@ infra クラスタ位相適合仕様（v1）
         rebalance を drill 中も維持）。
   - 32_テナント分離適合仕様：
       - tenant_id GUC（32 app.tenant_id）は cross-region
-        synchronous replicated でも保持される。本仕様 v1_multi_
-        region_active_passive promote 後も RLS FORCE が継続。
+        synchronous replicated（v1_multi_region_active_passive
+        経路、書き込み点単一 region）でも cell_partitioned_
+        synchronous（v1_multi_region_active_active 経路、tenant
+        ↔ cell affinity）でも保持される。前者は standby
+        promote 後も RLS FORCE が継続。後者は cell promote /
+        再 affinity を跨いで同 tenant の app.tenant_id が
+        不変、tenant ↔ cell affinity table が tier2/32 と
+        双方向 lock される。
   - 39_クライアント状態適合仕様：
       - tier3 client-side の Pending Queue / Outbox は本仕様
         の region failover 時に同 user の AuthContext が新
@@ -822,8 +913,12 @@ infra クラスタ位相適合仕様（v1）
                active_active が preservation_substrates.lock
                .yaml の constraints で双方向 lock。
       整合 13: 32 app.tenant_id が cross-region synchronous
-               replicated でも保持されること（cross-axis
-               identifier consistency）。
+               replicated（v1_multi_region_active_passive 経路）
+               および cell_partitioned_synchronous（v1_multi_
+               region_active_active 経路）のいずれでも保持
+               されること。後者では cell promote / 再 affinity
+               を跨いでも同 tenant の app.tenant_id が変わら
+               ないこと（cross-axis identifier consistency）。
 
 ■ 製造業 pack stress test（v1 の正当性証跡）
   - 8 業務シナリオを v1 class に classify し、全て 5 class で
@@ -834,7 +929,7 @@ infra クラスタ位相適合仕様（v1）
       1 | 製造ライン MES の zone failover         | v1_multi_zone_per_cluster          | zp_pods_evicted / istio locality / RTO ≤ 30s
       2 | FA 制御 active-active intra-region      | v1_multi_cluster_active_active     | cp_metallb_bgp / data lag ≤ 2s / 60d drill
       3 | 調達 SCM passive DR                     | v1_multi_region_active_passive     | rpp_promotion / RPO=0 / RTO ≤ 300s
-      4 | 検査データの global active-active       | v1_multi_region_active_active      | rpa_no_divergence / 14d drill
+      4 | 検査データの global active-active       | v1_multi_region_active_active      | rpa_no_cross_region_same_partition_write / cell-partitioned 不変 / 14d drill
       5 | 開発 PoC 単一 AZ                        | v1_single_zone                     | 180d 再構築 dry-run のみ
       6 | etcd quorum の split-brain 防止         | (cross-class)                      | sb_no_double_promotion
       7 | 同時 zone+cluster 障害                  | v1_multi_cluster_active_active     | czcf_graceful_degrade / 15 isolation

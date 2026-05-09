@@ -53,10 +53,13 @@ data 非提供スコープ
   - Redis（BUSL-1.1）：cache / session は Valkey（Redis 7.2.4
     時点 BSD-3 fork、Linux Foundation 管掌）に固定。
   - Cassandra / ScyllaDB：active-active multi-region は
-    PostgreSQL CloudNativePG の cell-based 分割 ＋ Kafka
-    MM2 ＋ ClickHouse Replicated で吸収する。Cassandra の
-    eventual consistency model は本企画の strong_local /
-    synchronous_replicated 路線と整合しない。
+    PostgreSQL CloudNativePG の cell-based 分割（per-tenant
+    region affinity） ＋ Kafka MM2（cell-partitioned topic）
+    ＋ ClickHouse Replicated（per-region replicated）で吸収
+    する。Cassandra の真の multi-master eventual consistency
+    model は本企画の strong_local / synchronous_replicated
+    / cell_partitioned_synchronous 路線と整合しない（v1 では
+    CRDT 系 multi-master を採用しない、v2 候補）。
   - Confluent Schema Registry v5+：Confluent Community License
     のため、schema registry は Apicurio Registry / Karapace
     に固定。

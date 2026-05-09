@@ -48,10 +48,18 @@ data データストア構成方針
       - v1_cross_region_replicated：1 primary（primary
         region）+ 1 sync standby（同 region）+ 1 sync
         standby（standby region）、Replica Cluster で WAL
-        streaming、RPO=0。
-      - v1_global_replicated：cell-based 分割、各 cell が
-        v1_cross_region_replicated 構造、tenant ↔ cell の
-        affinity 注釈で region 跨ぎ書き込み回避。
+        streaming、RPO=0。書き込み点は primary region 単一
+        の active-passive 構造、commit latency は cross-
+        region RTT に支配される。
+      - v1_global_replicated：cell-based 分割、各 cell は
+        per-region single-leader（v1_zone_replicated と同型
+        を per-cell で配置：1 primary + 2 sync standby を
+        cell の home_region 内 zone 分散）。tenant ↔ cell の
+        affinity 注釈で region 跨ぎ書き込みを物理排除（cross-
+        cell write は admission policy で物理発生不能）。
+        cross-region の sync replication は持たない（per-
+        tenant 視点で synchronous + per-cell partition の
+        合成。CRDT 系 multi-master は v1 不採用、v2 候補）。
   - resource：CPU / memory は instance attribute、preservation
     _class からは導出しない（capacity 軸 v1_per_tenant_compute
     が enforcement）。

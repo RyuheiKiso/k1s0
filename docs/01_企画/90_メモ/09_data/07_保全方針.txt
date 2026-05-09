@@ -61,7 +61,9 @@ data 保全方針
         v1_zone_replicated      : RF=3, ISR=2 (rack 跨ぎ)
         v1_cluster_replicated   : RF=3 + MM2
         v1_cross_region_repl.   : RF=3 + MM2 strict-ordering
-        v1_global_replicated    : RF=3 + MM2 active-active
+        v1_global_replicated    : RF=3 + MM2 双方向 mirror
+                                    （cell-partitioned topic
+                                    前提、read-replication 用途）
   - retention.ms：preservation_class 別 default：
         v1_local_only           : 1 d
         v1_zone_replicated      : 7 d
@@ -145,7 +147,11 @@ data 保全方針
         v1_zone_replicated         | 5 s     | 60 s
         v1_cluster_replicated      | 60 s    | 5 min
         v1_cross_region_replicated | 0       | 5 min
-        v1_global_replicated       | 0       | 0 (continuous)
+        v1_global_replicated       | 0       | 0 (per-cell continuous)
+                                    |         |   ※ 障害 region home
+                                    |         |   cell の tenant は
+                                    |         |   cell promote window
+                                    |         |   内に復帰
   - RTO は restore_drill で物理検証（11_復旧訓練方針）、
     drill 期限超過は admission block（Kyverno block-on-
     restore-drill-red）。

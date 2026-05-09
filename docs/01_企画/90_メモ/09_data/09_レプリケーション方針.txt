@@ -47,10 +47,16 @@ data レプリケーション方針
       - PostgreSQL：primary region に 1 primary + 1 sync
         standby、standby region に 1 sync standby（
         synchronous_commit=remote_apply、Replica Cluster
-        モード）、RPO=0。
+        モード）、RPO=0。書き込み点は primary region 単一、
+        commit latency は cross-region RTT に支配される
+        （standby region への WAL apply ack 往復が物理下限、
+        infra01/15 v1_multi_region_active_passive と双方向
+        lock）。
       - Kafka：primary region に RF=3, ISR=2、standby
         region に MirrorMaker2 で strict-ordering async
-        mirror、failover 時 promote。
+        mirror、failover 時 promote。produce 受付は primary
+        region のみ（standby region への producer 直接接続
+        は admission block）。
       - ClickHouse：primary region に Replicated MergeTree、
         standby region に macro replicas（keeper 跨ぎ）、
         DDL は ON CLUSTER で全 region 同期。
@@ -58,17 +64,30 @@ data レプリケーション方針
         replication、object lock は両 region で適用。
 
   - v1_global_replicated
-      - PostgreSQL：cell-based partitioning、各 cell が
-        v1_cross_region_replicated 構造、tenant ↔ cell の
-        affinity で region 跨ぎ書き込みを回避。
-      - Kafka：MirrorMaker2 active-active topic（topic
-        prefix で region 識別）、または cell-partitioned
-        topic で書き込み非衝突。
-      - ClickHouse：macro replicas の active-active、
-        per-tenant region affinity で row 衝突回避、または
-        CRDT 系 MergeTree（v2）。
+      - PostgreSQL：cell-based partitioning、各 cell は
+        per-region single-leader 構造（v1_zone_replicated
+        と同型を per-cell で配置：1 primary + 2 sync
+        standby を cell の home_region 内 zone 分散）。
+        tenant ↔ cell の affinity で region 跨ぎ書き込み
+        を物理排除（cross-region write は admission block
+        で物理発生不能）。CAP 観点では「per-tenant 視点
+        で synchronous + per-cell partition で AP」の合成
+        であり、true multi-master ではない。
+      - Kafka：cell-partitioned topic（partition key を
+        cell_id で固定し、cross-cell の同 partition 書込
+        を発生させない）。MirrorMaker2 は read-replication
+        用途で双方向 mirror（同 partition の cross-region
+        produce は producer 側 admission policy で block）。
+      - ClickHouse：macro replicas は per-region replicated
+        （keeper を region 内独立、cross-region は eventual）。
+        書き込み非衝突は per-tenant region affinity で物理
+        保証（同 row key の cross-region write を発生させない）。
+        CRDT 系 MergeTree は v2 候補（v1 では採用しない、
+        infra01/15 dimension の根拠と整合）。
       - Ceph：RGW multi-site bidirectional sync、object
-        命名に region prefix。
+        命名に cell_id / region prefix を含めて bucket
+        単位の書き込み owner を home region に固定（同 object
+        key の cross-region write を物理発生させない）。
 
 ■ CloudNativePG Replica Cluster
   - mode：streaming replication、synchronous_commit を
@@ -79,7 +98,13 @@ data レプリケーション方針
                                     + async（別 cluster）
         v1_cross_region_repl.   : remote_apply（同 region）
                                     + remote_apply（別 region）
-        v1_global_replicated    : 各 cell 内で remote_apply
+        v1_global_replicated    : 各 cell 内で remote_write
+                                    （cell の home_region 内
+                                    zone 分散 sync）。cross-cell
+                                    / cross-region の sync
+                                    replication は持たない（tenant
+                                    ↔ cell affinity で cross-cell
+                                    write を物理発生させない）。
   - Replica Cluster CR：standby region 側に source primary
     の情報を CR で宣言、CloudNativePG が WAL streaming を
     確立。
@@ -101,7 +126,16 @@ data レプリケーション方針
         - v1_cluster_replicated     : 単方向 async mirror
         - v1_cross_region_repl.     : 単方向 strict-ordering
                                         + offset translation
-        - v1_global_replicated      : 双方向 active-active
+        - v1_global_replicated      : 双方向 mirror（read-
+                                        replication 用途）。
+                                        cell-partitioned topic
+                                        を前提とし、partition key
+                                        は cell_id に固定。同
+                                        partition への cross-region
+                                        produce は producer 側
+                                        admission policy で物理
+                                        block（true active-active
+                                        produce ではない）。
   - topic 命名：mirror 先で `<source-cluster>.<topic-name>`
     prefix を付与（Strimzi default 規約）。
   - schema：Apicurio Registry も MirrorMaker2 経由で同期、
@@ -116,7 +150,12 @@ data レプリケーション方針
     cluster federation。
   - 複数 region：macro replicas、keeper を region 内独立
     （cross-region keeper はしない）、Distributed の
-    `internal_replication=true` で cell 内に push。
+    `internal_replication=true` で cell 内に push。cross-
+    region の同 row key への書き込みは per-tenant region
+    affinity で物理発生させない（v1_global_replicated）。
+    macro replicas の cross-region 間 propagation は
+    eventual で、書き込み非衝突は data 層 admission の
+    write owner 制約に依る。
   - DDL：ON CLUSTER 句で全 replica 同期適用、keeper が
     順序保証。
 
@@ -162,10 +201,17 @@ data レプリケーション方針
     metadata の整合保証、minority partition は read-only。
   - Ceph：RGW multi-site の master / secondary は明示的、
     split-brain 時は secondary が read-only。
-  - 物理機構：infra topology_class の v1_multi_region_active_
-    passive と data preservation_class の v1_cross_region_
-    replicated が双方向 lock、片方だけ宣言する経路は
-    admission block。
+  - 物理機構：infra topology_class と data preservation_
+    class が双方向 lock、片方だけ宣言する経路は admission
+    block：
+        - v1_multi_region_active_passive ↔ v1_cross_region_
+          replicated（書き込み点単一 region、sync WAL apply）
+        - v1_multi_region_active_active  ↔ v1_global_
+          replicated（cell-partitioned、tenant ↔ cell affinity
+          で cross-cell 書き込みを物理発生させない）
+    cross-region の同 partition / 同 row key / 同 object
+    key への並行書き込みは admission policy で物理 block
+    される（true multi-master / CRDT は v1 で採用しない）。
 
 ■ failover orchestration（data 層担当部分）
   - infra 15_クラスタ位相適合仕様 の 5 orchestrator のうち、
