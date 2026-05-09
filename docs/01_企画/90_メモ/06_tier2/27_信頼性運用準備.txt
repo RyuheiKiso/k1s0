@@ -58,7 +58,7 @@ tier2 の信頼性 / 運用準備（DR / SLO / Workflow 運用 / 障害対応）
         review。
   - 計測基盤 : tier1 Metrics（Prometheus）/ Logging
     （ClickHouse）/ Tracing（OTel Collector → ClickHouse、
-    UI は Jaeger Query + CH plugin）の上に SLO 計算
+    UI は Jaeger v2 内蔵 CH storage）の上に SLO 計算
     queries を tier2 が定義し、tier1 のプラットフォーム標準
     UI（Perses）でダッシュボード化する。
 

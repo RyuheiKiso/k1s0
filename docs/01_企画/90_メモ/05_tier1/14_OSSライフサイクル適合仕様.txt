@@ -140,23 +140,22 @@ tier1 OSS ライフサイクル適合仕様（v1）
       - v1_l3_runtime
           - Companion runtime（業務的に併走する OSS）。
           - 例：Headlamp、Kubeshark、Perses、Apache Superset、
-            Jaeger Query、jaegertracing/jaeger-clickhouse
-            (community plugin)、Backstage、PgBouncer、
-            kube-state-metrics、kube-vip、KEDA、MetalLB、OpenTofu、
-            Tilt、Helm、Kustomize、Tekton、cert-manager、ESO、
-            Harbor。
+            Jaeger v2（first-party、内蔵 ClickHouse storage、4-A）、
+            Backstage、PgBouncer、kube-state-metrics、kube-vip、
+            KEDA、MetalLB、OpenTofu、Tilt、Helm、Kustomize、Tekton、
+            cert-manager、ESO、Harbor。
           - 半期 health check：major_up / eol_announced / CVE
-            backlog の 3 trigger。community plugin 系（jaegertracing
-            /jaeger-clickhouse 等）は加えて
-            community_plugin_stagnation trigger を持つ
-            （commit cadence < 1/quarter or open critical issue
-            >= 10/90d）。
+            backlog の 3 trigger。community plugin 系を新規採用する
+            場合は加えて community_plugin_stagnation trigger を
+            持つ（commit cadence < 1/quarter or open critical issue
+            >= 10/90d）。v1 では該当採用 OSS なし（jaegertracing
+            /jaeger-clickhouse は archive 済かつ Jaeger v2 で
+            plugin protocol 廃止のため不採用、4-A）。
           - response：runtime_upgrade_with_compat_test（既存業務
             への影響を Litmus + Testcontainers で確認後、Argo CD
             で rolling）。community_plugin_stagnation 発火時は
-            in_house_fork または migrate_to_jaeger_native_ch_storage
-            （upstream 公式 ClickHouse storage が GA / non-experimental
-            に成熟次第）を選択。
+            in_house_fork または first-party 後継への migrate を
+            選択。
 
       - v1_reserved_category
           - 「予約カテゴリ」（05_提供機能カテゴリ）。Distributed
@@ -207,8 +206,9 @@ tier1 OSS ライフサイクル適合仕様（v1）
         major_up                             | github_releases / semver detection               | new major version published
         community_plugin_stagnation          | github_commits_api / github_issues_api           | commit cadence < 1/quarter or
                                              |                                                  |   open critical issue >= 10/90d
-                                             |                                                  |   (jaegertracing/jaeger-clickhouse
-                                             |                                                  |   等の community plugin に対象限定)
+                                             |                                                  |   (新規採用 community plugin に
+                                             |                                                  |    対象限定、v1 では該当 OSS 無し
+                                             |                                                  |    、4-A 参照)
         webtransport_upstream_maturity_event | envoy github_releases + chrome/edge release      | Envoy WebTransport native GA
                                              |   notes / caniuse api                            |   (non-experimental) かつ Chrome
                                              |                                                  |   / Edge stable で WebTransport

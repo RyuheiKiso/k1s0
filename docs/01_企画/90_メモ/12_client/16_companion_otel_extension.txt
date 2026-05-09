@@ -1,0 +1,99 @@
+============================================================
+.NET Framework Companion OTel 拡張（v1）
+============================================================
+
+■ 位置づけ
+  - 「05_tier1/04_Library」「12_client/11_観測Auto-Instrumentation方針」
+    「05_tier1/09_観測適合仕様」と双方向 lock。
+  - .NET Framework 4.6.2+ の Companion 役割 A（観測可能性）が
+    HttpClient 経路に閉じず、WCF / HttpWebRequest / WebClient /
+    HttpClient の 4 stack 全てで JWT claim → OTel attribute 注入
+    を達成するための拡張パッケージ k1s0.Companion.NetFx.OTelExt
+    の仕様。
+
+■ 不可避性
+  - DelegatingHandler チェーンに hook できるのは HttpClient 経由
+    の outbound のみ。.NET Framework のレガシー資産は WCF /
+    ASMX / WebClient / HttpWebRequest / WinHTTP 直叩きが多く、
+    HttpClient pipeline を通らない経路では Companion NuGet
+    startup hook が機能しない。
+  - opentelemetry-dotnet-instrumentation の CLR Profiler 経路は
+    span 生成までは行うが、Authorization header decode → claim
+    → Activity attribute 注入は標準計装範囲外（CLR Profiler は
+    HTTP / ADO.NET / WCF 等の既知 instrumentation point に対する
+    自動 span 生成を担うが、claim decode は持たない）。
+  - 結果、JWT claim 注入経路が片肺になり、OTel Collector
+    attributes processor の二重持ちでも server 側 decode に
+    限定される（client 側 attribute 不在）。
+
+■ 採用方針（自製 CLR Profiler は採用しない）
+  - CLR Profiler 自製（ICorProfilerCallback 実装）は工数極大 +
+    .NET 更新追従コスト極大のため不採用。
+  - 代替として、signalfx/splunk-otel-dotnet（Apache 2.0、active
+    maintained、4 stack 対応の bytecode instrumentation を OSS
+    で提供）を fork し、k1s0 用 processor を追加した
+    k1s0.Companion.NetFx.OTelExt を配布する。
+
+■ パッケージ構成
+  - k1s0.Companion.NetFx.OTelExt（NuGet package）
+      - 内訳 :
+          - signalfx/splunk-otel-dotnet fork bytecode instrumentation
+          - k1s0 processor : Authorization header → JWT claim
+            decode → Activity.Current.SetTag(tenant_id, subject,
+            actor_id, purpose, delegation_chain)
+          - tier1 OTel Collector OTLP exporter 設定
+      - 配布形態 : NuGet（k1s0 Harbor + nuget.org mirror）。
+      - 適用方法 : application startup で OTelExt.Configure()
+                  を呼ぶ（CLR Profiler の startup hook 経由で
+                  auto-attach、startup hook 不可な環境では
+                  Application_Start 等から手動 init）。
+
+■ 4 stack の hook 点
+  - HttpClient    : DelegatingHandler 自動 inject + bytecode
+                    instrumentation で SocketsHttpHandler /
+                    HttpClientHandler の SendAsync を計装。
+  - HttpWebRequest: HttpWebRequest.GetResponse / BeginGetResponse
+                    を bytecode 計装、request header 中の
+                    Authorization を pickup。
+  - WebClient     : WebClient.DownloadString 系の内部
+                    HttpWebRequest 経路を経由するため、上記
+                    HttpWebRequest の計装で透過対応。
+  - WCF           : ChannelFactory / ClientBase の Invoke 経路を
+                    bytecode 計装、OperationContext から SOAP
+                    header の Authorization を pickup（HTTP binding
+                    の場合）または Message header から custom
+                    binding の token を pickup。
+
+■ Defense-in-depth 二重持ち
+  - 役割 A の attribute 注入は Companion OTel 拡張（client 側）と
+    OTel Collector attributes processor（server 側）の二経路で
+    並立する。片肺障害でも全 span に attribute が必ず乗る。
+  - server 側 Collector は Authorization header を decode して
+    補完（client 側で注入されていない span でも server で attribute
+    付与）。
+
+■ Auto-Instrumentation 非対応環境（4.6.1 以前）
+  - bytecode instrumentation は CLR 4.6.2+ の Auto-Instrumentation
+    に依存する。4.6.1 以前は NuGet 参照型 Companion（startup hook
+    で手動 instrumentation）に degrade する。
+  - 4.6.1 以前環境では HttpClient のみ対応、WCF / HttpWebRequest /
+    WebClient は server 側 Collector 補完に依存する旨を明示。
+
+■ 整合
+  - 整合 1 : 12_client/11_観測Auto-Instrumentation方針 の
+            「Companion NuGet startup hook の DelegatingHandler
+            で JWT claim を pickup」記述は本拡張の bytecode
+            instrumentation 経路に置換。
+  - 整合 2 : 05_tier1/04_Library の Companion 役割 A 注記は
+            「4 stack 全てで claim 注入、4.6.1 以前は HttpClient
+            のみ + Collector 補完で degrade」に書き換え。
+  - 整合 3 : 05_tier1/09_観測適合仕様 整合 5（trace_id 一致）
+            は本拡張で Activity が 4 stack 全てに乗ることで
+            技術的に閉じる。
+  - 整合 4 : 02_採用OSS一覧 の linkage_model に signalfx/splunk-
+            otel-dotnet（Apache 2.0、network_service ではなく
+            dynamic linkage）を追加。
+  - 整合 5 : 13_test/15_検証規律適合仕様 に「.NET Framework 4.6.2
+            + WCF / HttpWebRequest / HttpClient の各 stack で
+            JWT claim が span attribute に乗ることを E2E test で
+            確認」を追加。

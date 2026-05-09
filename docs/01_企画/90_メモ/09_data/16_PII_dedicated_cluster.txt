@@ -1,0 +1,111 @@
+============================================================
+PII 専用 PostgreSQL クラスタ（v1）
+============================================================
+
+■ 位置づけ
+  - 「06_tier2/26_データ保持」「06_tier2/27_信頼性運用準備」
+    「09_data/15_データ保全適合仕様」「10_security/10_PII保護方針」
+    と双方向 lock。
+  - PII の物理的な隔離（backup 経路分離、KEK 分離、retention 分離、
+    crypto-erase 分離）を、業務クラスタとは別 PostgreSQL クラスタ
+    として達成する。
+
+■ 不可避性
+  - PostgreSQL の point-in-time recovery (PITR) は WAL ベース。
+    schema / table 単位での WAL 除外は構造的に不可能。同一
+    クラスタ内で「PII schema だけを backup 対象から外す」と
+    crash recovery / streaming replication / logical decoding
+    のいずれかが必ず破綻する。
+  - 「PII テーブルは backup 対象から分離」を物理的に達成する
+    には、WAL chain そのものを別クラスタに分離するしかない。
+    本ファイルが定義する PII 専用 PostgreSQL クラスタは、
+    これを唯一現実的な解として選択する。
+
+■ 配置
+  - 業務クラスタ : 既存 CloudNativePG 構成（PITR / streaming
+                  replication / RPO 5 min）。PII column は持たない。
+  - PII クラスタ : 本ファイルで新設する独立 CloudNativePG
+                  クラスタ。物理 node は業務クラスタと別 node
+                  pool（共有 node を許さない）。
+  - PII KEK は別 HSM partition、別 OpenBao Transit path。業務
+    クラスタ KEK が漏洩しても PII クラスタは復号不能。
+
+■ 役割
+  - 役割 PII-A : 業務 schema → 業務クラスタ、PII column → PII
+                クラスタ への transparent dual-write
+      - tier2 application は PII 列を含む aggregate を保存する
+        際、業務クラスタには non-PII 列 + pii_ref（不透明 UUID）
+        を atomic 書込し、PII 列は outbox 経由で PII クラスタに
+        非同期書込する。
+      - 業務クラスタ側 outbox は PostgreSQL 単一 transaction 内で
+        aggregate UPDATE + outbox INSERT + audit_local INSERT の
+        3 表 atomic（32_テナント分離適合仕様 と整合）。
+      - PII クラスタ側書込は Debezium で outbox を tail し、
+        eventual consistency。
+  - 役割 PII-B : backup 戦略の分離
+      - 業務クラスタ : PITR（WAL ベース、RPO 5 min）。
+      - PII クラスタ : logical backup のみ（pg_dump --column-inserts
+                       --no-owner 形式、AES-256-GCM 暗号化、
+                       PII KEK で wrap）。
+      - PII クラスタの backup は GDPR / 個情法 retention に厳密
+        準拠（業務 backup の retention とは独立）。
+  - 役割 PII-C : crypto-erase 経路
+      - PII row 単位 crypto-erase は PII クラスタの当該 row の
+        DEK を全 HSM replica で同期 destroy + offline tape の
+        wrapped DEK を revocation manifest に記載。
+      - litigation hold 中の row は erase queue で delay（10
+        security/10_PII保護方針 と整合）。
+  - 役割 PII-D : 参照整合性
+      - 業務クラスタの pii_ref は PII クラスタの primary key を
+        参照する論理 FK。RDBMS レベルの FK constraint は cross-
+        cluster なため張れない。eventual consistency を前提に
+        reconciliation job を 1 時間ごと実行し、孤児 pii_ref を
+        検出。
+      - 検出時は SLO event として記録、業務クラスタ側 row は
+        masking 表示で degrade（業務継続）。
+
+■ dual-write atomicity
+  - 業務クラスタ側に書く outbox イベントは「PII row 書込指示」
+    のみを含む。PII クラスタへの書込は Debezium + tier2 service
+    が冪等に処理する（同 outbox event id を PII クラスタの
+    Idempotency-Key として使う）。
+  - outbox 配信失敗時の業務クラスタ row は「pii_pending」状態
+    として PII column が masking 表示される。SLO event として
+    記録、自動再試行 backoff（指数 + jitter）。
+
+■ cross-cluster referential check の eventual 性
+  - 業務クラスタの pii_ref → PII クラスタの primary key の
+    referential integrity は、cross-cluster なので RDBMS の
+    FK で担保できない。
+  - reconciliation job（1 時間ごと）が両クラスタの pii_ref /
+    PII row 集合を sync して孤児を検出。
+  - 孤児（業務 row 側に pii_ref があるが PII row が無い、その
+    逆）を SLO event として page、業務 row 側は masking 表示で
+    degrade。
+
+■ 副作用
+  - cluster 数が +1（業務クラスタ + PII クラスタ）。CloudNativePG
+    の Cluster CR が tier2 ごと 2 つに。
+  - HSM partition 数が +1（PII KEK 用）。
+  - dual-write の余分な network hop で write latency が +5〜
+    20 ms（許容範囲、SLO に取込済）。
+  - cross-cluster referential check の eventual 性を業務 UI 側
+    が masking 表示で吸収する責務（07_tier3/19_業務エラーUX と
+    整合）。
+
+■ 整合
+  - 整合 1 : 06_tier2/26_データ保持 の「PII テーブルは backup
+            対象から分離する」を本クラスタ分離で達成（同一
+            クラスタ内 schema 除外の記述は撤回）。
+  - 整合 2 : 06_tier2/27_信頼性運用準備 の「PII は業務データと
+            同じ RPO 5 分」は業務クラスタ側 pii_ref のみに適用。
+            PII クラスタ自体は logical backup の retention で
+            別途規定。
+  - 整合 3 : 09_data/15_データ保全適合仕様 の v1_global_replicated
+            に「PII クラスタは別 retention / 別 backup」を追記。
+  - 整合 4 : 10_security/10_PII保護方針 の crypto-erase scope は
+            本クラスタの DEK destroy 経路で物理達成。
+  - 整合 5 : 06_tier2/32_テナント分離適合仕様 の pii_segregated
+            class は本クラスタへの dual-write 規約として再解釈
+            （tenant_id は両クラスタで一致、RLS は両クラスタで
+            並列適用）。

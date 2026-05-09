@@ -106,7 +106,7 @@ tier2 の開発者体験（DX / ローカル開発 / オンボーディング）
     / 「09_Service運用方針」観測可能性節と整合）。
   - 開発時のデバッグ手順 :
       - tier3 の特定リクエストで発火した trace ID を取得。
-      - Jaeger Query UI（CH plugin）（tier1 のプラットフォーム標準 UI、「05_
+      - Jaeger v2 UI（内蔵 CH storage）（tier1 のプラットフォーム標準 UI、「05_
         tier1/06_非提供スコープ」可視化 UI 節）で全 span を
         確認。
       - tier2 業務処理 / Domain Event 発行 / Workflow 起動 /

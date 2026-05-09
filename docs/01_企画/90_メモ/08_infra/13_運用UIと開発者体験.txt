@@ -52,14 +52,15 @@ infra 運用 UI と開発者体験
   - 用途：Prometheus データソースの dashboard。
   - Grafana の AGPL 回避方針を維持（02_採用OSS一覧）。
 
-■ Jaeger Query UI（トレース探索）
-  - L1+ primary：Jaeger Query（Apache 2.0）+ ClickHouse plugin
-    （community 実装、jaegertracing/jaeger-clickhouse、Apache 2.0）。
-    ClickHouse への trace 投入は OTel Collector の clickhouseexporter
-    が担う（02_採用OSS一覧 / 09_観測適合仕様 参照）。
+■ Jaeger v2 UI（トレース探索）
+  - L1+ primary：Jaeger v2（v1.50+、jaegertracing/jaeger、first-party、
+    Apache 2.0）の内蔵 ClickHouse storage（4-A）。ClickHouse への
+    trace 投入は OTel Collector の clickhouseexporter が担う
+    （02_採用OSS一覧 / 09_観測適合仕様 参照）。
   - 用途：分散トレース探索、trace_id 検索。
-  - community plugin の health check は 14_OSSライフサイクル適合仕様
-    の community_plugin_stagnation trigger で監視。
+  - first-party 実装のため community_plugin_stagnation trigger 対象から
+    除外（jaegertracing/jaeger-clickhouse community plugin は 2023 年
+    archive 済 + Jaeger v2 で plugin protocol 廃止のため不採用）。
 
 ■ 開発者 inner loop
   - Tilt：local Kubernetes（kind / k3d）で iterative

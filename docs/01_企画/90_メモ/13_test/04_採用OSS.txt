@@ -13,6 +13,37 @@ test 採用 OSS（test 層 subset）
     仕様 の oss_inventory.lock.yaml に v1_l1plus_primary と
     して登録される。
 
+■ license / linkage_model 規律
+  - 本 layer の採用 OSS は 02_採用OSS一覧 [0] OSS license 規律
+    (NEW-09) に従う。各エントリの linkage_model は {dynamic,
+    static, process_boundary, network_service} のいずれかに
+    分類され、license-checker / cargo-deny / dotnet-licenses で
+    CI 検査される。AGPL / SSPL / BSL / Confluent Community License
+    / Elastic License v2 等は採用禁止。
+  - 本 layer の非 Apache-2.0 採用 OSS の linkage_model :
+      - pytest                (MIT)        : process_boundary
+                                            (test runner CLI)
+      - Vitest                (MIT)        : process_boundary
+      - testify               (MIT)        : static
+      - testing (Go stdlib)   (BSD-3)      : static
+      - Hypothesis            (MPL 2.0)    : process_boundary
+                                            (Python, dynamic at
+                                             runtime / source-only)
+      - jqwik                 (EPL-2.0)    : dynamic
+      - FsCheck               (BSD-3)      : static
+      - Pact (consumer-driven)(MIT)        : process_boundary
+      - Locust                (MIT)        : process_boundary
+      - coverlet              (MIT)        : process_boundary
+      - c8 / istanbul         (ISC/BSD-3)  : process_boundary
+      - JaCoCo                (EPL-2.0)    : process_boundary
+                                            (JVM agent として別 process
+                                             で起動)
+      - gcovr                 (GPL-3)      : process_boundary
+                                            (CLI 起動)
+      - cargo-fuzz / libFuzzer(MIT/NCSA)   : static (Rust binary
+                                                     compile-time link)
+      - Karapace              (Apache 2.0) : network_service
+
 ------------------------------------------------------------
 [1] unit / framework（言語別 1 OSS L1+ 単一深耕）
 ------------------------------------------------------------
@@ -191,8 +222,8 @@ test 採用 OSS（test 層 subset）
                                  |   負荷検証）           |
 
   - Apache JMeter L1+、Gatling / Tsung / Vegeta は採用しない。
-    Grafana k6 は AGPL-3 のため不採用（02 catalog の AGPL 回避
-    方針 / 全 Apache 2.0 統一と整合）。
+    Grafana k6 は AGPL-3 のため不採用（02 catalog [0] OSS license
+    規律 の AGPL 厳禁規律と整合）。
   - Locust は double-bound：Python ベースのテナント業務
     シナリオ（業務 SDK が Python 中心の場合）に限定して
     並列採用、JMeter と同じ scenario corpus を input に取る。

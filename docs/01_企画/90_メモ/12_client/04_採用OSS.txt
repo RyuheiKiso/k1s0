@@ -12,6 +12,29 @@ client 採用 OSS（client 層 subset）
     oss_inventory.lock.yaml に v1_l1plus_primary として登録
     される。
 
+■ license / linkage_model 規律
+  - 本 layer の採用 OSS は 02_採用OSS一覧 [0] OSS license 規律
+    (NEW-09) に従う。各エントリの linkage_model は {dynamic,
+    static, process_boundary, network_service} のいずれかに
+    分類され、license-checker / cargo-deny / dotnet-licenses で
+    CI 検査される。AGPL / SSPL / BSL / Confluent Community License
+    / Elastic License v2 等は採用禁止。
+  - 本 layer の非 Apache-2.0 採用 OSS の linkage_model :
+      - .NET 8 / Framework 4.6.2  (MIT)        : process_boundary
+                                                (CLR runtime 経由)
+      - OpenJDK Temurin 21        (GPLv2+CE)   : process_boundary
+                                                (JVM runtime 経由、
+                                                 Classpath Exception
+                                                 により application
+                                                 linking は許容)
+      - Node.js 20                (MIT)        : process_boundary
+                                                (V8 runtime 経由)
+      - Tauri                     (MIT/Apache) : static
+      - rustc / Rust crate        (MIT/Apache) : static
+      - signalfx/splunk-otel-dotnet fork (Apache 2.0) : dynamic
+                                                (NuGet 動的 link、
+                                                 NEW-04)
+
 ------------------------------------------------------------
 [1] 言語別 SDK ランタイム / 配布
 ------------------------------------------------------------
@@ -228,7 +251,7 @@ client 採用 OSS（client 層 subset）
     Apicurio Registry が単一の真
     → 05_tier1/03_Server系 / 04_Library
   - tier1 認証 / 観測可能性 SoR：Keycloak / OpenTelemetry
-    Collector / ClickHouse / Jaeger Query + CH plugin / Perses
+    Collector / ClickHouse / Jaeger v2 内蔵 CH storage / Perses
     → 05_tier1/09_観測適合仕様 / 10_認証適合仕様
   - tier1 Server 系 transport substrate：Envoy Gateway / Istio
     → 08_infra/04_採用OSS

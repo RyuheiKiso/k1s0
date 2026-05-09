@@ -1,0 +1,140 @@
+============================================================
+protoc-gen-k1s0-go-fsm（v1）
+============================================================
+
+■ 位置づけ
+  - 「06_tier2/19_状態遷移パターン」「06_tier2/12_言語スタック」
+    「12_client/15_クライアントSDK配布適合仕様」と双方向 lock。
+  - aggregate 状態遷移を「型レベルで不正遷移を防止」する規律を、
+    Rust / C# / TypeScript と同等に Go でも compile-time に
+    達成するための protoc plugin。
+
+■ 不可避性
+  - Go は sum type / sealed class を持たず、proto3 codegen は
+    単一 message struct + state enum を生成する。`Draft.confirm()
+    → Confirmed` の型遷移を type system で禁止する経路が標準
+    codegen では存在せず、runtime guard に縮退する。
+  - phantom type pattern + sealed interface（Go 1.18+ generics）
+    で表現は可能だが、protoc の標準 plugin は生成しない。本
+    plugin で proto annotation → phantom-typed wrapper 自動生成
+    を新設する。
+
+■ proto annotation
+  - proto file に k1s0/fsm.proto を import し、aggregate
+    message に annotation を付ける :
+
+      import "k1s0/fsm/v1/fsm.proto";
+
+      message Order {
+        option (k1s0.fsm.v1.aggregate) = {
+          state_field: "state",
+          states: ["Draft", "Confirmed", "Shipped", "Cancelled"],
+          transitions: [
+            { from: "Draft",     to: "Confirmed",  by: "confirm" },
+            { from: "Confirmed", to: "Shipped",    by: "ship"    },
+            { from: "Draft",     to: "Cancelled",  by: "cancel"  },
+            { from: "Confirmed", to: "Cancelled",  by: "cancel"  }
+          ]
+        };
+
+        string id = 1;
+        OrderState state = 2;
+        ...
+      }
+
+      enum OrderState {
+        DRAFT = 0;
+        CONFIRMED = 1;
+        SHIPPED = 2;
+        CANCELLED = 3;
+      }
+
+■ 生成コード（Go）
+  - protoc-gen-k1s0-go-fsm が生成する追加コード（既存 Go struct
+    と並立）:
+
+      // sealed marker interfaces
+      type orderState interface{ isOrderState() }
+      type Draft     struct{}; func (Draft)     isOrderState() {}
+      type Confirmed struct{}; func (Confirmed) isOrderState() {}
+      type Shipped   struct{}; func (Shipped)   isOrderState() {}
+      type Cancelled struct{}; func (Cancelled) isOrderState() {}
+
+      // phantom-typed wrapper
+      type OrderTyped[S orderState] struct{ raw *Order }
+
+      // transitions（許可された遷移のみ method を生やす）
+      func (o OrderTyped[Draft])     Confirm() OrderTyped[Confirmed] {...}
+      func (o OrderTyped[Draft])     Cancel()  OrderTyped[Cancelled] {...}
+      func (o OrderTyped[Confirmed]) Ship()    OrderTyped[Shipped]   {...}
+      func (o OrderTyped[Confirmed]) Cancel()  OrderTyped[Cancelled] {...}
+      // OrderTyped[Shipped] / OrderTyped[Cancelled] には遷移メソッド無し
+
+      // load 経路（DB から読んだ raw を type assertion）
+      func LoadOrder(raw *Order) (any, error) {
+          switch raw.State {
+          case OrderState_DRAFT:     return OrderTyped[Draft]{raw}, nil
+          case OrderState_CONFIRMED: return OrderTyped[Confirmed]{raw}, nil
+          ...
+          }
+      }
+
+  - 不正遷移（OrderTyped[Confirmed].Cancel() 以外で
+    Confirmed → Draft など）はメソッドが存在しないため compile
+    fail（type system が型遷移を強制）。
+
+■ 4 言語同等保証
+  - Rust : phantom type + sealed trait（既存 codegen で対応）。
+  - C#   : sealed record + phantom type parameter（既存 codegen
+          で対応）。
+  - TS   : tagged union + phantom type parameter（既存 codegen
+          で対応）。
+  - Go   : 本 plugin で phantom-typed wrapper + sealed interface
+          を生成。
+  - 結果、4 言語すべてで「不正遷移は compile fail」が物理的に
+    成立。
+
+■ bypass 防止
+  - reflection / unsafe / type assertion 経由で `OrderTyped
+    [Confirmed]` から `OrderTyped[Draft]` へ強制 cast する経路は
+    Go では塞ぎきれない（reflect.New / unsafe.Pointer は禁止
+    できない）。
+  - 防御 :
+      - golangci-lint カスタム rule で reflect.New の
+        OrderTyped[*] 系生成を ban（forbidden_call.lock.yaml）。
+      - Kyverno で staticcheck の SA1019 / unsafe 禁止を CI block。
+      - tier2 application は OrderTyped[*] を直接 reflect で
+        生成しない invariant を CI 検査。
+
+■ proto registration
+  - proto file は Buf で管理、k1s0/fsm/v1/fsm.proto は
+    Buf Schema Registry に登録。
+  - protoc-gen-k1s0-go-fsm は Buf plugin として配布、
+    buf.gen.yaml に plugin entry を追加するだけで生成。
+
+■ 副作用
+  - generics 導入で Go 1.18+ floor が前提（既存規律で 1.21+
+    なので問題なし）。
+  - 生成コード量は現行の 1.5 倍程度（state ごと wrapper 型 +
+    transition method の組合せ）。build time +5〜10% 想定。
+  - load 経路で switch statement が必要、forgot pattern を
+    防ぐため CI で全 enum 値が switch されているかを exhaustivity
+    check（go-exhaustive）。
+
+■ 整合
+  - 整合 1 : 06_tier2/19_状態遷移パターン の「型レベル不正遷移
+            防止」は本 plugin 経由で 4 言語同等成立。runtime
+            guard 縮退記述は撤回。
+  - 整合 2 : 06_tier2/12_言語スタック の Rust/C#/Go/TS 同等
+            保証は本 plugin で技術的に閉じる。
+  - 整合 3 : 12_client/15_クライアントSDK配布適合仕様 の
+            「全 SDK で aggregate 操作 API 同型」は phantom
+            type 表現の言語別差異（generic syntax）を
+            naming-rule.yaml で吸収して proto FQN 等価で
+            担保（1-D と整合）。
+  - 整合 4 : 13_test/15_検証規律適合仕様 に「不正遷移コード
+            サンプルが各言語で compile fail することを golden
+            test」を追加。
+  - 整合 5 : 11_ops/14_強制機構 / 13_test/14_強制機構 に
+            「reflect.New / unsafe による phantom type bypass
+            は CI block」を追加。

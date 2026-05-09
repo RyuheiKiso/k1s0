@@ -3,6 +3,53 @@
 ============================================================
 
 ------------------------------------------------------------
+[0] OSS license 規律
+------------------------------------------------------------
+  - 本企画の OSS 採用規律は次の階層で構成される（旧表現「全
+    Apache 2.0 統一」は撤回し、本節 + linkage_model で精密化
+    する）:
+
+      (a) primary 許容 license（OSI-approved permissive）:
+          Apache 2.0 / MIT / BSD-2/3 / MPL-2.0 / EPL-2.0 /
+          ISC / PostgreSQL License / Unlicense / NCSA。
+          静的 link / 動的 link / process boundary / network
+          service のいずれの linkage でも採用可。
+      (b) LGPL（LGPL-2.1 / LGPL-3.0）:
+          dynamic linkage または network service / process
+          boundary 経路でのみ採用可。静的 link 言語（Go /
+          Rust）への組込は禁止。
+      (c) GPL（GPL-2.0 / GPL-3.0）/ Affero GPL なき GPL:
+          process boundary（subprocess 起動 / CLI / 別 binary
+          配布）または network service 経路でのみ採用可。
+          配布バイナリへの静的 / 動的リンク組込は禁止。
+      (d) AGPL / SSPL / BSL / Confluent Community License /
+          Elastic License v2 / その他 OSI 非準拠 commercial
+          source-available license:
+          採用禁止（既採用が判明した時点で 14_OSSライフ
+          サイクル適合仕様 の代替探索 trigger 起動）。
+      (e) 例外 :
+          ops-edge escalation cluster の last-mile 通知経路
+          （APNs / FCM）に限り、commercial SaaS 例外を許容
+          （11_ops/16_ops_edge_cluster と整合）。本例外は
+          escalation 用途専用、業務継続性を商用 SaaS の SLA
+          に依存させる目的では採用しない。
+
+  - linkage_model 列の標準値（catalog 各エントリに導入）:
+      - dynamic            : 動的リンク（共有ライブラリ / dlopen）
+      - static             : 静的リンク（Go / Rust の compile-time
+                             link）
+      - process_boundary   : 別 process / 別 binary としての起動
+                             （subprocess / CLI / sidecar）
+      - network_service    : 独立 service として network 越しに
+                             利用（HTTP / gRPC / SQL 経由）
+  - 各 OSS catalog エントリは linkage_model を明示する責務を
+    持つ。明示なき場合は static + dynamic 両許容を default と
+    みなす（permissive 系のみ default 許容）。
+  - linkage_model と license の整合性は CI で license-checker /
+    cargo-deny / dotnet-licenses で物理検査する。違反 PR は
+    Kyverno で merge block。
+
+------------------------------------------------------------
 [1] コア基盤 / ランタイム
 ------------------------------------------------------------
   カテゴリ                       | プロダクト                       | ライセンス
@@ -62,9 +109,10 @@
   メトリクス                     | Prometheus                       | Apache 2.0
   ログ / トレース SoR            | ClickHouse                       | Apache 2.0
   ClickHouse Operator            | Altinity ClickHouse Operator     | Apache 2.0
-  トレース UI                    | Jaeger Query + ClickHouse plugin | Apache 2.0
-                                 |   (jaegertracing/jaeger-clickhouse,|
-                                 |    community)                      |
+  トレース UI                    | Jaeger v2 (v1.50+) 内蔵          | Apache 2.0
+                                 |   ClickHouse storage             |
+                                 |   (jaegertracing/jaeger,         |
+                                 |    first-party)                  |
   ログ / ad-hoc 探索 UI          | Apache Superset                  | Apache 2.0
   Continuous Profiling           | Parca                            | Apache 2.0
   k8s 状態メトリクス             | kube-state-metrics               | Apache 2.0
@@ -78,14 +126,15 @@
     BM25 ランキングや形態素解析を業務 SLO に持たず、構造化集計が支配
     的なため、カラムナ OLAP のほうが構造的に最適）。
   ※ trace の SoR 化は OpenTelemetry Collector の clickhouseexporter
-    （CNCF OTel Contrib、Apache 2.0）で行い、Jaeger Query は ClickHouse
-    plugin（community 実装、jaegertracing/jaeger-clickhouse、Apache 2.0）
-    を被せて UI 経路を提供する。Jaeger v2 公式 first-party の ClickHouse
-    storage は upstream 未成熟のため v1 では採用しない。Jaeger UI は
-    トレース調査専用 UI として位置付け、ad-hoc 解析は Apache Superset
-    over ClickHouse に寄せる。community plugin の health check は
-    14_OSSライフサイクル適合仕様 の community_plugin_stagnation
-    trigger で監視する。
+    （CNCF OTel Contrib、Apache 2.0）で行い、UI 経路は Jaeger v2
+    （v1.50+、first-party、Apache 2.0、active maintained）の内蔵
+    ClickHouse storage を採用する（4-A）。jaegertracing/jaeger-clickhouse
+    community plugin（Jaeger v1 用 gRPC storage plugin）は 2023 年に
+    archive 済かつ Jaeger v2 で plugin protocol 自体が廃止されたため、
+    v1 採用候補から除外する。OTel Collector clickhouseexporter のスキーマ
+    と Jaeger v2 内蔵 ClickHouse storage のスキーマ互換性は CI 整合
+    検査で物理確認する。Jaeger UI は トレース調査専用 UI として位置
+    付け、ad-hoc 解析は Apache Superset over ClickHouse に寄せる。
   ※ メトリクス可視化は Perses（CNCF Sandbox、Apache 2.0）を標準採用する
     （Grafana の AGPL 回避方針は維持）。データソースは Prometheus 系に
     限定する。

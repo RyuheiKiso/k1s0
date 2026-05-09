@@ -1,0 +1,105 @@
+============================================================
+audit ingest gap monitor + heartbeat（v1）
+============================================================
+
+■ 位置づけ
+  - 「10_security/09_監査方針」「10_security/15_脅威モデル適合
+    仕様」「11_ops/16_ops_edge_cluster」と双方向 lock。
+  - audit_event hash chain が「書かれた行同士の改竄検知」しか
+    保証できない（ingest 段の loss は chain に現れない）こと
+    を honest に受け止め、ingest pipeline の gap / drop を
+    別経路で検出する仕組みを定義する。
+
+■ 不可避性
+  - hash chain は cryptographic forgery を検知できるが、
+    actor が ingest pipeline（application emit / pgaudit /
+    kube-apiserver audit / Vector）を停止すれば chain は
+    止まらず空白を作るのみ。停止期間中の audit_event は
+    存在しないため、chain は「prev=NULL の新 chain」で
+    継続される。
+  - 「forgery impossibility / 取りこぼしゼロ」表現は強すぎる。
+    実際は「tamper-evident（書かれた行の改竄検知）」+
+    「ingest gap detection（heartbeat insert + gap monitor）」
+    の二経路で初めて閉じる。
+
+■ 役割
+  - 役割 AGM-A : heartbeat insert
+      - 各 ingest source（application emit / pgaudit /
+        kube-apiserver audit / Vector）が 1 minute ごとに
+        synthetic audit_event「ingest_heartbeat」を emit。
+      - heartbeat event は通常の audit_event と同じ chain に
+        混入し、ClickHouse audit table に書込まれる。
+      - heartbeat に含むフィールド : source_id, emitted_at,
+        sequence_number, source_instance_id。
+  - 役割 AGM-B : gap monitor
+      - ClickHouse の audit table を 1 minute ごと query :
+          SELECT source_id, MAX(emitted_at) as latest
+          FROM audit_event
+          WHERE event_type = 'ingest_heartbeat'
+          GROUP BY source_id
+      - latest が現在時刻 - 90 sec を超えた source は gap
+        と判定（1 min interval + 30 sec 余裕）。
+      - audit_ingest_gap_seconds metric を Prometheus に export、
+        SLO 化（gap > 0 で page）。
+  - 役割 AGM-C : kube-apiserver drop 検出
+      - apiserver の `apiserver_audit_event_dropped_total` が
+        > 0 で page。
+      - drop 期間は etcd snapshot から audit log を後追い
+        再構築（secondary etcd audit log redundancy）。
+  - 役割 AGM-D : SPOF 対策
+      - gap monitor 自身の障害は、ops-edge cluster
+        （11_ops/16）から監視。target cluster 側 monitor が
+        idle になると ops-edge から page。
+      - gap monitor の出力（gap event）は target cluster /
+        ops-edge cluster の両方に書込（dual-write）。
+
+■ honest な仕様文言（適用箇所）
+  - 「forgery impossibility」を「tamper-evident（書かれた行の
+    改竄は cryptographic に検知可能、ingest 段の loss は別
+    経路で検出）」に置換。
+  - 「取りこぼしゼロ」を「ingest gap > 0 → CI fail + page」に
+    置換。
+  - 「100% 保存」を「sampling 禁止 + drop 検出 + secondary etcd
+    audit log redundancy + drop 期間は etcd snapshot から後追い
+    再構築」に置換。
+
+■ 適用 ingest source の網羅
+  - source_id 列挙 :
+      - tier1_library_emit       : tier1 Library 内 emit
+      - tier2_application_emit   : tier2 Service 内 emit
+      - postgresql_pgaudit       : PostgreSQL pgaudit extension
+      - kube_apiserver_audit     : k8s apiserver audit policy
+      - vector_pipeline          : Vector → ClickHouse pipeline
+      - openbao_audit            : OpenBao audit device
+      - keycloak_event_listener  : Keycloak event listener SPI
+      - cosign_rekor_log         : cosign / Rekor transparency log
+  - 各 source は heartbeat を 1 min ごと emit する責務を持つ。
+    新 source を追加する際は heartbeat 実装を mandatory として
+    PR review checklist 化。
+
+■ 副作用
+  - heartbeat insert 量 : 1 source × 1 min × 8 sources = 480
+    events/hour × 24 = 11,520 events/day（無視できる量、
+    ClickHouse の throughput に対して < 0.001%）。
+  - gap monitor の自己 SPOF を ops-edge cluster で担保する
+    ため、ops-edge cluster は本機構の運用 prerequisite。
+  - drop 期間の etcd snapshot 後追い再構築は CI batch job
+    で日次実行。再構築コストは drop 頻度に比例（通常運用で
+    drop はゼロ前提）。
+
+■ 整合
+  - 整合 1 : 10_security/09_監査方針 行 76-79 の「forgery
+            impossibility」表現は「tamper-evident + ingest
+            gap detection」に書き換え。
+  - 整合 2 : 10_security/09_監査方針 行 118-119 の「100% 保存」
+            表現は「sampling 禁止 + drop 検出 + secondary
+            etcd audit log redundancy」に書き換え。
+  - 整合 3 : 10_security/15_脅威モデル適合仕様 の audit
+            mitigation pointer に「ingest gap detection」
+            を追加（detective class）。
+  - 整合 4 : 11_ops/16_ops_edge_cluster の役割 OE-D（dead-man）
+            と本機構の SPOF 対策が二重に閉路を作ることを
+            明記。
+  - 整合 5 : 13_test/15_検証規律適合仕様 の Chaos drill に
+            「ingest pipeline kill → 90 sec 以内に gap 検出
+            page」を追加。

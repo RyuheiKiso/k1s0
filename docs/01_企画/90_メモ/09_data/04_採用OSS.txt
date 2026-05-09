@@ -12,6 +12,26 @@ data 採用 OSS（data 層 subset）
     仕様 の oss_inventory.lock.yaml に v1_l1plus_primary と
     して登録される。
 
+■ license / linkage_model 規律
+  - 本 layer の採用 OSS は 02_採用OSS一覧 [0] OSS license 規律
+    (NEW-09) に従う。各エントリの linkage_model は {dynamic,
+    static, process_boundary, network_service} のいずれかに
+    分類され、license-checker / cargo-deny / dotnet-licenses で
+    CI 検査される。AGPL / SSPL / BSL / Confluent Community License
+    / Elastic License v2 等は採用禁止。
+  - 本 layer の非 Apache-2.0 採用 OSS の linkage_model :
+      - PostgreSQL           (PG License) : network_service
+      - pgvector             (PG License) : process_boundary
+                                            (PG extension)
+      - pg_partman           (PG License) : process_boundary
+                                            (PG extension)
+      - PgBouncer            (ISC)        : network_service
+      - Valkey               (BSD-3)      : network_service
+      - Vector               (MPL 2.0)    : process_boundary
+                                            (別 binary daemon)
+      - sqlx-cli             (MIT/Apache) : process_boundary
+                                            (CLI 起動)
+
 ------------------------------------------------------------
 [1] RDB（OLTP）
 ------------------------------------------------------------

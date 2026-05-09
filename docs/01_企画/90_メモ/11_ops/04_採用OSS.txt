@@ -13,6 +13,26 @@ ops 採用 OSS（ops 層 subset）
     仕様 の oss_inventory.lock.yaml に v1_l1plus_primary と
     して登録される。
 
+■ license / linkage_model 規律
+  - 本 layer の採用 OSS は 02_採用OSS一覧 [0] OSS license 規律
+    (NEW-09) に従う。各エントリの linkage_model は {dynamic,
+    static, process_boundary, network_service} のいずれかに
+    分類され、license-checker / cargo-deny / dotnet-licenses で
+    CI 検査される。AGPL / SSPL / BSL / Confluent Community License
+    / Elastic License v2 等は採用禁止。
+  - 本 layer の非 Apache-2.0 採用 OSS の linkage_model :
+      - Mattermost (Team)    (MIT)       : network_service
+      - Telegram OSS bot     (GPLv3)     : process_boundary
+                                          (escalation / 通知 bot
+                                           として独立 binary 起動)
+      - Asterisk             (GPL-2.0)   : network_service
+                                          (NEW-02 ops-edge cluster
+                                           上の独立 SIP service)
+      - APNs / FCM           (commercial): network_service
+                                          (escalation 用途に限り
+                                           02 catalog [0] 例外規律
+                                           で許容、NEW-02 と整合)
+
 ------------------------------------------------------------
 [1] SLO platform / error budget
 ------------------------------------------------------------
@@ -62,8 +82,8 @@ ops 採用 OSS（ops 層 subset）
   - Synthetic 監視は Playwright（test 04 と共有、Apache 2.0）
     のシナリオを Tekton CronWorkflow で定期実行、外形監視は
     blackbox_exporter（http / tcp / dns / icmp）で吸収。
-    Grafana k6 は AGPL-3 のため採用しない（02 catalog の
-    AGPL 回避方針 / 全 Apache 2.0 統一と整合）。
+    Grafana k6 は AGPL-3 のため採用しない（02 catalog [0]
+    OSS license 規律 の AGPL 厳禁規律と整合）。
 
 ------------------------------------------------------------
 [3] on-call / escalation
@@ -89,10 +109,16 @@ ops 採用 OSS（ops 層 subset）
   Identity provider              | Keycloak                         | Apache 2.0
                                  | （infra / tier1/10）             |
 
-  - escalation engine は新規 OSS を追加せず、既採用の Argo
-    Workflows / Tekton / Mattermost / Keycloak の組合せで実装する
-    （Grafana OnCall は AGPL-3 のため不採用、02 catalog の AGPL
-    回避方針 / 全 Apache 2.0 統一と整合）。Argo Workflows の
+  - escalation engine は target cluster 外の独立 ops-edge
+    escalation cluster（11_ops/16_ops_edge_cluster、NEW-02）上で
+    Argo Workflows / Tekton / Mattermost / Keycloak の組合せで実装する。
+    target cluster 障害時にも escalation 経路を維持するため、target
+    cluster 内のみで escalation を組まない（自己観測 invariant
+    矛盾を回避）。Asterisk + 自社契約 SIP trunk 二系統 + APNs / FCM
+    の multi-channel 通知を組み合わせる（APNs / FCM は escalation
+    用途に限り 02 catalog [0] 例外規律で許容）
+    （Grafana OnCall は AGPL-3 のため不採用、02 catalog [0]
+    OSS license 規律 の AGPL 厳禁規律と整合）。Argo Workflows の
     suspend/resume + timeout で long-lived stateful timer / ack 待ち
     を表現し、3 階層 escalation を DAG（page → suspend → timeout
     → re-page → suspend → timeout → manager-page）に展開する。
@@ -208,9 +234,9 @@ ops 採用 OSS（ops 層 subset）
   Trace store                    | ClickHouse             | Apache 2.0
                                  | （02 catalog / data /   |
                                  |   security 共有）       |
-  Trace UI                       | Jaeger Query +         | Apache 2.0
-                                 | ClickHouse plugin      |
-                                 | （tier1/09 共有）       |
+  Trace UI                       | Jaeger v2 内蔵         | Apache 2.0
+                                 | ClickHouse storage     |
+                                 | （tier1/09 共有、4-A） |
   Log store                      | ClickHouse + Vector    | Apache 2.0 / MPL 2.0
                                  | （02 catalog / data /   |
                                  |   security 共有）       |
@@ -219,10 +245,10 @@ ops 採用 OSS（ops 層 subset）
   Log shipping                   | Vector                 | MPL 2.0
                                  | （security / data 共有）|
 
-  - ops は新規 SoR を持ち込まず、Perses / ClickHouse / Jaeger
-    Query + ClickHouse plugin / Vector を共用（Grafana / Tempo /
-    Loki は AGPL-3 のため不採用、02 catalog の AGPL 回避方針 /
-    全 Apache 2.0 統一と整合）。ops_event subject schema は ops
+  - ops は新規 SoR を持ち込まず、Perses / ClickHouse / Jaeger v2
+    内蔵 ClickHouse storage / Vector を共用（Grafana / Tempo /
+    Loki は AGPL-3 のため不採用、02 catalog [0] OSS license 規律 の
+    AGPL 厳禁規律と整合）。ops_event subject schema は ops
     が宣言（security audit_event とは別 subject、immutability
     規律は同等）。
   - dashboard yaml は Perses 形式の build artifact
@@ -233,8 +259,8 @@ ops 採用 OSS（ops 層 subset）
   - Kyverno / cert-manager / OpenBao / External Secrets /
     Argo CD / Argo Rollouts / Tekton / Harbor / Trivy →
     08_infra（GitOps 配信 / 04 採用OSS）
-  - VictoriaMetrics / Prometheus / Perses / Jaeger Query +
-    ClickHouse plugin → 05_tier1/09_観測適合仕様 / infra
+  - VictoriaMetrics / Prometheus / Perses / Jaeger v2 内蔵
+    ClickHouse storage → 05_tier1/09_観測適合仕様 / infra
   - ClickHouse / Vector → 09_data（保全 SoR）/ 10_security
     （audit）
   - Litmus（chaos engine）→ 08_infra/11_Chaos工学方針

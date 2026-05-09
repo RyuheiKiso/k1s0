@@ -259,10 +259,14 @@ ops オンコール方針
   - shadow rotation skip：禁止、新規 on-call は 2 週間
     shadow を必ず経由。
   - 商用 escalation SaaS（PagerDuty / VictorOps 商用 SLA）
-    依存：採用しない、自製 escalation engine（Argo Workflows
-    suspend/resume + Tekton Triggers + Mattermost、新規 OSS
-    追加なし）で完結。Grafana OnCall は AGPL-3 のため不採用
-    （02 catalog の AGPL 回避方針 / 全 Apache 2.0 統一と整合）。
+    依存：採用しない、ops-edge escalation cluster（11_ops/16_
+    ops_edge_cluster、NEW-02）上で Argo Workflows suspend/resume
+    + Tekton Triggers + Mattermost + Asterisk + 自社契約 SIP trunk
+    二系統 + APNs / FCM の組合せで実装する（target cluster 障害
+    時にも escalation 経路を維持）。APNs / FCM は escalation 用途
+    に限り 02 catalog [0] 例外規律で許容。Grafana OnCall は AGPL-3
+    のため不採用（02 catalog [0] OSS license 規律 の AGPL 厳禁規律
+    と整合）。
   - rotation 編成の文章 only 管理：禁止、roster.lock.yaml
     が build artifact、UI 上の swap は audit_event 必須。
   - v1_break_glass（通常 incident、incident_active_

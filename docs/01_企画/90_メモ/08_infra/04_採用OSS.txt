@@ -12,6 +12,23 @@ infra 採用 OSS（infra 層 subset）
     oss_inventory.lock.yaml に v1_l1plus_primary として登録
     される。
 
+■ license / linkage_model 規律
+  - 本 layer の採用 OSS は 02_採用OSS一覧 [0] OSS license 規律
+    (NEW-09) に従う。各エントリの linkage_model は {dynamic,
+    static, process_boundary, network_service} のいずれかに
+    分類され、license-checker / cargo-deny / dotnet-licenses で
+    CI 検査される。AGPL / SSPL / BSL / Confluent Community License
+    / Elastic License v2 等は採用禁止。
+  - 本 layer の非 Apache-2.0 採用 OSS の linkage_model :
+      - OpenBao              (MPL 2.0)   : network_service
+      - Litmus + stress-ng   (GPL-2.0)   : process_boundary
+                                          (Litmus chaos の subprocess
+                                           として起動、配布バイナリ
+                                           には含めない)
+      - Rook + Ceph (RGW)    (LGPL-2.1)  : network_service (Rook
+                                          Operator 経由の独立 service
+                                          として利用)
+
 ------------------------------------------------------------
 [1] cluster コア
 ------------------------------------------------------------
@@ -156,8 +173,8 @@ infra 採用 OSS（infra 層 subset）
     の software template を提供。
 
 ■ 他層所有の OSS（cross 参照）
-  - tier1 観測可能性 SoR：ClickHouse / Jaeger Query + ClickHouse plugin
-    (community, jaegertracing/jaeger-clickhouse) / OpenTelemetry Collector
+  - tier1 観測可能性 SoR：ClickHouse / Jaeger v2 内蔵 ClickHouse storage
+    （jaegertracing/jaeger v2、first-party、4-A）/ OpenTelemetry Collector
     （DaemonSet（per-node gateway）+ Deployment（aggregator with
     tail_sampling）の 2 段構成、09_観測適合仕様 参照）/ Prometheus /
     Apache Superset / Parca / Perses

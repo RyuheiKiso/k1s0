@@ -134,7 +134,7 @@ tier3 の開発者体験（onboarding / starter / debugging）
         配布整合）。
   - cross-tier trace :
       - tier3 の特定リクエストで発火した trace_id を取得し、
-        tier1 Jaeger Query UI（CH plugin）（「06_tier2/30_開発者体験」整合）
+        tier1 Jaeger v2 UI（内蔵 CH storage）（「06_tier2/30_開発者体験」整合）
         で全 span を確認する。
       - tier3 → tier2 業務処理 → Domain Event → Workflow →
         tier1 backend を 1 trace で追える。

@@ -1,0 +1,112 @@
+============================================================
+Tauri Companion sidecar（v1）
+============================================================
+
+■ 位置づけ
+  - 「07_tier3/06_UI技術スタック」「07_tier3/22_端末オフライン
+    デバイス」「07_tier3/30_互換性ポリシー」「07_tier3/38_製造業
+    pack適用例」と双方向 lock。
+  - 全 tier3 Web SPA に Tauri sidecar exe を MDM 必須配布する
+    ことで、Firefox / Safari でも WebUSB / Web Bluetooth /
+    Web Serial 相当の機能を達成する。
+
+■ 不可避性
+  - WebUSB / Web Bluetooth / Web Serial は Chromium 系
+    （Chrome / Edge）でのみ実装。WebKit（Safari）と Gecko
+    （Firefox）は公式に「harmful」表明し実装拒否（W3C TAG
+    response, MDN Compat data, Mozilla position, WebKit
+    standards-positions）。
+  - サポートブラウザを Chrome / Edge / Firefox / Safari の最新
+    +1 全て、業務にバーコード / プリンタ / RFID / ラベル印刷を
+    要求する以上、Firefox / Safari 単独では業務機能を成立させ
+    られない。
+  - sidecar exe を端末に常駐させ、SPA から localhost
+    WebSocket bridge 経由で device access を仲介する経路が
+    唯一の現実解。
+
+■ 配置
+  - 配布 : Tauri 製 native exe（Windows / macOS / Linux 三種）
+          を MDM（Microsoft Intune / Jamf / Workspace ONE 等）
+          で全業務端末に push 配布。
+  - 起動 : OS startup で auto-start、tray icon 常駐。
+  - listen : 127.0.0.1:<random_port>（起動時に決定、Windows
+            registry / macOS launchd plist / Linux systemd
+            user service の per-user state に保存）。
+  - 認証 : SPA との WebSocket handshake は Origin 検証 +
+          per-tenant pre-shared key（k1s0 SDK が BFF 経由で
+          取得）+ TLS（自署 cert を OS keystore に install）。
+
+■ 役割
+  - 役割 TS-A : device adapter（Rust 実装）
+      - WebUSB 相当 : rusb crate で USB device 列挙 / 通信。
+                      バーコードリーダ / プリンタ / RFID
+                      reader 等を支援。
+      - Web Bluetooth 相当 : btleplug crate で BLE peripheral
+                      scan / GATT operation。
+      - Web Serial 相当 : serialport crate で RS-232 / USB-to-
+                      Serial を露出。OPC UA / Modbus / EtherNet/IP
+                      も Tauri sidecar 内 driver で対応（業務
+                      要件に応じて opc-ua / tokio-modbus 等を
+                      bundle）。
+  - 役割 TS-B : SPA bridge
+      - SPA → sidecar : ws://127.0.0.1:<port>/k1s0/v1/{usb,
+                       bluetooth,serial,opcua,modbus} へ
+                       JSON-RPC 2.0 で device 操作を送信。
+      - sidecar → SPA : 非同期 device event を WebSocket
+                       message で push。
+      - 全 message は protobuf binary でも JSON でも可（SDK が
+                       wire を抽象化、proto FQN 等価原則と整合）。
+  - 役割 TS-C : SDK API 同型
+      - SPA SDK は browser native API（Chrome/Edge）と
+        sidecar bridge（Firefox/Safari）を同 SDK 表面 API
+        の adapter として持つ。
+      - browser detect 後、SDK 内部で adapter 自動選択
+        （SPA 業務コードは wire 種別を意識しない、Connect-RPC
+        UA-aware adapter と同じ思想）。
+
+■ v1_no_sidecar capability_class
+  - kiosk / BYOD / MDM 不可端末向けに「sidecar 配布不可」を
+    明示する capability_class を新設。
+  - 該当端末では device 機能は degraded mode（fallback ファイル
+    選択 + サーバ側変換）で提供する旨を 07_tier3/22_端末オフ
+    ラインデバイス が宣言。
+  - capability_matrix.lock.yaml に v1_no_sidecar entry を追加、
+    該当 tier3 機能は「v1_no_sidecar 環境では non-supports」と
+    機械可読に明示。
+
+■ MDM 配布パイプライン
+  - Backstage Software Template に「Tauri sidecar 配布申請」
+    workflow を新設、tier3 ごとの sidecar 設定（device 種別 /
+    pre-shared key / 自署 cert）を生成。
+  - cosign 署名済 sidecar exe を Harbor から MDM service に
+    push、MDM service が端末に install。
+  - sidecar update は MDM の auto-update 機構で配布、cosign
+    verify 後 install。
+  - sidecar 自体の署名鍵は OpenBao Transit + HSM-backed（CI
+    runner には short-lived signing token のみ、4-I 規律と整合）。
+
+■ 副作用
+  - tier3 数 × OS 種別 = sidecar variant 数。Backstage で自動
+    生成・自動署名・自動配布する規律で hand-roll を禁止。
+  - MDM 不可端末は v1_no_sidecar 経路で degrade、UX は劣化する
+    が機能セット自体は保たれる。
+  - sidecar 自体の脆弱性管理は 10_security/08_脆弱性管理方針
+    のスキャン対象に Tauri / Rust crate を追加。
+  - sidecar の API surface は Origin / pre-shared key / TLS の
+    三段で防御、MITM / cross-tier3 attack を構造的に遮断。
+
+■ 整合
+  - 整合 1 : 07_tier3/22_端末オフラインデバイス の「Chrome/Edge
+            のみ」記述を「直 API は Chrome/Edge、Firefox/Safari
+            は Tauri sidecar bridge 経由（本ファイル NEW-05）」
+            に書き換え。
+  - 整合 2 : 07_tier3/06_UI技術スタック のブラウザサポート節は
+            本 sidecar により Firefox/Safari でも device 機能
+            成立する旨を反映。
+  - 整合 3 : 07_tier3/30_互換性ポリシー のブラウザマトリクスは
+            v1_no_sidecar capability_class を追加。
+  - 整合 4 : 07_tier3/38_製造業pack適用例 のバーコード/プリンタ
+            記述は本 sidecar 経由で全ブラウザ成立。
+  - 整合 5 : 12_client/15_クライアントSDK配布適合仕様
+            capability_matrix.lock.yaml に v1_no_sidecar 軸を
+            追加し、機械可読化。

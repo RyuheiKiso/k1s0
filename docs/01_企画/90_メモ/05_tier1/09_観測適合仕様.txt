@@ -29,7 +29,7 @@ tier1 観測適合仕様（v1）
   - signal は 5 class で固定する。
       logs / metrics / traces / profiles / audit の 5 class のみ
       許容。「02_採用OSS一覧」が記述する OSS（ClickHouse / Prometheus
-      / Jaeger Query + CH plugin / Parca）の選定はこの 5 class への
+      / Jaeger v2 内蔵 CH storage / Parca）の選定はこの 5 class への
       1:N マップで決定する。新 signal の追加は破壊的変更（major version up）。
   - SoR と派生関係を一意に固定する。
       各 signal の SoR を 1 ストアに固定する（ClickHouse 一本化方針
@@ -77,10 +77,10 @@ tier1 観測適合仕様（v1）
       logs       | ClickHouse logs table          | OTel SDK → Collector → ClickHouse  | 規制要件次第| Apache Superset (SQL)    | Collector で必須
       metrics    | Prometheus                     | OTel SDK → Collector → Prometheus  | 短期 + 月次 | Perses (PromQL)          | low cardinality
                  |                                |                                    | downsample  |                          | required
-      traces     | ClickHouse traces table        | OTel SDK → DaemonSet Collector     | tail        | Jaeger Query (CH plugin) | Collector で必須
-                 | (clickhouseexporter 投入、     | → loadbalancingexporter           | sampled     |   + Apache Superset      |
-                 |  Jaeger Query は community     |   (routing_key: traceId)          |             |   (SQL JOIN with logs)   |
-                 |  plugin で被せる)              | → tail-sampling Collector         |             |                          |
+      traces     | ClickHouse traces table        | OTel SDK → DaemonSet Collector     | tail        | Jaeger v2 (内蔵 CH       | Collector で必須
+                 | (clickhouseexporter 投入、     | → loadbalancingexporter           | sampled     |   storage, first-party)  |
+                 |  Jaeger v2 first-party storage |   (routing_key: traceId)          |             |   + Apache Superset      |
+                 |  で UI 提供、4-A)              | → tail-sampling Collector         |             |   (SQL JOIN with logs)   |
                  |                                |   Deployment (aggregator)         |             |                          |
                  |                                | → clickhouseexporter → ClickHouse |             |                          |
       profiles   | Parca                          | Parca agent (eBPF / native pull)   | 短期         | Parca UI                 | low cardinality
@@ -131,9 +131,10 @@ tier1 観測適合仕様（v1）
         全 span が同一 Pod に集約されることを段 1 の routing_key で
         保証する。
       - 出口は clickhouseexporter（CNCF OTel Contrib）で ClickHouse
-        traces table に投入。Jaeger Query は ClickHouse plugin
-        （community）で UI 経路を提供（02_採用OSS一覧 / 14_OSSライフ
-        サイクル適合仕様 community_plugin_stagnation trigger 参照）。
+        traces table に投入。UI 経路は Jaeger v2（v1.50+、first-party、
+        Apache 2.0）の内蔵 ClickHouse storage を採用（4-A、02_採用OSS
+        一覧 [2] 参照）。jaegertracing/jaeger-clickhouse community plugin
+        は archive 済 + Jaeger v2 で plugin protocol 廃止のため不採用。
       - HPA で水平 scale。loadbalancingexporter の hash ring が re-shape
         した際の trace split は consistent hashing で最小化、残余の
         部分集約 trace は dropped_partial_trace_count metric で記録。
