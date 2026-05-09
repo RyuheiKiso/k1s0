@@ -1,0 +1,120 @@
+============================================================
+infra クラスタ構成方針
+============================================================
+
+■ 一文方針
+  - cluster は topology_class（15_クラスタ位相適合仕様）の
+    宣言で形が決まり、OpenTofu で IaC 化、Argo CD で配信
+    される。手動操作で構築・変更する経路は持たない。
+
+■ ノードタイプ
+  - control plane node：
+      - kube-apiserver / etcd / kube-controller-manager /
+        kube-scheduler を hosting
+      - 最小 3 台、奇数（quorum 維持）
+      - kube-vip + Layer2 / BGP で control plane VIP 提供
+      - workload は taint で排除（node-role.kubernetes.io/
+        control-plane:NoSchedule）
+
+  - worker node：
+      - tier1 / tier2 / tier3 / data の Pod を hosting
+      - topology_spread_constraints で zone 跨ぎ均等配置
+      - kubelet eviction policy で node 障害時に Pod を
+        他 node へ migrate
+
+  - infra-tools node（オプション）：
+      - Argo CD / Argo Rollouts / Argo Events / Kyverno
+        / cert-manager / OpenBao / Litmus を hosting
+      - taint：infra-tools=true:NoSchedule
+      - tier 各層の Pod が混入しないよう物理隔離
+
+  - storage node（Rook+Ceph / Longhorn 専用）：
+      - OSD / monitor を hosting
+      - taint：storage=true:NoSchedule
+      - local SSD / NVMe を CRUSH map で zone 跨ぎ配置
+
+■ etcd 構成
+  - control plane node 上に co-locate（kubeadm default）
+    または external etcd cluster の二択。本企画は v1 では
+    co-locate を default、v2 で external 候補。
+  - quorum 維持：minimum 3 node、推奨 5 node。
+  - WAL / data dir は local SSD（NVMe 推奨）、Ceph PV は
+    使用しない（latency 観点）。
+  - snapshot は cron で 1 時間ごと、object storage（Ceph
+    RGW）に転送。restore 手順は Argo Events runbook 化。
+
+■ Pod 配置原則
+  - topology_spread_constraints が全 Deployment / StatefulSet
+    に必須（layer A：compile）。
+      - topologyKey: topology.kubernetes.io/zone
+      - whenUnsatisfiable: DoNotSchedule
+      - maxSkew: 1
+  - PodDisruptionBudget が全 Deployment / StatefulSet に
+    必須（layer A：compile）。
+      - minAvailable: ⌈replicas × 2/3⌉ または
+      - maxUnavailable: 1（StatefulSet）
+  - Affinity / Anti-Affinity：
+      - tier1 Server / tier2 Service：node anti-affinity
+        で同 node に同 pod を避ける
+      - data 層 Pod：zone anti-affinity で zone 跨ぎ replica
+  - Priority Class：
+      - system-critical（control plane / cni / csi）
+      - infra-critical（Argo CD / Kyverno / cert-manager）
+      - business-high / business-default / business-batch
+      - dev-best-effort
+
+■ namespace 規約
+  - 階層的 namespace（Hierarchical Namespace Controller / HNC）
+    で tier1 / tier2 / tier3 / infra-tools を root とした
+    sub-namespace 階層を維持。
+      - tier1-system
+        ├ tier1-server
+        ├ tier1-library-runtime
+      - tier2-<domain>
+        ├ tier2-<domain>-service
+        ├ tier2-<domain>-data
+      - tier3-<app>
+      - infra-tools
+        ├ argocd
+        ├ kyverno
+        ├ cert-manager
+        ├ openbao
+      - data-stores
+        ├ postgres-<tenant-pod>
+        ├ kafka
+        ├ clickhouse
+        ├ valkey
+  - tenant 用 namespace：tier2-<domain>-<tenant> の形で
+    isolation、32 RLS と相補的。
+
+■ kubeconfig / アクセス制御
+  - 人間オペレータは Backstage 経由で kubeconfig を発行
+    （短期 OIDC token、最大 8 時間）。kubeconfig の長期
+    保有は禁止。
+  - Argo CD / Argo Rollouts / Argo Events / Kyverno は
+    ServiceAccount + RBAC で必要最小限の権限。
+  - cluster-admin 権限は break-glass 用途のみ、OpenBao の
+    response wrapping で発行、使用時に audit signal 必須。
+
+■ cluster lifecycle
+  - 構築：OpenTofu plan → PR → Argo CD sync で cluster
+    bootstrap。手動 kubeadm init は禁止。
+  - 更新：minor version skew ≤ 1、rolling upgrade window
+    ≤ 30 日。upgrade は GitOps PR で trigger、Argo Rollouts
+    で canary 評価。
+  - 廃棄：OpenTofu destroy plan → 段階的 namespace drain →
+    PV snapshot を cold tier に永久保存（09_data/01 と整合）
+    → cluster 削除。
+  - 再構築検証：dev cluster で四半期に 1 回、OpenTofu replay
+    による完全再構築を実演（dr drill）。
+
+■ at-rest / in-transit 暗号化
+  - etcd encryption at rest：aescbc / kms provider で必須化。
+    encryption key は OpenBao 管理、11 鍵管理適合仕様の
+    v1_kek と整合。
+  - PV at-rest 暗号化：Ceph RBD は Linux Unified Key Setup
+    （LUKS）または Ceph 自体の at-rest encryption。CephFS /
+    RGW も同様。
+  - in-transit：cluster 内通信は Istio mTLS（PERMISSIVE 経過
+    後 STRICT）、cluster 跨ぎは Istio multi-primary mesh の
+    mTLS。kube-apiserver は TLS 1.3。

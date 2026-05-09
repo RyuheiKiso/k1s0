@@ -1,0 +1,102 @@
+============================================================
+infra Chaos 工学方針
+============================================================
+
+■ 一文方針
+  - 全 chaos 実演は Litmus で実装、cadence は 13 軸 + meta
+    の各 spec の drill cadence に従う。chaos test green が
+    1.0.0 ship blocker。
+
+■ Litmus 採用範囲
+  - L1+ primary：Litmus。
+  - 用途：
+      - 15_クラスタ位相適合仕様 の zone_partition / cluster
+        _partition / region_partition_passive / region
+        _partition_active scenario
+      - 09_data/01_データ保全適合仕様 の restore_drill
+      - 13_SLO適合仕様 の chaos_injection_validates_alert
+      - 15_テナント容量適合仕様 の noisy_neighbor_isolation
+        property
+      - 14_OSSライフサイクル適合仕様 の pair_target 移行
+        rehearsal
+      - 11_鍵管理適合仕様 の key rotation drill
+      - 10_認証適合仕様 の AuthContext propagation drill
+
+■ chaos experiment 階層
+  - 階層 1：Pod 単位
+      - pod-delete / pod-cpu-hog / pod-memory-hog / pod-
+        network-loss / pod-network-latency / pod-io-stress
+  - 階層 2：node 単位
+      - node-cpu-hog / node-memory-hog / node-drain / node-
+        taint / node-restart
+  - 階層 3：zone 単位
+      - zone-network-partition（network policy で zone
+        間通信遮断）
+  - 階層 4：cluster 単位
+      - cluster-network-partition（cluster 間 mesh 遮断）
+      - cluster-control-plane-outage（kube-apiserver 停止）
+  - 階層 5：region 単位
+      - region-network-partition（cross-region peering
+        遮断）
+      - region-dns-failure（external-dns 操作）
+
+■ scenario の declarative 化
+  - 各 chaos experiment は ChaosEngine + ChaosExperiment
+    manifest として codify、Argo CD で配信。
+  - scenario の input は yaml で declare、build artifact が
+    Litmus manifest を生成。
+  - scenario 実行結果は failover_drill.lock.yaml /
+    restore_drill.lock.yaml に書き戻し（build artifact）。
+
+■ cadence
+  - cadence は class の risk profile に応じて：
+      - v1_single_zone：180 日
+      - v1_multi_zone_per_cluster：90 日
+      - v1_multi_cluster_active_active：60 日
+      - v1_multi_region_active_passive：30 日
+      - v1_multi_region_active_active：14 日
+      - data preservation_class：preservation_class.restore_
+        drill_cadence_days に従う
+  - cadence 超過は Kyverno admission policy で「新規 deploy
+    block」を発動（drill_cadence_violation scenario）。
+
+■ chaos game day
+  - 月次 game day：制御された環境で人間オペレータが chaos
+    シナリオを実演、runbook の習熟度を測定。
+  - blast radius：staging cluster を default、production
+    cluster での実演は v1_multi_region_active_active 以上で
+    quarterly のみ。
+
+■ assertion / 観測
+  - 各 scenario は 13 SLO の recording rule を assertion 対象。
+  - assertion 失敗 = 13 error budget 消費 + drill red 記録。
+  - assertion success = drill green 記録、failover_drill.lock
+    .yaml に last_green_at を更新。
+
+■ chaos と progressive delivery の連動
+  - Argo Rollouts AnalysisTemplate に chaos experiment を組
+    込み、canary 段階で chaos injection、resilience 検証後に
+    promote。
+  - SLO 違反検出時は Argo Rollouts が automatic rollback。
+
+■ rollback / safety
+  - 全 chaos experiment は scope を namespace / pod selector
+    で限定、cluster-wide blast radius は明示的 game day 以外
+    禁止。
+  - chaos experiment timeout：default 10 分、超過で auto-stop。
+  - emergency stop：Argo Events 経由で全 ChaosEngine を
+    suspend する panic button。
+
+■ chaos audit
+  - 全 experiment 実行は `infra.chaos.experiment.event` として
+    09 観測可能性 SoR に bulk insert（experiment_id /
+    target_namespace / start_at / end_at / result）。
+  - cadence 超過 / drill red も同 audit signal で記録。
+
+■ 採用しない選択肢
+  - Chaos Mesh：Litmus L1+ 深耕のため。Chaos Mesh は 14_OSS
+    ライフサイクル適合仕様 の pair_target 候補（v2）。
+  - hand-crafted shell script chaos：禁止、全 chaos は Litmus
+    declarative manifest 経由。
+  - production cluster での無計画 chaos：禁止、scope と blast
+    radius を必ず宣言。

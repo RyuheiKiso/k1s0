@@ -1,0 +1,169 @@
+============================================================
+infra 採用 OSS（infra 層 subset）
+============================================================
+
+■ 位置づけ
+  - 「02_採用OSS一覧」の grand catalog のうち、infra 層が
+    所有する OSS を抽出して整理したもの。観測可能性 SoR /
+    ID-認証 / アプリケーション基盤 / データストアコアは
+    tier 別の所有として扱われるため本ファイルには含めない
+    （cross 参照で明記）。
+  - 本ファイルの全 OSS は 14_OSSライフサイクル適合仕様の
+    oss_inventory.lock.yaml に v1_l1plus_primary として登録
+    される。
+
+------------------------------------------------------------
+[1] cluster コア
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  コンテナオーケストレーション   | Kubernetes             | Apache 2.0
+  コンテナランタイム             | containerd             | Apache 2.0
+  Control Plane VIP              | kube-vip               | Apache 2.0
+  ベアメタル LB                  | MetalLB                | Apache 2.0
+
+  - Kubernetes minor version skew は ≤ 1（cluster 内 / cluster
+    間）。upgrade window は ≤ 30 日。
+  - containerd は Pod runtime の単一 backend。CRI-O 等の
+    横並びは持たない。
+  - kube-vip は control plane VIP（kube-apiserver / etcd
+    cluster の前段）専用。data plane VIP は MetalLB が担う。
+  - MetalLB は本番 cluster で BGP mode を default、開発で
+    Layer2 mode を許容。
+
+------------------------------------------------------------
+[2] サービスメッシュ / API Gateway
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  サービスメッシュ               | Istio                  | Apache 2.0
+  API Gateway                    | Envoy Gateway          | Apache 2.0
+
+  - Istio は ambient mesh / sidecar mesh のいずれを default
+    にするかを 14 OSS lifecycle 適合仕様で版指定。1.0.0 では
+    sidecar mesh を default、ambient は v2 候補。
+  - Envoy Gateway は tier1 Transport Adapter Layer の
+    substrate（gRPC / HTTP/3 + WebTransport / WebSocket /
+    NDJSON）を担当。
+  - cross-cluster mesh は v1_multi_cluster_active_active /
+    v1_multi_region_active_active で必須。Istio multi-primary
+    mesh + 共通 root CA。
+
+------------------------------------------------------------
+[3] GitOps / 配信
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  GitOps CD                      | Argo CD                | Apache 2.0
+  プログレッシブデリバリー       | Argo Rollouts          | Apache 2.0
+  イベント駆動自動化             | Argo Events            | Apache 2.0
+  CI (主)                        | GitHub Actions runner  | Apache 2.0
+  CI (代替)                      | Tekton                 | Apache 2.0
+
+  - Argo CD は ApplicationSet generator で複数 cluster /
+    複数 namespace に同時 deploy。
+  - Argo Rollouts は AnalysisTemplate で SLO ベース自動
+    rollback。13 SLO の error budget freeze と直結。
+  - Argo Events は v1_multi_region_active_passive の standby
+    promote / region failover trigger を担う。
+  - GitHub Actions self-hosted runner を主、Tekton を代替。
+    両方並走させない（cluster 単位で 1 つを選択）。
+
+------------------------------------------------------------
+[4] サプライチェーン
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  コンテナレジストリ             | Harbor                 | Apache 2.0
+  脆弱性スキャン                 | Trivy                  | Apache 2.0
+  イメージ署名                   | Cosign (Sigstore)      | Apache 2.0
+  SBOM 生成                      | Syft                   | Apache 2.0
+  SBOM 脆弱性スキャン            | Grype                  | Apache 2.0
+  ポリシーエンジン               | Kyverno                | Apache 2.0
+  証明書管理                     | cert-manager           | Apache 2.0
+  シークレット管理               | OpenBao                | MPL 2.0
+  シークレット同期               | External Secrets       | Apache 2.0
+
+  - 全 image は Harbor に push、Cosign で signed、Trivy +
+    Grype + Syft が CI 必須。signed でない image は Kyverno
+    admission policy で reject。
+  - cert-manager は Let's Encrypt / 内部 CA / cross-region
+    DNS01 challenge を担当。
+  - OpenBao は HashiCorp Vault の MPL 2.0 fork。HSM PKCS#11
+    backend は 11 鍵管理適合仕様の v1_hsm_pkcs11 と整合。
+  - External Secrets は OpenBao → Kubernetes Secret の同期。
+    cluster 内に rest している secret は External Secrets
+    経由のもののみ。
+
+------------------------------------------------------------
+[5] スケール / Chaos
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  イベント駆動オートスケーラー   | KEDA                   | Apache 2.0
+  Chaos Engineering              | Litmus                 | Apache 2.0
+
+  - KEDA は ScaledObject per-tenant trigger で 15 capacity
+    の v1_per_tenant_compute を実 enforcement。
+  - Litmus は本仕様の zone_partition / cluster_partition /
+    region_partition_passive / region_partition_active /
+    drill_cadence_violation の chaos experiment を実演。
+
+------------------------------------------------------------
+[6] IaC / マニフェスト
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  IaC                            | OpenTofu               | MPL 2.0
+  マニフェスト管理（自製）       | Kustomize              | Apache 2.0
+  マニフェスト管理（3rd party）  | Helm                   | Apache 2.0
+  ローカル開発                   | Tilt                   | Apache 2.0
+
+  - OpenTofu で cluster 自体を IaC 化。Terraform からの fork、
+    OSS lifecycle 適合仕様で v1_l1plus_primary。
+  - Kustomize / Helm の使い分けは 12_IaC方針.txt に詳細。
+
+------------------------------------------------------------
+[7] ストレージ
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  オブジェクトストレージ         | Rook + Ceph (RGW)      | Apache 2.0
+                                 |                        | / LGPL-2.1
+  分散ブロックストレージ         | Longhorn               | Apache 2.0
+
+  - Rook+Ceph は Object（RGW） / Block（RBD） / File（CephFS）
+    を 1 cluster で兼務可能だが、本企画では Object を default、
+    Block は Longhorn と二重に保有。
+  - Longhorn は PV の per-volume replication、cross-zone
+    replication policy を 07_ストレージ方針.txt で詳細。
+
+------------------------------------------------------------
+[8] 運用 UI / 開発者ポータル
+------------------------------------------------------------
+  カテゴリ                       | プロダクト             | ライセンス
+  -------------------------------+------------------------+---------------
+  k8s Web UI                     | Headlamp               | Apache 2.0
+  API トラフィックビューア       | Kubeshark              | Apache 2.0
+  k8s 状態メトリクス             | kube-state-metrics     | Apache 2.0
+  開発者ポータル                 | Backstage              | Apache 2.0
+
+  - Headlamp / Kubeshark は読み取り / 限定的 trigger 専用。
+    cluster 状態を変更する操作は GitOps 経路のみ（03_非提供
+    スコープ.txt）。
+  - Backstage は service catalog / template scaffolding の
+    開発者ポータルとして infra が運用、tier1 / tier2 / tier3
+    の software template を提供。
+
+■ 他層所有の OSS（cross 参照）
+  - tier1 観測可能性 SoR：ClickHouse / Jaeger v2 / OpenTelemetry
+    Collector / Prometheus / Apache Superset / Parca / Perses
+    → 05_tier1/09_観測適合仕様
+  - tier2 アプリケーション基盤：Temporal / ZEN Engine / OpenFeature
+    / flagd / Apicurio Registry / Buf
+    → 06_tier2 配下
+  - tier1 ID/認証：Keycloak → 05_tier1/10_認証適合仕様
+  - データストアコア：CloudNativePG / PostgreSQL / PgBouncer /
+    Valkey / Kafka(Strimzi) → 09_data 配下、ただし infra が
+    Kubernetes operator 基盤を提供
+  - DB マイグレーション：sqlx-cli → tier1 / tier2 開発者体験
