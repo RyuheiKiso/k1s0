@@ -37,7 +37,8 @@ tier2 の配布形態（Library と Service の両方）
 ■ 同一機能を両形態で提供する場合の API 等価性
   - .proto を単一の真とし、Library 表面 API も Service 表面 API
     も同じ .proto から派生させる。Service 形態は tier1 の Envoy
-    Gateway 経由で gRPC / HTTP+JSON / NDJSON を露出する
+    Gateway 経由で gRPC / HTTP+JSON（unary）/ SSE
+    （text/event-stream、server-streaming）を露出する
     （「05_tier1/03_Server系」Proto 二層化を参照）。
   - 等価性の機械的担保 :
       - Library 実装と Service 実装の双方に対し共通の

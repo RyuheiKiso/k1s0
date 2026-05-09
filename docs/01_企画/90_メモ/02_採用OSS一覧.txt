@@ -16,14 +16,23 @@
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
     Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 +
     WebTransport、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1 + chunked
-    NDJSON（gRPC-JSON Transcoder の print_options.stream_newline_delimited
-    経由）等の
-    transport を同一クラスタ内で並立させる。bidi semantics は proto
-    に宣言された意味論を単一の真とし、各 transport adapter が
-    conformance proof で等価実装する。client-streaming は当面 External
-    Proto に直接出さず unary 射影（resumable upload 形式）で扱う。
-    詳細は「05_tier1/03_Server系」Proto 二層化 / Transport Adapter
-    Layer を参照。
+    SSE（text/event-stream）等の transport を同一クラスタ内で並立
+    させる。本企画では Envoy Gateway 配下の tier1 Rust ハンドラが
+    server-streaming RPC を text/event-stream として直接生成し、
+    Envoy gRPC-JSON Transcoder は unary の HTTP/1.1 + JSON 派生に
+    限定する（Transcoder upstream に SSE 派生 option
+    (stream_sse_style_delimited 相当) は存在せず、本企画として上流
+    寄稿はスコープ外、tier1 Rust ハンドラ内実装で SSE フレーミング
+    規約を完全制御する）。SSE を採用するのは、id: フィールドが
+    Last-Event-ID として標準化されており resume_token の wire 表現を
+    実装独自に拡張せずに済む点と、event: / retry: により adapter 層が
+    扱うべき制御情報を proto 外で正規に運べる点による（NDJSON では
+    これらをヘッダや独自フィールドで再発明する必要がある）。bidi
+    semantics は proto に宣言された意味論を単一の真とし、各 transport
+    adapter が conformance proof で等価実装する。client-streaming は
+    当面 External Proto に直接出さず unary 射影（resumable upload
+    形式）で扱う。詳細は「05_tier1/03_Server系」Proto 二層化 /
+    Transport Adapter Layer を参照。
 
 ------------------------------------------------------------
 [2] オブザーバビリティ

@@ -368,14 +368,17 @@ tier1 観測適合仕様（v1）
               tier3_to_tier2:
                 via: w3c_traceparent_header
                 injected_in: [http_request, websocket_subprotocol,
-                              sse_event_id]
+                              sse_open_request_header_then_data_payload]
               tier2_to_tier1:
                 via: w3c_traceparent_header_or_grpc_metadata
               transport_adapters:
                 grpc_native:        traceparent_metadata
                 web_transport:      traceparent_header
                 websocket:          subprotocol_traceparent
-                sse_paired:         event_id_or_header
+                sse_paired:         traceparent_request_header_at_open
+                                    + traceparent_in_data_payload_per_event
+                                    （SSE id: は resume_token に予約され
+                                    ているため trace_id 用には使わない）
                 long_poll:          query_or_header
                 webhook:            traceparent_header
                 messaging_bridge:   kafka_header_or_amqp_property

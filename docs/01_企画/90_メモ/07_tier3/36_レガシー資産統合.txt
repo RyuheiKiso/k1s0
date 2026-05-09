@@ -24,10 +24,14 @@ tier3 のレガシー資産統合（.NET Framework + Companion）
       - 補助形態 : NuGet 参照型 Companion（Auto-Instrumentation
         非対応環境向け）。
   - 業務 API 消費 :
-      - 業務 API は Envoy Gateway 経由で HTTP/1.1 + JSON /
-        NDJSON 形式で消費する（「05_tier1/04_Library」整合）。
-      - .proto を単一の真とし、Gateway の gRPC-JSON Transcoder
-        で派生されたエンドポイントを利用する。
+      - 業務 API は Envoy Gateway 経由で HTTP/1.1 + JSON
+        （unary）/ HTTP/1.1 + SSE（text/event-stream、
+        server-streaming）形式で消費する（「05_tier1/04_Library」
+        整合）。
+      - .proto を単一の真とし、unary は Gateway の gRPC-JSON
+        Transcoder で派生されたエンドポイント、server-streaming は
+        Gateway 配下の tier1 Rust ハンドラが直接生成する SSE
+        エンドポイントを利用する。
   - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation :
       - Companion が担当する。アプリ側コード変更を最小化する。
 

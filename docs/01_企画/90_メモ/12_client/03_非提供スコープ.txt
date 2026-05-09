@@ -66,7 +66,7 @@ client 非提供スコープ
     場合は client SDK 範囲外。
   - axios / superagent / requests（生 HTTP client）：SDK 内部
     では用途別 transport adapter（gRPC / gRPC-Web / WebSocket
-    / WebTransport / NDJSON）を直接実装し、汎用 HTTP client
+    / WebTransport / SSE）を直接実装し、汎用 HTTP client
     library は SDK の公開 API として露出しない。アプリ作者は
     生 HTTP を直接使うことができない（Adapter 経由の強制）。
   - Redux / MobX / Recoil / Pinia / NgRx（state 管理ライブラリ

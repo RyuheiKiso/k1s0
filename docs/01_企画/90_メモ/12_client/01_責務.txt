@@ -21,7 +21,7 @@ client 責務
       - .proto / Apicurio Registry を単一の真とした SDK
         コード生成（Buf）
       - Transport Adapter Layer の SDK 側投影（gRPC / HTTP/3
-        + WebTransport / WebSocket / NDJSON / gRPC-Web）
+        + WebTransport / WebSocket / SSE / gRPC-Web）
       - 認証コンテキスト伝播（AuthContext / SessionContext /
         OIDC token / Idempotency-Key）の SDK 側 wire 規約
       - リトライ / バックオフ / deadline propagation / 接続

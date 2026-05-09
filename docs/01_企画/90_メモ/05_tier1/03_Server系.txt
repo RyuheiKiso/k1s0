@@ -14,10 +14,15 @@ tier1 Server系（ランタイム成果物）
         からの呼び口を提供する。併せて、観測可能性 / 認証コンテキスト
         の基盤レイヤを担う。
       - 方式：
-          - ビジネス API：.proto を単一の真とし、Envoy Gateway の
-            gRPC-JSON Transcoder で HTTP/1.1 + JSON / NDJSON
-            エンドポイントを派生させる。.proto は External / Internal
-            の 2 層に分離し、Gateway が直接派生対象とするのは External
+          - ビジネス API：.proto を単一の真とし、HTTP/1.1 + JSON
+            （unary）は Envoy Gateway の gRPC-JSON Transcoder で派生、
+            HTTP/1.1 + SSE（text/event-stream、server-streaming）は
+            tier1 Rust ハンドラ内で SSE フレーミングを直接生成する
+            （Transcoder upstream に SSE 派生 option が存在しない現状
+            に対する本企画の選択。詳細は本ファイル末尾「Proto 二層化」
+            External Proto server-streaming の項を参照）。.proto は
+            External / Internal の 2 層に分離し、派生対象（Transcoder
+            unary 派生 + Rust ハンドラ SSE 直接生成）とするのは External
             側のみとする（詳細は本ファイル末尾「Proto 二層化」および
             「RPC 形式の射影方針」を参照）。
           - 観測可能性：W3C Trace Context（traceparent / tracestate /
@@ -80,15 +85,30 @@ tier1 Server系（ランタイム成果物）
   - External Proto
       - 用途：Gateway 経由で Library 非対応言語（.NET Framework など）
         に公開する API 専用。
-      - 制約：Transcoder で安全に JSON / NDJSON 派生できるサブセット
-        に限定する。
-          - server-streaming RPC は許容する。Transcoder の
-            print_options.stream_newline_delimited を有効化し、
-            レスポンスを NDJSON（application/x-ndjson）で派生させる。
-            HTTP/1.1 listener の chunked transfer encoding と組み合わ
-            せ、行単位での逐次消費を担保する。Transcoder のデフォルト
-            （カンマ区切り JSON 配列）はレガシー側のストリーム消費に
-            適さないため採用しない。
+      - 制約：Transcoder で安全に JSON 派生できる unary サブセットに
+        限定する。Transcoder は unary 専用とし、streaming 派生は
+        Transcoder に行わせない。
+          - server-streaming RPC は許容するが、Transcoder の streaming
+            派生機能（stream_newline_delimited による NDJSON 等）には
+            依存しない。Envoy Gateway は server-streaming RPC を
+            tier1 Rust ハンドラ（Gateway 配下、本ファイル「分類」節の
+            Gateway 実装と同一プロセス）にルーティングし、Rust ハンドラ
+            内部で text/event-stream の SSE フレーミング（id: / event:
+            / data: / retry: の各フィールド）を直接生成する。HTTP/1.1
+            listener の chunked transfer encoding と組み合わせ、event
+            単位での逐次消費を担保する。SSE を採用する理由は、id: フィー
+            ルドが Last-Event-ID として標準化されており resume semantics
+            （後述「Transport Adapter Layer」で proto option として宣言
+            される resumable）の wire 表現を実装独自に拡張せずに済む
+            ため。Rust ハンドラ内部実装とすることで、Transcoder upstream
+            に SSE 派生 option（stream_sse_style_delimited 相当）が存在
+            しない現状でも本企画の SSE フレーミング規約（id: を server-
+            assigned monotonic seq に固定する等、後述「Resume / Replay
+            の transport 非依存化」節と整合）を完全制御できる。NDJSON
+            派生（stream_newline_delimited）および Transcoder のデフォ
+            ルト（カンマ区切り JSON 配列）はいずれも resume semantics
+            の wire 表現を持たず、レガシー側の adapter 実装が独自の
+            ヘッダ拡張に依存することになるため採用しない。
           - client-streaming / bidirectional streaming は External
             に直接出さず、後述「RPC 形式の射影方針」に従って unary
             の組み合わせに射影する。
@@ -121,11 +141,14 @@ tier1 Server系（ランタイム成果物）
       - unary
           - External はそのまま JSON 派生（既存のとおり）。
       - server-streaming
-          - External は NDJSON 派生（Transcoder の
-            print_options.stream_newline_delimited）。レガシー側の
-            チャンク消費は Companion 役割 B の sse_paired adapter に
-            委譲する（詳細は「05_tier1/04_Library」Companion 節を
-            参照）。
+          - External は SSE 派生（text/event-stream）。Envoy Gateway は
+            unary を Transcoder で派生させ、server-streaming は tier1
+            Rust ハンドラにルーティングして Rust ハンドラ内で SSE
+            フレーミングを直接生成する（前節「External Proto」server-
+            streaming の項参照）。レガシー側の event 消費・resume は
+            Companion 役割 B の sse_paired adapter に委譲する（SSE id:
+            フィールドを resume_token として用いる。詳細は
+            「05_tier1/04_Library」Companion 節を参照）。
       - client-streaming
           - External には直接出さない。External Proto では
             resumable upload 形式（Init → 分割 PUT → Commit）の
@@ -135,8 +158,8 @@ tier1 Server系（ランタイム成果物）
             意味論を持つ proto 表面」として公開する。射影は wire 形式
             ではなく後述「Transport Adapter Layer」が担う。
           - Adapter は capability negotiation で選択される。outbound
-            のみのレガシーには sse_paired（Open / Send / Receive /
-            Close の unary + server-streaming NDJSON ペア）を既定と
+            のみのレガシーには sse_paired（Open / Send / Close の
+            unary + Receive の server-streaming SSE ペア）を既定と
             して割り当て、inbound 受信能力を持つレガシーには webhook
             adapter を opt-in で割り当てる。WebSocket / WebTransport /
             long_poll / messaging_bridge も同列の選択肢として扱う。
@@ -200,7 +223,8 @@ tier1 Server系（ランタイム成果物）
       grpc_native         | HTTP/2 + gRPC                | Library 対応言語（直結）
       web_transport       | HTTP/3 + QUIC + WebTransport | 将来のモダンクライアント
       websocket           | HTTP/1.1 Upgrade             | モダンブラウザ / .NET 8+
-      sse_paired          | HTTP/1.1 chunked + NDJSON    | .NET Framework 4.6.2+ outbound
+      sse_paired          | HTTP/1.1 chunked + SSE       | .NET Framework 4.6.2+ outbound
+                          | (text/event-stream)          |
       long_poll           | HTTP/1.1 cursor poll         | 長時間接続を切る proxy 越え
       webhook             | inbound POST                 | IIS / WCF 同居型レガシー
       messaging_bridge    | Kafka / AMQP                 | ネットワーク完全分離環境
@@ -248,10 +272,16 @@ tier1 Server系（ランタイム成果物）
         （例：WebSocket → sse_paired）でも session を継続できる。
   - 長期収斂：
       - Adapter Layer の整備が進み、HTTP/3 + WebTransport が標準化
-        と runtime 普及を達成した段階で、External の Transcoder 由来
-        の制約（streaming 不可・Any 不可・well-known の表現）は不要
-        になる。この時点で Proto 二層化は単層へ collapse する
-        （Proto 二層化節「長期方針」を参照）。
+        と runtime 普及を達成した段階で、External Proto の制約
+        （client-streaming / bidi の unary・SSE 射影、Any 不可、
+        well-known の JSON 表現固定）および tier1 Rust ハンドラ内
+        SSE フレーミング生成は不要になる。この時点で Proto 二層化は
+        単層へ collapse し（Proto 二層化節「長期方針」を参照）、
+        sse_paired adapter および Rust ハンドラ内 SSE フレーミング
+        生成経路は同期して退役する。Transcoder upstream への SSE
+        派生 option 寄稿は本企画のスコープ外であり、Transcoder 由来
+        制約の解消は WebTransport 普及による sse_paired 退役そのもの
+        で達成する。
       - 古い adapter（webhook / long_poll / sse_paired）は capability
         宣言から段階的に退役する。proto と業務コードは無変更で遷移
         する。

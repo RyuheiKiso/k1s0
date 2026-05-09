@@ -12,9 +12,9 @@ client Transport 適応方針
   - 上位（公開 API 層）：SDK が公開する Method / Stream / Event
     Subscription の API。アプリ作者はこの層しか触らない。
   - 中位（Adapter 層）：gRPC / gRPC-Web / HTTP/3 + WebTransport
-    / WebSocket / NDJSON / business-API-only HTTP-JSON の各
-    adapter。distribution_class と endpoint capability から
-    自動選択。
+    / WebSocket / SSE（text/event-stream）/ business-API-only
+    HTTP-JSON の各 adapter。distribution_class と endpoint
+    capability から自動選択。
   - 下位（wire 層）：実際の TCP / QUIC / WebSocket frame /
     HTTP/1.1 chunk。SDK ユーザは触らない。
 
@@ -34,8 +34,11 @@ client Transport 適応方針
                           | WebSocket fallback bidi + WebTransport optional
       limited             | unary / server-streaming（HTTP/2 over TLS、
                           | bidi なし。.NET Framework Companion 経路）
-      business_api_only   | unary（HTTP/1.1 + JSON / NDJSON、Envoy Gateway
-                          | gRPC-JSON Transcoder 経由）
+      business_api_only   | unary（HTTP/1.1 + JSON、Envoy Gateway
+                          | gRPC-JSON Transcoder 経由）。server-streaming
+                          | が必要な場合のみ HTTP/1.1 + SSE
+                          | （text/event-stream、tier1 Rust ハンドラが
+                          | SSE フレーミングを直接生成）を併用
 
   - distribution_class → capability_class の bundle 関係：
       v1_full_native_with_companion       → full
@@ -57,9 +60,18 @@ client Transport 適応方針
       3. websocket_bidi         : WebSocket、frame は protobuf binary
                                    （gRPC-Web bidi 不可時の fallback）
       4. webtransport_quic      : HTTP/3 + WebTransport（QUIC stream）
-      5. ndjson_streaming       : HTTP/1.1 chunked + NDJSON line-delimited
-                                   protobuf-json（gRPC-JSON Transcoder server
-                                   streaming）
+      5. sse_streaming          : HTTP/1.1 chunked + SSE
+                                   （text/event-stream、event ごとに
+                                   protobuf-json payload を data: に載せる）。
+                                   server 側は Envoy Gateway 配下の tier1
+                                   Rust ハンドラが SSE フレーミングを直接
+                                   生成（Transcoder の streaming 派生機能
+                                   には依存しない。tier1 03_Server系
+                                   「External Proto」server-streaming の
+                                   項参照）。tier1 03_Server系 の sse_paired
+                                   adapter と双方向 lock。resume_token は
+                                   SSE id: フィールドと Last-Event-ID
+                                   リクエストヘッダで運ぶ。
       6. http_json_unary        : HTTP/1.1 + JSON unary（Envoy Gateway
                                    gRPC-JSON Transcoder unary）
 
@@ -68,9 +80,9 @@ client Transport 適応方針
                             webtransport_quic[opt]}
       web               → {grpc_web_grpc_only, websocket_bidi[bidi 用],
                             webtransport_quic[opt]}
-      limited           → {grpc_web_grpc_only, ndjson_streaming[server-
+      limited           → {grpc_web_grpc_only, sse_streaming[server-
                             streaming], http_json_unary[unary]}
-      business_api_only → {ndjson_streaming, http_json_unary}
+      business_api_only → {sse_streaming[server-streaming], http_json_unary}
 
   - 各 RPC 呼出に対し SDK は次の決定論的順序で adapter を選択：
       1. RPC method の form（unary / server-streaming / client-

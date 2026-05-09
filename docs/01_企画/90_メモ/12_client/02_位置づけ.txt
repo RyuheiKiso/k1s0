@@ -75,9 +75,10 @@ client 位置づけ
         変更不要）+ Companion NuGet を組み合わせ、tier1 Library
         相当の規律を投影する
       - tier1 Library を直接組み込めない言語については、
-        ビジネス API（Envoy Gateway gRPC-JSON Transcoder 経由）
-        と Companion（観測 / 認証 / Transport Negotiation）の
-        二点セットで投影する
+        ビジネス API（Envoy Gateway 経由、unary は gRPC-JSON
+        Transcoder / server-streaming は tier1 Rust ハンドラが
+        直接生成する SSE）と Companion（観測 / 認証 / Transport
+        Negotiation）の二点セットで投影する
 
 ■ 横方向の関係（client ↔ 各層）
   - client ↔ tier1：

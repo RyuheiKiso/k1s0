@@ -39,9 +39,9 @@ tier2 の位置づけ（tier1 / tier3 / Companion との境界）
     Companion の枠を提供する。tier2 はこの枠の上で動作する
     tier3 も第一級の顧客として扱う。
   - tier2 が Library 形態で提供する API は、同等のセマンティクス
-    で Service 形態（Gateway 経由 HTTP/1.1 + JSON / NDJSON）でも
-    提供する。Library 専用機能・Service 専用機能を恒常的に
-    持たない。
+    で Service 形態（Gateway 経由 HTTP/1.1 + JSON unary /
+    HTTP/1.1 + SSE server-streaming）でも提供する。Library
+    専用機能・Service 専用機能を恒常的に持たない。
   - .proto を単一の真とする tier1 の方針に従い、tier2 が Service
     形態で提供する API も .proto を起点とする（External Proto に
     対応する形で派生させる。詳細は「08_配布形態」を参照）。

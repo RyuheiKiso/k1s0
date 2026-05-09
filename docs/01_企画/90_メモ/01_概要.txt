@@ -17,10 +17,12 @@
   - tier1 Library を直接組み込めない言語については、ビジネス API と
     観測可能性を分けて提供する。
       - ビジネス API：tier1 が提供するゲートウェイ経由で infra に
-        アクセスさせる。.proto を単一の真とし、Envoy Gateway の
-        gRPC-JSON Transcoder で HTTP/1.1 + JSON / NDJSON エンドポイント
-        を派生させる（streaming RPC の扱い詳細は「05_tier1/03_Server系」
-        Proto 二層化 / RPC 形式の射影方針を参照）。
+        アクセスさせる。.proto を単一の真とし、HTTP/1.1 + JSON
+        （unary）は Envoy Gateway の gRPC-JSON Transcoder で派生、
+        HTTP/1.1 + SSE（text/event-stream、server-streaming）は
+        tier1 Rust ハンドラ内で SSE フレーミングを直接生成する
+        （streaming RPC の扱い詳細は「05_tier1/03_Server系」Proto
+        二層化 / RPC 形式の射影方針を参照）。
       - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation：
         Companion を別途提供する。.NET Framework 4.6.2+ では
         OpenTelemetry .NET Auto-Instrumentation（CLR Profiler アタッチ

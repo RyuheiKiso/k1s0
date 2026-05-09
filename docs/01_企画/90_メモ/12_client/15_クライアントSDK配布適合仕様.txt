@@ -216,15 +216,17 @@ client クライアント SDK 配布適合仕様（v1）
       - v1_thin_business_api_only
           - 用途：tier1 Library / Companion を組み込めない
             polyglot 環境（C++ / Erlang / Elixir / COBOL /
-            その他）向け。HTTP/JSON via Envoy Gateway gRPC-
-            JSON Transcoder。
+            その他）向け。HTTP/JSON unary は Envoy Gateway
+            gRPC-JSON Transcoder 経由、SSE server-streaming は
+            tier1 Rust ハンドラ直接生成。
           - language_runtime: any。本企画は SDK パッケージを
             提供しない（OpenAPI 仕様 + curl / Postman /
             generator は提供）。
           - distribution_channel: not_provided。OpenAPI yaml
             のみ Harbor 配信。
           - transport_capability_class: business_api_only
-            （HTTP/1.1 + JSON / NDJSON）。
+            （HTTP/1.1 + JSON unary / HTTP/1.1 + SSE
+            text/event-stream server-streaming）。
           - auto_instrumentation_mode: side_companion_proxy
             （独立 OTel Collector sidecar が観測引受、infra
             08 配下）。

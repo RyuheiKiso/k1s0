@@ -12,10 +12,12 @@ tier1 Library 設計方針
   - Library を直接組み込めない言語（.NET Framework など）に対しては、
     ビジネス API と観測可能性を分けて提供する。
       - ビジネス API：tier1 提供のゲートウェイ経由でアクセスする。
-        .proto を単一の真とし、Envoy Gateway の gRPC-JSON Transcoder で
-        HTTP/1.1 + JSON / NDJSON エンドポイントを派生させる
-        （streaming RPC の扱い詳細は「05_tier1/03_Server系」Proto
-        二層化 / RPC 形式の射影方針を参照）。
+        .proto を単一の真とし、HTTP/1.1 + JSON（unary）は Envoy
+        Gateway の gRPC-JSON Transcoder で派生、HTTP/1.1 + SSE
+        （text/event-stream、server-streaming）は tier1 Rust ハンドラ
+        内で SSE フレーミングを直接生成する（streaming RPC の扱い
+        詳細は「05_tier1/03_Server系」Proto 二層化 / RPC 形式の
+        射影方針を参照）。
       - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation：
         Companion を別途提供する。観測可能性と認証コンテキスト伝播
         を役割 A、bidi を含む RPC の transport 選択と等価実装を
@@ -326,9 +328,14 @@ tier1 Library 設計方針
     同様に統一 API（IServerStream<TResp>）で受ける。
   - 同梱 adapter（Companion 側受信実装）：
       sse_paired       : 既定。HttpClient.ResponseHeadersRead を用い
-                         た NDJSON リーダ + 送信用 unary POST。
-                         chunk 消費・キャンセル・再接続・
-                         Last-Event-ID 相当の resume_token を内蔵。
+                         た SSE フレーミングパーサ（data: / id: /
+                         event: / retry: を解釈）+ 送信用 unary POST。
+                         event 消費・キャンセル・再接続を内蔵し、
+                         resume_token は SSE 仕様の id: フィールドを
+                         そのまま使う（Last-Event-ID リクエストヘッダ
+                         で再接続時に server へ送出。.NET Framework に
+                         EventSource ネイティブはないため、パーサは
+                         Companion 内で実装する）。
       long_poll        : cursor 付き short poll の組合せ。長時間
                          接続を切る proxy 越えに用いる。
       webhook          : レガシー側で IIS / WCF / HttpListener が

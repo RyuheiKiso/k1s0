@@ -111,9 +111,10 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
     Transport Adapter Layer により、bidi を含む全 RPC 形式は transport
     （wire 上の搬送方式）からも独立に表現される。
   - これは「異なる transport（HTTP/2 + gRPC / HTTP/3 + WebTransport /
-    HTTP/1.1 + WebSocket / HTTP/1.1 + NDJSON / inbound webhook /
-    cursor poll / messaging bridge 等）が同じ bidi semantics を等価
-    実装する」ことを CI で証明する形で担保される。proto に宣言された
+    HTTP/1.1 + WebSocket / HTTP/1.1 + SSE（text/event-stream）/
+    inbound webhook / cursor poll / messaging bridge 等）が同じ
+    bidi semantics を等価実装する」ことを CI で証明する形で担保
+    される。proto に宣言された
     意味論（ordering / half_close / resumable / max_msg_lag_ms /
     conformance_class）が単一の真であり、transport はその interpreter
     として複数並立する。

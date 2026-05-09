@@ -44,7 +44,7 @@ infra 採用 OSS（infra 層 subset）
     sidecar mesh を default、ambient は v2 候補。
   - Envoy Gateway は tier1 Transport Adapter Layer の
     substrate（gRPC / HTTP/3 + WebTransport / WebSocket /
-    NDJSON）を担当。
+    SSE）を担当。
   - cross-cluster mesh は v1_multi_cluster_active_active /
     v1_multi_region_active_active で必須。Istio multi-primary
     mesh + 共通 root CA。

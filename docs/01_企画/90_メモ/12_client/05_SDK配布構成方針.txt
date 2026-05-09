@@ -36,8 +36,10 @@ client SDK 配布構成方針
                 Python (薄)   : k1s0-companion-python
                 Ruby (薄)     : k1s0-companion-ruby
             - Companion は薄い proxy として動作し、ビジネス
-              API は Envoy Gateway gRPC-JSON Transcoder 経由で
-              tier1 Server に到達する（01_概要.txt 参照）。
+              API は Envoy Gateway 経由で tier1 Server に到達する
+              （unary は gRPC-JSON Transcoder、server-streaming は
+              tier1 Rust ハンドラが直接生成する SSE。01_概要.txt
+              参照）。
       - 3) Auto-Instrumentation パッケージ
             - 全 distribution_class で同型に observability を
               注入する。可能な限り bytecode / IL 改変方式の
@@ -69,7 +71,8 @@ client SDK 配布構成方針
       v1_browser_spa_typescript            | Browser SPA（TypeScript / React / Blazor WASM 等）
       v1_thick_native_via_tauri            | Tauri デスクトップアプリ（Rust + WebView）
       v1_thin_business_api_only            | Library/Companion を組み込めない polyglot 環境向け
-                                           | HTTP/JSON via Envoy Gateway gRPC-JSON Transcoder
+                                           | HTTP/JSON unary は Envoy Gateway gRPC-JSON Transcoder、
+                                           | SSE server-streaming は tier1 Rust ハンドラ直接生成
 
   - 各 class の詳細：
       - v1_full_native_with_companion
@@ -136,8 +139,10 @@ client SDK 配布構成方針
             generator（curl 例、postman collection、OpenAPI
             generator）。本企画は SDK パッケージは提供しない。
           - transport_capability_class: business_api_only
-            （HTTP/1.1 + JSON / NDJSON via Envoy Gateway gRPC-
-            JSON Transcoder）
+            （HTTP/1.1 + JSON unary は Envoy Gateway gRPC-JSON
+            Transcoder 経由、HTTP/1.1 + SSE text/event-stream
+            server-streaming は Envoy Gateway 配下の tier1 Rust
+            ハンドラが直接生成）
           - auto_instrumentation_mode: side_companion_proxy
             （独立 OTel Collector sidecar が観測を引き受け）
           - companion_provision_mode: side_companion_proxy

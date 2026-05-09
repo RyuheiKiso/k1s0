@@ -47,8 +47,11 @@ infra ネットワーク方針
 ■ Envoy Gateway
   - role：tier1 Transport Adapter Layer の substrate。HTTP/2
     + gRPC / HTTP/3 + WebTransport / HTTP/1.1 Upgrade
-    （WebSocket）/ HTTP/1.1 chunked NDJSON を同一 cluster で
-    並立。
+    （WebSocket）/ HTTP/1.1 chunked + SSE（text/event-stream、
+    tier1 Rust ハンドラが SSE フレーミングを直接生成、Envoy
+    gRPC-JSON Transcoder は unary 専用）を同一 cluster で
+    並立。詳細は 05_tier1/03_Server系「External Proto」server-
+    streaming の項を参照。
   - rate limit：Local Rate Limit filter で 15_テナント容量
     適合仕様 の v1_per_tenant_qps を enforcement。cluster
     跨ぎ global rate limit は v2 候補。

@@ -53,11 +53,18 @@ client 採用 OSS（client 層 subset）
   HTTP/3 + WebTransport (server) | quinn / s2n-quic 経由 Companion   | Apache 2.0 / Apache 2.0
   WebSocket (TS)                 | native WebSocket                  | -
   WebSocket (.NET)               | System.Net.WebSockets             | MIT
-  NDJSON parser                  | 自製（言語別、Buf 生成側で固定）  | Apache 2.0
+  SSE parser (Browser)           | native EventSource                | -
+  SSE parser (.NET / 他言語)     | 自製（言語別、Buf 生成側で固定）  | Apache 2.0
 
   - SDK 内部で利用する transport library。gRPC bidi が default、
     Browser は gRPC-Web、HTTP/3 + WebTransport / WebSocket /
-    NDJSON は capability matrix で明示宣言された case のみ。
+    SSE は capability matrix で明示宣言された case のみ。
+  - SSE parser は data: / id: / event: / retry: の 4 directive
+    を解釈する。id: は resume_token として用い、再接続時に
+    Last-Event-ID リクエストヘッダで server へ送出する。
+    Browser 側は EventSource ネイティブで足りるが、.NET
+    Framework など EventSource 非対応環境向けには言語別の
+    自製パーサを Companion 同梱で配布する。
   - 横並びの代替（Connect-go-Web 等）は不採用、v2 候補。
 
 ------------------------------------------------------------

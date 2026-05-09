@@ -6,10 +6,11 @@ tier3 のアプリケーション形態
   - Web SPA :
       - ブラウザ上で動作する Single Page Application。
       - 主要言語は TypeScript（「05_言語スタック」参照）。
-      - tier2 への接続は tier1 Gateway 経由 HTTP/1.1 + JSON /
-        NDJSON、または将来 HTTP/3 + WebTransport（Transport
-        Adapter Layer の capability negotiation で自動選択。
-        「05_tier1/03_Server系」参照）。
+      - tier2 への接続は tier1 Gateway 経由 HTTP/1.1 + JSON
+        （unary）/ HTTP/1.1 + SSE（text/event-stream、
+        server-streaming）、または将来 HTTP/3 + WebTransport
+        （Transport Adapter Layer の capability negotiation で
+        自動選択。「05_tier1/03_Server系」参照）。
   - デスクトップ exe（クロスプラットフォーム） :
       - Windows / macOS / Linux で動作するデスクトップアプリ。
       - 主要言語は C# (.NET 8+) または Rust（Tauri）。
@@ -90,7 +91,8 @@ tier3 のアプリケーション形態
   - .NET Framework 4.6.2+ では tier2 Library / tier1 Library の
     直接組込は不可（「05_tier1/02_言語スタック」「06_tier2/12_言
     語スタック」）。
-  - tier2 Service を Gateway 経由 HTTP/1.1 + JSON / NDJSON で消費
+  - tier2 Service を Gateway 経由 HTTP/1.1 + JSON（unary）/
+    HTTP/1.1 + SSE（text/event-stream、server-streaming）で消費
     する形態に固定する。
   - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation は
     Companion（役割 A / 役割 B）が担う（「05_tier1/04_Library」
