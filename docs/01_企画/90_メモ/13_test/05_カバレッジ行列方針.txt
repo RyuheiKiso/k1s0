@@ -1,0 +1,268 @@
+============================================================
+test カバレッジ行列方針
+============================================================
+
+■ 一文方針
+  - test 軸は 16 軸（07 transport / 08 migration / 09
+    observability / 10 auth / 11 key / 12 schema / 13 SLO /
+    14 OSS-lifecycle / 15 capacity / 32 data-tenant / 39
+    client-state / infra01 topology / data01 preservation /
+    security15 threat-model / client15 SDK distribution /
+    ops15 loop）を行、5 verification_class（v1_type_
+    invariant / v1_property_axiom / v1_contract_pair /
+    v1_scenario_replay / v1_fault_chaos）を列とする 16 × 5
+    = 80 cell の coverage matrix を coverage_matrix.lock
+    .yaml の build artifact として固定し、全 cell が
+    last_green_at + artifact_pointer + cadence_days の 3
+    field を欠かさず保持することを Kyverno admission
+    policy + Conftest custom rule で物理 enforce する。
+
+■ 設計原則
+  - matrix の単一の真：coverage_matrix.lock.yaml は build
+    artifact、手書き禁止。input は (a) 各軸 spec が宣言
+    する verification_claim entry、(b) test framework が
+    出力する execution result、(c) chaos blueprints.lock
+    .yaml の last_green_at、の三系統。
+  - 全 cell 必須 field（5 field）：
+        - cell_id：`<axis>__<verification_class>` の文字列
+          PK
+        - artifact_pointer：実 artifact への relative path
+          （pact / Playwright trace / chaos blueprint /
+            mutation report / coverage XML / property test
+            corpus）
+        - last_green_at：直近 green の UTC ISO8601
+        - cadence_days：許容 staleness 日数（class × axis
+          ごとに enum 化）
+        - owner_4axis：service_owner / domain_owner /
+          framework_owner / drill_owner の 4 軸 owner ID
+  - dimension override 禁止：cell ごとに
+    cadence_days を override する経路は持たない。class ×
+    axis の組合せが要求する staleness は class_axis_
+    cadence_table.yaml に enum として宣言、cell 側で
+    override 不可。緩めたいときは新 verification_class を
+    切る。
+  - dead spec を CI で殺す：matrix に entry がない (axis
+    × class) 組合せ、artifact_pointer の指す path が物理
+    に存在しない cell、cadence_days を超過した cell、
+    owner_4axis 4 軸のうち 1 つでも `unassigned` を含む
+    cell は CI fail（Conftest）。
+  - 80 cell 全 green が 1.0.0 ship blocker：90 cell（v2 で
+    20 軸 × 5 class = 100 cell）に拡張可能、v1 では 80 /
+    80 が release_gate.lock.yaml の AND-gate 入力。
+
+■ 5 verification_class（列、bundle）
+  - v1_type_invariant：
+        - 軸ごとの「型 / schema が compile-time に保証
+          すべき不変条件」、artifact は TypeScript /
+          Rust / Go / Java type test、buf-breaking、
+          jsonschema / CUE constraint
+        - cadence_days：1（PR ごと、daily refresh）
+        - primary tool：tsc / cargo check / go vet / Buf /
+          jsonschema / CUE
+        - cross-axis bind：12 schema 軸の Buf-breaking と
+          双方向 lock
+  - v1_property_axiom：
+        - 軸ごとの「ランダム入力に対する性質ベース不変
+          条件」、artifact は Hypothesis / fast-check /
+          proptest / jqwik の corpus + seed + report
+        - cadence_days：7（weekly green）
+        - primary tool：Hypothesis / fast-check / proptest
+          / jqwik / FsCheck
+        - cross-axis bind：32 RLS FORCE / 39 client state
+          machine / 08 migration phase の stateful property
+  - v1_contract_pair：
+        - 軸ごとの「隣接層との contract（producer-consumer
+          / peer-peer）が一致する不変条件」、artifact は
+          Pact / Pact Broker pact contract
+        - cadence_days：3（PR + nightly Pact verification）
+        - primary tool：Pact / Pact Broker / Buf
+        - cross-axis bind：07 transport / 12 schema /
+          client15 SDK distribution / 14 OSS-lifecycle
+          pair_target
+  - v1_scenario_replay：
+        - 軸ごとの「journey scenario の e2e 再現」、
+          artifact は Playwright trace + k6 result +
+          Tekton Pipeline run log
+        - cadence_days：14（biweekly）
+        - primary tool：Playwright / k6 / chainsaw
+        - cross-axis bind：08 migration 4 phase / 11 key
+          rotation / data01 restore_drill / infra01
+          failover_drill / ops15 5 signal_class runbook
+  - v1_fault_chaos：
+        - 軸ごとの「故障注入 / 攻撃者 simulation / chaos
+          drill の loop closure 再現」、artifact は Litmus
+          workflow result + chaos_blueprints.lock.yaml の
+          green log + fuzz corpus
+        - cadence_days：30（monthly）、infra01 / data01 /
+          security15 系は 90 / 90 / quarter ごと
+        - primary tool：Litmus / Toxiproxy / AFL++ / Chaos
+          Mesh
+        - cross-axis bind：security15 threat 1:1 / infra01
+          failover / data01 restore / 11 key KMS outage /
+          07 transport handshake fault
+
+■ 16 軸（行）と各軸の verification 必須 set
+  - 07 transport：
+        - 必須：type_invariant（frame 型）、property_axiom
+          （backoff jitter / circuit-breaker）、contract_
+          pair（gRPC + gRPC-Web pair / Bidi schema）、
+          scenario_replay（reconnect journey）、fault_chaos
+          （handshake drop / partial decode / network
+            partition）
+  - 08 migration：
+        - 必須：type_invariant（4 phase enum）、property_
+          axiom（compatibility window）、contract_pair
+          （old / new pair）、scenario_replay（dry_run 4
+            phase journey）、fault_chaos（cutover failure）
+  - 09 observability：
+        - 必須：type_invariant（SemConv attribute schema）、
+          property_axiom（sampling boundary / loss bound）、
+          contract_pair（OTel exporter ↔ collector）、
+          scenario_replay（trace continuity journey）、
+          fault_chaos（collector outage / span loss）
+  - 10 auth：
+        - 必須：type_invariant（token claim）、property_
+          axiom（token TTL bound）、contract_pair（IDP /
+            client）、scenario_replay（login + step-up
+            journey）、fault_chaos（IDP outage / credential
+            stuffing simulation）
+  - 11 key：
+        - 必須：type_invariant（key envelope）、property_
+          axiom（KEK / DEK 階層 invariant）、contract_pair
+          （KMS API contract）、scenario_replay（rotation
+            drill）、fault_chaos（KMS outage / key
+            corruption）
+  - 12 schema：
+        - 必須：type_invariant（aggregate qualified name）、
+          property_axiom（forward / backward compat）、
+          contract_pair（producer / consumer / DB / event
+          / config 5 declaration）、scenario_replay
+          （schema migration）、fault_chaos（breaking
+          rollback）
+  - 13 SLO：
+        - 必須：type_invariant（PromQL / SLO yaml schema）、
+          property_axiom（burn rate math）、contract_pair
+          （Sloth ↔ Pyrra rule）、scenario_replay（burn
+          rate alert journey）、fault_chaos（recording rule
+          drift）
+  - 14 OSS-lifecycle：
+        - 必須：type_invariant（pair_target schema）、
+          property_axiom（pair_target invariant）、
+          contract_pair（OSS pair contract test）、
+          scenario_replay（major version migration drill）、
+          fault_chaos（EoL freeze drill）
+  - 15 capacity：
+        - 必須：type_invariant（quota schema）、property_
+          axiom（noisy neighbor isolation）、contract_pair
+          （quota engine ↔ admission policy）、scenario_
+          replay（per_tenant_volume overflow journey）、
+          fault_chaos（quota engine outage）
+  - 32 data-tenant：
+        - 必須：type_invariant（RLS policy schema）、
+          property_axiom（cross-tenant access generative）、
+          contract_pair（GUC propagation contract）、
+          scenario_replay（tenant onboarding journey）、
+          fault_chaos（RLS bypass attempt simulation）
+  - 39 client：
+        - 必須：type_invariant（4-state enum）、property_
+          axiom（4-state stateful transition closure）、
+          contract_pair（client ↔ server resync contract）、
+          scenario_replay（offline → reconcile journey）、
+          fault_chaos（network partition / clock skew）
+  - infra01 topology：
+        - 必須：type_invariant（topology class enum）、
+          property_axiom（zone partition isolation）、
+          contract_pair（cluster ↔ control plane）、
+          scenario_replay（drain / migrate journey）、
+          fault_chaos（zone outage / region failover）
+  - data01 preservation：
+        - 必須：type_invariant（preservation class enum）、
+          property_axiom（RPO / RTO bound）、contract_pair
+          （replication contract）、scenario_replay
+          （restore_drill）、fault_chaos（cross-region
+          replication lag / cold archive corruption）
+  - security15 threat-model：
+        - 必須：type_invariant（threat class enum）、
+          property_axiom（mitigation coverage）、contract_
+          pair（attack surface ↔ mitigation pair）、
+          scenario_replay（red-team replay journey）、
+          fault_chaos（attacker simulation, 全 threat 1:1）
+  - client15 SDK distribution：
+        - 必須：type_invariant（distribution class enum）、
+          property_axiom（codegen output invariant）、
+          contract_pair（SDK ↔ server pact, 5 distribution
+          全て）、scenario_replay（SDK conformance journey,
+          5 distribution 全て）、fault_chaos（SDK runtime
+          fault）
+  - ops15 loop：
+        - 必須：type_invariant（signal_class enum）、
+          property_axiom（5 phase × 5 signal closure）、
+          contract_pair（runbook ↔ alert pair）、scenario_
+          replay（5 signal_class runbook drill, 全て）、
+          fault_chaos（drill 自体 = self-bound）
+
+■ class × axis cadence_days 表（class_axis_cadence_table.yaml）
+  - 表は 16 行 × 5 列 = 80 cell の cadence enum:
+        - type_invariant：全軸 1 day
+        - property_axiom：全軸 7 day
+        - contract_pair：全軸 3 day（client15 のみ各
+          distribution_class.conformance_cadence_days を継承
+          = 14 / 30 day mixed）
+        - scenario_replay：14 day（infra01 / data01 / 11
+          key rotation / security15 red-team / ops15
+          runbook drill は 30 day）
+        - fault_chaos：30 day（infra01 failover_drill =
+          90 day、data01 restore_drill = 30〜180 day class
+          別、security15 red-team = quarter = 90 day）
+
+■ matrix 生成 pipeline（generator）
+  - input：
+        - registry.yaml（00_軸登録）
+        - 各軸 spec の verification_claim entry
+        - test framework execution result（pytest /
+          Hypothesis / Pact Broker / Playwright / Litmus
+          / pitest / k6）
+        - class_axis_cadence_table.yaml
+        - ownership_table.lock.yaml（test_owner 4 軸）
+  - generator：
+        - Tekton Pipeline `coverage-matrix-generate`、
+          deterministic（同じ input から同じ output）
+        - cosign signed artifact、release_gate.lock.yaml
+          の AND-gate に入力
+  - drift：
+        - Argo CD の drift detect で coverage_matrix.lock
+          .yaml の手書き変更を検出 → self-heal
+        - drift PR は Kyverno で merge block
+
+■ 例外と escalation
+  - 新軸追加時の grace window：00_軸登録 で軸が追加され
+    ても、coverage_matrix の対応 5 cell が green になる
+    までの猶予は最大 30 day（grace_window_days enum）。
+    grace 期間は cell.expected_status = `pending_with_
+    artifact` 必須、grace 越えは新軸追加 PR の deploy
+    block。
+  - flaky cell：cell が「green と red を交互に出す」と
+    flaky_quarantine.lock.yaml に entry、quarantine_due_
+    at 14 day 以内に修正必須、超過は cell delete + axis
+    spec の verification_claim 削除（dead spec 殺し）。
+  - test ownership 不在：owner_4axis のいずれかが
+    `unassigned` の cell は新規追加禁止、既存 cell は 7
+    day 以内に owner 割当必須、超過は service deploy
+    block。
+
+■ CI 不変条件（test カバレッジ行列の固有部分、層全体は 14_強制機構 を参照）
+  - 整合：80 cell 全てに artifact_pointer / last_green_at
+    / cadence_days / owner_4axis 5 field が宣言、欠損 cell
+    ゼロ
+  - 整合：last_green_at が cadence_days 以内、cadence
+    超過 cell ゼロ（猶予 grace_window_days のみ allow）
+  - 整合：artifact_pointer の path が物理に存在
+  - 整合：matrix の手書き drift = 0（generator output と
+    一致）
+  - 整合：dead cell（未参照 axis × class）ゼロ、新軸追加
+    時の grace 期間内 cell も `pending_with_artifact`
+    enum で物理化
+  - 整合：mutation_score が monotonic increase（quarter
+    比較）
+  - 整合：flaky_quarantine の cell が quarantine_due_at
+    以内、超過 cell ゼロ

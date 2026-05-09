@@ -1,0 +1,173 @@
+============================================================
+test 非提供スコープ
+============================================================
+
+■ 一文方針
+  - test 軸は「verification artifact が coverage matrix の
+    cell に bind されること」を物理 enforce する meta-axis
+    であり、各軸の assertion 中身、SLO target 値、脅威モ
+    デルの宣言、運用 loop の action、cluster 構築、データ
+    暗号化、認証 flow の意味論等は所有しない。test に
+    intrinsic な責務以外は全て該当軸 spec に委譲する。
+
+■ 採用しないこと（test layer が責務を持たない領域）
+  - 個別 OSS 単体採用判断
+        - test が直接管掌する OSS（pytest / hypothesis /
+          Pact / Playwright / Litmus / pitest / k6 /
+          Testcontainers）以外の OSS 採用判断は持たない。
+          観測 stack（OTel / ClickHouse / Grafana）/
+          orchestration（Argo / Tekton / Kyverno）/ secret
+          （OpenBao）は infra / data / security / ops 各層
+          に従属。test は L1+ 単一深耕の規律を踏襲のみ。
+
+  - assertion の意味論
+        - 「user_id は 16 byte UUID であるべきか 32 byte
+          ULID であるべきか」「migration は dual phase に
+          dual_window_days を 7 日にすべきか 14 日にすべきか」
+          のような assertion 中身は各軸 spec が宣言する。
+          test は coverage cell が generator output と
+          一致していることだけを物理 enforce する。
+
+  - SLI / SLO target 値の意味論
+        - v1_test_coverage_compliance / v1_mutation_score
+          _compliance / v1_flaky_quarantine_compliance /
+          v1_drill_cadence_compliance を SLO に登録する
+          のは test 軸だが、target 値（e.g. 99.5%）の
+          設定は 13_SLO 軸が決定。test は burn rate 越え
+          時の coverage matrix への notify 経路のみ。
+
+  - 観測 SoR の物理運用
+        - OTel pipeline / ClickHouse cluster / Grafana
+          dashboard の運用は 09 / data / ops 各層が管掌。
+          test_event の subject schema 宣言だけが test
+          の所有、物理 store 運用は 09 観測適合仕様 +
+          09_data に従属。
+
+  - 脅威モデルの宣言
+        - 「どの脅威 actor が」「どの asset を」「どの
+          経路で」攻撃するかは 10_security/15 軸が宣言。
+          test は宣言済みの threat に対する attacker
+          simulation blueprint を v1_fault_chaos の 1:1
+          bind として持つだけで、threat 自体は宣言しない。
+
+  - 鍵 rotation cadence / KEK / DEK 階層
+        - 11_鍵管理適合仕様 の所有。test は rotation
+          drill の chaos blueprint と KMS API outage
+          fault injection の 1:1 bind だけが責務。rotation
+          period の意味論は宣言しない。
+
+  - cluster 構築 / 廃棄 / 位相
+        - 08_infra/15 の所有。test は failover / drain /
+          migration の chaos blueprint と last_green_at
+          cadence enforcement だけが責務。topology の意味
+          論や cluster lifecycle は宣言しない。
+
+  - migration pair の compatibility 判定
+        - 05_tier1/08 の所有。test は dry_run.lock.yaml
+          を生成する Tekton Pipeline と coverage cell へ
+          の bind だけが責務。compatibility 判定の意味論
+          は宣言しない。
+
+  - 運用 loop の宣言
+        - 11_ops/15 の所有。test の v1_fault_chaos drill
+          が想定外 mode で failure に到達した場合、ops
+          の v1_drill_failure signal_class へ bridge する
+          のみ。ops loop 自体の宣言は ops が所有。
+
+  - 客観評価指標の意味論
+        - test framework が出力する coverage % / mutation
+          score / pass rate / latency p99 等の数値の意味
+          論は test framework 自身が定義。test 軸は数値の
+          quarterly monotonic 規律を物理 enforce するの
+          みで、数値の意味論的な妥当性は L1+ 単一 OSS の
+          意思決定に委ねる。
+
+  - 検証主体の人事
+        - QA team の組織構造、QA エンジニア配置、業務担当
+          者への教育は 04_推奨の開発体制 に従属。test は
+          ownership_table.lock.yaml の test_owner 4 軸 が
+          各 service / spec に宣言済みであることを物理
+          enforce するのみで、人選・教育は宣言しない。
+
+  - 品質メトリクスのレポーティング戦略
+        - quality dashboard / executive report / customer
+          -facing test result publication は ops + product
+          管掌。test は coverage matrix の build artifact
+          と Grafana dashboard 入力（ClickHouse 格納）まで
+          を提供し、レポート整形は他層に委ねる。
+
+  - test の意味論的な「テスト戦略」
+        - 「unit と integration はどちらに重みを置くか」
+          「property test の input distribution はどう設計
+          するか」のような戦略議論は test 軸では持たない。
+          各軸 spec が verification_class ごとに必要な
+          claim を coverage cell として登録、test は
+          matrix を埋める物理機構のみを所有。
+
+  - 業務ロジックの test data 管理
+        - 業務ドメイン固有の test data（顧客マスタ /
+          商品データ / トランザクション fixture）の意味
+          論は tier2 / tier3 が管掌。test は data
+          fixture が「coverage cell に bind 可能な scenario
+          journey」として artifact 化されているかだけを
+          物理 enforce。
+
+  - test 自体の流通形式
+        - test を「業務担当者の生産性ツール」として ship
+          すること、test runner UI を顧客 SaaS の一部と
+          して公開することは tier3 / 13_運用UIと開発者
+          体験 が管掌。test 軸は内部 verification 機構の
+          管掌に留まる。
+
+■ 採用しない強制機構（test 軸として禁止する経路）
+  - 文章 only での test 済み主張：禁止、coverage cell に
+    artifact pointer を bind することのみが test 済みの
+    定義。
+  - test を「PR で書き加える」形：禁止、test は generator
+    output（hypothesis strategy / property graph /
+    Playwright codegen / pact generator / chaos blueprint
+    generator）から build artifact として生成、手書き
+    drift = 0 を Conftest で物理 enforce。
+  - flaky test の長期 quarantine：禁止、quarantine_due_at
+    を持つ flaky は期限後に物理削除（自動 PR）。flaky と
+    quarantine の永続化は 14d cap、それ以上は ownership
+    強制 reassignment + escalation。
+  - test skip の文章注釈のみ：禁止、skip は新 verification
+    _class を切る（class 数の爆発は意味論の規律として
+    受け入れる）か、coverage cell の expected_status を
+    `skip_with_reason_artifact` enum に変更し artifact
+    で justification する形でしか表現できない。
+  - mutation score の baseline 引き下げ：禁止、mutation_
+    score.lock.yaml は monotonic increase only。下げる
+    PR は Kyverno で deploy 不可、release_gate.lock.yaml
+    の AND-gate を物理 fail。
+  - drill skip の経済合理性主張：禁止、cadence 越えは
+    関連 service deploy 物理 block、運用コストを理由に
+    drill cadence を緩める判断は採らない（CLAUDE.md 上位
+    方針）。
+  - 商用 test orchestration platform：採用しない、Tekton
+    + Litmus + Pact Broker + Playwright + pytest + k6 の
+    OSS L1+ 単一深耕（infra 14 / data 14 / security 14 /
+    ops 14 と同じ）。
+  - LLM-generated test の盲目的 merge：禁止、LLM 生成
+    test は generator として明示的に分類された source
+    （ai_generator_id / model_version / prompt_hash 注釈
+    付き）からのみ受け入れ、PR には property_axiom /
+    contract_pair / mutation 検査の 3 段 gate を通過必須。
+
+■ 後続層 / 後続軸との連携
+  - tier2 / tier3 の業務 test：tier2 / tier3 spec で
+    宣言する業務固有 verification claim は test 軸の
+    coverage matrix に同型 cell として登録される。業務
+    特化の test framework adoption は 04_採用OSS で受ける
+    が、L1+ 単一深耕原則は崩さない。
+  - infra / data / security / ops の drill：本軸が drill
+    blueprint の build artifact 化と last_green_at の
+    物理 enforcement を担当する。drill の意味論的内容（
+    どの failure mode を再現するか、どこまで blast radius
+    を許容するか）は各軸 spec が所有。
+  - meta（00_軸登録）：本軸（test = 16 軸目候補）の追加
+    は 00_軸登録適合仕様 の axis_class 規律に整合。test
+    軸の registry.yaml entry は test 自身を「test の test」
+    として self-bound する（mutation testing が test code
+    自体に再帰適用される）。

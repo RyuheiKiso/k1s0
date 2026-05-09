@@ -1,0 +1,216 @@
+============================================================
+test 性能検証方針（load / stress / soak）
+============================================================
+
+■ 一文方針
+  - test 軸は性能検証を Grafana k6 L1+ + Locust（Python
+    ecosystem 用 double-bound）で実装し、load / stress /
+    soak / spike / capacity_forecast の 5 performance_class
+    を performance_scenarios.lock.yaml の build artifact
+    として固定し、全 scenario の SLI（latency p99 /
+    error rate / throughput / resource usage）を 13 SLO
+    の baseline と整合させ、capacity forecast を 15
+    capacity の per_tenant_volume と double-bound、
+    performance regression を mutation_score 同型の
+    quarterly monotonic 規律で物理 enforce する。
+
+■ 設計原則
+  - performance scenario は bundle である。
+      yaml に書く test.performance.* attribute のうち、
+      perf_scenario_id 1 つの値が他 6 dimension（
+      performance_class / target_axis / load_pattern /
+      duration_minutes / shadow_cluster_class / sli_set）
+      を一意に導出する。author が dimension を個別に
+      override する経路は持たない。
+  - dimension override は禁止する。
+      新 perf_scenario_id を切ることでのみ拡張、SLI
+      target 値の意味論は 13 SLO 軸が宣言。
+  - dead spec を CI で殺す。
+      performance_scenarios.lock.yaml に登録された全
+      perf_scenario_id、k6 result に保存された全 result、
+      Locust report に保存された全 report は、参照され
+      なくなった時点で CI fail。
+  - shadow cluster 上で実行：
+      v1_scenario_replay と同じ規律、performance test
+      の実行は production cluster で行わない、shadow
+      cluster（infra01 v1_multi_region_active_passive
+      の passive 側）で実行。production capacity check
+      は read-only access のみで、別 perf_scenario_id
+      として登録。
+  - performance regression は monotonic enforce：
+      perf_scenario_id ごとの SLI baseline は performance
+      _baseline.lock.yaml に固定、regression（latency
+      p99 が baseline + 10% 越え / error rate 0.1% 越え
+      / throughput baseline - 10% 下回り）は PR merge
+      block + ops の v1_change_induced へ bridge。
+
+■ performance_class enum（5 class）
+  - v1_load：
+        - 通常運用想定の負荷、constant arrival rate
+        - duration：30〜60 min
+        - 主用途：07 transport latency / 13 SLO baseline
+          / 15 capacity per_tenant_volume
+  - v1_stress：
+        - 想定上限の 1.5〜3 倍負荷、ramp-up
+        - duration：30〜90 min
+        - 主用途：15 capacity overflow / 39 client offline
+          extension
+  - v1_soak：
+        - 通常負荷を 24h 以上継続、long running
+          stability
+        - duration：24〜72 h
+        - 主用途：data01 replication lag / 11 key
+          rotation under load / memory leak detection
+  - v1_spike：
+        - 突発的 burst（10x 急上昇、5 min ramp）、
+          recovery 確認
+        - duration：30 min（spike + recovery）
+        - 主用途：15 capacity noisy neighbor / 39 client
+          reconcile burst / 14 OSS lifecycle EoL freeze
+          spike
+  - v1_capacity_forecast：
+        - growth model に従う長期 simulation、月次〜
+          四半期ベース
+        - duration：dedicated quarter pipeline、24〜72 h
+        - 主用途：15 capacity 容量計画 / data01
+          preservation tier 移行 / infra01 cluster
+          scaling
+
+■ perf_scenario_id 命名と field 構造
+  - 命名規則：`<axis>__<performance_class>__<load_
+    pattern>`（例：`07_transport__v1_load__constant_
+    100rps`）
+  - 必須 field（10 field）：
+        - perf_scenario_id：PK
+        - performance_class：上記 5 enum
+        - target_axis：16 軸の enum
+        - load_pattern：v1_constant / v1_ramping / v1_
+          constant_arrival_rate / v1_ramping_arrival_rate
+          / v1_per_vu_iterations の 5 enum（k6 executor
+          enum と整合）
+        - duration_minutes：5 / 30 / 60 / 1440（24h）/
+          4320（72h）の enum
+        - shadow_cluster_class：v1_dedicated_shadow /
+          v1_shared_shadow の 2 enum
+        - sli_set：sli_id の list（13 SLO 登録 SLI）
+        - baseline_pointer：performance_baseline.lock
+          .yaml の対応 entry pointer
+        - last_run_at：UTC ISO8601
+        - last_status：green / regress / fail
+
+■ load_pattern enum 詳細
+  - v1_constant：
+        - constant VU、k6 `constant-vus`
+        - 主用途：v1_load
+  - v1_ramping：
+        - VU 段階増加、k6 `ramping-vus`
+        - 主用途：v1_stress / v1_capacity_forecast
+  - v1_constant_arrival_rate：
+        - constant RPS、k6 `constant-arrival-rate`
+        - 主用途：v1_load / v1_soak
+  - v1_ramping_arrival_rate：
+        - RPS 段階増加、k6 `ramping-arrival-rate`
+        - 主用途：v1_spike / v1_stress
+  - v1_per_vu_iterations：
+        - VU 別 iteration 数固定、k6 `per-vu-iterations`
+        - 主用途：deterministic baseline 計測
+
+■ baseline 規律
+  - performance_baseline.lock.yaml：
+        - perf_scenario_id ごとの SLI baseline、quarter
+          ごとに refresh、append-only 履歴
+        - 各 SLI（latency p50 / p95 / p99 / error_rate /
+          throughput / cpu_usage / mem_usage）が固定
+  - regression 判定：
+        - latency p99 baseline + 10% 越え：regression
+          red
+        - error rate 0.1% 越え（baseline error 込）：
+          regression red
+        - throughput baseline - 10% 下回り：regression
+          red
+        - cpu / mem baseline + 20% 越え：regression
+          warning（block 不可）
+  - regression red の措置：
+        - PR merge block（Kyverno）
+        - ops の v1_change_induced signal_class へ
+          bridge
+        - postmortem PR 起票必須（72h SLA、ops 11
+          と整合）
+
+■ capacity_forecast の 15 capacity との bind
+  - v1_capacity_forecast は 15 capacity の per_tenant_
+    volume / cluster headroom / partition capacity の
+    forecast 入力として double-bound
+  - forecast 結果が 15 v1_per_tenant_volume の overflow
+    予測を出した場合、ops の v1_capacity_breach signal
+    として bridge、capacity forecast PR 起票
+  - cold archive 移行（data01 v1_cold_archive_lifecycle）
+    との整合：forecast 結果が cold tier 移行のスケジュ
+    ールを更新、data01 spec の lifecycle.lock.yaml と
+    双方向 lock
+
+■ shadow cluster class
+  - v1_dedicated_shadow：
+        - perf 専用 shadow cluster、cluster shadow の
+          dedicated executor、他 test と blend しない
+        - 用途：v1_soak / v1_capacity_forecast
+  - v1_shared_shadow：
+        - infra01 passive cluster と shared、scenario_
+          replay と blend
+        - 用途：v1_load / v1_stress / v1_spike
+
+■ k6 / Locust の役割分担
+  - k6（L1+ 単一深耕）：
+        - 全 perf_scenario_id の primary executor
+        - browser load も k6 browser で実行（Playwright
+          + k6 browser）
+        - synthetic monitoring も k6 で（11_ops/06
+          アラート方針 と整合）
+  - Locust（double-bound）：
+        - Python ecosystem の業務 SDK が driver の場合
+          に並列採用、k6 と同じ scenario corpus を input
+        - performance_scenarios.lock.yaml の同一 entry
+          に対し k6 / Locust 両方の result を持つ場合、
+          k6 result が baseline 確定の primary、Locust
+          result は cross-check
+
+■ result の SoR
+  - k6 result：JSON Lines 形式、ClickHouse hot tier
+    （90 day）+ Ceph RGW cold tier（365 day）
+  - Grafana dashboard：performance_scenarios.lock.yaml
+    の cell ごとに SLI panel、quarter monotonic 推移
+    を可視化
+  - performance_history.lock.yaml：append-only、quarter
+    ごとの baseline 推移
+
+■ cross-axis bind
+  - 13 SLO：全 perf_scenario_id の SLI は 13 SLO 登録
+    SLI と整合、burn rate baseline 計測の入力
+  - 15 capacity：v1_capacity_forecast は per_tenant_
+    volume の forecast 入力として双方向 lock
+  - 11 ops：performance regression は v1_change_induced
+    signal へ bridge、ops の change_calendar に capacity
+    forecast 結果が登録
+  - 14 OSS-lifecycle：load test framework（k6 / Locust）
+    の major version migration drill 必須化
+  - 09 observability：performance test 中の OTel span
+    sampling boundary を v1_property_axiom で claim、
+    perf shadow cluster での sampling rate は prod の
+    100% sampling
+  - infra01 / data01：shadow cluster の topology 整合 +
+    data01 cross-region replication lag を v1_soak で
+    観測
+
+■ 採用しない経路
+  - production cluster 上の load test：禁止、必ず shadow
+    cluster
+  - regression baseline 引き下げ PR：禁止、monotonic
+    enforce、Kyverno で merge block
+  - 商用 load SaaS（BlazeMeter / k6 Cloud / Loader.io）：
+    採用しない、k6 OSS L1+ self-host
+  - 文章のみ「性能 OK」：禁止、必ず performance_
+    baseline.lock.yaml の cell に entry
+  - load test の cadence 越え放置：cadence 越えは関連
+    service deploy block
+  - capacity forecast の手動操作のみによる更新：禁止、
+    必ず Tekton Pipeline 経由の build artifact 更新

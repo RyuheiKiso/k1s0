@@ -1,0 +1,321 @@
+============================================================
+test 強制機構
+============================================================
+
+■ 一文方針
+  - test 層の規律は Kyverno admission policy + Tekton
+    Pipeline + Argo CD sync wave + Pact Broker webhook +
+    Litmus workflow CR + cosign signed build artifact の
+    AND-gate + test_event の hash chain 物理 enforce の
+    7 種で enforce、手書き coverage matrix / mutation
+    report / chaos blueprint / pact 注釈は CI fail、最終
+    safety net は cosign signature の物理的真正性 +
+    Kyverno admission webhook の deploy block + Ceph RGW
+    Object Lock Compliance mode の retention 物理 delete
+    不可 とする。
+
+■ 5 層 defense-in-depth（test 規律全体）
+  - 層 A：compile（catalog / schema / type の type check）
+        - coverage_matrix.lock.yaml schema 検証（jsonschema
+          / CUE）
+        - properties.yaml / scenarios.yaml / pacts.yaml /
+          chaos_blueprints.lock.yaml / mutation_modules
+          .yaml / performance_scenarios.lock.yaml /
+          flaky_quarantine.lock.yaml / snapshot_masks.lock
+          .yaml の field 完備 check
+        - artifact_pointer の参照解決 check（path 物理
+          存在）
+        - regression_corpus_id の参照整合 check
+        - mutation_operator_class / fault_class /
+          performance_class / journey_class / declaration
+          _class の enum 整合
+        - performance_baseline.lock.yaml の SLI 列挙が
+          13 SLO 登録 SLI と整合
+        - class_axis_cadence_table.yaml の 16 × 5 = 80
+          cell が完備、cadence_days enum 範囲内
+        - ownership_table.lock.yaml の test ownership
+          4 軸完備（cross-axis）
+
+  - 層 B：lint（policy / 規約 check）
+        - Conftest custom rule（Rego）：
+              - coverage_matrix.lock.yaml の 80 cell
+                完備、欠損 cell ゼロ
+              - cell の last_green_at が cadence_days
+                以内
+              - cell の owner_4axis 4 軸完備
+              - properties.yaml の全 property_id が
+                test code に annotated
+              - scenarios.yaml の全 scenario_id が
+                Playwright / k6 / chainsaw 実装に bind
+              - pacts.yaml の全 pair_id が Pact runtime
+                output に bind
+              - chaos_blueprints.lock.yaml の全
+                blueprint_id が Litmus workflow CR に
+                bind
+              - mutation_modules.yaml の全 module_id が
+                mutation_score.lock.yaml に bind
+              - flaky_quarantine.lock.yaml の全 entry が
+                quarantine_due_at 14 day 以内
+              - mutation_score の quarter monotonic
+                increase
+              - snapshot_masks の cap 20% 以下
+              - blast_radius v1_prod_gameday の chaos
+                experiment は break-glass token 注釈
+                必須
+              - regression_corpus_added 注釈なしの
+                defect 修正 PR ゼロ
+              - performance_baseline 引き下げ PR ゼロ
+              - shadow cluster 注釈なしの v1_scenario
+                _replay / v1_fault_chaos / 性能 test
+                ゼロ
+        - Semgrep custom rule：
+              - test code 中の skip 注釈が新
+                verification_class 切替 / artifact
+                justification を伴う
+              - LLM-generated test の ai_generator_id /
+                model_version / prompt_hash 注釈完備
+              - random seed の test runner ローカル
+                random 化使用ゼロ（必ず seed_pool /
+                replay_corpus / pr_deterministic）
+        - generator output と手書き drift = 0：
+              - coverage_matrix / mutation_score /
+                performance_baseline 等の lock.yaml は
+                generator output 完全一致
+
+  - 層 C：integration test（chainsaw / kuttl /
+    Testcontainers）
+        - 全 test admission policy が intended state を
+          block / pass する test（後述一覧）
+        - Pact Broker webhook → Tekton Pipeline → producer
+          verify の e2e 試験
+        - Litmus workflow の dry-run 実行（全 chaos
+          blueprint 対象、blast_radius v1_shadow_only
+          のみ）
+        - mutation testing の per_module 実行 + score
+          baseline 比較の試験
+        - flaky_classifier の機械判定 pipeline 試験
+        - snapshot 更新 PR の drill_owner ack 経路の
+          end-to-end 試験
+        - performance regression 検出 → PR merge block
+          の e2e 試験
+        - shadow cluster 上の scenario_replay end-to-
+          end 試験
+
+  - 層 D：runtime（cluster 上の actual enforcement）
+        - Kyverno admission webhook：本層担当 policy（後
+          述一覧）の deploy / migration / DDL 全 block
+        - Argo CD：sync wave による test artifact deploy
+          順序、drift detect で self-heal
+        - Tekton Pipeline：coverage_matrix-generate /
+          mutation-run / pact-publish / pact-verify /
+          chaos-drill / scenario-replay / performance-
+          baseline-update / flaky-classifier / regression
+          -corpus-replay の 9 Pipeline が登録
+        - Pact Broker（self-host）：can-i-deploy result
+          を Kyverno admission policy 入力に bind
+        - Litmus workflow controller：chaos blueprint の
+          物理発火、blast_radius の物理制限
+        - Argo Workflows：scenario_replay の長時間 run
+          orchestration
+        - cron-based audit chain verifier：test_event
+          hash chain の online verification
+        - flaky_classifier daemon：test_event SoR を
+          毎日集計、flaky_quarantine.lock.yaml を更新
+
+  - 層 E：物理 enforcement（OS / engine / 暗号 / 物理
+    layer の物理機構）
+        - cosign signature の cryptographic verification
+          （build artifact が真正であることを公開鍵で
+            verify、Sigstore 標準）
+        - Kyverno admission webhook の物理拒否（deploy
+          API request を webhook が deny で返却、kube-
+          apiserver が物理 block）
+        - Ceph RGW Object Lock Compliance mode：security
+          incident reproducer / mutation equivalent
+          mutant input / chaos drill failure log の
+          retention 期限内 物理 delete 不可（10_security
+          14 / 09_data 14 と共有）
+        - test_event hash chain：cryptographic chain が
+          divergence 時点を物理特定（暗号学的 impossibility
+          of forgery）
+        - Pact pact / mutation report / Playwright trace /
+          chaos workflow 結果は cosign signed artifact、
+          tampering 検出は signature verify 物理 fail
+        - chaos blueprint の v1_prod_gameday は OpenBao
+          response wrapping の二人承認 break-glass token
+          物理発行（10_security 14 / infra 04 と共有）
+
+■ Kyverno admission policy 一覧（test 担当部分）
+  - require-coverage-cell-green：deploy 前に対象 service
+    の関連 coverage cell が green、cadence 内
+  - require-mutation-score-monotonic：mutation_score
+    .lock.yaml の quarter monotonic increase
+  - require-flaky-quarantine-cap：flaky_quarantine の
+    cap 越えなし、quarantine_due_at 14 day 以内
+  - require-pact-can-i-deploy：Pact Broker の can-i-
+    deploy green
+  - require-chaos-drill-cadence：chaos blueprint の
+    cadence 越えなし、cadence 越え service deploy block
+  - require-regression-corpus-added：defect 修正 PR に
+    regression_corpus_added 注釈
+  - require-snapshot-signed：snapshot 更新 PR が drill_
+    owner ack 済み
+  - require-blast-radius-annotation：chaos experiment
+    CR に blast_radius 注釈
+  - block-prod-gameday-without-break-glass：v1_prod_
+    gameday は break-glass token 必須
+  - block-on-equivalent-mutant-without-proof：v1_strict
+    policy module の equivalent mutant に symbolic_proof
+    _pointer 必須
+  - block-on-non-cosign-test-artifact：test artifact が
+    cosign signed でない場合 block
+  - block-during-active-incident-chaos：active incident
+    中の chaos experiment block（incident commander ack
+    必須）
+  - block-during-global-freeze-chaos-prod-gameday：
+    global freeze 内の v1_prod_gameday を block
+  - block-on-performance-regression：perf regression red
+    の関連 service deploy block
+  - block-on-flaky-cap-exceeded：flaky 認定数 / total
+    test 数 cap 越え時 service deploy block
+  - block-on-shadow-only-violation：v1_scenario_replay
+    が production cluster で起動した場合 block
+  - block-on-snapshot-mask-overflow：snapshot mask cap
+    20% 越え時 block
+  - block-on-deterministic-violation：v1_full_
+    deterministic 注釈 scenario が determinism_violation
+    として alert された場合 deploy block
+  - audit-test-chatops：全 ChatOps slash command 実行で
+    audit_event emit
+  - audit-snapshot-update：snapshot 更新 PR を全件 audit
+    _event emit
+  - audit-mutation-equivalent-decision：equivalent mutant
+    認定 PR を全件 audit_event emit
+  - audit-corpus-write：property_corpus / chaos_blueprints
+    / scenarios の write 操作を全件 audit
+  - require-test-ownership-completeness：service deploy
+    前に test ownership 4 軸完備 check
+
+■ admission policy のライフサイクル
+  - 全 admission policy は build artifact（test/policy/
+    kyverno-test-policies.yaml）から生成、手書き禁止。
+  - generator の input：
+        - coverage_matrix.lock.yaml
+        - mutation_score.lock.yaml / mutation_history
+          .lock.yaml
+        - flaky_quarantine.lock.yaml
+        - chaos_blueprints.lock.yaml
+        - properties.yaml / property_corpus.lock.yaml
+        - scenarios.yaml / scenario_corpus
+        - pacts.yaml + Pact Broker pact result
+        - performance_scenarios.lock.yaml /
+          performance_baseline.lock.yaml
+        - snapshot_masks.lock.yaml
+        - ownership_table.lock.yaml（4 軸）
+        - registry.yaml（00_軸登録）
+  - drift：
+        - runtime 上の admission policy が build artifact
+          と乖離した場合、Argo CD が drift として検出 +
+          self-heal。
+
+■ break-glass
+  - 緊急時に test admission policy を bypass する経路：
+        1. OpenBao response wrapping で短期 cluster-
+          admin 相当 token + Argo CD admin token + Argo
+          Rollouts promote token を発行
+        2. 発行操作は audit_event subject に v1_test_
+          break_glass fact emit（必須 column：actor /
+          reason / ticket_ref / expected_duration /
+          incident_ref）
+        3. 使用後 1 時間以内に postmortem PR 起票必須
+        4. break-glass 使用は 13 SLO error budget
+          consumption として記録（v1_test_break_glass_
+          count の増分、ops 14 と整合）
+        5. break-glass 経由の coverage cell 一時 ack /
+          mutation_score override / flaky 解除 / chaos
+          v1_prod_gameday 起動 / pact strict deploy も
+          後追いで artifact 化（再現性確保）
+        6. break-glass session 中も test_event の hash
+          chain は継続、chain divergence 不可
+        7. v1_prod_gameday / mutation_score 引き下げ /
+          coverage cell ack の break-glass は二人承認
+          必須（ChatOps 上で primary + secondary on-
+          call の双方 ack）
+
+■ CI 不変条件（test 全体）
+  - 違反は merge 不可。
+        整合 1 ：coverage_matrix.lock.yaml の 80 cell
+                完備、artifact_pointer / last_green_at
+                / cadence_days / owner_4axis 完備
+        整合 2 ：cell.last_green_at が cadence_days 以内
+                （grace_window_days 例外のみ allow）
+        整合 3 ：mutation_score.lock.yaml の quarter
+                monotonic increase
+        整合 4 ：flaky_quarantine の cap 越えなし、
+                quarantine_due_at 14 day 以内、超過は
+                自動 PR で test 削除
+        整合 5 ：pacts.yaml の全 pair_id に Pact pact
+                + Buf-breaking signature 双方が exist、
+                can-i-deploy green
+        整合 6 ：chaos_blueprints.lock.yaml の cadence
+                越えなし、blast_radius v1_prod_gameday
+                は break-glass + 二人承認 + audit_event
+        整合 7 ：performance_baseline.lock.yaml の
+                regression red ゼロ、引き下げ PR ゼロ
+        整合 8 ：snapshot_masks.lock.yaml の mask cap
+                20% 以下
+        整合 9 ：regression_corpus_added 注釈完備
+                （defect 修正 PR）
+        整合 10：v1_scenario_replay / v1_fault_chaos が
+                production cluster 上で起動ゼロ
+                （v1_shadow_only / v1_partial_prod /
+                  v1_prod_gameday 注釈必須）
+        整合 11：generator output と手書き drift = 0
+                （手書き coverage_matrix / mutation_
+                  score / chaos_blueprints / pacts /
+                  performance_baseline / snapshot_masks
+                  ゼロ）
+        整合 12：test ownership 4 軸完備（service /
+                domain / framework / drill）、未宣言
+                service deploy ゼロ
+        整合 13：cosign signed test artifact / SBOM
+                attached の cluster-wide enforcement
+                （runtime drift = 0）
+        整合 14：test_event の hash chain 日次 verify
+                green、divergence 履歴ゼロ
+        整合 15：admission policy 全件が build artifact
+                から生成、手書き policy ゼロ
+        整合 16：13 軸 + meta（00）+ security 軸 + ops
+                軸 + 本軸の各 spec の build artifact と
+                本層の coverage_matrix.lock.yaml /
+                mutation_score.lock.yaml / chaos_
+                blueprints.lock.yaml が双方向 lock
+        整合 17：deterministic 注釈 scenario の
+                determinism_violation alert ゼロ
+
+■ 採用しない強制機構
+  - 商用 admission engine（OPA Gatekeeper / Styra DAS）：
+    採用しない、Kyverno L1+ 深耕（infra 14 / data 14 /
+    security 14 / ops 14 と同じ）。
+  - 商用 test orchestration platform：採用しない、
+    Tekton + Argo Workflows + Litmus + Pact Broker +
+    Playwright + pytest + k6 の OSS L1+ 単一深耕。
+  - 文章 only の test 規律：禁止、全規律は機械検証
+    可能な形で codify。
+  - 「便利だから break-glass を常用」：禁止、break-
+    glass は incident IR + audit_event + postmortem
+    PR 必須の例外経路のみ。
+  - 「business 都合で chaos drill を一時 off」：禁止、
+    cadence 越えは admission block で物理 block。
+  - mutation_score 引き下げの一時 ack：禁止、monotonic
+    only、PR merge block。
+  - flaky 14 day 越え延長：禁止、cap = 14 day。
+  - snapshot 手動更新 without artifact-signed PR：
+    禁止、Kyverno で merge block。
+  - audit_event のサンプリング：禁止、100% 保存
+    （preservation v1_zone_replicated 以上、archive
+    tier 移行のみ retention 戦略）。
+  - cosign signing key を CI runner に長期保持：禁止、
+    OpenBao Transit + sign-on-demand のみ、key material
+    は CI runner に物理に存在しない（10_security 14 /
+    ops 14 と整合）。
