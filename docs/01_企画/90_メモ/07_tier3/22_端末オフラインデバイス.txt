@@ -84,9 +84,24 @@ tier3 の対応端末・オフライン・デバイス連携
         め、persist() granted の有無に関わらず 25h 連続オフライン
         運用が成立しない。25h 運用前提は **iOS 16.4 以降の
         Add-to-Home-Screen インストール済 PWA**（display-mode
-        standalone）に限り対応する（iOS の installed PWA は
-        Safari タブとは別 storage scope を持ち ITP の 7 日 rule
-        の対象外）。Safari タブ単独は工場 deploy 対象外。
+        standalone）で **best-effort** とする（iOS 16.4+ で
+        installed PWA の storage scope は Safari タブと分離され
+        Web Push 等が独立 scope で動作するが、**Apple は ITP
+        eviction が installed PWA に完全に適用されないと公式
+        声明していない**: 公開情報は WebKit source / Apple Web
+        Apps on iOS / WWDC セッション / John Wilander 氏の
+        発言レベルに留まり、商用 SLA としての保証は得られない）。
+        本企画は :
+          - 25h 連続オフラインを **best-effort SLO**（best-effort:
+            障害時の補償なし）として宣言。
+          - Apple が将来 ITP 動作を変更した場合に **再評価する
+            migration_trigger** を 14_OSSライフサイクル適合仕様
+            の deprecation_clock に登録（trigger : iOS major
+            version up + WebKit changelog 監視）。
+          - 25h を hard SLO で保証する経路は **Tauri sidecar
+            （07_tier3/41）+ 業務端末を Windows / Android に
+            限定** する degrade 経路を併設する。
+        Safari タブ単独は工場 deploy 対象から除外する。
   - permanent storage の取得 :
       - アプリ起動時に navigator.storage.persist() を要求する。
         granted=true なら IndexedDB が長期未使用 origin の

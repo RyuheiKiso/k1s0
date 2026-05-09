@@ -3,11 +3,16 @@ infra 強制機構
 ============================================================
 
 ■ 一文方針
-  - infra の規律は Kyverno admission policy で物理 enforce、
-    手書き policy は CI fail、policy 自体は build artifact
-    から生成、最終 safety net は OS / Kubernetes / OSS の物理
-    層機能（etcd quorum / Ceph CRUSH map / Kafka rack
-    awareness）。
+  - infra の規律は **PR 段の Conftest（OPA Rego、GitHub Actions
+    Required Status Check で merge block）+ deploy 段の Kyverno
+    admission policy（cluster で deploy reject）の二段** で物理
+    enforce する（08_infra/04_採用OSS の Kyverno / Conftest 責務
+    分離 注記参照）。手書き policy は CI fail、policy 自体は
+    build artifact から生成、最終 safety net は OS / Kubernetes
+    / OSS の物理層機能（etcd quorum / Ceph CRUSH map / Kafka
+    rack awareness）。本企画では旧来の「Kyverno で merge block」
+    の表現は本責務分離の下で「Conftest で PR merge block +
+    Kyverno で admission deploy block」と読む。
 
 ■ 5 層 defense-in-depth（infra 規律全体）
   - 層 A：compile（IaC コードの type / schema check）

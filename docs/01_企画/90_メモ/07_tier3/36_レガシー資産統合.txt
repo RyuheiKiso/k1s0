@@ -27,7 +27,14 @@ tier3 のレガシー資産統合（.NET Framework + Companion）
       - 業務 API は Envoy Gateway 経由で HTTP/1.1 + JSON
         （unary）/ HTTP/1.1 + SSE（text/event-stream、
         server-streaming）形式で消費する（「05_tier1/04_Library」
-        整合）。
+        整合）。Companion (役割 B) は WinHttpHandler の ALPN h2
+        ネゴシエーションを起動時に probe し、(a) 業務 listener
+        (h2/h3) に到達できる場合は h2 multiplex で当該 wire を
+        消費、(b) ALPN h2 不可 / OS 版数不足 / 企業 FW 遮断の
+        場合は **05_tier1/16 役割 H2-A' で常設される
+        v1_legacy_http11 専用 listener (別ポート 8443-legacy)**
+        へ自動切替する（capability_matrix.lock.yaml の
+        v1_legacy_dotnet_framework cell 経路）。
       - .proto を単一の真とし、unary は Gateway の gRPC-JSON
         Transcoder で派生されたエンドポイント、server-streaming は
         Gateway 配下の tier1 Rust ハンドラが直接生成する SSE

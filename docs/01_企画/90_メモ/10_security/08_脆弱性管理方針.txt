@@ -14,8 +14,20 @@ security 脆弱性管理方針
   - 経路 1：image vuln scan
         primary：Trivy（CI build 時 + Harbor scan-on-push
                 + 日次再 scan）
-        cross-check：Grype（同 image / 同 SBOM、結果不一致
-                時 admission block）
+        cross-check：Grype（同 image / 同 SBOM）
+        severity 規律（10_security/04 と双方向 lock）：
+          - 両 scanner が同 severity 一致 : 当該 severity の
+            policy をそのまま適用（Critical 一致 → admission
+            block）。
+          - severity 不一致 : `max(severity_trivy, severity_grype)`
+            に escalate して当該 severity の policy を適用、
+            ticket 自動起票。一方のみ Critical の場合は High
+            扱いで ticket 起票（admission block しない、両者
+            Critical 一致時のみ block）。
+          - 不一致は本来の vuln DB / matcher 実装差で常時発生
+            するため、規律としては「false negative を二重化で
+            潰す + false positive で本番停止しない」を基本姿勢
+            とする。
         target：image base layer / OS package / language
                 stdlib
   - 経路 2：language dep audit

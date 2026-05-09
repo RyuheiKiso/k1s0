@@ -109,8 +109,16 @@ test 故障注入検証方針（v1_fault_chaos）
         - 主用 axis：10 auth / 11 key / 14 OSS-lifecycle
           / 15 capacity
   - v1_attacker_fault：
-        - tool：Litmus + 専用 attacker workflow + AFL++
-          fuzz
+        - tool：Litmus + 専用 attacker workflow + **言語別
+          fuzz tool セット**（13_test/04_採用OSS と整合）
+            - Rust            : cargo-fuzz / libFuzzer
+            - Go              : `go test -fuzz`
+            - TS / JavaScript : jazzer.js
+            - Python          : atheris
+            - C / C++ / Rust binary : AFL++（coverage-guided
+              binary fuzz、harness は per-target）
+            - .NET / C#       : SharpFuzz（libFuzzer wrapper、
+              Apache 2.0）
         - fault：security15 threat 1:1（credential
           stuffing / RLS bypass attempt / token replay /
           SQL injection / fuzz parser / race-condition
@@ -167,23 +175,38 @@ test 故障注入検証方針（v1_fault_chaos）
           が物理発火、attacker の lateral movement が
           物理に止まる
 
-■ AFL++ fuzz の corpus 規律
+■ 言語別 fuzz tool の corpus 規律
+  - 適用対象 :
+        - Rust target → cargo-fuzz / libFuzzer
+        - Go target → `go test -fuzz`
+        - TS / JS target → jazzer.js
+        - Python target → atheris
+        - C / C++ / Rust binary target → AFL++
+        - .NET / C# target → SharpFuzz
+    各 target の harness は言語別に書き、fuzz_corpus.lock.yaml
+    に target_lang を含む entry として登録する。
   - corpus storage：
-        - fuzz_corpus.lock.yaml に entry、Ceph RGW
-          Object Lock Compliance mode で 365 day retention
+        - fuzz_corpus.lock.yaml に entry（target_lang +
+          target_id + corpus_pointer）、Ceph RGW Object Lock
+          Compliance mode で 365 day retention。
   - corpus seed：
         - 12 schema producer 側の sample input
         - 07 transport の frame sample
         - 09 SemConv attribute の正常 sample
         - 10 auth token の expired / invalid sample
   - run cadence：
-        - PR ごとに 5 min smoke fuzz
-        - nightly に 60 min fuzz
-        - quarter ごとに 24h dedicated fuzz（cluster
-          shadow 上）
+        - PR ごとに 5 min smoke fuzz（言語別 tool が並列で
+          changed file の harness のみ実行、5 min budget は
+          全言語合算）
+        - nightly に 60 min fuzz（全 harness 実行、言語別
+          並列）
+        - quarter ごとに 24h dedicated fuzz（cluster shadow
+          上、AFL++ binary fuzz は本枠でのみ time-budget を
+          十分にとる）
   - 発見した crash input：
-        - hypothesis-database 互換 corpus に append-
-          only 追加、property_axiom の corpus と統合管理
+        - hypothesis-database 互換 corpus に append-only 追加、
+          property_axiom の corpus と統合管理（target_lang を
+          残し、言語別 minimizer を再 run 可能に保つ）
 
 ■ chaos drill cadence 表
   - tier1 系（07 / 08 / 09 / 10 / 11 / 12 / 13 / 14 /

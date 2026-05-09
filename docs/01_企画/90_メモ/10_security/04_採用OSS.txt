@@ -62,7 +62,24 @@ security 採用 OSS（security 層 subset）
 
   - Trivy は image scan の L1+ primary、Grype は cross-
     check として並走（pair_target ではなく double-bound
-    必須化、scan 結果不一致は admission block）。
+    必須化）。**両者の vuln DB / matcher 実装差により常時
+    一定割合で結果不一致が発生する** ため、本企画は **severity
+    escalation 規律** で吸収する :
+      - 両 scanner 結果が **同一 severity（Critical / High /
+        Medium / Low / None）に一致** : 当該 severity の admission
+        policy（Critical 検出時 admission block 等）をそのまま
+        適用。
+      - 両 scanner 結果が **不一致** で一方のみ Critical : **High
+        として escalation し ticket 自動起票**（severity の
+        max(scanA, scanB) を取る = false negative を二重化で
+        潰す）、当該 PR は admission block しない（常時不一致で
+        本番停止する誤動作を回避）。
+      - 両 scanner が Critical 一致時のみ admission block。
+      - severity 不一致のうち「max が High 以下」は escalation 後
+        の severity に応じた本来の policy を適用（max(High, Medium)
+        = High → ticket、max(Medium, Low) = Medium → 7 日 SLA で
+        修正等）。
+    本規律は 10_security/08_脆弱性管理方針 と双方向 lock。
   - 言語別 dep audit は CI で必須、build artifact に
     SBOM + vuln report を embed。
   - Semgrep の rule は build artifact 化（手書き rule

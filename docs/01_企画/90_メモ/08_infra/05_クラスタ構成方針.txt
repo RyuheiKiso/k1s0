@@ -28,10 +28,22 @@ infra クラスタ構成方針
       - taint：infra-tools=true:NoSchedule
       - tier 各層の Pod が混入しないよう物理隔離
 
-  - storage node（Rook+Ceph / Longhorn 専用）：
-      - OSD / monitor を hosting
-      - taint：storage=true:NoSchedule
-      - local SSD / NVMe を CRUSH map で zone 跨ぎ配置
+  - storage node（**二系統に物理分離**）：
+      - storage-ceph node（Rook+Ceph 専用）:
+          - OSD / monitor / RGW / CephFS MDS を hosting
+          - taint：storage-ceph=true:NoSchedule
+          - device path は Ceph 専用に固定（`bluestore` 用 raw
+            partition、CRUSH map で zone 跨ぎ配置）
+          - local SSD / NVMe を CRUSH map で zone 跨ぎ配置
+      - storage-longhorn node（Longhorn 専用）:
+          - Longhorn replica engine / instance manager を hosting
+          - taint：storage-longhorn=true:NoSchedule
+          - device path は Longhorn 専用に固定（`/var/lib/longhorn`
+            mount を独立 disk に置き、Ceph と device 競合しない）
+      - 両系統の混在禁止：raw disk / device path / udev rule
+        / OSD discovery が衝突するため、同一 node に両 taint
+        を併設しない。05_クラスタ構成方針 / 07_ストレージ方針 /
+        15_クラスタ位相適合仕様 で双方向 lock。
 
 ■ etcd 構成
   - control plane node 上に co-locate（kubeadm default）

@@ -543,6 +543,14 @@
         - v1_loop_closure_coverage（25 cell 全 cover）
         - v1_change_calendar_compliance（freeze window
           内 v1_emergency 以外の change ゼロ）
+        - v1_ingress_http_version_distribution（h3 / h2 /
+          v1_legacy_http11 listener 比率を可視化、
+          v1_legacy_http11 比率の上限を SLO event 化、
+          05_tier1/16 役割 H2-A / H2-A' と整合）
+        - v1_legacy_http11_request_latency_p99_ms（業務
+          listener 443 とは別ポート 8443-legacy listener
+          を独立計測、業務 SLO とは混合しない、05_tier1/16
+          役割 H2-A' と整合）
 
   - 各 SLO は class 別 target / window / burn rate
     threshold が tier1/13 と双方向 lock、本層 spec の

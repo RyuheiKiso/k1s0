@@ -155,6 +155,16 @@ client クライアント SDK 配布適合仕様（v1）
             に射影、05_tier1/03_Server系 RPC 形式の射影方針 参照）。
             Companion は k1s0.Companion.NetFx の sse_paired adapter
             で受信実装を担う（05_tier1/04_Library 役割 B 参照）。
+            wire 出口は **05_tier1/16 役割 H2-A' で常設される
+            v1_legacy_http11 専用 listener (別ポート 8443-legacy、
+            TLS + HTTP/1.1、ALPN h2 offer なし)** に向ける。
+            Companion 起動時に WinHttpHandler の ALPN h2 probe を
+            行い、(a) 成功 → 業務 listener (h2/h3) を選択 (この
+            場合 transport_capability_class は full に昇格して
+            v1_full_native_with_companion 相当の経路で運用)、
+            (b) 失敗 → 当該 legacy listener に固定。L7 firewall
+            で当該ポートに到達できるのは本 cell に entry を持つ
+            tenant のみ。
           - auto_instrumentation_mode: clr_profiler_attach。
             opentelemetry-dotnet-instrumentation の msi で
             attach、コード変更不要。
@@ -514,28 +524,41 @@ client クライアント SDK 配布適合仕様（v1）
                   capability_class_supported:
                     - web
                     - business_api_only
+              # 注: 本軸 `ua_offline_subclass` は **offline 永続
+              # 化要件 (OS + browser 経由の storage scope)** の
+              # 分類軸であり、12_client/17_UA_aware_adapter の
+              # **transport 経路分類軸 `ua_subclass`**（chrome_edge_
+              # direct / chrome_edge_via_corp_proxy / firefox_safari
+              # / dotnet_companion / tauri_native）とは独立した
+              # 別の軸である。両軸は併存し、capability cell の
+              # 一貫性検査では (capability_class, adapter,
+              # ua_subclass, ua_offline_subclass) の四軸で
+              # 1 entry 以上を持つこと。
               device_offline_requirements:
                 - capability_class: web
-                  ua_subclass: ios_safari
+                  ua_offline_subclass: ios_safari
                   installed_pwa_required: true
                   # iOS Safari タブ単独は ITP（7 日未訪問で
                   # script-writable storage 自動削除）の対象。
                   # 25h 以上の連続オフライン運用は iOS 16.4+
                   # Add-to-Home-Screen インストール済 PWA
-                  # （display-mode standalone）に限り対応
-                  # （07_tier3/22_端末オフラインデバイス 整合）。
+                  # （display-mode standalone）に限り **best-
+                  # effort** 対応（Apple は ITP eviction が
+                  # installed PWA に完全に適用されないと公式
+                  # 声明していないため、25h は best-effort SLO、
+                  # 07_tier3/22_端末オフラインデバイス 整合）。
                   min_os_version: "16.4"
                   health_probe_required:
                     - navigator_storage_persisted
                     - display_mode_standalone
                     - navigator_standalone_true
                 - capability_class: web
-                  ua_subclass: android_chrome
+                  ua_offline_subclass: android_chrome
                   installed_pwa_required: false
                   health_probe_required:
                     - navigator_storage_persisted
                 - capability_class: web
-                  ua_subclass: windows_chromium_edge
+                  ua_offline_subclass: windows_chromium_edge
                   installed_pwa_required: false
                   health_probe_required:
                     - navigator_storage_persisted

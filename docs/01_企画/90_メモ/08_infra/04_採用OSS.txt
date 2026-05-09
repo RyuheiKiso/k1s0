@@ -104,6 +104,20 @@ infra 採用 OSS（infra 層 subset）
   - 全 image は Harbor に push、Cosign で signed、Trivy +
     Grype + Syft が CI 必須。signed でない image は Kyverno
     admission policy で reject。
+  - **Kyverno と Conftest（OPA Rego）の責務分離** :
+      - Kyverno は Kubernetes admission webhook として **cluster
+        段の deploy reject** を担当（manifest が cluster に届いた
+        瞬間の admission gate）。検査名は `dcv_kyverno_blocks_*`。
+      - Conftest は GitHub Actions Required Status Check として
+        **PR 段の merge block** を担当（manifest / IaC / 仕様 lock
+        ファイルの差分検証）。検査名は `dcv_pr_blocks_*`。
+      - Kyverno は admission webhook の性質上 GitHub の PR merge
+        を直接 block する権限を持たない。本企画は旧来の「Kyverno
+        で PR merge block」表現を「Conftest で PR merge block +
+        Kyverno で admission deploy block」の二段に書き分ける。
+        両者は同じ policy 表現（Rego / YAML 双方を Conftest が
+        評価可能）を真の唯一として参照する（policy.lock.yaml の
+        単一の真）。
   - cert-manager は Let's Encrypt / 内部 CA / cross-region
     DNS01 challenge を担当。
   - OpenBao は HashiCorp Vault の MPL 2.0 fork。HSM PKCS#11
@@ -150,10 +164,24 @@ infra 採用 OSS（infra 層 subset）
   分散ブロックストレージ         | Longhorn               | Apache 2.0
 
   - Rook+Ceph は Object（RGW） / Block（RBD） / File（CephFS）
-    を 1 cluster で兼務可能だが、本企画では Object を default、
-    Block は Longhorn と二重に保有。
-  - Longhorn は PV の per-volume replication、cross-zone
-    replication policy を 07_ストレージ方針.txt で詳細。
+    を 1 cluster で兼務可能。本企画では Object を default、
+    Block は **Longhorn と二系統で並列保持** する。raw disk /
+    device path / udev rule / OSD discovery が両者で衝突する
+    ため、storage node は **物理的に二系統 taint で分離する**:
+      - `storage-ceph=true:NoSchedule` taint を持つ node プール
+        : Rook OSD / RGW / CephFS MDS のみ tolerate、device
+        path は Ceph 専用に固定。
+      - `storage-longhorn=true:NoSchedule` taint を持つ node
+        プール : Longhorn replica engine / instance manager
+        のみ tolerate、device path は Longhorn 専用に固定。
+    各系統の node spec / disk layout / OS kernel parameter
+    は 05_クラスタ構成方針.txt / 07_ストレージ方針.txt で
+    詳細化、両系統の切替は GitOps 経路で OpenTofu module
+    として宣言する。
+  - Longhorn 採用の差分価値（per-volume replication、cross-
+    zone replication policy）が Ceph RBD で代替できる業務に
+    ついては、v2 で Ceph RBD への block 集約を検討
+    （14_OSSライフサイクル適合仕様 deprecation_clock 候補）。
 
 ------------------------------------------------------------
 [8] 運用 UI / 開発者ポータル

@@ -48,9 +48,14 @@ data データストア構成方針
       - v1_cross_region_replicated：1 primary（primary
         region）+ 1 sync standby（同 region）+ 1 sync
         standby（standby region）、Replica Cluster で WAL
-        streaming、RPO=0。書き込み点は primary region 単一
-        の active-passive 構造、commit latency は cross-
-        region RTT に支配される。
+        streaming、**RPO ≈ 0**（synchronous_commit=remote_apply
+        の同期到達 ack を quorum 必須化、quorum loss 中は
+        primary write を block。primary failover 時は未確定
+        commit を visibility-blocking に扱う pg_failover_slots
+        + 二段 fencing token で commit-after-crash の可視性を
+        制御、09_data/15 fence 設計参照）。書き込み点は primary
+        region 単一の active-passive 構造、commit latency は
+        cross-region RTT に支配される。
       - v1_global_replicated：cell-based 分割、各 cell は
         per-region single-leader（v1_zone_replicated と同型
         を per-cell で配置：1 primary + 2 sync standby を

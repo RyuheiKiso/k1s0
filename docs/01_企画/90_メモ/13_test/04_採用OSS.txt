@@ -217,6 +217,14 @@ test 採用 OSS（test 層 subset）
                                  | （Python ecosystem 用、|
                                  |  JMeter と double-     |
                                  |  bound）               |
+  HTTP/3 + WebTransport load     | k1s0-perf-h3wt          | Apache 2.0
+                                 | （自製 Rust、quinn +    | （deps:
+                                 |  wtransport + tokio を  |   quinn
+                                 |  依存に組成、JMeter が  |    Apache 2.0
+                                 |  HTTP/3 不対応のため    |     + MIT、
+                                 |  当該 wire の primary   |   wtransport
+                                 |  load 経路）           |    MIT、
+                                 |                        |   tokio MIT）
   Browser load                   | Playwright             | Apache 2.0
                                  | （test mode、UI flow   |
                                  |   負荷検証）           |
@@ -227,6 +235,17 @@ test 採用 OSS（test 層 subset）
   - Locust は double-bound：Python ベースのテナント業務
     シナリオ（業務 SDK が Python 中心の場合）に限定して
     並列採用、JMeter と同じ scenario corpus を input に取る。
+  - k1s0-perf-h3wt は HTTP/3 + WebTransport 専用 load 生成
+    tool（自製 Rust）。Apache JMeter / Locust が HTTP/3 +
+    WebTransport を覆えないため、当該 wire の perf_scenario_id
+    に対する primary executor として組成する。依存 OSS は
+    `quinn` (Apache 2.0 + MIT) + `wtransport` (MIT) + `tokio`
+    (MIT) で、いずれも 02 catalog [0]-(a) primary 許容。
+    load_pattern enum 名（constant-vus / ramping-vus /
+    constant-arrival-rate / ramping-arrival-rate /
+    per-vu-iterations）は k6 executor 由来だが、本 tool は
+    scratch 実装で AGPL 由来コードを取り込まない（13_test/12
+    の k1s0-perf-h3wt 節と双方向 lock）。
 
 ------------------------------------------------------------
 [9] coverage / report
@@ -255,18 +274,28 @@ test 採用 OSS（test 層 subset）
 ------------------------------------------------------------
   カテゴリ                       | プロダクト             | ライセンス
   -------------------------------+------------------------+---------------
-  Coverage-guided fuzz           | AFL++                  | Apache 2.0
+  Coverage-guided binary fuzz    | AFL++                  | Apache 2.0
+                                 | （C/C++/Rust binary    |
+                                 |  target 専用）         |
   Go fuzz                        | go test -fuzz (stdlib) | BSD-3
   Rust fuzz                      | cargo-fuzz / libFuzzer | MIT / NCSA
+  TS / JavaScript fuzz           | jazzer.js              | Apache 2.0
   Python fuzz                    | atheris                | Apache 2.0
+  .NET / C# fuzz                 | SharpFuzz              | Apache 2.0
+                                 | （libFuzzer wrapper）  |
   Differential fuzz              | hypothesis + custom    | MPL-2.0
                                  | strategy               |
   Continuous fuzz infra          | OSS-Fuzz patterns      | Apache 2.0
                                  | (self-host)            |
 
-  - AFL++ + 各言語 stdlib / 1 OSS の L1+ 単一深耕。fuzz
-    corpus は v1_property_axiom の corpus と統合管理
-    （hypothesis-database 互換）。
+  - **言語別 fuzz tool に分離**：AFL++ 単体での "全軸 fuzz"
+    は誤りで、AFL++ は coverage-guided binary fuzz（C / C++ /
+    Rust の native binary）に限定。Go / TS / Python / .NET の
+    本番コードは各言語の stdlib / 1 OSS を採用する。13_test/09
+    v1_attacker_fault の tool 列挙と双方向 lock。
+  - fuzz corpus は v1_property_axiom の corpus と統合管理
+    （hypothesis-database 互換）、target_lang を corpus entry
+    に保持して言語別 minimizer を再 run 可能に保つ。
   - 採用しない：boofuzz / Peach（商用）/ Defensics（商用）。
   - 重要な parser / decoder（07 transport / 12 schema）の
     fuzz は v1_fault_chaos の必須 sub class として coverage

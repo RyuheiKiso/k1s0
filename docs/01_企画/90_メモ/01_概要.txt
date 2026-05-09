@@ -35,10 +35,16 @@
           計装範囲外であり（CLR Profiler は HTTP / ADO.NET / WCF 等の
           既知 instrumentation point に対する自動 span 生成までを
           担い、Authorization header 中の JWT claim を decode して
-          attribute に注入する経路は持たない）、Companion NuGet
-          （k1s0.Companion.NetFx）の startup hook が JWT claim →
-          OTel attribute 変換を補完する（詳細は 05_tier1/04_Library
-          Companion 役割 A）。さらに defense-in-depth として OTel
+          attribute に注入する経路は持たない）、Companion OTel
+          拡張 NuGet（k1s0.Companion.NetFx.OTelExt、splunk-otel-
+          dotnet fork）の **CLR Profiler 初期化 (`ICorProfilerCallback`
+          経由 IL rewrite) で登録される k1s0 processor** が
+          JWT claim → OTel attribute 変換を補完する（4.6.1 以前
+          は Application_Start / Main 起動直後の手動初期化に
+          degrade、用語上 .NET Framework に "startup hook"
+          (`DOTNET_STARTUP_HOOKS`) は存在しない、詳細は
+          05_tier1/04_Library Companion 役割 A / 12_client/16_
+          companion_otel_extension）。さらに defense-in-depth として OTel
           Collector の attributes processor でも tenant / subject を
           span enrichment する二重持ち（注入経路の片肺障害でも全
           span に attribute が必ず乗る）。
@@ -59,14 +65,23 @@
           2016+）に依存し、かつ WinHttpHandler 自体に client-
           streaming / bidi の構造的制約があるため Connect-RPC bidi
           を採用せず、引き続き sse_paired（HTTP/1.1 chunked + SSE
-          + 自製パーサ）を既定とする。Browser SPA の bidi primary は Connect-RPC
-          が担い、本経路は .NET Framework Companion とは独立に成立
-          する（詳細は「05_tier1/03_Server系」Transport Adapter
-          Layer /「05_tier1/04_Library」Companion 役割 A / 役割 B
-          / 「12_client/06_Transport適応方針」を参照）。
+          + 自製パーサ）を既定とする。Browser SPA の bidi primary は
+          ua_subclass 別に分割して採用する：**chrome_edge / tauri_
+          native は Connect-RPC (`connect_bidi` adapter)** が primary、
+          **firefox_safari / dotnet_companion は `paired_post_sse`
+          adapter**（POST /open + SSE + POST /send + POST /close の
+          半二重 emulation、05_tier1/07_Bidi適合仕様 の bidi conformance
+          class で property_axiom により connect_bidi との完全等価を
+          CI 検査）が first-class 経路として併設される。本経路は
+          .NET Framework Companion の bidi 実装と直交し、Browser SPA
+          側で UA を検出して経路選択する（詳細は「05_tier1/03_Server系」
+          Transport Adapter Layer /「05_tier1/04_Library」Companion 役割
+          A / 役割 B /「12_client/06_Transport適応方針」「12_client/17_
+          UA_aware_adapter」を参照）。
       - 認証コンテキスト伝播：
           役割 A の一部として、生成された span / log / metric に
           tenant / subject / trace_id を統一注入する（注入経路は
-          Companion NuGet startup hook + OTel Collector attributes
-          processor の二重持ち、上記の役割 A 注記参照）。
+          Companion OTel 拡張 NuGet の CLR Profiler 経由 IL
+          rewrite で登録される k1s0 processor + OTel Collector
+          attributes processor の二重持ち、上記の役割 A 注記参照）。
     （詳細は「05_tier1」配下の各方針メモを参照）

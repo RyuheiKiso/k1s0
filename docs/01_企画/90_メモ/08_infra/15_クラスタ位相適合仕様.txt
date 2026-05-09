@@ -177,13 +177,16 @@ infra クラスタ位相適合仕様（v1）
             window と同等の error budget を消費する（13 SLO の
             budget と双方向 lock）。RTO ≤ 5 分の cap で write
             block window が閉じる。
-          - RPO=0（partition 中の primary write を block する
-            ことで保証。永続書込が ack された record は 100%
-            standby に到達済みを意味）、RTO ≤ 5 分。commit
-            latency は cross-region RTT（standby region への
-            WAL apply ack 往復）に支配される物理制約あり
-            （業務 SLO 13 v1_request_latency_p99 の region-
-            pair latency budget と双方向 lock）。
+          - **RPO ≈ 0**（partition 中の primary write を block
+            することで「ack 済 record の standby 到達率 100%」
+            を保証。durability 保証であり可視性問題は別、未確定
+            commit は commit-after-crash visibility fence で
+            visibility-blocking 制御。09_data/15 fence 設計と
+            双方向 lock）、RTO ≤ 5 分。commit latency は
+            cross-region RTT（standby region への WAL apply ack
+            往復）に支配される物理制約あり（業務 SLO 13
+            v1_request_latency_p99 の region-pair latency budget
+            と双方向 lock）。
           - drill：30 日に 1 回、Litmus で primary region を
             network partition、standby promote → traffic shift
             → primary 復旧 → fallback の full cycle。
@@ -944,12 +947,12 @@ infra クラスタ位相適合仕様（v1）
       --+-----------------------------------------+------------------------------------+-----------------------------------------------------
       1 | 製造ライン MES の zone failover         | v1_multi_zone_per_cluster          | zp_pods_evicted / istio locality / RTO ≤ 30s
       2 | FA 制御 active-active intra-region      | v1_multi_cluster_active_active     | cp_metallb_bgp / data lag ≤ 2s / 60d drill
-      3 | 調達 SCM passive DR                     | v1_multi_region_active_passive     | rpp_promotion / RPO=0 / RTO ≤ 300s
+      3 | 調達 SCM passive DR                     | v1_multi_region_active_passive     | rpp_promotion / RPO ≈ 0（write block + visibility fence）/ RTO ≤ 300s
       4 | 検査データの global active-active       | v1_multi_region_active_active      | rpa_no_cross_region_same_partition_write / cell-partitioned 不変 / 14d drill
       5 | 開発 PoC 単一 AZ                        | v1_single_zone                     | 180d 再構築 dry-run のみ
       6 | etcd quorum の split-brain 防止         | (cross-class)                      | sb_no_double_promotion
       7 | 同時 zone+cluster 障害                  | v1_multi_cluster_active_active     | czcf_graceful_degrade / 15 isolation
-      8 | drill 期限超過 PR                       | (cross-class)                      | dcv_kyverno_blocks / merge 拒否
+      8 | drill 期限超過 PR                       | (cross-class)                      | dcv_pr_blocks_drill_overdue (Conftest, PR merge 拒否) + dcv_kyverno_blocks_drill_overdue (admission, deploy 拒否)
 
   - stress test は Testcontainers / kind multi-cluster + Litmus
     + Argo CD + Argo Rollouts + Argo Events + Istio multi-

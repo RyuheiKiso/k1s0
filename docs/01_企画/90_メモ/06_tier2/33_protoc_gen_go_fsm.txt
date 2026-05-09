@@ -99,22 +99,43 @@ protoc-gen-k1s0-go-fsm（v1）
     `Tenant() string` 等）は各 state struct から委譲する形で
     生成する（`func (o DraftOrder) ID() string { return o.raw.Id }`）。
 
-■ 4 言語同等保証
-  - Rust : phantom type + sealed trait（既存 codegen で対応）。
-  - C#   : sealed record + phantom type parameter（既存 codegen
-          で対応）。
-  - TS   : tagged union + phantom type parameter（既存 codegen
-          で対応）。
-  - Go   : 本 plugin で **状態別 concrete struct + sealed
-          interface** を生成（typestate via nominal types）。
-          Go の generics は type parameter 値による method 限定
-          を持たないため phantom type は採らず、各状態に独立した
-          struct 型を割り当てて許可遷移 method のみ生やすことで
-          compile-time の不正遷移防止を達成する。
-  - 結果、4 言語すべてで「不正遷移は compile fail」が compile
-    時に成立する。表現は言語 idiom に従い、Rust / C# / TS は
-    phantom type、Go は nominal type で実現するが、保証強度は
-    等価。
+■ 4 言語等価強度（compile-time + lint + property の三層合算）
+  - Rust : **phantom type + sealed trait**（既存 codegen で対応、
+          compile-time に bypass 不可）。
+  - C#   : **sealed record + phantom type parameter + Roslyn
+          analyzer**（既存 codegen で対応、compile-time + analyzer
+          で bypass 検出）。
+  - TS   : **branded type（intersection with unique symbol）+
+          phantom type parameter + ESLint custom rule**（既存
+          codegen で対応、compile-time + lint で bypass 検出）。
+  - Go   : 本 plugin で **状態別 concrete struct + package-internal
+          sealed interface（unexported method による sealed）** を
+          生成（typestate via nominal types）。Go の structural
+          typing は compile-time の真の sealed を保証できないため
+          下記の三層 enforcement で **Rust phantom type と同等の
+          強度に近づける** :
+            - 層 G-1 : package-sealed pattern（unexported method
+                       `isOrderState()` を sealed interface に持たせ、
+                       package 外で状態 struct を満たす型を後付け
+                       実装させない）。
+            - 層 G-2 : golangci-lint の `forbidigo` で
+                       `reflect.New` / `unsafe.Pointer` 経由の状態
+                       struct 構築を application boundary で ban
+                       （forbidden_call.lock.yaml の単一の真）。
+            - 層 G-3 : 13_test/15_検証規律適合仕様 の property_axiom
+                       で「LoadOrder + 生成済み遷移 method 以外から
+                       状態 struct が構築不能」を runtime 検査
+                       （go-exhaustive + ast walker + 値生成テスト
+                       で確率的に bypass 不可性を確認）。
+  - 結果、4 言語すべてで「不正遷移は compile fail（Rust / C# / TS）
+    または compile fail + lint + property の三層検査（Go）」が
+    成立する。**「保証強度は等価」表現は撤回し、「等価強度」
+    （Rust: compile-time / Go: package-sealed + lint + property /
+    TS: branded type + lint / .NET: closed hierarchy + analyzer）
+    として粒度を honest に明示する**。Go の bypass 経路は本三層で
+    closure するが、reflection / unsafe を含む標準 library 系統は
+    allowlist で除外される領域が残る（lint 完全 ban は標準 library
+    import 自体を阻むため不採用）。
 
 ■ bypass 防止
   - reflection / unsafe / type assertion 経由で `ConfirmedOrder`

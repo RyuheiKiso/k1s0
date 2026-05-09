@@ -115,8 +115,14 @@ security 監査方針
     取りこぼしは coverage gap として CI alert。
 
 ■ 採用しない方針
-  - audit_event の sampling：禁止、100% 保存。cost 削減は
-    cold tier 移行のみ。
+  - audit_event の sampling：禁止。保存規律は「sampling 禁止 +
+    drop 検出 (10_security/16) + audit backend file + webhook
+    二重出力 + webhook 先 Vector persistent buffer (disk-backed)
+    + rotated file log 再投入経路」の合算で「ingest gap > 0 で
+    page、復旧経路を二系統」を物理保証する（hash chain 単独で
+    100% 保存を語らない、kube-apiserver audit-only field は etcd
+    snapshot から原理的に復元不能であるため etcd snapshot 経路に
+    依存しない）。cost 削減は cold tier 移行のみ。
   - audit_event の logical delete（deleted_at）：禁止、
     crypto-erase 経路のみ。
   - 単一経路（application emit のみ）：禁止、4 経路冗長

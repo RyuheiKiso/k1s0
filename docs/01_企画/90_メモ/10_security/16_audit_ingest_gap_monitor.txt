@@ -41,11 +41,22 @@ audit ingest gap monitor + heartbeat（v1）
         と判定（1 min interval + 30 sec 余裕）。
       - audit_ingest_gap_seconds metric を Prometheus に export、
         SLO 化（gap > 0 で page）。
-  - 役割 AGM-C : kube-apiserver drop 検出
+  - 役割 AGM-C : kube-apiserver drop 検出 + audit backend 二重化
       - apiserver の `apiserver_audit_event_dropped_total` が
         > 0 で page。
-      - drop 期間は etcd snapshot から audit log を後追い
-        再構築（secondary etcd audit log redundancy）。
+      - kube-apiserver audit policy は backend を **file
+        (rotated, on-host PVC) + webhook の二重出力** で
+        構成する（`--audit-log-path` + `--audit-webhook-config-file`
+        並列）。webhook 先は Vector の disk-backed persistent
+        buffer（`buffer.type = disk`、容量試算は 1 source ×
+        peak event-rate × 24h を想定）で drop 期間を吸収する。
+      - drop 復旧は (a) webhook 先 Vector persistent buffer
+        の再 ingest、(b) on-host file backend の rotated log
+        からの再投入（CI batch job 日次実行）の二経路で行う。
+      - audit-only field（actor / requestURI / responseObject）
+        は etcd 側に存在しないため、etcd snapshot からは原理
+        的に再構築できない。本機構は etcd snapshot 経路に
+        依存しない。
   - 役割 AGM-D : SPOF 対策
       - gap monitor 自身の障害は、ops-edge cluster
         （11_ops/16）から監視。target cluster 側 monitor が
@@ -59,9 +70,12 @@ audit ingest gap monitor + heartbeat（v1）
     経路で検出）」に置換。
   - 「取りこぼしゼロ」を「ingest gap > 0 → CI fail + page」に
     置換。
-  - 「100% 保存」を「sampling 禁止 + drop 検出 + secondary etcd
-    audit log redundancy + drop 期間は etcd snapshot から後追い
-    再構築」に置換。
+  - 「100% 保存」を「sampling 禁止 + drop 検出 + audit backend
+    file + webhook 二重出力 + webhook 先 Vector persistent
+    buffer (disk-backed) + rotated file log の再投入経路」に
+    置換。kube-apiserver audit-only field は etcd snapshot から
+    原理的に復元不能であるため、本機構は etcd snapshot 経路に
+    依存しない（依存しない旨を honest に明示）。
 
 ■ 適用 ingest source の網羅
   - source_id 列挙 :
@@ -78,14 +92,38 @@ audit ingest gap monitor + heartbeat（v1）
     PR review checklist 化。
 
 ■ 副作用
-  - heartbeat insert 量 : 1 source × 1 min × 8 sources = 480
-    events/hour × 24 = 11,520 events/day（無視できる量、
-    ClickHouse の throughput に対して < 0.001%）。
+  - heartbeat insert 量（pod 数 / instance 軸込みの実数） :
+      - source_id ごとに `source_instance_id` 軸を持つ。各 source
+        の instance 数は環境ごとに異なる（典型値 :
+        tier1_library_emit ≈ tier1 server pod 数 (例 50)、
+        tier2_application_emit ≈ tier2 service pod 数 (例 200)、
+        postgresql_pgaudit ≈ CNPG instance 数 (例 6: primary +
+        sync standby × 2 × cluster 数 2)、
+        kube_apiserver_audit ≈ apiserver instance 数 (例 3)、
+        vector_pipeline ≈ Vector pod 数 (例 30)、
+        openbao_audit ≈ OpenBao instance 数 (例 3)、
+        keycloak_event_listener ≈ Keycloak instance 数 (例 3)、
+        cosign_rekor_log ≈ Rekor instance 数 (例 3))。
+      - 上記 reference 環境（合計 instance 数 ≈ 298）で 1 instance
+        × 1 min × 60 = 60 events/hour/instance、24h で
+        298 × 60 × 24 ≈ 429,120 events/day。
+      - ClickHouse の typical write throughput は 100k events/sec
+        オーダーであり、本機構 heartbeat の流量比は 0.005% / hour
+        オーダー（依然として無視可能だが「< 0.001%」は instance 軸
+        を含めない誤った見積もりだったため、本数値で訂正する）。
+      - 大規模化（tier2 1000 pod、PII cluster 追加で CNPG instance
+        12 等）でも合計 events/day は数百万 events のオーダーに
+        留まり、ClickHouse partition by emitted_at by month の
+        merge コストに対しても無視可能。
   - gap monitor の自己 SPOF を ops-edge cluster で担保する
     ため、ops-edge cluster は本機構の運用 prerequisite。
-  - drop 期間の etcd snapshot 後追い再構築は CI batch job
-    で日次実行。再構築コストは drop 頻度に比例（通常運用で
-    drop はゼロ前提）。
+  - drop 復旧の rotated file backend 再投入は CI batch job
+    で日次実行、Vector persistent buffer 経路は webhook 復旧
+    時に自動 drain。再投入コストは drop 頻度に比例（通常運用
+    では drop はゼロ前提、buffer 容量試算で peak burst を吸収）。
+  - audit backend file は on-host PVC を消費するため、PV
+    sizing（peak event-rate × rotation 保持期間）を node
+    spec に折り込む。
 
 ■ 整合
   - 整合 1 : 10_security/09_監査方針 行 76-79 の「forgery

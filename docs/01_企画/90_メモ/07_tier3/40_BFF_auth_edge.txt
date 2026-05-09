@@ -95,6 +95,17 @@ tier3 BFF auth-edge（v1）
   - SDK 公開 API : access_token getter は提供しない。CI で
     forbidden_export_symbols.lock.yaml の access_token 列を
     全 SDK に対して検査する（既存規律を継承）。
+  - **Tauri sidecar PSK の SPA 露出禁止**（07_tier3/41 と双方向 lock）:
+      sidecar が device adapter 認証に使う per-tenant PSK は
+      sidecar 起動時に **OS keystore（DPAPI / Keychain / Secret
+      Service）から取得**、SPA / SDK / window.* / localStorage /
+      memory のいずれにも一切渡さない。SPA → sidecar handshake は
+      session cookie auto-send + Origin pin + DPoP 署名 + BFF 発行
+      challenge の HMAC（HMAC 計算は sidecar 側、SPA は cookie の
+      みで bridge 開始）で成立させる。SDK 公開 API として
+      `getSidecarPsk()` / `getSidecarToken()` 等は提供しない（同
+      forbidden_export_symbols.lock.yaml の sidecar_psk 列を検査）。
+      これにより XSS による PSK 漏洩経路がゼロ化する。
 
 ■ Valkey session スキーマ
   - key   : sess:<session_id>

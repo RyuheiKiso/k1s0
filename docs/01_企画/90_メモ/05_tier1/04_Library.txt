@@ -326,17 +326,26 @@ tier1 Library 設計方針
     NuGet 参照型の Companion を提供する。HttpClient 用
     DelegatingHandler、Authorization / traceparent / テナント識別子の
     伝播ヘルパ、Logger 拡張のみを含む。
-  - tenant / subject attribute の注入経路：CLR Profiler のみでは
-    Authorization header 中の JWT claim を decode して span attribute
-    に注入する経路は標準計装に含まれない。tenant_id / subject 系
-    attribute の付与は Companion NuGet の startup hook が
-    DelegatingHandler 内で JWT claim を pickup → OTel Activity
-    （System.Diagnostics）の baggage / attribute に追記する形で実装
-    する。Auto-Instrumentation 経路（CLR Profiler）と Companion NuGet
-    経路は同じ Activity に書込むため、片方の片肺障害（NuGet 未参照
-    アプリ等）でも下流の OTel Collector attributes processor が
-    tenant / subject を span enrichment して二重持ちで吸収する
-    （01_概要 役割 A 整合）。
+  - tenant / subject attribute の注入経路：CLR Profiler の標準
+    計装のみでは Authorization header 中の JWT claim を decode
+    して span attribute に注入する経路を持たない（CLR Profiler
+    は HTTP / ADO.NET / WCF 等の既知 instrumentation point に対
+    する自動 span 生成までを担う）。tenant_id / subject 系
+    attribute の付与は Companion OTel 拡張 NuGet
+    （k1s0.Companion.NetFx.OTelExt、splunk-otel-dotnet fork）が
+    **CLR Profiler の IL rewrite 経由で登録する k1s0 processor**
+    で行う。当該 processor は HttpClient / HttpWebRequest /
+    WebClient / WCF の各 stack で Activity（System.Diagnostics）
+    に対し JWT claim → SetTag(tenant_id, subject, actor_id, ...)
+    を行う（DelegatingHandler は HttpClient 経路の補助、4 stack
+    全体の主経路は IL rewrite 側）。.NET Framework に "startup
+    hook" (`DOTNET_STARTUP_HOOKS`) は存在しないため本企画は
+    当該語を使用しない。Auto-Instrumentation 経路（CLR Profiler）
+    と本 processor は同じ Activity に書込むため、片方の片肺
+    障害（NuGet 未参照アプリ等）でも下流の OTel Collector
+    attributes processor が tenant / subject を span enrichment
+    して二重持ちで吸収する（01_概要 役割 A / 12_client/16
+    Companion OTel 拡張 整合）。
   - core スキーマとの整合：構造化ログ / span attribute 名は言語中立
     のスキーマ定義（YAML、OpenTelemetry Semantic Conventions 拡張
     形式）を単一の真とし、OpenTelemetry Weaver で各言語の定数コード

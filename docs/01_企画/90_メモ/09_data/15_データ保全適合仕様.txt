@@ -176,13 +176,22 @@ data データ保全適合仕様（v1）
             sync、Kafka MM2 strict-ordering、ClickHouse macro
             replicas、Ceph multi-site。
           - durability：region_quorum（region 障害でも
-            standby が同期受信済の WAL を持つ、RPO=0。
+            standby が同期受信済の WAL を持つ、**RPO ≈ 0**：
             partition 中の primary write を block することで
-            保証＝永続書込が ack された record は 100% standby
-            に到達済みを意味）。commit latency は cross-region
-            RTT（standby region への WAL apply ack 往復）に
-            支配される物理制約あり（infra01/15 v1_multi_region
-            _active_passive と双方向 lock）。
+            「永続書込が ack された record は 100% standby に
+            到達済み」を保証する一方、PostgreSQL の同期レプリ
+            は durability 保証であり可視性問題は別であるため、
+            primary が ack 受信前に crash した未確定 commit に
+            ついては **commit-after-crash visibility fence**
+            （pg_failover_slots + 二段 fencing token、後述
+            「fence 設計」）で可視性を制御する。本仕様は
+            「partition 中 commit がゼロ」「ack 済 record の
+            standby 到達率 100%」を物理 invariant として CI
+            検査するが、絶対 RPO=0 表現は採らない）。commit
+            latency は cross-region RTT（standby region への
+            WAL apply ack 往復）に支配される物理制約あり
+            （infra01/15 v1_multi_region_active_passive と
+            双方向 lock）。
           - 対応する SLO latency class：本 preservation_class
             配下の write 経路は 13_SLO 適合仕様 の
             v1_request_latency_p99_cross_region に bind 必須
@@ -345,6 +354,46 @@ data データ保全適合仕様（v1）
     experiment を生成する形に統一。
   - data オペレータ / 業務側で迷う余地がないため、独立
     dimension 化する利得が乏しい。
+
+■ fence 設計（commit-after-crash visibility fence）
+  - 問題 :
+      PostgreSQL の synchronous_commit=remote_apply は durability
+      保証であり、primary 側で fsync 完了後・standby ack 受信前に
+      primary が crash した場合、当該 commit は (a) 既に durable に
+      書き込まれている可能性 / (b) standby に到達していない可能性
+      が両立する。failover で standby を promote すると当該 record
+      は new primary 上で「未確定 commit」となり可視性が曖昧になる。
+      この問題は「ack 済 record の standby 到達率 100%」という
+      durability 不変条件とは別軸である。
+  - 設計 :
+      層 1: pg_failover_slots による replication slot 永続化。
+            primary failover 時、未送信 WAL（fsync 済だが standby
+            未到達）を standby promote 後の new primary が継承し、
+            既存 standby（旧 primary は除外）への再同期で WAL gap
+            を埋める。
+      層 2: 二段 fencing token（client_fencing_token /
+            cluster_fencing_token）。CloudNativePG operator が
+            primary 確定時に cluster_fencing_token を monotonic
+            increment、tier1 backend は session start 時に当該
+            token を取得して以後の write request に付与、commit
+            時に token mismatch（split-brain 中の旧 primary write）
+            を WAL に refuse として記録する（admission webhook +
+            postgres extension）。
+      層 3: visibility-blocking marker。失われた可能性のある
+            commit は new primary 上で `pg_visibility` 拡張に
+            「pending_visibility_check」として記録、recovery
+            phase で standby ack 履歴と突合して確定 / 廃棄を
+            決定するまで client query への visible 化を block。
+  - 検査 :
+      - drill 6 : Litmus で primary を ack 受信前 crash 注入、
+        new primary 上で visibility-blocking marker 数 ≤ 0 を
+        property test で確認。
+      - drill 7 : split-brain 注入で旧 primary write の token
+        mismatch refuse をログ確認。
+  - 整合 :
+      - 09_data/05 / 09_data/09 の RPO ≈ 0 表現と双方向 lock。
+      - 08_infra/15 v1_multi_region_active_passive と双方向 lock。
+      - 11_ops/15_運用ループ適合仕様 の drill cadence と整合。
 
 ■ 5 種類 preservation orchestrator の責務分離（特殊機構）
   - orchestrator 1: postgres_wal_streaming
@@ -938,7 +987,9 @@ data データ保全適合仕様（v1）
         - instance：CloudNativePG 1 primary + 2 sync standby、
           Kafka RF=3 ISR=2、ClickHouse 3 replica、Valkey
           Cluster
-        - 想定挙動：zone 1 つ落ちても 60 秒以内 RTO、RPO=0
+        - 想定挙動：zone 1 つ落ちても 60 秒以内 RTO、RPO ≈ 0
+          （partition 中 primary write block + commit-after-
+          crash visibility fence 前提）
         - 期待結果：drill 2 は適用外、drill 1 と drill 3 で
           連続 green
 
@@ -957,7 +1008,9 @@ data データ保全適合仕様（v1）
           ordering、ClickHouse macro replicas、Ceph multi-
           site
         - 想定挙動：region 障害で 5 分以内 standby promote、
-          RPO=0、column + topic envelope encrypt 必須。
+          RPO ≈ 0（partition 中 primary write block + commit-
+          after-crash visibility fence 前提）、column + topic
+          envelope encrypt 必須。
           write 経路の commit latency は cross-region RTT
           に律速、SLO は 13_SLO 適合仕様 の v1_request_
           latency_p99_cross_region に bind（threshold_ms 例

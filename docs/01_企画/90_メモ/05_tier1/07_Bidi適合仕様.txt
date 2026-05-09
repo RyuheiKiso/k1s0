@@ -233,22 +233,35 @@ tier1 Bidi 適合仕様（v1）
                            v1_live_snapshot, v1_bulk_upload]
                 constraints:
                   transport_capability_class: v1_l1plus_primary
-                  requires_fetch_full_duplex_streams: true
+                  requires_fetch_full_duplex_streams:
+                    # ua_subclass 別 map（boolean ではない）。
+                    # 12_client/15 capability_matrix.lock.yaml の
+                    # ua_subclass 軸 5 値（chrome_edge_direct /
+                    # chrome_edge_via_corp_proxy / firefox_safari /
+                    # dotnet_companion / tauri_native）と双方向 lock。
+                    chrome_edge_direct: true
+                    chrome_edge_via_corp_proxy: false
+                    firefox_safari: false
+                    dotnet_companion: false
+                    tauri_native: true
                                             # Browser SPA capability_
-                                            # class=web の bidi primary。
-                                            # Browser 側は @connectrpc/
-                                            # connect-web、Node は
-                                            # connect-node。HTTP/2 over
-                                            # TLS / HTTP/3 over QUIC
-                                            # 上で gRPC 等価 bidi を
-                                            # 成立させる。fetch full-
-                                            # duplex streams 未対応 UA
-                                            # では当該 class が
-                                            # ConfigurationError として
-                                            # SDK に reject される
-                                            # （06_Transport適応方針
-                                            # endpoint capability
-                                            # negotiation 整合）。
+                                            # class=web の bidi primary は
+                                            # ua_subclass=chrome_edge /
+                                            # tauri_native のみ。Safari
+                                            # 17.4 / Firefox 安定 release
+                                            # は request body streaming
+                                            # 未対応のため connect_bidi
+                                            # を割当てると ConfigurationError、
+                                            # firefox_safari / dotnet_
+                                            # companion は paired_post_sse
+                                            # adapter（後出）で半二重 emulation
+                                            # を first-class 経路として
+                                            # 利用、bidi conformance class
+                                            # の property_axiom で完全
+                                            # 等価を CI 検査する。
+                                            # （06_Transport適応方針 /
+                                            # 12_client/17 UA-aware adapter
+                                            # と双方向 lock。）
               web_transport:
                 supports: [v1_interactive, v1_alert, v1_event_feed,
                            v1_live_snapshot, v1_bulk_upload]
@@ -280,6 +293,26 @@ tier1 Bidi 適合仕様（v1）
                 # の bulk 投入は順序保証 / resume を SSE id field では救えな
                 # いため、grpc_native / connect_bidi / web_transport /
                 # messaging_bridge のみが supports する。
+              paired_post_sse:
+                supports: [v1_interactive, v1_alert, v1_event_feed,
+                           v1_live_snapshot]
+                # 12_client/17 UA-aware adapter で詳説する半二重 emulation。
+                # POST /open（session 確立 + SSE 開始）→ SSE で server→client、
+                # POST /send（session token = SSE id）で client→server、
+                # POST /close で session 終了の 3 endpoint で bidi semantics
+                # を等価に再構成する。fetch full-duplex 不可 UA（firefox_safari）
+                # と .NET Framework Companion (dotnet_companion) で connect_bidi
+                # の代替 first-class adapter として利用。bidi conformance class
+                # の property_axiom で connect_bidi との完全等価を CI 検査
+                # （4-F の verification_class と整合）。
+                # client-streaming（v1_bulk_upload）は POST /send の累積投入
+                # で順序保証可能だが SSE id は使わないため supports から除外、
+                # bulk_upload は resumable upload 形式の unary 3 連 RPC に
+                # 射影（05_tier1/03_Server系 RPC 形式の射影方針 参照）。
+                constraints:
+                  transport_capability_class: v1_l1plus_primary
+                  ua_subclass: [chrome_edge_via_corp_proxy,
+                                firefox_safari, dotnet_companion]
               long_poll:
                 supports: [v1_event_feed]
               webhook:

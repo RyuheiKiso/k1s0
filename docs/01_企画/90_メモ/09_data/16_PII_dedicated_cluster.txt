@@ -22,13 +22,44 @@ PII 専用 PostgreSQL クラスタ（v1）
     これを唯一現実的な解として選択する。
 
 ■ 配置
-  - 業務クラスタ : 既存 CloudNativePG 構成（PITR / streaming
+  - 業務クラスタ（Kubernetes cluster + CloudNativePG Cluster CR）:
+                  既存 CloudNativePG 構成（PITR / streaming
                   replication / RPO 5 min）。PII column は持たない。
-  - PII クラスタ : 本ファイルで新設する独立 CloudNativePG
-                  クラスタ。物理 node は業務クラスタと別 node
-                  pool（共有 node を許さない）。
-  - PII KEK は別 HSM partition、別 OpenBao Transit path。業務
-    クラスタ KEK が漏洩しても PII クラスタは復号不能。
+  - PII クラスタ : 本ファイルで新設する **独立 Kubernetes cluster
+                  上の独立 CloudNativePG Cluster CR**。物理 node は
+                  業務クラスタと別 K8s cluster（共有 node も共有
+                  control plane も許さない）。本企画は K8s cluster
+                  レベルでの隔離を採用し、業務 control plane が
+                  侵害されても PII cluster の admission / deploy /
+                  secret 経路は影響を受けない物理境界とする。
+  - **PII cluster の control plane も独立配置**:
+      - Argo CD / Argo Rollouts / Argo Events / Kyverno（admission）
+        / cert-manager / OpenBao / External Secrets Operator /
+        Keycloak / 監査 ClickHouse / OTel Collector のいずれも
+        PII cluster 内に独立 instance として配置する。業務 cluster
+        の同名 instance とは別 deployment、別 secret、別 root CA、
+        別 OIDC realm、別 ClickHouse SoR とする。
+      - Argo CD multi-cluster federation は採用しない。各 cluster
+        の Argo CD は当該 cluster のみを target とし、Argo CD
+        instance 間は read-only な GitOps repo の同期のみで結ばれる
+        （control plane は federate しない）。
+      - OpenBao は PII cluster 用と業務 cluster 用で **別の root
+        token / KEK / HSM partition** を持つ。Performance Replica /
+        DR Replica も cluster 境界を跨がない（PII cluster の OpenBao
+        は PII cluster 内 DR のみ）。
+      - cert-manager の root CA も別。業務 cluster の root CA から
+        派生した cert で PII cluster の workload を認証することは
+        禁止する。
+  - cross-cluster の唯一の接続経路は **Debezium が業務 cluster の
+    outbox を tail して PII cluster の tier2 service へ「outbox
+    event の一方向流れ込み」のみ**。逆方向（PII → 業務）の同期は
+    存在しない（pii_ref に対する reconciliation job も PII cluster
+    側で完結し、業務 cluster へ書き戻さない）。
+  - PII KEK は PII cluster 内 HSM partition、PII cluster 内 OpenBao
+    Transit path にのみ存在。業務クラスタ KEK が漏洩しても PII
+    クラスタは復号不能（control plane も独立配置のため、業務 control
+    plane 経由で PII cluster の HSM session を確立する経路自体が
+    存在しない）。
 
 ■ 役割
   - 役割 PII-A : 業務 schema → 業務クラスタ、PII column → PII
@@ -84,11 +115,26 @@ PII 専用 PostgreSQL クラスタ（v1）
     degrade。
 
 ■ 副作用
-  - cluster 数が +1（業務クラスタ + PII クラスタ）。CloudNativePG
-    の Cluster CR が tier2 ごと 2 つに。
-  - HSM partition 数が +1（PII KEK 用）。
+  - **K8s cluster 数が +1**（業務クラスタ + PII クラスタ、両者は
+    独立 cluster）。CloudNativePG の Cluster CR が tier2 ごと 2 つに。
+  - **control plane の独立配置による instance 数増加** :
+    Argo CD / Argo Rollouts / Argo Events / Kyverno / cert-manager
+    / OpenBao / External Secrets Operator / Keycloak / 監査
+    ClickHouse / OTel Collector が PII cluster 内にも独立配置される
+    （業務 cluster と instance を共有しない）。運用 instance 数が
+    倍になるが、本企画は運用コスト度外視で隔離を優先する（CLAUDE.md
+    至高路線と整合）。
+  - HSM partition 数が +1（PII KEK 用、PII cluster 内 OpenBao
+    Transit に bind）。
+  - cross-cluster の Debezium outbox 一方向流れ込みは独立 K8s
+    cluster 間で動かす必要があり、kafka MirrorMaker2 / Connect
+    のいずれかで cluster 境界を跨ぐ wire を構成する（Kafka 経路
+    自体も二系統 : 業務 cluster 用 Kafka + PII cluster 用 Kafka、
+    Debezium connect が cross-cluster outbox を bridge）。
   - dual-write の余分な network hop で write latency が +5〜
-    20 ms（許容範囲、SLO に取込済）。
+    20 ms（許容範囲、SLO に取込済）。cross-cluster network 越え
+    の RTT が cluster 配置距離（同 region / cross-region）に依存
+    する点を 09_data/15 と整合させる。
   - cross-cluster referential check の eventual 性を業務 UI 側
     が masking 表示で吸収する責務（07_tier3/19_業務エラーUX と
     整合）。

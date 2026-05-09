@@ -86,8 +86,17 @@ test 性能検証方針（load / stress / soak）
         - target_axis：16 軸の enum
         - load_pattern：v1_constant / v1_ramping / v1_
           constant_arrival_rate / v1_ramping_arrival_rate
-          / v1_per_vu_iterations の 5 enum（JMeter executor
-          enum と整合）
+          / v1_per_vu_iterations の 5 enum（**enum 名は k6
+          executor 由来。`constant-arrival-rate` /
+          `ramping-arrival-rate` / `per-vu-iterations` は
+          k6 executor の正規名で、JMeter / Locust には同名概念
+          が存在しない**。JMeter は ThreadGroup +
+          ConstantThroughputTimer + Ultimate Thread Group +
+          Stepping Thread Group の組合せで近似 mapping、Locust
+          は LoadShape custom class で近似 mapping、xk6 系
+          （xk6-webtransport / xk6-grpc 等）は k6 native の
+          executor をそのまま利用する。各 tool の mapping は
+          `13_test/04_採用OSS` の load tool 採用節に定義）
         - duration_minutes：5 / 30 / 60 / 1440（24h）/
           4320（72h）の enum
         - shadow_cluster_class：v1_dedicated_shadow /
@@ -100,19 +109,29 @@ test 性能検証方針（load / stress / soak）
 
 ■ load_pattern enum 詳細
   - v1_constant：
-        - constant VU、JMeter `constant-vus`
+        - constant VU、k6 `constant-vus`、JMeter は
+          ConstantThreadGroup で近似、Locust は LoadShape の
+          fixed_users で近似
         - 主用途：v1_load
   - v1_ramping：
-        - VU 段階増加、JMeter `ramping-vus`
+        - VU 段階増加、k6 `ramping-vus`、JMeter は Ultimate
+          Thread Group / Stepping Thread Group で近似、Locust
+          は LoadShape の stages で近似
         - 主用途：v1_stress / v1_capacity_forecast
   - v1_constant_arrival_rate：
-        - constant RPS、JMeter `constant-arrival-rate`
+        - constant RPS、k6 `constant-arrival-rate`、JMeter は
+          ConstantThroughputTimer + ThreadGroup で近似、Locust
+          は constant_pacing で近似
         - 主用途：v1_load / v1_soak
   - v1_ramping_arrival_rate：
-        - RPS 段階増加、JMeter `ramping-arrival-rate`
+        - RPS 段階増加、k6 `ramping-arrival-rate`、JMeter は
+          Throughput Shaping Timer（jp@gc プラグイン）で近似、
+          Locust は LoadShape stages + constant_pacing で近似
         - 主用途：v1_spike / v1_stress
   - v1_per_vu_iterations：
-        - VU 別 iteration 数固定、JMeter `per-vu-iterations`
+        - VU 別 iteration 数固定、k6 `per-vu-iterations`、
+          JMeter は ThreadGroup の Loop Count で近似、Locust
+          は task_set + iteration count で近似
         - 主用途：deterministic baseline 計測
 
 ■ baseline 規律
@@ -159,13 +178,18 @@ test 性能検証方針（load / stress / soak）
           replay と blend
         - 用途：v1_load / v1_stress / v1_spike
 
-■ Apache JMeter / Locust の役割分担
+■ Apache JMeter / Locust / k6 の役割分担
   - Apache JMeter（L1+ 単一深耕）：
-        - 全 perf_scenario_id の primary executor
-        - browser load は Playwright (browser load mode) で実行（Playwright
-          + Apache JMeter）
+        - HTTP/1.1 / HTTP/2 / WebSocket / gRPC（plugin）で
+          表現される全 perf_scenario_id の primary executor
+        - browser load は Playwright (browser load mode) で
+          実行（Playwright + Apache JMeter）
         - synthetic monitoring も Apache JMeter で（11_ops/06
           アラート方針 と整合）
+        - **HTTP/3 + WebTransport は JMeter 公式 sampler で
+          非対応**（JMeter は Java HttpClient ベースで HTTP/2
+          まで）。HTTP/3 + WebTransport の load は本 tool では
+          覆えないため、下記 k6 + xk6-webtransport を併用する。
   - Locust（double-bound）：
         - Python ecosystem の業務 SDK が driver の場合
           に並列採用、Apache JMeter と同じ scenario corpus を input
@@ -173,6 +197,29 @@ test 性能検証方針（load / stress / soak）
           に対し Apache JMeter / Locust 両方の result を持つ場合、
           JMeter result が baseline 確定の primary、Locust
           result は cross-check
+  - k1s0-perf-h3wt（HTTP/3 + WebTransport 専用、自製 Rust）：
+        - **k6 + xk6-webtransport は k6 自体が AGPL-3 のため
+          02_採用OSS一覧 [0] OSS license 規律により採用不可**。
+          代替として、本企画は **`quinn` (Apache 2.0 + MIT)
+          + `wtransport` (MIT) + `tokio` (MIT) を依存とする
+          自製 Rust load 生成 tool `k1s0-perf-h3wt`** を組成
+          する（Cargo workspace の一 crate として in-tree 配布、
+          全体 license は Apache 2.0）。
+        - load_pattern enum は k6 executor 由来であるため、
+          `k1s0-perf-h3wt` 側でも同名 executor を実装する
+          （constant-vus / ramping-vus / constant-arrival-rate
+          / ramping-arrival-rate / per-vu-iterations、計算
+          ロジックは k6 と同等の semantics、実装は scratch、
+          AGPL 由来コード混入禁止）。
+        - 採用追加 OSS（quinn / wtransport / tokio）は
+          `13_test/04_採用OSS` に明示登録、02_採用OSS一覧 の
+          OSS license 規律 [0]-(a) primary 許容 license 配下に
+          linkage_model = static で登録する。
+        - JMeter / Locust の result と `k1s0-perf-h3wt` result
+          は同一 performance_scenarios.lock.yaml entry に対して
+          cross-check として保存、wire 別の result は wire
+          binding（wire = http2 / wire = http3_webtransport）で
+          区別する。
 
 ■ result の SoR
   - JMeter result：JSON Lines 形式、ClickHouse hot tier

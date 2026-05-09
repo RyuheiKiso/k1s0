@@ -28,10 +28,14 @@ ops 採用 OSS（ops 層 subset）
       - Asterisk             (GPL-2.0)   : network_service
                                           (NEW-02 ops-edge cluster
                                            上の独立 SIP service)
-      - APNs / FCM           (commercial): network_service
-                                          (escalation 用途に限り
-                                           02 catalog [0] 例外規律
-                                           で許容、NEW-02 と整合)
+      - APNs / FCM           (OS native ): network_service
+                                          (last-mile OS provider
+                                           native push、business
+                                           core は依存させない、
+                                           02 catalog [0]-(e)
+                                           例外規律で「OS 仕様の
+                                           必然的 dependency」と
+                                           して許容、NEW-02 と整合)
 
 ------------------------------------------------------------
 [1] SLO platform / error budget

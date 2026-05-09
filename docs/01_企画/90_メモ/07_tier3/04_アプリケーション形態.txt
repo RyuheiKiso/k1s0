@@ -6,11 +6,17 @@ tier3 のアプリケーション形態
   - Web SPA :
       - ブラウザ上で動作する Single Page Application。
       - 主要言語は TypeScript（「05_言語スタック」参照）。
-      - tier2 への接続は tier1 Gateway 経由 HTTP/1.1 + JSON
-        （unary）/ HTTP/1.1 + SSE（text/event-stream、
-        server-streaming）、または将来 HTTP/3 + WebTransport
-        （Transport Adapter Layer の capability negotiation で
-        自動選択。「05_tier1/03_Server系」参照）。
+      - tier2 への接続は tier1 Gateway 経由で **業務 listener
+        (HTTP/2 + HTTP/3 only) 上の JSON unary / SSE
+        (text/event-stream、server-streaming) を multiplex**
+        （HTTP/2 stream として 16 subscription を per-tab に
+        並行）、将来 HTTP/3 + WebTransport（Transport Adapter
+        Layer の capability negotiation で自動選択。「05_tier1/
+        03_Server系」「05_tier1/16_HTTP2_enforcement」参照）。
+        企業 FW / DLP / TLS インスペクション appliance が
+        ALPN h2 を遮断する環境のみ v1_legacy_http11 経路（別
+        ポート 8443-legacy listener）に capability_matrix で
+        明示 entry を持つ tenant が降格利用する。
   - デスクトップ exe（クロスプラットフォーム） :
       - Windows / macOS / Linux で動作するデスクトップアプリ。
       - 主要言語は C# (.NET 8+) または Rust（Tauri）。
@@ -93,7 +99,11 @@ tier3 のアプリケーション形態
     語スタック」）。
   - tier2 Service を Gateway 経由 HTTP/1.1 + JSON（unary）/
     HTTP/1.1 + SSE（text/event-stream、server-streaming）で消費
-    する形態に固定する。
+    する形態に固定する。当該経路の wire 出口は **05_tier1/16
+    の役割 H2-A' で常設される v1_legacy_http11 専用 listener
+    （別ポート 8443-legacy）** であり、Companion (役割 B) が
+    NuGet 経由 ALPN h2 ネゴシエーションに失敗した端末では
+    起動時に当該 listener へ向けた config に自動切替する。
   - 観測可能性 / 認証コンテキスト伝播 / Transport Negotiation は
     Companion（役割 A / 役割 B）が担う（「05_tier1/04_Library」
     Companion 節）。

@@ -21,13 +21,31 @@ tier1 ingress HTTP/2 強制（v1）
     subscription の唯一の物理的解。
 
 ■ 役割
-  - 役割 H2-A : ingress HTTP/2 強制
-      - Envoy Gateway listener の HTTP/1.1 を v1 で廃止
-        （HTTP/2 + HTTP/3 のみ accept）。
+  - 役割 H2-A : 業務 ingress HTTP/2 強制
+      - Envoy Gateway の **業務 listener (port 443 / HTTP/3 UDP
+        443)** は HTTP/2 + HTTP/3 のみ accept、HTTP/1.1 は
+        廃止する。
       - HTTP/2 prior-knowledge は accept しない（ALPN
         ネゴシエーション h2 必須、TLS ALPN なしの client は
         cleartext h2c も accept しない）。
-      - 結果、全 client は TLS + ALPN h2 が前提。
+      - 結果、業務 listener に到達する全 client は TLS +
+        ALPN h2 が前提。
+  - 役割 H2-A' : v1_legacy_http11 専用 listener
+      - 業務 listener とは **物理的に別ポート（例: TLS port
+        8443-legacy）** に v1_legacy_http11 専用 listener を
+        分離して残す。当該 listener は TLS + HTTP/1.1 のみ
+        accept、ALPN は h2 を offer しない。
+      - L7 firewall（Envoy access control + Network Policy）で
+        当該ポートに到達できるのは、capability_matrix.lock.yaml で
+        v1_legacy_http11 cell に entry を持つ tenant の Companion /
+        旧 proxy 経由経路のみとする。
+      - 業務 SLO（v1_request_latency_p99_ms / per-tab 16
+        subscription 等）は当該 listener に対しては別系統で
+        管理し、`v1_legacy_http11_request_latency_p99_ms` を
+        独立 SLO として 11_ops/15 に登録する。
+      - 当該 listener は v1 では仕様内、v2 で廃止候補（業界
+        OS の WinHTTP h2 普及率 trigger）として 14_OSS
+        ライフサイクル適合仕様 の deprecation_clock に乗せる。
   - 役割 H2-B : Companion ALPN h2 強制
       - .NET Framework Companion（k1s0.Companion.NetFx）は
         WinHttpHandler を必須依存として NuGet 配布、
@@ -87,8 +105,12 @@ tier1 ingress HTTP/2 強制（v1）
     持って 16 まで業務利用、残りは内部 control / health probe 用。
 
 ■ 副作用
-  - h2 prior-knowledge / ALPN h2 不可な企業 FW 環境は
-    v1_legacy_http11 経路に fall back する以外接続不能。
+  - h2 prior-knowledge / ALPN h2 不可な企業 FW 環境は、業務
+    listener（443 / HTTP/3 UDP 443）には接続できず、**役割
+    H2-A' の v1_legacy_http11 専用 listener（別ポート 8443-legacy）
+    に明示的に向け直す経路** を経由する以外、業務疎通不能。
+    fall back 先 listener は物理的に分離して常設するため
+    listener 不在で接続不能になる従来の不整合は発生しない。
   - .NET Framework 4.6.1 以下、または OS 版数が Windows 10
     1607 / Server 2016 未満（Windows 7 / 8.1 / Server 2008R2
     / Server 2012 等）の端末は v1_legacy_http11 にのみ fall
@@ -114,4 +136,16 @@ tier1 ingress HTTP/2 強制（v1）
   - 整合 5 : 11_ops/15_運用ループ適合仕様 SLO に
             ingress_http_version_distribution を追加（h3 / h2 /
             v1_legacy_http11 の比率を可視化、v1_legacy_http11
-            比率の上限を SLO event 化）。
+            比率の上限を SLO event 化）。さらに listener 別 SLO
+            として `v1_legacy_http11_request_latency_p99_ms`
+            （別ポート listener 個別計測）を独立登録、業務
+            listener と混合計測しない。
+  - 整合 6 : 12_client/15_クライアントSDK配布適合仕様
+            capability_matrix.lock.yaml の v1_legacy_http11 cell
+            に「経路: 別ポート listener 8443-legacy、TLS +
+            HTTP/1.1、ALPN h2 offer なし、L7 firewall で
+            tenant entry 必要」を機械可読 entry として明示。
+  - 整合 7 : 05_tier1/14_OSSライフサイクル適合仕様 の
+            deprecation_clock に「v1_legacy_http11 listener は
+            v2 で廃止候補（業界 OS の WinHTTP h2 普及率 trigger）」
+            を登録。

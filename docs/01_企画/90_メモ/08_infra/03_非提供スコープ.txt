@@ -42,6 +42,13 @@ infra 非提供スコープ
     避けるため、cluster は素の Kubernetes（kubeadm / kops /
     cluster-api）+ MetalLB + kube-vip。クラウド managed K8s
     での動作は対応するが、 hard dependency は持たない。
+    **ただし OS provider native push API（APNs / FCM）は
+    last-mile の OS 仕様として例外**（iOS / Android の
+    OS 設計上、業務アプリの background push を APNs / FCM 抜き
+    で delivery する経路は存在しない）。本例外は ops-edge
+    escalation cluster の last-mile 通知経路に限定し、business
+    core ワークロードは依存させない（02_採用OSS一覧 [0]-(e) /
+    11_ops/16_ops_edge_cluster と双方向 lock）。
   - service mesh の Linkerd / Cilium Service Mesh：Istio の
     L1+ 深耕のため、横並び mesh は採用しない（v2 候補は 14
     OSS lifecycle 適合仕様の pair_target で評価）。

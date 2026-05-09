@@ -32,9 +32,14 @@ tier1 観測適合仕様（v1）
       / Jaeger v2 内蔵 CH storage / Parca）の選定はこの 5 class への
       1:N マップで決定する。新 signal の追加は破壊的変更（major version up）。
   - SoR と派生関係を一意に固定する。
-      各 signal の SoR を 1 ストアに固定する（ClickHouse 一本化方針
-      の機械的具体形）。派生 signal（exemplar / label 等）は SoR
-      の query で再構成可能であることを property test で保証する。
+      各 signal の SoR を 1 ストアに固定する（**logs / traces /
+      profiles / audit は ClickHouse、metrics は Prometheus** の
+      二 SoR 構成。「02_採用OSS一覧」のClickHouse 一本化方針は
+      log / trace に限定した記述として読む）。派生 signal
+      （exemplar / label 等）は SoR の query で再構成可能で
+      あることを property test で保証する。Prometheus と
+      ClickHouse は exemplar の trace_id label / span attribute を
+      経路として相互参照（後述 metric_to_trace_link 契約）。
   - dimension は 4 layer の合成として宣言する。
       core（OTel Semantic Conventions）/ tier1_ext / tier2_ext /
       tier3_ext + Companion 拡張の 4 layer を OpenTelemetry Weaver
@@ -710,10 +715,13 @@ tier1 観測適合仕様（v1）
     observability）の同型構造で、tier1 / tier2 / tier3 / migration
     の真と「動いた事実の真」が独立に保たれ、軸間の接合は各 spec の
     test_matrix が cross_axis_assertions で担保する。
-  - 観測 SoR は ClickHouse 一本化で SQL 直接照会が成立し、業務担当
-    / 監査 / インシデント分析が同じ query language で全 signal を
-    横断できる。OpenSearch / Loki / Tempo を採らないことの長期的
-    優位を、本仕様の 5 ファイルが単一の真として保証する。
+  - 観測 SoR は **ClickHouse (logs / traces / profiles / audit) +
+    Prometheus (metrics) の 2 store 構成** で固定し、ClickHouse 側
+    は SQL 直接照会で業務担当 / 監査 / インシデント分析が同じ query
+    language で 4 signal を横断、Prometheus 側は PromQL で metric を
+    照会、両者は exemplar trace_id 経路で相互参照する。OpenSearch /
+    Loki / Tempo を採らないことの長期的優位を、本仕様の 5 ファイル
+    が単一の真として保証する。
   - 5 軸の同型は「単一 OSS 深耕 + 移行コミットメント」（04_Library
     L1+）の哲学を観測軸にも転写したもの。ClickHouse 単一 OSS 深耕
     + 観測 SoR 移行 toolchain（08 の 5 番目の pair 候補として将来

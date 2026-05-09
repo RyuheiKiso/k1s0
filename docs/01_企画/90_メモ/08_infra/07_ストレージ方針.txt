@@ -9,21 +9,35 @@ infra ストレージ方針
     tiered storage（disk_s3）を使用する。
 
 ■ storage backend のレイヤ分離
+  - 層 0：node プール分離（物理）
+      - storage-ceph node プール（taint storage-ceph=true:
+        NoSchedule、Rook OSD / RGW / CephFS MDS / Ceph RBD
+        provisioner のみ tolerate）
+      - storage-longhorn node プール（taint storage-longhorn=
+        true:NoSchedule、Longhorn replica engine / instance
+        manager のみ tolerate）
+      - 両プールに同一 node を所属させない（raw disk /
+        device path / udev rule の衝突回避、08_infra/04 /
+        05_クラスタ構成方針 と双方向 lock）
   - 層 1：Persistent Volume（Pod 単位の永続化）
-      - Longhorn（block、per-volume replication）
-      - Ceph RBD（特殊用途、容量最適化が必要な場合）
+      - Longhorn（block、per-volume replication、storage-
+        longhorn プール）
+      - Ceph RBD（特殊用途、容量最適化が必要な場合、storage-
+        ceph プール）
   - 層 2：Object Storage（S3 互換）
-      - Rook + Ceph RGW
+      - Rook + Ceph RGW（storage-ceph プール）
   - 層 3：File Share（必要な場合のみ）
-      - CephFS
+      - CephFS（storage-ceph プール）
   - 層 4：DB engine 独自の tiered storage
-      - ClickHouse の disk_s3 で hot SSD（Longhorn）+ cold
-        S3（Ceph RGW）
+      - ClickHouse の disk_s3 で hot SSD（Longhorn、storage-
+        longhorn プール）+ cold S3（Ceph RGW、storage-ceph
+        プール）
       - PostgreSQL は CloudNativePG で WAL / data を Longhorn
-        の単一 PV、archive_to_offline は pg_wal-archive +
-        Ceph RGW
-      - Kafka は Strimzi で Longhorn PV、tiered storage は
-        v2 候補（Apache Kafka 自体の tiered storage feature）
+        の単一 PV（storage-longhorn プール）、archive_to_offline
+        は pg_wal-archive + Ceph RGW（storage-ceph プール）
+      - Kafka は Strimzi で Longhorn PV（storage-longhorn
+        プール）、tiered storage は v2 候補（Apache Kafka
+        自体の tiered storage feature）
 
 ■ Longhorn 構成
   - replica 数：本番 3、開発 2。

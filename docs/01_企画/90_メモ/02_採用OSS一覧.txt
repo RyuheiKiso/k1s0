@@ -27,12 +27,30 @@
           source-available license:
           採用禁止（既採用が判明した時点で 14_OSSライフ
           サイクル適合仕様 の代替探索 trigger 起動）。
-      (e) 例外 :
-          ops-edge escalation cluster の last-mile 通知経路
-          （APNs / FCM）に限り、commercial SaaS 例外を許容
-          （11_ops/16_ops_edge_cluster と整合）。本例外は
-          escalation 用途専用、業務継続性を商用 SaaS の SLA
-          に依存させる目的では採用しない。
+      (e) 例外（OS provider native API） :
+          **business core は OSS only** を貫くが、**escalation
+          last-mile の OS provider native push（APNs : Apple
+          Push Notification service、FCM : Firebase Cloud
+          Messaging）は OS 仕様の必然的 dependency として明示
+          例外** とする（iOS 上のバックグラウンド push は OS
+          設計上 APNs を経由せざるを得ず、Android も Google
+          Play Services 環境では FCM が事実上唯一の経路）。
+          本例外は :
+            - 適用範囲を **ops-edge escalation cluster の last-
+              mile 通知経路に限定**。business core ワークロード
+              は本例外の SLA に依存させない。
+            - APNs / FCM の停止は escalation の delivery latency
+              劣化に留まり、business core の SLO には影響させ
+              ない設計（11_ops/16_ops_edge_cluster の degrade
+              経路と整合）。
+            - 「OSS のみ」原則の honest な書き換えとして本企画
+              文言は「business core OSS only + last-mile OS
+              native push 例外」と読む（08_infra/03_非提供スコープ
+              の「クラウド固有 / 商用」全否定文言にも同等の honest
+              化が施される、双方向 lock）。
+            - APNs / FCM 例外は OSS 化代替を持たないため
+              14_OSSライフサイクル適合仕様 の代替探索 trigger
+              からは恒久的に除外（trigger を引かない）。
 
   - linkage_model 列の標準値（catalog 各エントリに導入）:
       - dynamic            : 動的リンク（共有ライブラリ / dlopen）
@@ -47,7 +65,18 @@
     みなす（permissive 系のみ default 許容）。
   - linkage_model と license の整合性は CI で license-checker /
     cargo-deny / dotnet-licenses で物理検査する。違反 PR は
-    Kyverno で merge block。
+    GitHub Actions Required Status Check + Conftest（OPA Rego）
+    で merge block する（**PR 段の merge gate**、check 名は
+    `dcv_pr_blocks_license`）。さらに deploy 段の Kubernetes
+    admission（Kyverno）でも image / manifest に license 違反
+    artifact が混入していないことを物理検査し、admission reject
+    で deploy を block する（**deploy 段の admission gate**、
+    検査名は `dcv_kyverno_blocks_license`）。本企画では「Kyverno
+    で merge block」の旧表現を「Conftest で PR merge block +
+    Kyverno で admission deploy block」の二段に書き分ける規律と
+    する（Kyverno は admission webhook であり PR merge を直接
+    block する権限を持たないため。詳細は 08_infra/04_採用OSS の
+    Kyverno 注記参照）。
 
 ------------------------------------------------------------
 [1] コア基盤 / ランタイム
@@ -66,8 +95,12 @@
     Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 plain
     （QUIC + HTTP semantics、v1 必須）、HTTP/3 + WebTransport
     （`draft-ietf-webtrans-http3`（IETF Internet-Draft、RFC 化前
-    段階）の extended-connect + RFC 9297 HTTP Datagrams、v1 opt-
-    in、v2 必須化候補）、HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1
+    段階）の extended-connect + RFC 9297 HTTP Datagrams、**v1 / v2
+    ともに opt-in 扱い、Envoy native upstream の WebTransport 実装
+    GA + draft-ietf-webtrans-http3 の RFC 化を migration_trigger と
+    して 14_OSSライフサイクル適合仕様 の deprecation_clock に登録、
+    本企画として v2 で必須化することは事前約束しない**）、
+    HTTP/1.1 Upgrade（WebSocket）、HTTP/1.1
     + chunked SSE（text/event-stream）等の transport を同一クラスタ
     内で並立
     させる。本企画では Envoy Gateway（C++）が独立 upstream Pod の
@@ -75,7 +108,14 @@
     mTLS は Istio sidecar が担う。tier1 Rust ハンドラ Pod が
     server-streaming RPC を text/event-stream として直接生成し、
     Envoy gRPC-JSON Transcoder は unary の HTTP/1.1 + JSON 派生に
-    限定する（Transcoder upstream に SSE 派生 option
+    限定する。**Envoy gRPC-JSON Transcoder 自体は server-streaming
+    RPC を `stream_newline_delimited` option 等で NDJSON / JSON-array
+    として派生可能であるが、SSE フレーミング (id: / event: / retry:)
+    を持たないため Last-Event-ID resume を救えない**。本企画は
+    resume_token を Last-Event-ID 標準に乗せる規律 + event: で
+    制御情報を proto 外に正規搬送する規律を持つため、server-streaming
+    の wire 派生は Transcoder ではなく **tier1 Rust ハンドラで SSE
+    を直生成** する経路に固定する（Transcoder への SSE 派生 option
     (stream_sse_style_delimited 相当) は存在せず、本企画として上流
     寄稿はスコープ外、tier1 Rust ハンドラ内実装で SSE フレーミング
     規約を完全制御する）。SSE を採用するのは、id: フィールドが
@@ -90,16 +130,32 @@
     Transport Adapter Layer を参照。
 
   ※ Connect-RPC は Browser SPA capability_class=web の bidi
-    primary として v1_l1plus_primary 採用する（client 12 / 06
-    Transport 適応方針 / tier1 07 Bidi 適合仕様 と双方向 lock）。
-    Envoy Gateway 内で gRPC-Web filter と並走させ、HTTP/2 over
-    TLS / HTTP/3 over QUIC を wire とし、Browser fetch full-
-    duplex streams を必須前提とする（probe で endpoint /
-    UA capability negotiation）。Connect-RPC と gRPC は同一
-    .proto から並走 codegen され、SDK 内部で adapter として
-    自動 negotiation される（アプリ作者は wire 種別を意識
-    しない）。WebSocket-bidi（自製 protobuf binary frame）は
-    v1 不採用（自製 frame protocol 禁止と整合）。
+    primary として v1_l1plus_primary 採用するが、**fetch full-
+    duplex streams の実装は UA 別に乖離している**（Chromium
+    105+ 安定、Safari 17.4 / Firefox 安定 release は request
+    body streaming 未対応）。本企画は ua_subclass 軸で primary
+    を分割する :
+      - chrome_edge / tauri_native : Connect-RPC over HTTP/2
+        / HTTP/3、fetch full-duplex を要求する `connect_bidi_
+        native` adapter を primary。
+      - firefox_safari / dotnet_companion : `paired_post_sse`
+        adapter（POST /open + SSE + POST /send + POST /close
+        の 3 endpoint で半二重 emulation、12_client/17 で詳説）
+        を **first-class 経路として併設**、bidi semantics は
+        05_tier1/07_Bidi適合仕様 の bidi conformance class で
+        property_axiom により完全等価を CI 検査。
+    `requires_fetch_full_duplex_streams` は boolean ではなく
+    `{chrome_edge: true, firefox_safari: false, dotnet_
+    companion: false, tauri_native: true}` の ua_subclass 別
+    map として capability_matrix.lock.yaml に登録する（client
+    12 / 06 Transport 適応方針 / 12_client/15, 17 / tier1 07
+    Bidi 適合仕様 と双方向 lock）。Envoy Gateway 内で gRPC-Web
+    filter と並走させ、HTTP/2 over TLS / HTTP/3 over QUIC を
+    wire とする。Connect-RPC と gRPC は同一 .proto から並走
+    codegen され、SDK 内部で adapter として自動 negotiation
+    される（アプリ作者は wire 種別を意識しない）。WebSocket-bidi
+    （自製 protobuf binary frame）は v1 不採用（自製 frame
+    protocol 禁止と整合）。
 
 ------------------------------------------------------------
 [2] オブザーバビリティ
@@ -122,21 +178,39 @@
   API トラフィックビューア       | Kubeshark                        | Apache 2.0
   メトリクス可視化               | Perses                           | Apache 2.0
 
-  ※ 観測可能性 SoR は ClickHouse 一本に集約する。ログ・トレースを単一の
-    カラムナストアに格納し、trace_id を軸にした SQL JOIN や横断集計を
-    可能にする。OpenSearch は採用しない（観測可能性ワークロードは
-    BM25 ランキングや形態素解析を業務 SLO に持たず、構造化集計が支配
-    的なため、カラムナ OLAP のほうが構造的に最適）。
-  ※ trace の SoR 化は OpenTelemetry Collector の clickhouseexporter
-    （CNCF OTel Contrib、Apache 2.0）で行い、UI 経路は Jaeger v2
-    （v1.50+、first-party、Apache 2.0、active maintained）の内蔵
-    ClickHouse storage を採用する（4-A）。jaegertracing/jaeger-clickhouse
-    community plugin（Jaeger v1 用 gRPC storage plugin）は 2023 年に
-    archive 済かつ Jaeger v2 で plugin protocol 自体が廃止されたため、
-    v1 採用候補から除外する。OTel Collector clickhouseexporter のスキーマ
-    と Jaeger v2 内蔵 ClickHouse storage のスキーマ互換性は CI 整合
-    検査で物理確認する。Jaeger UI は トレース調査専用 UI として位置
-    付け、ad-hoc 解析は Apache Superset over ClickHouse に寄せる。
+  ※ 観測可能性 SoR は **log / trace は ClickHouse、metric は
+    Prometheus**（Prometheus exemplar 経由で trace_id を metric 上に
+    連結、Perses で UI 統合）。log / trace を単一のカラムナストアに
+    格納することで、trace_id を軸にした SQL JOIN や横断集計を
+    可能にする。metric は時系列の supply / aggregation 特性が ClickHouse
+    では非効率（cardinality 爆発、recording rule の semantics 不一致）
+    であるため Prometheus を SoR として併存、両 SoR は exemplar /
+    trace_id で連結する（「ClickHouse 一本」表現は log / trace に
+    限定する honest 化）。OpenSearch は採用しない（観測可能性ワーク
+    ロードは BM25 ランキングや形態素解析を業務 SLO に持たず、構造化
+    集計が支配的なため、カラムナ OLAP のほうが構造的に最適）。
+  ※ trace の SoR 化は **Jaeger v2 が内蔵する OTel Collector
+    distribution（`jaeger-v2` 配布、Apache 2.0、active maintained）**
+    を採用する。本 distribution は OTel Collector を Jaeger 公式の
+    取込み経路として bundle するため、Collector → Jaeger 形式の
+    変換は本 distribution が公式パスで担い、両者の中間 schema を
+    本企画が独自にキャストする運用を回避する。
+    ClickHouse 内のストレージ配置は :
+      - `otel_traces` schema（OTel Collector の clickhouseexporter
+        が出力する OTel native 形式、CNCF OTel Contrib、Apache 2.0）
+      - `jaeger_*` schema（Jaeger v2 内蔵 ClickHouse storage が
+        出力する Jaeger native 形式）
+    の **2 schema を別 database に物理分離して併存** させる
+    （単一の SoR テーブル invariant は維持できないため "2 schema
+    別 database 併存" を honest に明示）。CI 整合検査は **同一
+    trace_id が両 schema に同タイミングで存在することを property
+    test で確認**（schema 互換性の物理確認は不可能、trace_id
+    保持の equivalence 確認に意味論を絞る）。jaegertracing/jaeger-
+    clickhouse community plugin（Jaeger v1 用 gRPC storage plugin）
+    は 2023 年に archive 済かつ Jaeger v2 で plugin protocol 自体
+    が廃止されたため、v1 採用候補から除外する。Jaeger UI はトレース
+    調査専用 UI として位置付け、ad-hoc 解析は Apache Superset over
+    ClickHouse（`otel_traces` schema 側）に寄せる。
   ※ メトリクス可視化は Perses（CNCF Sandbox、Apache 2.0）を標準採用する
     （Grafana の AGPL 回避方針は維持）。データソースは Prometheus 系に
     限定する。

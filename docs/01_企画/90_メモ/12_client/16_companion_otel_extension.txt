@@ -43,10 +43,25 @@
             actor_id, purpose, delegation_chain)
           - tier1 OTel Collector OTLP exporter 設定
       - 配布形態 : NuGet（k1s0 Harbor + nuget.org mirror）。
-      - 適用方法 : application startup で OTelExt.Configure()
-                  を呼ぶ（CLR Profiler の startup hook 経由で
-                  auto-attach、startup hook 不可な環境では
-                  Application_Start 等から手動 init）。
+      - 適用方法 : 既定経路は CLR Profiler attach（環境変数
+                  `COR_ENABLE_PROFILING=1` + `COR_PROFILER`
+                  に splunk-otel-dotnet fork の CLSID を設定 +
+                  `COR_PROFILER_PATH` で profiler DLL 配置、
+                  `ICorProfilerCallback::ModuleLoadFinished`
+                  で IL rewrite を行い HttpClient / HttpWebRequest
+                  / WebClient / WCF の各 stack を計装する）。
+                  k1s0 processor の登録は profiler 初期化時に
+                  自動で行われる。
+                  ※ 用語注 : .NET 用語の "startup hook"
+                  (`DOTNET_STARTUP_HOOKS` 環境変数) は .NET
+                  Core 5+ の機構であり .NET Framework には存在
+                  しない。本企画では当該語を使用しない（CLR
+                  Profiler attach 一本に統一）。
+                  CLR Profiler attach 不可な環境（例: 4.6.1
+                  以前）では Application_Start (ASP.NET) /
+                  Main 起動直後 (WinForms / WPF) から手動で
+                  `OTelExt.Configure()` を呼出して NuGet 参照型
+                  Companion を初期化する degrade 経路を持つ。
 
 ■ 4 stack の hook 点
   - HttpClient    : DelegatingHandler 自動 inject + bytecode
@@ -74,8 +89,13 @@
 
 ■ Auto-Instrumentation 非対応環境（4.6.1 以前）
   - bytecode instrumentation は CLR 4.6.2+ の Auto-Instrumentation
-    に依存する。4.6.1 以前は NuGet 参照型 Companion（startup hook
-    で手動 instrumentation）に degrade する。
+    （CLR Profiler attach 経路）に依存する。4.6.1 以前は NuGet
+    参照型 Companion（**Application_Start / Main 起動直後から
+    手動で `OTelExt.Configure()` を呼出して計装を初期化** する
+    経路、Auto-Instrumentation の自動 attach は不可）に degrade
+    する。.NET Core の "startup hook" (`DOTNET_STARTUP_HOOKS`)
+    機構は .NET Framework に存在しないため、本企画では用語と
+    しても採用しない。
   - 4.6.1 以前環境では HttpClient のみ対応、WCF / HttpWebRequest /
     WebClient は server 側 Collector 補完に依存する旨を明示。
 

@@ -47,11 +47,14 @@ data レプリケーション方針
       - PostgreSQL：primary region に 1 primary + 1 sync
         standby、standby region に 1 sync standby（
         synchronous_commit=remote_apply、Replica Cluster
-        モード）、RPO=0。書き込み点は primary region 単一、
-        commit latency は cross-region RTT に支配される
-        （standby region への WAL apply ack 往復が物理下限、
-        infra01/15 v1_multi_region_active_passive と双方向
-        lock）。
+        モード）、**RPO ≈ 0**（同期 ack 必須・quorum loss
+        中の primary write block 前提、commit-after-crash
+        可視性は pg_failover_slots + 二段 fencing token で
+        visibility-blocking 制御。詳細は 09_data/15 fence 設計）。
+        書き込み点は primary region 単一、commit latency は
+        cross-region RTT に支配される（standby region への WAL
+        apply ack 往復が物理下限、infra01/15
+        v1_multi_region_active_passive と双方向 lock）。
       - Kafka：primary region に RF=3, ISR=2、standby
         region に MirrorMaker2 で strict-ordering async
         mirror、failover 時 promote。produce 受付は primary
