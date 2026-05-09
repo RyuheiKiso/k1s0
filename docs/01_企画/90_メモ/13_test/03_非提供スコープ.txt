@@ -13,9 +13,9 @@ test 非提供スコープ
 ■ 採用しないこと（test layer が責務を持たない領域）
   - 個別 OSS 単体採用判断
         - test が直接管掌する OSS（pytest / hypothesis /
-          Pact / Playwright / Litmus / pitest / k6 /
+          Pact / Playwright / Litmus / pitest / Apache JMeter /
           Testcontainers）以外の OSS 採用判断は持たない。
-          観測 stack（OTel / ClickHouse / Grafana）/
+          観測 stack（OTel / ClickHouse / Perses）/
           orchestration（Argo / Tekton / Kyverno）/ secret
           （OpenBao）は infra / data / security / ops 各層
           に従属。test は L1+ 単一深耕の規律を踏襲のみ。
@@ -37,7 +37,7 @@ test 非提供スコープ
           時の coverage matrix への notify 経路のみ。
 
   - 観測 SoR の物理運用
-        - OTel pipeline / ClickHouse cluster / Grafana
+        - OTel pipeline / ClickHouse cluster / Perses
           dashboard の運用は 09 / data / ops 各層が管掌。
           test_event の subject schema 宣言だけが test
           の所有、物理 store 運用は 09 観測適合仕様 +
@@ -93,7 +93,7 @@ test 非提供スコープ
         - quality dashboard / executive report / customer
           -facing test result publication は ops + product
           管掌。test は coverage matrix の build artifact
-          と Grafana dashboard 入力（ClickHouse 格納）まで
+          と Perses dashboard 入力（ClickHouse 格納）まで
           を提供し、レポート整形は他層に委ねる。
 
   - test の意味論的な「テスト戦略」
@@ -146,7 +146,7 @@ test 非提供スコープ
     drill cadence を緩める判断は採らない（CLAUDE.md 上位
     方針）。
   - 商用 test orchestration platform：採用しない、Tekton
-    + Litmus + Pact Broker + Playwright + pytest + k6 の
+    + Litmus + Pact Broker + Playwright + pytest + Apache JMeter の
     OSS L1+ 単一深耕（infra 14 / data 14 / security 14 /
     ops 14 と同じ）。
   - LLM-generated test の盲目的 merge：禁止、LLM 生成

@@ -12,6 +12,8 @@
   API Gateway                    | Envoy Gateway                    | Apache 2.0
   サービスメッシュ               | Istio                            | Apache 2.0
   メッセージング                 | Apache Kafka (Strimzi Operator)  | Apache 2.0
+  RPC wire（gRPC bidi 互換、     | Connect-RPC                      | Apache 2.0
+  Browser SPA bidi primary）     | (connectrpc.com)                 |
 
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
     Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 plain
@@ -37,6 +39,18 @@
     当面 External Proto に直接出さず unary 射影（resumable upload
     形式）で扱う。詳細は「05_tier1/03_Server系」Proto 二層化 /
     Transport Adapter Layer を参照。
+
+  ※ Connect-RPC は Browser SPA capability_class=web の bidi
+    primary として v1_l1plus_primary 採用する（client 12 / 06
+    Transport 適応方針 / tier1 07 Bidi 適合仕様 と双方向 lock）。
+    Envoy Gateway 内で gRPC-Web filter と並走させ、HTTP/2 over
+    TLS / HTTP/3 over QUIC を wire とし、Browser fetch full-
+    duplex streams を必須前提とする（probe で endpoint /
+    UA capability negotiation）。Connect-RPC と gRPC は同一
+    .proto から並走 codegen され、SDK 内部で adapter として
+    自動 negotiation される（アプリ作者は wire 種別を意識
+    しない）。WebSocket-bidi（自製 protobuf binary frame）は
+    v1 不採用（自製 frame protocol 禁止と整合）。
 
 ------------------------------------------------------------
 [2] オブザーバビリティ
@@ -214,3 +228,5 @@
   マニフェスト管理 (3rd party)   | Helm                             | Apache 2.0
   ローカル開発                   | Tilt                             | Apache 2.0
   DB マイグレーション             | sqlx-cli                         | MIT / Apache 2.0
+  Load generator                 | Apache JMeter                    | Apache 2.0
+  Load DSL (alt, Python)         | Locust                           | MIT

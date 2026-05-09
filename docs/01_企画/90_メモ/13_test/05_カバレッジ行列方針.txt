@@ -98,10 +98,10 @@ test カバレッジ行列方針
           pair_target
   - v1_scenario_replay：
         - 軸ごとの「journey scenario の e2e 再現」、
-          artifact は Playwright trace + k6 result +
+          artifact は Playwright trace + JMeter result +
           Tekton Pipeline run log
         - cadence_days：14（biweekly）
-        - primary tool：Playwright / k6 / chainsaw
+        - primary tool：Playwright / Apache JMeter / chainsaw
         - cross-axis bind：08 migration 4 phase / 11 key
           rotation / data01 restore_drill / infra01
           failover_drill / ops15 5 signal_class runbook
@@ -238,7 +238,7 @@ test カバレッジ行列方針
         - 各軸 spec の verification_claim entry
         - test framework execution result（pytest /
           Hypothesis / Pact Broker / Playwright / Litmus
-          / pitest / k6）
+          / pitest / Apache JMeter）
         - class_axis_cadence_table.yaml
         - ownership_table.lock.yaml（test_owner 4 軸）
   - generator：

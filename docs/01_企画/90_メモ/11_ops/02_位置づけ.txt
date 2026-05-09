@@ -59,7 +59,7 @@ ops 位置づけ
           - Kyverno admission policy（infra 14）
           - Argo Rollouts（infra 09 GitOps）
           - Argo CD sync wave（infra 09）
-          - Grafana（tier1/09 / data）
+          - Perses（tier1/09 / data）
           - ClickHouse（data / tier1/09）
           - Tekton pipeline（infra 04）
           - OpenBao response wrapping（infra 04 + tier1/11）

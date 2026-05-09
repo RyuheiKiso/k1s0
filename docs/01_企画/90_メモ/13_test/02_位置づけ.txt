@@ -57,7 +57,7 @@ test 位置づけ
         _compliance を SLO として登録、burn rate 越えは
         ops 経由で freeze
       - tier1 OSS lifecycle（14）→ pytest / hypothesis /
-        Playwright / Pact / Litmus / pitest / k6 の
+        Playwright / Pact / Litmus / pitest / Apache JMeter の
         v1_l1plus_primary 登録、EoL window は test の
         framework migration drill として演習
       - tier1 capacity（15）→ noisy_neighbor_isolation の
@@ -94,7 +94,7 @@ test 位置づけ
             実行 + chaos drill 実行
           - ClickHouse（data / tier1/09）：test execution
             result の SoR
-          - Grafana（tier1/09 / data）：coverage matrix UI
+          - Perses（tier1/09 / data）：coverage matrix UI
           - OpenBao response wrapping（infra 04 + tier1/11）：
             chaos drill の break-glass token
         は全て他層が提供する。test は「これらが verification

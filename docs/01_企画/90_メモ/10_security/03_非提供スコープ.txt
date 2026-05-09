@@ -65,8 +65,8 @@ security 非提供スコープ
     ClickHouse + Ceph RGW Object Lock の組合せで吸収、
     immudb 単独 instance は採用しない（重複 OSS）。
   - 商用 IR ticketing（PagerDuty / OpsGenie 等の有償面）：
-    on-call escalation は incident.io OSS 部分 / Grafana
-    OnCall のみを採用、商用 SLA 機能は採用しない。
+    on-call escalation は incident.io OSS 部分 / 自製 escalation engine
+    のみを採用、商用 SLA 機能は採用しない。
 
 ■ 採用しないアーキテクチャ
   - 文章 only の脅威モデル：threat_model.lock.yaml は

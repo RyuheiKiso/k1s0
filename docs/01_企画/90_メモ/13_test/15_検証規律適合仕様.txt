@@ -25,7 +25,7 @@
 ■ 位置づけ
   - 「02_採用OSS一覧」pytest / Vitest / Hypothesis / fast-
     check / proptest / jqwik / FsCheck / gopter / Pact /
-    Pact Broker / Playwright / k6 / Locust / Litmus /
+    Pact Broker / Playwright / Apache JMeter / Locust / Litmus /
     Toxiproxy / Chaos Mesh / pitest / mutmut / Stryker /
     cargo-mutants / go-mutesting / AFL++ / Testcontainers /
     chainsaw / kuttl、「03_プラットフォーム構成」の test
@@ -111,7 +111,7 @@
               ownership / regression_corpus / blameless
               文体）
       層 C : drill chaos test（Litmus + Tekton Pipeline
-              + chainsaw + Playwright + k6 + Pact Broker）
+              + chainsaw + Playwright + Apache JMeter + Pact Broker）
       層 D : runtime（5 orchestrator の実 deploy）
       層 E : physical（cosign signature / Kyverno
               admission webhook / Ceph RGW Object Lock
@@ -178,7 +178,7 @@
         - active cell 数（v1 cap）：16（全軸）
   - v1_scenario_replay：
         - 軸ごとの「journey scenario の e2e 再現」、
-          artifact は Playwright trace + k6 result +
+          artifact は Playwright trace + JMeter result +
           Tekton Pipeline run log + chainsaw assertion
         - cadence_class：v1_biweekly（14 day、infra01 /
           data01 / 11 key rotation / security15 red-team
@@ -287,7 +287,7 @@
         担当：v1_property_axiom の補助 + v1_type_
               invariant の補助
   - v1_e2e_playwright_pipeline：
-        Playwright + k6 + chainsaw + Argo Workflows +
+        Playwright + Apache JMeter + chainsaw + Argo Workflows +
         shadow cluster Argo CD sync + scenario_corpus
         Ceph RGW immutable archive の物理発火
         担当：v1_scenario_replay の primary
@@ -390,7 +390,7 @@
               - properties.yaml の全 property_id が
                 test code に annotated
               - scenarios.yaml の全 scenario_id が
-                Playwright / k6 / chainsaw 実装に bind
+                Playwright / Apache JMeter / chainsaw 実装に bind
               - pacts.yaml の全 pair_id が Pact runtime
                 output に bind
               - chaos_blueprints.lock.yaml の全
@@ -518,7 +518,7 @@
             code に annotated、annotation 欠損ゼロ
             （property_annotation_complete）
   - 不変 11：scenarios.yaml の全 scenario_id が
-            Playwright / k6 / chainsaw 実装に bind、
+            Playwright / Apache JMeter / chainsaw 実装に bind、
             v1_scenario_replay は production cluster
             上での起動ゼロ（shadow_only_enforced）
   - 不変 12：flaky_quarantine.lock.yaml の全 entry が

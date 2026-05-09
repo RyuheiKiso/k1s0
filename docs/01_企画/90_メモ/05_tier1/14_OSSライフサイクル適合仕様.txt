@@ -458,6 +458,25 @@ tier1 OSS ライフサイクル適合仕様（v1）
                 license: Apache-2.0
                 role: dashboard_consumer
 
+              connect_rpc:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/connectrpc
+                role: rpc_wire_browser_bidi_primary
+                paired_target: grpc_web   # 同 .proto から並走 codegen、
+                                          # license_change trigger
+                                          # 影響なし（両者 Apache-2.0）。
+                                          # 詳細は 08_移行Pair適合仕様
+                                          # primary_pair 候補。
+
+              apache_jmeter:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/apache/jmeter
+                role: load_generator
+                # Grafana k6（AGPL-3）からの置換。Locust（MIT）は
+                # double-bound（13_test/04 整合）。
+
               pgvector:
                 lifecycle_class: v1_l1plus_primary
                 license: PostgreSQL

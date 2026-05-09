@@ -88,7 +88,15 @@ tier2 の読み取りモデル方針（CQRS / read model / 検索 / 集計）
         counter store（「09_Service運用方針」リソース
         isolation 節と整合）。
       - Idempotency-Key の結果キャッシュ（「18_API設計規約」
-        冪等性節と整合）。
+        冪等性節と整合）。tier3 client の rebase 後 retry では
+        新キーが発行され元キーと chain 関係（original_idempotency
+        _key + chained_idempotency_key）を持つ（「07_tier3/39_
+        クライアント状態適合仕様」整合）。tier2 Idempotency
+        cache は chain 親子関係を含めて dedup 判定し、chain 内
+        で同一 base_version + 同一 actor の op は同一結果を返す
+        （rebase 後 payload 不一致による stored response 衝突
+        を防ぐ）。chain メタデータは結果キャッシュ entry に
+        付与、TTL は元キーと chain 全体で同一（24h）。
       - 分散ロック（OptimisticLock で表現できないケースの
         み）。
   - 業務 entity の状態 cache は禁止する（cache が真と DB が

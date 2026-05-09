@@ -148,7 +148,15 @@ tier3 クライアント状態適合仕様（v1）
             stale_write:
               - refetch_server_truth
               - rebase_pending_op_on_new_version (field-level)
-              - if rebase_clean: auto_resend_with_same_idempotency_key
+              - if rebase_clean: auto_resend_with_new_idempotency_key
+                _chained_to_original
+                （rebase 後 payload は base_version が変わるため
+                同 Idempotency-Key で送ると tier2 Idempotency
+                cache の stored response と衝突する。新 key を
+                発行し chain 親子関係（original_idempotency_key
+                + chained_idempotency_key）を tier2 cache 側で
+                dedup 判定する。「06_tier2/24_読み取りモデル方針」
+                整合）
               - if rebase_dirty: present_3way_merge_ui + hold_queue
             lost_update:
               - refetch_server_truth
@@ -224,7 +232,12 @@ tier3 クライアント状態適合仕様（v1）
                 pii_attach_at_send: true
                 lifetime: until_ack_or_user_discard
                 idempotency_key_ttl: 24h
-                lineage_fields: [base_version, idempotency_key, enqueued_at]
+                lineage_fields: [base_version, original_idempotency_key,
+                                 chained_idempotency_key, enqueued_at]
+                # rebase 時に chained_idempotency_key を新規発行し
+                # original_idempotency_key と chain 関係を保持
+                #（tier2 cache 側で chain 親子関係を含めて dedup 判定。
+                #「06_tier2/24_読み取りモデル方針」整合）。
               draft:
                 source: [form_input]
                 persisted_in: indexeddb_encrypted
@@ -274,7 +287,8 @@ tier3 クライアント状態適合仕様（v1）
                     actions:
                       - refetch_server_truth
                       - rebase_pending_op_on_new_version
-                      - if_rebase_clean_auto_resend_same_idempotency_key
+                      - if_rebase_clean_auto_resend_new_idempotency_key
+                        _chained_to_original
                       - if_rebase_dirty_present_3way_merge_ui_hold_queue
                   lost_update:
                     actions:
@@ -310,6 +324,7 @@ tier3 クライアント状態適合仕様（v1）
                   - mark_as_stale
                   - require_user_confirmation_to_resend
                   - if_user_confirms_generate_new_idempotency_key
+                    _chained_to_original
                   - if_user_discards_remove_entry
               draft:
                 storage: indexeddb
@@ -348,7 +363,7 @@ tier3 クライアント状態適合仕様（v1）
                 expect:
                   - response_409_subtype_stale_write
                   - rebase_clean (field-level disjoint)
-                  - auto_resend_with_same_idempotency_key
+                  - auto_resend_with_new_idempotency_key_chained_to_original
                   - eventual_ack_at_v3
 
               offline_edit_resume_lost_update: { ... }
@@ -478,10 +493,19 @@ tier3 クライアント状態適合仕様（v1）
       5 | 別検査員が編集中の検査票を自身が編集開始              | business_conflict_received| presence + DR
         |                                                       | + concurrent_edit         |
       6 | オフライン 25h 経過した検査入力の再送試行             | pending_queue_resume      | PQ TTL 超過
-        |                                                       | + over_ttl_policy         |
+        |  ・persist granted=true 端末（IndexedDB が eviction    | + over_ttl_policy         |
+        |    対象外、PQ 残存、TTL 超過のみ判定）                 |                           |
+        |  ・persist granted=false 端末（IndexedDB が storage    |                           |
+        |    pressure で evict、再起動後に PQ 再構築不能、        |                           |
+        |    ClientCapabilityError で fail-fast、queue 投入時に  |                           |
+        |    端末を deploy 対象から除外していれば本系統は発火     |                           |
+        |    しない。「22_端末オフラインデバイス」整合）          |                           |
       7 | オフライン中に PII 含む顧客返品票を作成 → 復帰送信     | pending_queue_resume      | PQ (PII redacted)
         |                                                       |                           | → in-memory attach
       8 | logout / token expiry で queue purge + 監査 emit       | purge_triggers            | 全 layer purge
+      9 | 工場現場端末の persist granted=false 検出時の queue    | (n/a, SDK 内 throw)       | ClientCapabilityError
+        | 拒否（business 層に到達しない、4 subtype enum を破壊  |                           | (subtype=
+        | しない）                                              |                           |  storage_unavailable)
 
   - 全 scenario が「09_デザインシステム」「19_業務エラーUX」「16_
     リアルタイム更新UX」の UI パターンに 1:1 で割付く（subtype 分岐

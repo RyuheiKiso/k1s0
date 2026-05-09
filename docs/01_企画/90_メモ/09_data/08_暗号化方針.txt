@@ -156,10 +156,13 @@ data 暗号化方針
   - PostgreSQL base backup の中身：column が既に envelope
     encrypted、Ceph RGW SSE-KMS で外側 wrap、archive_to_
     offline で更に追加 wrap。
-  - WAL archive：WAL 自体に encrypted column の binary が
-    入る。WAL も Ceph RGW SSE-KMS の中、PostgreSQL は
-    pgcrypto / WAL encryption（v17+）の物理機構を
-    enable する。
+  - WAL archive：column 自体が既に envelope encrypted
+    （11_鍵管理適合仕様 の DEK envelope wire 形式で WAL
+    に流れる時点で ciphertext、平文露出なし）。WAL ファイル
+    自体は PV LUKS + Ceph RGW SSE-KMS の二重で物理基盤側で
+    保護する。PostgreSQL community 版にネイティブ WAL
+    encryption はないため、論理 PG 機構には依存しない
+    （直下「採用しない暗号化機構」と整合）。
 
 ■ 採用しない暗号化機構
   - PostgreSQL Transparent Data Encryption（TDE）拡張：

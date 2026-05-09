@@ -149,14 +149,17 @@ security 採用 OSS（security 層 subset）
 ------------------------------------------------------------
   カテゴリ                       | プロダクト             | ライセンス
   -------------------------------+------------------------+---------------
-  on-call escalation             | Grafana OnCall         | AGPL-3
+  on-call escalation             | 自製 escalation engine | Apache 2.0
+                                 |   （Argo Workflows     |
+                                 |    suspend/resume +    |
+                                 |    Mattermost）        |
   IR ticketing                   | incident.io OSS        | (custom OSS)
                                  |   / GitHub Issue       |
   postmortem                     | Markdown + GitHub PR   | (workflow)
   runbook                        | Backstage TechDocs     | Apache 2.0
                                  | （infra 提供）         |
 
-  - Grafana OnCall は escalation の L1+、PagerDuty 商用
+  - 自製 escalation engine（Argo Workflows + Mattermost）は escalation の L1+、Grafana OnCall（AGPL-3）/ PagerDuty 商用
     機能は採用しない。
   - IR ticket は incident.io OSS（または GitHub Issue）の
     minimal 経路を default、商用 SLA 機能は採用しない。

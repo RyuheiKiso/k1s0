@@ -700,7 +700,7 @@ tier1 観測適合仕様（v1）
   - 新 dimension layer の追加 / namespace prefix の変更は破壊的
     変更。命名衝突を CI で検出する規律は維持。
   - PII redaction の追加（新 PII field 検出）は purely additive。
-  - 既存 signal の SoR 変更（例：traces の SoR を Tempo に変更）
+  - 既存 signal の SoR 変更（例：traces の SoR を別実装に変更）
     は破壊的変更扱い。08 移行 toolchain と同型の dual-write 移行
     プロセスを経由する。
 

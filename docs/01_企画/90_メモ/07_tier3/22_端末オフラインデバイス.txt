@@ -68,6 +68,24 @@ tier3 の対応端末・オフライン・デバイス連携
     バナーを表示する（「17_通知UI」整合）。
 
 ■ オフライン対応（製造現場の断続接続前提）
+  - permanent storage の取得 :
+      - アプリ起動時に navigator.storage.persist() を要求する。
+        granted=true なら IndexedDB が長期未使用 origin の
+        eviction 対象から外れる（Chrome は origin あたり
+        ディスクの ~60%、iOS Safari は ~1GB の quota 上限の
+        中で永続化）。
+      - granted=false の端末では IndexedDB.estimate() で残容量
+        を見積り、requested_quota_bytes（端末別 default 500MB、
+        添付写真を queue する現場では 2GB）未満なら queue 拒否
+        で ClientCapabilityError（subtype=storage_unavailable）
+        を SDK が throw する。BusinessConflict の 4 subtype enum
+        は破壊しない（「39_クライアント状態適合仕様」整合、
+        ClientCapabilityError は client SDK / tier1 Library
+        レベルのクライアント環境エラーカテゴリ）。
+      - 25h 以上の連続オフライン運用が前提の端末では persist
+        granted を必須化（granted=false の端末は工場現場
+        deploy 対象から除外、Kyverno admission policy 相当の
+        端末側 health probe で物理 enforce）。
   - 読取 :
       - cache-first 戦略を IndexedDB に対し適用する（「08_状態管理」
         永続化整合）。

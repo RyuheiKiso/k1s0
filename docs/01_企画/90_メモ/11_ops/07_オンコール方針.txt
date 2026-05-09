@@ -7,9 +7,11 @@ ops オンコール方針
     として固定し、24x365 の primary / secondary / domain-
     expert の 3 階層 escalation を必須化、rotation gap ゼロ
     / fatigue budget 違反ゼロ / handover artifact 必須を
-    CI で物理 enforce、商用 SLA 機能には依存せず Grafana
-    OnCall + Mattermost + audit_event で全 lifecycle を
-    OSS 経路に固定する。
+    CI で物理 enforce、商用 SLA 機能には依存せず自製
+    escalation engine（Argo Workflows suspend/resume +
+    Tekton Triggers + Mattermost、新規 OSS 追加なし）+
+    audit_event で全 lifecycle を Apache 2.0 / MIT 経路に
+    固定する。
 
 ■ rotation 構造（3 階層 escalation）
   - 階層 1 ：primary on-call
@@ -44,9 +46,11 @@ ops オンコール方針
           secondary / domain expert の 3 名が assigned、
           全員 reachable（既存挙動）
         - v1_auto_covered_gap：1 名 unreachable（病欠 /
-          緊急休暇 / 通信障害）だが Grafana OnCall の
-          automatic swap proposal が ops lead 承認済、
-          secondary が primary 役を物理担当している
+          緊急休暇 / 通信障害）だが自製 escalation engine
+          （Argo Workflows CronWorkflow が roster.lock.yaml
+          を読込、unreachable 検出時に automatic swap
+          proposal を Mattermost slash command で通知）が
+          ops lead 承認済、secondary が primary 役を物理担当している
           状態。承認 → 物理担当開始までの window が
           60 分以内（max_window_minutes=60）の cap で
           allow、超過は v1_unhandled_gap に転位
@@ -56,7 +60,8 @@ ops オンコール方針
     の cap 超過（60 分超）も v1_unhandled_gap に転位し
     CI fail。
   - 個人不在（病欠 / 緊急休暇）時は roster の自動 swap
-    proposal を Grafana OnCall が生成、ops lead が承認、
+    proposal を自製 engine（Argo Workflows CronWorkflow +
+    Mattermost slash command）が生成、ops lead が承認、
     audit_event 必須。承認 → 物理担当開始までの 60 分
     window 内に限り v1_auto_covered_gap として allow。
   - 連続 7 日以上の不在計画（休暇）は 14 日前までに
@@ -86,8 +91,10 @@ ops オンコール方針
 ■ ack / acknowledge protocol
   - ack window：page 発火後 5 分以内（severity_freeze 時は
     3 分）、未 ack で next 階層 escalate
-  - ack 経路：Grafana OnCall mobile app / Mattermost slash
-    command / phone call の三系統、いずれか 1 つで ack 確定
+  - ack 経路：Mattermost mobile app push / Mattermost slash
+    command / Tekton Trigger HTTP callback の三系統、
+    いずれか 1 つで ack 確定（自製 engine の Argo Workflows
+    suspend が ack receipt event で resume）
   - ack 後の義務：30 分以内に triage 完了 → Mattermost
     incident channel で incident.io OSS の incident 起票
     （or GitHub Issue 起票）
@@ -180,10 +187,19 @@ ops オンコール方針
     持続性が壊れる前に」業務調整を強制する。
 
 ■ 同型構造（13 軸 + meta + security との整合）
-  - 5 yaml 単一の真：
+  - 6 yaml 単一の真：
         rotation_classes.yaml（rotation 5 class enum）
         roster.lock.yaml（build artifact、rotation 担当
           者の時刻 grid）
+        escalation_policy.lock.yaml（build artifact、
+          自製 escalation engine の escalation rule。
+          階層 1/2/3 への page、ack window 5 分、re-page
+          60 分、fallback timer、severity 別 parallel page
+          を Argo Workflows DAG（page → suspend → timeout
+          → re-page → suspend → timeout → manager-page）
+          として展開する宣言。手書き禁止、Argo Workflows
+          manifest 生成器が単一の真として読み込み、生成された
+          manifest と双方向 lock）
         ownership_table.lock.yaml（build artifact、4 軸
           ownership 三項関係、06 アラート方針 と共有）
         fatigue_log.lock.yaml（build artifact、fatigue
@@ -191,11 +207,44 @@ ops オンコール方針
         handover_log.lock.yaml（build artifact、handover
           document の append-only 履歴）
   - 5 層 defense-in-depth：rotation は層 D / E に必ず
-    物理機構を持つ（Grafana OnCall escalation policy /
-    Kyverno admission policy で gap deploy block）。
+    物理機構を持つ（自製 escalation engine の
+    escalation_policy.lock.yaml + Argo Workflows
+    suspend/resume manifest / Kyverno admission policy で
+    gap deploy block）。
   - CI 不変条件：rotation gap zero / fatigue budget within
     / handover document complete / ownership full / break-
-    glass audit complete を CI で物理確認。
+    glass audit complete / escalation_policy.lock.yaml と
+    Argo Workflows manifest の双方向 lock を CI で物理確認。
+
+■ 3 階層 escalation の Argo Workflows DAG 展開
+  - escalation_policy.lock.yaml の宣言を Argo Workflows
+    manifest（generator が build 時に展開）に機械的に翻訳：
+        1. trigger：Alertmanager webhook → Tekton Triggers →
+           Argo Workflows submit
+        2. step1_page_primary：primary に Mattermost mobile
+           push + slash command 通知 → suspend（timeout
+           = ack_window_minutes、default 5 分）
+        3. step1_resume_on_ack：ack receipt（Mattermost
+           slash command callback / mobile push action /
+           Tekton Trigger HTTP callback）で resume、escalation
+           DAG 終了
+        4. step1_timeout_to_step2：suspend timeout で次階層へ
+        5. step2_page_secondary：secondary に同経路で page +
+           suspend
+        6. step2_timeout_to_step3：同様の timeout
+        7. step3_page_domain_expert：domain expert に page、
+           severity = freeze / security_bridge は step1 で
+           parallel page（DAG branch）
+        8. all_timeout_to_manager：3 階層全 timeout で
+           manager-page + audit_event escalation_unhandled emit
+  - Argo Workflows の suspend / resume + timeout で long-
+    lived stateful timer / acknowledge 待ちが表現される
+    （Tekton Pipelines は trigger 駆動の DAG であり、
+    long-lived suspend に弱いため Argo Workflows を採用）。
+  - 通知 channel が Mattermost のみに依存しないよう、
+    Tekton Trigger HTTP callback も ack 経路として併設
+    （三系統の ack receipt は ack window 内のいずれか 1 つで
+    suspend resume）。
 
 ■ 採用しない方針
   - 単一 on-call（primary のみ）：禁止、3 階層 escalation
@@ -210,7 +259,10 @@ ops オンコール方針
   - shadow rotation skip：禁止、新規 on-call は 2 週間
     shadow を必ず経由。
   - 商用 escalation SaaS（PagerDuty / VictorOps 商用 SLA）
-    依存：採用しない、Grafana OnCall + Mattermost で完結。
+    依存：採用しない、自製 escalation engine（Argo Workflows
+    suspend/resume + Tekton Triggers + Mattermost、新規 OSS
+    追加なし）で完結。Grafana OnCall は AGPL-3 のため不採用
+    （02 catalog の AGPL 回避方針 / 全 Apache 2.0 統一と整合）。
   - rotation 編成の文章 only 管理：禁止、roster.lock.yaml
     が build artifact、UI 上の swap は audit_event 必須。
   - v1_break_glass（通常 incident、incident_active_

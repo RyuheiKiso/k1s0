@@ -88,7 +88,7 @@ tier1 Bidi 適合仕様（v1）
     連続性を救えず、conformance corpus の rd_seq_continuous_across_resume
     を等価実装する経路が存在しないため、capabilities.lock.yaml の supports
     宣言から除外する（整合 4「unreachable class 検出」は v1_bulk_upload を
-    grpc_native / web_transport / websocket / messaging_bridge から到達
+    grpc_native / connect_bidi / web_transport / messaging_bridge から到達
     可能にすることで満たす）。
   - half_close = SUPPORTED は client から終端を伝える局面が要る class
     にだけ付く（v1_interactive、v1_bulk_upload）。それ以外の server
@@ -214,7 +214,7 @@ tier1 Bidi 適合仕様（v1）
         - 本制約により .NET Framework Companion（TLS 1.2 legacy 例外、
           08_infra/06 deprecation 12 ヶ月）も同じ scenarios.yaml の
           全 assertion を green にできる。Companion 役割 B の
-          sse_paired / websocket adapter が TLS 1.2 で動作しても、
+          sse_paired adapter が TLS 1.2 で動作しても、
           conformance corpus 上の等価性は保たれる。
 
   ── tier1/adapters/capabilities.lock.yaml
@@ -228,6 +228,27 @@ tier1 Bidi 適合仕様（v1）
               grpc_native:
                 supports: [v1_interactive, v1_alert, v1_event_feed,
                            v1_live_snapshot, v1_bulk_upload]
+              connect_bidi:
+                supports: [v1_interactive, v1_alert, v1_event_feed,
+                           v1_live_snapshot, v1_bulk_upload]
+                constraints:
+                  transport_capability_class: v1_l1plus_primary
+                  requires_fetch_full_duplex_streams: true
+                                            # Browser SPA capability_
+                                            # class=web の bidi primary。
+                                            # Browser 側は @connectrpc/
+                                            # connect-web、Node は
+                                            # connect-node。HTTP/2 over
+                                            # TLS / HTTP/3 over QUIC
+                                            # 上で gRPC 等価 bidi を
+                                            # 成立させる。fetch full-
+                                            # duplex streams 未対応 UA
+                                            # では当該 class が
+                                            # ConfigurationError として
+                                            # SDK に reject される
+                                            # （06_Transport適応方針
+                                            # endpoint capability
+                                            # negotiation 整合）。
               web_transport:
                 supports: [v1_interactive, v1_alert, v1_event_feed,
                            v1_live_snapshot, v1_bulk_upload]
@@ -238,22 +259,19 @@ tier1 Bidi 適合仕様（v1）
                                             # サポートが alpha /
                                             # experimental 段階のため、
                                             # Capability Negotiation
-                                            # で websocket / sse_paired
-                                            # 等の fallback 併存必須。
-                                            # 詳細は 08_infra/06
-                                            # HTTP/3 + WebTransport
+                                            # で connect_bidi /
+                                            # sse_paired 等の fallback
+                                            # 併存必須。詳細は 08_infra
+                                            # /06 HTTP/3 + WebTransport
                                             # 節 / 04_Library Companion
                                             # 役割 B web_transport 行。
-              websocket:
-                supports: [v1_interactive, v1_alert, v1_event_feed,
-                           v1_live_snapshot, v1_bulk_upload]
               sse_paired:
                 supports: [v1_alert, v1_event_feed, v1_live_snapshot]
                 # v1_bulk_upload (direction: client→server) は SSE 一方向性
                 # （text/event-stream は server→client の HTTP response body
                 # chunked stream）により構造的に non-supported。client→server
                 # の bulk 投入は順序保証 / resume を SSE id field では救えな
-                # いため、grpc_native / web_transport / websocket /
+                # いため、grpc_native / connect_bidi / web_transport /
                 # messaging_bridge のみが supports する。
               long_poll:
                 supports: [v1_event_feed]

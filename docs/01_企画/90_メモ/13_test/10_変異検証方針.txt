@@ -183,7 +183,7 @@ test 変異検証方針（mutation testing）
   - mutation report HTML / XML / JSON：Ceph RGW Object
     Lock Compliance mode で 365 day retention
   - ClickHouse：mutation_score quarter ごとの aggregate
-    metric、Grafana dashboard 入力
+    metric、Perses dashboard 入力
 
 ■ run pipeline
   - PR pipeline（v1_per_pr_smoke）：

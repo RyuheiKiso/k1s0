@@ -44,7 +44,7 @@ test 責務
         last_green_at 物理 enforcement、cadence 違反は
         Kyverno で関連 service deploy 物理 block
       - test framework の L1+ 単一深耕（pytest / hypothesis
-        / Playwright / Pact / Litmus / pitest / k6 を 1 機能
+        / Playwright / Pact / Litmus / pitest / Apache JMeter を 1 機能
         カテゴリ 1 OSS で固定、横並び禁止）
       - 検証 loop の各 phase（specify → generate → execute
         → triage → learn）が空欄でないことの cross-axis
@@ -117,7 +117,7 @@ test 責務
   - artifact の物理転写：全 verification claim（type
     check / property test / pact / scenario / chaos
     blueprint / mutation report）は pytest / hypothesis /
-    Pact Broker / Playwright / Litmus / pitest / k6 のいず
+    Pact Broker / Playwright / Litmus / pitest / Apache JMeter のいず
     れかに必ず物理転写される。「文章のみで test 済み」は
     禁止、CI fail。
   - last_green_at の物理 enforcement：全 (axis ×

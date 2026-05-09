@@ -46,40 +46,67 @@ ops 採用 OSS（ops 層 subset）
   Notification channel           | Alertmanager           | Apache 2.0
                                  | + webhook              |
   Burn rate alert generator      | Sloth + Pyrra          | Apache 2.0
-  Synthetic monitoring           | Grafana k6             | AGPL-3
+  Synthetic monitoring           | Playwright             | Apache 2.0
+                                 | （test 04 共有、        |
+                                 |   ユーザ journey 監視）|
   Probe / blackbox monitor       | blackbox_exporter      | Apache 2.0
 
   - Alertmanager は alert routing / deduplication / silence
     の L1+、Karma は dashboard として cross-check（infra
     14 / 04 と整合）。
-  - PagerDuty / Opsgenie 商用は採用しない、Grafana OnCall
-    へ webhook で routing。
+  - PagerDuty / Opsgenie 商用は採用しない、自製 escalation
+    engine（[3] on-call/escalation 節参照）へ webhook で routing。
   - Sloth + Pyrra の二重 generator で MWMBR alert rule を
     生成、手書き alert rule は cap 5%（infrastructure 例外
     のみ）。
-  - Grafana k6 は synthetic / external probe 用、外形監視
-    は blackbox_exporter（http / tcp / dns / icmp）で吸収。
+  - Synthetic 監視は Playwright（test 04 と共有、Apache 2.0）
+    のシナリオを Tekton CronWorkflow で定期実行、外形監視は
+    blackbox_exporter（http / tcp / dns / icmp）で吸収。
+    Grafana k6 は AGPL-3 のため採用しない（02 catalog の
+    AGPL 回避方針 / 全 Apache 2.0 統一と整合）。
 
 ------------------------------------------------------------
 [3] on-call / escalation
 ------------------------------------------------------------
-  カテゴリ                       | プロダクト             | ライセンス
-  -------------------------------+------------------------+---------------
-  on-call escalation             | Grafana OnCall         | AGPL-3
-  rotation schedule              | Grafana OnCall         | AGPL-3
-  notification channel           | Slack OSS / Mattermost | MIT / AGPL-3
-                                 | / Telegram OSS bot     | / GPLv3
-  Identity provider              | Keycloak               | Apache 2.0
-                                 | （infra / tier1/10）   |
+  カテゴリ                       | プロダクト                       | ライセンス
+  -------------------------------+----------------------------------+---------------
+  on-call escalation             | 自製 engine                      | (Apache 2.0)
+                                 | （Argo Workflows suspend/resume  |
+                                 |  + Tekton Triggers + Mattermost  |
+                                 |  webhook + slash command         |
+                                 |  callback、新規 OSS 追加なし）   |
+  rotation schedule              | roster.lock.yaml                 | (build artifact)
+                                 | + Argo Workflows CronWorkflow    | Apache 2.0
+  ack receipt（三系統）          | Mattermost (web slash command)   | MIT
+                                 | + Mattermost mobile push         |
+                                 | + Tekton Trigger HTTP callback   |
+  escalation policy              | escalation_policy.lock.yaml      | (build artifact)
+                                 | （3 階層 / ack window 5 分 /     |
+                                 |   re-page 60 分 / fallback timer |
+                                 |   を Argo Workflows DAG に展開） |
+  notification channel           | Mattermost (Team Edition)        | MIT
+                                 | + Telegram OSS bot               | + GPLv3
+  Identity provider              | Keycloak                         | Apache 2.0
+                                 | （infra / tier1/10）             |
 
-  - Grafana OnCall は escalation / rotation の L1+ 単独深耕、
-    PagerDuty は採用しない。
-  - 通知 channel は OSS Mattermost を default、Slack は
-    商用 SaaS だが本企画では internal communication channel
-    に許容（rotation page 通知のみ、機密 incident 内容は
-    Mattermost に分離）。
-  - rotation roster は build artifact（roster.lock.yaml）
-    として宣言、UI 上の手動 swap は audit_event 必須。
+  - escalation engine は新規 OSS を追加せず、既採用の Argo
+    Workflows / Tekton / Mattermost / Keycloak の組合せで実装する
+    （Grafana OnCall は AGPL-3 のため不採用、02 catalog の AGPL
+    回避方針 / 全 Apache 2.0 統一と整合）。Argo Workflows の
+    suspend/resume + timeout で long-lived stateful timer / ack 待ち
+    を表現し、3 階層 escalation を DAG（page → suspend → timeout
+    → re-page → suspend → timeout → manager-page）に展開する。
+    詳細は 07_オンコール方針 escalation_policy.lock.yaml 節を参照。
+  - 通知 channel は Mattermost Team Edition（MIT）を default。
+    機密 incident 内容も Mattermost に集約（Slack 商用 SaaS 経路
+    は採用しない、AGPL 回避方針と独立に SaaS 依存削減のため）。
+  - ack 三系統は Mattermost web slash command / Mattermost mobile
+    app push（Grafana OnCall mobile app 代替）/ Tekton Trigger HTTP
+    callback の三経路。いずれかで ack receipt を受領可能。
+  - rotation roster は build artifact（roster.lock.yaml）として
+    宣言、UI 上の手動 swap は audit_event 必須。escalation_policy
+    .lock.yaml も build artifact として escalation rule（hierarchy
+    / ack window / fallback timer）を宣言する。
 
 ------------------------------------------------------------
 [4] incident management / postmortem
@@ -88,8 +115,10 @@ ops 採用 OSS（ops 層 subset）
   -------------------------------+------------------------+---------------
   IR ticketing                   | incident.io OSS        | (custom OSS)
                                  | / GitHub Issue         |
-  IR command bridge              | Mattermost incident    | AGPL-3
-                                 | response plugin        |
+  IR command bridge              | Mattermost slash       | MIT
+                                 | command + Tekton       |
+                                 | Triggers（Mattermost   |
+                                 | Team Edition は MIT）  |
   postmortem 文書                | Markdown + GitHub PR   | (workflow)
   postmortem template            | Backstage TechDocs     | Apache 2.0
                                  | （infra 13 共有）      |
@@ -148,9 +177,10 @@ ops 採用 OSS（ops 層 subset）
                                  | （infra 04 共有）      |
   Runbook trigger                | Tekton Triggers        | Apache 2.0
                                  | + Alertmanager webhook |
-  ChatOps                        | Mattermost slash       | AGPL-3
+  ChatOps                        | Mattermost slash       | MIT
                                  | command + Tekton       |
-                                 | trigger                |
+                                 | trigger（Mattermost    |
+                                 | Team Edition）         |
   Workflow scheduling            | Argo Workflows         | Apache 2.0
                                  | CronWorkflow           |
   Chaos drill                    | Litmus                 | Apache 2.0
@@ -172,34 +202,41 @@ ops 採用 OSS（ops 層 subset）
 ------------------------------------------------------------
   カテゴリ                       | プロダクト             | ライセンス
   -------------------------------+------------------------+---------------
-  Dashboard                      | Grafana                | AGPL-3
-                                 | （tier1/09 / infra 共有）|
-  Trace store                    | Tempo                  | AGPL-3
-                                 | （tier1/09 / data 共有）|
-  Log store                      | Loki                   | AGPL-3
-                                 | （tier1/09 / data 共有）|
+  Dashboard                      | Perses                 | Apache 2.0
+                                 | （02 catalog / tier1/09 |
+                                 |   / infra 共有）        |
+  Trace store                    | ClickHouse             | Apache 2.0
+                                 | （02 catalog / data /   |
+                                 |   security 共有）       |
+  Trace UI                       | Jaeger Query +         | Apache 2.0
+                                 | ClickHouse plugin      |
+                                 | （tier1/09 共有）       |
+  Log store                      | ClickHouse + Vector    | Apache 2.0 / MPL 2.0
+                                 | （02 catalog / data /   |
+                                 |   security 共有）       |
   Audit / ops_event store        | ClickHouse             | Apache 2.0
                                  | （data / security 共有）|
   Log shipping                   | Vector                 | MPL 2.0
                                  | （security / data 共有）|
 
-  - ops は新規 SoR を持ち込まず、Grafana / Tempo / Loki /
-    ClickHouse / Vector を共用。ops_event subject schema
-    は ops が宣言（security audit_event とは別 subject、
-    immutability 規律は同等）。
-  - dashboard yaml は build artifact（dashboards/*.yaml）、
-    手書き drift は CI 検出 + Argo CD self-heal（infra 09
-    と整合）。
+  - ops は新規 SoR を持ち込まず、Perses / ClickHouse / Jaeger
+    Query + ClickHouse plugin / Vector を共用（Grafana / Tempo /
+    Loki は AGPL-3 のため不採用、02 catalog の AGPL 回避方針 /
+    全 Apache 2.0 統一と整合）。ops_event subject schema は ops
+    が宣言（security audit_event とは別 subject、immutability
+    規律は同等）。
+  - dashboard yaml は Perses 形式の build artifact
+    （dashboards/*.yaml）、手書き drift は CI 検出 + Argo CD
+    self-heal（infra 09 と整合）。
 
 ■ 他層所有の OSS（cross 参照）
   - Kyverno / cert-manager / OpenBao / External Secrets /
     Argo CD / Argo Rollouts / Tekton / Harbor / Trivy →
     08_infra（GitOps 配信 / 04 採用OSS）
-  - VictoriaMetrics / Prometheus / Grafana / Tempo / Loki
-    → 05_tier1/09_観測適合仕様 / infra
+  - VictoriaMetrics / Prometheus / Perses / Jaeger Query +
+    ClickHouse plugin → 05_tier1/09_観測適合仕様 / infra
   - ClickHouse / Vector → 09_data（保全 SoR）/ 10_security
     （audit）
-  - Grafana OnCall（escalation の物理 deploy）→ infra
   - Litmus（chaos engine）→ 08_infra/11_Chaos工学方針
   - flagd / OpenFeature SDK → tier1 Library 提供
     （Server-side / client-side SDK）

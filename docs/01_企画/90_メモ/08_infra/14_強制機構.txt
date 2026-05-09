@@ -135,7 +135,8 @@ infra 強制機構
 
 ■ 採用しない強制機構
   - OPA Gatekeeper：Kyverno L1+ 深耕のため、横並びは持たない。
-  - Falco / Tetragon：runtime threat detection は v2 候補
-    （14 OSS lifecycle pair_target で評価）。
   - 文章 only の運用ルール：禁止、全規律は機械検証可能な
     形で codify。
+  - （Falco / Tetragon は runtime threat detection の L1+ として
+    10_security/04 / 14 で v1 採用済、本層では security 層所有
+    として cross 参照のみ。）

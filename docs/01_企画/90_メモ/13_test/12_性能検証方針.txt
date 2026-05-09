@@ -3,7 +3,7 @@ test 性能検証方針（load / stress / soak）
 ============================================================
 
 ■ 一文方針
-  - test 軸は性能検証を Grafana k6 L1+ + Locust（Python
+  - test 軸は性能検証を Apache JMeter L1+ + Locust（Python
     ecosystem 用 double-bound）で実装し、load / stress /
     soak / spike / capacity_forecast の 5 performance_class
     を performance_scenarios.lock.yaml の build artifact
@@ -27,7 +27,7 @@ test 性能検証方針（load / stress / soak）
       target 値の意味論は 13 SLO 軸が宣言。
   - dead spec を CI で殺す。
       performance_scenarios.lock.yaml に登録された全
-      perf_scenario_id、k6 result に保存された全 result、
+      perf_scenario_id、JMeter result に保存された全 result、
       Locust report に保存された全 report は、参照され
       なくなった時点で CI fail。
   - shadow cluster 上で実行：
@@ -86,7 +86,7 @@ test 性能検証方針（load / stress / soak）
         - target_axis：16 軸の enum
         - load_pattern：v1_constant / v1_ramping / v1_
           constant_arrival_rate / v1_ramping_arrival_rate
-          / v1_per_vu_iterations の 5 enum（k6 executor
+          / v1_per_vu_iterations の 5 enum（JMeter executor
           enum と整合）
         - duration_minutes：5 / 30 / 60 / 1440（24h）/
           4320（72h）の enum
@@ -100,19 +100,19 @@ test 性能検証方針（load / stress / soak）
 
 ■ load_pattern enum 詳細
   - v1_constant：
-        - constant VU、k6 `constant-vus`
+        - constant VU、JMeter `constant-vus`
         - 主用途：v1_load
   - v1_ramping：
-        - VU 段階増加、k6 `ramping-vus`
+        - VU 段階増加、JMeter `ramping-vus`
         - 主用途：v1_stress / v1_capacity_forecast
   - v1_constant_arrival_rate：
-        - constant RPS、k6 `constant-arrival-rate`
+        - constant RPS、JMeter `constant-arrival-rate`
         - 主用途：v1_load / v1_soak
   - v1_ramping_arrival_rate：
-        - RPS 段階増加、k6 `ramping-arrival-rate`
+        - RPS 段階増加、JMeter `ramping-arrival-rate`
         - 主用途：v1_spike / v1_stress
   - v1_per_vu_iterations：
-        - VU 別 iteration 数固定、k6 `per-vu-iterations`
+        - VU 別 iteration 数固定、JMeter `per-vu-iterations`
         - 主用途：deterministic baseline 計測
 
 ■ baseline 規律
@@ -159,25 +159,25 @@ test 性能検証方針（load / stress / soak）
           replay と blend
         - 用途：v1_load / v1_stress / v1_spike
 
-■ k6 / Locust の役割分担
-  - k6（L1+ 単一深耕）：
+■ Apache JMeter / Locust の役割分担
+  - Apache JMeter（L1+ 単一深耕）：
         - 全 perf_scenario_id の primary executor
-        - browser load も k6 browser で実行（Playwright
-          + k6 browser）
-        - synthetic monitoring も k6 で（11_ops/06
+        - browser load は Playwright (browser load mode) で実行（Playwright
+          + Apache JMeter）
+        - synthetic monitoring も Apache JMeter で（11_ops/06
           アラート方針 と整合）
   - Locust（double-bound）：
         - Python ecosystem の業務 SDK が driver の場合
-          に並列採用、k6 と同じ scenario corpus を input
+          に並列採用、Apache JMeter と同じ scenario corpus を input
         - performance_scenarios.lock.yaml の同一 entry
-          に対し k6 / Locust 両方の result を持つ場合、
-          k6 result が baseline 確定の primary、Locust
+          に対し Apache JMeter / Locust 両方の result を持つ場合、
+          JMeter result が baseline 確定の primary、Locust
           result は cross-check
 
 ■ result の SoR
-  - k6 result：JSON Lines 形式、ClickHouse hot tier
+  - JMeter result：JSON Lines 形式、ClickHouse hot tier
     （90 day）+ Ceph RGW cold tier（365 day）
-  - Grafana dashboard：performance_scenarios.lock.yaml
+  - Perses dashboard：performance_scenarios.lock.yaml
     の cell ごとに SLI panel、quarter monotonic 推移
     を可視化
   - performance_history.lock.yaml：append-only、quarter
@@ -191,7 +191,7 @@ test 性能検証方針（load / stress / soak）
   - 11 ops：performance regression は v1_change_induced
     signal へ bridge、ops の change_calendar に capacity
     forecast 結果が登録
-  - 14 OSS-lifecycle：load test framework（k6 / Locust）
+  - 14 OSS-lifecycle：load test framework（Apache JMeter / Locust）
     の major version migration drill 必須化
   - 09 observability：performance test 中の OTel span
     sampling boundary を v1_property_axiom で claim、
@@ -206,8 +206,8 @@ test 性能検証方針（load / stress / soak）
     cluster
   - regression baseline 引き下げ PR：禁止、monotonic
     enforce、Kyverno で merge block
-  - 商用 load SaaS（BlazeMeter / k6 Cloud / Loader.io）：
-    採用しない、k6 OSS L1+ self-host
+  - 商用 load SaaS（BlazeMeter / k6 Cloud / JMeter SaaS / Loader.io）：
+    採用しない、Apache JMeter OSS L1+ self-host
   - 文章のみ「性能 OK」：禁止、必ず performance_
     baseline.lock.yaml の cell に entry
   - load test の cadence 越え放置：cadence 越えは関連

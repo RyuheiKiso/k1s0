@@ -49,8 +49,21 @@ client 採用 OSS（client 層 subset）
   gRPC Ruby                      | grpc                              | Apache 2.0
   gRPC Go                        | google.golang.org/grpc            | Apache 2.0
   gRPC Rust                      | tonic                             | MIT
-  HTTP/3 + WebTransport (Browser)| native browser API                | -
-  HTTP/3 + WebTransport (server) | quinn / s2n-quic 経由 Companion   | Apache 2.0 / Apache 2.0
+  Connect TS (Browser / Node)    | @connectrpc/connect-web /         | Apache 2.0
+                                 |   @connectrpc/connect-node        |
+  Connect Go                     | connectrpc.com/connect            | Apache 2.0
+  Connect Kotlin                 | connect-kotlin                    | Apache 2.0
+  Connect Swift                  | connect-swift                     | Apache 2.0
+  Connect .NET 8 LTS             | connectrpc-net (community)        | Apache 2.0
+  HTTP/3 + WebTransport (browser)| native browser API                | -
+  HTTP/3 + WebTransport (server) | quinn / s2n-quic                  | Apache 2.0
+                                 | （tier1 Server 系 Rust 実装、     |
+                                 |   Envoy Gateway 経由のみ。        |
+                                 |   Companion 側 native QUIC は     |
+                                 |   v2 候補）                       |
+  HTTP/3 + WebTransport (.NET 8+)| System.Net.Quic                   | MIT
+                                 | （v1 opt-in、.NET Framework       |
+                                 |   Companion には載らない）        |
   WebSocket (TS)                 | native WebSocket                  | -
   WebSocket (.NET)               | System.Net.WebSockets             | MIT
   SSE parser (Browser)           | native EventSource                | -
@@ -60,14 +73,25 @@ client 採用 OSS（client 層 subset）
     - v1_full_native_with_companion (.NET 8 LTS / Java 21 / Node 20
       / Rust / Go / Python / Ruby): gRPC bidi が default、HTTP/3 +
       WebTransport / WebSocket は capability matrix で明示宣言された
-      case のみ。
-    - v1_legacy_dotnet_framework (.NET Framework 4.6.2+): grpc-dotnet
-      （Grpc.Net.Client）は .NET Standard 2.1+ / .NET 6+ 必須のため
-      本 class では採用しない。Companion 役割 B の sse_paired adapter
-      が HTTP/1.1 chunked + SSE の自製パーサで server-streaming を、
-      HTTP/1.1 POST で unary を担う（自製 SSE parser 行参照）。
-    - v1_browser_spa_typescript: gRPC-Web、bidi primary fallback は
-      WebSocket、HTTP/3 + WebTransport は browser native API で opt-in。
+      case のみ。Connect-RPC（Connect TS / Connect Go / Connect
+      Kotlin / Connect Swift / connectrpc-net）は Browser SPA 経路と
+      同一 .proto から並走 codegen され、必要に応じて adapter 選択
+      可能（v1_l1plus_primary）。
+    - v1_legacy_dotnet_framework (.NET Framework 4.6.2+): Grpc.Net.
+      Client は WinHttpHandler 経由で .NET Framework 4.6.2+ にも動作
+      するが、client-streaming / bidi に構造的制約があり、tier1
+      Library 抽象（bidi RPC を含む）を素直に載せられないため本
+      class では採用しない（05_tier1/02_言語スタック 整合）。
+      Companion 役割 B の sse_paired adapter が HTTP/1.1 chunked +
+      SSE の自製パーサで server-streaming を、HTTP/1.1 POST で unary
+      を担う（自製 SSE parser 行参照）。Connect-RPC bidi も .NET
+      Framework は WinHttpHandler の HTTP/2 制約により不安定なため
+      採用しない（sse_paired を既定とする）。
+    - v1_browser_spa_typescript: 本 class の bidi primary は
+      Connect-RPC over HTTP/2 / HTTP/3（Browser fetch full-duplex
+      streams）。grpc-web は unary / server-streaming 用、bidi の
+      fallback として自製 frame protocol を使う経路は持たない。
+      HTTP/3 + WebTransport は browser native API で opt-in。
     - v1_thick_native_via_tauri: Rust 側 tonic（gRPC bidi）、WebView 側は
       v1_browser_spa_typescript と同じ。
     - v1_thin_business_api_only: HTTP/1.1 + JSON unary（Transcoder 派生）
@@ -79,7 +103,11 @@ client 採用 OSS（client 層 subset）
     Browser 側は EventSource ネイティブで足りるが、.NET
     Framework など EventSource 非対応環境向けには言語別の
     自製パーサを Companion 同梱で配布する。
-  - 横並びの代替（Connect-go-Web 等）は不採用、v2 候補。
+  - Connect-RPC は v1_l1plus_primary、Browser SPA capability_class
+    =web の bidi primary として gRPC-Web と並走（両者は同一 .proto
+    から codegen、wire は HTTP/2 over TLS / HTTP/3 over QUIC で
+    成立）。WebSocket-bidi（自製 protobuf binary frame）は v1
+    から削除（自製 frame protocol 禁止と整合）。
 
 ------------------------------------------------------------
 [3] Auto-Instrumentation / 観測可能性
@@ -165,6 +193,13 @@ client 採用 OSS（client 層 subset）
     WebCrypto AES-GCM を at-rest 暗号化、device_bound_key を OS
     keychain（Tauri）または non-extractable CryptoKey（pure
     browser）で保管。
+  - SDK 起動時に navigator.storage.persist() を要求し、
+    granted=true で IndexedDB の eviction 耐性を確保する。
+    granted=false の端末では IndexedDB.estimate() で残容量を
+    見積り、requested_quota_bytes 未満なら ClientCapability
+    Error（subtype=storage_unavailable）を SDK が throw する
+    （「07_tier3/22_端末オフラインデバイス」/「07_tier3/39
+    _クライアント状態適合仕様」整合）。
   - Service Worker は v1 では offline cache のみ、background
     sync は v2 候補。
 

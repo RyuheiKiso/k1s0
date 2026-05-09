@@ -46,7 +46,7 @@ test 強制機構
               - properties.yaml の全 property_id が
                 test code に annotated
               - scenarios.yaml の全 scenario_id が
-                Playwright / k6 / chainsaw 実装に bind
+                Playwright / Apache JMeter / chainsaw 実装に bind
               - pacts.yaml の全 pair_id が Pact runtime
                 output に bind
               - chaos_blueprints.lock.yaml の全
@@ -299,7 +299,7 @@ test 強制機構
     security 14 / ops 14 と同じ）。
   - 商用 test orchestration platform：採用しない、
     Tekton + Argo Workflows + Litmus + Pact Broker +
-    Playwright + pytest + k6 の OSS L1+ 単一深耕。
+    Playwright + pytest + Apache JMeter の OSS L1+ 単一深耕。
   - 文章 only の test 規律：禁止、全規律は機械検証
     可能な形で codify。
   - 「便利だから break-glass を常用」：禁止、break-

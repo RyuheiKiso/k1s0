@@ -45,10 +45,10 @@ ops 運用インシデント方針
 
 ■ incident lifecycle（5 phase、SLA 付）
   - phase 1：detect
-        - alert 発火 → Grafana OnCall page → primary
+        - alert 発火 → 自製 escalation engine page → primary
           on-call ack
         - SLA：page → ack ≤ 5 分（severity_freeze 時 ≤ 3 分）
-        - 物理発火：Alertmanager → Grafana OnCall webhook
+        - 物理発火：Alertmanager → 自製 escalation engine webhook（Tekton Triggers）
         - artifact：alert_event row in ClickHouse
   - phase 2：triage
         - on-call が ack 後 30 分以内に incident class
@@ -152,7 +152,7 @@ ops 運用インシデント方針
 ■ incident.io OSS の役割
   - incident.io OSS（minimal 経路）or GitHub Issue を
     primary IR ticket として固定。商用 incident.io 本体の
-    SLA / on-call 機能は採用しない（Grafana OnCall で代替、
+    SLA / on-call 機能は採用しない（自製 escalation engine で代替、
     04_採用OSS と整合）。
   - 全 incident は incident_id（incident.io OSS UUID or
     GitHub Issue 番号）を必須化、Mattermost channel 名 /
@@ -220,7 +220,7 @@ ops 運用インシデント方針
     の二系統必須（PII / legal sensitive 分離）。
   - 商用 incident management SaaS（PagerDuty / Opsgenie
     / Squadcast 等の有償 SLA）採用：採用しない、incident.
-    io OSS + GitHub Issue + Grafana OnCall で完結。
+    io OSS + GitHub Issue + 自製 escalation engine で完結。
   - recurrence の文章 only 集計：禁止、recurrence_table.
     lock.yaml が build artifact、3 回 threshold 違反は
     action item ship blocker。

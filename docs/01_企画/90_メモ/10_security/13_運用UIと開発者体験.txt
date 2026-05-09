@@ -3,7 +3,7 @@ security 運用 UI と開発者体験
 ============================================================
 
 ■ 一文方針
-  - 運用 UI は Backstage（infra 13 と共有）+ Grafana
+  - 運用 UI は Backstage（infra 13 と共有）+ Perses
     （audit query / SLO / drill 状態 dashboard）+ 内部
     custom plugin（threat_model coverage / mitigation
     binding visualization）の 3 OSS 経由のみで提供し、
@@ -19,7 +19,7 @@ security 運用 UI と開発者体験
         - secret class lifecycle / rotation status
         - incident playbook（class 別、6 phase 全 step）
         - drill_progress.lock.yaml の cadence 状況
-  - Grafana dashboard：
+  - Perses dashboard：
         - audit_event ingestion lag（ClickHouse query）
         - SLO 状況（patch_window / drill / audit_chain
           health）
@@ -27,7 +27,7 @@ security 運用 UI と開発者体験
           audit）
         - CVE open critical count（severity 別）
         - drill last_green_at 一覧
-  - Grafana OnCall：
+  - 自製 escalation engine（Argo Workflows + Mattermost）：
         - 班 rotation 状況、escalation history、active
           incident の page log
         - postmortem PR の merge 状況（GitHub integration）
@@ -73,7 +73,7 @@ security 運用 UI と開発者体験
           確認
 
 ■ 自動化の規律
-  - 全 dashboard / TechDocs / Grafana panel は build
+  - 全 dashboard / TechDocs / Perses panel は build
     artifact（dashboards/ 配下 yaml）から生成、UI 上の
     手書き編集は drift として CI 検出 + Argo CD self-
     heal。
@@ -91,7 +91,7 @@ security 運用 UI と開発者体験
 
 ■ 採用しない方針
   - 商用 dashboard SaaS（DataDog / New Relic）：採用しない、
-    Grafana + Backstage で完結。
+    Perses + Backstage で完結。
   - UI 上の policy 直接編集（Kyverno UI でのトポロジ
     操作）：禁止、PR 経由のみ。
   - 個人 development 環境への production secret 同期：
@@ -106,11 +106,11 @@ security 運用 UI と開発者体験
 
 ■ 同型構造（13 軸との整合）
   - 運用 UI は infra 13 / data 13 と同 OSS（Backstage /
-    Grafana）を共用、本層は dashboard / TechDocs を build
+    Perses）を共用、本層は dashboard / TechDocs を build
     artifact 化する規律のみ追加。
   - 開発者 UX 面では、infra 14 / data 14 / 本層 14 の
     admission policy が build artifact から自動生成され
     る限り、local 開発で同一 policy を再現可能（drift
     risk = 0）。
-  - dashboard yaml と Grafana state は ArgoCD reconcile
+  - dashboard yaml と Perses state は ArgoCD reconcile
     で物理整合維持（infra 09 GitOps配信方針 と整合）。

@@ -6,8 +6,8 @@ ops 非提供スコープ
   - 個別軸の物理 enforcement 機構そのもの
       → ops は cross-axis に bind するのみ。Argo Rollouts
         の AnalysisTemplate の DDL 生成 / Kyverno admission
-        policy の build / Tekton pipeline の実装 / Grafana
-        OnCall escalation rule の build は全て他層
+        policy の build / Tekton pipeline の実装 / 自製
+        escalation engine の escalation rule の build は全て他層
         （tier1 / tier2 / infra / data / security）。
   - SLI / SLO target 値の意味論
       → 05_tier1/13_SLO適合仕様。ops は budget が底を
@@ -50,14 +50,14 @@ ops 非提供スコープ
 ■ 採用しない OSS / 技術
   - 商用 incident management SaaS（PagerDuty / Opsgenie /
     Splunk On-Call の有償 SLA 機能）：vendor lock-in 回避
-    と本企画の運用 SoR = ClickHouse + Grafana 一本化方針
-    のため、escalation は Grafana OnCall（AGPL-3）+
+    と本企画の運用 SoR = ClickHouse + Perses 一本化方針
+    のため、escalation は 自製 escalation engine +
     incident.io OSS の組合せに固定。商用 page SLA は採用
     しない（自社 cluster の物理発火経路で代替）。
   - Datadog / New Relic / Dynatrace / AppDynamics：商用
     APM / observability SaaS、本企画の OSS 一本化方針と
-    衝突。Prometheus / Grafana / VictoriaMetrics（infra
-    04 と整合）+ Tempo + Loki 経路で吸収。
+    衝突。Prometheus / Perses / VictoriaMetrics（infra
+    04 と整合）+ ClickHouse 経路で吸収（Tempo / Loki は AGPL-3 のため不採用）。
   - Splunk Enterprise / Sumo Logic：log aggregation の
     商用 license。log SoR は ClickHouse + Vector に固定
     （09_data + 10_security と整合）。
@@ -80,11 +80,11 @@ ops 非提供スコープ
     OSS 単独深耕（infra 13 / data 13 / security 13 と
     整合）。
   - VictorOps / xMatters：商用 incident response SaaS、
-    採用しない。Grafana OnCall + incident.io OSS で吸収。
+    採用しない。自製 escalation engine + incident.io OSS で吸収。
   - Squadcast / Better Uptime / FireHydrant 商用版：採用
     しない。
   - Kibana / Elastic SIEM の商用機能：採用しない、
-    Grafana + ClickHouse query 経路で吸収。
+    Perses + ClickHouse query 経路で吸収。
 
 ■ 採用しないアーキテクチャ
   - 文章 only の運用 loop：ops_loop.lock.yaml は build
@@ -153,7 +153,7 @@ ops 非提供スコープ
   - Predictive incident（capacity forecast / anomaly
     detection の augment）：v1 は threshold based、v2 で
     ML based forecast augment 検討（Prometheus
-    +Grafana ML plugin 評価）。
+    + ClickHouse query（ML extension は v2 評価））。
 
 ■ 至高路線における判断
   - 「page が増えると on-call が疲弊する」を理由に

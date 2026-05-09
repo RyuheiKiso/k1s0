@@ -4,7 +4,7 @@ test シナリオリプレイ方針（v1_scenario_replay）
 
 ■ 一文方針
   - test 軸は v1_scenario_replay verification_class を
-    Playwright（browser / mobile / API）+ k6（synthetic /
+    Playwright（browser / mobile / API）+ Apache JMeter（synthetic /
     load journey）+ chainsaw（k8s integration）の 3 OSS
     L1+ で実装し、各軸 spec が宣言する journey scenario
     を determinism_class に応じた再現性（v1_full_
@@ -31,7 +31,7 @@ test シナリオリプレイ方針（v1_scenario_replay）
       は新 scenario_id を切ることで表現する。
   - dead spec を CI で殺す。
       scenarios.yaml に登録された全 scenario_id、
-      Playwright trace に保存された全 trace、k6 result に
+      Playwright trace に保存された全 trace、JMeter result に
       保存された全 result、chainsaw test に保存された全
       kuttl assertion は、いずれも参照されなくなった時点
       で CI fail。
@@ -82,7 +82,7 @@ test シナリオリプレイ方針（v1_scenario_replay）
           / v1_immutable_corpus
         - runtime_budget_minutes：v1_fast_5 / v1_
           medium_15 / v1_long_60 / v1_extreme_240
-        - artifact_pointer：Playwright trace dir / k6
+        - artifact_pointer：Playwright trace dir / JMeter
           result file / chainsaw test dir 等
 
 ■ journey_class enum
@@ -91,7 +91,7 @@ test シナリオリプレイ方針（v1_scenario_replay）
         - 例：login → tenant 切替 → 業務操作 → logout
         - 5 distribution_class 全てで再現必須
   - v1_internal_pipeline_journey：
-        - 内部 pipeline の e2e、k6 + chainsaw が driver
+        - 内部 pipeline の e2e、Apache JMeter + chainsaw が driver
         - 例：08 migration 4 phase / 11 key rotation /
           14 OSS major version migration
   - v1_admin_console_journey：
@@ -112,7 +112,7 @@ test シナリオリプレイ方針（v1_scenario_replay）
     Playwright + Tauri webview
   - v1_thin_business：thin business API consumer、
     Playwright API request
-  - v1_api_only：API only、k6 / Playwright API request
+  - v1_api_only：API only、Apache JMeter / Playwright API request
   - v1_legacy_dotnet：legacy .NET Framework consumer、
     Playwright + .NET WebView
 
@@ -187,7 +187,7 @@ test シナリオリプレイ方針（v1_scenario_replay）
         - test_event subject に v1_scenario_replay_run
           fact emit、ClickHouse + Ceph RGW 二重保存
         - Playwright trace（HAR + screenshot + video）/
-          k6 result / chainsaw assertion log は Ceph
+          JMeter result / chainsaw assertion log は Ceph
           RGW に retention 90 day、failure 時 365 day
   - replay 失敗の bridge：
         - replay red の場合、ops の v1_drill_failure

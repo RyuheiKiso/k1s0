@@ -30,7 +30,18 @@
           とする。Auto-Instrumentation 非対応環境（4.6.1 以前など）
           向けには NuGet 参照型の Companion を補助的に提供する。
           役割 A は span / log / metric の自動生成のみを担い、
-          ビジネスコードへの明示参照は不要。
+          ビジネスコードへの明示参照は不要。ただし tenant / subject
+          の attribute 注入は OTel .NET Auto-Instrumentation の標準
+          計装範囲外であり（CLR Profiler は HTTP / ADO.NET / WCF 等の
+          既知 instrumentation point に対する自動 span 生成までを
+          担い、Authorization header 中の JWT claim を decode して
+          attribute に注入する経路は持たない）、Companion NuGet
+          （k1s0.Companion.NetFx）の startup hook が JWT claim →
+          OTel attribute 変換を補完する（詳細は 05_tier1/04_Library
+          Companion 役割 A）。さらに defense-in-depth として OTel
+          Collector の attributes processor でも tenant / subject を
+          span enrichment する二重持ち（注入経路の片肺障害でも全
+          span に attribute が必ず乗る）。
       - Transport Negotiation（役割 B）：
           Companion 役割 B として、bidi を含む全 RPC を tier1
           Transport Adapter Layer と対をなす Companion 内 adapter で
@@ -41,10 +52,17 @@
           持たない WinHTTP / HttpWebRequest の上に WebSocket / SSE /
           HTTP/3 を生やすことはできないため、Transport Negotiation
           を観測可能性と同経路で自動化することはできず、別 NuGet で
-          生やす（詳細は「05_tier1/03_Server系」Transport Adapter
+          生やす。.NET Framework Companion の bidi 経路は WinHttp
+          Handler の HTTP/2 制約により Connect-RPC bidi を採用せず、
+          引き続き sse_paired（HTTP/1.1 chunked + SSE + 自製パーサ）
+          を既定とする。Browser SPA の bidi primary は Connect-RPC
+          が担い、本経路は .NET Framework Companion とは独立に成立
+          する（詳細は「05_tier1/03_Server系」Transport Adapter
           Layer /「05_tier1/04_Library」Companion 役割 A / 役割 B
-          を参照）。
+          / 「12_client/06_Transport適応方針」を参照）。
       - 認証コンテキスト伝播：
           役割 A の一部として、生成された span / log / metric に
-          tenant / subject / trace_id を統一注入する。
+          tenant / subject / trace_id を統一注入する（注入経路は
+          Companion NuGet startup hook + OTel Collector attributes
+          processor の二重持ち、上記の役割 A 注記参照）。
     （詳細は「05_tier1」配下の各方針メモを参照）

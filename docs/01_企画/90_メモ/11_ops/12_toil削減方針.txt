@@ -48,7 +48,7 @@ ops toil 削減方針
 
 ■ toil 計測
   - 物理計測手段：
-        - Grafana OnCall：page response 時間 / runbook
+        - 自製 escalation engine：page response 時間 / runbook
           execution 時間（v1_alert_triage / v1_manual_
           runbook）
         - GitHub Actions：CronWorkflow 化前 manual ops
@@ -62,7 +62,7 @@ ops toil 削減方針
     weekly aggregation で toil_minutes_per_week metric
     を Sloth で SLO 化（v1_individual_toil_ratio /
     v1_team_toil_ratio）。
-  - dashboard：Grafana で個人 / team / 軸別 toil ratio
+  - dashboard：Perses で個人 / team / 軸別 toil ratio
     を可視化、quarterly review で必須 review。
 
 ■ SRE 50% rule（v1 SLO 化）

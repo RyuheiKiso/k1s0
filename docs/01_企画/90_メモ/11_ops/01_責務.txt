@@ -85,8 +85,8 @@ ops 責務
     各 incident class から生成される。
   - action の物理転写：運用 loop 中の全 action（page /
     freeze / rollback / canary halt / runbook 起動）は
-    Argo Rollouts / Kyverno admission policy / Grafana
-    OnCall escalation / Tekton pipeline / Argo CD sync wave
+    Argo Rollouts / Kyverno admission policy / 自製
+    escalation engine / Tekton pipeline / Argo CD sync wave
     のいずれかに必ず物理転写される。「文章のみで運用」
     は禁止、CI fail。
   - alert の actionable 強制：全 page-level alert は

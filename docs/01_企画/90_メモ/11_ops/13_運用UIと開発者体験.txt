@@ -4,8 +4,8 @@ ops 運用 UI と開発者体験
 
 ■ 一文方針
   - 運用 UI は Backstage（infra 13 / data 13 / security 13
-    と共有）+ Grafana（SLO / burn rate / toil / change
-    calendar / postmortem dashboard）+ Grafana OnCall
+    と共有）+ Perses（SLO / burn rate / toil / change
+    calendar / postmortem dashboard）+ 自製 escalation engine（Argo Workflows + Mattermost）
     （rotation / escalation / paging history）+ Mattermost
     （incident channel / ChatOps）+ 内部 custom plugin
     （ops_loop coverage / runbook map / toil tracker）の
@@ -25,7 +25,7 @@ ops 運用 UI と開発者体験
         - postmortem archive の search / index
         - on-call training material（blameless culture /
           incident command roles / break-glass protocol）
-  - Grafana dashboard：
+  - Perses dashboard：
         - SLO burn rate（service 別 / SLO 別、MWMBR の
           fast / slow / medium 並列表示）
         - error budget 残量 / consumption history
@@ -45,7 +45,7 @@ ops 運用 UI と開発者体験
           別 count）
         - canary status（active rollout の AnalysisTemplate
           metric 並列表示）
-  - Grafana OnCall：
+  - 自製 escalation engine（Argo Workflows + Mattermost）：
         - rotation visualization（過去 / 現在 / 未来の
           shift grid）
         - escalation history（page → ack → resolve の
@@ -132,7 +132,7 @@ ops 運用 UI と開発者体験
         - Litmus light scenario で local chaos drill 再現
 
 ■ 自動化の規律
-  - 全 dashboard / TechDocs / Grafana panel は build
+  - 全 dashboard / TechDocs / Perses panel は build
     artifact（dashboards/ 配下 yaml）から生成、UI 上の
     手書き編集は drift として CI 検出 + Argo CD self-
     heal（infra 09 と整合）。
@@ -168,11 +168,11 @@ ops 運用 UI と開発者体験
 
 ■ 採用しない方針
   - 商用 dashboard SaaS（DataDog / New Relic / Honeycomb）：
-    採用しない、Grafana + Backstage で完結。
+    採用しない、Perses + Backstage で完結。
   - UI 上の policy / rotation / runbook 直接編集：禁止、
     PR 経由のみ、UI 上の swap / edit は audit_event 必須。
   - 個人 development 環境への production dashboard 同期：
-    禁止、local は Testcontainers + Grafana dev のみ。
+    禁止、local は Testcontainers + Perses dev のみ。
   - runbook_catalog / alert_catalog の手書き：禁止、build
     artifact のみ。手書き drift は CI fail。
   - dashboard の personalization：禁止、共通 dashboard
@@ -185,12 +185,12 @@ ops 運用 UI と開発者体験
 
 ■ 同型構造（13 軸 + meta + security との整合）
   - 運用 UI は infra 13 / data 13 / security 13 と同 OSS
-    （Backstage / Grafana / Mattermost）を共用、本層は
+    （Backstage / Perses / Mattermost）を共用、本層は
     dashboard / TechDocs を build artifact 化する規律のみ
     追加。
   - 開発者 UX 面では、infra 14 / data 14 / security 14 /
     本層 14 の admission policy が build artifact から
     自動生成される限り、local 開発で同一 policy を再現
     可能（drift risk = 0）。
-  - dashboard yaml と Grafana state は ArgoCD reconcile
+  - dashboard yaml と Perses state は ArgoCD reconcile
     で物理整合維持（infra 09 GitOps配信方針 と整合）。

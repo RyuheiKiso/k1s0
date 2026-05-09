@@ -41,9 +41,15 @@ tier3 のセキュリティアーキテクチャ
       - ユーザ生成コンテンツは sanitize ライブラリで通す
         （DOMPurify 等）。
   - CSRF（Cross-Site Request Forgery）:
-      - SameSite=Lax / SameSite=Strict cookie の利用。
-      - custom header（X-Requested-With 等）を必須化。
+      - SameSite=Lax cookie の利用（SameSite=Strict は Keycloak
+        SSO redirect 戻りで session cookie が落ちるため不採用、
+        「25_認証認可マルチテナント」整合）。
+      - custom header X-CSRF-Token（fetch のカスタムヘッダ送出）
+        を必須化。
       - double-submit token を併用。
+      - サーバ側で Origin / Referer の二重検査必須（許可された
+        Origin / Referer 以外は 403 reject、Envoy Gateway / tier1
+        Server で物理 enforce）。
   - CSP（Content Security Policy）:
       - strict CSP（nonce / hash ベース）を採用。
       - unsafe-inline / unsafe-eval は禁止（「31_強制機構」

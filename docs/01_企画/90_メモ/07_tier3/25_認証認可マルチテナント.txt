@@ -37,13 +37,20 @@ tier3 の認証認可とマルチテナント
 
 ■ token 保管
   - Web :
-      - httpOnly Secure SameSite=Strict cookie に access_token /
+      - httpOnly Secure SameSite=Lax cookie に access_token /
         refresh_token を保管する。
+      - SameSite=Strict は Keycloak SSO redirect 戻り（top-level
+        cross-site navigation）で session cookie が落ち、初回認識
+        が破綻するため Lax に固定する。
       - JavaScript からアクセス可能な領域（localStorage / session
         Storage / メモリ平文）に置かない（XSS 耐性、「32_セキュリ
         ティアーキテクチャ」整合）。
-      - CSRF 対策 : SameSite + 二重送信トークン（CSRF token）を
-        併用する。
+      - CSRF 対策 : SameSite=Lax は GET 以外の cross-site request
+        を防ぐが POST 等 idempotent でない top-level navigation の
+        余地が残るため、二重送信 CSRF token を fetch のカスタム
+        ヘッダ X-CSRF-Token で必須送出 + サーバ側で Origin /
+        Referer を二重検査する（「32_セキュリティアーキテクチャ」
+        整合）。
   - デスクトップ :
       - OS keychain に保管する :
           Windows : DPAPI 経由の Credential Manager。

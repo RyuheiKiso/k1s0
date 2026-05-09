@@ -63,7 +63,7 @@ security 強制機構
         - Falco / Tetragon detection ruleset の常駐
         - cert-manager の auto rotate cron による cadence
           維持
-        - Grafana OnCall の active escalation policy
+        - escalation_policy.lock.yaml の active escalation policy
 
   - 層 E：物理 enforcement（OS / engine / 暗号 / 物理
     layer の物理機構）

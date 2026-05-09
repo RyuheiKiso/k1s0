@@ -4,10 +4,10 @@ test 運用 UI と開発者体験
 
 ■ 一文方針
   - test 軸の運用 UI と開発者体験は、Backstage TechDocs +
-    Grafana dashboard + GitHub PR + Mattermost ChatOps の
+    Perses dashboard + GitHub PR + Mattermost ChatOps の
     既存 UI 道具立てに subordinate し、新規 UI を test 軸
     が独自開発することは原則しない。test 軸が要求する
-    UX は (a) coverage matrix の Grafana dashboard 化、
+    UX は (a) coverage matrix の Perses dashboard 化、
     (b) PR 上の machine-readable check check（coverage
     cell green / mutation_score monotonic / flaky_
     quarantine 期限内 / pact can-i-deploy / chaos drill
@@ -18,11 +18,11 @@ test 運用 UI と開発者体験
 
 ■ 設計原則
   - 既存 UI 上での投影：
-      Backstage / Grafana / GitHub PR / Mattermost に
+      Backstage / Perses / GitHub PR / Mattermost に
       投影することで test 軸の独自 UI 開発を禁止、UI
       開発による drift 経路を物理に持たない。
   - 機械可読性 first：
-      developer 向け表示（PR check / Grafana dashboard /
+      developer 向け表示（PR check / Perses dashboard /
       Backstage card）は全て test artifact（coverage_
       matrix.lock.yaml / mutation_score.lock.yaml /
       flaky_quarantine.lock.yaml / pact verify result /
@@ -57,7 +57,7 @@ test 運用 UI と開発者体験
     plugin が自動 render
   - 手動編集禁止、Argo CD self-heal で drift detect
 
-■ Grafana dashboard
+■ Perses dashboard
   - dashboard 1：coverage matrix overview
         - panel：16 axis × 5 verification_class の grid
           を heatmap として表示、green / red / quarantined
@@ -171,7 +171,7 @@ test 運用 UI と開発者体験
 
 ■ 採用しない経路
   - test 軸独自の UI 開発（Web / Mobile / Desktop）：
-    禁止、Backstage / Grafana / GitHub / Mattermost に
+    禁止、Backstage / Perses / GitHub / Mattermost に
     subordinate
   - PR description のみで test 状況伝達：禁止、PR check
     + ChatOps + Backstage card で機械可読

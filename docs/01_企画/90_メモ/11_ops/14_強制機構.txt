@@ -77,7 +77,7 @@ ops 強制機構
           drift detect で self-heal
         - Alertmanager：alert routing tree / inhibition
           rule の物理発火
-        - Grafana OnCall：rotation gap warning / fatigue
+        - 自製 escalation engine：rotation gap warning / fatigue
           budget violation page
         - Tekton Triggers：alertmanager webhook → Pipeline
           自動起動

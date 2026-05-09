@@ -226,13 +226,23 @@ tier1 Server系（ランタイム成果物）
       adapter             | substrate                    | 主な対象
       --------------------+------------------------------+----------------------------------
       grpc_native         | HTTP/2 + gRPC                | Library 対応言語（直結）
+      connect_bidi        | HTTP/2 + Connect-RPC /       | Browser SPA bidi primary
+                          | HTTP/3 + Connect-RPC         | （Browser fetch full-duplex
+                          |                              |   streams 必須）
+      grpc_web            | HTTP/1.1 + gRPC-Web filter   | Browser SPA unary /
+                          |                              |   server-streaming
       web_transport       | HTTP/3 + QUIC + WebTransport | 将来のモダンクライアント
-      websocket           | HTTP/1.1 Upgrade             | モダンブラウザ / .NET 8+
+                          |                              |   （v1 opt-in）
       sse_paired          | HTTP/1.1 chunked + SSE       | .NET Framework 4.6.2+ outbound
                           | (text/event-stream)          |
       long_poll           | HTTP/1.1 cursor poll         | 長時間接続を切る proxy 越え
       webhook             | inbound POST                 | IIS / WCF 同居型レガシー
       messaging_bridge    | Kafka / AMQP                 | ネットワーク完全分離環境
+
+      （採用しない adapter：自製 WebSocket bidi（protobuf binary
+        frame）。gRPC-over-WebSocket は gRPC 公式仕様外、
+        Connect-RPC を Browser SPA bidi primary に格上げ済の
+        ため不要。自製 frame protocol 禁止と整合。）
       - 各 adapter は tier1 内の Rust crate として実装し、Internal
         の bidi state machine に同一インタフェースで接続する。
         Companion 側にも対応する受信実装を同梱する（詳細は
@@ -253,7 +263,7 @@ tier1 Server系（ランタイム成果物）
         （v1_bulk_upload）は、server→client 単方向 wire を内包する
         adapter（sse_paired、webhook）の supports から除外され
         （07_Bidi適合仕様 capabilities.lock.yaml）、bulk 経路は
-        grpc_native / web_transport / websocket / messaging_bridge
+        grpc_native / connect_bidi / web_transport / messaging_bridge
         のみが選択肢となる。SSE / webhook の id / Last-Event-ID
         経路では client→server seq の連続性を救えないため、resume
         前提の bulk 等価実装は原理的に成立しない。
@@ -283,7 +293,7 @@ tier1 Server系（ランタイム成果物）
         の cursor / WebTransport の session ticket 等）を、同一の
         proto-level seq に機械的にマップする。
       - これにより、ネットワーク瞬断時に adapter を跨いだ降格
-        （例：WebSocket → sse_paired）でも session を継続できる。
+        （例：connect_bidi → sse_paired）でも session を継続できる。
   - 長期収斂：
       - Adapter Layer の整備が進み、HTTP/3 + WebTransport が標準化
         と runtime 普及を達成した段階で、External Proto の制約

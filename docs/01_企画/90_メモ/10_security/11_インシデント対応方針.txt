@@ -36,7 +36,7 @@ security インシデント対応方針
         detection rule：build artifact（detection_rules.lock
                         .yaml）から生成、ClickHouse query
                         として常駐
-        page：on-call（Grafana OnCall）に SLO severity に
+        page：on-call（自製 escalation engine）に SLO severity に
               応じて escalation
   - phase 2：triage
         IR commander 任命（class 別 escalation policy で
@@ -129,7 +129,7 @@ security インシデント対応方針
   - L3 escalation：tech lead / executive、L2 で contain
     不能 / regulatory 通知必要時。
   - escalation policy は build artifact（escalation_policy
-    .lock.yaml）、Grafana OnCall に同期。
+    .lock.yaml）、自製 escalation engine に同期。
 
 ■ red-team / drill cadence
   - 四半期 internal red-team 演習：incident class 別

@@ -29,7 +29,21 @@ tier2 の業務エラー / 監査 / コンプライアンス
                                     subtype 節 / Repository
                                     abstraction での判定ロジック
                                     は「32_テナント分離適合仕様」
-                                    との整合）。
+                                    との整合）。supersede 判定は
+                                   Idempotency-Key chain（original
+                                   _idempotency_key + chained_
+                                   idempotency_key）を辿って同
+                                   aggregate / 同 actor の更新を
+                                   検出する（「24_読み取りモデル
+                                   方針」cache chain dedup 整合）。
+                                   storage_unavailable のような
+                                   client 側環境エラーは
+                                   BusinessConflict subtype に
+                                   含めず、SDK / tier1 Library
+                                   レベルの ClientCapabilityError
+                                   として分類する（4 subtype enum
+                                   破壊回避、「07_tier3/22_端末
+                                   オフラインデバイス」整合）。
       - AuthorizationDenied      : 認可拒否（tier1 認可結果を
                                    業務語彙で表現）。例：「他
                                    テナント resource への参照」。

@@ -108,7 +108,14 @@ tier3 の製造業 pack 適用例（1.0.0 出荷代表 tier3）
         （「22_端末オフラインデバイス」整合）。
       - 設備からの実績取込 : IoT 機器経由で tier2 が外部システ
         ム統合として取込（緊急経路として tier3 直接取込も
-        可能、emergency_override 相当）。
+        可能、emergency_override 相当）。tier3 直接取込の対象
+        transport は IoT gateway が公開する HTTP/REST または
+        WebSocket bridge 経由のみ。OPC UA Binary / Modbus /
+        EtherNet/IP 等のフィールドプロトコルへの直接到達は
+        Tauri / デスクトップ exe 形態のみ許容（Browser SPA
+        形態では fetch / WebSocket / WebTransport の枠外
+        のため物理不可、12_client/06 raw_field_protocol:
+        not_supported_in_v1 と整合）。
   - リアルタイム更新 :
       - 設備異常通知をリアルタイム表示（「16_リアルタイム更新
         UX」「17_通知UI」整合）。

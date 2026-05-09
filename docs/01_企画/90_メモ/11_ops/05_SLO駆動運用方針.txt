@@ -35,7 +35,7 @@ ops SLO 駆動運用方針
           tuning の input にする（13 SLO budget 修正候補）
   - phase 3：page
         - burn rate ∈ [6x, 14.4x)
-        - Grafana OnCall 経由で primary on-call へ page
+        - 自製 escalation engine（Argo Workflows suspend/resume + Mattermost）経由で primary on-call へ page
         - runbook pointer 必須（page-to-runbook 1:1）
   - phase 4：freeze
         - burn rate ≥ 14.4x or budget 残 < 25%

@@ -20,7 +20,7 @@ ops アラート方針
           しない。on-call は確認義務なし、ticket は任意。
         - 例：burn rate ∈ [1x, 6x)
   - v1_page（severity = critical）：
-        - Grafana OnCall 経由で primary on-call へ page。
+        - 自製 escalation engine（Argo Workflows suspend/resume + Mattermost）経由で primary on-call へ page。
           ack window は 5 分、ack 無き場合 secondary へ
           escalate（07_オンコール方針 と整合）。
         - runbook pointer 必須（page-to-runbook 1:1）、
@@ -97,7 +97,7 @@ ops アラート方針
         4. 連続 4 週違反は alert を deprecate phase へ
           移行（alert_deprecation.lock.yaml entry）
   - false positive 率の集計は ClickHouse query baseline、
-    Grafana dashboard で可視化。
+    Perses dashboard で可視化。
 
 ■ alert routing（Alertmanager）
   - 全 alert は Alertmanager の routing tree で 4 層 tag
@@ -127,7 +127,7 @@ ops アラート方針
     に従って generator が自動生成、手書きは cap 5%
     （cross-team complex case のみ）。
   - 同一 alert の重複 page は 5 分以内 1 件に dedup、5 分
-    超過分は ack-pending として OnCall に集約 view 表示。
+    超過分は ack-pending として自製 escalation engine に集約 view 表示。
 
 ■ paging budget（個人 fatigue 抑制）
   - on-call 1 人あたりの 1 週間 page 数 ≤ 3 件 を SLO 化
@@ -189,7 +189,7 @@ ops アラート方針
     entry 追加は noise budget impact 評価（過去 30d の
     類似 firing 履歴）と severity 査定を必須化。
   - 商用 alert SaaS（PagerDuty / VictorOps 商用）：採用
-    しない、Alertmanager + Grafana OnCall で完結。
+    しない、Alertmanager + 自製 escalation engine（Argo Workflows + Mattermost）で完結。
   - alert UI の personalization：禁止、共通 catalog のみ
     （個人別 view は browser 側 query parameter で対応）。
   - silence の無理由実行：禁止、audit_event 必須、reason

@@ -94,8 +94,10 @@ test 採用 OSS（test 層 subset）
   Mobile e2e (Tauri / native)    | Playwright + Tauri     | Apache 2.0 + MIT
                                  | webview                |
   API e2e                        | Playwright API request | Apache 2.0
-  Synthetic / journey monitor    | Grafana k6 (browser)   | AGPL-3
-                                 | （ops 共有）           |
+  Synthetic / journey monitor    | Playwright             | Apache 2.0
+                                 | （ops 共有、Tekton     |
+                                 |   CronWorkflow で      |
+                                 |   定期実行）           |
 
   - Playwright L1+ 単一深耕、TS / Python / Java / .NET の
     cross-language SDK を 1 OSS で吸収。
@@ -179,17 +181,21 @@ test 採用 OSS（test 層 subset）
 ------------------------------------------------------------
   カテゴリ                       | プロダクト             | ライセンス
   -------------------------------+------------------------+---------------
-  Load generator                 | Grafana k6             | AGPL-3
+  Load generator                 | Apache JMeter          | Apache 2.0
   Load DSL (alt)                 | Locust                 | MIT
                                  | （Python ecosystem 用、|
-                                 |  k6 と double-bound）  |
-  Browser load                   | Playwright +           | Apache 2.0
-                                 | k6 browser             | + AGPL-3
+                                 |  JMeter と double-     |
+                                 |  bound）               |
+  Browser load                   | Playwright             | Apache 2.0
+                                 | （test mode、UI flow   |
+                                 |   負荷検証）           |
 
-  - k6 L1+、Gatling / JMeter / Tsung / Vegeta は採用しない。
+  - Apache JMeter L1+、Gatling / Tsung / Vegeta は採用しない。
+    Grafana k6 は AGPL-3 のため不採用（02 catalog の AGPL 回避
+    方針 / 全 Apache 2.0 統一と整合）。
   - Locust は double-bound：Python ベースのテナント業務
     シナリオ（業務 SDK が Python 中心の場合）に限定して
-    並列採用、k6 と同じ scenario corpus を input に取る。
+    並列採用、JMeter と同じ scenario corpus を input に取る。
 
 ------------------------------------------------------------
 [9] coverage / report

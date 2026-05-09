@@ -15,7 +15,7 @@
 ■ 位置づけ
   - 「02_採用OSS一覧」Argo Rollouts / Argo CD / Argo
     Workflows / Tekton / Alertmanager / Sloth / Pyrra /
-    Grafana OnCall / incident.io OSS / flagd / OpenFeature /
+    自製 escalation engine / incident.io OSS / flagd / OpenFeature /
     Mattermost、「03_プラットフォーム構成」の ops 階層、
     「11_ops/05_SLO駆動運用方針」「11_ops/06_アラート方針」
     「11_ops/07_オンコール方針」「11_ops/08_運用インシデント
@@ -72,7 +72,7 @@
   - 5 種類 ops orchestrator を全 signal_class に必須化する。
       argo_rollouts_canary / kyverno_admission_block /
       tekton_runbook_pipeline / alertmanager_routing /
-      grafana_oncall_escalation の 5 orchestrator は、各
+      self_escalation_engine の 5 orchestrator は、各
       class が必要とする層を宣言する。同一 signal は複数
       orchestrator に分散しないが、同一 service では複数
       class が複数 orchestrator を併用する。
@@ -158,8 +158,7 @@
         - 対応する drill_class：external_dependency_kill_
           drill / idp_outage_drill / dns_outage_drill
         - primary defense_layers：alertmanager_routing /
-          tekton_runbook_pipeline / grafana_oncall_
-          escalation
+          tekton_runbook_pipeline / self_escalation_engine
         - 最低限の cross-axis：tier1/10 auth / 14 OSS
           lifecycle / infra01 topology
         - active action 数（v1 cap）：≥ 25
@@ -188,7 +187,7 @@
         SLA：page → ack ≤ 5 min（severity_freeze 時 ≤ 3
               min）
         primary action_class：alertmanager_routing /
-              grafana_oncall_escalation
+              self_escalation_engine
   - phase_2_triage：
         incident class 確定 → IR ticket 起票 → Mattermost
         incident channel
@@ -229,8 +228,8 @@
   - v1_alertmanager_routing：
         Alertmanager routing tree / inhibition / silence
         の物理発火
-  - v1_grafana_oncall_escalation：
-        Grafana OnCall escalation policy / rotation
+  - v1_self_escalation_engine：
+        自製 escalation engine（Argo Workflows + Mattermost）の escalation_policy.lock.yaml / rotation
         gap warning / paging budget violation の物理発火
   - v1_tekton_runbook_pipeline：
         Tekton Pipeline 経由の runbook 自動実行（dry-run
@@ -374,7 +373,7 @@
           driven auto rollback
         - Argo CD sync wave による change orchestration
         - Alertmanager routing tree（build artifact 駆動）
-        - Grafana OnCall escalation policy（roster.lock
+        - 自製 escalation engine の escalation_policy.lock.yaml（roster.lock
           .yaml driven）
         - Tekton Triggers による alertmanager → pipeline
           自動起動

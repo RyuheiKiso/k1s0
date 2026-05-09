@@ -31,7 +31,11 @@ client Transport 適応方針
       full                | unary / server-streaming / client-streaming /
                           | bidi-streaming（gRPC bidi 完全）
       web                 | unary / server-streaming（gRPC-Web 標準）+
-                          | WebSocket fallback bidi + WebTransport optional
+                          | bidi-streaming（Connect-RPC over HTTP/2 /
+                          | HTTP/3、Browser fetch full-duplex streams
+                          | 必須）+ WebTransport optional。fetch full
+                          | -duplex 未対応ブラウザでは bidi RPC を
+                          | ConfigurationError として SDK が reject
       limited             | unary / server-streaming（HTTP/1.1 + JSON
                           | unary は Envoy gRPC-JSON Transcoder 派生、
                           | HTTP/1.1 chunked + SSE server-streaming は
@@ -61,9 +65,21 @@ client Transport 適応方針
       1. grpc_native            : gRPC Core / grpc-dotnet / grpc-java /
                                    tonic / @grpc/grpc-js（HTTP/2）
       2. grpc_web_grpc_only     : gRPC-Web binary（HTTP/1.1 over Envoy
-                                   gRPC-Web filter）
-      3. websocket_bidi         : WebSocket、frame は protobuf binary
-                                   （gRPC-Web bidi 不可時の fallback）
+                                   gRPC-Web filter）。unary / server-
+                                   streaming のみ（gRPC-Web 仕様により
+                                   bidi 不可）。
+      3. connect_bidi           : Connect-RPC over HTTP/2 / HTTP/3
+                                   （Browser fetch full-duplex streams
+                                   または HTTP/2 over TLS）。bidi-
+                                   streaming / client-streaming /
+                                   server-streaming / unary すべて成立。
+                                   Browser SPA は @connectrpc/connect-
+                                   web、Node は connect-node、Go は
+                                   connectrpc.com/connect、Kotlin は
+                                   connect-kotlin、Swift は connect-
+                                   swift、.NET 8+ は connectrpc-net。
+                                   wire は OSS 標準（自製 frame protocol
+                                   ではない）。
       4. webtransport_quic      : HTTP/3 + WebTransport（QUIC stream）
       5. sse_streaming          : HTTP/1.1 chunked + SSE
                                    （text/event-stream、event ごとに
@@ -80,21 +96,40 @@ client Transport 適応方針
       6. http_json_unary        : HTTP/1.1 + JSON unary（Envoy Gateway
                                    gRPC-JSON Transcoder unary）
 
+  - 採用しない adapter（明示）：
+      - websocket_bidi          : 自製 protobuf binary frame の
+                                   WebSocket 上 bidi。gRPC-over-
+                                   WebSocket は gRPC 公式仕様外のため
+                                   v1 不採用（自製 frame protocol 禁止
+                                   と整合、Connect-RPC を Browser SPA
+                                   bidi primary に格上げ済）。
+      - raw_field_protocol      : OPC UA Binary / Modbus / EtherNet/IP
+                                   等のフィールドプロトコル。Browser
+                                   SPA からは物理到達不能（fetch /
+                                   WebSocket / WebTransport の枠外）。
+                                   Tauri / デスクトップ exe 形態で
+                                   IoT gateway の HTTP/REST または
+                                   WebSocket bridge を経由するのみ。
+                                   v1 SDK 範囲外、v2 候補。
+
   - capability_class → adapter 集合：
-      full              → {grpc_native, websocket_bidi[fallback],
+      full              → {grpc_native, connect_bidi[fallback],
                             webtransport_quic[opt]}
-      web               → {grpc_web_grpc_only, websocket_bidi[bidi 用],
+      web               → {grpc_web_grpc_only[unary/server-streaming],
+                            connect_bidi[bidi 用],
                             webtransport_quic[opt]}
       limited           → {sse_streaming[server-streaming],
                             http_json_unary[unary]}
                             # 04_Library Companion 役割 B sse_paired
                             # adapter と双方向 lock。grpc_web_grpc_only
-                            # は web capability_class（Browser SPA）
-                            # 専用、.NET Framework Companion には載せ
-                            # ない（02_採用OSS一覧 / 04_Library
-                            # 「CLR Profiler は HTTP/2 stack を持たない
-                            # WinHTTP / HttpWebRequest 上に新 wire
-                            # protocol を生やせない」原則の transposition）
+                            # / connect_bidi は web capability_class
+                            # （Browser SPA）専用、.NET Framework
+                            # Companion には載せない（02_採用OSS一覧
+                            # / 04_Library「CLR Profiler は HTTP/2
+                            # stack を持たない WinHTTP / HttpWebRequest
+                            # 上に新 wire protocol を生やせない」原則
+                            # の transposition、および WinHttpHandler
+                            # の HTTP/2 制約）
       business_api_only → {sse_streaming[server-streaming], http_json_unary}
 
   - 各 RPC 呼出に対し SDK は次の決定論的順序で adapter を選択：
@@ -114,9 +149,15 @@ client Transport 適応方針
   - SDK 起動時 / 周期的 health probe 時に、tier1 Server から
     capability descriptor を取得：
       - GET /capability/probe → JSON / proto descriptor
-      - 内容：endpoint の supports_bidi / supports_webtransport
-        / max_message_bytes / supports_compression / observed
-        _semconv_version 等
+      - 内容：endpoint の supports_bidi / supports_connect_rpc
+        / supports_fetch_full_duplex_streams / supports_
+        webtransport / max_message_bytes / supports_compression
+        / observed_semconv_version 等
+  - Browser SPA の bidi RPC は supports_fetch_full_duplex_streams
+    が true の environment でのみ成立する。Chromium 105+ で
+    安定、Firefox / Safari は probe で個別判定する。未対応 UA
+    では bidi RPC を ConfigurationError として SDK が reject
+    （capability_class=web の bidi adapter 不在を fail-fast）。
   - probe の cache TTL は 5 分（短期）。endpoint failover で
     capability が変わる場合は SDK 内部で再 probe + adapter
     再選択。
@@ -124,6 +165,11 @@ client Transport 適応方針
     endpoint が unary しか提供しない）は SDK 内部で BusinessConflict
     ではなく ConfigurationError として throw（修正は server 側
     か SDK 側 contract test の整備）。
+  - SDK / 端末側のクライアント環境エラー（例：navigator.storage.
+    persist() not granted で IndexedDB queue 容量不足、Browser が
+    fetch full-duplex 非対応）は ClientCapabilityError として
+    throw（business 層に届かない、tier2 BusinessConflict subtype
+    enum を破壊しない）。
 
 ■ negotiation の build artifact 化
   - capability matrix は build artifact として client/transport/
@@ -185,15 +231,21 @@ client Transport 適応方針
 
 ■ 採用しない transport
   - SignalR：採用しない（自製 frame protocol 禁止と整合）。
-  - Browser SPA における bidi primary：v1 では WebSocket
-    fallback のみ採用、Browser primary としての SSE bidi
-    emulation（POST + SSE pair の Browser 内実装）は v2
-    候補。サーバ→クライアント単方向の SSE server-streaming
-    そのものは v1 primary として 04_Library Companion 役割
-    B sse_paired / 03_Server系 External Proto server-
-    streaming で採用済（本節の対象外）。
+  - Browser SPA における自製 WebSocket bidi（protobuf binary
+    frame 上の gRPC-over-WebSocket）：v1 不採用。Connect-RPC
+    が HTTP/2 / HTTP/3 / Browser fetch full-duplex streams 上で
+    OSS 標準 wire として bidi を成立させるため、自製 frame は
+    不要（自製 frame protocol 禁止と整合）。
+  - SSE bidi emulation（POST + SSE pair の Browser 内実装）：
+    v2 候補（Connect-RPC 未対応の制約環境のみ）。サーバ→
+    クライアント単方向の SSE server-streaming そのものは v1
+    primary として 04_Library Companion 役割 B sse_paired /
+    03_Server系 External Proto server-streaming で採用済
+    （本節の対象外）。
   - HTTP/2 over Cleartext (h2c)：完全禁止。
-  - 自製 frame protocol：禁止。全 transport は OSS 標準実装。
+  - 自製 frame protocol：禁止。全 transport は OSS 標準実装
+    （Connect-RPC を v1 primary とすることで Browser SPA bidi
+    に対する例外宣言は不要）。
 
 ■ 至高路線の整合
   - SDK ユーザに「どの transport を使うか」を選ばせない。

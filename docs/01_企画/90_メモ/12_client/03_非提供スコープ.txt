@@ -57,10 +57,13 @@ client 非提供スコープ
     Auto-Instrumentation / OpenTelemetry Java Agent / OTel
     JS / OTel Python の L1+ 深耕のため、横並びの APM SDK
     は採用しない。
-  - Connect-go / Connect-RPC（client 系横並び）：本企画は
-    gRPC 公式実装 + gRPC-Web を L1+ primary とし、Connect 系は
-    Browser TS の補助として gRPC-Web から evaluate するに留
-    まる（v2 候補）。
+  - Connect-go / Connect-RPC を v2 候補から外し、v1
+    primary に格上げ（Browser SPA capability_class=web の
+    bidi primary。詳細は 04_採用OSS / 06_Transport適応方針）。
+    gRPC 公式実装 + gRPC-Web は引き続き L1+ primary、Connect
+    -RPC は Browser fetch full-duplex streams 上で bidi-
+    streaming を成立させる役割を担い、いずれも同一 .proto
+    から codegen される。
   - GraphQL Client（Apollo / Relay / urql）：tier1 RPC は
     .proto + Apicurio Registry を単一の真とするため、GraphQL
     層を SDK が提供することはない。tier3 が独自に採用する
@@ -117,8 +120,6 @@ client 非提供スコープ
     webgpu_aead_offload）
   - Service Worker による background sync 自動化（v2_sw_
     background_sync）
-  - Connect-go / Connect-RPC を gRPC-Web の primary 置換とし
-    て評価（14 OSS lifecycle pair_target で評価）
   - WASI 化（Browser+WASI SDK の同型化、v2_wasi_unified_
     runtime）
   - eBPF user-space probe による uprobe-based Auto-
