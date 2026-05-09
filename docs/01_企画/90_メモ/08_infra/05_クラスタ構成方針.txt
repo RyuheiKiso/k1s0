@@ -130,3 +130,25 @@ infra クラスタ構成方針
   - in-transit：cluster 内通信は Istio mTLS（PERMISSIVE 経過
     後 STRICT）、cluster 跨ぎは Istio multi-primary mesh の
     mTLS。kube-apiserver は TLS 1.3。
+
+■ region 別 HSM partition の物理配置（KEK Shamir 分散の前提）
+  - v1_data_kek（11 鍵管理適合仕様）の KEK material は単一
+    region の単一 HSM partition に物理存在しない。N region
+    （既定 N=5、05_tier1/17 と双方向 lock）に独立 HSM partition
+    を配置し、各 region は Shamir share を 1 個のみ保持する。
+  - 物理配置原則：
+      - 各 region の HSM partition は別 vendor を許容
+        （vendor_diversity: allowed_per_region）。1 vendor の
+        firmware 脆弱性が全 region 同時失効を起こさない冗長設計。
+      - 各 region の HSM は OpenBao instance（PII cluster 内 +
+        業務 cluster 内それぞれ独立）に PKCS#11 backend で接続。
+      - cross-region の HSM session は確立しない（OpenBao 自体は
+        per-cluster confined を維持、Vault Enterprise の
+        Performance/DR Replica は採用不能）。
+      - share 復元 ceremony 時のみ、運用者が M region 健全時に
+        各 region の OpenBao API 経由で share を取得し、ceremony
+        host（air-gapped）上で閾値復元を実施（05_tier1/17 runbook）。
+  - region 障害時の continuity：N=5 / M=3 の既定で 2 region
+    完全断まで KEK 物理復元継続可能。3 region 以上の同時断は
+    意図的に「鍵を取れない」状態とし、不正アクセス防御を優先
+    （13_test/09 chaos drill で年次検証）。

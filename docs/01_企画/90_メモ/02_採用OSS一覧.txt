@@ -90,6 +90,11 @@
   メッセージング                 | Apache Kafka (Strimzi Operator)  | Apache 2.0
   RPC wire（gRPC bidi 互換、     | Connect-RPC                      | Apache 2.0
   Browser SPA bidi primary）     | (connectrpc.com)                 |
+  RPC wire .NET 8 LTS 実装       | k1s0.Connect.NetCore             | Apache 2.0
+  （Connect 公式 .NET 不在の     | (in-house authoritative、         |
+  ため自製、wire は同 spec）     |   14_OSSライフサイクル適合仕様    |
+                                 |   v1_inhouse_authoritative、      |
+                                 |   12_client/18 参照)              |
 
   ※ Envoy Gateway は API ゲートウェイ用途に加え、tier1 の Transport
     Adapter Layer の substrate を担う。HTTP/2 + gRPC、HTTP/3 plain

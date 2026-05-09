@@ -141,8 +141,16 @@ data レプリケーション方針
                                         produce ではない）。
   - topic 命名：mirror 先で `<source-cluster>.<topic-name>`
     prefix を付与（Strimzi default 規約）。
-  - schema：Apicurio Registry も MirrorMaker2 経由で同期、
-    subject の compatibility rule は両 cluster で同一に保つ。
+  - schema：Apicurio Registry の subject schema / compatibility
+    rule / global rule は MirrorMaker2 では同期できない（MM2 は
+    Kafka topic value のみを運び、Registry の `/rules` API
+    metadata は対象外）。代わりに **GitOps SoT 経路** を採用：
+    `apicurio_subjects/` git repo + `apicurio_rules.lock.yaml`
+    を単一の真とし、Argo CD + Apicurio Operator が各 cluster へ
+    declarative reconcile する。Registry API への直接 push は
+    Kyverno admission で禁止（10_security/14 block-direct-
+    apicurio-write）。詳細は 05_tier1/18_apicurio_gitops_sot
+    と双方向 lock。
 
 ■ ClickHouse レプリケーション
   - 単一 cluster 内：Replicated MergeTree + clickhouse-keeper

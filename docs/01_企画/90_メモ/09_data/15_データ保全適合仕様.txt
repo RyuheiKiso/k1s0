@@ -102,12 +102,13 @@ data データ保全適合仕様（v1）
       v1_zone_replicated             | zone_quorum      | sync_within_cluster        | at_rest + column_envelope   | 60                     | 90
       v1_cluster_replicated          | cluster_quorum   | async_cross_cluster        | at_rest + column_envelope   | 300 (5 min)            | 60
       v1_cross_region_replicated     | region_quorum    | sync_cross_region          | at_rest + column_envelope + | 300 (5 min)            | 30
-                                     | (C-priority      |                            |   topic_payload_envelope    |                        |
-                                     |  during          |                            |                             |                        |
+                                     | (C-priority      |                            |   topic_payload_envelope +  |                        |
+                                     |  during          |                            |   kek_shamir_distributed    |                        |
                                      |  partition)      |                            |                             |                        |
       v1_global_replicated           | global_quorum    | cell_partitioned_multi_region | at_rest + column_envelope + | 0 (per-cell continuous) | 14
                                      |                  |                               |   topic_payload_envelope +  |                         |
-                                     |                  |                               |   archive_triple_wrap       |                         |
+                                     |                  |                               |   archive_triple_wrap +     |                         |
+                                     |                  |                               |   kek_shamir_distributed    |                         |
 
   - 各 class の不変条件と典型用途：
 
@@ -153,8 +154,12 @@ data データ保全適合仕様（v1）
             active-active。CloudNativePG 内 zone_replicated
             + 別 cluster に async standby、Kafka MirrorMaker2
             cross-cluster mirror、ClickHouse 別 cluster の
-            Distributed table 経由 async push、Apicurio
-            cross-cluster sync。
+            Distributed table 経由 async push、Apicurio Registry
+            は gitops_reconciled（subject schema /
+            compatibility rule / global rule は git SoT を
+            Argo CD + Apicurio Operator が各 cluster に
+            declarative reconcile、MM2 経路は持たない、
+            05_tier1/18_apicurio_gitops_sot 参照）。
           - durability：cluster_quorum（1 cluster 完全断
             でも他 cluster が即時 traffic 引受、async lag
             分の data loss は容認）。
@@ -218,12 +223,21 @@ data データ保全適合仕様（v1）
             双方向 lock）。
           - encryption_layer：at_rest + column_envelope +
             topic_payload_envelope（Kafka payload にも
-            envelope）。
+            envelope）+ kek_shamir_distributed（KEK material
+            は M-of-N で N region の独立 HSM partition + 独立
+            OpenBao instance に share 分散、05_tier1/11
+            backend `hsm_pkcs11_shamir_distributed_v1` および
+            05_tier1/17_KEK_shamir_distribution.txt と双方向
+            lock。primary region の HSM partition 喪失時も
+            standby region で残 share + 健全 region の share
+            を集めれば閾値復元で業務継続）。
           - restore_window：5 分（Argo Events trigger で
             standby promote、write block window cap）。
           - drill：30 日に 1 回、Litmus で primary region を
             network partition、standby promote → traffic
-            shift → fallback の full cycle。
+            shift → fallback の full cycle。同じ drill 内で
+            KEK Shamir 復元 ceremony も M region 健全条件で
+            green を確認（13_test/09 と双方向 lock）。
           - 典型：規制要件で cross-region DR が必須な業務、
             data 軸の PII / monetary を扱う Service、tier2
             の業務 SoR。
@@ -239,7 +253,13 @@ data データ保全適合仕様（v1）
             ClickHouse macro replicas は per-region replicated
             （cross-region eventual）、Ceph RGW multi-site
             bidirectional は object key prefix で write owner
-            を home region に固定。
+            を home region に固定。Apicurio Registry は
+            gitops_reconciled（subject schema / compatibility
+            rule / global rule は git SoT を Argo CD +
+            Apicurio Operator が全 region 各 cluster に
+            declarative reconcile、cell 跨ぎの schema 同期も
+            git diff のみで成立、05_tier1/18_apicurio_gitops_
+            sot 参照）。
           - durability：global_quorum（per-cell 視点では
             region_quorum、cell 集合視点で global）。region
             障害時、未障害 region の cell は無影響、障害
@@ -499,7 +519,7 @@ data データ保全適合仕様（v1）
                 durability: region_quorum
                 replication_topology: sync_cross_region
                 encryption_layer:
-                  at_rest_plus_column_envelope_plus_topic_payload
+                  at_rest_plus_column_envelope_plus_topic_payload_plus_kek_shamir
                 restore_window_seconds: 300
                 drill_cadence_days: 30
                 instance_attributes_required:
@@ -509,16 +529,24 @@ data データ保全適合仕様（v1）
                   - rpo_seconds_max      # ≤ 0 (sync)
                   - rto_seconds_max      # ≤ 300
                   - promotion_runbook_id
+                  - kek_shamir_threshold_m   # 05_tier1/17 既定 3
+                  - kek_shamir_total_n       # 05_tier1/17 既定 5
                 cnp_replica_cluster_required: true
                 kafka_mm2_strict_ordering_required: true
                 ceph_multi_site_required: true
                 topic_payload_envelope_required: true
+                kek_shamir_distributed_required: true   # 05_tier1/11
+                                                        # backend
+                                                        # hsm_pkcs11_
+                                                        # shamir_
+                                                        # distributed_v1
+                                                        # と双方向 lock
 
               v1_global_replicated:
                 durability: global_quorum
                 replication_topology: cell_partitioned_multi_region
                 encryption_layer:
-                  at_rest_plus_column_envelope_plus_topic_payload_plus_archive_triple_wrap
+                  at_rest_plus_column_envelope_plus_topic_payload_plus_archive_triple_wrap_plus_kek_shamir
                 restore_window_seconds: 0   # per-cell continuous
                 drill_cadence_days: 14
                 instance_attributes_required:

@@ -416,6 +416,18 @@
         - Apicurio compatibility rule：verification_
           class_only_strengthens（class enum の弱化を
           breaking 判定）
+        - Apicurio cross-cluster equality：全 cluster の
+          Apicurio Registry が git SoT（`apicurio_subjects/`）
+          と byte-equal であることを property test として
+          実装。subject schema / per-subject compatibility
+          rule / global rule の 3 種について、各 cluster
+          へ Apicurio Operator が reconcile した後、
+          Testcontainers で各 cluster の Apicurio API
+          応答を取得し git diff = empty を CI gate
+          （05_tier1/12 registries.lock.yaml の governance
+          節 / 05_tier1/18_apicurio_gitops_sot と双方向
+          lock）。drift 検出時は admission block + PR
+          revert を要求。
 
   - 層 C：integration test
         - chainsaw / kuttl で全 admission policy（test

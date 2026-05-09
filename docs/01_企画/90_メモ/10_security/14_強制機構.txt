@@ -75,7 +75,14 @@ security 強制機構
           権限でも解除不可、bucket policy が物理 lock）
         - OpenBao Transit 鍵の HSM-backed material：KEK
           は HSM 内で生成 + sign、export 不可（physical
-          tamper resistance）
+          tamper resistance）。v1_data_kek は更に Shamir
+          M-of-N で N region の独立 HSM partition + 独立
+          OpenBao instance に share 分散保管され、単一
+          region では KEK 物理復元の閾値（M）に達しない
+          （05_tier1/11 backend hsm_pkcs11_shamir_distributed_v1
+          / 05_tier1/17 と双方向 lock）。share 復元 ceremony は
+          M region 健全時にのみ実行可能で、単一 region 復元
+          試行は本層 admission で block + audit emit。
         - audit_event hash chain：cryptographic chain
           が divergence 時点を物理特定（暗号学的
           impossibility of forgery）
@@ -132,6 +139,22 @@ security 強制機構
   - require-tetragon-daemonset：同上、Tetragon
   - block-on-trivy-grype-mismatch：Trivy / Grype scan
     結果の critical CVE が不一致時 block
+  - block-single-region-kek-reconstruction：v1_data_kek
+    の Shamir share を単一 region の OpenBao instance のみ
+    から取得して復元を試みる経路を block + audit_event
+    emit。閾値 M 未満の region 集合からの復元 API 呼出も
+    同様（05_tier1/11、05_tier1/17 と双方向 lock）。
+  - block-direct-apicurio-write：Apicurio Registry の
+    `/apis/registry/v3/groups/*/artifacts/*` および
+    `/apis/registry/v3/admin/rules` 等の write API
+    （PUT/POST/DELETE）を Apicurio Operator service account
+    以外から呼ぶ経路を block + audit_event emit。Registry
+    state は git SoT で Argo CD + Apicurio Operator が
+    declarative reconcile する経路のみを唯一の真とする
+    （05_tier1/12 registries.lock.yaml の governance 節 /
+    05_tier1/18_apicurio_gitops_sot と双方向 lock）。
+    Karapace への demote 経路でも同 governance を維持する
+    ため admission policy 名は registry 種別 non-bound。
 
 ■ admission policy のライフサイクル
   - 全 admission policy は build artifact（security/

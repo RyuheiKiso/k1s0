@@ -233,6 +233,20 @@ tier1 Bidi 適合仕様（v1）
                            v1_live_snapshot, v1_bulk_upload]
                 constraints:
                   transport_capability_class: v1_l1plus_primary
+                  implementation_per_runtime:
+                    # 言語 / runtime ごとの Connect 実装。.NET 8 LTS のみ
+                    # Connect 公式実装が存在しないため自製
+                    # k1s0.Connect.NetCore（v1_inhouse_authoritative、
+                    # 14_OSSライフサイクル適合仕様 oss_inventory.lock.yaml
+                    # の k1s0_connect_netcore entry、12_client/18 参照）。
+                    # wire は Connect protocol 公開 spec の byte-equal
+                    # 実装で「自製 frame protocol」ではない。
+                    browser_typescript: "@connectrpc/connect-web"
+                    node: "@connectrpc/connect-node"
+                    go: "connectrpc.com/connect"
+                    kotlin: "connect-kotlin"
+                    swift: "connect-swift"
+                    dotnet8: "k1s0.Connect.NetCore"
                   requires_fetch_full_duplex_streams:
                     # ua_subclass 別 map（boolean ではない）。
                     # 12_client/15 capability_matrix.lock.yaml の

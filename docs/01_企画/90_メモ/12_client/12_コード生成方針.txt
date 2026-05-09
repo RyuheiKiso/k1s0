@@ -94,12 +94,28 @@ client コード生成方針
     仕様 / 09 観測適合仕様 整合）。
 
 ■ Apicurio Registry 連携
-  - event payload の schema（Avro / JSON Schema）は Apicurio
-    Registry に登録、buf-for-apicurio plugin（自製、または
-    OSS 化前は本企画 internal tool）で proto と双方向 lock。
+  - event payload の schema（Avro / JSON Schema）は git SoT
+    （`apicurio_subjects/` repo）で管理し、Argo CD + Apicurio
+    Operator が各 cluster の Apicurio Registry に declarative
+    reconcile する（cluster local cache としての Registry。
+    Registry API への直接 push は 10_security/14
+    block-direct-apicurio-write で禁止、05_tier1/18_apicurio_
+    gitops_sot 参照）。
+  - codegen の schema fetch 元：
+      - CI / 開発時 : git SoT 直接（`apicurio_subjects/`）。
+                      これにより Registry instance の availability
+                      に依存せず再現性が確保される。
+      - runtime ランタイム consume : 各 cluster の Apicurio
+                      Operator が reconcile した cluster local
+                      Registry endpoint。
+  - buf-for-apicurio plugin（自製、または OSS 化前は本企画
+    internal tool）は git SoT を読み proto と双方向 lock。
+    Registry instance への push は plugin から直接行わず、
+    git PR + Argo CD reconcile に統一。
   - schema evolution は tier1 12 適合仕様の compatibility
-    モード（FORWARD / BACKWARD / FULL）に従い、Apicurio
-    Registry の compatibility check が CI gate。
+    モード（FORWARD / BACKWARD / FULL）に従い、git PR レビュー
+    時に Apicurio compatibility check（Operator が dry-run と
+    して実行）が CI gate。
 
 ■ 出力ファイル構造
   - generated code は git 管理しない（gitignore）。CI で都度

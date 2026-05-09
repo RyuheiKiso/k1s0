@@ -73,13 +73,22 @@ client Transport 適応方針
                                    または HTTP/2 over TLS）。bidi-
                                    streaming / client-streaming /
                                    server-streaming / unary すべて成立。
-                                   Browser SPA は @connectrpc/connect-
-                                   web、Node は connect-node、Go は
-                                   connectrpc.com/connect、Kotlin は
-                                   connect-kotlin、Swift は connect-
-                                   swift、.NET 8+ は connectrpc-net。
+                                   implementation_per_runtime：
+                                     Browser SPA = @connectrpc/connect-web、
+                                     Node = @connectrpc/connect-node、
+                                     Go = connectrpc.com/connect、
+                                     Kotlin = connect-kotlin、
+                                     Swift = connect-swift、
+                                     .NET 8+ = k1s0.Connect.NetCore
+                                       （v1_inhouse_authoritative。
+                                       Connect 公式に .NET 実装が
+                                       存在しないため自製、wire は
+                                       Connect protocol 公開 spec
+                                       byte-equal、12_client/18 参照）。
                                    wire は OSS 標準（自製 frame protocol
-                                   ではない）。
+                                   ではない、in-house 実装も spec の
+                                   self-hosted 実装でありプロトコルを
+                                   再発明しない）。
       4. webtransport_quic      : HTTP/3 + WebTransport（QUIC stream）
       5. sse_streaming          : HTTP/1.1 chunked + SSE
                                    （text/event-stream、event ごとに

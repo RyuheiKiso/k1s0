@@ -62,14 +62,15 @@ tier1 鍵管理適合仕様（v1）
     の各 toolchain は backends.lock.yaml の枝で classes.yaml の
     keys と照合する。
 
-      class                    | purpose            | rotation_cadence  | scope          | backend                | destruction_method
-      -------------------------+--------------------+-------------------+----------------+------------------------+---------------------------
-      v1_data_dek              | data_encryption    | days_90           | per_tenant     | software_kms_wrapped   | crypto_shred (KEK 削除)
-      v1_data_kek              | kek_wrapping       | years_1           | per_tenant_or_ | hsm_pkcs11             | hsm_zeroize
-                               |                    |                   |   platform     |                        |
-      v1_token_signing         | signing_jwt        | days_90           | platform       | hsm_pkcs11             | jwks_revoke
-      v1_audit_root_signing    | signing_audit_root | years_1           | per_tenant     | hsm_pkcs11             | external_notary_attest
-      v1_mtls_workload         | mtls_identity      | hours_6           | per_workload   | spire                  | spire_revoke
+      class                    | purpose            | rotation_cadence  | scope          | backend                            | destruction_method
+      -------------------------+--------------------+-------------------+----------------+------------------------------------+---------------------------
+      v1_data_dek              | data_encryption    | days_90           | per_tenant     | software_kms_wrapped               | crypto_shred (KEK 削除)
+      v1_data_kek              | kek_wrapping       | years_1           | per_tenant_or_ | hsm_pkcs11_shamir_distributed      | hsm_zeroize_all_shares
+                               |                    |                   |   platform     |   (M-of-N、N region 独立 HSM)      |   (全 share 破壊で wrapped DEK
+                               |                    |                   |                |                                    |    不可逆失効)
+      v1_token_signing         | signing_jwt        | days_90           | platform       | hsm_pkcs11                         | jwks_revoke
+      v1_audit_root_signing    | signing_audit_root | years_1           | per_tenant     | hsm_pkcs11                         | external_notary_attest
+      v1_mtls_workload         | mtls_identity      | hours_6           | per_workload   | spire                              | spire_revoke
 
   - 各 class の不変条件と典型用途：
 
@@ -92,9 +93,24 @@ tier1 鍵管理適合仕様（v1）
             （crypto-shred の単位）。platform KEK は cross-tenant
             な platform_global table 用に限定。
           - rotation：1 年で新 KEK を発行、全 wrapped DEK を re-wrap
-            （data 再暗号化は不要）。旧 KEK は HSM 上で zeroize。
-          - destruction：HSM PKCS#11 destroy command で zeroize、
-            HSM の audit event と外部公証で削除を attest。
+            （data 再暗号化は不要）。旧 KEK の全 share は同期して
+            HSM 上で zeroize（M-of-N の M region すべてで連動破壊）。
+          - destruction：HSM PKCS#11 destroy command で全 region の
+            share を zeroize、各 region の HSM audit event と外部公証
+            で削除を attest（全 share 破壊で KEK 物理復元不能、
+            wrapped DEK は不可逆失効）。
+          - per-region share rotation cadence：年次 KEK rotation 時に
+            全 share を一斉刷新。region 単独で share rotation する
+            ことは禁止（threshold 整合性が壊れるため）。share
+            custodian role / 復元 ceremony / drill scenario の詳細は
+            05_tier1/17_KEK_shamir_distribution.txt を参照。
+          - cross-region 物理保証：KEK material は単一 region の
+            単一 HSM partition に物理存在しない。N region の独立
+            HSM partition が share を 1 個ずつ保持し、KEK の物理
+            復元は M region 健全時の閾値 ceremony によってのみ
+            成立する（OpenBao OSS は Vault Enterprise の
+            Performance/DR Replica 機能を持たないため、この
+            cross-region 保証経路で代替する）。
           - 典型：crypto-shred 単位の root、KMS root。
 
       - v1_token_signing
@@ -394,11 +410,19 @@ tier1 鍵管理適合仕様（v1）
                       - hf_circuit_breaker_emits_audit
 
               dr_cross_region_failover:
-                description: "DR cutover での鍵連続性"
+                description: "DR cutover での鍵連続性（Shamir M-of-N 分散保管）"
                 matrix:
-                  - when: { class: { in: [v1_data_kek, v1_audit_root_signing] } }
+                  - when: { class: v1_data_kek }
                     assertions:
-                      - dr_replicated_hsm_present_in_secondary_region
+                      - dr_kek_share_distributed_m_of_n
+                      - dr_each_region_holds_independent_share
+                      - dr_no_single_region_holds_full_kek
+                      - dr_threshold_reconstruction_within_rto
+                      - dr_attestation_chain_continuous_per_share
+                      - dr_share_loss_below_threshold_blocks_reconstruction
+                  - when: { class: v1_audit_root_signing }
+                    assertions:
+                      - dr_audit_root_replicated_hsm_present_in_secondary_region
                       - dr_attestation_chain_continuous
                       - dr_no_key_loss_during_failover
 
@@ -423,7 +447,6 @@ tier1 鍵管理適合仕様（v1）
 
               hsm_pkcs11_v1:
                 supports:
-                  - v1_data_kek
                   - v1_token_signing
                   - v1_audit_root_signing
                 features:
@@ -431,9 +454,31 @@ tier1 鍵管理適合仕様（v1）
                   pkcs11_v3: true
                   attestation: vendor_specific
                   zeroize_audit: required
+
+              hsm_pkcs11_shamir_distributed_v1:
+                supports:
+                  - v1_data_kek
+                features:
+                  fips_140_3_level_3: required_in_prod
+                  pkcs11_v3: true
+                  attestation: vendor_specific
+                  zeroize_audit: required
+                  shamir_secret_sharing: required
+                  share_threshold: 3       # M（M-of-N の閾値、要再構成 region 数）
+                  share_total: 5           # N（share を保持する region 数）
+                  region_independence: required
+                  vendor_diversity: allowed_per_region   # region ごと
+                                                          # 異 vendor 許可
+                                                          # （vendor lock 緩和）
                 constraints:
                   v1_data_kek:
                     multi_tenant_partition: required
+                    no_single_region_holds_full_kek: required
+                    threshold_reconstruction_runbook: required
+                    share_rotation_atomic_across_regions: required
+                  # 詳細 protocol は 05_tier1/17_KEK_shamir_
+                  # distribution.txt の M-of-N parameter / 復元
+                  # ceremony / drill scenario と双方向 lock。
 
               spire_v1:
                 supports: [v1_mtls_workload]

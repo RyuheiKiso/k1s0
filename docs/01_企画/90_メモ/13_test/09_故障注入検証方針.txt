@@ -108,6 +108,23 @@ test 故障注入検証方針（v1_fault_chaos）
           unavailability、5xx / timeout / 429
         - 主用 axis：10 auth / 11 key / 14 OSS-lifecycle
           / 15 capacity
+  - v1_kek_share_threshold_fault：
+        - tool：Litmus chaos-network（region-network-partition）
+          + 専用 KEK reconstruction probe workflow
+        - fault：N region 中 (N - M + 1) region 以上を完全断
+          させ、残 region の OpenBao instance に保存された
+          Shamir share 集合のみで KEK 復元 ceremony を試行する
+          drill。M region 健全時に閾値復元が成立し業務継続、
+          M 未満では復元不能であることの双方を property test。
+          drill 後、断 region を回復させ全 share の連続性を
+          attestation chain で検証。
+        - 主用 axis：05_tier1/11 鍵管理 / 05_tier1/17 KEK
+          Shamir / 09_data/15 v1_cross_region_replicated /
+          09_data/16 PII cluster / 08_infra/05 region 別 HSM
+          partition / 10_security/14 block-single-region-kek-
+          reconstruction admission policy
+        - drill_cadence_days: 30（year 12 回、09_data/15
+          v1_cross_region_replicated drill_cadence と同調）
   - v1_attacker_fault：
         - tool：Litmus + 専用 attacker workflow + **言語別
           fuzz tool セット**（13_test/04_採用OSS と整合）

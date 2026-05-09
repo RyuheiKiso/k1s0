@@ -47,10 +47,10 @@ tier1 OSS ライフサイクル適合仕様（v1）
   - 移行 trigger は構造化された signal の集合とする。
       「ライセンスが変わったら」のような自然文ではなく、license_
       change / eol_announced / cve_backlog_threshold / maintainer_
-      turnover / fork_event / conformance_drift / major_up の 7
-      signal を class が purely additive に enumerate する。各 signal
-      は 09 audit signal の sub-class `oss.lifecycle.event` として
-      物理 emit する。
+      turnover / fork_event / conformance_drift / major_up /
+      spec_drift の 8 signal を class が purely additive に
+      enumerate する。各 signal は 09 audit signal の sub-class
+      `oss.lifecycle.event` として物理 emit する。
   - inventory.lock.yaml は build artifact とする。
       02_採用OSS一覧（人間可読）と本仕様の oss_inventory.lock.yaml
       （機械可読）の双方向整合を build script で担保。手書き drift
@@ -67,31 +67,36 @@ tier1 OSS ライフサイクル適合仕様（v1）
       任意の単層が破れても他層が必ず止める。Kyverno admission policy
       が最終 safety net。
 
-■ v1 lifecycle_class セット（5 class）
-  - yaml に書ける lifecycle_class は次の 5 値のみ。各 build script
+■ v1 lifecycle_class セット（6 class）
+  - yaml に書ける lifecycle_class は次の 6 値のみ。各 build script
     は oss_inventory.lock.yaml の枝で classes.yaml の keys と照合
     する。
 
-      class                    | adoption_status        | health_check_cadence | primary migration_trigger      | response_action
-      -------------------------+------------------------+----------------------+--------------------------------+-----------------------------------
-      v1_l1plus_primary        | primary_l1plus         | quarterly            | license_change / eol_announced | pair_switch_to_target
-                               |                        |                      | / cve_backlog_threshold        |   (08 dry_run の lock 切替)
-                               |                        |                      | / maintainer_turnover / fork   |
-      v1_l1plus_pair_target    | pair_l1plus            | annual               | dry_run_cadence_elapsed        | conformance_dry_run_run
-                               |                        |                      |   (365 日)                     |
-      v1_l2star_member         | l2star_member          | quarterly            | conformance_drift / license_   | family_substitute_or_demote
-                               |                        |                      | change / eol_announced         |
-      v1_l3_runtime            | l3_companion_runtime   | semi_annual          | major_up / eol_announced /     | runtime_upgrade_with_compat_test
-                               |                        |                      | cve_backlog_threshold          |
-      v1_reserved_category     | reserved               | annual               | adoption_demand /              | promote_to_primary_or_remove
-                               |                        |                      | blocker_resolution             |
+      class                       | adoption_status        | health_check_cadence | primary migration_trigger      | response_action
+      ----------------------------+------------------------+----------------------+--------------------------------+-----------------------------------
+      v1_l1plus_primary           | primary_l1plus         | quarterly            | license_change / eol_announced | pair_switch_to_target
+                                  |                        |                      | / cve_backlog_threshold        |   (08 dry_run の lock 切替)
+                                  |                        |                      | / maintainer_turnover / fork   |
+      v1_l1plus_pair_target       | pair_l1plus            | annual               | dry_run_cadence_elapsed        | conformance_dry_run_run
+                                  |                        |                      |   (365 日)                     |
+      v1_l2star_member            | l2star_member          | quarterly            | conformance_drift / license_   | family_substitute_or_demote
+                                  |                        |                      | change / eol_announced         |
+      v1_l3_runtime               | l3_companion_runtime   | semi_annual          | major_up / eol_announced /     | runtime_upgrade_with_compat_test
+                                  |                        |                      | cve_backlog_threshold          |
+      v1_reserved_category        | reserved               | annual               | adoption_demand /              | promote_to_primary_or_remove
+                                  |                        |                      | blocker_resolution             |
+      v1_inhouse_authoritative    | inhouse_authoritative  | quarterly            | spec_drift / cve_backlog_      | inhouse_spec_track_or_runtime_
+                                  |                        |                      | threshold / conformance_drift  |   upgrade
+                                  |                        |                      | / major_up                     |
 
   - 各 class の不変条件と典型用途：
 
       - v1_l1plus_primary
           - 「単一 OSS 深耕」哲学（04_Library L1+）の現役採用 OSS。
-          - 7 signal いずれかの発生で移行 trigger を発動し、08 の
-            primary pair（pair_target）を新 primary に切替える。
+          - 7 signal（spec_drift を除く）いずれかの発生で移行
+            trigger を発動し、08 の primary pair（pair_target）を新
+            primary に切替える。spec_drift は v1_inhouse_authoritative
+            限定 trigger で本 class では発火しない。
           - 切替は 08 の dry_run.lock.yaml の last_green_at 365 日
             以内が必須（ship blocker と同型）。
           - quarterly health check：CVE backlog / maintainer
@@ -171,7 +176,33 @@ tier1 OSS ライフサイクル適合仕様（v1）
             のまま 5 年経過した category は強制 review、再判断
             必須（自動 dead 化を防ぐ）。
 
-  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+      - v1_inhouse_authoritative
+          - 採用 OSS 候補の機能ギャップを埋めるために企画自製
+            （in-house Apache 2.0 配布、`maintained_by: in_house`）
+            される library / runtime。「自製禁止規律はあるが、L1+
+            単一深耕の health_check_cadence を community fork に
+            ギャンブルできない場合に限り認める」例外区画。
+          - 7 signal のうち maintainer_turnover / fork_event /
+            license_change を持たない（自製のため定義不能）。
+            代わりに spec_drift（実装が依拠する公開 spec の改訂）
+            を primary trigger に持つ。cve_backlog_threshold /
+            conformance_drift / major_up は既存 OSS と同等。
+          - 自製コードであっても dimension override 禁止規律は
+            継承する：health_check_cadence は quarterly 固定、
+            CVE backlog は自製コードを対象とした内部 grype scan
+            で測定、spec_drift は外部 spec repo の release watch
+            と Conformance Suite の green=false で発火。
+          - response_action：inhouse_spec_track_or_runtime_upgrade
+            （spec 改訂時は仕様追従 + Conformance Suite green を
+            ship blocker、major_up は upstream OSS なしのため
+            企画自製の semver major up を伴う compat assessment）。
+          - 単一の真の所在：当該自製 library 専用の `*_inhouse.txt`
+            メモを 1 軸内に持つことを必須とする（双方向 lock 整合
+            CI 対象）。
+          - 典型：k1s0.Connect.NetCore（.NET 8 LTS の Connect-RPC
+            実装、12_client/18_dotnet8_connect_inhouse 参照）。
+
+  - 上記 6 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
     の stress test を本仕様末尾に示す。
 
 ■ dimension の根拠
@@ -215,6 +246,12 @@ tier1 OSS ライフサイクル適合仕様（v1）
                                              |                                                  |   default-on かつ draft-ietf-
                                              |                                                  |   webtrans-http3 の RFC 昇格を
                                              |                                                  |   満たす（3 条件 AND）
+        spec_drift                           | spec_repo_release_watch + conformance_suite_ci   | 自製 library が依拠する外部 spec
+                                             |   (signal source は spec_endpoint で declare)    |   の release published かつ
+                                             |                                                  |   Conformance Suite green=false
+                                             |                                                  |   が連続 2 週、または spec の
+                                             |                                                  |   semver major up（v1_inhouse_
+                                             |                                                  |   authoritative 限定 trigger）
 
   - signal source は oss_inventory.lock.yaml の各 OSS entry に endpoint
     / cadence / threshold を declare する。
@@ -298,6 +335,23 @@ tier1 OSS ライフサイクル適合仕様（v1）
                 response_action:
                   primary: promote_to_primary_or_remove
                 review_max_years_in_reserved: 5
+
+              v1_inhouse_authoritative:
+                adoption_status: inhouse_authoritative
+                health_check_cadence:
+                  bucket: quarterly
+                  max_seconds: 7889400
+                migration_trigger_set:
+                  - spec_drift
+                  - cve_backlog_threshold
+                  - conformance_drift
+                  - major_up
+                response_action:
+                  primary: inhouse_spec_track_or_runtime_upgrade
+                  fallback_for_major_up: stay_inhouse_with_compat_assessment
+                requires_inhouse_spec_memo: true
+                requires_external_spec_endpoint: true
+                emits_to_audit_signal: oss.lifecycle.event
 
   ── tier1/lifecycle/scenarios.yaml
       - scenario × class / trigger → assertion id のマトリクス。
@@ -397,7 +451,18 @@ tier1 OSS ライフサイクル適合仕様（v1）
                       - ap_kyverno_blocks_image_admission
                       - ap_audit_signal_emitted
 
-      - corpus 全体は 10 scenario を最小コーパスとする。
+              spec_drift_detected:
+                description: "自製 library が依拠する公開 spec の改訂検知"
+                matrix:
+                  - when: { class: v1_inhouse_authoritative, trigger: spec_drift }
+                    assertions:
+                      - sd_spec_release_published_observed
+                      - sd_conformance_suite_failure_observed_2w
+                      - sd_inhouse_track_pr_filed
+                      - sd_release_blocked_until_conformance_green
+                      - sd_audit_signal_emitted
+
+      - corpus 全体は 11 scenario を最小コーパスとする。
 
   ── tier1/lifecycle/oss_inventory.lock.yaml（build artifact）
       - 全 OSS の static 自己宣言を tier1 build script が集約して
@@ -436,6 +501,16 @@ tier1 OSS ライフサイクル適合仕様（v1）
                 paired_target: karapace
                 family: schema_registry
                 family_role: l1plus_primary
+                governance: gitops_only   # Registry API への直接 push 禁止
+                                          # （10_security/14
+                                          # block-direct-apicurio-write）。
+                                          # subject schema / compatibility
+                                          # rule は git SoT を Argo CD +
+                                          # Apicurio Operator で reconcile
+                                          # （05_tier1/12 registries.lock.yaml
+                                          # / 05_tier1/18_apicurio_gitops_sot
+                                          # と双方向 lock）。Karapace へ demote
+                                          # する場合も同 governance を維持。
 
               karapace:
                 lifecycle_class: v1_l2star_member
@@ -443,6 +518,8 @@ tier1 OSS ライフサイクル適合仕様（v1）
                 family: schema_registry
                 family_role: l2star_alternate
                 conformance_scenarios_id: schema_registry_l2star
+                governance: gitops_only   # Apicurio と同 governance を維持
+                                          # （demote 経路保持）
 
               keycloak:
                 lifecycle_class: v1_l1plus_primary
@@ -470,6 +547,30 @@ tier1 OSS ライフサイクル適合仕様（v1）
                                           # 影響なし（両者 Apache-2.0）。
                                           # 詳細は 08_移行Pair適合仕様
                                           # primary_pair 候補。
+                # 言語別 implementation map：TS / Go / Kotlin / Swift は
+                # 公式 OSS（@connectrpc/connect-*、connectrpc.com/connect、
+                # connect-kotlin、connect-swift）を使用。.NET 8 LTS は
+                # 公式 OSS が存在しないため自製 k1s0_connect_netcore
+                # （v1_inhouse_authoritative）に切り出した（12_client/18
+                # 参照）。Connect protocol spec の改訂は本 entry の
+                # major_up trigger と k1s0_connect_netcore の spec_drift
+                # trigger 双方を発火する。
+
+              k1s0_connect_netcore:
+                lifecycle_class: v1_inhouse_authoritative
+                license: Apache-2.0
+                maintained_by: in_house
+                source_repo: github.com/k1s0/k1s0.Connect.NetCore   # in-house
+                role: rpc_wire_dotnet8_connect_implementation
+                external_spec_endpoint: github.com/connectrpc/conformance
+                external_spec_repo: github.com/connectrpc/connectrpc.com
+                inhouse_spec_memo: 12_client/18_dotnet8_connect_inhouse.txt
+                cve_endpoint: internal_grype_scan
+                conformance_scenarios_id: connect_dotnet8_conformance
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+                # spec_drift 発火条件は connectrpc/conformance suite の
+                # release watch + 内部 .NET 8 SDK 実装の suite green=false
+                # が連続 2 週で fire（spec_drift 行参照）。
 
               apache_jmeter:
                 lifecycle_class: v1_l1plus_primary
@@ -650,7 +751,9 @@ tier1 OSS ライフサイクル適合仕様（v1）
       2. EoL 30 日前から 4xx warn、当日以降 reject。
       3. 生成と git の差分検出（手書き drift 禁止）。
   - Argo Workflows / cron job の責務：
-      1. 7 trigger signal の polling / webhook receiver を schedule。
+      1. 8 trigger signal の polling / webhook receiver を schedule
+         （spec_drift は外部 spec repo の release watch + Conformance
+         Suite green 監視として実装）。
       2. 各 signal を 09 audit signal sub-class として emit。
       3. threshold 超過時は alertmanager（13 と接続）へ通知。
   - 02_OSS リスト builder の責務：
@@ -688,35 +791,40 @@ tier1 OSS ライフサイクル適合仕様（v1）
       整合 11: 全 v1_l1plus_primary OSS が cve_endpoint / contributor
                _endpoint / spdx_scan_endpoint を declare している
                （signal source 完全性）。
-      整合 12: Kyverno admission policy が 5 class の image 全て
+      整合 12: Kyverno admission policy が 6 class の image 全て
                に対し validation rule を持つ（admission gap 検出）。
+               v1_inhouse_authoritative の image は in-house Cosign
+               署名 + SBOM attestation を required policy で enforce。
       整合 13: 09 audit signal sub-class `oss.lifecycle.event` が
-               定義されており、本仕様の 7 trigger signal を全数
+               定義されており、本仕様の 8 trigger signal を全数
                emit する path を持つ（cross-axis 連結）。
 
 ■ 製造業 pack stress test（v1 の正当性証跡）
-  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+  - 9 業務シナリオを v1 class に classify し、全て 6 class で覆える。
 
-      # | シナリオ                                  | class                    | 主要検証ポイント
-      --+-------------------------------------------+--------------------------+----------------------------------------------------
-      1 | ZEN Engine ライセンス変更検知             | v1_l1plus_primary        | license_change signal、自製 DSL backend 切替発動
-      2 | Apicurio EoL 通告 → Karapace 全面切替     | v1_l2star_member         | eol_announced、family demote、Karapace primary 化
-      3 | CloudNativePG → StackGres 年次 dry_run    | v1_l1plus_pair_target    | dry_run cadence、08 lock 更新、conformance green
-      4 | Keycloak 年次 major_up                    | v1_l3_runtime / l1plus   | major_up signal、10 conformance 再実行、互換性検証
-      5 | Distributed SQL 採用判断                  | v1_reserved_category     | annual review、blocker_resolution evaluate
-      6 | CVE backlog 閾値超過 (PostgreSQL ext)     | v1_l1plus_primary        | grype + osv.dev、threshold breach、page emit
-      7 | maintainer turnover 検知 (Apicurio)       | v1_l2star_member         | top-5 maintainer 4 leave / 12m、health 低下 alert
-      8 | non-OSS license image の admission 拒否   | (cross-class)            | Kyverno deploy reject、audit signal emit
+      # | シナリオ                                  | class                       | 主要検証ポイント
+      --+-------------------------------------------+-----------------------------+----------------------------------------------------
+      1 | ZEN Engine ライセンス変更検知             | v1_l1plus_primary           | license_change signal、自製 DSL backend 切替発動
+      2 | Apicurio EoL 通告 → Karapace 全面切替     | v1_l2star_member            | eol_announced、family demote、Karapace primary 化
+      3 | CloudNativePG → StackGres 年次 dry_run    | v1_l1plus_pair_target       | dry_run cadence、08 lock 更新、conformance green
+      4 | Keycloak 年次 major_up                    | v1_l3_runtime / l1plus      | major_up signal、10 conformance 再実行、互換性検証
+      5 | Distributed SQL 採用判断                  | v1_reserved_category        | annual review、blocker_resolution evaluate
+      6 | CVE backlog 閾値超過 (PostgreSQL ext)     | v1_l1plus_primary           | grype + osv.dev、threshold breach、page emit
+      7 | maintainer turnover 検知 (Apicurio)       | v1_l2star_member            | top-5 maintainer 4 leave / 12m、health 低下 alert
+      8 | non-OSS license image の admission 拒否   | (cross-class)               | Kyverno deploy reject、audit signal emit
+      9 | Connect protocol spec 改訂検知            | v1_inhouse_authoritative    | spec_drift signal、Conformance Suite 再実行、
+        | （k1s0.Connect.NetCore）                  |                             |   inhouse track PR 発火、ship blocker 評価
 
   - stress test は Testcontainers で Argo Workflows + Kyverno +
-    Prometheus + alertmanager + sample inventory を立ち上げ、8
+    Prometheus + alertmanager + sample inventory を立ち上げ、9
     シナリオを property test として実装する。新 lifecycle pattern
-    が 5 class のいずれにも収まらないと判明した時点で、本仕様は
+    が 6 class のいずれにも収まらないと判明した時点で、本仕様は
     v2 候補として class 追加検討に入る。
 
 ■ v2 拡張ルール
   - 新 class の追加は purely additive：v1 class はそのまま残し、v2
-    で新規 class（例：v2_internal_fork（自製 fork OSS 管理）、
+    で新規 class（例：v2_external_fork（外部 OSS の自製 fork 管理、
+    in-house authoritative とは異なり upstream を持つ）、
     v2_emergency_replacement（緊急差替えルート））を追加する。
   - 予約カテゴリの v2 promote 候補：distributed_sql_pair に並んで
     vector_search_pair（pgvector → Qdrant / Milvus / Weaviate）を予約

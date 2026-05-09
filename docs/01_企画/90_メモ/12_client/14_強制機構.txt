@@ -99,6 +99,19 @@ client 強制機構
                getter / 自製 crypto 利用ゼロ
       整合 13: 全 9 言語 SDK の公開 API が同型（method 名 /
                type 名 / annotation 値の言語横断 diff = 0）
+      整合 14: connect_bidi adapter の全 implementation_per_
+               runtime（@connectrpc/connect-web、connectrpc.com/
+               connect、connect-kotlin、connect-swift、
+               k1s0.Connect.NetCore 等）が Connect Conformance
+               Suite（github.com/connectrpc/conformance、
+               Apache-2.0）の全 RPC form（unary / server-
+               streaming / client-streaming / bidi-streaming）
+               + HTTP/2 / HTTP/3 + protobuf binary / JSON 全
+               case で green。green=false が連続 2 週で release
+               block（k1s0.Connect.NetCore は spec_drift signal
+               source として 14 OSSライフサイクル の `oss.
+               lifecycle.event` に emit、12_client/18 と双方向
+               lock）。
 
 ■ 言語別 lint / analyzer 一覧
   - .NET 8 / .NET Framework：

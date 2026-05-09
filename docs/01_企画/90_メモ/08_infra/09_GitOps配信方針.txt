@@ -44,6 +44,16 @@ infra GitOps 配信方針
     （preview environment）を auto provision。
   - cluster decision generator：Argo Events からの decision
     に基づく動的 deploy plan。
+  - Apicurio schema generator：`apicurio_subjects/` git path を
+    入力に、各 cluster の Apicurio Operator CR
+    （`ApicurioRegistry` / per-subject CR / global rule CR）
+    を生成。PII cluster / 業務 cluster 両 Argo CD instance が
+    同 git repo を read-only sync し、Apicurio Operator が
+    Registry instance に declarative reconcile する経路を
+    唯一の真とする（Registry API への直接 push は
+    10_security/14 block-direct-apicurio-write で禁止、
+    05_tier1/12 registries.lock.yaml の governance 節 /
+    05_tier1/18_apicurio_gitops_sot と双方向 lock）。
 
 ■ progressive delivery 戦略
   - canary（default）：

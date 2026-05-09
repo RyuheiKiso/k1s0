@@ -452,12 +452,28 @@ tier1 スキーマ進化適合仕様（v1）
                   compatibility_strategies: [BACKWARD, BACKWARD_TRANSITIVE,
                                              FORWARD, FULL, FULL_TRANSITIVE]
                   rest_v3: true
+                governance:
+                  source_of_truth: git
+                  reconcile_via: argo_cd_apicurio_operator
+                  direct_api_write: forbidden   # Kyverno admission
+                                                 # `block-direct-apicurio-
+                                                 # write` で物理 enforce
+                                                 # （10_security/14 参照）
+                  cross_cluster_equality: byte_equal_per_subject_and_rule
+                  detail_spec: 05_tier1/18_apicurio_gitops_sot.txt
                 constraints:
                   v1_event_avro:
                     compatibility_strategy: BACKWARD_TRANSITIVE
               karapace:
                 supports: [v1_event_avro]
                 role: l2star_member  # 04_Library L2* 同族（Apicurio と並行採用）
+                governance:
+                  source_of_truth: git
+                  reconcile_via: argo_cd_apicurio_operator
+                  direct_api_write: forbidden
+                  # demote 経路でも gitops_only governance を維持
+                  # （Apicurio から Karapace に primary 移行する場合も
+                  # git SoT は変更しない、05_tier1/18 参照）
               sqlx_migrations:
                 supports: [v1_db_ddl]
                 features:

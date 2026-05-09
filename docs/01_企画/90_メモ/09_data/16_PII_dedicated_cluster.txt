@@ -46,7 +46,15 @@ PII 専用 PostgreSQL クラスタ（v1）
       - OpenBao は PII cluster 用と業務 cluster 用で **別の root
         token / KEK / HSM partition** を持つ。Performance Replica /
         DR Replica も cluster 境界を跨がない（PII cluster の OpenBao
-        は PII cluster 内 DR のみ）。
+        は PII cluster 内 DR のみ）。OpenBao OSS は Vault Enterprise
+        の Performance/DR Replica 機能を持たないため、cross-region
+        での KEK 物理冗長は **Shamir Secret Sharing (M-of-N) で N
+        region の独立 OpenBao instance + 独立 HSM partition に share
+        を分散保管** することで代替する（PII cluster 内 OpenBao が
+        保持する share は 1 個のみ、KEK の物理復元は M region 健全時
+        の閾値 ceremony でのみ成立、05_tier1/11_鍵管理適合仕様 の
+        backend `hsm_pkcs11_shamir_distributed_v1` および
+        05_tier1/17_KEK_shamir_distribution.txt と双方向 lock）。
       - cert-manager の root CA も別。業務 cluster の root CA から
         派生した cert で PII cluster の workload を認証することは
         禁止する。
@@ -56,10 +64,14 @@ PII 専用 PostgreSQL クラスタ（v1）
     存在しない（pii_ref に対する reconciliation job も PII cluster
     側で完結し、業務 cluster へ書き戻さない）。
   - PII KEK は PII cluster 内 HSM partition、PII cluster 内 OpenBao
-    Transit path にのみ存在。業務クラスタ KEK が漏洩しても PII
-    クラスタは復号不能（control plane も独立配置のため、業務 control
-    plane 経由で PII cluster の HSM session を確立する経路自体が
-    存在しない）。
+    Transit path にのみ存在し、PII cluster の OpenBao は KEK 全体
+    ではなく **Shamir share を 1 個のみ** 保持する（残り N-1 share
+    は地理的に独立した別 region の HSM partition + OpenBao instance
+    に分散）。業務クラスタ KEK が漏洩しても PII クラスタは復号不能
+    （control plane も独立配置のため、業務 control plane 経由で PII
+    cluster の HSM session を確立する経路自体が存在しない）。さらに
+    PII cluster 単体が完全侵害されても share 1 個では KEK 復元
+    閾値（M）に達せず、攻撃者は wrapped DEK を復号できない。
 
 ■ 役割
   - 役割 PII-A : 業務 schema → 業務クラスタ、PII column → PII
