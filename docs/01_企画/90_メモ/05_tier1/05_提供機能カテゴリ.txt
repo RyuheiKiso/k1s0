@@ -20,7 +20,7 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
                                           |          |     | パーティション lifecycle、拡張機能 API  |
   Relational Store / Distributed SQL      | backend  | L1+ | 将来カテゴリ。tier3 がアーキテクチャ    | （未定）
                                           |          |     | 設計時に Single-leader と排他選択する。 |
-  Vector Search                           | backend  | L2* | ベクトル登録 / 類似検索                 | pgvector
+  Vector Search                           | backend  | L1+ | ベクトル登録 / 類似検索、SQL JOIN 内 ANN| pgvector
   Workflow / Long-running Saga            | backend  | L1+ | Workflow / Activity 定義、補償処理      | Temporal
   Rule Engine                             | backend  | L1+ | 決定表評価、ルール実行                  | ZEN Engine
 
@@ -44,7 +44,11 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
   - Configuration / Feature Flag           : evaluation context、ターゲティング規則、
                                              セグメント定義
   - Schema Registry                        : 互換性モード、グループ / artifact 体系
-  - Vector Search                          : インデックス種別 / 距離関数、再構築コスト
+  - Vector Search                          : インデックス種別（HNSW / IVFFlat）、
+                                             距離関数、SQL JOIN 内 ANN、
+                                             transactional ANN（同 transaction で
+                                             upsert + 検索）、pg_partman 連携、
+                                             再構築コスト
   - Messaging / EventBus                   : 分割キー、順序保証、consumer pool、
                                              再試行 / DLQ ポリシー、Outbox 設計、
                                              トランザクション送信
@@ -62,10 +66,12 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
                                      （flagd / GO Feature Flag / GrowthBook 等）
   - Schema Registry                : Confluent Schema Registry wire 互換族
                                      （Apicurio / Karapace）
-  - Vector Search                  : k-NN 族
-                                     （pgvector / Qdrant / Milvus、profile API 経由）
   族の外への差し替えは保証対象外。族の改廃自体は Library の破壊的変更
   （major version up）として扱う。
+  Vector Search はかつて k-NN 族として L2* 候補に挙げていたが、pgvector の
+  transactional ANN / SQL JOIN 内 ANN と Qdrant / Milvus 等 standalone
+  vector engine の semantics 差が業務ロジックに染み出すため、本企画では
+  L1+ 単一深耕（pgvector）+ 移行コミットメント枠で扱う。
 
 ■ L3 カテゴリの wire 互換前提（業務コード無変更を成立させる根拠）
   - Logging / Tracing / Metrics    : OpenTelemetry SDK + OTLP
@@ -102,6 +108,12 @@ tier1 Library 提供機能カテゴリと現行実装 OSS
                                         移行先候補 Cadence、Temporal Cloud
   - Rule Engine                       : 本命       ZEN Engine
                                         移行先候補 自製 DSL、別 OSS
+  - Vector Search                     : 本命       pgvector
+                                        移行先候補 Qdrant、Milvus、Weaviate
+                                                   （standalone vector engine。
+                                                    transactional ANN / SQL JOIN
+                                                    を持たないため業務コードに
+                                                    設計レベルの修正が入る）
   L1+ では day-1 で複数 backend を並走させない。OSS ライフサイクル
   イベント時に tier1 が移行 toolchain を成果物として提供する
   （詳細は「04_Library」L1+ 移行コミットメント節を参照）。

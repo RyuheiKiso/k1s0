@@ -493,7 +493,11 @@ tier1 L1+ 移行 Pair 適合仕様（v1）
 ■ v2 拡張ルール
   - 新 pair の追加は purely additive。Distributed SQL カテゴリ
     （「05_提供機能カテゴリ」予約カテゴリ）が確定した時点で
-    distributed_sql_pair を追加する。
+    distributed_sql_pair を追加する。Vector Search カテゴリ
+    （L1+、本命 pgvector）の primary pair も v2 候補として予約する
+    （pgvector → Qdrant / Milvus / Weaviate、14_OSSライフサイクル
+    適合仕様 vector_search_pair と整合）。primary 移行先確定の
+    trigger は pgvector のライフサイクルイベント or adoption_demand。
   - 新 phase の追加は破壊的変更（major version up、「13_互換性
     ポリシー」と整合）。既存 4 pair × N phase の全 cell に対する
     assertion 追加が必須となる。

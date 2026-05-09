@@ -587,9 +587,11 @@ tier1 テナント容量適合仕様（v1）
         の対象。
   - 13_SLO適合仕様：
       - noisy_neighbor_isolation の SLO 違反は 13 の v1_request_
-        availability / v1_request_latency_p99 sub-class として直結。
-        13 の error budget freeze が本仕様の chaos test 違反時に
-        発動する。
+        availability / v1_request_latency_p99 / v1_request_latency_
+        p99_cross_region sub-class として直結（対象 tenant の
+        preservation_class が cross-region 系か否かにより参照する
+        latency class が分岐）。13 の error budget freeze が本仕様の
+        chaos test 違反時に発動する。
   - 14_OSSライフサイクル適合仕様：
       - 本仕様の enforcement_points.lock.yaml の各 backend は 14
         の oss_inventory.lock.yaml と double-bound。Envoy / Temporal
@@ -656,9 +658,9 @@ tier1 テナント容量適合仕様（v1）
                / max_concurrent_sessions と v1_per_tenant_concurrency
                の instance_attributes が同期（cross-axis）。
       整合 10: 13 v1_request_availability / v1_request_latency_p99
-               の tenant_label_required: true な class が本仕様の
-               quota_class 違反 event を sub-class として消費して
-               いる（cross-axis 連結）。
+               / v1_request_latency_p99_cross_region の tenant_label_
+               required: true な class が本仕様の quota_class 違反
+               event を sub-class として消費している（cross-axis 連結）。
       整合 11: 14 oss_inventory.lock.yaml の各 enforcement backend
                OSS（Envoy / Temporal / KEDA / Kafka / Istio / Ceph
                RGW / ClickHouse）が登録されている（cross-axis）。

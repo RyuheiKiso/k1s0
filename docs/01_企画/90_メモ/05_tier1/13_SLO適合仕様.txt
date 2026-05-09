@@ -55,17 +55,18 @@ tier1 SLO 適合仕様（v1）
       任意の単層が破れても他層が必ず止める。Kyverno gate が最終
       safety net。
 
-■ v1 slo_class セット（5 class）
-  - yaml に書ける slo_class は次の 5 値のみ。各 build script は
+■ v1 slo_class セット（6 class）
+  - yaml に書ける slo_class は次の 6 値のみ。各 build script は
     instruments.lock.yaml の枝で classes.yaml の keys と照合する。
 
-      class                       | sli_kind         | target               | window  | multi_window_burn          | alert_severity
-      ----------------------------+------------------+----------------------+---------+----------------------------+--------------------
-      v1_request_availability     | availability     | 99.9%                | 30d     | fast_2h_14.4x + slow_24h_3x| page_immediate
-      v1_request_latency_p99      | latency          | p99 <= class.target  | 30d     | fast_1h_14x  + slow_6h_3x  | page_immediate
-      v1_event_freshness          | freshness        | p95 <= class.target  | 7d      | fast_30m_14x + slow_4h_3x  | page_business_hours
-      v1_workflow_completion      | completion_rate  | 99.5%                | 30d     | fast_4h_14x  + slow_3d_3x  | ticket_only
-      v1_data_durability          | durability       | 99.999999999% (11n)  | 365d    | any_loss=immediate         | page_immediate
+      class                              | sli_kind         | target               | window  | multi_window_burn          | alert_severity
+      -----------------------------------+------------------+----------------------+---------+----------------------------+--------------------
+      v1_request_availability            | availability     | 99.9%                | 30d     | fast_2h_14.4x + slow_24h_3x| page_immediate
+      v1_request_latency_p99             | latency          | p99 <= class.target  | 30d     | fast_1h_14x  + slow_6h_3x  | page_immediate
+      v1_request_latency_p99_cross_region| latency          | p99 <= class.target  | 30d     | fast_1h_14x  + slow_6h_3x  | page_immediate
+      v1_event_freshness                 | freshness        | p95 <= class.target  | 7d      | fast_30m_14x + slow_4h_3x  | page_business_hours
+      v1_workflow_completion             | completion_rate  | 99.5%                | 30d     | fast_4h_14x  + slow_3d_3x  | ticket_only
+      v1_data_durability                 | durability       | 99.999999999% (11n)  | 365d    | any_loss=immediate         | page_immediate
 
   - 各 class の不変条件と典型用途：
 
@@ -91,6 +92,33 @@ tier1 SLO 適合仕様（v1）
           - 典型：07 v1_interactive / v1_alert / v1_event_feed の
             class.max_msg_lag_ms と connect、production の p99 latency
             SLO。
+          - 採用条件：preservation_class が cross-region 系
+            （v1_cross_region_replicated / v1_global_replicated）の
+            write 経路では本 class を採用しない。これらの preservation
+            class は cross-region RTT に支配される commit latency を
+            持つため、専用 class（v1_request_latency_p99_cross_region）
+            を採用する。詳細は本仕様「既存軸との接続関係」09_data/15
+            節および CI 不変条件 整合 14 を参照。
+
+      - v1_request_latency_p99_cross_region
+          - cross-region write を伴う request 経路の p99 latency。
+          - SLI 算出式：v1_request_latency_p99 と同型（threshold 内
+            request の比率）。target は class instantiate 時に
+            latency_threshold_ms を指定。典型値は 1500ms（Tokyo↔Osaka
+            〜30ms RTT × remote_apply 往復、Tokyo↔US 〜180ms RTT を
+            想定し内部処理マージン込み）。具体値は instance 別に
+            preservation 構成に応じて宣言する。
+          - target 99.9% / 30 日 = 月間 0.1% が threshold 超過許容。
+          - multi-window：fast 1h で 14x burn と slow 6h で 3x burn
+            の AND 条件で page（既存 v1_request_latency_p99 と同型）。
+          - 典型：v1_cross_region_replicated 配下の tier2 SoR write、
+            tier1 Workflow Activity の永続化、Outbox commit、09_data
+            atomic 三表書込（32）の cross-region preservation 経路。
+          - 採用条件：preservation_class ∈
+            { v1_cross_region_replicated, v1_global_replicated } の
+            write 経路でのみ採用可能。逆向き（cross-region 系
+            preservation の write 経路は本 class でなければならない）
+            も CI 不変条件 整合 14 で双方向 lock。
 
       - v1_event_freshness
           - server-driven event 配信の freshness（end-to-end lag）。
@@ -137,7 +165,7 @@ tier1 SLO 適合仕様（v1）
             ゼロ担保、key crypto-shred 以外での data 不可逆損失
             監視。
 
-  - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
+  - 上記 6 class で v1 が covering。製造業 pack 想定 9 業務シナリオ
     の stress test を本仕様末尾に示す。
 
 ■ dimension の根拠
@@ -148,7 +176,9 @@ tier1 SLO 適合仕様（v1）
     分解不能になるため独立 dimension。
   - target_level は class により semantics が異なる：availability /
     completion_rate は %（99.9% 等）、latency / freshness は閾値
-    （200ms 等）+ ratio（99.9% が threshold 内）、durability は
+    （v1_request_latency_p99 は 200ms 級、v1_request_latency_p99_
+    cross_region は cross-region RTT に支配されるため 1500ms 級
+    が典型）+ ratio（99.9% が threshold 内）、durability は
     11 nines（99.999999999%、365d、物理上限の確率的目標）+
     freeze_on_any_loss=true（loss event 検出時の決定論的物理
     freeze、SLO target と独立した class 固有属性）。class
@@ -167,7 +197,7 @@ tier1 SLO 適合仕様（v1）
 
 ■ derived dimension（per-tenant SLO）を独立次元にしない理由
   - per-tenant SLO（テナント別 availability target）は本来 dimension
-    たり得るが、5 class それぞれで「tenant_id ラベルで分割した
+    たり得るが、6 class それぞれで「tenant_id ラベルで分割した
     metric を multi-window 評価する」という同形操作になる。
   - tenant 別 target を class 内 instance 属性として宣言し、recording
     rule の生成時に tenant_id ラベルを残す形に統一する。class に
@@ -254,6 +284,30 @@ tier1 SLO 適合仕様（v1）
                 instance_attributes_required: [threshold_ms]
                 recording_rule_template_id: tmpl_request_latency
                 alert_rule_template_id: tmpl_request_latency_burn
+                incompatible_preservation_classes:
+                  - v1_cross_region_replicated
+                  - v1_global_replicated
+                  # cross-region 系は v1_request_latency_p99_cross_region を採用
+
+              v1_request_latency_p99_cross_region:
+                sli_kind: latency
+                target_definition:
+                  good_event: "request_latency_ms <= class_instance.threshold_ms"
+                target_default: 0.999
+                window_class: { primary_seconds: 2592000 }
+                multi_window_burn:
+                  fast: { window_seconds: 3600,  burn_rate_threshold: 14 }
+                  slow: { window_seconds: 21600, burn_rate_threshold: 3  }
+                alert_severity: page_immediate
+                tenant_label_required: true
+                instance_attributes_required: [threshold_ms]   # 典型 1500ms
+                recording_rule_template_id: tmpl_request_latency
+                alert_rule_template_id: tmpl_request_latency_burn
+                compatible_preservation_classes:
+                  - v1_cross_region_replicated
+                  - v1_global_replicated
+                # 双方向 lock：cross-region 系 preservation の write 経路は
+                # 本 class でなければならない（CI 不変条件 整合 14）
 
               v1_event_freshness:        { ... }
               v1_workflow_completion:    { ... }
@@ -283,6 +337,7 @@ tier1 SLO 適合仕様（v1）
                 matrix:
                   - when: { class: { in: [v1_request_availability,
                                           v1_request_latency_p99,
+                                          v1_request_latency_p99_cross_region,
                                           v1_event_freshness,
                                           v1_workflow_completion] } }
                     assertions:
@@ -294,7 +349,8 @@ tier1 SLO 適合仕様（v1）
                 description: "slow burn のみで fast burn なしの場合 flap 抑制"
                 matrix:
                   - when: { class: { in: [v1_request_availability,
-                                          v1_request_latency_p99] } }
+                                          v1_request_latency_p99,
+                                          v1_request_latency_p99_cross_region] } }
                     assertions:
                       - sb_no_alert_when_only_slow_burn
                       - sb_alert_when_both_fast_and_slow
@@ -314,6 +370,7 @@ tier1 SLO 適合仕様（v1）
                 matrix:
                   - when: { class: { in: [v1_request_availability,
                                           v1_request_latency_p99,
+                                          v1_request_latency_p99_cross_region,
                                           v1_event_freshness] } }
                     assertions:
                       - ef_kyverno_admission_blocks_rollout
@@ -334,6 +391,11 @@ tier1 SLO 適合仕様（v1）
                     assertions:
                       - cv_network_latency_inject_increases_p99
                       - cv_alert_fires_within_window
+                  - when: { class: v1_request_latency_p99_cross_region }
+                    assertions:
+                      - cv_cross_region_partition_inject_increases_p99
+                      - cv_alert_fires_within_window
+                      - cv_no_misfire_against_intra_region_latency
                   - when: { class: v1_event_freshness }
                     assertions:
                       - cv_kafka_partition_pause_increases_lag
@@ -379,6 +441,7 @@ tier1 SLO 適合仕様（v1）
                 supports:
                   - v1_request_availability
                   - v1_request_latency_p99
+                  - v1_request_latency_p99_cross_region
                   - v1_event_freshness
                   - v1_workflow_completion
                 features:
@@ -567,6 +630,19 @@ tier1 SLO 適合仕様（v1）
         紐付く。
       - v1_data_durability は 32 atomic 三表書込の P1〜P4 property
         test と同型 signal を消費する。
+  - 09_data/15_データ保全適合仕様（latency_class 双方向 lock）：
+      - preservation_class が cross-region 系（v1_cross_region_
+        replicated / v1_global_replicated）の write 経路は本仕様
+        v1_request_latency_p99_cross_region に bind 必須
+        （commit latency が cross-region RTT に支配される物理制約）。
+      - 逆向きに、v1_request_latency_p99_cross_region は cross-region
+        系 preservation でなければ採用不可（intra-region preservation
+        では v1_request_latency_p99 を採用する）。
+      - 双方向 lock は CI 不変条件 整合 14 で機械検証。
+      - threshold_ms の典型値は 1500ms（preservation instance の
+        primary_region ↔ standby_region RTT に応じて instance 別
+        宣言）。09_data/15 v1_cross_region_replicated 節の commit
+        latency 物理制約と整合する。
 
 ■ Buf custom lint と各 toolchain の責務（縮約）
   - SLO yaml plugin の責務：
@@ -632,26 +708,40 @@ tier1 SLO 適合仕様（v1）
                の事故 signal と接続されている（cross-axis 連結）。
       整合 13: window 境界条件（leap year / DST / month boundary）
                の wc_* assertion が全 cell green を返す。
+      整合 14: cross-region preservation × latency_class 双方向 lock。
+               preservation_class ∈ { v1_cross_region_replicated,
+               v1_global_replicated } の write 経路を持つ全 SLO
+               instance は v1_request_latency_p99_cross_region を
+               採用していること（順方向）。逆に v1_request_latency_
+               p99_cross_region を採用する SLO instance の対象
+               service は cross-region 系 preservation_class の
+               instance を持つこと（逆方向）。09_data/15 preservation_
+               substrates.lock.yaml と本仕様 classes.yaml の compatible_
+               preservation_classes / incompatible_preservation_classes
+               を機械的に照合する。
 
 ■ 製造業 pack stress test（v1 の正当性証跡）
-  - 8 業務シナリオを v1 class に classify し、全て 5 class で覆える。
+  - 9 業務シナリオを v1 class に classify し、全て 6 class で覆える。
 
-      # | シナリオ                                | class                       | 主要検証ポイント
-      --+-----------------------------------------+-----------------------------+----------------------------------------------------
-      1 | 設備リモート操作 RPC の latency SLO     | v1_request_latency_p99      | 200ms (07 v1_alert) / fast 1h burn fire
-      2 | 受注 API availability                   | v1_request_availability     | 99.9% / 30d、tenant_id label 保持
-      3 | 品質検査結果配信の freshness            | v1_event_freshness          | p95<5s (07 v1_event_feed) / kafka_pause chaos
-      4 | 受注処理 saga の completion             | v1_workflow_completion      | 99.5% / 30d、Temporal worker kill chaos
-      5 | tenant data durability (32 atomic)      | v1_data_durability          | hash mismatch / outbox lag → immediate freeze
-      6 | 倉庫端末 PWA loading availability       | v1_request_availability     | 99.0% / 7d (tier3 加味で別 target instance)
-      7 | error budget 枯渇による deploy 拒否     | (cross-class)               | Kyverno admission が Rollout reject、override audit
-      8 | step_up_required=always の v1_emergency | v1_request_availability     | 認証 sub-class、別 budget instance、09 audit と相関
-                                                  | (sub-class 認証経路)        |
+      # | シナリオ                                | class                                | 主要検証ポイント
+      --+-----------------------------------------+--------------------------------------+----------------------------------------------------
+      1 | 設備リモート操作 RPC の latency SLO     | v1_request_latency_p99               | 200ms (07 v1_alert) / fast 1h burn fire
+      2 | 受注 API availability                   | v1_request_availability              | 99.9% / 30d、tenant_id label 保持
+      3 | 品質検査結果配信の freshness            | v1_event_freshness                   | p95<5s (07 v1_event_feed) / kafka_pause chaos
+      4 | 受注処理 saga の completion             | v1_workflow_completion               | 99.5% / 30d、Temporal worker kill chaos
+      5 | tenant data durability (32 atomic)      | v1_data_durability                   | hash mismatch / outbox lag → immediate freeze
+      6 | 倉庫端末 PWA loading availability       | v1_request_availability              | 99.0% / 7d (tier3 加味で別 target instance)
+      7 | error budget 枯渇による deploy 拒否     | (cross-class)                        | Kyverno admission が Rollout reject、override audit
+      8 | step_up_required=always の v1_emergency | v1_request_availability              | 認証 sub-class、別 budget instance、09 audit と相関
+                                                  | (sub-class 認証経路)                 |
+      9 | 規制業務 cross-region write の latency  | v1_request_latency_p99_cross_region  | 1500ms 級 / 09_data/15 v1_cross_region_replicated と
+                                                  |                                      | 双方向 lock、cross_region_partition_inject chaos で
+                                                  |                                      | 専用 burn 発火、intra-region 経路では発火しない
 
   - stress test は Testcontainers で Prometheus + alertmanager +
     Litmus + Kyverno + Argo Rollouts + tier2 sample service を立ち
-    上げ、8 シナリオを property test として実装する。新業務 SLO
-    pattern が 5 class のいずれにも収まらないと判明した時点で、本
+    上げ、9 シナリオを property test として実装する。新業務 SLO
+    pattern が 6 class のいずれにも収まらないと判明した時点で、本
     仕様は v2 候補として class 追加検討に入る。
 
 ■ v2 拡張ルール

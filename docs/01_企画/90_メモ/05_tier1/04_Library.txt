@@ -82,7 +82,7 @@ tier1 Library 設計方針
       - 受け入れ基準 : 族内差し替え時、業務コードは型置換 + 一部チュー
         ニング（パラメータ調整・索引再設計など）で済み、業務ロジック
         の再設計は不要。
-      - 想定対象 : Profiling、Feature Flag、Schema Registry、Vector Search。
+      - 想定対象 : Profiling、Feature Flag、Schema Registry。
       - 同族の具体定義は「05_提供機能カテゴリ」を参照。
 
   - L1+ : 単一 OSS 深耕 + 移行コミットメント
@@ -111,9 +111,13 @@ tier1 Library 設計方針
         明示する。OSS バージョンアップ / 移行時の影響範囲調査チェック
         リストとして使う。
       - 想定対象 : Relational Store / Single-leader、Messaging / EventBus、
-        Workflow / Long-running Saga、Rule Engine。将来カテゴリとして
-        Relational Store / Distributed SQL を予約（tier3 がアーキテク
-        チャ設計時に Single-leader と排他選択する位置付け）。
+        Workflow / Long-running Saga、Rule Engine、Vector Search。将来
+        カテゴリとして Relational Store / Distributed SQL を予約（tier3
+        がアーキテクチャ設計時に Single-leader と排他選択する位置付け）。
+        Vector Search は pgvector 単独深耕（PostgreSQL extension として
+        の transactional ANN / SQL JOIN 内 ANN を Library API に深く
+        露出）、移行先候補は Qdrant / Milvus / Weaviate（standalone
+        vector engine、L1+ 移行コミットメント枠で toolchain 提供）。
 
   - L1+ / L2* で API 表面に露出する OSS 概念は、カテゴリごとに「露出概念
     一覧」として Library 側ドキュメントに明示する。
@@ -186,7 +190,6 @@ tier1 Library 設計方針
           Profiling              : Parca + Pyroscope
           Feature Flag           : flagd + GO Feature Flag
           Schema Registry        : Apicurio + Karapace
-          Vector Search          : pgvector + Qdrant
       - 片側でしか通らないテストが発生した時点で「その API は L2* として
         適格でない」とみなし、API を族内ポータブル範囲まで縮める、
         または当該カテゴリを L1+ へ昇格させる（単一 OSS 深耕 + 移行
@@ -266,6 +269,11 @@ tier1 Library 設計方針
       Messaging / EventBus              : RedPanda、AWS MSK、Confluent Cloud
       Workflow / Long-running Saga      : Cadence、Temporal Cloud
       Rule Engine                       : 自製 DSL、別 OSS
+      Vector Search                     : Qdrant、Milvus、Weaviate
+                                          （standalone vector engine、
+                                           transactional ANN / SQL JOIN
+                                           を持たないため業務コードに
+                                           設計レベルの修正が入る）
   - 移行先候補は ライフサイクル監視の対象であり、本命 OSS にライセンス
     変更等の予兆が出た時点で候補のうち 1 つを正式移行先として toolchain
     実装に進める。

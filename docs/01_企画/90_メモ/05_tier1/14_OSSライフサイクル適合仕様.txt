@@ -8,7 +8,7 @@ tier1 OSS ライフサイクル適合仕様（v1）
     メント / L2* 同族保証、「05_tier1/08_移行Pair適合仕様」primary
     pair（CloudNativePG↔StackGres、Kafka↔RedPanda、Temporal↔Cadence、
     ZEN↔自製 DSL）、「02_採用OSS一覧」L2* 同族（Apicurio↔Karapace、
-    flagd↔GFF、Parca↔Pyroscope、pgvector↔Qdrant 等）、Companion
+    flagd↔GFF、Parca↔Pyroscope 等）、Companion
     runtime（Keycloak / Backstage / Argo CD / Apicurio 等）が散在的
     に宣言する OSS 採用区分 / health check cadence / 移行発動 trigger
     / response policy を、機械可読な単一の真として一箇所に固定する
@@ -116,8 +116,13 @@ tier1 OSS ライフサイクル適合仕様（v1）
       - v1_l2star_member
           - 同族二重採用カテゴリ（L2*）の各メンバ。
           - 例：Apicurio + Karapace（Schema Registry）、flagd + GFF
-            （feature flag）、Parca + Pyroscope（continuous profiling）、
-            pgvector + Qdrant（vector search）。
+            （feature flag）、Parca + Pyroscope（continuous profiling）。
+          - Vector Search はかつて k-NN 族として L2* 候補だったが、
+            pgvector の transactional ANN / SQL JOIN semantics と
+            standalone vector engine（Qdrant / Milvus / Weaviate）の
+            差が業務ロジックに染み出すため、L1+ 単一深耕（pgvector）+
+            移行コミットメント枠に再分類した（04_Library / 05_提供機能
+            カテゴリ参照）。
           - 各 member は四半期 conformance test を 04_Library
             l2star_families.yaml の scenarios で green を返す必要
             がある（conformance_drift で trigger）。
@@ -430,6 +435,14 @@ tier1 OSS ライフサイクル適合仕様（v1）
                 license: Apache-2.0
                 role: dashboard_consumer
 
+              pgvector:
+                lifecycle_class: v1_l1plus_primary
+                license: PostgreSQL
+                source_repo: github.com/pgvector/pgvector
+                role: vector_search
+                paired_target: ~        # v2 で Vector Search pair を予約
+                                        #（Qdrant / Milvus / Weaviate）
+
               distributed_sql_pair:
                 lifecycle_class: v1_reserved_category
                 category: distributed_sql
@@ -438,6 +451,15 @@ tier1 OSS ライフサイクル適合仕様（v1）
                 blockers:
                   - tier3_arch_decision_required
                   - row_level_policy_isomorphism_with_pg_rls
+
+              vector_search_pair:
+                lifecycle_class: v1_reserved_category
+                category: vector_search
+                first_added_year: 2026
+                review_due: 2027-Q4
+                blockers:
+                  - pgvector_lifecycle_event_or_demand
+                  - transactional_ann_semantics_gap_assessment
 
               # ... 全 OSS（02_採用OSS一覧 と一致）...
 
@@ -652,6 +674,11 @@ tier1 OSS ライフサイクル適合仕様（v1）
   - 新 class の追加は purely additive：v1 class はそのまま残し、v2
     で新規 class（例：v2_internal_fork（自製 fork OSS 管理）、
     v2_emergency_replacement（緊急差替えルート））を追加する。
+  - 予約カテゴリの v2 promote 候補：distributed_sql_pair に並んで
+    vector_search_pair（pgvector → Qdrant / Milvus / Weaviate）を予約
+    （04_Library L1+ Vector Search の移行先候補と整合）。pgvector の
+    ライフサイクルイベント発生時または業務側からの adoption_demand 発生
+    時に、08_移行Pair適合仕様 の v2 拡張で primary_pair に昇格させる。
   - 既存 class の dimension 値変更は破壊的変更（major version up）。
     例えば v1_l3_runtime の health_check_cadence を annual に伸ばす
     場合、新 class v2_l3_runtime_relaxed を切る。

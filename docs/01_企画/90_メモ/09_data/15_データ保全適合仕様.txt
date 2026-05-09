@@ -183,6 +183,14 @@ data データ保全適合仕様（v1）
             RTT（standby region への WAL apply ack 往復）に
             支配される物理制約あり（infra01/15 v1_multi_region
             _active_passive と双方向 lock）。
+          - 対応する SLO latency class：本 preservation_class
+            配下の write 経路は 13_SLO 適合仕様 の
+            v1_request_latency_p99_cross_region に bind 必須
+            （threshold_ms 典型 1500ms、primary↔standby region
+            RTT に応じて instance 別宣言）。13_SLO 整合 14 の
+            双方向 lock により、intra-region 想定の
+            v1_request_latency_p99 を本 preservation_class の
+            write 経路に適用することは admission block。
           - replication_topology：sync_cross_region
             （synchronous_commit=remote_apply）。書き込み点は
             単一 region に固定された active-passive 構造で、
@@ -235,6 +243,16 @@ data データ保全適合仕様（v1）
             region。per-tenant region affinity で cross-region
             write を物理発生させない（true multi-master /
             CRDT は v1 で採用しない、v2 候補）。
+          - 対応する SLO latency class：本 preservation_class
+            配下の write 経路は 13_SLO 適合仕様 の
+            v1_request_latency_p99_cross_region に bind 必須。
+            unaffected cell 内の per-cell write は per-cell
+            scope の zone_replicated 相当 commit semantics を
+            持つが、cell promote / cross-region archive 経路を
+            含む経路は cross-region RTT 律速のため統一して本
+            class を採用する。13_SLO 整合 14 の双方向 lock により
+            intra-region 想定の v1_request_latency_p99 を採用
+            することは admission block。
           - encryption_layer：at_rest + column_envelope +
             topic_payload_envelope + archive_triple_wrap
             （archive_to_offline で 3 重 wrap）。
@@ -874,7 +892,13 @@ data データ保全適合仕様（v1）
     minimum 期間以上の dual-write を経て contract。
   - 13 SLO：v1_data_durability / v1_replication_lag /
     v1_restore_time SLI は preservation_class 別 target、
-    error budget freeze と admission block 連動。
+    error budget freeze と admission block 連動。さらに、
+    cross-region 系 preservation_class（v1_cross_region_
+    replicated / v1_global_replicated）の write 経路は
+    13_SLO 適合仕様 の v1_request_latency_p99_cross_region
+    と双方向 lock。intra-region 系の write 経路は同 v1_
+    request_latency_p99 を採用、混同は CI 整合 14 / admission
+    block で物理拒否。
   - 14 OSS lifecycle：preservation 軸の依存 OSS（CloudNativePG
     / Strimzi / Altinity / Apicurio）は oss_inventory.lock
     .yaml に v1_l1plus_primary 登録、CVE backlog threshold
@@ -933,10 +957,17 @@ data データ保全適合仕様（v1）
           ordering、ClickHouse macro replicas、Ceph multi-
           site
         - 想定挙動：region 障害で 5 分以内 standby promote、
-          RPO=0、column + topic envelope encrypt 必須
+          RPO=0、column + topic envelope encrypt 必須。
+          write 経路の commit latency は cross-region RTT
+          に律速、SLO は 13_SLO 適合仕様 の v1_request_
+          latency_p99_cross_region に bind（threshold_ms 例
+          1500ms）。
         - 期待結果：drill 2（region failover）30 日 cadence
           で green、crypto-erase drill 90 日 cadence で
-          green
+          green、v1_request_latency_p99_cross_region の
+          burn-rate alert が drill 中も適切に発火 / 抑制
+          される（intra-region 用 v1_request_latency_p99 は
+          本経路で採用していないことを CI 整合 14 で確認）。
 
   - シナリオ 5：global SaaS（per-cell 24/7 zero-downtime）
         - preservation_class：v1_global_replicated
@@ -950,13 +981,19 @@ data データ保全適合仕様（v1）
           は無影響で書き込み継続。障害 region home の cell
           のみ predefined fallback cell に automatic_within_
           window で再 affinity（被影響 tenant の DNS reassign
-          は DNS TTL に律速、標準 30〜60 秒）
+          は DNS TTL に律速、標準 30〜60 秒）。write 経路の
+          SLO は 13_SLO 適合仕様 の v1_request_latency_p99_
+          cross_region に bind（cell promote / cross-region
+          archive 経路を含む経路は cross-region RTT 律速）。
         - 期待結果：drill 2（per-region failover）14 日
           cadence で green、no_cross_region_same_partition_
           write / no_cross_region_same_object_key_write
           assertion 連続 green、未障害 cell の zero-downtime
           維持。被影響 tenant は cell promote window 内に
-          復帰
+          復帰。v1_request_latency_p99_cross_region の burn-
+          rate が cell promote window 中に適切に推移
+          （intra-region 想定の v1_request_latency_p99 は
+          本経路で採用していないことを CI 整合 14 で確認）。
 
   - シナリオ 6：rotation in-flight（11 鍵管理 cross）
         - preservation_class：v1_zone_replicated 以上

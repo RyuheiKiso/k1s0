@@ -149,10 +149,12 @@
   ※ これらは Relational Store / Single-leader（L1+）の深耕対象である
     PostgreSQL ecosystem の構成要素として Library API に取り込む。
     L2* 同族保証の対象外（PG 単独深耕 + 移行コミットメント）。
-  ※ pgvector は Vector Search カテゴリ（L2* / k-NN 族）の一実装としても
+  ※ pgvector は Vector Search カテゴリ（L1+ 単一深耕）の本命実装として
     位置付ける。Vector Search は Relational Store とは独立した Library
     として提供し、接続も独立して管理する（pgvector backend 選択時にも
-    Relational Store の backend 選択とは独立）。
+    Relational Store の backend 選択とは独立）。族の外（Qdrant / Milvus
+    / Weaviate 等）への移行は L1+ 移行コミットメント枠で扱う（詳細は
+    「05_tier1/04_Library」L1+ 移行コミットメント節を参照）。
 
 ------------------------------------------------------------
 [8] アプリケーション基盤
