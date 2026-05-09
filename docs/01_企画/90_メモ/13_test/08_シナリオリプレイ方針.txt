@@ -7,12 +7,16 @@ test シナリオリプレイ方針（v1_scenario_replay）
     Playwright（browser / mobile / API）+ k6（synthetic /
     load journey）+ chainsaw（k8s integration）の 3 OSS
     L1+ で実装し、各軸 spec が宣言する journey scenario
-    を deterministic な再現性（同じ corpus + 同じ cluster
-    state → 同じ trace）として artifact 化、shadow cluster
-    （infra01 v1_multi_region_active_passive の passive 側）
-    上で nightly replay を Tekton Pipeline + Argo Workflows
-    で物理 enforce し、replay 失敗を ops の v1_drill_failure
-    signal_class へ自動 bridge する。
+    を determinism_class に応じた再現性（v1_full_
+    deterministic は trace byte 同一、v1_seeded_random は
+    seed 固定下の observable invariant 同一、v1_clock_
+    controlled は clock 制御下の state machine 等価、
+    v1_observable_invariant は業務 invariant 同一）として
+    artifact 化、shadow cluster（infra01 v1_multi_region_
+    active_passive の passive 側）上で nightly replay を
+    Tekton Pipeline + Argo Workflows で物理 enforce し、
+    replay 失敗を ops の v1_drill_failure signal_class へ
+    自動 bridge する。
 
 ■ 設計原則
   - scenario は bundle である。
@@ -31,13 +35,23 @@ test シナリオリプレイ方針（v1_scenario_replay）
       保存された全 result、chainsaw test に保存された全
       kuttl assertion は、いずれも参照されなくなった時点
       で CI fail。
-  - replay は deterministic 必須。
+  - replay は determinism_class が宣言する等価関係を必須。
       scenario の input fixture（fixtures/）/ database
       seed（fixtures/seed.sql）/ network record（HAR /
       Pact stub）/ time clock（mocked clock）/ random
-      seed の 5 系統が deterministic、再現失敗は scenario
+      seed の 5 系統が determinism_class に応じた等価関係
+      を満たす：v1_full_deterministic は trace byte 同一、
+      v1_seeded_random は seed 固定下での observable
+      invariant 同一、v1_clock_controlled は clock 制御下
+      での state machine 等価、v1_observable_invariant は
+      業務 invariant（state machine 終端状態 / event 集合
+      / 等価 hash）同一。等価関係 violation は scenario
       の bug として treat、scenario 失敗ではなく
-      determinism_violation として独立 alert。
+      determinism_violation として独立 alert。byte-level
+      deterministic を物理不可な transport（gRPC bidi /
+      HTTP/3 + WebTransport / SSE / WebSocket 越境）の
+      cell は v1_observable_invariant 必須、byte-
+      deterministic は要求しない。
   - shadow cluster 上で実行：
       v1_scenario_replay の実行は production cluster
       で行わない、必ず passive cluster（infra01 v1_multi
@@ -62,7 +76,8 @@ test シナリオリプレイ方針（v1_scenario_replay）
           v1_prod_gameday（prod write、別 class へ転写
           要、scenario_replay では不可）
         - determinism_class：v1_full_deterministic /
-          v1_seeded_random / v1_clock_controlled
+          v1_seeded_random / v1_clock_controlled /
+          v1_observable_invariant
         - fixture_lifecycle：v1_per_run / v1_per_journey
           / v1_immutable_corpus
         - runtime_budget_minutes：v1_fast_5 / v1_
@@ -130,6 +145,18 @@ test シナリオリプレイ方針（v1_scenario_replay）
         - clock のみ mocked（pause / advance）、time
           dependent property（08 migration window /
           11 key rotation cadence）の journey で必須
+  - v1_observable_invariant：
+        - trace byte 同一は要求しない。代わりに業務
+          invariant（state machine の終端状態 / 観測
+          event 集合 / 等価 hash / domain-level 不変
+          条件）の同一を等価関係として要求。byte-level
+          deterministic が物理不可な transport（gRPC
+          bidi / HTTP/3 + WebTransport / SSE 越境 /
+          WebSocket / kernel scheduler 依存の concurrent
+          journey）の cell で必須。等価判定は scenario
+          側で invariant_predicates.lock.yaml に
+          machine-readable に宣言、Tekton Pipeline が
+          assertion として物理 enforce。
 
 ■ fixture lifecycle enum
   - v1_per_run：
@@ -177,7 +204,10 @@ test シナリオリプレイ方針（v1_scenario_replay）
 
 ■ cross-axis bind（scenario_replay 列の cell）
   - 07 transport：reconnect journey（5 distribution_class
-    全てで再現）
+    全てで再現）。bidi / HTTP/3 + WebTransport / SSE /
+    WebSocket 越境の cell は determinism_class が
+    v1_observable_invariant 必須、byte-deterministic は
+    要求しない
   - 08 migration：4 phase journey（pre / dual / cutover
     / post の 4 step）
   - 09 observability：trace continuity journey（OTel

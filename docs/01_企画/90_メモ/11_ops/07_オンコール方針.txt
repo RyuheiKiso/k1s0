@@ -36,16 +36,33 @@ ops オンコール方針
   - holiday / 年末年始：cadence 維持、休暇申請は roster
     rebalance を必ず triger（gap allowance ゼロ）
 
-■ rotation gap invariant
-  - 任意の時刻に対し primary / secondary / domain expert
-    の 3 名が roster.lock.yaml で必ず assigned、gap 発生は
+■ rotation gap invariant（rotation_gap_class enum）
+  - 任意の時刻に対し rotation_gap_class が次の 3 値の
+    いずれかに分類される（rotation_classes.yaml で固定、
+    author 個別 override 経路は持たない）：
+        - v1_zero_gap：roster.lock.yaml で primary /
+          secondary / domain expert の 3 名が assigned、
+          全員 reachable（既存挙動）
+        - v1_auto_covered_gap：1 名 unreachable（病欠 /
+          緊急休暇 / 通信障害）だが Grafana OnCall の
+          automatic swap proposal が ops lead 承認済、
+          secondary が primary 役を物理担当している
+          状態。承認 → 物理担当開始までの window が
+          60 分以内（max_window_minutes=60）の cap で
+          allow、超過は v1_unhandled_gap に転位
+        - v1_unhandled_gap：上記いずれにも該当しない
+          （CI fail）
+  - v1_unhandled_gap 検出は CI fail。v1_auto_covered_gap
+    の cap 超過（60 分超）も v1_unhandled_gap に転位し
     CI fail。
   - 個人不在（病欠 / 緊急休暇）時は roster の自動 swap
     proposal を Grafana OnCall が生成、ops lead が承認、
-    audit_event 必須。
+    audit_event 必須。承認 → 物理担当開始までの 60 分
+    window 内に限り v1_auto_covered_gap として allow。
   - 連続 7 日以上の不在計画（休暇）は 14 日前までに
     roster.lock.yaml に commit、merger は CI で gap-fill
-    を確認。
+    を確認。事前 commit がある計画不在は v1_zero_gap で
+    継続（swap が事前承認済）。
 
 ■ fatigue budget（v1 SLO 化）
   - per-individual：
@@ -93,18 +110,35 @@ ops オンコール方針
   - handover 不在 ＝ rotation gap として CI 検出（roster.
     lock.yaml の handover_log section が空欄なら fail）。
 
-■ break-glass 経路（on-call 専用）
+■ break-glass 経路（on-call 専用、break_glass_class enum）
+  - break_glass_class は次の 2 値を持つ（rotation_classes
+    .yaml 同型、author 個別 override 経路は持たない）：
+        - v1_break_glass：通常 incident（incident_active_
+          duration ≤ 14d）の short-lived elevated
+          permission。常用化禁止。
+        - v1_extended_incident_break_glass：v1_extended_
+          incident（incident_active_duration > 14d、13_test
+          /09 cadence_escape_valve と双方向 lock）中の運用
+          break-glass。constraint「常用化禁止」の対象外
+          だが、二人承認（primary + secondary on-call）+
+          全 audit_event 維持 + 13 SLO error budget の
+          v1_break_glass_count とは独立 metric として
+          v1_extended_incident_break_glass_count に記録。
   - on-call が運用上必要となる短期 elevated permission：
         1. OpenBao response wrapping で短期 cluster-admin /
           DB superuser / Argo CD admin token を発行
         2. 発行は Mattermost slash command 経由、incident_
-          ref（active incident ID）必須
+          ref（active incident ID）必須、break_glass_class
+          を明示
         3. 全操作は audit_event subject に v1_break_glass
-          fact emit（actor / reason / ticket_ref /
-          expected_duration / actual_duration）
+          または v1_extended_incident_break_glass fact emit
+          （actor / reason / ticket_ref / expected_duration
+          / actual_duration / break_glass_class）
         4. 使用後 1 時間以内に postmortem PR 起票必須
-        5. break-glass 使用は 13 SLO error budget の
-          v1_break_glass_count として記録
+        5. v1_break_glass 使用は 13 SLO error budget の
+          v1_break_glass_count として記録、v1_extended_
+          incident_break_glass は v1_extended_incident_
+          break_glass_count として独立計上
         6. break-glass 経由の operations は再現性確保のため
           後追いで artifact 化（migration / DDL / config
           変更を build artifact PR に bind）
@@ -166,7 +200,10 @@ ops オンコール方針
 ■ 採用しない方針
   - 単一 on-call（primary のみ）：禁止、3 階層 escalation
     必須。
-  - rotation gap allowance：禁止、gap 発生は CI fail。
+  - rotation_gap_class が v1_unhandled_gap に転位する
+    allowance：禁止、検出は CI fail。v1_auto_covered_gap
+    は 60 分 cap 内に限り allow（cap 超過は v1_unhandled_
+    gap に転位）。
   - fatigue budget の cap 緩和：禁止、緩和したい場合は
     team 増員 / alert tuning / toil 削減で対応。
   - on-call の 24h 連続 shift：禁止、consecutive_days ≤ 7。
@@ -176,5 +213,10 @@ ops オンコール方針
     依存：採用しない、Grafana OnCall + Mattermost で完結。
   - rotation 編成の文章 only 管理：禁止、roster.lock.yaml
     が build artifact、UI 上の swap は audit_event 必須。
-  - break-glass の常用：禁止、incident_ref 必須、reason
-    必須、postmortem PR 必須。
+  - v1_break_glass（通常 incident、incident_active_
+    duration ≤ 14d）の常用：禁止、incident_ref 必須、
+    reason 必須、postmortem PR 必須。v1_extended_incident
+    _break_glass（incident_active_duration > 14d、13_test
+    /09 cadence_escape_valve と双方向 lock）は常用化禁止
+    constraint の対象外だが、二人承認 + 全 audit_event +
+    postmortem PR + 独立 metric 計上を必須化。

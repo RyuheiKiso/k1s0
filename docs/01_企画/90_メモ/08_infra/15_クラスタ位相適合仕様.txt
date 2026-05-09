@@ -93,7 +93,7 @@ infra クラスタ位相適合仕様（v1）
       v1_single_zone                     | zone         | manual                    | strong_local            | single                 | 180
       v1_multi_zone_per_cluster          | cluster      | automatic_within_window   | strong_local            | single                 | 90
       v1_multi_cluster_active_active     | region       | automatic_continuous      | eventual_async          | federated              | 60
-      v1_multi_region_active_passive     | region       | automatic_within_window   | synchronous_replicated         | federated              | 30
+      v1_multi_region_active_passive     | region       | automatic_within_window   | synchronous_replicated (C-priority during partition) | federated              | 30
       v1_multi_region_active_active      | global       | automatic_continuous      | cell_partitioned_synchronous   | mesh                   | 14
 
   - 各 class の不変条件と典型用途：
@@ -152,22 +152,38 @@ infra クラスタ位相適合仕様（v1）
             region 障害時 Argo Events が standby を promote。
           - failover_mode：自動 / 検出窓 5 分以内（promotion
             手順は predefined runbook、Argo Events trigger で
-            自動実行）。promote 時は旧 primary を fence した
-            上で standby が新 primary になる（split-brain は
-            CloudNativePG の fence 制御 + 09 data レプリ方針
-            の split-brain 防止節と双方向 lock）。
-          - data_consistency：synchronous_replicated。書き込み
-            点は単一 region に固定された active-passive 構造
-            なので CAP 観点で C/A の両立可能（partition 発生時
-            は standby 側が read-only に縮退）。Postgres
+            自動実行）。意味の厳密化：partition 検出 → primary
+            側 write block window 開始 → 5 分以内に standby
+            promote 完了 → write 再開。RTO ≤ 5 分は「write
+            block window の cap」と解釈する。promote 時は旧
+            primary を fence した上で standby が新 primary に
+            なる（split-brain は CloudNativePG の fence 制御
+            + 09 data レプリ方針の split-brain 防止節と双方向
+            lock）。
+          - data_consistency：synchronous_replicated（C-priority
+            during partition）。書き込み点は単一 region に固定
+            された active-passive 構造なので CAP 観点で C/A の
+            両立可能（partition 発生時は (a) primary 側 write を
+            physical block して C 維持、(b) standby 側を read-
+            only に縮退、の双方を同時採用）。Postgres
             CloudNativePG Replica Cluster で WAL streaming
             （synchronous_commit=remote_apply）、Ceph multi-
             site sync、Kafka MirrorMaker2 strict ordering。
-            RPO=0、RTO ≤ 5 分。commit latency は cross-region
-            RTT（standby region への WAL apply ack 往復）に
-            支配される物理制約あり（業務 SLO 13 v1_request_
-            latency_p99 の region-pair latency budget と双方向
-            lock）。
+          - partition 中の不変条件：standby region 到達不能の
+            窓では primary 側 write は physical block
+            （synchronous_commit=remote_apply の native 挙動、
+            quorum loss で commit 完了不能）。13 SLO の
+            v1_request_availability は当該 window 中、partition
+            window と同等の error budget を消費する（13 SLO の
+            budget と双方向 lock）。RTO ≤ 5 分の cap で write
+            block window が閉じる。
+          - RPO=0（partition 中の primary write を block する
+            ことで保証。永続書込が ack された record は 100%
+            standby に到達済みを意味）、RTO ≤ 5 分。commit
+            latency は cross-region RTT（standby region への
+            WAL apply ack 往復）に支配される物理制約あり
+            （業務 SLO 13 v1_request_latency_p99 の region-
+            pair latency budget と双方向 lock）。
           - drill：30 日に 1 回、Litmus で primary region を
             network partition、standby promote → traffic shift
             → primary 復旧 → fallback の full cycle。

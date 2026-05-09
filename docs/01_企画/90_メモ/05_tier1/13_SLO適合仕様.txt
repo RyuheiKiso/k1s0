@@ -65,7 +65,7 @@ tier1 SLO 適合仕様（v1）
       v1_request_latency_p99      | latency          | p99 <= class.target  | 30d     | fast_1h_14x  + slow_6h_3x  | page_immediate
       v1_event_freshness          | freshness        | p95 <= class.target  | 7d      | fast_30m_14x + slow_4h_3x  | page_business_hours
       v1_workflow_completion      | completion_rate  | 99.5%                | 30d     | fast_4h_14x  + slow_3d_3x  | ticket_only
-      v1_data_durability          | durability       | 100% (zero loss)     | 365d    | any_loss=immediate         | page_immediate
+      v1_data_durability          | durability       | 99.999999999% (11n)  | 365d    | any_loss=immediate         | page_immediate
 
   - 各 class の不変条件と典型用途：
 
@@ -117,13 +117,25 @@ tier1 SLO 適合仕様（v1）
       - v1_data_durability
           - tenant data の永続性。
           - SLI 算出式：persisted_records / acknowledged_records、
-            一切の loss を tolerate しない（target=100%）。
-          - window 365 日 = 年間 zero loss。
-          - alert：any_loss = immediate page。loss 検出は 32 の
-            outbox relay reconciliation / audit hash chain
-            mismatch / DB checksum 等の signal が発生した瞬間。
-          - 典型：tier2 atomic 三表書込（32）の loss 0 担保、key
-            crypto-shred 以外での data 不可逆損失監視。
+            一切の loss event 検出を tolerate しない
+            （freeze_on_any_loss=true）。SLO target は 11 nines
+            （99.999999999%、365d、durability 業界の物理上限。
+            年間 loss 期待値 ≈ 数バイト相当、隕石・相関故障の
+            理論的残余以下）。
+          - window 365 日。SLO target と freeze policy は概念
+            分離する：SLO target = 11 nines（確率的目標、burn
+            rate 計算用）、freeze policy = 検出された loss event
+            に対する deploy freeze（決定論的物理機構、確率的
+            目標とは独立に発火）。後者は本 class 固有属性
+            freeze_on_any_loss=true で表現（dimension override
+            ではなく durability class 単独の追加 attribute）。
+          - alert：any_loss = immediate page。loss event 検出は
+            32 の outbox relay reconciliation / audit hash chain
+            mismatch / DB checksum 等の signal が発生した瞬間、
+            burn rate 計算と独立に物理 freeze に流す。
+          - 典型：tier2 atomic 三表書込（32）の loss event 検出
+            ゼロ担保、key crypto-shred 以外での data 不可逆損失
+            監視。
 
   - 上記 5 class で v1 が covering。製造業 pack 想定 8 業務シナリオ
     の stress test を本仕様末尾に示す。
@@ -137,9 +149,12 @@ tier1 SLO 適合仕様（v1）
   - target_level は class により semantics が異なる：availability /
     completion_rate は %（99.9% 等）、latency / freshness は閾値
     （200ms 等）+ ratio（99.9% が threshold 内）、durability は
-    100%。class instantiate 時に instance 別に拡張属性で具体値を
-    宣言する形を取り、dimension としては「target を class と instance
-    の合成で持つ」semantics に固定。
+    11 nines（99.999999999%、365d、物理上限の確率的目標）+
+    freeze_on_any_loss=true（loss event 検出時の決定論的物理
+    freeze、SLO target と独立した class 固有属性）。class
+    instantiate 時に instance 別に拡張属性で具体値を宣言する形を
+    取り、dimension としては「target を class と instance の合成で
+    持つ」semantics に固定。
   - window_class は SRE Workbook 流の budget 計算 window。30d は
     request 系、7d は freshness、365d は durability、24h はサンプル
     用途。短い window は budget が早く回復、長い window は budget

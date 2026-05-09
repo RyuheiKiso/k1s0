@@ -130,7 +130,16 @@ test 故障注入検証方針（v1_fault_chaos）
         - block-during-active-incident：active incident
           中の chaos experiment block（drill_class が
           incident 関連の場合のみ allow、ChatOps 上で
-          incident commander の ack 必須）
+          incident commander の ack 必須）。incident_
+          active_duration > 14d の場合、当該 incident は
+          v1_extended_incident に再分類され、cadence_
+          escape_valve が発動：次回 chaos drill cadence
+          期限を 30d 自動延長（最大 2 回まで）、ops lead
+          二人承認 + audit_event subject に v1_cadence_
+          escape_valve fact emit を必須化、関連 cell の
+          drill_state は v1_drill_red_handled として
+          coverage_matrix に物理記録（A5 の release_gate
+          AND-gate 整合）。
         - block-during-global-freeze：global freeze
           window 内の v1_prod_gameday を block
   - blast_radius 段階：

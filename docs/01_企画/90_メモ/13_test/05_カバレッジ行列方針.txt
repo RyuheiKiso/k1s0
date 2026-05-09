@@ -13,9 +13,14 @@ test カバレッジ行列方針
     v1_scenario_replay / v1_fault_chaos）を列とする 16 × 5
     = 80 cell の coverage matrix を coverage_matrix.lock
     .yaml の build artifact として固定し、全 cell が
-    last_green_at + artifact_pointer + cadence_days の 3
-    field を欠かさず保持することを Kyverno admission
-    policy + Conftest custom rule で物理 enforce する。
+    last_green_at + artifact_pointer + cadence_days +
+    drill_state の 4 field を欠かさず保持することを
+    Kyverno admission policy + Conftest custom rule で
+    物理 enforce する。drill_state ∈ {green, red_handled,
+    pending_with_artifact} の 3 enum で red 経路を構造化
+    追跡し、release_gate AND-gate には全 cell の
+    drill_state ∈ {green, red_handled} を物理入力する
+    （red 容認と all-green 必須の概念衝突を解消）。
 
 ■ 設計原則
   - matrix の単一の真：coverage_matrix.lock.yaml は build
@@ -23,7 +28,7 @@ test カバレッジ行列方針
     する verification_claim entry、(b) test framework が
     出力する execution result、(c) chaos blueprints.lock
     .yaml の last_green_at、の三系統。
-  - 全 cell 必須 field（5 field）：
+  - 全 cell 必須 field（6 field）：
         - cell_id：`<axis>__<verification_class>` の文字列
           PK
         - artifact_pointer：実 artifact への relative path
@@ -33,6 +38,10 @@ test カバレッジ行列方針
         - last_green_at：直近 green の UTC ISO8601
         - cadence_days：許容 staleness 日数（class × axis
           ごとに enum 化）
+        - drill_state：v1_baseline_green / v1_drill_red_
+          handled / v1_pending_with_artifact の 3 enum
+          （class_axis_drill_state_table.yaml で固定、
+          author 個別 override 経路は持たない）
         - owner_4axis：service_owner / domain_owner /
           framework_owner / drill_owner の 4 軸 owner ID
   - dimension override 禁止：cell ごとに
@@ -46,9 +55,17 @@ test カバレッジ行列方針
     に存在しない cell、cadence_days を超過した cell、
     owner_4axis 4 軸のうち 1 つでも `unassigned` を含む
     cell は CI fail（Conftest）。
-  - 80 cell 全 green が 1.0.0 ship blocker：90 cell（v2 で
-    20 軸 × 5 class = 100 cell）に拡張可能、v1 では 80 /
-    80 が release_gate.lock.yaml の AND-gate 入力。
+  - 80 cell 全 drill_state ∈ {v1_baseline_green, v1_drill_
+    red_handled} が 1.0.0 ship blocker：v1_baseline_green
+    は cell の last_green_at が cadence_days 以内（運用
+    継続性の物理保証）、v1_drill_red_handled は red cell
+    の全件が ops の v1_drill_failure signal として起票済
+    + handling artifact pointer 保持の状態。v1_pending_
+    with_artifact は grace_window_days 内のみ allow。
+    90 cell（v2 で 20 軸 × 5 class = 100 cell）に拡張
+    可能、v1 では 80 / 80 が release_gate.lock.yaml の
+    AND-gate 入力（red 経路は構造化追跡で許容、文字通り
+    の green 強制ではない）。
 
 ■ 5 verification_class（列、bundle）
   - v1_type_invariant：
@@ -252,10 +269,15 @@ test カバレッジ行列方針
 
 ■ CI 不変条件（test カバレッジ行列の固有部分、層全体は 14_強制機構 を参照）
   - 整合：80 cell 全てに artifact_pointer / last_green_at
-    / cadence_days / owner_4axis 5 field が宣言、欠損 cell
-    ゼロ
-  - 整合：last_green_at が cadence_days 以内、cadence
-    超過 cell ゼロ（猶予 grace_window_days のみ allow）
+    / cadence_days / drill_state / owner_4axis 6 field が
+    宣言、欠損 cell ゼロ
+  - 整合：drill_state ∈ {v1_baseline_green, v1_drill_red_
+    handled} の cell のみが release_gate AND-gate に物理
+    入力、v1_pending_with_artifact は grace_window_days
+    内のみ allow、超過は ship blocker
+  - 整合：v1_baseline_green cell は last_green_at が
+    cadence_days 以内、cadence 超過 cell ゼロ（猶予
+    grace_window_days のみ allow）
   - 整合：artifact_pointer の path が物理に存在
   - 整合：matrix の手書き drift = 0（generator output と
     一致）

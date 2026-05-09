@@ -127,8 +127,11 @@ ops 強制機構
     namespace への deploy block
   - block-on-burn-rate-fast：fast burn rate ≥ 14.4x の
     関連 namespace への deploy block
-  - block-on-rotation-gap：rotation gap 検出時に on-call
-    関連 PR merge block
+  - block-on-rotation-gap-unhandled：rotation_gap_class
+    が v1_unhandled_gap の窓で on-call 関連 PR merge
+    block（v1_zero_gap および v1_auto_covered_gap [60 分
+    cap 内] は allow、cap 超過の v1_auto_covered_gap は
+    v1_unhandled_gap に転位し block 対象）
   - block-on-fatigue-budget-violation：individual / team
     fatigue budget 連続違反時に paging budget rebalance
     PR が必要、それまで関連 service deploy block

@@ -102,7 +102,9 @@ data データ保全適合仕様（v1）
       v1_zone_replicated             | zone_quorum      | sync_within_cluster        | at_rest + column_envelope   | 60                     | 90
       v1_cluster_replicated          | cluster_quorum   | async_cross_cluster        | at_rest + column_envelope   | 300 (5 min)            | 60
       v1_cross_region_replicated     | region_quorum    | sync_cross_region          | at_rest + column_envelope + | 300 (5 min)            | 30
-                                     |                  |                            |   topic_payload_envelope    |                        |
+                                     | (C-priority      |                            |   topic_payload_envelope    |                        |
+                                     |  during          |                            |                             |                        |
+                                     |  partition)      |                            |                             |                        |
       v1_global_replicated           | global_quorum    | cell_partitioned_multi_region | at_rest + column_envelope + | 0 (per-cell continuous) | 14
                                      |                  |                               |   topic_payload_envelope +  |                         |
                                      |                  |                               |   archive_triple_wrap       |                         |
@@ -174,21 +176,34 @@ data データ保全適合仕様（v1）
             sync、Kafka MM2 strict-ordering、ClickHouse macro
             replicas、Ceph multi-site。
           - durability：region_quorum（region 障害でも
-            standby が同期受信済の WAL を持つ、RPO=0）。
-            commit latency は cross-region RTT（standby region
-            への WAL apply ack 往復）に支配される物理制約あり
-            （infra01/15 v1_multi_region_active_passive と
-            双方向 lock）。
+            standby が同期受信済の WAL を持つ、RPO=0。
+            partition 中の primary write を block することで
+            保証＝永続書込が ack された record は 100% standby
+            に到達済みを意味）。commit latency は cross-region
+            RTT（standby region への WAL apply ack 往復）に
+            支配される物理制約あり（infra01/15 v1_multi_region
+            _active_passive と双方向 lock）。
           - replication_topology：sync_cross_region
             （synchronous_commit=remote_apply）。書き込み点は
             単一 region に固定された active-passive 構造で、
             CAP 観点では C/A の両立が可能（partition 発生時
-            は standby 側が read-only に縮退）。
+            は (a) primary 側 write を physical block して C
+            維持、(b) standby 側を read-only に縮退、の双方を
+            同時採用）。
+          - partition 中の不変条件：standby region 到達不能の
+            窓では primary 側 write は physical block
+            （synchronous_commit=remote_apply の native 挙動、
+            quorum loss で commit 完了不能）。restore_window
+            5 分は「write block window の cap = standby promote
+            完了までの上限」と解釈する。13 SLO の v1_request_
+            availability は当該 window 中、partition window と
+            同等の error budget を消費する（13 SLO の budget と
+            双方向 lock）。
           - encryption_layer：at_rest + column_envelope +
             topic_payload_envelope（Kafka payload にも
             envelope）。
           - restore_window：5 分（Argo Events trigger で
-            standby promote）。
+            standby promote、write block window cap）。
           - drill：30 日に 1 回、Litmus で primary region を
             network partition、standby promote → traffic
             shift → fallback の full cycle。

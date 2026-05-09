@@ -13,9 +13,14 @@
     defense-in-depth + 18 項 CI 不変条件 + 16 件 stress
     test pack で物理 enforce する meta-axis である。同時
     に 16 axis × 5 verification_class = 80 cell の
-    coverage_matrix.lock.yaml の cell 完全 green を 1.0.0
+    coverage_matrix.lock.yaml の全 cell drill_state ∈
+    {v1_baseline_green, v1_drill_red_handled} を 1.0.0
     ship blocker として 00 meta release_gate.lock.yaml の
-    AND-gate に物理入力する。
+    AND-gate に物理入力する（v1_drill_red_handled は ops
+    の v1_drill_failure signal として起票済 + handling
+    artifact pointer 保持の状態を表し、red 経路を構造化
+    追跡することで red 容認と all-green 必須の概念衝突を
+    解消する）。
 
 ■ 位置づけ
   - 「02_採用OSS一覧」pytest / Vitest / Hypothesis / fast-
