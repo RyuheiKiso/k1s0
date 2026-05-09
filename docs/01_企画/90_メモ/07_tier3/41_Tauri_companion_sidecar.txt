@@ -49,7 +49,7 @@ Tauri Companion sidecar（v1）
                       要件に応じて opc-ua / tokio-modbus 等を
                       bundle）。
   - 役割 TS-B : SPA bridge
-      - SPA → sidecar : ws://127.0.0.1:<port>/k1s0/v1/{usb,
+      - SPA → sidecar : wss://127.0.0.1:<port>/k1s0/v1/{usb,
                        bluetooth,serial,opcua,modbus} へ
                        JSON-RPC 2.0 で device 操作を送信。
       - sidecar → SPA : 非同期 device event を WebSocket
