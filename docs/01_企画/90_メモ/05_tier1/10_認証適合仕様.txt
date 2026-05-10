@@ -583,6 +583,23 @@ tier1 認証適合仕様（v1）
       - tenant_switch / actor_switch / logout（39:323-327）で
         AuthContext 切替が device_bound_key rotation と同 atomic
         境界に入ることを invariant 化。
+  - 08_infra/16_時刻整合適合仕様（clock_integrity_class 双方向 lock）：
+      - JWT exp / SVID validity / DPoP nonce TTL / step_up_proven_at
+        + step_up.proof_validity_seconds の検証経路は CLOCK_MONOTONIC
+        _RAW base の `MonotonicInstant + offset` を使用する。純
+        SystemTime / time.Now / DateTime.UtcNow による expiry 比較は
+        Semgrep ruleset で grep し PR merge block する（08_infra/16
+        の dcv_pr_blocks_wall_clock_for_ttl と双方向）。
+      - workload_jwt の 24h TTL 規律と 08_infra/16 の per-job
+        ephemeral signing key rotation cadence が同期、片側変更で
+        admission block。
+      - audit signal sub-class `auth.token_validation` の emit には
+        HLC tuple を必須包含（08_infra/16 v1_application_hlc_only の
+        causality_discipline = hlc_mandatory に整合）、09 audit
+        hash chain が clock skew 下でも因果性を保つ。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の clock_
+        causality_proof.lock.yaml の green が本仕様 1.0.0 ship の
+        間接 prerequisite（00_軸登録適合仕様 経由）。
 
 ■ CI 不変条件（3 ファイル + 5 層の関係性検査）
   - 違反は merge 不可。

@@ -740,10 +740,45 @@ client クライアント SDK 配布適合仕様（v1）
                                             | tree（SDK が 39 を 1:1 投影）
       sdk_conformance.lock.yaml             | 00_軸登録適合仕様 release_gate.lock.yaml AND-gate
                                             |（cosign signed tag が物理 prerequisite）
+      time API surface (monotonic_now / hlc_now のみ) | 08_infra/16_時刻整合適合仕様 v1_application_hlc_only /
+                                            | v1_browser_client_skew_tolerant（双方向 lock、SDK
+                                            | 公開 surface に wall-clock API ゼロを CI 不変条件
+                                            | として 08_infra/16 dcv_pr_blocks_wall_clock_for_ttl
+                                            | + 39_クライアント状態適合仕様 と triple-bound）
 
   - tier1 03_Server系 / 04_Library / 14 OSS lifecycle / 32 RLS
     / 39 client-state は本仕様の単一の真と双方向 lock。drift
     は 12_コード生成方針 + 14_強制機構 の CI 不変条件で検出。
+  - 08_infra/16 clock_integrity との接合（cross-axis double-
+    bound）：
+      - SDK の time API 公開 surface から `now()` /
+        `Date.now()` / `time.Now()` / `DateTime.UtcNow` /
+        `SystemTime::now()` を撤去、`monotonic_now()` /
+        `hlc_now()` のみ exposing する。Roslyn analyzer /
+        ESLint custom rule / Rust `#[deny]` lint / Go vet
+        の 4 言語で wall-clock API 直接 import を error
+        level で reject する。
+      - sdk_distribution_class と clock_integrity_class の
+        写像 :
+          v1_full_native_with_companion → v1_application_hlc_only
+          v1_legacy_dotnet_framework    → v1_browser_client_skew_tolerant
+          v1_browser_spa_typescript     → v1_browser_client_skew_tolerant
+          v1_thick_native_via_tauri     → v1_application_hlc_only
+          v1_thin_business_api_only     → v1_browser_client_skew_tolerant
+        Browser / .NET FW Companion / Thin API（OpenAPI）は
+        client-clock 不信モデル（server-anchor HLC token を
+        opaque pass-through）、native は monotonic + HLC で
+        TTL 判定。
+      - deadline propagation の clock source は呼出元の
+        monotonic + sender-issued HLC + receiver-side HLC
+        compare。RPC deadline = `monotonic_now() + timeout_
+        ms` で算出し、wire 上は HLC tuple として propagate
+        する（wall-clock subtraction を禁止）。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の
+        clock_causality_proof.lock.yaml の green が本仕様
+        sdk_conformance.lock.yaml の cosign signed tag と
+        triple-bound（本仕様 + 08_infra/16 + 39_クライ
+        アント状態適合仕様）。
 
 ■ CI 不変条件（5 ファイル + 5 層の関係性検査）
   - 違反は merge 不可。

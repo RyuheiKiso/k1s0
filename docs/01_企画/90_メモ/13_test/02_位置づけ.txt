@@ -180,19 +180,21 @@ test 位置づけ
 
 ■ 14 軸 + meta + security + ops + test + build_provenance 中の位置
   - test は 16 軸目の候補として 00_軸登録適合仕様 の
-    meta-registry に entry 追加される（cap v1=20 中 17 / 20、
-    残 3 余地。ops が 15 軸目、test が 16 軸目、build_
-    provenance が 17 軸目で全 17 軸が同 cap 内に登録される）。
-  - 14 軸 + security + ops + build_provenance が「層別 ×
-    機能別 × 脅威別 × signal 別 × supply chain 別」軸である
-    のに対し、test は「verification_class 別 × axis 別 ×
-    phase 別」軸として直交方向に位置する。
+    meta-registry に entry 追加される（cap v1=20 中 18 / 20、
+    残 2 余地。ops が 15 軸目、test が 16 軸目、build_
+    provenance が 17 軸目、clock_integrity（08_infra/16）が
+    18 軸目で全 18 軸が同 cap 内に登録される）。
+  - 14 軸 + security + ops + build_provenance + clock_
+    integrity が「層別 × 機能別 × 脅威別 × signal 別 ×
+    supply chain 別 × 時刻 / 因果性別」軸であるのに対し、
+    test は「verification_class 別 × axis 別 × phase 別」
+    軸として直交方向に位置する。
     verification_class（type_invariant / property_axiom /
     contract_pair / scenario_replay / fault_chaos）を class
     軸として持ち、各 class が 5 phase（specify / generate /
     execute / triage / learn）の closure を要求する fan-
     out 構造を持つ。test 軸 coverage_matrix.lock.yaml の
-    cell 数は 17 axis × 5 verification_class = 85 cell。
+    cell 数は 18 axis × 5 verification_class = 90 cell。
   - 00 meta（軸登録）の release_gate.lock.yaml AND-gate
     に、test の coverage_matrix.lock.yaml の `all_cells_
     green` 状態と mutation_score.lock.yaml の `monotonic_

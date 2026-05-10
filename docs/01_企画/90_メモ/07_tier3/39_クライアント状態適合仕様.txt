@@ -450,6 +450,36 @@ tier3 クライアント状態適合仕様（v1）
       と同様、tier3 client は network 復帰を跨いで pending_queue
       の send 順序を保つ。
 
+■ 08_infra/16_時刻整合適合仕様 との接合（cross-axis double-bound）
+  - Idempotency-Key 24h TTL の clock source 規律：
+      - Browser SPA / Tauri webview / .NET Framework Companion は
+        v1_browser_client_skew_tolerant 経路で server-anchor HLC
+        token のみを保持。client wall-clock を idempotency 判定に
+        使う path は SDK 公開 surface に存在しない（08_infra/16
+        の sdk_surface_wall_clock_count: 0 必須化と整合）。
+      - native client（Rust / Go / .NET 8）は v1_application_hlc
+        _only 経路で CLOCK_MONOTONIC_RAW + HLC tuple で TTL 判定。
+        SystemTime / time.Now / DateTime.UtcNow を idempotency に
+        使う経路は Conftest + Semgrep が PR merge block。
+  - pending_queue.expires_at は server-issued HLC token を保持し、
+    server 側でのみ expiry 判定（client wall-clock 比較禁止）。
+    wall-clock backward step 12h 注入下でも premature expiry が
+    起きないことを 08_infra/16 stress test scenario 6 で property
+    test。
+  - resume_token の TTL も同様に server-anchor HLC で server 側
+    判定、client は opaque token を request header に echo するのみ。
+    07_Bidi 適合仕様 の resume_token 規律と双方向 lock。
+  - 4 layer の Pending Queue / Optimistic Local / Server Truth /
+    Domain Event Received のいずれの emit にも HLC tuple を
+    必須包含、conflict_event 5 種の発火順序が clock skew 下でも
+    HLC happens-before で因果性を保つ（08_infra/16 v1_application
+    _hlc_only に整合）。
+  - 18 軸 cross-axis 双方向 lock として 08_infra/16 の clock_
+    causality_proof.lock.yaml の green が本仕様 4 layer / 5
+    conflict_event の因果性物理保証となる。SDK 公開 surface に
+    wall-clock API ゼロを CI 不変条件として 12_client/15 と
+    triple-bound（本仕様 + 12_client/15 + 08_infra/16）。
+
 ■ CI 不変条件（4 ファイル + 5 層の関係性検査）
   - 違反は merge 不可。
       整合 1 : layers.yaml の全 layer が conflict_tree.yaml の

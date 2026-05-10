@@ -807,6 +807,27 @@ tier1 OSS ライフサイクル適合仕様（v1）
   - 39_クライアント状態適合仕様：
       - tier3 OSS（React 等）は v1_l3_runtime 区分（tier3 adoption
         は tier3 担当 + tier1 inventory 登録の二段階）。
+  - 08_infra/16_時刻整合適合仕様（cross-axis double-bound）：
+      - chrony（BSD-3、process_boundary）/ linuxptp（GPL-2.0、
+        process_boundary、本企画 [0](c) GPL 規律整合）/ Cilium
+        Tetragon（Apache 2.0、network_service）/ k1s0_hlc_lib
+        （Apache 2.0、in-house authoritative、static + dynamic）
+        / GPSD + LinuxPPS（LGPL-2.1 / BSD-3、process_boundary）の
+        5 OSS を本仕様 inventory に登録、いずれも v1_l1plus_primary
+        （k1s0_hlc_lib のみ v1_inhouse_authoritative）。
+      - 上記 5 OSS の license_change / eol_announced / cve_backlog
+        _threshold trigger 発火時、08_infra/16 の clock_inventory
+        .lock.yaml の関連 entry を migration candidate として mark
+        する（双方向 lock）。
+      - linuxptp は GPL-2.0 のため static / dynamic link への組込
+        禁止を本仕様 linkage_policy.lock.yaml で物理 enforce。Rust
+        / Go の build artifact に linuxptp ヘッダ / shared object
+        が混入する PR は 14 inventory の linkage_model 違反として
+        merge block。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の release_
+        gate.lock.yaml AND-gate に本仕様 oss_inventory.lock.yaml
+        の clock 関連 5 entry green が間接連結（00_軸登録適合仕様
+        経由）。
 
 ■ Kyverno admission policy / Argo Workflows / 02_OSS リスト builder の責務（縮約）
   - Kyverno admission policy generator の責務：

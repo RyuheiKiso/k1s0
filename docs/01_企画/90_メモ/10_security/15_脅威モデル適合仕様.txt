@@ -324,6 +324,21 @@
     crypto-erase が threat_class v1_data_loss / v1_
     data_tampering の primary mitigation、本層が
     cross-axis に lock
+  - 08_infra/16 clock_integrity（cross-axis double-bound）：
+    classes.yaml の actor 表に v1_clock_attack を追加（NTP
+    BGP hijack / Khronos / Chronos / GPS spoofing / time-
+    shifting attack）、defense_layer に 08_infra/16 の 5
+    class（v1_intra_rack_ptp / v1_cross_dc_ntp_smeared /
+    v1_application_hlc_only / v1_browser_client_skew_
+    tolerant / v1_air_gapped_legacy）を pointer kind とし
+    て binding。threat_model.lock.yaml の v1_clock_attack
+    × T:tampering / S:spoofing / I:information cell の
+    mitigation_pointer ↔ 08_infra/16 5 class が双方向
+    lock。10_security/06 境界制御方針 に v1_clock_attack
+    surface defense（multi-source NTP RAIM / GPS spoofing
+    detection / PTP authentication via IEEE 1588v2.1）を
+    追加し、本層 mitigation_bindings.lock.yaml と双方向
+    lock。
   - 00 meta（軸登録）：本層が 14 軸目として meta-
     registry に entry 追加、release_gate.lock.yaml の
     AND-gate 入力に threat_model_coverage_green /
@@ -374,9 +389,11 @@
 ■ 参考（同型対象）
   - 各軸の同型 spec は memory「十三軸同型適合仕様」 +
     00_軸登録適合仕様 を参照。本層は 14 軸目として cap
-    内に entry 追加される（v1 cap=20、現状 17 / 20、残 3
+    内に entry 追加される（v1 cap=20、現状 18 / 20、残 2
     余地。security 軸は 14 軸目（threat） + 17 軸目（10_
     security/17_build_provenance適合仕様）が同 directory
+    内に同時 entry を持つ。infra 軸は infra01 topology +
+    18 軸目 clock_integrity（08_infra/16）が同 directory
     内に同時 entry を持つ）。
   - 物理 enforcement の最終 layer は infra01 / data01 /
     cosign / Sigstore / HSM / Bazel sandbox / Nix sandbox

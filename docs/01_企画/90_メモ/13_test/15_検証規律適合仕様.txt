@@ -7,13 +7,14 @@
   - 検証規律適合仕様は、5 verification_class × 5 phase の
     cross-product として完全列挙される verification_loop
     catalog の各 cell に対し、5 enforcement orchestrator の
-    いずれかを必ず物理 pointer として bind し、全 16 軸
-    （13 軸 + meta + security + ops + build_provenance）+
-    自軸の defense-in-depth 層 C / D / E に bind 済みである
-    ことを 5 層 defense-in-depth + 18 項 CI 不変条件 + 16 件
-    stress test pack で物理 enforce する meta-axis である。
-    同時に 17 axis × 5 verification_class = 85 cell の
-    coverage_matrix.lock.yaml の全 cell drill_state ∈
+    いずれかを必ず物理 pointer として bind し、全 17 軸
+    （13 軸 + meta + security + ops + build_provenance +
+    clock_integrity）+ 自軸の defense-in-depth 層 C / D / E
+    に bind 済みであることを 5 層 defense-in-depth + 18 項
+    CI 不変条件 + 16 件 stress test pack で物理 enforce する
+    meta-axis である。同時に 18 axis × 5 verification_class
+    = 90 cell の coverage_matrix.lock.yaml の全 cell drill_
+    state ∈
     {v1_baseline_green, v1_drill_red_handled} を 1.0.0
     ship blocker として 00 meta release_gate.lock.yaml の
     AND-gate に物理入力する（v1_drill_red_handled は ops
@@ -324,7 +325,7 @@
         input：verification_inventory.lock.yaml + class_
               axis_cadence_table.yaml + ownership_table
               .lock.yaml
-        出力：17 axis × 5 verification_class = 85 cell
+        出力：18 axis × 5 verification_class = 90 cell
               の row、各 cell に artifact_pointer ≥ 1 +
               last_green_at + cadence_days + owner_4axis
         手書き禁止、CI fail。
@@ -674,6 +675,36 @@
     binding（observe → notify → page → freeze →
     block）。
 
+■ 08_infra/16_時刻整合適合仕様 との接合（cross-axis double-bound）
+  - coverage_matrix.lock.yaml の (axis × verification_class)
+    cell に本軸 18 axis × 5 verification_class = 90 cell と
+    して加入（既存 17 axis × 5 = 85 cell から 90 cell に
+    additive 拡張）。08_infra/16 時刻整合は v1_fault_chaos
+    （skew_injection / gps_source_kill / ptp_grandmaster_
+    failover / leap_second_event / ntp_bgp_hijack の 5
+    blueprint）+ v1_property_axiom（HLC happens-before 等価
+    性 1M operations 検証）+ v1_contract_pair（chrony /
+    ptp4l / k1s0_hlc_lib の 4 言語 cross-version compat）
+    の 3 verification_class を主担当。
+  - chaos_blueprints.lock.yaml に skew_injection_chaos /
+    gps_source_kill_chaos / ptp_grandmaster_failover_chaos
+    / leap_second_event_chaos / ntp_bgp_hijack_chaos の 5
+    blueprint を新規追加、いずれも 30d / 90d / 180d / 365d
+    cadence で last_green_at が更新されることを property
+    test。
+  - mutation_score.lock.yaml の対象に k1s0_hlc_lib（Rust /
+    Go / .NET / Browser TypeScript の 4 言語実装）を追加、
+    quarter monotonic increase を維持。HLC tuple 操作の
+    変異テストで因果性論理が壊れないことを verify。
+  - pacts.yaml + Pact Broker の can_i_deploy_green pair_id
+    に chrony ↔ k1s0_hlc_lib / linuxptp ↔ k1s0_hlc_lib /
+    Cilium Tetragon ↔ Kyverno admission の 3 pair を追加。
+  - 18 軸 cross-axis 双方向 lock として 08_infra/16 の clock
+    _causality_proof.lock.yaml の green が本仕様 coverage
+    _matrix.lock.yaml の `all_cells_green` 入力の前提条件
+    （HLC equivalence proof が verification_class の物理
+    根拠）。
+
 ■ release gate（00 meta との bind）
   - 00_軸登録適合仕様 の release_gate.lock.yaml AND-gate
     に以下が入力される：
@@ -705,7 +736,7 @@
 
 ■ 採用しない方針（structural spec として）
   - 単軸 / 単 verification_class の coverage：禁止、5
-    verification_class 全 16 軸 cell 必須。
+    verification_class 全 18 軸 cell（90 cell = 18 × 5）必須。
   - 文章 only の verification 主張：禁止、coverage_
     matrix.lock.yaml の cell に artifact_pointer 必須。
   - test を「PR で書き加える」形：禁止、test は

@@ -643,6 +643,26 @@ tier1 SLO 適合仕様（v1）
         primary_region ↔ standby_region RTT に応じて instance 別
         宣言）。09_data/15 v1_cross_region_replicated 節の commit
         latency 物理制約と整合する。
+  - 08_infra/16_時刻整合適合仕様（clock_integrity_class 双方向 lock）：
+      - v1_event_freshness の SLI 算出式は `(consumer.hlc_observed
+        _at - producer.hlc_published_at) <= target` に固定し、wall-
+        clock subtraction を禁止（08_infra/16 の causality_discipline
+        = hlc_mandatory に整合）。Semgrep ruleset で wall-clock
+        subtraction を grep し PR merge block する。
+      - 本仕様の error_budget.lock.yaml AND-gate に 08_infra/16 が
+        owning する 5 sub-SLO（clock_skew_p99_ms per class / hlc
+        _monotonicity_violation_count_total / ptp_lock_loss_seconds
+        _p95 / ntp_offset_ms_p95 per stratum-1 source / leap_smear_
+        active_during_drill）を入力する。clock 軸 chaos 違反時に
+        本仕様の error budget freeze が発動する。
+      - v1_request_latency_p99_cross_region の commit-wait window は
+        08_infra/16 v1_cross_dc_ntp_smeared の skew_tolerance +
+        PTP_uncertainty + RTT/2 で物理算出。clock skew tolerance を
+        外れた cross-region preservation は本仕様 SLO target を
+        満たし得ないため、admission block。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の release_
+        gate.lock.yaml AND-gate 7 input が本仕様 release_gate に
+        間接連結（00_軸登録適合仕様 経由）。
 
 ■ Buf custom lint と各 toolchain の責務（縮約）
   - SLO yaml plugin の責務：

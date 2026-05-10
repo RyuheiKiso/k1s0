@@ -645,6 +645,29 @@ tier1 観測適合仕様（v1）
           本仕様の audit_log_join_with_traces を両 backend で同時
           実行する形で実現。
 
+      clock_integrity (08_infra/16) との接合（cross-axis double-bound）:
+        - span / log / audit_local / audit_event の全 emit に HLC
+          tuple `(uint64 physical_ms, uint32 logical_counter, uint128
+          node_id)` を必須包含。dimensions.yaml に `tier1.clock.hlc
+          _physical_ms` / `tier1.clock.hlc_logical_counter` / `tier1
+          .clock.hlc_node_id` の 3 attribute を tier1_ext namespace
+          で追加。
+        - audit hash chain hash 入力に HLC tuple を必須包含する
+          ことで、wall-clock backwards step / clock skew 下でも
+          因果性を保つ。08_infra/16 の causality_discipline =
+          hlc_mandatory に整合。
+        - redaction.yaml に hlc_physical_ms / hlc_logical_counter /
+          hlc_node_id の 3 attribute を keep（PII でなく因果性
+          証跡）として明示宣言、drop policy は適用しない。
+        - 08_infra/16 の clock skew event は本仕様の audit signal
+          sub-class `infra.clock_integrity.event` として ClickHouse
+          に bulk insert、redaction policy は class / node_id /
+          sync_protocol / skew_value を keep し、内部 HLC node_id
+          の secret 部のみ drop（PII 不可達）。
+        - 18 軸 cross-axis 双方向 lock として 08_infra/16 の clock
+          _causality_proof.lock.yaml の green が本仕様 audit hash
+          chain integrity の物理保証となる。
+
   これら接合点は test_matrix.yaml の各 scenario で
   cross_axis_assertions として明示し、CI で参照整合を検査する。
 

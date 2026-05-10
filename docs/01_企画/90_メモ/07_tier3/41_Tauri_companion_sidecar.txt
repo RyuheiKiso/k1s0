@@ -184,3 +184,20 @@ Tauri Companion sidecar（v1）
   - 整合 5 : 12_client/15_クライアントSDK配布適合仕様
             capability_matrix.lock.yaml に v1_no_sidecar 軸を
             追加し、機械可読化。
+  - 整合 6 : 08_infra/16_時刻整合適合仕様（cross-axis double-
+            bound）。Tauri Companion sidecar の transport adapter
+            は v1_application_hlc_only（native rust 経路、k1s0_
+            hlc_lib Rust 実装を直接 link）に分類し、TTL 判定 /
+            deadline propagation / Idempotency-Key TTL の clock
+            source を CLOCK_MONOTONIC_RAW 必須化する。`SystemTime
+            ::now()` を idempotency / TTL に使う経路は Rust
+            `#[deny]` lint で reject。WebSocket bridge 経由で
+            host webview（Firefox / Safari）と通信する際は
+            v1_browser_client_skew_tolerant 経路として server-
+            anchor HLC token を opaque pass-through、host 側 SPA
+            の wall-clock を idempotency 判定に使う path はゼロ。
+            sidecar の wire 上 deadline は sender-issued HLC
+            tuple + receiver-side HLC compare に固定し、wall-
+            clock subtraction は禁止する（08_infra/16 v1_
+            application_hlc_only に整合、12_client/06 deadline
+            propagation 規律と triple-bound）。

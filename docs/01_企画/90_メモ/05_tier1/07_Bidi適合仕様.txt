@@ -386,6 +386,27 @@ tier1 Bidi 適合仕様（v1）
   - test runner の native 言語は Rust が一次。Companion は C# / TS で
     必要な範囲のみ。
 
+■ 既存軸との接続関係
+  - 08_infra/16_時刻整合適合仕様（clock_integrity_class 双方向 lock）：
+      - resume_token の TTL に server-anchor HLC tuple を必須包含、
+        client wall-clock 由来の TTL 計算を禁止。Browser SPA / .NET
+        Framework Companion / Tauri webview client は v1_browser_
+        client_skew_tolerant 経路で server-issued HLC token のみを
+        opaque pass-through、native client は v1_application_hlc_only
+        経路で monotonic + HLC で TTL 判定する。
+      - SESSION_ORDERED / CAUSAL conformance class の property_axiom
+        に「±60s skew 注入下で HLC happens-before respected」を必須
+        assertion として追加。08_infra/16 の clock_causality_proof
+        .lock.yaml と本仕様の bidi conformance test fixture が双方向
+        lock。
+      - Last-Event-ID resume / SSE id: フィールドの retry 時刻判定は
+        server 側 HLC の delta で行い、client wall-clock subtraction
+        を禁止。connect_bidi / paired_post_sse 両 adapter とも server
+        -anchor HLC token を resume_token に必須包含する。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の release
+        _gate.lock.yaml AND-gate 7 input が本仕様 release_gate に
+        間接連結（00_軸登録適合仕様 経由）。
+
 ■ Capability Negotiation との関係
   - 03_Server系 Capability Negotiation 節の chosen_transport 選択は、
     起動時に capabilities.lock.yaml を読み込んで実装される：

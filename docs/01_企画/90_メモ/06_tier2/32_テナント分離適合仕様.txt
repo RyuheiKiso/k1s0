@@ -396,6 +396,24 @@ tier2 テナント分離適合仕様（v1）
   - 例：app.purpose='support' で発行された全 query は trace に
     purpose=support として記録され、ClickHouse 側で監査と相関可能。
 
+■ 既存軸との接続関係（08_infra/16_時刻整合適合仕様 cross-axis double-bound）
+  - tenant policy cache TTL の clock source は CLOCK_MONOTONIC_RAW
+    必須化（wall-clock 依存禁止）。本仕様 session_context（app.tenant
+    _id / app.actor_id / app.purpose / app.delegation_chain）の cache
+    invalidation 判定で SystemTime / time.Now / DateTime.UtcNow を
+    使う経路は 08_infra/16 dcv_pr_blocks_wall_clock_for_ttl により
+    PR merge block。
+  - RLS FORCE 状態の cache invalidation timestamp に HLC tuple を
+    必須包含し、cross-region replication 下で因果性を保つ
+    （08_infra/16 v1_application_hlc_only causality_discipline =
+    hlc_mandatory に整合）。
+  - atomic 三表書込（state change / Outbox / audit_local）の audit
+    _local emit に HLC tuple を必須包含、wall-clock backwards step
+    下でも 09 audit hash chain integrity が保たれる。
+  - 18 軸 cross-axis 双方向 lock として 08_infra/16 の clock_
+    causality_proof.lock.yaml の green が本仕様 atomic 三表書込
+    integrity property P1〜P4 の物理保証となる。
+
 ■ CI 不変条件（3 ファイル + 5 層の関係性検査）
   - 違反は merge 不可。
       整合 1 : migration 内の全 CREATE TABLE が table_classes.yaml の

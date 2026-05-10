@@ -993,9 +993,23 @@ data データ保全適合仕様（v1）
   - infra01 topology：上記 build artifact の双方向 lock。
     failover_drill と restore_drill は AND-gate で 1.0.0
     ship blocker。
+  - 08_infra/16 clock_integrity（cross-axis double-bound）：
+    preservation_class が cross-region 系（v1_cross_region_
+    replicated / v1_global_replicated）の場合、commit
+    ordering は HLC tuple base に固定し、Kafka MirrorMaker2
+    strict_ordering / ClickHouse cross-region replication /
+    CloudNativePG synchronous_commit の commit-wait window
+    を 08_infra/16 の skew_tolerance + PTP_uncertainty +
+    RTT/2 で物理算出する（wall-clock subtraction を禁止）。
+    本軸 preservation_substrates.lock.yaml と 08_infra/16
+    clock_skew_matrix.lock.yaml が双方向 lock。clock skew
+    tolerance を外れた cross-region preservation は admission
+    block、本軸 restore_drill / 08_infra/16 clock_drill の
+    cadence 違反も同様。
   - 00 meta：data01 軸として meta-registry に登録、cap
     v1=20 の枠内。13 軸の整合性 invariant に preservation_
-    class の存在 / 値域検査 / 双方向 lock を含める。
+    class の存在 / 値域検査 / 双方向 lock を含める。本軸 +
+    08_infra/16（clock_integrity）+ 17 既存軸 = 18 軸候補。
 
 ■ 業務シナリオ stress test（製造業 pack 想定 8 シナリオ）
   本仕様が 5 class で覆える業務 stress を以下 8 シナリオ

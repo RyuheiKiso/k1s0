@@ -145,9 +145,9 @@ ops 位置づけ
 
 ■ 14 軸 + meta + security + ops 中の位置
   - ops は 15 軸目の候補として 00_軸登録適合仕様 の
-    meta-registry に entry 追加される（cap v1=20 中 17 / 20、
-    残 3 余地。ops 15 軸目 + test 16 軸目 + build_provenance
-    17 軸目）。
+    meta-registry に entry 追加される（cap v1=20 中 18 / 20、
+    残 2 余地。ops 15 軸目 + test 16 軸目 + build_provenance
+    17 軸目 + clock_integrity 18 軸目（08_infra/16））。
   - 14 軸 + security + build_provenance が「層別 × 機能別 ×
     脅威別 × supply chain 別」軸であるのに対し、ops は
     「signal 別 × phase 別 × 時間軸」軸として直交方向に

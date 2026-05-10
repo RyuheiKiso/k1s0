@@ -117,3 +117,20 @@
             + WCF / HttpWebRequest / HttpClient の各 stack で
             JWT claim が span attribute に乗ることを E2E test で
             確認」を追加。
+  - 整合 6 : 08_infra/16_時刻整合適合仕様（cross-axis double-
+            bound）。Companion 役割 A の OTel attribute 注入に
+            HLC tuple `(tier1.clock.hlc_physical_ms / tier1.clock
+            .hlc_logical_counter / tier1.clock.hlc_node_id)` の
+            3 attribute を必須包含する。CLR Profiler 内 k1s0
+            processor が span 生成時に HLC tuple を attribute と
+            して attach、OTel Collector の attributes processor
+            で defense-in-depth 二重持ち（注入経路の片肺障害でも
+            全 span に HLC tuple が必ず乗る）。Companion は
+            v1_browser_client_skew_tolerant（4.6.1 未満）/ v1_
+            application_hlc_only（4.6.2 以上、k1s0_hlc_lib .NET
+            実装を NuGet 参照）の 2 clock_integrity_class への
+            写像を明示し、wall-clock を TTL に使う経路は SDK 表面
+            から完全削除する。Companion 役割 B（Transport
+            Negotiation、k1s0.Companion.NetFx）の deadline
+            propagation も sender-issued HLC + receiver-side HLC
+            compare に固定し、wall-clock subtraction は禁止。

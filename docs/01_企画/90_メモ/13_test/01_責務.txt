@@ -24,9 +24,9 @@ test 責務
         contract_pair / scenario_replay / fault_chaos の 5
         verification_class）の宣言的真
       - axis × verification_class の coverage matrix（14 軸
-        + meta + ops + 本軸 = 17 軸 × 5 class = 85 cell）
-        の build artifact 化、欠損 cell ゼロの CI 不変条件
-        化
+        + meta + ops + 本軸 + build_provenance + clock_
+        integrity = 18 軸 × 5 class = 90 cell）の build
+        artifact 化、欠損 cell ゼロの CI 不変条件化
       - mutation testing の score baseline（mutation_score
         .lock.yaml）と quarterly monotonic increase 規律
       - flaky test の quarantine cadence（quarantine_due_at
@@ -137,7 +137,7 @@ test 責務
     （unit / property / contract / e2e / chaos / mutation
     / load）に対し L1+ 単一深耕。横並びは持たない。
   - 段階的 release 禁止：1.0.0 時点で 5 verification_class
-    全てが 17 軸全 cell で coverage green であること。
+    全てが 18 軸全 cell で coverage green であること。
     coverage 不能な (axis × class) cell が 1 つでも残って
     いれば ship blocker。
   - test の物理計測：test execution は test_minutes_per_

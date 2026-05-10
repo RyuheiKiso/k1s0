@@ -557,6 +557,33 @@
     budget_action_bindings.lock.yaml に 5 段階 escalation
     binding。
 
+■ 08_infra/16_時刻整合適合仕様 との接合（cross-axis double-bound）
+  - signal_class に v1_clock_drift / v1_grandmaster_failover /
+    v1_leap_smear / v1_gps_source_kill / v1_ntp_bgp_hijack の
+    5 種を追加（既存 5 signal_class に並走、cap 内で additive
+    に拡張）。oss.lifecycle.event / security.threat.event と
+    同型の `infra.clock_integrity.event` として ClickHouse に
+    bulk insert、ops loop の 5 phase（detect / respond /
+    resolve / learn / prevent）closure を要求する。
+  - ops_loop.lock.yaml に clock_drill 30d cadence / grandmaster
+    _failover_drill 90d cadence / gps_source_kill_drill 180d
+    cadence / leap_smear_drill 365d cadence の 4 cadence を
+    統合、08_infra/16 の clock_drill.lock.yaml と双方向 lock。
+  - drift_detect signal は 08_infra/16 clock_skew_ebpf_probe
+    由来であることを Conftest 検査（dcv_pr_blocks_drift_signal
+    _provenance）として追加、user-space daemon 由来の signal
+    を ops loop に流す経路を禁止する（kernel 直接観測経路の
+    み正規）。
+  - runbook_catalog.lock.yaml に clock_drift_response /
+    grandmaster_failover_response / leap_smear_engage の 3
+    runbook を追加、各 runbook の cadence 内 drill 完了が
+    本仕様 release_gate.lock.yaml AND-gate `drill_green` の
+    入力になる。
+  - 18 軸 cross-axis 双方向 lock として 08_infra/16 の release
+    _gate.lock.yaml AND-gate 7 input が本仕様 release_gate
+    の `closure_green` 入力に間接連結（00_軸登録適合仕様
+    経由）。
+
 ■ release gate（00 meta との bind）
   - 00_軸登録適合仕様 の release_gate.lock.yaml AND-gate
     に以下が入力される：

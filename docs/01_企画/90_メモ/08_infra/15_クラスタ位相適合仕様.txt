@@ -857,6 +857,26 @@ infra クラスタ位相適合仕様（v1）
         は preservation_substrates.lock.yaml の constraints で
         物理 lock。replication 不整合は両軸で同時 admission
         block。
+  - 08_infra/16_時刻整合適合仕様（cross-axis double-bound）：
+      - topology_class の sub-property に `ptp_grandmaster_
+        placement` を追加：v1_multi_zone_per_cluster は zone
+        あたり ≥ 1 grandmaster、v1_multi_cluster_active_active
+        は cluster あたり ≥ 2 grandmaster、v1_multi_region_*
+        は region あたり ≥ 2 grandmaster（cross-AZ 二重化）、
+        v1_single_zone は ≥ 1 grandmaster（degrade 経路）。
+      - cluster_inventory.lock.yaml に grandmaster_node_ids /
+        boundary_clock_switch_ids / ptp_aware_nic_model の 3
+        attribute を topology instance 別に必須宣言。
+      - failover_drill.lock.yaml に grandmaster_failover_drill
+        を統合、本軸 90d cadence の BMCA active 切替を property
+        test。08_infra/16 の clock_drill.lock.yaml と双方向 lock。
+      - cross-region preservation の commit-wait window は 08_
+        infra/16 の skew_tolerance + PTP_uncertainty + RTT/2 で
+        固定、topology RTT と clock skew の物理積算が SLO 達成
+        の前提条件。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の release
+        _gate.lock.yaml AND-gate 7 input が本仕様 release_gate に
+        間接連結（00_軸登録適合仕様 経由）。
   - 00_軸登録適合仕様（meta）：
       - 本仕様は registry.yaml の axis entry `infra-topology`
         として登録され、release_gate.lock.yaml に failover_

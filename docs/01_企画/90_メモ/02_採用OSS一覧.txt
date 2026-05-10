@@ -389,3 +389,48 @@
   DB マイグレーション             | sqlx-cli                         | MIT / Apache 2.0
   Load generator                 | Apache JMeter                    | Apache 2.0
   Load DSL (alt, Python)         | Locust                           | MIT
+
+------------------------------------------------------------
+[11] 時刻同期 / 因果性（clock integrity 軸）
+------------------------------------------------------------
+  カテゴリ                       | プロダクト                          | ライセンス             | linkage_model
+  -------------------------------+-------------------------------------+------------------------+-----------------
+  NTP daemon（cross-DC fallback）| chrony                              | BSD-3                  | process_boundary
+  PTP daemon (IEEE 1588v2)       | linuxptp (ptp4l / phc2sys / ts2phc) | GPL-2.0                | process_boundary
+  eBPF observability substrate   | Cilium Tetragon                     | Apache 2.0             | network_service
+  HLC ライブラリ（4 言語移植）   | k1s0_hlc_lib                        | Apache 2.0 (in-house)  | static + dynamic
+  GPS-OCXO grandmaster firmware  | LinuxPPS + GPSD                     | LGPL-2.1 / BSD-3       | process_boundary
+
+  ※ 本カテゴリは「08_infra/16_時刻整合適合仕様」が単一所有する clock
+    integrity 軸（18 軸目）の構成要素として L1+ 採用。chrony は cross-
+    DC NTP fallback、linuxptp は IEEE 1588v2 PTP boundary clock chain、
+    Cilium Tetragon は CLOCK_REALTIME/CLOCK_MONOTONIC_RAW delta の kernel
+    kprobe sampling substrate、k1s0_hlc_lib は CockroachDB 由来 HLC
+    アルゴリズムの Rust / Go / .NET / Browser TypeScript 4 言語 in-house
+    移植、GPSD + LinuxPPS は GPS-disciplined OCXO grandmaster の userspace
+    daemon を担う。
+  ※ linuxptp は GPL-2.0 だが process_boundary 経路（ptp4l / phc2sys /
+    ts2phc CLI 起動）でのみ採用するため、本企画 [0](c) GPL 規律に整合
+    する（静的 / 動的 link への組込はしない）。同様に GPSD + LinuxPPS
+    （LinuxPPS は LGPL-2.1）も process_boundary 経路でのみ採用、本企画
+    [0](b) LGPL 規律に整合する。
+  ※ k1s0_hlc_lib は Apache 2.0 in-house authoritative エントリとして
+    14_OSSライフサイクル適合仕様 v1_inhouse_authoritative に登録（dotnet
+    8 Connect-RPC 自製実装と同枠）。HLC tuple `(uint64 physical_ms,
+    uint32 logical_counter, uint128 node_id)` の wire 互換性を 4 言語間
+    で property_axiom により CI 検査する。
+  ※ Cilium Tetragon は Cilium project（CNCF Graduated、Apache 2.0）、
+    eBPF kprobe substrate として採用。in-house BPF program が Tetragon
+    上で動作し、kernel-level skew probe を 100ms 周期で実行する。
+  ※ chrony / linuxptp / Tetragon / k1s0_hlc_lib / GPSD-LinuxPPS の併用
+    採用は機能 overlap ではなく責務分離（chrony = cross-DC NTP、linuxptp
+    = intra-rack PTP、Tetragon = kernel skew 観測、k1s0_hlc_lib =
+    application 因果性、GPSD-LinuxPPS = GPS receiver / PPS pulse 受信）。
+    至高路線 CLAUDE.md「作業量を減らすために機能を削減するのは避ける」
+    の規律に従う v1 必須採用であり、v2 候補ではない。
+  ※ GPS-disciplined OCXO grandmaster HW（rubidium holdover ≥ 24h、
+    Microsemi SyncServer S650 級ホワイトボックス）は OS provider native
+    例外（[0](e)）に該当せず（commodity OSS HW として調達可能、APNs /
+    FCM のような OS 必然 dependency ではない）、本企画 OSS 規律内で
+    採用する。systemd-timesyncd は multi-source / leap smear に弱く、
+    chrony を選好するため node 同居経路を Conftest で reject する。

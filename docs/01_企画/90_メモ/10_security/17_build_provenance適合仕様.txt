@@ -44,8 +44,9 @@ security build provenance 適合仕様（v1）
     32 data-tenant / 39 client / infra01 topology / data01
     preservation / security15 threat-model / client15 SDK / ops15
     loop / test15 verification の各軸の build artifact 投影面
-    を統合する。本軸の追加により meta-registry は cap v1=20 中
-    17 / 20、残 3 余地。
+    を統合する。本軸の追加により meta-registry は当時 cap v1=20
+    中 17 / 20 と記載した。その後 18 軸目（08_infra/16 clock_
+    integrity）が追加され、現状は 18 / 20、残 2 余地。
 
 ■ 設計原則
   - build_provenance_class は bundle である。
@@ -1072,6 +1073,30 @@ security build provenance 適合仕様（v1）
         tampering）+ v1_property_axiom（bit hash 一致）+ v1_
         contract_pair（cosign verify chain）の 3 verification_
         class を主担当。
+  - 08_infra/16_時刻整合適合仕様（cross-axis double-bound）：
+      - Rekor RFC3161 trusted timestamp authority への依存を
+        本仕様が下流軸として明示。Rekor 自身の clock を 08_
+        infra/16 v1_intra_rack_ptp で運用し、Sigstore Rekor
+        Merkle tree への inclusion proof timestamp は GPS-
+        disciplined OCXO grandmaster + PTP boundary clock
+        chain に anchor される。
+      - provenance_attestation.lock.yaml の predicate_taxonomy
+        に `attest_hlc`（attestation 時刻の HLC tuple `(uint64
+        physical_ms, uint32 logical_counter, uint128 node_id)`）
+        を新 predicate kind として追加。Tekton Chains attestor
+        が Tekton TaskRun の build start / build finish / sign
+        / publish の各段で HLC tuple を emit、in-toto link
+        metadata に必須包含。
+      - artifact_inventory.lock.yaml の各 artifact entry に
+        `build_started_hlc` / `build_finished_hlc` / `signed_
+        hlc` の 3 attribute を追加、wall-clock backwards step
+        下でも attestation chain が因果性を保つ。
+      - reproducibility_matrix.lock.yaml の builder 別 sha256
+        記録に HLC tuple を必須包含、複数 builder 間で同 input
+        が同 output を生む timestamp 因果性を物理保証する。
+      - 18 軸 cross-axis 双方向 lock として 08_infra/16 の clock
+        _causality_proof.lock.yaml の green が本仕様 attestation
+        chain integrity の物理保証となる。
   - 00_軸登録適合仕様（meta）：
       - 本仕様は registry.yaml の axis entry `security-build-
         provenance` として登録され、release_gate.lock.yaml に
@@ -1175,13 +1200,14 @@ security build provenance 適合仕様（v1）
                runner cluster で kube-bench green、CIS Docker
                Benchmark が build daemon で green。違反は
                admission block。
-      整合 15: 17 軸 cross-axis 双方向 lock（11_鍵管理 / 14_OSS
+      整合 15: 18 軸 cross-axis 双方向 lock（11_鍵管理 / 14_OSS
                ライフサイクル / 08_infra/14_強制機構 / 10_security
                /06_境界制御 / 10_security/08_脆弱性管理 / 10_
                security/15_脅威モデル / 11_ops/15_運用ループ /
                12_client/09_配布SemVer / 12_client/15_クライアント
-               SDK配布 / 13_test/15_検証規律 の 10 lock）が両側
-               file 相互参照、片側 drift で CI fail。
+               SDK配布 / 13_test/15_検証規律 / 08_infra/16_時刻
+               整合 の 11 lock）が両側 file 相互参照、片側
+               drift で CI fail。
 
 ■ 製造業 pack stress test（v1 の正当性証跡）
   - 8 業務シナリオを v1 class に classify し、全て 5 class で
@@ -1264,13 +1290,16 @@ security build provenance 適合仕様（v1）
   - reproducibility property の機械検証により、「机上の supply
     chain 安全性」が物理的に不可能化される。これは至高路線
     の「文章運用ではなく物理 enforcement」原則の transposed
-    form として 17 軸の supply chain 軸を担う。
-  - 17 軸（07 transport / 08 migration / 09 observability / 10
+    form として 17 軸の supply chain 軸を担う（後続軸として
+    08_infra/16 clock_integrity が 18 軸目に追加され、本軸
+    の Rekor RFC3161 timestamping authority に attest_hlc
+    predicate を共有する）。
+  - 18 軸（07 transport / 08 migration / 09 observability / 10
     auth / 11 key / 12 schema / 13 SLO / 14 OSS lifecycle / 15
     capacity / 32 data-tenant / 39 client / infra01 topology /
     data01 preservation / security15 threat / ops15 loop / test15
-    verification / build_provenance）が同型構造で結合し、tier1
-    / tier2 / tier3 / infra / data / security / ops / test の
-    責務分離と接合面が機械的に検証可能になる。本仕様 build_
-    provenance はその supply chain piece として、5 階層全体の
-    artifact 表面の単一の真を担う。
+    verification / build_provenance / clock_integrity）が同型
+    構造で結合し、tier1 / tier2 / tier3 / infra / data /
+    security / ops / test の責務分離と接合面が機械的に検証
+    可能になる。本仕様 build_provenance はその supply chain
+    piece として、5 階層全体の artifact 表面の単一の真を担う。

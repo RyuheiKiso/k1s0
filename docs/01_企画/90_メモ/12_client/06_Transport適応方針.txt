@@ -195,6 +195,16 @@ client Transport 適応方針
     annotation の slo_class から導出）を attach する。
   - deadline 残量を retry budget の判定に組込む（10_リトライ
     バックオフ方針）。
+  - 08_infra/16 時刻整合適合仕様 との整合：deadline は
+    `monotonic_now() + timeout_ms` で算出し、SystemTime / time.Now
+    / DateTime.UtcNow / Date.now による wall-clock subtraction を
+    禁止（08_infra/16 dcv_pr_blocks_wall_clock_for_ttl で物理
+    enforce）。wire 上の x-k1s0-deadline-unix-ms ヘッダは sender
+    -issued HLC tuple `(uint64 physical_ms, uint32 logical_counter,
+    uint128 node_id)` を含む二重表現とし、receiver は HLC compare
+    で deadline を判定する。これにより clock skew ±60s 下でも
+    deadline 因果性が保たれる（08_infra/16 v1_application_hlc_only
+    causality_discipline = hlc_mandatory に整合）。
 
 ■ flow control / backpressure
   - bidi-streaming / client-streaming は HTTP/2 / WebSocket /
