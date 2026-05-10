@@ -1,0 +1,154 @@
+# ============================================================
+# frontmatter schema (JSON Schema draft 2020-12 互換)
+# ============================================================
+# - 全 .md ドキュメントの YAML frontmatter を検証する schema。
+# - 規約本文は docs/00_format/conventions/frontmatter.md を参照。
+# - lint 実装は Phase 5 (tools/docs_lint/frontmatter_validator.py)。
+# ============================================================
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://k1s0.local/schemas/docs/frontmatter.yaml"
+title: "k1s0 documentation frontmatter"
+type: object
+additionalProperties: false
+
+required:
+  - id
+  - axis
+  - phase
+  - kind
+  - status
+  - depends_on
+  - covered_by
+
+properties:
+
+  id:
+    type: string
+    description: |
+      <phase_short>.<axis>.<slug> 形式。配置パスから機械的に導出可能であること。
+      不一致は CI fail。
+    pattern: "^(plan|req|arch|detail|format)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+
+  axis:
+    type: string
+    description: 19 軸 + meta + overview の enum。
+    enum:
+      - tier1
+      - tier2
+      - tier3
+      - infra
+      - data
+      - security
+      - ops
+      - client
+      - test
+      - formal
+      - meta
+      - overview
+
+  phase:
+    type: string
+    description: フェーズ enum。cross_cutting と format は配置場所に制約。
+    enum:
+      - plan
+      - requirement
+      - architecture
+      - detail
+      - cross_cutting
+      - format
+
+  kind:
+    type: string
+    description: ドキュメントの種別 enum。
+    enum:
+      - responsibility
+      - positioning
+      - non_scope
+      - oss
+      - policy
+      - ops_dx
+      - enforcement
+      - conformance_spec
+      - cross_cut_spec
+      - index
+      - plan_doc
+      - requirement
+      - architecture
+      - detail
+      - template
+      - convention
+      - style
+      - linter
+      - glossary
+
+  status:
+    type: string
+    description: |
+      draft = WIP、locked = 1.0.0 ship blocker 対象。
+      locked のドキュメントは TBD / 未定 / TODO / あとで書く / 後述 が残存していたら CI fail。
+    enum:
+      - draft
+      - locked
+
+  depends_on:
+    type: array
+    description: |
+      同一 repo 内の他 .md の id 配列。空配列 [] 許容。
+      dangling 参照は CI fail。
+    items:
+      type: string
+      pattern: "^(plan|req|arch|detail|format)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+    uniqueItems: true
+
+  covered_by:
+    type: object
+    description: defense-in-depth 6 層 + 5 proof_class への bind 宣言。
+    additionalProperties: false
+    required:
+      - defense_in_depth_layers
+      - proof_classes
+    properties:
+      defense_in_depth_layers:
+        type: array
+        description: 該当する層のみ列挙。空配列 [] 許容（規約 / 用語集等）。
+        items:
+          type: string
+          enum: [A, B, C, D, E, F]
+        uniqueItems: true
+      proof_classes:
+        type: array
+        description: formal 関連時のみ列挙、空配列 [] 許容。
+        items:
+          type: string
+          enum:
+            - v1_temporal_safety_proof
+            - v1_temporal_liveness_proof
+            - v1_refinement_proof
+            - v1_program_correctness_proof
+            - v1_runtime_modelcheck_proof
+            - v1_property_axiom_proof
+        uniqueItems: true
+
+  lock_artifacts:
+    type: array
+    description: 当ドキュメントが宣言する *.lock.yaml の名前配列。
+    items:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*\\.lock\\.yaml$"
+    uniqueItems: true
+
+# ============================================================
+# forbidden field（schema レベルで CI 拒否）
+# ============================================================
+# additionalProperties: false により、下記 field を含む frontmatter は schema 検証段階で fail する。
+# 個別禁止理由は docs/00_format/conventions/frontmatter.md を参照。
+#   - changelog
+#   - last_updated
+#   - last_modified
+#   - author
+#   - reviewers
+#   - version
+#   - created_at
+#   - tags
+# ============================================================

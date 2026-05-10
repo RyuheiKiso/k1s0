@@ -1,0 +1,139 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+  "_comment_purpose": "MD 構造規約。docs/00_format/conventions/section_marker.md および style_guide.md を機械的に enforce する。実装は Phase 5 (tools/docs_lint/markdownlint runner)。違反 1 件で CI fail。",
+
+  "default": true,
+
+  "MD001_heading_increment": true,
+
+  "MD003_heading_style": {
+    "style": "atx",
+    "_comment": "## 形式（ATX）に固定。setext (===) は frontmatter 直後タイトル含めて禁止"
+  },
+
+  "MD004_ul_style": {
+    "style": "dash",
+    "_comment": "リスト marker は - のみ。* + は禁止"
+  },
+
+  "MD007_ul_indent": {
+    "indent": 2,
+    "_comment": "ネストは 2 space (4 space は禁止)"
+  },
+
+  "MD009_no_trailing_spaces": {
+    "br_spaces": 2,
+    "_comment": "行末空白禁止。hard break のみ 2 space を許容"
+  },
+
+  "MD010_no_hard_tabs": true,
+
+  "MD012_no_multiple_blanks": {
+    "maximum": 1,
+    "_comment": "連続空行は 1 までに制限"
+  },
+
+  "MD013_line_length": false,
+  "_comment_md013": "行幅は固定しない。自動折返しに任せる",
+
+  "MD018_no_missing_space_atx": true,
+
+  "MD019_no_multiple_space_atx": true,
+
+  "MD022_blanks_around_headings": {
+    "lines_above": 1,
+    "lines_below": 1
+  },
+
+  "MD023_heading_start_left": true,
+
+  "MD024_no_duplicate_heading": {
+    "siblings_only": true,
+    "_comment": "同階層内で重複見出し禁止。階層が異なれば許容"
+  },
+
+  "MD025_single_title": {
+    "level": 1,
+    "_comment": "ドキュメント内 # は 1 回のみ"
+  },
+
+  "MD026_no_trailing_punctuation": false,
+  "_comment_md026": "見出し末尾の句読点は許容（日本語のため）",
+
+  "MD028_no_blanks_blockquote": true,
+
+  "MD029_ol_prefix": {
+    "style": "ordered",
+    "_comment": "番号付きリストは 1. 2. 3. の連番"
+  },
+
+  "MD030_list_marker_space": {
+    "ul_single": 1,
+    "ul_multi": 1,
+    "ol_single": 1,
+    "ol_multi": 1
+  },
+
+  "MD031_blanks_around_fences": true,
+
+  "MD032_blanks_around_lists": true,
+
+  "MD033_no_inline_html": {
+    "allowed_elements": ["br", "sub", "sup"],
+    "_comment": "HTML タグは <br>（table 内改行）のみ許容"
+  },
+
+  "MD034_no_bare_urls": true,
+
+  "MD035_hr_style": {
+    "style": "---",
+    "_comment": "hr は --- に固定"
+  },
+
+  "MD036_no_emphasis_as_heading": true,
+
+  "MD037_no_space_in_emphasis": true,
+
+  "MD038_no_space_in_code": true,
+
+  "MD039_no_space_in_links": true,
+
+  "MD040_fenced_code_language": true,
+
+  "MD041_first_line_heading": false,
+  "_comment_md041": "frontmatter があるため H1 が先頭ではない。要件として個別 lint で frontmatter 直後 H1 を check",
+
+  "MD042_no_empty_links": true,
+
+  "MD043_required_headings": false,
+  "_comment_md043": "ドキュメント種別ごとの必須見出し check は frontmatter_validator + custom rule で行う",
+
+  "MD044_proper_names": false,
+
+  "MD045_no_alt_text": true,
+
+  "MD046_code_block_style": {
+    "style": "fenced"
+  },
+
+  "MD047_single_trailing_newline": true,
+
+  "MD048_code_fence_style": {
+    "style": "backtick"
+  },
+
+  "MD049_emphasis_style": {
+    "style": "asterisk"
+  },
+
+  "MD050_strong_style": {
+    "style": "asterisk"
+  },
+
+  "MD051_link_fragments": false,
+  "_comment_md051": "アンカー link は使わない方針 (conventions/crosslink.md) のため off",
+
+  "MD052_reference_links_images": true,
+
+  "MD053_link_image_reference_definitions": true
+}
