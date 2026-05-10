@@ -1,0 +1,283 @@
+============================================================
+formal 採用 OSS
+============================================================
+
+■ 一文方針
+  - formal の道具立ては「temporal logic / state machine
+    code-gen / program logic / proof assistant / runtime
+    model check」の 5 機能カテゴリに対し L1+ 単一深耕、
+    7 OSS（TLA+ + Apalache / P / Stainless / Dafny / Lean 4
+    + mathlib / Kani / CBMC）を v1_l1plus_primary として
+    14 OSS-lifecycle に登録、横並び OSS を持たない。
+
+■ 機能カテゴリ × OSS（v1_l1plus_primary 単一深耕）
+
+  ┌──────────────────────┬───────────────────────────────────┐
+  │ 機能カテゴリ          │ v1_l1plus_primary                 │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ temporal logic       │ TLA+ + Apalache                   │
+  │   safety + liveness  │   （MIT, Apache 2.0）             │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ state machine        │ P language                        │
+  │   protocol code-gen  │   （MIT）                         │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ program logic        │ Stainless                         │
+  │   (Scala)            │   （Apache 2.0）                  │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ program logic        │ Dafny                             │
+  │   (multi-lang)       │   （MIT）                         │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ proof assistant      │ Lean 4 + mathlib                  │
+  │   (math + crypto)    │   （Apache 2.0）                  │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ runtime model check  │ Kani                              │
+  │   (Rust)             │   （Apache 2.0 / MIT）            │
+  ├──────────────────────┼───────────────────────────────────┤
+  │ runtime model check  │ CBMC                              │
+  │   (C / C++)          │   （BSD-4-Clause）                │
+  └──────────────────────┴───────────────────────────────────┘
+
+■ 各 OSS の用途と class binding
+
+  - TLA+ + Apalache（temporal logic）
+      - 用途：分散 protocol の safety + liveness proof、
+        state machine の transition closure proof、
+        refinement proof
+      - 担当 proof_class：v1_temporal_safety_proof（primary）
+        / v1_temporal_liveness_proof（primary）/
+        v1_refinement_proof（co-primary with Stainless）
+      - 担当軸（19 軸中の主担当）：
+          07 transport（bidi handshake state machine）
+          08 migration（4 phase dual-write linearizability）
+          10 auth（token state machine）
+          11 key（rotation protocol refinement）
+          39 client（4-state machine closure）
+          infra01 topology（failover liveness、split-brain
+            safety）
+          infra16 clock（HLC monotonicity、PTP causality）
+          ops15 loop（runbook safety + progress）
+      - artifact：TLA+ .tla spec / Apalache .json trace /
+        TLC inv proof log
+      - 単一深耕：Apalache を symbolic model checker として
+        primary、TLC は exhaustive enumeration の補助。商用
+        SPIN / NuSMV / UPPAAL は採用しない。
+
+  - P language（state machine protocol code-gen）
+      - 用途：分散 protocol の machine-readable state
+        machine 定義、code-gen で TLA+ spec / runtime test
+        harness の双方を生成
+      - 担当 proof_class：v1_temporal_safety_proof（補助）
+        / v1_refinement_proof（補助）
+      - 担当軸（19 軸中の主担当）：
+          07 transport（bidi protocol code-gen）
+          08 migration（dual-write protocol code-gen）
+          10 auth（authn flow state machine）
+          ops15 loop（runbook orchestration state machine）
+      - artifact：P .p spec / P checker output / generated
+        TLA+ + C# harness
+      - 単一深耕：分散 protocol を P で書き、P checker で
+        property check + TLA+ への自動 lowering で symbolic
+        model check との双方向 verification。
+
+  - Stainless（Scala program logic）
+      - 用途：Scala 実装コードに対する Hoare-style
+        pre/post-condition proof、refinement type、
+        information flow logic、algebraic invariant
+      - 担当 proof_class：v1_program_correctness_proof
+        （primary for Scala / JVM 系）/ v1_refinement_proof
+        （co-primary with TLA+）
+      - 担当軸（19 軸中の主担当）：
+          12 schema（forward / backward compatibility
+            refinement）
+          13 SLO（rate limiter monotonicity / cap proof）
+          15 capacity（quota allocation fairness proof）
+          32 data-tenant（RLS non-interference、
+            information flow）
+          39 client（reconcile loop termination）
+          ops15 loop（runbook idempotency proof）
+      - artifact：Stainless .scala + .stainless certificate
+        / Inox SMT log
+      - 単一深耕：Scala 実装を Stainless で program proof
+        し、proof obligation を Inox SMT solver で discharge。
+
+  - Dafny（multi-lang program logic）
+      - 用途：Dafny 専用 language で program proof、Java /
+        C# / Go / Python への code generation で実装側に
+        proof を bind
+      - 担当 proof_class：v1_program_correctness_proof
+        （primary for non-Scala / non-Rust 系）
+      - 担当軸（19 軸中の主担当）：
+          09 observability（SemConv field type invariant、
+            sampling boundary proof）
+          12 schema（schema evolution decision proof）
+          14 OSS lifecycle（dependency DAG cycle freeness
+            proof）
+          security15 threat（threat coverage closure proof）
+          security17 build_provenance（SLSA chain
+            monotonicity proof）
+          test15 verification（coverage matrix completeness
+            proof）
+      - artifact：Dafny .dfy + .doo verification log
+      - 単一深耕：Dafny で書き、Z3 / CVC5 を内包 SMT として
+        利用、code generation で実装言語に proof を投影。
+
+  - Lean 4 + mathlib（proof assistant、math + crypto）
+      - 用途：cryptographic invariant、number-theoretic
+        property、HLC algebra、distributed system causality
+        algebra、cryptographic assumption の文書化
+      - 担当 proof_class：v1_program_correctness_proof
+        （primary for math / crypto）
+      - 担当軸（19 軸中の主担当）：
+          11 key（Shamir threshold property、KEK envelope
+            cryptographic invariant）
+          infra16 clock（HLC monotonicity、clock skew bound
+            algebra）
+          data01 preservation（crypto-erase
+            indistinguishability、backup-restore lossless
+            proof）
+          security15 threat（cryptographic threat assumption
+            の文書化）
+          security17 build_provenance（attestation graph
+            transitive verification proof）
+          client15 SDK distribution（adapter equivalence
+            proof）
+      - artifact：Lean .lean + .olean + mathlib revision
+        pin
+      - 単一深耕：Lean 4 + mathlib を proof assistant として
+        primary、Coq / Isabelle / F* は採用しない。
+        mathlib_pin.lock.yaml で revision 固定、upstream
+        pull は break-glass token + dual review。
+
+  - Kani（Rust runtime model check）
+      - 用途：Rust 実装コードに対する bounded model
+        checking、memory safety、parser closure、SMT-based
+        property
+      - 担当 proof_class：v1_runtime_modelcheck_proof
+        （primary for Rust 系、tier1 Server / Library /
+        infra components の大半）
+      - 担当軸（19 軸中の主担当）：
+          07 transport（frame decoder memory safety、parser
+            closure）
+          10 auth（JWT decoder memory safety）
+          11 key（envelope decryption decision）
+          12 schema（buf-breaking decision implementation）
+          15 capacity（quota counter overflow safety）
+          32 data-tenant（query rewriter level RLS
+            implementation）
+      - artifact：Kani .rs harness + .json report
+      - 単一深耕：Rust 実装は Kani primary、CBMC は C / C++
+        実装にのみ。bound parameter（unwind / object-bits）
+        は kani_cbmc_pin.lock.yaml で固定。
+
+  - CBMC（C / C++ runtime model check）
+      - 用途：C / C++ 実装コード（eBPF / kernel module /
+        legacy native）に対する bounded model checking、
+        memory safety、concurrency safety
+      - 担当 proof_class：v1_runtime_modelcheck_proof
+        （primary for C / C++ 系、infra eBPF / 一部 kernel
+        path）
+      - 担当軸（19 軸中の主担当）：
+          07 transport（一部 kernel path / eBPF program）
+          11 key（HSM driver C 実装）
+          infra01 topology（一部 eBPF program）
+          infra16 clock（PTP daemon C 実装、chrony driver）
+          security15 threat（一部 syscall filter eBPF）
+      - artifact：CBMC .c harness + .xml + .json report
+      - 単一深耕：C / C++ は CBMC primary、Kani は Rust にのみ。
+
+■ assumption と外部 library
+
+  - cryptographic assumption（DDH / DLP / RSA hardness /
+    AES PRP / SHA-3 collision resistance / X25519 等）
+      - assumption.lock.yaml に文献 pointer + DOI + 軽減策
+        + revisit 期限を artifact 化
+      - cap v1=20 件、超過は CI fail
+      - 軽減策：assumption が崩れた場合の代替 cryptographic
+        construction（post-quantum 移行 path 含む）を
+        併記
+      - revisit 期限：annual review、quarterly NIST PQC
+        announcement watch
+
+  - external Lean library（mathlib 以外）
+      - 採用は mathlib 補完目的のみ、各 library は
+        mathlib_pin.lock.yaml の external_lib 段落に
+        revision pin + license + audit_status を artifact
+        化。例：cryptolib / Mathlib4_Crypto extension /
+        formal-ml 等は v1 cap 5 件まで。
+      - upstream pull は break-glass token + dual review。
+
+  - external TLA+ library
+      - DiskRaft / Paxos / RaftProof 等の既知 protocol
+        spec を tla_apalache_pin.lock.yaml の external_
+        lib 段落で revision pin + license + audit_status
+        を artifact 化。
+
+  - external Stainless / Dafny stdlib
+      - stainless / dafny に同梱される std library のみ
+        採用、third-party はゼロ。
+
+■ OSS lifecycle（14 軸との bind）
+
+  - 全 7 OSS は 14_OSSライフサイクル適合仕様 の
+    v1_l1plus_primary として登録、oss_inventory.lock.yaml
+    に entry 登録：
+        - 機能カテゴリ enum（temporal_logic /
+          state_machine / program_logic / proof_assistant
+          / runtime_modelcheck）が新設
+        - signal_source endpoint：各 OSS の release feed /
+          security advisory feed / mathlib revision feed
+        - EoL window：major version EoL の 365 day 以前に
+          migration drill 起動
+        - migration drill：major version migration を
+          v1_refinement_proof として演習（既存 proof が新
+          version で再 verify されることを CI で確認）
+  - mathlib pinning：Lean mathlib は monthly revision で
+    rolling、upstream pull は formal 軸の OSS lifecycle
+    drill として演習、break-glass + dual review 必須。
+
+■ 採用しない OSS（明示）
+
+  - Coq（Inria）：
+        - 理由：Lean 4 + mathlib に深耕、Coq は研究文献の
+          引用 only。Coq library を Lean に翻訳する場合は
+          mathlib 取り込みで吸収。
+  - Isabelle / HOL：
+        - 理由：Lean 4 + mathlib に深耕。
+  - F*（Microsoft Research）：
+        - 理由：Lean 4 + Stainless で cryptographic
+          program logic を cover。
+  - SPIN（Bell Labs）：
+        - 理由：TLA+ + Apalache に深耕。
+  - NuSMV：
+        - 理由：TLA+ + Apalache に深耕。
+  - UPPAAL：
+        - 理由：時相論理は TLA+ で cover、real-time
+          analysis は infra16 clock 軸の HLC で吸収。
+  - SPARK Pro（AdaCore 商用）：
+        - 理由：Stainless / Dafny / Kani で program logic
+          を cover、Ada は採用言語スタックに含まれない。
+  - 直接 SMT solver invocation（Z3 / CVC5 を直接 driver
+    で呼ぶ運用）：
+        - 理由：Stainless / Dafny / Kani / CBMC が SMT
+          solver を内包、direct invocation は意味論層を
+          スキップする。
+  - 「Why3」「Frama-C」「Verifast」など他の deductive
+    verification platform：
+        - 理由：Stainless / Dafny に深耕、横並びは持たない。
+
+■ 単一深耕の根拠
+
+  - 1 機能カテゴリ 1 OSS の規律により、proof artifact の
+    単一の真が崩れない。複数 platform で同等 proof を持つ
+    場合、どちらが「真」かが曖昧になり、回帰検出が困難に
+    なる。
+  - L1+ 深耕により、major version migration / mathlib
+    upstream pull / Apalache version migration を組織の
+    drill として演習可能。横並び OSS は drill cost を
+    倍々で増やす。
+  - 例外：runtime model check のみ言語別に Kani（Rust）/
+    CBMC（C/C++）の 2 OSS を持つ。これは「言語スタックが
+    Rust と C/C++ の両方を含む」ことに起因する不可避な
+    分岐であり、proof_class の単一性は保たれる（v1_
+    runtime_modelcheck_proof の cell 内で言語別に tool が
+    切り替わる）。

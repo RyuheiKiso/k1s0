@@ -1,0 +1,170 @@
+============================================================
+formal proof_artifact 方針
+============================================================
+
+■ 一文方針
+  - 全 proof artifact（TLA+ .tla / Apalache .json /
+    P .p / Stainless .stainless / Dafny .doo / Lean
+    .olean / Kani .json / CBMC .json）は build artifact
+    として generator から生成、cosign signed、Ceph RGW
+    Object Lock Compliance mode で retention 物理 delete
+    不可、proof_status.lock.yaml に fingerprint される
+    ことを物理 enforce する。
+
+■ artifact lifecycle
+  - 生成（generate）：
+      - 各軸 spec の formal_obligations 段落から generator
+        が proof_inventory.lock.yaml を build artifact と
+        して生成、手書き禁止。
+      - proof_inventory.lock.yaml は obligation の宣言的
+        catalog（theorem 名 + tool + statement_hash +
+        expected_certificate_hash）。
+      - proof artifact 本体（.tla / .scala / .dfy / .lean
+        / .rs / .c）は実装言語に応じて軸 owner が書く。
+        ただし定型 boilerplate（init / next / harness）は
+        generator が生成。
+  - 検証（verify）：
+      - Tekton Pipeline で TLA+ + Apalache / P / Stainless
+        / Dafny / Lean / Kani / CBMC を起動、verification
+        obligation を SMT solver で discharge。
+      - tool 起動 log（.json / .xml / .stdout）を artifact
+        として保存。
+      - certificate（verified state の fingerprint）を
+        proof_status.lock.yaml に登録。
+  - 署名（sign）：
+      - 全 proof artifact は cosign で署名。署名鍵は
+        OpenBao Transit + sign-on-demand、CI runner に key
+        material は物理に存在しない（10_security 14 と
+        整合）。
+      - 署名対象：proof_inventory.lock.yaml / proof_status
+        .lock.yaml / counter_example.lock.yaml / proof_
+        review.lock.yaml / 各 proof artifact 本体。
+  - 保存（archive）：
+      - Ceph RGW Object Lock Compliance mode で retention、
+        cap 10 year（cryptographic assumption の lifetime
+        / regulatory requirement に応じて）。
+      - retention 期限内 物理 delete 不可（10_security 14
+        / 09_data 14 と共有）。
+  - 検索（query）：
+      - proof_status.lock.yaml + proof_event subject
+        （ClickHouse SoR）が cross-axis ad-hoc 検索の
+        primary 経路。Perses で proof matrix UI（19 axis
+        × 5 proof_class の grid）を表示。
+
+■ proof_inventory.lock.yaml schema
+  - 各 entry：
+        - obligation_id: 軸内一意な ID（"InvBidiHandshake"
+          等）
+        - axis_id: 19 軸の ID（"07_transport" 等）
+        - proof_class: 5 class enum
+        - tool_kind: ["tlaplus_apalache" | "p_language" |
+          "stainless" | "dafny" | "lean" | "kani" | "cbmc"]
+        - statement_hash: obligation 文（自然言語 +
+          formal） の SHA-256 hash
+        - tool_version: 採用 tool の version pin（tla_
+          apalache_pin.lock.yaml / kani_cbmc_pin.lock.yaml
+          / mathlib_pin.lock.yaml の参照）
+        - expected_certificate_hash: 検証通過時の
+          certificate の expected hash（再現性検証用）
+        - artifact_pointer: proof artifact 本体の path
+          / git ref / cosign signature pointer
+        - cross_axis_links: 関連する他軸の obligation_id
+          list
+        - assumption_refs: assumption.lock.yaml の
+          assumption_id list（参照する cryptographic /
+          mathematical assumption）
+
+■ proof_status.lock.yaml schema
+  - build artifact、generator が proof execution の result
+    から生成。
+  - 各 entry：
+        - obligation_id: proof_inventory との bind
+        - status: ["verified" | "in_progress" | "failed"
+          | "accepted_with_assumption"]
+        - last_verified_at: ISO8601 timestamp
+        - certificate_hash: 検証通過時の certificate hash
+          （expected と一致しない場合 CI fail、再現性
+          violation）
+        - tool_version_used: 実際に使用した tool version
+        - reviewer_sigs: cosign signature 2 名分（dual
+          review、proof_review.lock.yaml と bind）
+        - cadence_days: cadence_class から導出
+        - cell_state: ["v1_baseline_verified" | "v1_
+          accepted_with_assumption" | "v1_unverified_
+          handled" | "v1_unverified_unhandled"]
+
+■ build artifact 化の規律
+  - 手書き proof_inventory / proof_status / counter_
+    example / proof_review は禁止。
+  - 全 .lock.yaml は generator output、generator の input
+    は軸 spec の formal_obligations 段落 + tool 実行 log
+    + reviewer cosign signature。
+  - 手書き drift = 0 を CI で物理 enforce（generator 再
+    実行で diff 0 を要求）。
+
+■ 再現性（reproducibility）
+  - 全 proof artifact は reproducible build：
+        - tool version + bound parameter + mathlib
+          revision + statement_hash の同一性で certificate
+          hash が同一であること（hermetic build）。
+        - 非 deterministic な proof tool（SMT timeout の
+          flake、Z3 random seed）は seed 固定 + retry policy
+          で deterministic 化。
+  - reproducibility violation（同一 input で certificate
+    hash が異なる）は CI fail、reviewer alert。
+
+■ retention 戦略
+  - cap 10 year を default、regulatory requirement に
+    応じて引き上げ：
+        - cryptographic proof（11 key、Lean Shamir 等）：
+          assumption の lifetime（NIST PQC migration
+          horizon の 2030+ を想定して 15 year）
+        - SLSA chain proof（security17）：build
+          provenance の SLSA L4 retention 規定に従う
+        - その他：10 year
+  - retention 期限切れ proof artifact は cold archive tier
+    （09_data archive lifecycle）に移行、object lock は
+    継続。
+
+■ 移行（major version migration）
+  - tool major version migration（TLA+ tools / Apalache /
+    Stainless / Dafny / Lean 4 / Kani / CBMC）は v1_
+    refinement_proof drill として演習：
+        - 旧 version で verified だった全 proof を新
+          version で再 verify。
+        - 再 verify が通らない proof は close_kind=fixed_
+          in_spec として spec 修正、close_due_at = 30 day。
+  - mathlib upstream pull は monthly drill：
+        - 旧 mathlib pin で verified だった全 Lean proof
+          を新 mathlib pin で再 verify。
+        - 失敗 proof は break-glass token + dual review で
+          spec 修正。
+
+■ 採用しない設計
+  - 手書き lock.yaml：禁止。
+  - cosign 署名なし artifact：禁止、CI / admission policy
+    で reject。
+  - Object Lock retention 解除：禁止、retention 期限内は
+    物理 delete 不可（10_security 14 と整合）。
+  - 非 deterministic proof tool の adhoc seed：禁止、seed
+    固定 + retry policy で deterministic 化。
+  - reproducibility violation の「軽微だから無視」：禁止、
+    必ず CI fail + reviewer alert。
+
+■ 提供する artifact
+  - proof_inventory.lock.yaml（build artifact）
+  - proof_status.lock.yaml（build artifact）
+  - counter_example.lock.yaml（build artifact）
+  - proof_review.lock.yaml（build artifact）
+  - assumption.lock.yaml（手書き＋ generator validate、
+    cap 20 件）
+  - mathlib_pin.lock.yaml（手書き＋ generator validate）
+  - tla_apalache_pin.lock.yaml（手書き＋ generator
+    validate）
+  - kani_cbmc_pin.lock.yaml（手書き＋ generator validate）
+  - proof_review_assignment.yaml（手書き、reviewer
+    pool 管理）
+  - proof_minutes_budget.yaml（手書き、四半期 budget）
+  - proof_event subject schema（09 観測 SoR、test_event
+    と同列）
+  - Perses proof matrix dashboard JSON（build artifact）

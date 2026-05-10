@@ -1,0 +1,581 @@
+============================================================
+形式検証適合仕様（v1）
+（00_軸登録適合仕様 における formal 軸 = 19 軸目候補）
+============================================================
+
+■ 一文定義
+  - 形式検証適合仕様は、5 proof_class × 5 phase の cross-
+    product として完全列挙される proof_loop catalog の各
+    cell に対し、5 enforcement orchestrator のいずれかを
+    必ず物理 pointer として bind し、全 18 軸（13 軸 +
+    meta + security + ops + build_provenance + clock_
+    integrity + test）+ 自軸の defense-in-depth 層 C / D /
+    E / F に bind 済みであることを 5 層 defense-in-depth
+    + 20 項 CI 不変条件 + 16 件 stress test pack で物理
+    enforce する meta-meta-axis である。同時に 19 axis ×
+    5 proof_class = 95 cell の proof_matrix.lock.yaml の
+    全 cell cell_state ∈ {v1_baseline_verified, v1_
+    accepted_with_assumption, v1_unverified_handled} を
+    1.0.0 ship blocker として 00 meta release_gate.lock
+    .yaml の AND-gate に物理入力する（v1_unverified_
+    handled は counter-example が close_kind=accepted_as_
+    bug + revisit 期限 + mitigation pointer 完備の状態を
+    表し、accepted 経路を構造化追跡することで unverified
+    容認と all-verified 必須の概念衝突を解消する）。
+
+■ 位置づけ
+  - 「02_採用OSS一覧」TLA+ + Apalache / P language /
+    Stainless / Dafny / Lean 4 + mathlib / Kani / CBMC /
+    cosign / OpenBao / Kyverno / Tekton / Argo CD / Argo
+    Workflows / Ceph RGW / ClickHouse / Perses、「03_
+    プラットフォーム構成」の formal 階層、「14_formal/
+    05_時相安全性方針」「14_formal/06_時相活性方針」「14_
+    formal/07_精緻化方針」「14_formal/08_プログラム正当性
+    方針」「14_formal/09_実行時モデル検査方針」「14_formal/
+    10_proof_artifact方針」「14_formal/11_counter_example
+    方針」「14_formal/12_proof_review方針」、および「05_
+    tier1/07/08/09/10/11/12/13/14/15」「06_tier2/32」「07_
+    tier3/39」「08_infra/15/16」「09_data/15」「10_
+    security/15/17」「11_ops/15」「12_client/15」「13_test
+    /15」が散在的に宣言する formal_obligations / proof
+    cadence / counter-example handling / assumption /
+    mathlib pinning / tool version pinning / reviewer
+    pool / break-glass policy の証明 lifecycle を、機械
+    可読な単一の真として一箇所に固定する仕様書。
+  - 「05_tier1/07/08/09/10/11/12/13/14/15」「06_tier2/32」
+    「07_tier3/39」「08_infra/15/16」「09_data/15」「10_
+    security/15/17」「11_ops/15」「12_client/15」「13_test
+    /15」と同型の枠組みを formal 軸に転写したもの。
+    dimension override 禁止 / dead spec 殺し / build
+    artifact 化 / 5 層 defense-in-depth の規律はそのまま
+    継承する。
+  - formal が物理的に唯一の数学的 enforcement facade と
+    して振る舞う。tier1 / tier2 / tier3 / infra / data /
+    security / ops / test から「どの proof_class を どの
+    phase でどう closure するか」を coding で flag する
+    のではなく、proof_class + phase + artifact_pointer +
+    reviewer_sigs を build artifact に注釈する形で宣言する。
+  - 18 軸 + 本軸 の 1 軸として、本仕様が 07 transport /
+    08 migration / 09 observability / 10 auth / 11 key /
+    12 schema / 13 SLO / 14 OSS lifecycle / 15 capacity /
+    32 data-tenant / 39 client-state / infra01 topology /
+    infra16 clock_integrity / data01 preservation /
+    security15 threat-model / security17 build_provenance
+    / client15 SDK distribution / ops15 loop / test15
+    verification の各軸の証明 lifecycle 局面を統合する。
+
+■ 設計原則
+  - proof_class は bundle である。
+      yaml に書く formal.proof.* attribute のうち、proof_
+      class 1 つの値が他 6 dimension（cadence_class /
+      artifact_class / orchestrator_preference / coverage_
+      weight / regression_corpus_class / reviewer_kind_
+      requirement）を一意に導出する。各軸 spec の作者 /
+      業務作者 / drill_owner が dimension を個別に override
+      する経路は持たない。
+  - dimension override は禁止する。
+      「v1_temporal_safety_proof のうち cadence_class を
+      緩めたい」要望は新 class を切ることで表現する。class
+      数の爆発は意味論の規律として受け入れる。
+  - dead spec を CI で殺す。
+      classes.yaml に登録された全 class、proof_matrix.lock
+      .yaml に列挙された全 cell、proof_inventory.yaml /
+      counter_example.lock.yaml / proof_review.lock.yaml /
+      assumption.lock.yaml に列挙された全 entry、proof_
+      regression_corpus に保存された全 reproducer は、
+      いずれも参照されなくなった時点で CI fail とする。
+      service のうち proof ownership_table.lock.yaml に
+      4 軸 entry が無いものも CI fail（proof ownership 未
+      宣言の deploy を deny by default）。
+  - 5 種類 enforcement orchestrator を全 proof_class に
+    必須化する。
+      tlaplus_apalache_pipeline / p_pgo_pipeline /
+      stainless_dafny_pipeline / lean_mathlib_pipeline /
+      kani_cbmc_pipeline の 5 orchestrator は、各 class が
+      必要とする層を宣言する。同一 proof は複数 orchestrator
+      に分散しないが、同一 axis では複数 class が複数
+      orchestrator を併用する。
+  - proof cadence を物理 property とする。
+      「cell の cadence_days 以内に必ず該当 class の proof
+      を再 verify し、宣言された certificate hash で
+      verified する」を Tekton Pipeline + reproducibility
+      checker daemon で必ず検証する。13 の v1_proof_
+      coverage_compliance / v1_proof_freshness_compliance
+      / v1_counter_example_closure_compliance / v1_proof_
+      review_dual_signoff_compliance が cluster_label 付き
+      metric で隣接 cluster を観測し、cell verified 破綻を
+      即時 alert + admission block に流す。
+  - defense-in-depth は 5 層で構成する。
+      層 A : compile 時（PR の proof_class 注釈必須、
+              proof_matrix.lock.yaml schema 通過）
+      層 B : lint（catalog の coverage / cadence /
+              ownership / reproducibility / reviewer
+              dual-signoff）
+      層 C : drill chaos test（Tekton + Argo Workflows
+              + Apalache + TLC + Stainless + Dafny +
+              Lean + Kani + CBMC）
+      層 D : runtime（5 orchestrator の実 deploy）
+      層 E : physical（cosign signature / Kyverno
+              admission webhook / Ceph RGW Object Lock
+              Compliance mode / proof_event hash chain /
+              dual reviewer cosign の物理層強制）
+      任意の単層が破れても他層が必ず止める。物理
+      enforcement は最終 safety net。
+
+■ 軸 class（5 class、proof_class を primary key として採用）
+
+  - v1_temporal_safety_proof：
+        - 軸ごとの「TLA+ + Apalache の symbolic model
+          checker で safety property を証明」、artifact は
+          TLA+ .tla + Apalache .json trace
+        - cadence_class：v1_per_axis_change_or_weekly
+          （7 day）
+        - artifact_class：v1_apalache_certificate
+        - orchestrator_preference：tlaplus_apalache_pipeline
+        - coverage_weight：1.5
+        - regression_corpus_class：v1_safety_trace_corpus
+        - reviewer_kind_requirement：human + （optional
+          LLM）、distributed system specialist
+        - 対応する drill_class：apalache_invariant_check_
+          drill / tlc_exhaustive_enum_drill
+        - primary defense_layers：tlaplus_apalache_pipeline
+          / proof_gate_kyverno
+        - 最低限の cross-axis：07 / 08 / 10 / 11 / 39 /
+          infra01 / infra16 / ops15
+        - active cell 数（v1 cap）：19（全軸）
+
+  - v1_temporal_liveness_proof：
+        - 軸ごとの「TLA+ + Apalache で liveness property
+          を fairness 仮定下に証明」、artifact は TLA+
+          .tla + Apalache liveness check log
+        - cadence_class：v1_per_axis_change_or_biweekly
+          （14 day）
+        - artifact_class：v1_apalache_liveness_certificate
+        - orchestrator_preference：tlaplus_apalache_pipeline
+        - coverage_weight：1.2
+        - regression_corpus_class：v1_liveness_lasso_corpus
+        - reviewer_kind_requirement：human + （optional
+          LLM）、distributed system specialist
+        - 対応する drill_class：apalache_liveness_drill /
+          fairness_assumption_review_drill
+        - primary defense_layers：tlaplus_apalache_pipeline
+          / proof_gate_kyverno
+        - 最低限の cross-axis：08 / 10 / 11 / 39 /
+          infra01 / data01 / ops15
+        - active cell 数（v1 cap）：12（liveness が意味を
+          持つ軸のみ）
+
+  - v1_refinement_proof：
+        - 軸ごとの「上位 spec が下位実装を refine する
+          ことを TLA+ refinement mapping または Stainless
+          refinement type で証明」、artifact は TLA+
+          refinement spec / Stainless refinement type
+          certificate
+        - cadence_class：v1_per_pair_change_or_biweekly
+          （14 day）
+        - artifact_class：v1_refinement_certificate
+        - orchestrator_preference：tlaplus_apalache_pipeline
+          / stainless_dafny_pipeline
+        - coverage_weight：1.3
+        - regression_corpus_class：v1_refinement_pair_
+          corpus
+        - reviewer_kind_requirement：human + （optional
+          LLM）、proof assistant specialist
+        - 対応する drill_class：refinement_check_drill /
+          spec_implementation_drift_drill
+        - primary defense_layers：tlaplus_apalache_pipeline
+          / stainless_dafny_pipeline / proof_gate_kyverno
+        - 最低限の cross-axis：08 / 11 / 12 / client15 /
+          security17
+        - active cell 数（v1 cap）：35 pair（軸ごとに
+          1〜3 pair、合計 35 pair）
+
+  - v1_program_correctness_proof：
+        - 軸ごとの「実装コードに Hoare-style pre/post-
+          condition / refinement type / loop invariant /
+          termination を Stainless / Dafny / Lean で
+          証明」、artifact は Stainless .stainless / Dafny
+          .doo / Lean .olean
+        - cadence_class：v1_per_function_change_or_weekly
+          （7 day）
+        - artifact_class：v1_program_correctness_
+          certificate
+        - orchestrator_preference：stainless_dafny_pipeline
+          / lean_mathlib_pipeline
+        - coverage_weight：1.3
+        - regression_corpus_class：v1_function_contract_
+          corpus
+        - reviewer_kind_requirement：human + （optional
+          LLM）、cryptographic proof は crypto-domain
+          expert 必須
+        - 対応する drill_class：function_contract_drill /
+          loop_invariant_drill / termination_drill /
+          cryptographic_assumption_drill
+        - primary defense_layers：stainless_dafny_pipeline
+          / lean_mathlib_pipeline / proof_gate_kyverno
+        - 最低限の cross-axis：09 / 11 / 12 / 13 / 15 /
+          32 / 39 / data01 / infra16 / ops15
+        - active cell 数（v1 cap）：19（全軸）
+
+  - v1_runtime_modelcheck_proof：
+        - 軸ごとの「実装コード（Rust / C / C++）に
+          bounded model checking を Kani / CBMC で起動」、
+          artifact は Kani .json / CBMC .xml + .json
+        - cadence_class：v1_per_module_change_or_weekly
+          （7 day）
+        - artifact_class：v1_runtime_modelcheck_certificate
+        - orchestrator_preference：kani_cbmc_pipeline /
+          proof_gate_kyverno
+        - coverage_weight：1.0
+        - regression_corpus_class：v1_runtime_input_corpus
+        - reviewer_kind_requirement：human + （optional
+          LLM）、language specialist（Rust / C / C++）
+        - 対応する drill_class：kani_module_check_drill /
+          cbmc_module_check_drill / bound_parameter_review
+          _drill
+        - primary defense_layers：kani_cbmc_pipeline /
+          proof_gate_kyverno
+        - 最低限の cross-axis：07 / 10 / 11 / 12 / 15 /
+          32 / infra01 / infra16
+        - active cell 数（v1 cap）：14（Rust / C / C++
+          実装が存在する軸のみ）
+
+■ 5 enforcement orchestrator
+
+  - tlaplus_apalache_pipeline：
+        - 担当 class：v1_temporal_safety_proof（primary）
+          / v1_temporal_liveness_proof（primary）/ v1_
+          refinement_proof（co-primary）
+        - 主要 OSS：TLA+ tools（MIT）+ Apalache（Apache
+          2.0）+ TLC（exhaustive enum 補助）
+        - 起動 surface：Tekton Pipeline `formal-tla-
+          apalache-run`、PR trigger + cron（cadence 内
+          再 run）
+        - 出力 artifact：TLA+ .tla / Apalache .json
+          trace / TLC log / certificate hash
+        - bound parameter pin：tla_apalache_pin.lock.yaml
+        - 対応 axis：07 / 08 / 10 / 11 / 39 / infra01 /
+          infra16 / ops15
+
+  - p_pgo_pipeline：
+        - 担当 class：v1_temporal_safety_proof（補助）/
+          v1_refinement_proof（補助）
+        - 主要 OSS：P language（MIT）+ P checker + PGo
+          （TLA+ への lowering）
+        - 起動 surface：Tekton Pipeline `formal-p-checker-
+          run`、PR trigger + cron
+        - 出力 artifact：P .p spec / P checker output /
+          generated TLA+ + C# harness
+        - 対応 axis：07 / 08 / 10 / ops15
+
+  - stainless_dafny_pipeline：
+        - 担当 class：v1_program_correctness_proof
+          （primary for Scala / non-Rust 系）/ v1_
+          refinement_proof（co-primary with TLA+）
+        - 主要 OSS：Stainless（Apache 2.0、Scala）+ Dafny
+          （MIT、multi-lang）
+        - 起動 surface：Tekton Pipeline `formal-stainless-
+          dafny-run`、PR trigger + cron
+        - 出力 artifact：Stainless .stainless / Dafny .doo
+          / verification log
+        - 対応 axis：09 / 12 / 13 / 14 / 15 / 32 / 39 /
+          security15 / security17 / client15 / ops15 /
+          test15
+
+  - lean_mathlib_pipeline：
+        - 担当 class：v1_program_correctness_proof
+          （primary for math + crypto）
+        - 主要 OSS：Lean 4 + mathlib（Apache 2.0）
+        - 起動 surface：Tekton Pipeline `formal-lean-
+          mathlib-run`、PR trigger + cron + monthly
+          mathlib upstream pull drill
+        - 出力 artifact：Lean .lean + .olean + mathlib
+          revision pin
+        - 対応 axis：11 / data01 / infra16 / security15 /
+          security17 / client15
+
+  - kani_cbmc_pipeline：
+        - 担当 class：v1_runtime_modelcheck_proof（primary）
+        - 主要 OSS：Kani（Apache 2.0 / MIT、Rust）+ CBMC
+          （BSD-4-Clause、C / C++）
+        - 起動 surface：Tekton Pipeline `formal-kani-cbmc-
+          run`、PR trigger + cron + quarterly bound
+          parameter review drill
+        - 出力 artifact：Kani .json / CBMC .xml + .json /
+          bound parameter log
+        - 対応 axis：07 / 10 / 11 / 12 / 15 / 32 /
+          infra01 / infra16 / security15 / security17 /
+          client15 / test15 / ops15
+
+  - 共通 orchestrator：proof_gate_kyverno
+        - 全 5 orchestrator の合流点として、proof_status
+          .lock.yaml の cell 状態を Kyverno admission
+          policy 入力に bind、deploy 時に物理 enforce
+
+■ 単一の真（5 ファイル）
+  - formal_classes.yaml（手書き、5 class 定義）
+  - proof_inventory.lock.yaml（build artifact、obligation
+    catalog）
+  - proof_status.lock.yaml（build artifact、各 cell の
+    verified state）
+  - counter_example.lock.yaml（build artifact、反例
+    catalog + close_kind）
+  - proof_review.lock.yaml（build artifact、dual
+    signoff）
+
+  補助：
+  - assumption.lock.yaml（手書き＋ generator validate、
+    cap 20 件）
+  - mathlib_pin.lock.yaml（手書き＋ generator validate）
+  - tla_apalache_pin.lock.yaml（手書き＋ generator
+    validate）
+  - kani_cbmc_pin.lock.yaml（手書き＋ generator validate）
+  - proof_review_assignment.yaml（手書き、reviewer pool）
+  - proof_minutes_budget.yaml（手書き、四半期 budget）
+  - ownership_table.lock.yaml（4 軸 ownership、test 14
+    と共有）
+
+■ 5 phase（全 cell が phase closure を要求）
+  - specify：軸 spec の formal_obligations 段落で
+    obligation を theorem 名 + 自然言語 + tool 候補で
+    宣言
+  - model：tool に応じて TLA+ / P / Stainless / Dafny /
+    Lean / Kani / CBMC の spec / harness を書く
+  - prove：Tekton Pipeline で tool 起動、verification
+    obligation を SMT / model checker で discharge
+  - review：dual reviewer cosign signoff（reviewer のうち
+    1 名以上は人間、cryptographic proof は crypto-domain
+    expert）
+  - archive：proof artifact + certificate hash + reviewer
+    sigs を proof_status.lock.yaml に fingerprint、Ceph
+    RGW Object Lock Compliance mode で retention
+
+  各 cell の phase_closure_state ∈ {v1_complete, v1_in_
+  progress_handled, v1_blocked} の 3 値、v1_blocked が 1
+  cell でもあれば 1.0.0 ship blocker。
+
+■ 5 層 defense-in-depth（structural spec 全体）
+  - 層 A : compile 時（type check / yaml schema）
+  - 層 B : lint（policy / 規約 check）
+  - 層 C : drill chaos test
+  - 層 D : runtime（admission webhook + drill）
+  - 層 E : 物理（cosign / Object Lock / hash chain /
+            dual reviewer signature）
+  - （層 F : 数学的 enforcement、本軸自身が提供）
+
+■ CI 不変条件（20 項）
+  整合 1 ：proof_inventory.lock.yaml の 95 cell 完備、
+            obligation_id / axis_id / proof_class /
+            tool_kind / statement_hash / expected_
+            certificate_hash 完備
+  整合 2 ：proof_status.lock.yaml の cell.last_verified_
+            at が cadence_days 以内
+  整合 3 ：counter_example.lock.yaml の close_due_at
+            越え entry ゼロ（high=14d / medium=30d /
+            low=90d）
+  整合 4 ：high severity の open counter-example ゼロ
+  整合 5 ：accepted_as_bug 数 cap=10 件以内
+  整合 6 ：assumption.lock.yaml の cap=20 件以内、文献
+            pointer + DOI + 軽減策 + revisit 期限完備
+  整合 7 ：proof_review.lock.yaml の全 obligation に
+            dual_signoff_complete=true 完備
+  整合 8 ：reviewer のうち 1 名以上が human kind、
+            cryptographic proof は crypto-domain expert
+            含む
+  整合 9 ：PR author 自身が reviewer に含まれない、
+            cooldown 違反（90 day 内連続 review）ゼロ
+  整合 10：mathlib_pin / tla_apalache_pin / kani_cbmc_
+            pin が pin 済み、major version migration
+            drill cadence 内（6 month）、mathlib monthly
+            pull cadence 内
+  整合 11：bound parameter 引き下げ PR が dual review
+            済み
+  整合 12：generator output と手書き drift = 0
+  整合 13：cosign signed proof artifact / SBOM attached
+            の cluster-wide enforcement（runtime drift =
+            0）
+  整合 14：proof_event の hash chain 日次 verify green、
+            divergence 履歴ゼロ
+  整合 15：admission policy 全件が build artifact から
+            生成、手書き policy ゼロ
+  整合 16：18 軸 + meta（00）+ security 軸 + ops 軸 +
+            test 軸 + 本軸 の各 spec の build artifact と
+            本層の proof_inventory / proof_status /
+            counter_example が双方向 lock
+  整合 17：reproducibility check 日次 green、certificate
+            hash divergence ゼロ
+  整合 18：test/15 の v1_property_axiom seed pool drift
+            ゼロ（counter-example で発見された input が
+            test corpus に転写）
+  整合 19：13 SLO の v1_proof_coverage_compliance / v1_
+            proof_freshness_compliance / v1_counter_
+            example_closure_compliance / v1_proof_review
+            _dual_signoff_compliance の burn rate 越え
+            なし
+  整合 20：termination_exempt annotation 数 cap=10 件
+            以内
+
+■ stress test pack（16 件、製造業 pack 規律と同型）
+  - pack01: tool major version migration（TLA+ /
+    Apalache / Stainless / Dafny / Lean 4 / Kani / CBMC
+    の major version up を candidate 投入、全 proof 再
+    verify、failed cell の close_kind triage）
+  - pack02: mathlib monthly upstream pull drill
+    （mathlib new revision を candidate に試行、全 Lean
+    proof 再 verify、failed proof の close_kind triage）
+  - pack03: counter-example storm（複数軸で同時に
+    counter-example detect、triage queue の overflow
+    handling）
+  - pack04: high severity counter-example 発火（global
+    freeze 発動、production deploy 全 block の動作確認）
+  - pack05: reviewer pool drain（domain expert 全員が
+    cooldown / vacation で reviewer pool 枯渇、break-
+    glass 経路の動作確認）
+  - pack06: LLM 単独 sign-off attempt（admission policy
+    で reject されること確認）
+  - pack07: PR author self-review attempt（admission
+    policy で reject されること確認）
+  - pack08: cosign signing key compromise（compromised
+    key で sign された proof artifact の reject、key
+    rotation drill）
+  - pack09: Object Lock retention 解除 attempt（Compliance
+    mode で物理 delete 不可確認）
+  - pack10: proof_event hash chain divergence 検出（chain
+    divergence 時の global freeze 動作確認）
+  - pack11: bound parameter 引き下げ without review
+    attempt（admission policy で reject 確認）
+  - pack12: assumption.lock.yaml cap=20 件越え attempt
+    （CI fail 確認）
+  - pack13: accepted_as_bug cap=10 件越え attempt（CI
+    fail 確認）
+  - pack14: termination_exempt annotation cap=10 件越え
+    attempt（CI fail 確認）
+  - pack15: reproducibility violation（同一 input で
+    certificate hash 異なる）detect の動作確認
+  - pack16: cross-axis bidirectional lock violation
+    （test/15 の seed pool drift detect）
+
+■ v2 拡張ルール
+  - v1 proof_class 数固定（5）。
+  - v2 で +5 して 10 proof_class（候補：v1_concurrent_
+    safety_proof（concurrent execution の safety、Loom
+    primary）/ v1_zero_knowledge_proof（zk-SNARK / Halo2
+    の formal verification、cryptographic）/ v1_quantum_
+    resistance_proof（PQC 移行の formal proof）/ v1_
+    realtime_bound_proof（real-time deadline 付き
+    liveness）/ v1_information_flow_lattice_proof
+    （information flow logic の専用 class））。
+  - axis 拡張：00 meta cap v2=25 への移行で +5 軸。
+  - proof_obligation の追加：purely additive、既存
+    obligation の意味変更は新 theorem 名で表現。
+  - dimension override 禁止維持。
+  - reviewer pool の human / LLM 比率は維持（LLM 単独
+    禁止）。
+
+■ cross-axis 接続（00 registry.yaml で双方向 lock）
+  - formal ↔ 07 transport：bidi handshake / backoff /
+    circuit-breaker の TLA+ + Kani co-proof
+  - formal ↔ 08 migration：4 phase dual-write の TLA+
+    refinement + linearizability proof
+  - formal ↔ 09 observability：SemConv type invariant
+    Dafny + span causality TLA+
+  - formal ↔ 10 auth：token state machine TLA+ + JWT
+    decoder Kani
+  - formal ↔ 11 key：rotation TLA+ + Shamir Lean +
+    envelope Kani
+  - formal ↔ 12 schema：forward / backward refinement
+    TLA+ + buf-breaking Stainless / Kani
+  - formal ↔ 13 SLO：rate limiter monotonicity Stainless
+    / Dafny + burn rate TLA+。本軸の SLI 4 つを 13 に
+    登録（双方向 lock）。
+  - formal ↔ 14 OSS-lifecycle：tool / mathlib pinning の
+    L1+ uniqueness Dafny。
+  - formal ↔ 15 capacity：quota fairness / counter
+    overflow Stainless / Kani。
+  - formal ↔ 32 data-tenant：RLS non-interference
+    Stainless（information flow）+ query rewriter Kani。
+  - formal ↔ 39 client：4-state machine TLA+ +
+    reconcile termination Stainless。
+  - formal ↔ infra01 topology：failover liveness TLA+ +
+    split-brain safety + leader election Stainless。
+  - formal ↔ infra16 clock：HLC monotonicity Lean +
+    causality TLA+ + PTP daemon CBMC（双方向 lock：
+    formal の HLC invariant 違反は infra16 alert 発火）。
+  - formal ↔ data01 preservation：backup-restore lossless
+    Stainless + crypto-erase indistinguishability Lean。
+  - formal ↔ security15 threat：threat 1 件に対し
+    invariant 否定 theorem 1:1 bind（双方向 lock）。
+  - formal ↔ security17 build_provenance：SLSA chain
+    monotonicity Dafny + attestation DAG cycle-freeness。
+  - formal ↔ client15 SDK distribution：5 distribution_
+    class adapter equivalence Stainless / Lean。
+  - formal ↔ ops15 loop：5 signal_class runbook
+    idempotency / progress / safety の 3 種 proof。
+  - formal ↔ test15 verification：v1_property_axiom 全
+    cell が双方向 lock、test seed pool が formal
+    instantiation、formal proof_obligation が test
+    universal closure。
+  - formal ↔ 00 meta：release_gate.lock.yaml の AND-gate
+    に proof_status.lock.yaml の `all_critical_verified`
+    + counter_example.lock.yaml の `no_open_above_
+    severity_low` + proof_review.lock.yaml の `dual_
+    review_completeness=100%` を入力。
+
+■ 1.0.0 ship blocker
+  - 5 proof_class 全てに対し全 19 軸の cross-axis proof
+    closure（5 phase 全 verified）
+  - proof_matrix.lock.yaml の全 cell が cell_state ∈
+    {v1_baseline_verified, v1_accepted_with_assumption,
+    v1_unverified_handled} かつ unverified_unhandled が
+    ゼロ
+  - counter-example quarterly closure（high severity 0、
+    medium severity decreasing monotonic）
+  - proof reviewer dual sign-off 100%
+  - assumption.lock.yaml の cap=20 件以内 + 全 entry に
+    軽減策 + revisit 期限完備
+  - mathlib_pin / tool version pin の major version
+    migration drill green 維持
+  - reproducibility check 日次 green
+  - 18 軸との双方向 lock 整合（drift ゼロ）
+  - 13 SLO 4 SLI green 維持
+
+■ 採用しない設計（spec レベル）
+  - 商用 proof assistant / model checker：採用しない
+    （03_非提供スコープ）。
+  - 直接 SMT solver invocation：採用しない（Stainless /
+    Dafny / Kani / CBMC が SMT solver を内包）。
+  - 文章 only proof：禁止、必ず machine-checkable
+    artifact。
+  - LLM 単独 sign-off：禁止、最大 1 名 LLM + 必ず人間 1
+    名以上。
+  - 単一 reviewer sign-off：禁止、dual 必須。
+  - PR author self-review：禁止。
+  - 段階的 release：禁止、1.0.0 で全 cell verified or
+    accepted_with_assumption。
+  - cosign 署名なし artifact：禁止、admission policy
+    reject。
+  - mathlib pin なし運用：禁止。
+  - bound parameter 引き下げ without review：禁止。
+  - 「文章で説明」の verification：禁止、必ず lock.yaml
+    + dashboard。
+  - reproducibility violation 容認：禁止、certificate
+    hash 不一致は CI fail。
+
+■ 19 軸 + meta 中の位置（再掲）
+  - formal は 19 軸目の候補として 00_軸登録適合仕様 の
+    meta-registry に entry 追加される（cap v1=20 中 19 /
+    20、残 1 余地）。
+  - 00 meta（軸登録）の release_gate.lock.yaml AND-gate
+    に formal の proof_status.lock.yaml の `all_critical
+    _verified` + counter_example.lock.yaml の `no_open_
+    above_severity_low` + proof_review.lock.yaml の
+    `dual_review_completeness=100%` が入力される。
+  - formal は test/15 と同型だが直交し、test の v1_
+    property_axiom 上層に formal の v1_temporal_safety_
+    proof / v1_program_correctness_proof が居る meta-
+    meta-layer。
+  - 1.0.0 完璧 release：5 proof_class 全てに対し全 19 軸
+    の cross-axis proof closure、proof matrix 全 cell
+    verified or accepted_with_assumption、counter-
+    example quarterly closure、proof reviewer dual sign-
+    off 100% を ship blocker とする。

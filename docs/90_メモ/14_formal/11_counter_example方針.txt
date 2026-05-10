@@ -1,0 +1,168 @@
+============================================================
+formal counter_example 方針
+============================================================
+
+■ 一文方針
+  - model checker（Apalache / TLC / P / Kani / CBMC）が
+    検出した counter-example は必ず counter_example.lock
+    .yaml に entry 化、close_kind ∈ {fixed_in_code, fixed_
+    in_spec, accepted_as_bug, scope_narrowed} のいずれか
+    で severity に応じた close_due_at 以内に closure、
+    closure 状況は admission policy で物理 enforce する。
+
+■ counter-example の意味論
+  - safety violation：reachable state で invariant が破ら
+    れる trace（state sequence + variable assignment）。
+  - liveness violation：fair execution path 上に lasso
+    cycle（無限 loop で goal state に到達不可）。
+  - refinement violation：S_low の transition が S_high の
+    transition に mapped できない反例。
+  - program correctness violation：Hoare triple `{P} f
+    {Q}` の post-condition が破られる input。
+  - runtime modelcheck violation：bounded depth で memory
+    safety / overflow / panic が起きる input + trace。
+
+■ counter_example.lock.yaml schema
+  - 各 entry：
+        - counter_example_id: 一意 ID（軸 + obligation +
+          discovery_at の triple から導出）
+        - axis_id: 19 軸の ID
+        - obligation_id: proof_inventory との bind
+        - proof_class: 5 class enum
+        - discovery_at: ISO8601 timestamp
+        - tool_kind / tool_version: 検出した tool
+        - severity: ["high" | "medium" | "low"]
+        - trace_pointer: trace artifact の path / git ref
+        - reproducer_pointer: 再現可能な spec / harness の
+          path
+        - close_kind: ["fixed_in_code" | "fixed_in_spec"
+          | "accepted_as_bug" | "scope_narrowed" |
+          "open"]
+        - close_due_at: ISO8601 timestamp（high=14d /
+          medium=30d / low=90d、open は close_kind が
+          確定するまで）
+        - close_at: ISO8601 timestamp（closed のみ）
+        - close_actor: cosign signature
+        - mitigation_pointer: 軽減策（runbook /
+          monitoring / alert）の path
+        - revisit_at: accepted_as_bug の場合の revisit
+          期限
+        - cross_axis_links: 関連する他軸の counter_
+          example_id list
+
+■ severity の判定基準
+  - high：
+        - safety property の違反（"bad thing happens"）
+          で、production で実際に起きうる（reachable
+          state、bound 内）
+        - cryptographic invariant の違反（11 key、
+          security15 関連）
+        - tenant 越境（32 RLS、information flow）
+        - data loss / corruption（data01）
+        - close_due_at = 14 day
+  - medium：
+        - safety / liveness の違反だが、bound parameter を
+          引き上げないと到達しない
+        - 補助 invariant の違反（critical 軸の non-
+          critical obligation）
+        - close_due_at = 30 day
+  - low：
+        - liveness の特殊 fairness 仮定下でのみ violation
+        - 仕様の vacuous truth による誤検出に近い
+        - close_due_at = 90 day
+
+■ close_kind の意味論
+  - fixed_in_code：
+        - 実装側を修正、新 statement_hash で再 verify、
+          counter-example が再現しないことを確認
+        - PR に regression_corpus_added 注釈必須（test/15
+          軸の regression corpus に転写）
+  - fixed_in_spec：
+        - spec / model 側を修正、新 statement_hash で再
+          verify
+        - spec 変更は軸 spec の changelog 段落に記載、
+          dual review 必須
+  - accepted_as_bug：
+        - known issue として登録、mitigation を別軸
+          （runbook / monitoring / alert）で吸収
+        - revisit 期限を artifact_lock（最大 1 year）
+        - revisit 期限到達時に再評価、close_kind
+          downgrade（fixed_in_code / fixed_in_spec へ）
+        - cap：v1=10 件以内（assumption.lock.yaml の
+          cap=20 件とは別）、超過は CI fail
+  - scope_narrowed：
+        - obligation の scope を絞り、絞った範囲で再
+          verify
+        - scope_narrow の log を artifact_lock、軸 spec の
+          formal_obligations 段落に scope 縮小理由を記載
+
+■ closure 物理 enforce
+  - 14 強制機構の Kyverno admission policy で：
+        - require-counter-example-closed-in-due：
+          counter_example.lock.yaml の close_due_at 越え
+          entry が 1 件でもあれば関連 service deploy
+          block
+        - require-high-severity-zero：high severity の
+          open entry が 1 件でもあれば全 service deploy
+          block（global freeze）
+        - require-accepted-as-bug-cap：accepted_as_bug
+          数 cap=10 件以内
+  - cron-based audit：daily で counter_example.lock.yaml
+    の状態を audit_event subject に emit、close_due_at
+    breach の事前 alert（7 day before）。
+
+■ counter-example trace の扱い
+  - trace は machine-readable 形式（Apalache .json / P
+    .json / Kani .json / CBMC .xml）で artifact として
+    保存、Ceph RGW Object Lock Compliance mode で retention。
+  - human-readable 形式（trace を可視化した sequence
+    diagram、variable timeline）も併設、Perses dashboard
+    で表示。
+  - reproducer：trace から bounded harness を自動生成、
+    close 後の regression check に利用。
+
+■ test 軸との bind
+  - counter-example で発見された input は test/15 軸の
+    regression corpus に物理転写、property test の seed
+    pool に追加：
+        - close_kind=fixed_in_code の場合、修正後の実装が
+          counter-example input で必ず正常動作することを
+          property test で継続 check（regression corpus
+          として永久保存）
+        - close_kind=fixed_in_spec の場合、spec 修正後の
+          formal proof で counter-example が解消されることを
+          確認、property test seed として追加
+  - test/15 の v1_property_axiom cell の seed pool drift
+    は CI fail。
+
+■ 採用しない設計
+  - counter-example の「軽微だから無視」：禁止、必ず 4
+    close_kind のいずれかで closure。
+  - close_due_at の延長：禁止、延長は新 close_kind に
+    切り替えることでのみ表現可能。
+  - accepted_as_bug の cap 越え：禁止、cap=10 件以内。
+  - 文章のみで「修正完了」：禁止、必ず再 verify の
+    certificate hash 一致を CI で物理 enforce。
+  - counter-example trace の deletion：禁止、retention
+    cap 内は Object Lock 物理 delete 不可。
+
+■ workflow
+  - detect：tool 起動で counter-example 検出 → counter_
+    example.lock.yaml に open entry 自動追加（generator
+    が tool log から抽出）
+  - triage：drill_owner が severity 判定 + close_kind
+    候補判断、24 hour 以内に severity 決定（high
+    severity は ChatOps + page）
+  - close：close_kind に応じた action：
+        - fixed_in_code：実装修正 PR + 再 verify + test/15
+          regression corpus 追加
+        - fixed_in_spec：spec 修正 PR + dual review + 再
+          verify
+        - accepted_as_bug：mitigation pointer + revisit
+          期限の artifact_lock
+        - scope_narrowed：scope_narrow log + 軸 spec の
+          formal_obligations 段落更新
+  - verify_close：closure 後に再 verify、certificate
+    hash が新 expected と一致することを CI で確認
+  - archive：closed entry を proof_event subject
+    （ClickHouse SoR）に emit、Object Lock で retention
