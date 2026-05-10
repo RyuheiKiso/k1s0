@@ -91,16 +91,44 @@ security 境界制御方針
         対向：v1_supply_chain
         4 mitigation：
             authn：build runner identity（GitHub OIDC）
+                   + runner image self-attestation
+                   （runner image 自身が Cosign signed +
+                    SBOM attached + Rekor inclusion proof、
+                    10_security/17 artifact_inventory.lock
+                    .yaml.runner_image_self_attestation_uri
+                    と双方向 lock）
             authz：build job が触れる secret は OpenBao
                    short-lived token のみ、long-lived
-                   secret 不可
+                   secret 不可。signing key は per-job
+                   ephemeral（24h rotation、HSM PKCS#11
+                   transit、11_鍵管理 build_provenance_
+                   signing enforcement_point と双方向 lock）
             transport：build artifact upload は cosign
-                       sign 後 Harbor 経由のみ
-            audit：in-toto / witness attestation +
-                   Tekton Chains
+                       sign 後 Harbor 経由のみ。Internal
+                       mirror（Athens / Verdaccio / Harbor
+                       proxy / cargo registry / NuGet feed）
+                       のみ通過、build container は `RUN
+                       --network=none`（Buildkit）+ Bazel
+                       sandbox + Nix sandbox の三重 sandbox
+                       で Internet 直接 fetch を物理不可能化
+            audit：in-toto / witness attestation + Tekton
+                   Chains が in-toto/slsaprovenance/v1.0
+                   predicate を emit、tool versions / signed
+                   git commit hash（Gitsign 経由）/ reviewer
+                   attest を schema 必須化。10_security/17
+                   tekton_chains_attestor emit と双方向
+                   lock。
         物理層：build runner = ephemeral pod（Tekton /
                 GitHub Actions self-hosted ephemeral）、
-                state 残存ゼロ
+                state 残存ゼロ。runner image は distroless
+                / chainguard を base に Cosign signed +
+                SBOM attached + Rekor inclusion proof、
+                Linux user namespace + seccomp + cgroup v2
+                の三重 isolation を kernel 物理層で強制。
+                kube-bench / docker-bench で CIS Kubernetes
+                / Docker Benchmark + NSA/CISA Kubernetes
+                Hardening を runner cluster + build daemon
+                で物理検出、違反は admission block。
 
 ■ zero-trust 原則
   - 全 surface で「default deny」+ 「explicit allow」のみ。

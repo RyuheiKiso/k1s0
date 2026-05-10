@@ -104,6 +104,23 @@ infra 採用 OSS（infra 層 subset）
   - 全 image は Harbor に push、Cosign で signed、Trivy +
     Grype + Syft が CI 必須。signed でない image は Kyverno
     admission policy で reject。
+  - build provenance（hermetic build / SLSA L3+ baseline /
+    SLSA L4 target / 多重 builder consensus / runner image
+    self-attestation）の責務は 10_security/17_build_provenance
+    適合仕様 が単一所有。本層は infra 層 substrate（Buildkit
+    / Tekton / GitHub Actions self-hosted runner / Harbor /
+    Cosign / Kyverno verifyImages）の adoption を担当する位置。
+  - **Bazel** (Apache 2.0) / **Nix** (LGPL-2.1, process_boundary
+    のみ) / **Witness** (Apache 2.0) / **Gitsign** (Apache 2.0)
+    / **Buildkit** (Apache 2.0) / **Tekton Chains** (Apache 2.0,
+    Tekton sub-component) を v1_l1plus_primary として採用、
+    詳細は 02_採用OSS一覧 [6] サプライチェーン / セキュリティ
+    + 14_OSSライフサイクル適合仕様 oss_inventory.lock.yaml +
+    10_security/17_build_provenance適合仕様 を参照。
+  - **kube-bench** (Apache 2.0) / **docker-bench-security**
+    (Apache 2.0) を CIS Kubernetes / Docker Benchmark + NSA/CISA
+    Hardening verifier として採用、runner cluster + build daemon
+    での green を 10_security/17 整合 14 で CI 必須。
   - **Kyverno と Conftest（OPA Rego）の責務分離** :
       - Kyverno は Kubernetes admission webhook として **cluster
         段の deploy reject** を担当（manifest が cluster に届いた

@@ -111,18 +111,24 @@ security 位置づけ
         bind、data 14 強制機構 が物理 enforce。
 
 ■ 13 軸 + meta + security 中の位置
-  - security は 14 軸目の候補として 00_軸登録適合仕様 の
-    meta-registry に entry 追加される（cap v1=20 中 14 / 20、
-    残 6 余地）。
+  - security は 14 軸目（脅威モデル）+ 17 軸目（10_security
+    /17_build_provenance適合仕様）の双方を所有する directory
+    として 00_軸登録適合仕様 の meta-registry に entry 追加
+    される（cap v1=20 中 17 / 20、残 3 余地）。
   - 13 軸が「層別 × 機能別」軸であるのに対し、security は
     「脅威別 × 軸横断」軸として直交方向に位置する。脅威
     モデル class（actor / capability / surface）を class
     軸として持ち、各 class が複数軸に mitigation を要求する
-    fan-out 構造を持つ。
+    fan-out 構造を持つ。build_provenance（17 軸目）はこの
+    fan-out のうち v1_supply_chain actor の物理 mitigation
+    chain を単一所有する補完軸。
   - 00 meta（軸登録）の release_gate.lock.yaml AND-gate に、
     security の threat_model.lock.yaml の `coverage_green`
-    状態が入力される。全 threat_class が mitigation green
-    でない限り 1.0.0 ship blocker。
+    状態 + 10_security/17 の artifact_inventory.lock.yaml の
+    `all_signed_green` + reproducibility_matrix.lock.yaml の
+    `consensus_green` が入力される。全 threat_class が
+    mitigation green でない限り、または build provenance
+    chain が green でない限り 1.0.0 ship blocker。
 
 ■ 至高路線における位置づけの帰結
   - security は「個別軸の規律を再宣言する layer」ではなく、

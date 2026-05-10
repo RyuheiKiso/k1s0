@@ -110,6 +110,14 @@ security 脆弱性管理方針
     SBOM のみで CVE 検出）。
   - SBOM は audit_event subject にも emit、過去 image
     の CVE 影響範囲を ClickHouse query で再評価可能。
+  - SBOM lifecycle の retention / 監査 は 10_security/17_
+    build_provenance適合仕様 の Build artifact retention /
+    監査 lifecycle（hot Harbor 90 日 / cold Ceph RGW 7 年 /
+    audit_event CDC 永続）に責務移譲。本仕様の SBOM 生成
+    側 invariant（Syft + Cosign + Harbor attach）と 17 軸
+    側の retention / consumer chain（spdx/v2.3 +
+    cyclonedx/v1.5 predicate を Grype + reproducibility_
+    consensus_verifier が consume）が双方向 lock。
 
 ■ 採用しない方針
   - 商用 vuln DB（Snyk / Black Duck）：採用しない、OSS

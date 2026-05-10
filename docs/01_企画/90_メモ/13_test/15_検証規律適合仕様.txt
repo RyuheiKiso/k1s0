@@ -7,12 +7,12 @@
   - 検証規律適合仕様は、5 verification_class × 5 phase の
     cross-product として完全列挙される verification_loop
     catalog の各 cell に対し、5 enforcement orchestrator の
-    いずれかを必ず物理 pointer として bind し、全 15 軸
-    （13 軸 + meta + security + ops）+ 自軸の defense-in-
-    depth 層 C / D / E に bind 済みであることを 5 層
-    defense-in-depth + 18 項 CI 不変条件 + 16 件 stress
-    test pack で物理 enforce する meta-axis である。同時
-    に 16 axis × 5 verification_class = 80 cell の
+    いずれかを必ず物理 pointer として bind し、全 16 軸
+    （13 軸 + meta + security + ops + build_provenance）+
+    自軸の defense-in-depth 層 C / D / E に bind 済みである
+    ことを 5 層 defense-in-depth + 18 項 CI 不変条件 + 16 件
+    stress test pack で物理 enforce する meta-axis である。
+    同時に 17 axis × 5 verification_class = 85 cell の
     coverage_matrix.lock.yaml の全 cell drill_state ∈
     {v1_baseline_green, v1_drill_red_handled} を 1.0.0
     ship blocker として 00 meta release_gate.lock.yaml の
@@ -54,13 +54,14 @@
     closure するか」を coding で flag するのではなく、
     verification_class + phase + artifact_pointer を build
     artifact に注釈する形で宣言する。
-  - 15 軸 + 本軸 の 1 軸として、本仕様が 07 transport / 08
+  - 16 軸 + 本軸 の 1 軸として、本仕様が 07 transport / 08
     migration / 09 observability / 10 auth / 11 key / 12
     schema / 13 SLO / 14 OSS lifecycle / 15 capacity / 32
     data-tenant / 39 client-state / infra01 topology /
     data01 preservation / security15 threat-model /
-    client15 SDK distribution / ops15 loop の各軸の検証
-    lifecycle 局面を統合する。
+    client15 SDK distribution / ops15 loop / build_
+    provenance（10_security/17）の各軸の検証 lifecycle
+    局面を統合する。
 
 ■ 設計原則
   - verification_class は bundle である。
@@ -139,7 +140,7 @@
           mutation_pitest_pipeline
         - 最低限の cross-axis：07 transport / 12 schema /
           09 observability / 13 SLO / 32 RLS / 39 client
-        - active cell 数（v1 cap）：16（全軸）
+        - active cell 数（v1 cap）：17（全軸、build_provenance 含む）
   - v1_property_axiom：
         - 軸ごとの「ランダム入力に対する性質ベース
           不変条件」、artifact は Hypothesis / fast-check
@@ -158,7 +159,7 @@
         - 最低限の cross-axis：07 transport / 08 migration
           / 11 key / 12 schema / 32 RLS / 39 client / 13
           SLO / data01
-        - active cell 数（v1 cap）：16（全軸）
+        - active cell 数（v1 cap）：17（全軸、build_provenance 含む）
   - v1_contract_pair：
         - 軸ごとの「隣接層との contract が双方向に一致
           する不変条件」、artifact は Pact pact +
@@ -175,7 +176,7 @@
           coverage_gate_kyverno
         - 最低限の cross-axis：07 transport / 12 schema /
           14 OSS-lifecycle / client15 SDK distribution
-        - active cell 数（v1 cap）：16（全軸）
+        - active cell 数（v1 cap）：17（全軸、build_provenance 含む）
   - v1_scenario_replay：
         - 軸ごとの「journey scenario の e2e 再現」、
           artifact は Playwright trace + JMeter result +
@@ -196,7 +197,7 @@
         - 最低限の cross-axis：08 migration / 10 auth /
           11 key / 39 client / infra01 / data01 /
           client15 / ops15
-        - active cell 数（v1 cap）：16（全軸）
+        - active cell 数（v1 cap）：17（全軸、build_provenance 含む）
   - v1_fault_chaos：
         - 軸ごとの「故障注入 / 攻撃者 simulation /
           chaos drill の loop closure 再現」、artifact は
@@ -219,7 +220,7 @@
         - 最低限の cross-axis：07 transport / 10 auth /
           11 key / infra01 / data01 / security15 / 39
           client
-        - active cell 数（v1 cap）：16（全軸）
+        - active cell 数（v1 cap）：17（全軸、build_provenance 含む）
 
   - 全 5 verification_class の active cell 総数 = 80（v1）、
     cap 上限は v2 で 100（軸 +4 = 20、verification_class
@@ -323,7 +324,7 @@
         input：verification_inventory.lock.yaml + class_
               axis_cadence_table.yaml + ownership_table
               .lock.yaml
-        出力：16 axis × 5 verification_class = 80 cell
+        出力：17 axis × 5 verification_class = 85 cell
               の row、各 cell に artifact_pointer ≥ 1 +
               last_green_at + cadence_days + owner_4axis
         手書き禁止、CI fail。
@@ -375,7 +376,7 @@
           _class / declaration_class の enum 整合
         - performance_baseline.lock.yaml の SLI 列挙が
           13 SLO 登録 SLI と整合
-        - class_axis_cadence_table.yaml の 16 × 5 = 80
+        - class_axis_cadence_table.yaml の 17 × 5 = 85
           cell が完備、cadence_days enum 範囲内
         - CUE 型 check（class enum / artifact pointer
           kind / cadence enum / phase enum）
@@ -384,7 +385,7 @@
 
   - 層 B：lint
         - Conftest custom rule（Rego）：
-              - coverage_matrix.lock.yaml 80 cell 完備
+              - coverage_matrix.lock.yaml 85 cell 完備
               - cell.last_green_at が cadence_days 以内
               - cell.owner_4axis 4 軸完備
               - properties.yaml の全 property_id が
@@ -502,7 +503,7 @@
             additive（破壊的削除 / 緩和ゼロ）
   - 不変 2 ：coverage_matrix.lock.yaml が build artifact、
             手書き diff = 0
-  - 不変 3 ：coverage_matrix.lock.yaml の 16 × 5 = 80
+  - 不変 3 ：coverage_matrix.lock.yaml の 17 × 5 = 85
             cell に artifact_pointer / last_green_at /
             cadence_days / owner_4axis 4 field 完備、
             欠損 cell ゼロ（matrix_full）
@@ -641,7 +642,7 @@
 ■ error budget bindings（13 SLO への寄与）
   - test 層は以下 SLO を 13 SLO error_budget.lock.yaml
     に testing sub-SLO として登録：
-        - v1_test_coverage_compliance（80 cell 全 green
+        - v1_test_coverage_compliance（85 cell 全 green
           ratio = 1.0）
         - v1_mutation_score_compliance（quarter monotonic
           increase compliance ratio）
@@ -677,7 +678,7 @@
   - 00_軸登録適合仕様 の release_gate.lock.yaml AND-gate
     に以下が入力される：
         - coverage_matrix.lock.yaml の `all_cells_green`
-          （80 cell 全 green + cadence 内 + ownership 4
+          （85 cell 全 green + cadence 内 + ownership 4
           軸完備）
         - mutation_score.lock.yaml の `monotonic_green`
           （quarter monotonic increase 維持、引き下げ

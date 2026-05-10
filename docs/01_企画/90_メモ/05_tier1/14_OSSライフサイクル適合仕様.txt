@@ -606,6 +606,70 @@ tier1 OSS ライフサイクル適合仕様（v1）
                   - pgvector_lifecycle_event_or_demand
                   - transactional_ann_semantics_gap_assessment
 
+              bazel:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/bazelbuild/bazel
+                role: build_provenance_remote_exec_and_cache
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+                # 10_security/17_build_provenance適合仕様 と双方向 lock：
+                # builder_id の値域に bazel_remote_exec_builder を含む。
+
+              nix:
+                lifecycle_class: v1_l1plus_primary
+                license: LGPL-2.1
+                linkage_model: process_boundary   # LGPL は静的 link 禁止、
+                                                   # process_boundary 経路で
+                                                   # のみ採用（02_OSS [0](b)
+                                                   # と整合）。
+                source_repo: github.com/NixOS/nix
+                role: build_provenance_flake_dependency_lock_and_sandbox
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+                # 10_security/17_build_provenance適合仕様 v1_library_sdk_release
+                # の rebuild_determinism: nix_flake_bit_identical を物理保証。
+
+              witness:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/in-toto/witness
+                role: build_provenance_intoto_attestation_observer
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+
+              gitsign:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/sigstore/gitsign
+                role: build_provenance_keyless_oidc_commit_signing
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+
+              buildkit:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/moby/buildkit
+                role: build_provenance_hermetic_container_build_daemon
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+                # `RUN --network=none` の物理 enforcement 基盤。
+
+              tekton_chains:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/tektoncd/chains
+                role: build_provenance_taskrun_to_slsa_predicate
+                parent_oss: tekton                    # Tekton sub-component
+                emits_signals_to: tier1/observability/signals/oss_lifecycle
+
+              kube_bench:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/aquasecurity/kube-bench
+                role: cis_kubernetes_benchmark_verifier
+
+              docker_bench:
+                lifecycle_class: v1_l1plus_primary
+                license: Apache-2.0
+                source_repo: github.com/docker/docker-bench-security
+                role: cis_docker_benchmark_verifier
+
               # ... 全 OSS（02_採用OSS一覧 と一致）...
 
       - constraints は physical な substrate 制約。Capability Negotiation

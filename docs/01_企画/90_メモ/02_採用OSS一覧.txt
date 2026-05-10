@@ -275,17 +275,46 @@
 ------------------------------------------------------------
 [6] サプライチェーン / セキュリティ
 ------------------------------------------------------------
-  カテゴリ                       | プロダクト                       | ライセンス
-  -------------------------------+----------------------------------+-----------------------
-  コンテナレジストリ             | Harbor                           | Apache 2.0
-  脆弱性スキャン                 | Trivy                            | Apache 2.0
-  イメージ署名                   | Cosign (Sigstore)                | Apache 2.0
-  SBOM 生成                      | Syft                             | Apache 2.0
-  SBOM 脆弱性スキャン            | Grype                            | Apache 2.0
-  ポリシーエンジン               | Kyverno                          | Apache 2.0
-  証明書管理                     | cert-manager                     | Apache 2.0
-  シークレット管理               | OpenBao                          | MPL 2.0
-  シークレット同期               | External Secrets Operator        | Apache 2.0
+  カテゴリ                       | プロダクト                       | ライセンス             | linkage_model
+  -------------------------------+----------------------------------+------------------------+-----------------
+  コンテナレジストリ             | Harbor                           | Apache 2.0             | network_service
+  脆弱性スキャン                 | Trivy                            | Apache 2.0             | process_boundary
+  イメージ署名                   | Cosign (Sigstore)                | Apache 2.0             | process_boundary
+  SBOM 生成                      | Syft                             | Apache 2.0             | process_boundary
+  SBOM 脆弱性スキャン            | Grype                            | Apache 2.0             | process_boundary
+  ポリシーエンジン               | Kyverno                          | Apache 2.0             | network_service
+  PR 段ポリシーエンジン          | Conftest (OPA Rego)              | Apache 2.0             | process_boundary
+  証明書管理                     | cert-manager                     | Apache 2.0             | network_service
+  シークレット管理               | OpenBao                          | MPL 2.0                | network_service
+  シークレット同期               | External Secrets Operator        | Apache 2.0             | network_service
+  hermetic ビルド daemon         | Buildkit                         | Apache 2.0             | process_boundary
+  build graph / remote-exec      | Bazel                            | Apache 2.0             | process_boundary
+  flake-based 依存 hash 固定     | Nix                              | LGPL-2.1               | process_boundary
+  in-toto attestation observer   | Witness                          | Apache 2.0             | process_boundary
+  keyless OIDC commit signing    | Gitsign (Sigstore)               | Apache 2.0             | process_boundary
+  TaskRun → SLSA predicate       | Tekton Chains                    | Apache 2.0             | process_boundary
+    （Tekton sub-component）     |                                  |                        |
+  CIS / NSA hardening 検証       | kube-bench / docker-bench        | Apache 2.0             | process_boundary
+
+  ※ Bazel / Nix / Witness / Gitsign / Buildkit / Tekton Chains は
+    「10_security/17_build_provenance適合仕様」が単一所有する build
+    provenance 軸の構成要素として L1+ 採用。Bazel は remote-exec /
+    build graph / cache、Nix は flake-based 依存 hash 固定 / sandboxed
+    build、Witness は in-toto multi-attestation chain、Gitsign は
+    keyless OIDC で signed commit、Buildkit は `RUN --network=none`
+    の hermetic container build daemon、Tekton Chains は TaskRun → SLSA
+    L3 / L4 predicate emit を担う。Nix は LGPL-2.1 だが process_boundary
+    経路（CLI 起動 / build sidecar）でのみ採用するため、本企画 [0](b)
+    LGPL 規律に整合する（静的 / 動的 link への組込はしない）。
+  ※ Bazel + Nix の併用は機能 overlap ではなく責務分離（Bazel = remote-
+    exec / cache、Nix = dependency lock + sandbox）。両者の併用採用は
+    至高路線 CLAUDE.md「作業量を減らすために機能を削減するのは避ける」
+    の規律に従う v1 必須採用であり、v2 候補ではない。
+  ※ kube-bench / docker-bench は CIS Kubernetes / Docker Benchmark +
+    NSA/CISA Kubernetes Hardening を runner cluster + build daemon で
+    物理検出するため build_provenance 軸の層 E（物理 enforcement）に
+    必須。詳細は「10_security/17_build_provenance適合仕様」CI 不変
+    条件 整合 14 を参照。
 
 ------------------------------------------------------------
 [7] データストア（コア）

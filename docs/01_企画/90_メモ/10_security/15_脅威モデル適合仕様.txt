@@ -57,10 +57,17 @@
                               external_pen_test
         primary defense_layers：cosign / SBOM / Tekton
                                   Chains / Trivy +
-                                  Grype double-bound
+                                  Grype double-bound /
+                                  build_provenance_class
+                                  enum（10_security/17 の
+                                  5 class が pointer kind
+                                  として binding、双方向 lock）
         最低限の cross-axis：14 OSS lifecycle / 08
                               移行 Pair / infra01
-                              topology
+                              topology / 10_security/17
+                              build_provenance / 11 鍵
+                              管理（per-job ephemeral
+                              signing key）
         active mitigation 数（v1 cap）：≥ 30
 
   - 全 5 actor class の active mitigation 総数 ≥ 170
@@ -367,8 +374,19 @@
 ■ 参考（同型対象）
   - 各軸の同型 spec は memory「十三軸同型適合仕様」 +
     00_軸登録適合仕様 を参照。本層は 14 軸目として cap
-    内に entry 追加される（v1 cap=20、現状 14 / 20）。
+    内に entry 追加される（v1 cap=20、現状 17 / 20、残 3
+    余地。security 軸は 14 軸目（threat） + 17 軸目（10_
+    security/17_build_provenance適合仕様）が同 directory
+    内に同時 entry を持つ）。
   - 物理 enforcement の最終 layer は infra01 / data01 /
-    cosign / Sigstore / HSM の物理機構の coalition、
-    本層は coalition の真正性を meta-layer として lock
-    する責務のみを持つ。
+    cosign / Sigstore / HSM / Bazel sandbox / Nix sandbox
+    / Buildkit `RUN --network=none` / Rekor Merkle tree /
+    HSM PKCS#11 transit / kube-bench CIS の物理機構の
+    coalition、本層は coalition の真正性を meta-layer
+    として lock する責務のみを持つ。
+  - v1_supply_chain actor の primary defense_layer に
+    build_provenance_class enum（10_security/17 の 5 class）
+    が pointer kind として binding、threat_model.lock.yaml
+    の v1_supply_chain × T:tampering / E:elevation cell
+    の mitigation_pointer ↔ 10_security/17 の 5 class が
+    双方向 lock。

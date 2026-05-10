@@ -677,6 +677,37 @@ tier1 鍵管理適合仕様（v1）
         non-extractable で本仕様の KeyHandle と同型扱い。tenant_switch
         の per-tenant IndexedDB 物理分離（C7 改善案）と組合せて
         crypto-shred 単位を tier3 まで物理一貫させる。
+  - 10_security/17_build_provenance適合仕様（cross-axis double-bound）：
+      - build provenance signing 用の per-job ephemeral signing key
+        は v1_token_signing class の sub-binding として OpenBao
+        transit engine + HSM PKCS#11 partition 上で発行される。
+        rotation cadence は本仕様の 90 日上限とは独立に「per-job
+        最大 24h」を別 enforcement_point として宣言：
+            enforcement_point: build_provenance_signing
+              key_class: v1_token_signing
+              rotation_cadence_hours_max: 24       # per-job ephemeral
+              backend: hsm_pkcs11
+              shamir_distribution: optional        # 高セキュリティ
+                                                    # 業務 pack 採用時のみ
+              signs:
+                - artifact: in-toto/slsaprovenance/v1.0 predicate
+                - artifact: in-toto/link/v1 attestation
+                - artifact: vsa/v1.0 attestation
+              consumer_axes:
+                - 10_security/17_build_provenance適合仕様（hsm_signing_key_uri
+                  ↔ enforcement_points.build_provenance_signing 双方向 lock）
+                - 14_OSSライフサイクル適合仕様（builder OSS の signing key
+                  rotation event を oss.lifecycle.event に emit）
+      - 本 enforcement_point は 11 の 5 key_class セット（v1 cap=5）
+        を増やさず、v1_token_signing の sub-binding として運用する。
+        per-job ephemeral 性質は class dimension の rotation_cadence
+        ＝ 90 日とは別レイヤの「sub-rotation per release」として扱い、
+        dimension override 禁止規律と整合する（class の rotation_
+        cadence は最大 90 日、各 build job が in-flight で 24h 以内
+        に新 ephemeral key を発行し commit 後 revoke する形）。
+      - 違反検出（rotation_cadence_hours > 24 のまま release / signing
+        key が HSM 外に出る経路発覚）は本仕様の chaos test で property
+        test、10_security/17 の Kyverno verifyImages で deploy reject。
 
 ■ Buf custom lint と key tooling の責務（縮約）
   - Buf custom lint の責務（proto / event 側）：

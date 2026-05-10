@@ -719,8 +719,17 @@ client クライアント SDK 配布適合仕様（v1）
       retry_budget                          | tier1/15_テナント容量適合仕様 noisy_neighbor_isolation
                                             |（双方向 lock）
       Buf workflow + method annotation     | tier1/12_スキーマ進化適合仕様 compatibility（共有）
+      build_provenance_class 注釈          | 10_security/17_build_provenance適合仕様 5 class
+                                            | （applies_to_distribution_class、双方向 lock）。
+                                            | 5 distribution_class 写像 :
+                                            |   v1_full_native_with_companion → v1_library_sdk_release
+                                            |   v1_legacy_dotnet_framework    → v1_library_sdk_release
+                                            |   v1_browser_spa_typescript     → v1_library_sdk_release
+                                            |   v1_thick_native_via_tauri     → v1_library_sdk_release
+                                            |   v1_thin_business_api_only     → v1_thin_business_api_artifact
       Cosign signed package                 | 10_security/15_脅威モデル適合仕様 supply chain
-                                            | attestation（共有）
+                                            | attestation（共有）+ 10_security/17_build_provenance
+                                            | 適合仕様 cosign_rekor_witness_chain（実体保有）
       class device_at_rest_encryption_mode | data01_データ保全適合仕様 at_rest_encryption（共有）
       class refresh_token_storage_mode      | tier1/11_鍵管理適合仕様 secret storage（共有）
       capability_matrix.lock.yaml           | tier1/07/03 server actual capability descriptor
@@ -765,8 +774,17 @@ client クライアント SDK 配布適合仕様（v1）
       整合 10: scenarios.yaml の全 scenario が CI で実行され、
                last_green_at が conformance_cadence_days
                以内。
-      整合 11: 全 SDK package に Cosign signature + SBOM
-               attestation + SLSA provenance attestation 添付。
+      整合 11: 全 SDK package が build_provenance_class 注釈
+               必須（v1_thin_business_api_only → v1_thin_
+               business_api_artifact、他 4 distribution_class
+               → v1_library_sdk_release）。10_security/17_
+               build_provenance適合仕様 の artifact_inventory
+               .lock.yaml と本仕様 sdk_inventory.lock.yaml が
+               cross-axis double-bound。Cosign signature +
+               SBOM attestation + SLSA provenance attestation
+               + Rekor inclusion proof + Witness multi-
+               attestation chain は 17 軸が単一所有、本仕様は
+               distribution_class 写像と消費者規律のみを担う。
       整合 12: SDK 公開 API snapshot drift なし、または PR で
                codemod / migration 提供。
       整合 13: SDK 内部で生 HTTP / LocalStorage / access_token

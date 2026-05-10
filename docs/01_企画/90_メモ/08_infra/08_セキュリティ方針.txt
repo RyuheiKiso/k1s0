@@ -108,8 +108,18 @@ infra セキュリティ方針
 ■ ハードニング基準
   - CIS Kubernetes Benchmark：本番 cluster で適合必須、kube-
     bench で定期 scan、failure は 14_OSSライフサイクル適合
-    仕様 の signal として emit。
+    仕様 の signal として emit。10_security/17_build_provenance
+    適合仕様 の整合 14 で runner cluster + build daemon でも
+    green が CI 必須。
+  - CIS Docker Benchmark：build daemon （Buildkit）で
+    docker-bench-security 適合必須、違反は admission block。
   - NSA/CISA Kubernetes Hardening Guidance：ガイドラインに
-    従う、deviation は明示的に記録。
-  - SLSA：build pipeline は SLSA Level 3 を target、cosign
-    + in-toto attestations。
+    従う、deviation は明示的に記録。runner cluster でも同
+    ガイダンス遵守、deviation は 10_security/17 の audit
+    signal として emit。
+  - SLSA：build pipeline は SLSA L3+ baseline（v1_runtime_
+    image_release / v1_cli_or_oci_artifact_release）/ SLSA L4
+    target（v1_library_sdk_release、Nix flake bit-identical
+    + multi-builder consensus 3/3 + reviewer attest 2 名 必須）。
+    詳細 class enum / dimension は 10_security/17_build_
+    provenance適合仕様 が単一所有、本節は概略 reference。

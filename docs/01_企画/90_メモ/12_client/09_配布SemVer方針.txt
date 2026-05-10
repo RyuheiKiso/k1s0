@@ -145,14 +145,31 @@ client 配布 SemVer 方針
     受領、SDK は OnSdkRetired event を発火（RPC は失敗扱い）。
 
 ■ build reproducibility
-  - 全言語 SDK の build は reproducible：
-      - .NET: deterministic build flag + ContinuousIntegrationBuild
-      - Java: maven-build-helper + reproducible-build-maven-plugin
-      - Node: npm-shrinkwrap + node version pin
-      - Rust: cargo deterministic build + lockfile
-      - Go: GOFLAGS=-trimpath + lockfile
-  - reproducibility check は CI で必須（同 input → 同 output
-    bit hash）。
+  - 全 SDK package の build reproducibility は 10_security/17_
+    build_provenance適合仕様 の v1_library_sdk_release class
+    が単一所有（rebuild_determinism: nix_flake_bit_identical /
+    multi-builder consensus 3/3 / reviewer attest 2 名 必須 /
+    SLSA L4 schema 必須）。本節の言語別 deterministic build
+    （言語 runtime 個別 flag）は v1_library_sdk_release の
+    instance attribute として artifact_inventory.lock.yaml で
+    機械可読に lock される（nix_flake_lock_sha256 / consensus_
+    builders / reviewer_attestations 等）。
+  - 9 言語の SDK は Nix flake で言語横断 hermetic build：
+      - .NET / Java / Node / Rust / Go / Python / Ruby / Browser
+        TS / Tauri の各 toolchain version + dependency hash が
+        flake.lock で純粋関数的に固定される。
+      - Bazel remote-exec + Nix sandbox + Buildkit `RUN
+        --network=none` の三重 sandbox で build container の
+        Internet 直接 fetch を物理不可能化。
+  - reproducibility check（同 input → 同 output bit hash）は
+    Tekton + GitHub Actions self-hosted + Bazel remote-exec +
+    Nix flake build の 4 経路 並行 build → reproducibility_
+    matrix.lock.yaml に sha256 を 4 builder 分書き込み →
+    consensus_status: green が CI gate（17 軸の整合 4 と
+    双方向 lock）。
+  - 詳細 dimension / orchestrator / 5 層 defense-in-depth は
+    10_security/17_build_provenance適合仕様 を参照。本節は
+    client SDK 軸の reference のみを担う。
 
 ■ 採用しない選択肢
   - 言語別の独立 SemVer：禁止。

@@ -133,23 +133,39 @@ ops 位置づけ
         SLO 復旧 / capacity 再配分）は ops loop に entry、
         postmortem は ops + security の二層で必ず merge
         済み（GitHub PR）。
+  - ops ↔ security（build_provenance / 10_security/17）：
+      - 10_security/17_build_provenance適合仕様 が emit する
+        attestation_verify_failure / hermetic_egress_attempt /
+        reproducibility_drift event は v1_threat_detect
+        signal_class の sub-class `security.build_provenance
+        .event` として ops loop に entry。oss.lifecycle.event
+        と同型。5 phase（detect / respond / resolve / learn
+        / prevent）closure を要求し、postmortem は ops +
+        security build_provenance の二層 merge 済み。
 
 ■ 14 軸 + meta + security + ops 中の位置
   - ops は 15 軸目の候補として 00_軸登録適合仕様 の
-    meta-registry に entry 追加される（cap v1=20 中 15 / 20、
-    残 5 余地）。
-  - 14 軸 + security が「層別 × 機能別 × 脅威別」軸である
-    のに対し、ops は「signal 別 × phase 別 × 時間軸」軸
-    として直交方向に位置する。signal class（observed
-    deviation / SLO breach / threat detect / capacity
-    breach / change risk）を class 軸として持ち、各 class
-    が 5 phase（detect / respond / resolve / learn /
-    prevent）の loop closure を要求する fan-out 構造を持つ。
+    meta-registry に entry 追加される（cap v1=20 中 17 / 20、
+    残 3 余地。ops 15 軸目 + test 16 軸目 + build_provenance
+    17 軸目）。
+  - 14 軸 + security + build_provenance が「層別 × 機能別 ×
+    脅威別 × supply chain 別」軸であるのに対し、ops は
+    「signal 別 × phase 別 × 時間軸」軸として直交方向に
+    位置する。signal class（observed deviation / SLO breach
+    / threat detect / capacity breach / change risk）を class
+    軸として持ち、各 class が 5 phase（detect / respond /
+    resolve / learn / prevent）の loop closure を要求する
+    fan-out 構造を持つ。v1_threat_detect signal_class は
+    10_security/17 の attestation_verify_failure event を
+    sub-class として消費。
   - 00 meta（軸登録）の release_gate.lock.yaml AND-gate
     に、ops の ops_loop.lock.yaml の `closure_green` 状態
     と toil_reduction.lock.yaml の `monotonic_decrease`
-    状態が入力される。全 signal class が 5 phase 全 closure
-    green でない限り 1.0.0 ship blocker。
+    状態 + 10_security/17 の artifact_inventory.lock.yaml の
+    `all_signed_green` + reproducibility_matrix.lock.yaml の
+    `consensus_green` が入力される。全 signal class が 5
+    phase 全 closure green でない限り、または build provenance
+    chain が green でない限り 1.0.0 ship blocker。
 
 ■ 至高路線における位置づけの帰結
   - ops は「個別軸の規律を再宣言する layer」ではなく、
