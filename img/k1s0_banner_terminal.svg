@@ -1,136 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-label="k1s0 — Keep It Simple, 0 Vendor Lock-in. (terminal banner)">
-  <title>k1s0 — Keep It Simple, 0 Vendor Lock-in.</title>
-  <desc>Terminal-style banner with typewriter animation. Cyan-on-black, monospace.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 200" width="1280" height="200" role="img" aria-label="Keep It Simple, 0 Vendor Lock-in.">
+  <title>Keep It Simple, 0 Vendor Lock-in.</title>
+  <desc>k1s0 tagline banner. Cursor follows typing then blinks softly.</desc>
   <defs>
     <style><![CDATA[
-      .bg { fill: #0d1117; }
-      .barBg { fill: #161b22; }
+      .bg     { fill: #0d1117; }
       .border { fill: none; stroke: #21262d; stroke-width: 1; }
-      .dotR { fill: #ff5f56; }
-      .dotY { fill: #ffbd2e; }
-      .dotG { fill: #27c93f; }
-      .barTitle {
-        fill: #6e7681;
-        font-family: 'SF Mono','Menlo','Consolas','Source Code Pro','Liberation Mono',monospace;
-        font-size: 13px;
-      }
       .term {
         font-family: 'SF Mono','Menlo','Consolas','Source Code Pro','Liberation Mono',monospace;
-        font-size: 18px;
+        font-size: 40px;
+        font-weight: 700;
         dominant-baseline: alphabetic;
-        letter-spacing: 0.2px;
       }
-      .prompt { fill: #22d3ee; font-weight: 700; }
-      .out    { fill: #67e8f9; }
-      .hero   { fill: #a5f3fc; font-weight: 700; font-size: 22px; }
-      .line   { clip-path: inset(0 100% 0 0); }
-      .l1 { animation: l1 18s infinite; }
-      .l2 { animation: l2 18s infinite; }
-      .l3 { animation: l3 18s infinite; }
-      .l4 { animation: l4 18s infinite; }
-      .l5 { animation: l5 18s infinite; }
-      .l6 { animation: l6 18s infinite; }
-      .l7 { animation: l7 18s infinite; }
-      @keyframes l1 {
-        0%, 2%   { clip-path: inset(0 100% 0 0); }
-        9%      { clip-path: inset(0 0    0 0); }
+      .prompt { fill: #22d3ee; }
+      .hero   { fill: #a5f3fc; }
+
+      .reveal { clip-path: inset(0 100% 0 0); animation: type 10s infinite; }
+      @keyframes type {
+        0%, 4%  { clip-path: inset(0 100% 0 0); animation-timing-function: steps(33, end); }
+        30%     { clip-path: inset(0 0    0 0); animation-timing-function: linear; }
         96%     { clip-path: inset(0 0    0 0); }
         100%    { clip-path: inset(0 100% 0 0); }
       }
-      @keyframes l2 {
-        0%, 11%  { clip-path: inset(0 100% 0 0); }
-        20%     { clip-path: inset(0 0    0 0); }
-        96%     { clip-path: inset(0 0    0 0); }
-        100%    { clip-path: inset(0 100% 0 0); }
+
+      .cursor-track {
+        animation: move 10s infinite;
       }
-      @keyframes l3 {
-        0%, 22%  { clip-path: inset(0 100% 0 0); }
-        28%     { clip-path: inset(0 0    0 0); }
-        96%     { clip-path: inset(0 0    0 0); }
-        100%    { clip-path: inset(0 100% 0 0); }
+      @keyframes move {
+        0%, 4%  { transform: translateX(0px); animation-timing-function: steps(33, end); }
+        30%     { transform: translateX(792px); animation-timing-function: linear; }
+        96%     { transform: translateX(792px); }
+        96.01%  { transform: translateX(0px); }
+        100%    { transform: translateX(0px); }
       }
-      @keyframes l4 {
-        0%, 30%  { clip-path: inset(0 100% 0 0); }
-        42%     { clip-path: inset(0 0    0 0); }
-        96%     { clip-path: inset(0 0    0 0); }
-        100%    { clip-path: inset(0 100% 0 0); }
-      }
-      @keyframes l5 {
-        0%, 44%  { clip-path: inset(0 100% 0 0); }
-        50%     { clip-path: inset(0 0    0 0); }
-        96%     { clip-path: inset(0 0    0 0); }
-        100%    { clip-path: inset(0 100% 0 0); }
-      }
-      @keyframes l6 {
-        0%, 52%  { clip-path: inset(0 100% 0 0); }
-        67%     { clip-path: inset(0 0    0 0); }
-        96%     { clip-path: inset(0 0    0 0); }
-        100%    { clip-path: inset(0 100% 0 0); }
-      }
-      @keyframes l7 {
-        0%, 69%  { clip-path: inset(0 100% 0 0); }
-        72%     { clip-path: inset(0 0    0 0); }
-        96%     { clip-path: inset(0 0    0 0); }
-        100%    { clip-path: inset(0 100% 0 0); }
-      }
+
       .cursor {
         fill: #22d3ee;
-        animation: blink 18s infinite;
+        animation: blink 10s infinite;
       }
       @keyframes blink {
-        0%, 72%    { opacity: 0; }
-        72.1%, 78% { opacity: 1; }
-        78.1%, 83% { opacity: 0; }
-        83.1%, 88% { opacity: 1; }
-        88.1%, 92% { opacity: 0; }
-        92.1%, 96% { opacity: 1; }
-        96.1%, 100%{ opacity: 0; }
+        0%,    4%     { opacity: 0; }
+        4.01%, 30%    { opacity: 1; }
+        31%,   45%    { opacity: 0; }
+        46%,   60%    { opacity: 1; }
+        61%,   75%    { opacity: 0; }
+        76%,   90%    { opacity: 1; }
+        91%,   100%   { opacity: 0; }
       }
-      .glow { fill: #22d3ee; opacity: 0.08; }
+
       @media (prefers-reduced-motion: reduce) {
-        .line, .cursor { animation: none !important; }
-        .line { clip-path: none !important; }
+        .reveal, .cursor-track, .cursor { animation: none !important; }
+        .reveal { clip-path: none !important; }
+        .cursor-track { transform: translateX(792px); }
         .cursor { opacity: 1 !important; }
       }
     ]]></style>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1280" height="360" rx="10" />
+  <rect class="bg"     x="0"   y="0"   width="1280" height="200" rx="10" />
+  <rect class="border" x="0.5" y="0.5" width="1279" height="199" rx="10" />
 
-  <rect class="glow" x="0" y="0" width="1280" height="20" />
-
-  <rect class="barBg" x="0" y="0" width="1280" height="36" rx="10" />
-  <rect class="barBg" x="0" y="22" width="1280" height="14" />
-  <circle class="dotR" cx="22" cy="18" r="6" />
-  <circle class="dotY" cx="42" cy="18" r="6" />
-  <circle class="dotG" cx="62" cy="18" r="6" />
-  <text class="barTitle" x="640" y="22" text-anchor="middle">k1s0 — ~/projects/k1s0 — zsh</text>
-
-  <rect class="border" x="0.5" y="0.5" width="1279" height="359" rx="10" />
-
-  <g transform="translate(40, 76)">
-    <text class="term line l1" y="0">
-      <tspan class="prompt">$</tspan><tspan class="out" dx="8">cat README</tspan>
-    </text>
-    <text class="term line l2" y="30">
-      <tspan class="out">  k1s0 — 業務不変条件を物理機構で守りきる業務プラットフォーム</tspan>
-    </text>
-    <text class="term line l3" y="74">
-      <tspan class="prompt">$</tspan><tspan class="out" dx="8">k1s0 --tagline</tspan>
-    </text>
-    <text class="term line l4" y="108">
-      <tspan class="hero">  Keep It Simple, 0 Vendor Lock-in.</tspan>
-    </text>
-    <text class="term line l5" y="152">
-      <tspan class="prompt">$</tspan><tspan class="out" dx="8">k1s0 --enforce</tspan>
-    </text>
-    <text class="term line l6" y="182">
-      <tspan class="out">  19 axis · 5 tier · 6 defense-in-depth · 95 cells. all verified.</tspan>
-    </text>
-    <text class="term line l7" y="226">
+  <g transform="translate(220, 120)">
+    <text class="term" x="0" y="0">
       <tspan class="prompt">$</tspan>
     </text>
-    <rect class="cursor" x="20" y="210" width="11" height="20" />
+    <g class="reveal">
+      <text class="term" x="38" y="0">
+        <tspan class="hero" textLength="792" lengthAdjust="spacing">Keep It Simple, 0 Vendor Lock-in.</tspan>
+      </text>
+    </g>
+    <g class="cursor-track">
+      <rect class="cursor" x="42" y="-32" width="14" height="42" rx="1" />
+    </g>
   </g>
 </svg>
