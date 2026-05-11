@@ -1,0 +1,120 @@
+---
+id: detail.client.client_ops_ui
+axis: client
+phase: detail
+kind: ops_dx
+status: draft
+depends_on:
+  - arch.client.client_index
+  - detail.client.sdk_distribution_conformance
+  - detail.client.client_enforcement
+covered_by:
+  defense_in_depth_layers: [B, C]
+  proof_classes: []
+---
+
+# client 運用 UI と開発者体験
+
+## 一文方針
+- SDK 開発者の inner loop は Tilt + Companion local mock + dev container で構成、本番 OSS と同 version で再現。SDK 利用者の運用観察は Backstage tech docs + OTel metrics via Perses。
+
+## Tilt（SDK ローカル開発）
+- L1+ primary: Tilt（08_infra/13_運用 UI と開発者体験 と同型）
+- 用途: proto 変更 → buf generate → 言語別 build → 全 SDK の compile 確認 → contract test までを 1 Tilt session で iterative に回す
+- infra Tilt との互換性: tier1 / tier2 / tier3 を Tilt で立ち上げ、SDK side の changes を hot-reload で反映
+
+## Companion local mock
+- L1+ primary: 自製 `k1s0 Companion Mock`（Apache 2.0、本企画内製 OSS）
+- 用途:
+  - SDK 開発者が tier1 Server に接続せず SDK 側だけを開発する場合の mock backend
+  - capability descriptor / OIDC token / Domain Event publish / Outbox / 4 layer reducer の round-trip を local で再現
+  - Pact contract に基づく provider mock
+- 起動: `k1s0 mock serve --port 8080 --capabilities full` で 1 コマンド起動
+- mock の挙動は本番と同 capability descriptor を返すため、SDK 側 negotiation 経路もテスト可能
+
+## dev container
+- VS Code Remote Containers / GitHub Codespaces: 本企画 repository で `devcontainer.json` を提供
+- 含まれる toolchain:
+  - .NET 8 / .NET Framework 4.6.2 mscordbi（Wine 経由）
+  - OpenJDK 21 LTS
+  - Node.js 20 LTS + pnpm
+  - Rust stable + cargo
+  - Python 3.12 + uv
+  - Ruby 3.3 + bundler
+  - Go 1.22
+  - protoc + buf CLI
+  - Tilt + ctlptl + kind
+  - Tauri CLI + WebKit/GTK 依存
+- infra 13 dev container と統合（同 base image を派生）
+
+## contract test（Pact）
+- L1+ primary: Pact
+- SDK 開発者は consumer 側 contract を Pact で書き、tier1 Server / Companion Mock の provider 側で verify
+- CI では SDK 全 9 言語 × 全 capability_class の組合せで Pact verify を実行
+
+## property based test
+- L1+ primary: FsCheck (.NET) / fast-check (TS) / Hypothesis (Python) / proptest (Rust) / golden_pyro（Ruby は v1 では minimal、v2 拡張）/ go-fuzz（Go）
+- 対象:
+  - retry backoff 系列の monotonicity / 期待値 ±5%
+  - idempotency_key 採番の uniqueness（10^7 回で衝突 0）
+  - capability negotiation の決定論性
+  - 4 layer reducer の決定論性（39 conflict_tree.yaml の actions 投影）
+
+## E2E（Playwright）
+- L1+ primary: Playwright
+- Browser SPA + Tauri SDK の E2E test:
+  - login / logout / token refresh / impersonation
+  - offline edit → resume scenarios（39 適合仕様 8 製造業 pack stress test を Browser side で再現）
+  - capability negotiation の自動切替
+  - Service Worker fetch 分離
+- PII 物理検査: headless browser で IndexedDB dump を読み、PII 平文混入を CI fail
+
+## integration test（Testcontainers）
+- L1+ primary: Testcontainers
+- tier1 Server + Companion Mock + tier2 atomic 三表書込（CloudNativePG）+ Outbox（Kafka Strimzi）+ Keycloak + OpenBao を Testcontainers で起動、SDK が本番に近い backend と round-trip
+
+## 開発者ポータル（Backstage）
+- SDK の service catalog entry:
+  - 各 SDK パッケージを Backstage component として登録
+  - software template scaffolding: 「新業務 tier3 SPA を作る」「新 Companion adapter を作る」 template を提供
+  - tech docs（MkDocs Material）: SDK 利用ガイド / 言語別サンプル / 移行 codemod 説明
+- 認証: Keycloak OIDC、tenant_id を JWT claim から取得
+
+## 観察 UI
+- Perses（メトリクス）: `sdk.*` metric series を tenant 別 dashboard で確認
+- Jaeger v2 内蔵 CH storage（トレース）: trace_id 検索、SDK 側 RPC span と server 側 span が stitch される
+- Apache Superset（ad-hoc）: ClickHouse 直接 SQL で SDK deprecation warn 出現頻度や retry exhaust 件数を集計
+
+## docs 規約
+- 全 docs は MkDocs Material で codify、Backstage tech docs plugin で publish
+- SDK 利用例コードは「テスト済みコード」として CI 検査（言語別 compile + execute）。docs に書かれたサンプルが runtime broken なら CI fail
+- 図は drawio（drawio-authoring skill 規約に従う）、レイヤ別図は figure-layer-convention に従う
+
+## inner loop time budget
+SDK 開発者の典型 iteration:
+- proto 変更 → buf generate: ≤ 10s
+- 言語別 build（変更 1 言語のみ）: ≤ 30s
+- 全言語 build（lockstep release 時）: ≤ 5min
+- contract test 全実行: ≤ 10min
+- E2E（Browser SPA）: ≤ 5min
+
+上限超過は監視 SLO 化（v1 はベースライン記録 only、v2 で目標値）。
+
+## on-call / SDK incident response
+- SDK バグ / supply chain incident（Cosign 失敗 / 脆弱性検出）は 11_ops オンコール方針に統合
+- SDK hotfix waterfall は 30 日以内に他言語へ propagate 必須
+- SDK CVE 開示は security15 threat-model の incident response policy に従う
+
+## 採用しない選択肢
+- SDK 利用者向け UI コンソール（k1s0 SDK 専用 GUI）
+- 言語別の docs site の独立運営（Backstage tech docs plugin に集約）
+- SDK 用に独立した CI repo（本企画 monorepo 内で Tekton 統一）
+
+## 至高路線における立ち位置
+- SDK 開発者体験を犠牲にして release tempo を上げる選択を採らない（lockstep + 全言語 build を inner loop で必ず走らせる）
+- 「dev container は重い」を理由に local 自前 install を推奨しない
+
+## 関連参照
+- [client 設計方針 index](../../03_概要設計/09_client設計方針/README.md)
+- [クライアント SDK 配布適合仕様](../01_適合仕様/18_クライアントSDK配布適合仕様.md)
+- [client 強制機構](../02_強制機構/08_client強制機構.md)

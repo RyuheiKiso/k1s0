@@ -1,0 +1,47 @@
+name: docs_lint
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'tools/docs_lint/**'
+      - '.github/workflows/docs_lint.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'tools/docs_lint/**'
+      - '.github/workflows/docs_lint.yml'
+
+jobs:
+  lint:
+    name: docs lint (7 check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run docs_lint (bash baseline)
+        run: bash tools/docs_lint/run_lint.sh
+
+      - name: Run docs_lint (Python strict)
+        run: python3 tools/docs_lint/run_lint.py
+        continue-on-error: false
+
+  release_gate_check:
+    name: release_gate documentation_integrity cell
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify meta.docs_lint_green cell
+        run: |
+          echo "lint job が green であれば release_gate.lock.yaml の meta.docs_lint_green cell が green に到達"
+          echo "本 cell は 1.0.0 ship blocker"

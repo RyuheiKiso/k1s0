@@ -1,6 +1,0 @@
-# .NET ビルド成果物（NuGet pack 時のみ生成）
-bin/
-obj/
-*.user
-*.suo
-.vs/

@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# drawio-export — invoke draw.io desktop CLI from WSL with k1s0 standard options.
+#
+# Usage:
+#   drawio-export [-o <output.svg>] [-b <border>] [--crop] [--page-index N] <input.drawio>
+#
+# Defaults:
+#   output            <input>.svg (same directory, same basename)
+#   border            8
+#   crop              off
+#   embed-svg-fonts   true (always)
+#
+# Override the CLI location:
+#   DRAWIO_BIN=/path/to/draw.io.exe drawio-export ...
+set -euo pipefail
+
+DRAWIO_BIN="${DRAWIO_BIN:-/mnt/c/Program Files/draw.io/draw.io.exe}"
+
+usage() {
+  cat >&2 <<'USAGE'
+Usage: drawio-export [-o <output.svg>] [-b <border>] [--crop] [--page-index N] <input.drawio>
+
+Defaults:
+  output            <input>.svg (same directory, same basename)
+  border            8
+  crop              off (pass --crop to enable)
+  embed-svg-fonts   true (always)
+
+Override CLI: DRAWIO_BIN=/path/to/draw.io.exe drawio-export ...
+USAGE
+}
+
+if [[ ! -x "$DRAWIO_BIN" ]]; then
+  printf 'drawio-export: CLI not found at %s\n' "$DRAWIO_BIN" >&2
+  usage
+  exit 2
+fi
+
+OUTPUT=""
+BORDER="8"
+INPUT=""
+declare -a EXTRA=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o|--output)
+      OUTPUT="${2:-}"; shift 2;;
+    -b|--border)
+      BORDER="${2:-}"; shift 2;;
+    --crop)
+      EXTRA+=(--crop); shift;;
+    --page-index)
+      EXTRA+=(--page-index "${2:-}"); shift 2;;
+    -h|--help)
+      usage; exit 0;;
+    --)
+      shift; INPUT="${1:-}"; shift; break;;
+    -*)
+      printf 'drawio-export: unknown flag %s\n' "$1" >&2
+      usage; exit 1;;
+    *)
+      if [[ -n "$INPUT" ]]; then
+        printf 'drawio-export: only one input allowed\n' >&2; exit 1
+      fi
+      INPUT="$1"; shift;;
+  esac
+done
+
+if [[ -z "$INPUT" ]]; then usage; exit 1; fi
+if [[ ! -f "$INPUT" ]]; then
+  printf 'drawio-export: input not found: %s\n' "$INPUT" >&2
+  exit 1
+fi
+if [[ -z "$OUTPUT" ]]; then OUTPUT="${INPUT%.drawio}.svg"; fi
+
+"$DRAWIO_BIN" --export --format svg --embed-svg-fonts true \
+  --border "$BORDER" "${EXTRA[@]}" \
+  --output "$OUTPUT" "$INPUT"
+
+printf 'exported: %s -> %s\n' "$INPUT" "$OUTPUT"

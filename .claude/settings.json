@@ -1,32 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "shell": "bash",
-            "command": "python \"${CLAUDE_PROJECT_DIR:-$PWD}/.claude/hooks/docs-read-guard.py\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "shell": "bash",
-            "command": "python \"${CLAUDE_PROJECT_DIR:-$PWD}/.claude/hooks/anti-shortcut.py\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
   }
 }

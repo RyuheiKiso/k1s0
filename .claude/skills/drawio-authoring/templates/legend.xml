@@ -1,0 +1,39 @@
+<!--
+  Legend block — paste under bg+title for multi-layer figures.
+  Position: bottom-right of a 1200x800 canvas (x=700, y=620).
+  Size:     480x160 (per figure-layer-convention).
+  Adjust positions per figure but keep size and corner consistent.
+-->
+<mxCell id="legend_box" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;verticalAlign=top;align=left;spacingTop=4;spacingLeft=8;" vertex="1" parent="1">
+  <mxGeometry x="700" y="620" width="480" height="160" as="geometry" />
+</mxCell>
+<mxCell id="legend_app" value="アプリ層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+  <mxGeometry x="716" y="652" width="120" height="28" as="geometry" />
+</mxCell>
+<mxCell id="legend_net" value="ネットワーク層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+  <mxGeometry x="852" y="652" width="120" height="28" as="geometry" />
+</mxCell>
+<mxCell id="legend_infra" value="インフラ層" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+  <mxGeometry x="988" y="652" width="120" height="28" as="geometry" />
+</mxCell>
+<mxCell id="legend_data" value="データ層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+  <mxGeometry x="716" y="688" width="120" height="28" as="geometry" />
+</mxCell>
+<mxCell id="legend_sync_label" value="同期呼び出し" style="text;html=1;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+  <mxGeometry x="852" y="688" width="120" height="28" as="geometry" />
+</mxCell>
+<mxCell id="legend_async_label" value="非同期イベント" style="text;html=1;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+  <mxGeometry x="988" y="688" width="120" height="28" as="geometry" />
+</mxCell>
+<mxCell id="legend_sync_arrow" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="836" y="702" as="sourcePoint" />
+    <mxPoint x="852" y="702" as="targetPoint" />
+  </mxGeometry>
+</mxCell>
+<mxCell id="legend_async_arrow" style="endArrow=classic;endFill=1;html=1;strokeColor=#9673a6;dashed=1;edgeStyle=none;" edge="1" parent="1">
+  <mxGeometry relative="1" as="geometry">
+    <mxPoint x="972" y="702" as="sourcePoint" />
+    <mxPoint x="988" y="702" as="targetPoint" />
+  </mxGeometry>
+</mxCell>
