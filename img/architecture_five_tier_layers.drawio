@@ -1,0 +1,76 @@
+<mxfile>
+  <diagram name="five_tier_architecture" id="page-1">
+    <mxGraphModel dx="1240" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1240" pageHeight="780" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1240" height="780" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="5 階層論 — 隠蔽境界を物理 enforcement で固定" style="text;html=1;fontFamily=Helvetica;fontSize=18;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="270" y="18" width="700" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="&lt;b&gt;tier3 — 個別業務 UI（ジュニア級）&lt;/b&gt;&lt;br&gt;Web SPA (TS+React) / デスクトップ (C# .NET 8 or Rust+Tauri) / レガシー (.NET Framework 4.6.2+ WinForms/WPF)&lt;br&gt;4 layer client state: Server Truth / Optimistic Local / Pending Queue / Draft ｜ IndexedDB encrypted + 25h オフライン best-effort" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="66" width="1080" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="a32" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1" source="tier3" target="tier2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="150" as="sourcePoint" />
+            <mxPoint x="620" y="162" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tier2" value="&lt;b&gt;tier2 — ドメイン共通 + 業界 pack 並立（中堅級）&lt;/b&gt;&lt;br&gt;業界横断 / 業界共通 / 業界固有 / テナント固有 の 4 抽象化 ｜ bounded context: 製造業 = FA / 調達 / 検査 + 共通モジュール&lt;br&gt;atomic 三表書込 = State change + Outbox + Audit（P1〜P4） ｜ BusinessConflict: stale_write / lost_update / supersede / concurrent_edit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="162" width="1080" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="a21" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1" source="tier2" target="tier1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="246" as="sourcePoint" />
+            <mxPoint x="620" y="258" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tier1" value="&lt;b&gt;tier1 — Server(Rust) + Library 4 言語 + Companion（シニア級）&lt;/b&gt;&lt;br&gt;Operator のみ Go 1.22 + controller-runtime / kubebuilder ｜ 17 機能カテゴリ × 3 抽象化（L3 / L2* / L1+）&lt;br&gt;9 適合仕様: Bidi / 移行 Pair / 観測 / 認証 / 鍵管理 / スキーマ進化 / SLO / OSS lifecycle / テナント容量&lt;br&gt;8 transport adapter: grpc_native / connect_bidi / grpc_web / web_transport / sse_paired" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="258" width="1080" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="a1d" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1" source="tier1" target="data">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="354" as="sourcePoint" />
+            <mxPoint x="620" y="366" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="data" value="&lt;b&gt;data 階層&lt;/b&gt;&lt;br&gt;PostgreSQL (CloudNativePG, RLS FORCE + pgaudit) + PgBouncer + pg_partman / pgvector&lt;br&gt;Kafka (Strimzi) + Debezium / ClickHouse / Valkey / Apicurio Registry / Temporal / ZEN Engine&lt;br&gt;Rook+Ceph / Longhorn ｜ 5 preservation_class × 4 種 restore_drill × expand-contract migration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="366" width="1080" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="infra" value="&lt;b&gt;infra 階層&lt;/b&gt;&lt;br&gt;Kubernetes / Envoy Gateway / Istio / Argo CD / Tekton / Argo Rollouts&lt;br&gt;5 topology_class × 5 clock_integrity_class + 5 failover orchestrator + HLC runtime&lt;br&gt;25+ Kyverno admission policy / Cosign / OpenBao / SPIRE / HSM PKCS#11" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="462" width="1080" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="単方向: tier3 → tier2 → tier1 → data / infra ｜ 逆方向の依存（tier1 → tier3 等）は CI で物理拒否 ｜ 同階層内 bounded context 跨ぎは Domain Event 経由のみ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;fontFamily=Helvetica;fontSize=11;fontStyle=2;fontColor=#333333;align=center;verticalAlign=middle;spacingLeft=14;spacingRight=14;" vertex="1" parent="1">
+          <mxGeometry x="80" y="562" width="1080" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_box" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;verticalAlign=top;align=left;spacingTop=4;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="680" y="610" width="480" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_app" value="アプリ層 (tier1/2/3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="696" y="642" width="142" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_data" value="データ層" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="854" y="642" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_infra" value="インフラ層" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="990" y="642" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_sync_arrow" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="696" y="694" as="sourcePoint" />
+            <mxPoint x="760" y="694" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_sync_label" value="単方向同期依存" style="text;html=1;fontFamily=Helvetica;fontSize=11;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="770" y="680" width="200" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_note" value="逆方向は CI 物理拒否（強制機構による）" style="text;html=1;fontFamily=Helvetica;fontSize=11;fontStyle=2;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="696" y="720" width="460" height="28" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
