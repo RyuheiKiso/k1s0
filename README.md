@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="img/k1s0_banner_terminal.svg" alt="k1s0 — Keep It Simple, 0 Vendor Lock-in. (terminal banner)" width="100%" />
+</p>
+
 # k1s0
 
 > ## **Keep It Simple, 0 Vendor Lock-in.**
