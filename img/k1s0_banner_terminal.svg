@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 200" width="1280" height="200" role="img" aria-label="Keep It Simple, 0 Vendor Lock-in.">
   <title>Keep It Simple, 0 Vendor Lock-in.</title>
-  <desc>k1s0 tagline banner. Cyan typewriter line on black.</desc>
+  <desc>k1s0 tagline banner. Cursor follows typing then blinks softly.</desc>
   <defs>
     <style><![CDATA[
       .bg     { fill: #0d1117; }
@@ -10,46 +10,67 @@
         font-family: 'SF Mono','Menlo','Consolas','Source Code Pro','Liberation Mono',monospace;
         font-size: 40px;
         font-weight: 700;
-        letter-spacing: 0.2px;
         dominant-baseline: alphabetic;
       }
       .prompt { fill: #22d3ee; }
       .hero   { fill: #a5f3fc; }
-      .line   { clip-path: inset(0 100% 0 0); animation: type 10s infinite; }
+
+      .reveal { clip-path: inset(0 100% 0 0); animation: type 10s infinite; }
       @keyframes type {
-        0%, 4%   { clip-path: inset(0 100% 0 0); }
-        30%      { clip-path: inset(0 0    0 0); }
-        96%      { clip-path: inset(0 0    0 0); }
-        100%     { clip-path: inset(0 100% 0 0); }
+        0%, 4%  { clip-path: inset(0 100% 0 0); animation-timing-function: steps(33, end); }
+        30%     { clip-path: inset(0 0    0 0); animation-timing-function: linear; }
+        96%     { clip-path: inset(0 0    0 0); }
+        100%    { clip-path: inset(0 100% 0 0); }
       }
-      .cursor { fill: #22d3ee; animation: blink 10s infinite; }
+
+      .cursor-track {
+        animation: move 10s infinite;
+      }
+      @keyframes move {
+        0%, 4%  { transform: translateX(0px); animation-timing-function: steps(33, end); }
+        30%     { transform: translateX(792px); animation-timing-function: linear; }
+        96%     { transform: translateX(792px); }
+        96.01%  { transform: translateX(0px); }
+        100%    { transform: translateX(0px); }
+      }
+
+      .cursor {
+        fill: #22d3ee;
+        animation: blink 10s infinite;
+      }
       @keyframes blink {
-        0%,   30%   { opacity: 0; }
-        30.1%, 40%  { opacity: 1; }
-        40.1%, 48%  { opacity: 0; }
-        48.1%, 56%  { opacity: 1; }
-        56.1%, 64%  { opacity: 0; }
-        64.1%, 72%  { opacity: 1; }
-        72.1%, 80%  { opacity: 0; }
-        80.1%, 88%  { opacity: 1; }
-        88.1%, 96%  { opacity: 0; }
-        96.1%, 100% { opacity: 1; }
+        0%,    4%     { opacity: 0; }
+        4.01%, 30%    { opacity: 1; }
+        31%,   45%    { opacity: 0; }
+        46%,   60%    { opacity: 1; }
+        61%,   75%    { opacity: 0; }
+        76%,   90%    { opacity: 1; }
+        91%,   100%   { opacity: 0; }
       }
+
       @media (prefers-reduced-motion: reduce) {
-        .line, .cursor { animation: none !important; }
-        .line { clip-path: none !important; }
+        .reveal, .cursor-track, .cursor { animation: none !important; }
+        .reveal { clip-path: none !important; }
+        .cursor-track { transform: translateX(792px); }
         .cursor { opacity: 1 !important; }
       }
     ]]></style>
   </defs>
 
-  <rect class="bg" x="0" y="0" width="1280" height="200" rx="10" />
+  <rect class="bg"     x="0"   y="0"   width="1280" height="200" rx="10" />
   <rect class="border" x="0.5" y="0.5" width="1279" height="199" rx="10" />
 
-  <g transform="translate(195, 120)">
-    <text class="term line" x="0" y="0">
-      <tspan class="prompt">$</tspan><tspan class="hero" dx="14">Keep It Simple, 0 Vendor Lock-in.</tspan>
+  <g transform="translate(220, 120)">
+    <text class="term" x="0" y="0">
+      <tspan class="prompt">$</tspan>
     </text>
-    <rect class="cursor" x="892" y="-36" width="16" height="44" />
+    <g class="reveal">
+      <text class="term" x="38" y="0">
+        <tspan class="hero" textLength="792" lengthAdjust="spacing">Keep It Simple, 0 Vendor Lock-in.</tspan>
+      </text>
+    </g>
+    <g class="cursor-track">
+      <rect class="cursor" x="42" y="-32" width="14" height="42" rx="1" />
+    </g>
   </g>
 </svg>
