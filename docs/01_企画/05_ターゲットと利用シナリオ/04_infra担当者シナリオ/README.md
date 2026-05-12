@@ -18,6 +18,22 @@ covered_by:
 
 infra 担当者（シニア級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。cluster 構築 / 5 topology_class / 5 clock_integrity_class / 25+ Kyverno admission policy の維持と、全 19 軸の defense-in-depth 層 E（13 cross-cutting 適合仕様を含む）（物理 enforcement）の最終 safety net 提供が主責務。
 
+## 現状業務での痛み
+
+- クラスタ topology 切替時の failover 経路を人手で確認すると、訓練不足で本番障害時に手順が機能しない
+- Kyverno admission policy を手書きで管理すると、policy drift が蓄積し気付かない穴が生まれる
+- GitOps の設定変更が実 cluster に反映されているかの検証が手動テストに依存し、regression を見逃す
+- secret rotation の cadence を文書管理すると、期限超過 secret が本番に残存する
+- network policy の意図しない疎通を CI で検証しないと、east-west の不正通信経路が生まれる
+
+## k1s0 でこう変わる
+
+- 5 topology_class ごとの failover drill green を ship blocker として物理要求し、訓練未実施を release でブロックする
+- 25+ Kyverno admission policy が CI で自動検証され、policy drift は merge 前に物理拒否される
+- GitOps (Argo CD) でデプロイ実態が lock yaml と 1:1 対応し、drift 即時検出
+- secret rotation cadence 超過を Kyverno が本番 deploy を物理停止し、期限超過 secret を構造で排除する
+- Calico NetworkPolicy + Istio mTLS で east-west 通信の意図しない疎通を 0 にする
+
 ## 担当者プロフィール
 
 - 級: シニア

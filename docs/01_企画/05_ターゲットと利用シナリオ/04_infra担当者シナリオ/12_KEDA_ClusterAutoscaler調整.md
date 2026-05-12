@@ -20,6 +20,22 @@ infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom m
 
 > 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Perses dashboard の `keda-scaling-time` パネルを確認中に、FA 生産指示 Kafka topic の lag が昨日のピーク時に `lagThreshold` を超えても scale out に 3 分かかっていた事象を発見する。手元には KEDA の ScaledObject YAML と過去 30 日の Kafka lag グラフ、Mattermost 越しに ops 担当者・tier2 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: KEDA / Cluster Autoscaler の scaling 設定を最適化し surge 時のスケール遅延を解消する
+
+## 現状業務での痛み
+
+- KEDA scaling 設定が属人的で、surge 時にスケール遅延が発生してもパラメータ調整の根拠がない
+- Cluster Autoscaler のノード追加ラグが予測できず、surge 時に処理遅延やタイムアウトが発生する
+- scaling 設定の変更履歴が残らず、問題発生時にどのパラメータが原因かの特定が困難
+
+## k1s0 でこう変わる
+
+- KEDA ScaledObject が GitOps で管理され、scaling パラメータの変更が PR レビューで審査される
+- Perses の scaling メトリクスが lag / queue depth の推移を可視化し、パラメータ調整の根拠が定量化される
+- keda.lock.yaml が scaling 設定の変更履歴を記録し、問題発生時のパラメータ追跡が即時に可能になる
+
 ## Trigger（発火条件）
 
 - SLO 違反（Scaling 遅延で response time 超過）
@@ -43,6 +59,17 @@ infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom m
 | 関与（tier2）| ミドル | 本社 IT 室 / リモート | Kafka dashboard | Kafka consumer の SLO 確認 / lagThreshold 調整値の妥当性確認 |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | ScaledObject YAML PR レビュー / cluster_inventory.lock.yaml sign-off |
 
+## 個人 KPI / 達成感
+
+- surge 時の scaling 完了時間が SLO 以内であることを Perses で定量確認でき、設定最適化の達成感を得られる
+- scaling 設定 PR の品質向上を数値で確認でき、チームの scaling 知識が定量化される
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（KEDA GitOps 移行 4h + メトリクス設定 2h + パラメータ調整 4h）
+- 関与人数: 2〜3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 低〜中。GitOps 移行後は継続コストがパラメータ調整のみになる
+
 ## 前提
 
 - [オートスケール方針](../../../03_概要設計/05_infra設計方針/06_オートスケール方針.md)（KEDA + Cluster Autoscaler）が確立済み
@@ -61,6 +88,15 @@ infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom m
 6. 本番 cluster に適用（GitOps 経由 / `infra/keda/` 配下の ScaledObject YAML を更新）
 7. 本番適用後 1 週間 Perses で scaling 指標を監視する
 8. `cluster_inventory.lock.yaml` に調整内容を記録し dual reviewer sign-off を取得する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | 既存 KEDA ScaledObject を GitOps リポジトリに移行し Perses メトリクスを設定 | `KEDA GitOps 移行完了 / メトリクス設定` |
+| 4h | infra 担当者 | surge テストで scaling 遅延を計測し minReplicaCount / cooldown を調整 | `surge テスト完了 / scaling 遅延 N 秒 / パラメータ調整` |
+| 1d | infra 担当者 | 調整後の scaling テスト green を確認し keda.lock.yaml を更新して PR 提出 | `scaling テスト green / lock.yaml 更新 / PR #NNN` |
+| 1d+2h | dual reviewer + ops 担当者 | scaling 設定と lock.yaml を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -87,6 +123,11 @@ infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom m
 
 - **調整後に SLO 違反が増加**: 元の設定に rollback し、ops 担当者に Mattermost `#infra-incident` で報告（**SLA: 違反検出後 30 分以内に rollback**）。調整前の Perses data を再分析して次回調整計画を立て直す（**SLA: 5 営業日以内**）。
 - **staging の chaos test で期待通り scale out しない**: staging で問題を再現させ原因調査してから本番に適用しない（staging fail = 本番適用中止）。
+
+## 失敗パターン (anti-pattern)
+
+- scaling パラメータの勘頼り調整: メトリクスなしの感覚的なパラメータ変更は設定 drift を引き起こす
+- GitOps 外の kubectl patch: ScaledObject を直接 patch すると drift detection が検知する
 
 ## 関連参照
 

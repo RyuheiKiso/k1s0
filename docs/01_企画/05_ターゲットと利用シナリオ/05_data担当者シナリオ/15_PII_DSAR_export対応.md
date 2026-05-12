@@ -20,6 +20,22 @@ data 担当者が GDPR DSAR（Data Subject Access Request）または個人情�
 
 > 水曜午前 10 時、法務部門から「元従業員 B さんから GDPR 第 15 条（アクセス権）に基づく開示請求が届いた」と Mattermost `#legal-request` に投稿が来る。data 担当者（シニア級）は PII 専用クラスタへのアクセス手順を確認しながら、security 担当者に RLS FORCE bypass の承認を依頼する準備を始める。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: DSAR 対応で PII の所在を即時特定し 30 日以内にエクスポートを完了する
+
+## 現状業務での痛み
+
+- DSAR 対応でどのテーブルに PII があるかが不明確で、PII の特定に大量の調査時間がかかる
+- PII テーブルの一覧が文書管理で属人化し、担当者が変わると調査が困難になる
+- エクスポート後の PII 暗号化が不完全で、エクスポートファイル自体がセキュリティリスクになる
+
+## k1s0 でこう変わる
+
+- pii_catalog.lock.yaml が全 PII テーブルと PII class を管理し、DSAR 対応時の PII 特定が即時に可能になる
+- DSAR エクスポートスクリプトが lock.yaml から自動生成され、調査から エクスポートまでが自動化される
+- エクスポートファイルが AES-GCM で暗号化され、安全なファイル転送が保証される
+
 ## Trigger（発火条件）
 
 法務部門または compliance チームから GDPR DSAR / 個人情報保護法に基づく開示請求の対応依頼が届いた時。
@@ -42,6 +58,17 @@ data 担当者が GDPR DSAR（Data Subject Access Request）または個人情�
 | 関与（security）| シニア | 本社 / リモート | OpenBao / audit hash chain | RLS bypass 承認 / DEK 確認 |
 | 関与（法務）| — | 本社 法務部 | Mattermost `#legal-request` | 請求適法性確認 / 提供先への送付 |
 
+## 個人 KPI / 達成感
+
+- DSAR 対応の 30 日期限内完了率を追跡でき、compliance SLO 達成の達成感を得られる
+- PII 特定時間の短縮を数値で確認でき、DSAR 対応効率の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日/DSAR（PII 特定 1h + エクスポート実行 2h + 暗号化・転送 1h）
+- 関与人数: 3〜4 名（data 担当者・security 担当者・compliance 担当者・dual reviewer）
+- コスト感: 低。lock.yaml と自動エクスポートスクリプトにより DSAR 対応コストが大幅削減される
+
 ## 前提
 
 - PII 専用クラスタが独立して稼働しており、一般業務クラスタとは物理 / 論理的に分離されている（data-07 参照）
@@ -63,6 +90,15 @@ data 担当者が GDPR DSAR（Data Subject Access Request）または個人情�
 7. 暗号化 export パッケージを法務担当者に引き渡す（法務担当者が請求者に安全な経路で送付する）
 8. `data_lifecycle.lock.yaml` に DSAR 対応の記録を追記する（請求者 / 対応期日 / 提供内容の概要 / 削除予定日）
 9. dual reviewer sign-off を取得する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | DSAR 受領 / pii_catalog.lock.yaml で対象テナントの PII テーブルを特定 | `DSAR 受領 / PII テーブル N 件特定 / T+0` |
+| 2h | data 担当者 | エクスポートスクリプトを実行し PII データを収集 | `PII エクスポート実行 / N レコード収集` |
+| 4h | data 担当者 | エクスポートファイルを AES-GCM で暗号化し audit trail を記録 | `暗号化完了 / audit trail 記録` |
+| 1d | data 担当者 + compliance 担当者 | エクスポートファイルを本人に安全転送し DSAR 完了を記録 | `DSAR 完了 / lock.yaml 更新` |
 
 ## 業界 9 業務との紐付け
 
@@ -89,6 +125,11 @@ data 担当者が GDPR DSAR（Data Subject Access Request）または個人情�
 - **audit hash chain への emit が失敗**: security / ops 担当者に即時 escalate（**SLA: 1h 以内**）。export 操作を一時停止し、Backstage runbook `audit-chain-integrity-check` を参照。compliance incident として扱う
 - **1 か月の GDPR 回答期限が近づいている**: 法務担当者と作業状況を共有し、GDPR 第 12 条に基づく 3 か月延長通知を請求者に送付する判断を依頼する（**SLA: 回答期限 7 日前に確認**）
 - **RLS FORCE bypass の承認が得られない**: security 担当者に Mattermost `#security-incident` で改めて事情を説明し、代替の権限付き抽出方法を相談する（**SLA: 4h 以内**）
+
+## 失敗パターン (anti-pattern)
+
+- PII を手動検索で特定: lock.yaml を使わない PII 探索は調査時間が膨大になり 30 日期限を超過するリスクがある
+- 平文エクスポートファイルの転送: 暗号化なしのエクスポートは security CI が GDPR 違反として検知する
 
 ## 関連参照
 

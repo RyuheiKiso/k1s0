@@ -8,7 +8,7 @@ depends_on:
   - arch.tier3.tier3_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C]
   proof_classes: []
 ---
 
@@ -19,6 +19,22 @@ covered_by:
 .NET Framework 4.8 ERP 等のレガシーシステムを `k1s0.Library.NetFx` NuGet と Companion Transport Negotiation Runtime を通じて k1s0 に統合し、観測コンテキスト伝播と認証を確立する。
 
 > 朝 10 時、本社 IT 室の tier3 担当者（ジュニア級）が GitHub PR の integration test 結果で CLR Profiler attach の失敗ログに気付く。手元には `k1s0.Library.NetFx` の NuGet 設定と Testcontainers の出力、Mattermost 越しに tier1 Companion 担当者と infra 担当者がいる。
+
+## ペルソナ要約
+
+主役: tier3 担当者（ジュニア級）、目的: .NET Framework レガシーシステムとの Companion 統合を HTTP/2 + validation 規約で安全に実装する
+
+## 現状業務での痛み
+
+- .NET Framework の HTTP/1.1 のみ対応で、k1s0 の HTTP/2 / gRPC エンドポイントと直接通信できない
+- 入力バリデーションが未対応で、レガシー側からの不正リクエストがそのまま tier2 に到達するリスクがある
+- Companion 層のエラーハンドリングが undefined で、レガシー側の障害が k1s0 全体に伝播する
+
+## k1s0 でこう変わる
+
+- BFF Companion adapter が HTTP/1.1 → HTTP/2 変換を担い .NET Framework との透過的な通信を実現する
+- Companion adapter の入力バリデーションレイヤーがレガシー側の不正リクエストを contract test で検知する
+- circuit breaker が Companion 層に組み込まれ、レガシー障害を k1s0 から隔離して全体影響を防ぐ
 
 ## Trigger（発火条件）
 
@@ -40,6 +56,17 @@ covered_by:
 | 関与（infra）| 中堅 | 本社 IT 室 | Backstage Catalog | 8443-legacy ポート設定 / Keycloak 設定確認 |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | integration test green / OTel trace 到達 / OIDC 認証確認 / sign-off |
 
+## 個人 KPI / 達成感
+
+- Companion 経由の全リクエストが contract test green で通過することを定量確認できる
+- circuit breaker が正しく作動することを E2E のフォールトインジェクションで確認し実装完了感を得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 2〜3 日（adapter 設定 4h + validation 実装 4h + circuit breaker 設定 2h + E2E 4h）
+- 関与人数: 3 名（tier3・tier2・dual reviewer）
+- コスト感: 中〜高。レガシー環境の調査コストが追加されるが adapter が変換を集約する
+
 ## 前提
 
 - tier1 Companion（役割 A / B）が稼働中
@@ -56,6 +83,15 @@ covered_by:
 5. レガシー側の認証: Keycloak OIDC token を .NET Framework 側で取得し HTTP header に付与
 6. integration test: Testcontainers + .NET Framework 4.8 runtime で動作確認
 7. dual reviewer sign-off
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier3 担当者 | BFF Companion adapter の設定ファイルを作成し .NET Framework エンドポイントを登録 | `adapter 設定完了 / HTTP/1.1 endpoint 登録` |
+| 4h | tier3 担当者 | 入力バリデーションと circuit breaker を Companion adapter に設定 | `validation 設定完了 / circuit breaker 追加` |
+| 1d | tier3 担当者 | E2E で HTTP/2 変換・バリデーション・circuit breaker を green にし PR 提出 | `Companion E2E green / PR #NNN 提出` |
+| 1d+4h | dual reviewer | adapter 動作と contract test を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -82,6 +118,11 @@ covered_by:
 - CLR Profiler attach 失敗 → **escalate 先**: infra 担当者に Mattermost `#infra-ops` で runtime 環境確認を依頼（**SLA**: 24h 以内）
 - 8443-legacy ポート疎通失敗 → **escalate 先**: infra 担当者に Mattermost `#infra-ops` で listener 設定確認を依頼（**SLA**: 24h 以内）
 - OIDC token 取得失敗 → **escalate 先**: tier2 / infra 担当者に Mattermost `#infra-ops` で Keycloak 設定確認（**SLA**: 24h 以内）
+
+## 失敗パターン (anti-pattern)
+
+- HTTP/1.1 直接呼び出し: Companion adapter を迂回して .NET Framework と直接通信すると contract test が boundary 違反を検知する
+- バリデーション省略: Companion 層でのバリデーションなしにレガシーデータを tier2 に渡すと schema validation CI が fail する
 
 ## 関連参照
 

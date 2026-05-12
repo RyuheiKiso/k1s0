@@ -20,6 +20,22 @@ tier3 担当者が release 前に担当業務画面の Playwright smoke test を
 
 > 午前 10 時、本社 IT 室の tier3 担当者（ジュニア級）がリリース前日の Playwright CI ダッシュボードで smoke test の一斉 fail を発見し、緊張した面持ちで原因確認を開始する。手元には smoke test の fail ログと tier2 generated stub の差分レポート、Mattermost 越しに tier2 担当者（API 変更確認）と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: tier3 担当者（ジュニア級）、目的: pre-release smoke test を実施し全シナリオ green をデプロイ前に確認する
+
+## 現状業務での痛み
+
+- smoke test がなくデプロイ後に重大な機能不全が発覚し、ユーザー影響が出てからロールバックする
+- テスト環境と本番環境の差異により staging では green だったテストが本番で fail する
+- smoke test の手順が属人化しており、担当者によってカバレッジが異なる
+
+## k1s0 でこう変わる
+
+- Playwright smoke test が CI パイプラインに組み込まれ、デプロイ前に全シナリオ green を自動確認する
+- 本番同等 staging 環境での smoke test が必須となり、環境差異による本番 fail を事前検知する
+- smoke test シナリオが Backstage TechDocs に定義されており、誰が実行しても同一カバレッジが保証される
+
 ## Trigger（発火条件）
 
 新業務画面の追加完了時 / リリース milestone 到達時 / smoke test が CI で fail した時
@@ -39,6 +55,17 @@ tier3 担当者が release 前に担当業務画面の Playwright smoke test を
 | 主役（tier3）| ジュニア | 本社 IT 室 / リモート | Playwright CI / GitHub PR | smoke test 作成・修正 / fail 原因分類 / fixture 更新 / staging 確認 |
 | 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | API 変更内容の migration guide 提供 / smoke test fail 原因確認 / sign-off |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | CI green / staging smoke pass / a11y green / sign-off |
+
+## 個人 KPI / 達成感
+
+- smoke test 全 green がデプロイ可否ゲートとなり、デプロイ成功率が定量的に向上する
+- smoke test 通過率の推移をダッシュボードで確認でき、品質改善の達成感を得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 0.5〜1 日（smoke test シナリオ設計 2h + Playwright 実装 4h）
+- 関与人数: 2〜3 名（tier3・ops 担当者・dual reviewer）
+- コスト感: 低。一度実装すると CI で自動実行されるため継続コストは最小化される
 
 ## 前提
 
@@ -61,6 +88,15 @@ tier3 担当者が release 前に担当業務画面の Playwright smoke test を
 5. 全 smoke test が local で green になることを確認してから PR を作成する
 6. CI で smoke test + a11y test が green になることを確認する
 7. dual reviewer sign-off を取得し、staging 環境でも smoke test を実行して動作確認する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier3 担当者 | Backstage TechDocs で smoke test シナリオ一覧を確認し実装計画を作成 | `smoke test シナリオ N 件 / 実装計画確定` |
+| 4h | tier3 担当者 | Playwright で smoke test を実装し staging で green を確認 | `smoke test N 件実装 / staging green` |
+| 1d | tier3 担当者 | CI パイプラインに smoke test を組み込み PR 提出 | `CI 統合完了 / PR #NNN 提出` |
+| 1d+2h | dual reviewer | CI 統合と smoke test カバレッジを確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -87,6 +123,11 @@ tier3 担当者が release 前に担当業務画面の Playwright smoke test を
 - **tier2 API 変更により smoke test が一斉 fail**: tier2 担当者に Mattermost `#tier3-contract-fail` で連絡（**SLA: 24h 以内**に tier2 側で migration guide 提供）。smoke test は修正前に merge しない。
 - **a11y 違反が検出された**: WCAG 2.1 AA 違反は merge 阻止。デザインシステム担当者に Mattermost `#design-review` で修正方針を確認（**SLA: 48h 以内**）。
 - **smoke test が staging のみで fail（local は green）**: 環境差分（API URL / 認証 endpoint）を確認。ops 担当者に Mattermost `#infra-incident` で staging 環境の状態を確認依頼（**SLA: 2h 以内**）。
+
+## 失敗パターン (anti-pattern)
+
+- happy path のみの smoke test: エラーシナリオを省くと本番の failure mode が検知できない
+- staging のみで確認: 本番同等環境での実行を省略すると環境差異による本番 fail を防げない
 
 ## 関連参照
 

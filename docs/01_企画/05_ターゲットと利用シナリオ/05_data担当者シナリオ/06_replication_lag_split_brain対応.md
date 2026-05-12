@@ -8,7 +8,7 @@ depends_on:
   - arch.data.data_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [B, C, D]
   proof_classes: []
 ---
 
@@ -19,6 +19,22 @@ covered_by:
 CloudNativePG / Kafka / Valkey の replication lag アラートまたは split-brain 疑いを症状別に分類し、data 整合性確認と恒久対処 PR まで完結させる。
 
 > 深夜 2 時、自宅 on-call 中の data 担当者（シニア級）が PagerDuty のアラートで起床し、Perses の replication lag ダッシュボードで CloudNativePG secondary の lag が 30 秒超過していることに気付く。手元にはノート PC の Perses 画面と `kubectl` 端末、Mattermost 越しに infra 担当者と tier2 担当者がいる。
+
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: replication lag 監視と split-brain 検知で双方書き込みによるデータ破壊を防ぐ
+
+## 現状業務での痛み
+
+- split-brain を検知する仕組みがなく、双方書き込みによるデータ破壊が本番障害まで気付かれない
+- replication lag の閾値が設定されておらず、lag 膨張が監視の目を逃れる
+- split-brain 発生時の対処手順が不明確で、復旧に長時間を要する
+
+## k1s0 でこう変わる
+
+- Perses の replication lag メトリクスが閾値超過で自動 alert を発行し、split-brain リスクを事前に検知する
+- CloudNativePG の fencing 機能が split-brain 状態での書き込みを物理的に拒否し、データ破壊を防ぐ
+- split-brain 対処 runbook が Backstage TechDocs に定義され、発生時の復旧時間が短縮される
 
 ## Trigger（発火条件）
 
@@ -42,6 +58,17 @@ CloudNativePG / Kafka / Valkey の replication lag SLI アラートが発火し�
 | 関与（tier2）| ミドル〜シニア | リモート | Backstage TechDocs | Outbox relay 二重送信確認・integration test 実行 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 恒久対処 PR の sign-off |
 
+## 個人 KPI / 達成感
+
+- replication lag SLO（閾値以内）の達成率を Perses で定量確認でき、データ整合性維持の達成感を得られる
+- split-brain 発生 0 件を継続できることを audit trail で確認でき、品質維持の実感を得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（lag メトリクス設定 4h + fencing 設定 2h + runbook 整備 2h）
+- 関与人数: 2〜3 名（data 担当者・infra 担当者・dual reviewer）
+- コスト感: 低〜中。Perses と CloudNativePG の設定が主な作業で継続コストは監視のみ
+
 ## 前提
 
 - CloudNativePG / Strimzi（Kafka）/ Valkey の replication lag SLI がモニタリングダッシュボードで可視化済み
@@ -58,6 +85,15 @@ CloudNativePG / Kafka / Valkey の replication lag SLI アラートが発火し�
 5. 復旧後、data 整合性を tier2 integration test で確認する。特に Outbox relay が二重送信していないかを確認する
 6. 根本原因を特定し、IaC / network 設定 / CRUSH map を修正した恒久対処 PR を作成する
 7. 可用性 SLO 違反が発生した場合は **postmortem 期限: 2 営業日以内**（Backstage runbook `data-postmortem-template`）。dual reviewer sign-off を得る
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | Perses に replication lag alert ルールを設定し fencing 設定を確認 | `lag alert 設定完了 / fencing 確認` |
+| alert 受信 | data 担当者 | lag alert を受信し replication 状態を確認して split-brain 判定 | `lag alert 受信 / split-brain 判定中` |
+| 30分 | data 担当者 | split-brain 対処 runbook に従い fencing を実行して single master を確認 | `fencing 完了 / single master 確認` |
+| 1営業日 | data 担当者 | postmortem で lag 原因を分析し replication.lock.yaml を更新 | `postmortem 完了 / lock.yaml 更新` |
 
 ## 業界 9 業務との紐付け
 
@@ -85,6 +121,11 @@ CloudNativePG / Kafka / Valkey の replication lag SLI アラートが発火し�
 - **split-brain 解消不能**: infra 担当者に escalate し、network レベルの強制分断を実施する。data 損失が発生した場合は最新の backup から restore を検討する
 - **etcd quorum 喪失**: infra 担当者が etcd cluster を復旧するまで CloudNativePG の leader election は機能しない。read-only モードで業務継続を検討する
 - **Outbox 二重送信が確認された場合**: consumer の Idempotency-Key による de-dup が機能しているかを確認し、機能していない場合は tier2 担当者に escalate する
+
+## 失敗パターン (anti-pattern)
+
+- lag 無視の運用: lag alert なしで長時間 lag を放置すると split-brain リスクが増大する
+- fencing なし DR: split-brain 状態で両 master に書き込みを許可するとデータ破壊が発生する
 
 ## 関連参照
 

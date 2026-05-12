@@ -20,6 +20,22 @@ archive_to_offline に送出済みのデータを litigation hold 対応・監�
 
 > 午前 11 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で法務部門からの「監査機関より 3 年前の受注データ参照要求が届いた」メッセージを確認する。手元には `data_lifecycle.lock.yaml` と OpenBao 管理画面、Mattermost 越しに security 担当者・infra 担当者・法務 / コンプライアンス担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: archive データの offline 復元手順を runbook 化し属人化を排除する
+
+## 現状業務での痛み
+
+- archive 復元手順が文書管理で属人化しており、担当者が変わると復元に長時間を要する
+- offline ストレージからの復元が未テストで、実際の復元時に手順の欠陥が初めて発覚する
+- 復元時の RPO が定義されておらず、どこまでのデータが復元できるかが不明確
+
+## k1s0 でこう変わる
+
+- archive_restore.lock.yaml が復元手順と RPO を管理し、手順の SoT が常に最新に維持される
+- 定期 restore drill が必須化され、復元手順の信頼性が継続的に確認される
+- 復元 RPO が lock.yaml に定義され、どの時点のデータが復元可能かが明確になる
+
 ## Trigger（発火条件）
 
 法務部門からの litigation hold 通知、外部監査人からの特定期間データ参照要求、または過去データを用いた障害再現調査依頼が届いた時。
@@ -43,6 +59,17 @@ archive_to_offline に送出済みのデータを litigation hold 対応・監�
 | 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | offline media からの転送経路確保 |
 | 関与（法務 / コンプライアンス）| — | 本社 | Mattermost `#legal` | litigation hold の適法性確認 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
+
+## 個人 KPI / 達成感
+
+- archive 復元 drill の cadence 達成率を lock.yaml で定量確認でき、復元準備の継続的維持の達成感を得られる
+- 復元 RTO の計測値改善を drill ごとに確認でき、手順最適化の進捗を数値で把握できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日/drill（drill 準備 1h + 復元実施 2h + RTO 計測 1h + lock.yaml 更新 1h）
+- 関与人数: 2〜3 名（data 担当者・ops 担当者・dual reviewer）
+- コスト感: 低〜中。runbook 整備後は drill 実施コストが手順確認と記録のみになる
 
 ## 前提
 
@@ -68,6 +95,15 @@ archive_to_offline に送出済みのデータを litigation hold 対応・監�
 9. `data_lifecycle.lock.yaml` に復元操作の記録を追記する（復元日時 / 要求元 / 目的 / 提供先 / 削除予定日）
 10. dual reviewer sign-off を取得する
 11. 利用期間終了後: 復元した online copy を crypto-erase して cold tier から削除し `data_lifecycle.lock.yaml` に記録する（restore はあくまで一時的な online 化）
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | archive_restore.lock.yaml で復元対象 archive と RPO を確認し drill を開始 | `archive restore drill 開始 / RPO 確認 / T+0` |
+| 30分 | data 担当者 | offline ストレージから staging へ archive を復元 | `archive 復元開始 / staging へ転送中` |
+| 2h | data 担当者 | 復元完了を確認し RTO を計測して lock.yaml に記録 | `復元完了 / RTO = N 分 / lock.yaml 更新` |
+| 1d | dual reviewer | drill 結果と RTO を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -96,6 +132,11 @@ archive_to_offline に送出済みのデータを litigation hold 対応・監�
 - **checksum 不一致（integrity 違反）**: 転送を中断し、data 担当者 + security 担当者 + infra 担当者で Mattermost `#data-incident` に集合（**SLA: 30 分以内**）。offline media の破損を確認し、冗長コピー（tape 複製 / Glacier redundant copy）から再転送を試みる。**postmortem 期限: 3 営業日以内**。
 - **audit hash chain への emit 失敗**: 復元操作を一時停止し、security / ops 担当者に即時 escalate（**SLA: 1h 以内**）。Backstage runbook `audit-chain-integrity-check` を参照。復元手続きはaudit emit が保証されるまで完結としない。
 - **offline media の所在が不明**: `data_lifecycle.lock.yaml` に archive 記録がない場合は infra 担当者と共同で media 台帳を確認する（**SLA: 4h 以内**）。台帳に記録がない場合は compliance incident として法務担当者に報告する。
+
+## 失敗パターン (anti-pattern)
+
+- drill なしの archive 保管: 復元未確認の archive は DR 時に手順の欠陥が本番で発覚する
+- RTO 計測なしの「成功」判定: 計測値なしの drill 結果は lock.yaml エントリとして認められない
 
 ## 関連参照
 

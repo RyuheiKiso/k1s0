@@ -20,6 +20,22 @@ infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / Open
 
 > 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Argo CD UI で staging cluster の ApplicationSet を確認中に、「Argo CD v2.11 公開 / ApplicationSet generator 機能追加」の upstream release note が Mattermost `#infra-ops` に流れていることに気付く。手元には cluster_inventory.lock.yaml と Helm chart の values.yaml、Mattermost 越しに ops 担当者・tier1 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: OSS platform upgrade を staging 先行と互換性テストで安全に実施する
+
+## 現状業務での痛み
+
+- OSS アップグレードで非互換変更が本番で初めて発覚し、ロールバック対応に長時間を要する
+- アップグレード影響範囲が把握できず、どのサービスが影響を受けるかの事前確認ができない
+- アップグレード記録が残らず、問題発生時に何をいつ変更したかの追跡が困難になる
+
+## k1s0 でこう変わる
+
+- Testcontainers integration test が staging で新 OSS version との互換性を事前検証し、非互換を本番前に検知する
+- platform_upgrade.lock.yaml が upgrade 記録を管理し、問題発生時の変更追跡が即時に可能になる
+- Argo CD の progressive delivery で本番 upgrade が段階的に適用され、問題発生時の影響範囲が限定される
+
 ## Trigger（発火条件）
 
 - 運用基盤 OSS の minor / major release が公開され、upgrade が必要になった時
@@ -44,6 +60,17 @@ infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / Open
 | 関与（tier1）| シニア | 本社 IT 室 / リモート | Harbor mirror / tier1 Library CI | tier1 Library との互換確認 / breaking change 解析支援 |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | staging 確認結果レビュー / cluster_inventory.lock.yaml sign-off |
 
+## 個人 KPI / 達成感
+
+- staging での互換性テスト green → 本番 upgrade 可否ゲートで品質確認を定量的に得られる
+- upgrade 後の SLO 維持率を Perses で確認でき、安全な upgrade 達成の実感を得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜3 日（staging upgrade 4h + 互換性テスト 4h + 本番 progressive delivery 4h）
+- 関与人数: 3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 中。staging 先行と互換性テストが追加されるが本番インシデントを防ぐ投資として必須
+
 ## 前提
 
 - `cluster_inventory.lock.yaml` に現行バージョンが記録済みであること
@@ -67,6 +94,15 @@ infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / Open
 6. 本番 cluster への upgrade: Argo CD progressive delivery（canary 10%→50%→100%）で段階適用
 7. 本番 upgrade 完了後に `cluster_inventory.lock.yaml` を更新し、dual reviewer sign-off を取得する
 8. upgrade 後 24h は Perses で SLO を監視する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | staging で OSS を新 version に upgrade し Testcontainers 互換性テストを実行 | `staging upgrade 開始 / 互換性テスト実行中` |
+| 4h | infra 担当者 | staging 互換性テスト green を確認し本番 upgrade の PR を作成 | `staging テスト green / 本番 upgrade PR #NNN 提出` |
+| 1d | infra 担当者 | 本番に Argo CD progressive delivery で段階 apply し SLO 監視 | `本番 upgrade 開始 / progressive delivery 実行中` |
+| 1d+4h | infra 担当者 | upgrade 完了後 platform_upgrade.lock.yaml を更新し sign-off | `lock.yaml 更新 / sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -95,6 +131,11 @@ infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / Open
 - **staging での upgrade 失敗（OSS が起動不能）**: rollback（`helm rollback <release> <revision>`）を即時実施。本番 upgrade を中止。tier1 担当者と協力して breaking change の解析（**SLA: 4h 以内**に rollback 完了）。**postmortem 期限: 3 営業日以内**。
 - **本番 progressive upgrade 中に SLO 超過**: Argo Rollouts の自動 rollback が発動することを確認。ops 担当者に Mattermost `#infra-incident` で通報（**SLA: 10 分以内**）。Backstage runbook `platform-upgrade-rollback` を参照。
 - **Kyverno upgrade 後に既存 workload が policy 違反と判定**: 違反 workload を特定し、Kyverno policy を audit mode に一時的に降格（**SLA: 1h 以内**に原因特定）。恒久修正まで audit mode を維持しレポートを daily で ops 担当者に共有。
+
+## 失敗パターン (anti-pattern)
+
+- staging スキップの直接本番 upgrade: 互換性テストなしの upgrade は upgrade gate CI が阻止する
+- lock.yaml 未更新: upgrade 記録がないと rollback 判断時に変更内容が不明になる
 
 ## 関連参照
 

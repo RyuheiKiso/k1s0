@@ -20,6 +20,22 @@ data 担当者が ClickHouse Operator 管理下の ClickHouse クラスタで ti
 
 > 朝 9 時、本社 IT 室の data 担当者（シニア級）が Perses の `clickhouse-hot-tier-usage` ダッシュボードを開き、hot tier が 82% に達している容量アラートに気付く。手元には ClickHouse Operator の DDL ファイルと `clickhouse_storage.lock.yaml`、Mattermost 越しに ops 担当者・tier2 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: ClickHouse tiered storage を正しく設定し hot / warm / cold の自動 tier 移動を機能させる
+
+## 現状業務での痛み
+
+- ClickHouse tiered storage の設定誤りでホットデータが cold tier に早期移動し、クエリ遅延が発生する
+- tiered storage の設定が属人的で、担当者が変わると設定の意図が伝わらない
+- tier 移動の状況が不可視で、設定ミスの発見が遅れる
+
+## k1s0 でこう変わる
+
+- tiered storage ポリシーが clickhouse.lock.yaml で管理され、tier 移動条件が明示的に定義される
+- Perses の tier 使用率メトリクスが tier 移動状況をリアルタイム表示し、設定ミスを即時検知する
+- tier 移動ポリシーの変更が GitOps PR で審査され、設定ミスが deploy 前に防止される
+
 ## Trigger（発火条件）
 
 ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または analytics クエリ性能の劣化が観測された時、または新規データソース（tier2 Projector 追加）に対応する storage policy の追加が必要になった時。
@@ -41,6 +57,17 @@ ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または
 | 関与（ops）| ミドル〜シニア | 本社 / リモート | Perses（ClickHouse 容量・クエリ性能）/ Mattermost `#ops` | アラート確認・容量監視 |
 | 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | Read model / Projector 追加に伴う schema 要件確認 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
+
+## 個人 KPI / 達成感
+
+- hot tier クエリレイテンシ SLO の達成率を Perses で定量確認でき、tiered storage 最適化の達成感を得られる
+- tier 設定変更 PR の品質向上を数値で確認できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（tier ポリシー設計 4h + 設定適用 2h + tier 移動確認 2h）
+- 関与人数: 2〜3 名（data 担当者・infra 担当者・dual reviewer）
+- コスト感: 低〜中。lock.yaml と Perses 設定後は継続コストが監視のみになる
 
 ## 前提
 
@@ -70,6 +97,15 @@ ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または
    - 主要 analytics クエリ（`#clickhouse-perf-regression` CI job）のレスポンスタイムが SLO 内であることを確認する
 7. `clickhouse_storage.lock.yaml` を更新（変更テーブル名 / policy / TTL / codec）し、dual reviewer sign-off を取得する
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | ClickHouse の tier 使用率を Perses で確認し tier ポリシーを設計 | `tier 使用率確認 / ポリシー設計完了` |
+| 4h | data 担当者 | tiered storage ポリシーを ClickHouse config に適用し clickhouse.lock.yaml に記録 | `ポリシー適用完了 / lock.yaml 更新` |
+| 1d | data 担当者 | tier 移動の動作を Perses で確認し PR 提出 | `tier 移動確認 green / PR #NNN 提出` |
+| 1d+2h | dual reviewer | lock.yaml とポリシー設定を確認し sign-off | `sign-off 完了` |
+
 ## 業界 9 業務との紐付け
 
 全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
@@ -97,6 +133,11 @@ ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または
 - **圧縮変更後にクエリ性能が劣化する**: 圧縮 codec を元に戻す DDL を apply し、性能要件に合った codec を再評価する。tier2 担当者に Mattermost `#data-incident` で通報（**SLA: 1h 以内**）。
 - **`OPTIMIZE TABLE FINAL` 中に hot tier が満杯になる**: 再圧縮を中断（`KILL QUERY WHERE query LIKE '%OPTIMIZE%'`）し、TTL による warm 移動を先行させてから再試行する。ops 担当者に容量アラートのサイレンスを依頼（**SLA: 30 分以内**）。
 - **staging CI job fail**: tier2 担当者と共同で Read model schema の整合を確認し、DDL を修正する（**SLA: 48h 以内**）。
+
+## 失敗パターン (anti-pattern)
+
+- デフォルト設定のまま運用: workload に合わせた tier ポリシー調整なしでは hot データが早期 cold 移動する
+- GitOps 外の直接設定変更: ClickHouse config を直接編集すると lock.yaml と乖離し drift detection が検知する
 
 ## 関連参照
 

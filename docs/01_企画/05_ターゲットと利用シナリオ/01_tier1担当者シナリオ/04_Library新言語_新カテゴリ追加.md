@@ -8,7 +8,7 @@ depends_on:
   - arch.tier1.tier1_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 新言語 / 新カテゴリの Library 追加は tier1 言語スタック登録を先行条件とし、17 カテゴリ表への Lv 割付・3 パッケージ構成配置・全言語 Testcontainers conformance test green を揃えて dual reviewer sign-off を取得する。
 
 > 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「Swift が tier1/tier2 言語スタックに登録され Library サポートの要求が来た」という issue が上がっていることに気付く。手元には `04_提供機能カテゴリ.md` と Backstage Catalog、Mattermost 越しに dual reviewer 2 名と要求提起元の tier2 担当者がいる。
+
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: 17 機能カテゴリ × 対応言語の facade を codegen で統一し、手作業による整合確認コストをゼロにする
+
+## 現状業務での痛み
+
+- 新言語追加のたびに 17 カテゴリ全てとの整合を手動で確認し、見落としが後のコンパイルエラーで発覚する
+- codegen が未整備で言語ごとに手書き実装が増殖し、カテゴリ間の挙動差異が蓄積する
+- 公開 API snapshot の管理が曖昧で、新言語追加時に既存 API surface が変化していても気付かない
+- 言語スタック登録前に Library 要求が来て、先行実装が半端な状態で混在し始める
+
+## k1s0 でこう変わる
+
+- 17 カテゴリ × 4 言語 facade を codegen で統一し、手書き実装の増殖を構造的に防止する
+- `public_api_snapshot.lock.yaml` の snapshot 差分 CI が意図外 API 変更を merge 前に検出する
+- 言語スタック登録を先行条件として CI で強制し、未登録言語の要求を早期に保留する
+- Testcontainers conformance test が全言語 / 全 L2* 実装で green を merge 条件とし、整合確認を自動化する
 
 ## Trigger（発火条件）
 
@@ -40,6 +58,19 @@ covered_by:
 | 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 追加内容レビュー・sign-off |
 | 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 追加内容レビュー・sign-off |
 | 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | 新言語 / 新カテゴリの要求提起・動作確認協力 |
+
+## 個人 KPI / 達成感
+
+- 既存 4 言語の Library コード生成 all green（新言語追加後も既存が壊れない）
+- 公開 API snapshot 差分 CI 意図外変更 0 件
+- Testcontainers conformance test 全言語 green 率
+- dual reviewer 応答時間 ≤ 24h
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（新カテゴリ L3 追加）: 1 日、関与 3〜4 名（主役 + dual reviewer 2 名 + 要求提起者 1 名）
+- 平常（新言語追加・L2* ペア選定）: 2〜3 日、関与 3〜4 名
+- 失敗時（conformance fail・snapshot 意図外変更）: +1〜2 日、関与 4〜5 名
 
 ## 前提
 
@@ -78,6 +109,15 @@ covered_by:
 
 7. **dual reviewer sign-off**: 以上の手順が完了したことを dual reviewer（tier1 2 名）が確認し sign-off する。
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | 言語スタック登録確認・新言語 vs 新カテゴリ分岐判定 | `言語スタック登録確認: Swift 未登録 / 要求を保留しロードマップ登録` |
+| 0 | tier1 担当者 | （新カテゴリの場合）17 カテゴリ表追加・Lv 割付決定 | `新カテゴリ「AI 推論」L3 割付 / 3 パッケージ配置: core` |
+| 1 日 | tier1 担当者 | Testcontainers conformance test 作成・snapshot 更新 | `conformance test 作成中 / 4 言語 green 確認待ち` |
+| 2 日 | dual reviewer A/B | sign-off | `dual sign-off 完了 / snapshot 差分 CI: 意図した追加のみ` |
+
 ## 業界 9 業務との紐付け
 
 全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
@@ -111,6 +151,12 @@ covered_by:
 - **Testcontainers conformance test fail**: fail している言語 / 実装の OSS 選定を見直す。L2* で 1 実装が fail した場合は同族 OSS の別実装を選定する。escalate 先: tier1 担当者 dual reviewer（SLA: 48 時間以内に代替選定）。Backstage runbook `testcontainers-conformance-failure` を参照。
 - **公開 API snapshot 差分 CI fail（意図外変更）**: 意図外の API 変更を revert し、[シナリオ 08](08_公開API_snapshot違反対応.md) の手順で原因を特定する。escalate 先: tier1 担当者 dual reviewer（SLA: 4 時間以内に revert）。
 - **3 パッケージ配置の合意不成立**: dual reviewer 間で配置方針の合意が得られない場合は、tier1 全体での方針議論に escalate する。escalate 先: tier1 担当者全員（SLA: 5 営業日以内に方針決定）。
+
+## 失敗パターン (anti-pattern)
+
+- **未登録言語の要求を即時実装開始**: 言語スタック登録 PR が承認される前に Library コードを書き始め、後で承認が下りず中途半端な実装が残る。言語スタック登録の先行条件確認を最初のステップとして明文化する。
+- **3 パッケージ配置を後から変える**: core に仮置きした API を frontend / backend に移動する際に SemVer major bump が必要になり、全 consumer への影響が発生する。配置決定を draft 段階で dual reviewer に確認し、後の移動をなくす。
+- **L2* の 1 実装しか conformance test を書かない**: 一方の実装が green でも他方が fail していて、実際に切り替えたときに機能しないことが判明する。L2* の conformance test は 2 実装への同一 test suite 実行を merge 条件として強制する。
 
 ## 関連参照
 

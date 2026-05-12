@@ -20,6 +20,22 @@ data 担当者が Strimzi KafkaTopic CRD で管理する Kafka topic の追加�
 
 > 朝 9 時、本社 IT 室の data 担当者（シニア級）が Perses の Kafka Consumer lag ダッシュボードを確認し、tier2 担当者から届いていた「`manufacturing.line.status.v1` topic 追加依頼」Mattermost メッセージに気付く。手元には `kafka_topic.lock.yaml` と Strimzi KafkaTopic manifest、Mattermost 越しに tier2 担当者・ops 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: Kafka topic パーティション数を適切に設計し throughput 不足とリソース浪費を同時に防ぐ
+
+## 現状業務での痛み
+
+- Kafka topic パーティション数の見積もり誤りで、throughput 不足またはリソース過剰のどちらかが発生する
+- パーティション変更が topic の削除・再作成を必要とし、変更時に既存メッセージが失われるリスクがある
+- パーティション数の設計根拠が記録されず、変更判断が属人的になる
+
+## k1s0 でこう変わる
+
+- Kafka topic の設計パラメータが kafka_topic.lock.yaml で管理され、変更の根拠と影響範囲が記録される
+- Strimzi の KafkaTopic CR で宣言的にパーティション数が管理され、変更が GitOps 経由で審査される
+- throughput メトリクスが Perses で可視化され、パーティション変更判断が定量的根拠に基づく
+
 ## Trigger（発火条件）
 
 tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届いた時、または既存 topic の partition 数変更・retention policy 変更・compaction policy 変更が必要になった時。
@@ -41,6 +57,17 @@ tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届い�
 | 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | Domain Event schema 提供・Apicurio 登録確認・integration test 実行 |
 | 関与（ops）| ミドル〜シニア | 本社 / リモート | Perses（Consumer lag）/ Mattermost `#ops` | partition 変更後の Consumer lag 監視 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
+
+## 個人 KPI / 達成感
+
+- Kafka lag SLO（閾値以内）の達成率を Perses で定量確認でき、throughput 管理の達成感を得られる
+- パーティション変更 PR の品質向上を数値で確認でき、設計精度の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（throughput 計測 2h + パーティション設計 2h + Strimzi CR 更新 2h + 確認 2h）
+- 関与人数: 2〜3 名（data 担当者・tier2 担当者・dual reviewer）
+- コスト感: 低〜中。Strimzi CR で宣言的管理されるため継続コストが監視のみになる
 
 ## 前提
 
@@ -67,6 +94,15 @@ tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届い�
    - staging で tier2 の Domain Event 送受信 integration test（Testcontainers + embedded Kafka）を実行し全 test green を確認
    - partition 変更の場合: Consumer Group の lag が変更前と同等以下であることを Perses で確認（30 分観察）
 7. `kafka_topic.lock.yaml` を更新し（topic 名 / partition 数 / retention / schema_registry_id / compaction policy）、dual reviewer sign-off を取得する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | Perses で Kafka throughput と lag を計測しパーティション数の適切値を算出 | `throughput 計測完了 / 適切パーティション数 N 算出` |
+| 2h | data 担当者 | Strimzi KafkaTopic CR を更新し GitOps PR を作成 | `KafkaTopic CR 更新 / PR #NNN 提出` |
+| 4h | data 担当者 | パーティション変更後の throughput と lag を Perses で確認 | `throughput 改善確認 / lag SLO 以内` |
+| 1d | dual reviewer | KafkaTopic CR と lock.yaml を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -96,6 +132,11 @@ tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届い�
 - **Apicurio Registry への schema 登録で互換性違反が発生**: tier2 担当者と schema の互換性 strategy を再調整する。`BACKWARD` で受け入れられない場合は `FULL_TRANSITIVE` への変更または新 subject で登録する（tier2 担当者の確認必須）。
 - **partition 増加後に Consumer lag が増大**: ops 担当者と共同でリバランス状況を確認し、consumer 側のスケールアップまたは consumer group の設定変更を実施（**SLA: 1h 以内**）。
 - **staging integration test fail**: tier2 担当者に Mattermost `#data-incident` で即時通報（**SLA: 15 分以内**）。本番適用を中止し原因を調査する。
+
+## 失敗パターン (anti-pattern)
+
+- kafka-configs.sh で直接パーティション変更: Strimzi CR を迂回した変更は drift detection が検知する
+- 根拠なしのパーティション増加: throughput 計測なしの増加は lock.yaml に設計根拠がなく CI が警告する
 
 ## 関連参照
 

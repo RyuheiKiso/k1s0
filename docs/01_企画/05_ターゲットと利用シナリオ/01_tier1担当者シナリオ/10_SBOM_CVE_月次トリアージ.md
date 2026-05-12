@@ -22,6 +22,24 @@ tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、
 
 > 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が security alert dashboard を確認し、月次の SBOM review cadence が到来しており、OpenSSL の CVSS 9.8 CVE が未対応のまま残っていることに気付く。手元には `sbom_catalog.lock.yaml` と Grype スキャン結果、Mattermost 越しに security 担当者と dual reviewer 2 名がいる。
 
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: 月次 SBOM レビューと CVE トリアージで L1+/L2*/L3 の緊急 bump 判定と対応優先度を確定する
+
+## 現状業務での痛み
+
+- 月次 CVE を手動でスプレッドシート管理しており、対応漏れや重複確認が頻繁に発生する
+- パッチ対応の優先度判断が個人依存で、CVSS スコアの解釈がレビュアーごとにブレる
+- ベースイメージ由来の CVE が見落とされ、OS レイヤーの脆弱性が長期間放置される
+- 4 言語の bump を手動で個別実施するため、一部言語の対応が遅延して整合性が崩れる
+
+## k1s0 でこう変わる
+
+- Syft + Grype による SBOM 生成と脆弱性スキャンが CI で自動化され、月次確認の工数を大幅に削減する
+- CVSS 9.0 以上の CVE には 24h 以内の緊急 bump PR 作成を必須とし、対応期限を機械的に強制する
+- CVSS / EPSS の閾値判定で優先度を機械的に決定し、個人依存の解釈ブレをなくす
+- 4 言語の bump 対応を統一フローで実施し、言語ごとの対応遅延を構造的に排除する
+
 ## Trigger（発火条件）
 
 月次の SBOM review cadence 到来、または CERT / NVD / OSV.dev から重大 CVE が公開された時。
@@ -43,6 +61,19 @@ tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、
 | 関与（security 担当者）| 中堅 | 本社 IT 室 | security alert dashboard | CVE 評価 dual review・影響範囲確認 |
 | 承認（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | lock.yaml レビュー・sign-off |
 | 承認（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | lock.yaml レビュー・sign-off |
+
+## 個人 KPI / 達成感
+
+- CVSS 9.0 以上の CVE に対する 24h 以内の bump PR 作成率
+- `sbom_triage.lock.yaml` の月次更新完了率
+- security 担当者 dual sign-off 取得
+- conformance test green 率（bump 後）
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（月次定期トリアージ）: 半日〜1 日、関与 3 名（主役 + security 担当者 + dual reviewer 2 名）
+- 緊急（CVSS 9.0 以上の緊急対応）: 2〜4h（bump PR 作成・4 言語対応）、関与 3〜4 名
+- 失敗時（conformance fail 後 rollback・postmortem）: +1 日、関与 4〜5 名
 
 ## 前提
 
@@ -67,6 +98,15 @@ tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、
 6. トリアージ結果を `sbom_triage.lock.yaml` に記録する（CVE ID / CVSS / 対応方針 / 期限 / 担当者）
 7. security 担当者の dual review + sign-off を取得してから lock.yaml を merge
 8. CVSS 9.0 以上で対応が 24h 以内に完了しない場合は Backstage ticket を起票して進捗を追跡する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | SBOM diff 取得・CVSS 7.0 以上 CVE フィルタ・4 分類 | `月次 SBOM review 開始 / CVSS 9.8: CVE-2024-XXXX (OpenSSL)` |
+| 2h | tier1 担当者 | L1+/L2*/L3 別対応方針決定・緊急 bump PR 作成 | `緊急 bump PR #234 作成 / OpenSSL cargo update / 4 言語対応中` |
+| 4h | security 担当者 | dual review・影響範囲確認 | `CVE 評価 dual review 完了 / 影響: 直接依存 / bump 方針 OK` |
+| 1 日 | tier1 担当者 | conformance test green 確認・lock.yaml 更新・sign-off | `Testcontainers green / sbom_triage.lock.yaml 更新 / sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -98,6 +138,12 @@ tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、
 - **CVSS 9.0 以上の CVE が 24h 以内に対応不能**: security 担当者に Mattermost `#security-incident` で即時通報（**SLA: 1h 以内**に escalate）。Backstage runbook `critical-cve-response` を起動。1.0.0 ship blocker 認定の可能性。
 - **conformance test fail（bump 後）**: 旧バージョンに rollback し原因調査。旧バージョンでのリスク許容を security 担当者と協議（**SLA: 24h 以内**に方針確定）。**postmortem 期限: 3 営業日以内**。
 - **ベースイメージ更新で既存 workload が起動不能**: infra 担当者に Mattermost `#infra-incident` で即時連絡（**SLA: 30 分以内**）。Backstage runbook `base-image-rollback` を参照。
+
+## 失敗パターン (anti-pattern)
+
+- **月次トリアージをスプレッドシートで管理**: 対応漏れ・重複確認・担当者変更時の引き継ぎ不備が頻発する。`sbom_triage.lock.yaml` を SoT として管理し、スプレッドシートへの移行を構造的に不可能にする。
+- **CVSS スコアのみで優先度判定**: CVSS 7.5 でも EPSS（実際の悪用確率）が 0.01% 以下なら実用上のリスクは低い場合がある。CVSS + EPSS の組み合わせで優先度を補正する評価フローを標準化する。
+- **緊急 bump PR を 1 言語のみ先行**: Rust だけ bump して C#/Go/TypeScript が後回しになり、言語ごとに脆弱性対応状態が乖離する。4 言語同時 bump を 1 PR にまとめることを必須とし、部分対応 PR は CI で reject する。
 
 ## 関連参照
 

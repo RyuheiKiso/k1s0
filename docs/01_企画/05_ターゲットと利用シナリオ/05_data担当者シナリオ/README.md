@@ -18,6 +18,22 @@ covered_by:
 
 data 担当者（シニア級）が日常的に踏む 15 シナリオを 1 ファイル 1 シナリオで列挙する。[5 preservation_class](../../../03_概要設計/06_data設計方針/README.md) の保全・復旧・暗号化と [restore_drill AND-gate](../../../03_概要設計/06_data設計方針/07_復旧訓練方針.md) の維持、Kafka / ClickHouse の運用、DR 実 failover を含む全 19 軸の defense-in-depth 層 E（13 cross-cutting 適合仕様を含む）の永続化部分を提供する。
 
+## 現状業務での痛み
+
+- バックアップからの復旧手順が文書のみで、実際の RTO/RPO を本番障害まで確認できない
+- スキーマ migration を手動 review に頼ると、forward-only でない migration が混入しロールバック不能になる
+- PII データの暗号化レイヤが「DEK で暗号化」で止まり、KEK destroy による物理削除が実装されていない
+- Kafka topic のパーティション設計が場当たり的で、consumer lag が膨らみ業務 SLO に影響が出る
+- cross-region DR の failover 手順が文書管理で、実際の手順に gaps が蓄積する
+
+## k1s0 でこう変わる
+
+- 5 preservation_class の restore_drill AND-gate を物理要求し、RTO/RPO を定期的に実証する
+- forward-only migration を CI で物理 enforce し、ロールバック不能 migration の merge を阻止する
+- 3 層暗号化 (DEK + KEK + HSM-backed OpenBao) で crypto-shred が物理的に機能し、GDPR 削除義務を完全充足する
+- Kafka / Strimzi の topic 設定を lock yaml で管理し、partition 設計の drift を CI で物理検出する
+- DR cross-region failover の 5 phase を data 担当者シナリオで毎回演習し、手順 gaps を事前解消する
+
 ## 担当者プロフィール
 
 data 担当者はシニア級エンジニアを前提とし、CloudNativePG / Kafka（Strimzi）/ Valkey / ClickHouse / OpenBao の運用経験を持つ。詳細な要件は層別エンジニア要件を参照。

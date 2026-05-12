@@ -20,6 +20,22 @@ covered_by:
 
 > 朝 10 時、本社 IT 室の infra 担当者（シニア級）が topology_drill.lock.yaml で drill cadence カレンダーを確認中に、v1_zone_replicated の 90 日 cadence 到来に気付く。手元には Litmus chaos experiment 設定と Perses SLO dashboard、Mattermost 越しに ops 担当者と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: 5 topology_class の failover drill を定期 cadence で実施し DR 対応能力を継続的に保証する
+
+## 現状業務での痛み
+
+- failover 手順を本番障害まで実際に試さないため、DR 宣言時に手順の欠陥が初めて発覚する
+- drill cadence が文書管理で属人化し、担当者が変わると drill が長期間未実施になる
+- drill 結果の記録が残らず、前回 drill からの改善状況が追跡できない
+
+## k1s0 でこう変わる
+
+- topology_drill.lock.yaml が drill cadence を強制管理し、期限超過が CI で自動検知される
+- Litmus chaos experiment が drill 手順を自動実行し、属人化を排除する
+- drill 結果が topology_drill.lock.yaml に green / fail エントリで記録され、DR 対応能力の推移が可視化される
+
 ## Trigger（発火条件）
 
 - drill cadence（5 topology_class の定期 drill 間隔）の到来時
@@ -39,6 +55,17 @@ covered_by:
 | 主役（infra）| シニア | 本社 IT 室 | topology_drill.lock.yaml / Perses dashboard | drill cadence 確認 / Litmus 実行 / failover 動作検証 |
 | 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard | drill 中 SLO 監視 / SLO 閾値超過時 alert |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | drill 結果レビュー / sign-off |
+
+## 個人 KPI / 達成感
+
+- 5 topology_class 全 drill が green cadence 内に完了していることを lock.yaml で定量確認できる
+- failover 自動切り替え成功 + SLO 維持の達成感を drill ごとに得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日/drill（Litmus experiment 設定 1h + drill 実行 2h + 結果記録 1h）
+- 関与人数: 3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 低〜中。Litmus が experiment を自動実行するため手動コストは最小化される
 
 ## 前提
 
@@ -93,6 +120,11 @@ covered_by:
 | 15 分 | ops 担当者 | SLO（可用性 / RTO / RPO）が仕様値以内であることを確認 | `SLO 正常範囲 / RTO 仕様値以内 / lag 12ms` |
 | 60 分 | infra 担当者 | 切断解除 → 元 cluster への rebalance 完了を確認 | `全 pod Running / rebalance 完了 / drill green` |
 | 1 営業日 | infra 担当者 | topology_drill.lock.yaml に green エントリ追記 + postmortem 着手 | `#postmortem drill-report-zone-replicated PR 作成済` |
+
+## 失敗パターン (anti-pattern)
+
+- drill なし本番 DR 宣言: lock.yaml の cadence 超過が CI に検知され DR gate が blocked になる
+- 結果未記録: drill 後に lock.yaml を更新しないと coverage check が fail する
 
 ## 関連参照
 

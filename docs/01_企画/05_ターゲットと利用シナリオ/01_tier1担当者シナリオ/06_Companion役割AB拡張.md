@@ -8,7 +8,7 @@ depends_on:
   - arch.tier1.tier1_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 .NET Framework 4.8 ERP / レガシーシステムの Companion 追加要件を役割 A（Observability / 認証コンテキスト伝播）か役割 B（Transport Negotiation Runtime）に正確に分類し、レガシー環境テストで動作確認して Harbor mirror へ発行する。
 
 > 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「既存の .NET Framework 4.8 ERP が新しい観測 endpoint を要求した」という issue が上がっているのに気付く。手元には Harbor NuGet proxy ダッシュボードと Backstage Catalog、Mattermost 越しに dual reviewer 2 名と .NET Framework 環境保有の tier2 担当者がいる。
+
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: レガシー .NET Framework 4.8 ERP の Companion 要件を役割 A/B に正確に分類し HTTP/1.1+SSE 縮退経路を物理担保する
+
+## 現状業務での痛み
+
+- レガシー ERP の Companion 要件が都度アドホック実装で蓄積し、役割ごとの責務が判然としなくなっている
+- CLR Profiler の接続が環境依存で不安定になるが、テスト環境が不備で本番まで発覚しない
+- transport 縮退経路（HTTP/1.1+SSE）の動作確認が手動で属人的になり、縮退パスの品質が担保されない
+- NuGet パッケージの Harbor mirror 登録が後回しになり、cos-sign 署名なしで公開される事例が発生する
+
+## k1s0 でこう変わる
+
+- 役割 A（Observability/認証コンテキスト伝播）と役割 B（Transport Negotiation Runtime）を明示化し、要件分類を構造化する
+- Testcontainers（Windows コンテナ）での .NET Framework 4.8 テストを必須化し、CLR Profiler の動作を物理確認する
+- HTTP/1.1+SSE → long polling の縮退経路テストを役割 B の merge 条件として強制し、縮退パスを物理担保する
+- Harbor NuGet mirror 登録と cosign 署名を CI のリリース gate に組み込み、未署名パッケージの公開を物理拒否する
 
 ## Trigger（発火条件）
 
@@ -40,6 +58,19 @@ covered_by:
 | 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 動作確認結果レビュー・sign-off |
 | 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 動作確認結果レビュー・sign-off |
 | 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | .NET Framework 4.8 テスト環境での動作確認協力 |
+
+## 個人 KPI / 達成感
+
+- .NET Framework 4.8 テスト環境での動作確認完了率 100%
+- 役割 A: OTel span が Collector に到達し認証コンテキストが downstream に伝播
+- 役割 B: transport 縮退（HTTP/1.1+SSE → long polling）が全パターンで green
+- Harbor NuGet mirror への cosign 署名付き push 完了
+
+## 工数 / 関与人数 / コスト感
+
+- 初回: 2〜3 日（役割分類・実装・.NET FW 4.8 テスト・NuGet push）、関与 3〜4 名（主役 + dual reviewer 2 名 + tier2 担当者 1 名）
+- 平常（既存役割の追加要件）: 1 日、関与 3 名
+- 失敗時（CLR Profiler 不具合・NuGet push 失敗）: +0.5〜1 日、関与 4 名（+ ops 担当者）
 
 ## 前提
 
@@ -81,6 +112,16 @@ covered_by:
 
 6. **dual reviewer sign-off**: 動作確認結果と NuGet パッケージ発行の完了を dual reviewer（tier1 2 名）が確認し sign-off する。
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | 役割分類（A/B 判定）・SemVer 決定 | `役割 A: 観測 endpoint / OTelExt 更新 v1.3.0` |
+| 1 日 | tier1 担当者 | 実装・.NET FW 4.8 テスト環境起動 | `Testcontainers Win container 起動 / CLR Profiler attach 確認中` |
+| 1.5 日 | tier2 担当者 | .NET Framework 4.8 テスト環境での動作確認協力 | `CLR Profiler attach OK / OTel span Collector 到達確認` |
+| 2 日 | tier1 担当者 | NuGet push・cosign 署名・PR 提出 | `Harbor NuGet push 完了 / cosign 署名済` |
+| 2.5 日 | dual reviewer A/B | sign-off | `dual sign-off 完了` |
+
 ## 業界 9 業務との紐付け
 
 全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
@@ -114,6 +155,12 @@ covered_by:
 - **HTTP/2 非対応環境での transport ネゴシエーション失敗**: HTTP/1.1 + SSE への縮退パスが正常に動作することを確認する。縮退パスも失敗する場合は long polling を最終縮退として有効化する。escalate 先: tier1 担当者 dual reviewer（SLA: 8 時間以内に縮退パス確認）。
 - **per-tab 6 subscription 上限超過**: subscription を multiplexing する実装に変更し、単一の SSE 接続で複数 subscription を処理する設計に修正する。escalate 先: tier1 担当者 dual reviewer（SLA: 48 時間以内に設計修正）。
 - **NuGet push 失敗（Harbor mirror）**: Harbor の NuGet proxy 設定を確認し、認証トークンが有効であることを検証する。escalate 先: ops 担当者へ Mattermost `#tier1-incident` で連絡（SLA: 4 時間以内に復旧）。Backstage runbook `harbor-nuget-push-failure` を参照。
+
+## 失敗パターン (anti-pattern)
+
+- **役割 A と役割 B を同一 PR でまとめて変更**: 責務が異なるコードの混在で review が困難になり、縮退経路の動作確認が曖昧になる。役割ごとに PR を分けることを原則とし、まとめる場合でも役割ごとのテスト区分を明示する。
+- **per-tab 6 subscription 上限を無視した SSE 実装**: ブラウザ HTTP/1.1 の接続数制限を超えた SSE を実装し、本番でタブを複数開くとフリーズする。SSE 実装時は multiplexing を前提として設計し、6 を超えるケースを Testcontainers で再現テストする。
+- **レガシー環境なしで動作確認を省略**: Docker ベースのモダン環境でのみ動作確認し、実際の .NET Framework 4.8 CLR 環境で CLR Profiler が失敗して本番稼働後に発覚する。Windows コンテナ / VM での .NET FW 4.8 テストを merge 必須条件とする。
 
 ## 関連参照
 

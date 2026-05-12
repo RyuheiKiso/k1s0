@@ -19,6 +19,22 @@ tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言�
 
 > 朝 9 時、本社 IT 室の tier3 担当者（ジュニア級）が GitHub PR で「受注ステータス画面に FSM 状態遷移 button を追加」の実装作業を開始する。手元には tier2 generated stub の `GET /v1/orders/{id}/state-transitions` 仕様と Playwright のデバッガ、Mattermost 越しに tier2 担当者（FSM の遷移定義確認）と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: tier3 担当者（ジュニア級）、目的: 状態遷移 UI を FSM（有限状態機械）として実装し switch/case による仕様 drift を防ぐ
+
+## 現状業務での痛み
+
+- 状態遷移を switch/case で実装し、状態が増えるたびに case 分岐が膨張して仕様との drift が生じる
+- 禁止遷移の実装が不完全で、業務担当者が不正な状態遷移を UI から実行できてしまう
+- FSM の仕様がコードに埋め込まれており、仕様書とコードの乖離を確認する手段がない
+
+## k1s0 でこう変わる
+
+- XState 等の FSM ライブラリで状態遷移を宣言的に定義し、仕様書とコードが同一の状態機械から生成される
+- tier2 が許可する遷移のみ button が activate され、禁止遷移が UI から構造的に不可能になる
+- FSM 仕様が Backstage TechDocs に可視化され、仕様書とコードの乖離が CI で検知される
+
 ## Trigger（発火条件）
 
 業務フローに FSM（Finite State Machine）が必要な画面（受注ステータス / 設備稼働状態 / 検査フロー）の実装要求が来た時
@@ -39,6 +55,17 @@ tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言�
 | 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | FSM 遷移定義の確認 / 状態遷移 API 仕様提供 / sign-off |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | 認可 cache 禁止 / 許可遷移 = active / 禁止遷移 = disabled / E2E 網羅 / sign-off |
 
+## 個人 KPI / 達成感
+
+- FSM の全状態遷移が E2E でカバーされ green になることで実装完了の達成感を得られる
+- 禁止遷移 0 件が UI テストで確認でき、セキュリティ品質を定量的に確認できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（FSM 設計 4h + XState 実装 4h + E2E 4h）
+- 関与人数: 2〜3 名（tier3・tier2・dual reviewer）
+- コスト感: 中。FSM 設計が初回は工数かかるが switch/case の長期メンテナンスコストと比較して大幅削減
+
 ## 前提
 
 - tier2 が [protoc-gen-go FSM](../../../04_詳細設計/03_クロスカッティング適合仕様/04_protoc_gen_go_fsm.md)（4 言語等価強度）で状態遷移を宣言済み。
@@ -58,6 +85,15 @@ tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言�
 6. a11y: 現在状態と可能遷移を `aria-label` で screen reader に通知する
 7. Playwright E2E test: 各状態から可能な遷移を実行し、不可能な遷移が disabled になっていることを確認
 8. dual reviewer sign-off を取得する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier3 担当者 | tier2 の状態遷移定義を確認し FSM 設計を作成 | `FSM 設計完了 / N 状態 / M 遷移 確認` |
+| 4h | tier3 担当者 | XState で FSM を実装し禁止遷移の button deactivation を確認 | `FSM 実装完了 / 禁止遷移 UI 確認` |
+| 1d | tier3 担当者 | E2E で全状態遷移と禁止遷移を green にし PR 提出 | `FSM E2E green / PR #NNN 提出` |
+| 1d+4h | dual reviewer | FSM 仕様と禁止遷移 UI を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -82,6 +118,11 @@ tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言�
 
 - **認可 cache を持つ実装が 13 層強制機構 lint で検出**: merge 阻止。tier2 担当者と実装方針を再確認（**SLA: 24h 以内**）。
 - **状態遷移 API が競合エラーを返す（409）**: BusinessConflict UI（concurrent_edit / stale_write）を表示して解決を促す。
+
+## 失敗パターン (anti-pattern)
+
+- switch/case で状態遷移を実装: FSM ライブラリを使わない実装は FSM compliance CI が検知する
+- 禁止遷移を disabled のみで制御: CSS disabled だけでは API 直接呼び出しをブロックできず boundary check が fail する
 
 ## 関連参照
 

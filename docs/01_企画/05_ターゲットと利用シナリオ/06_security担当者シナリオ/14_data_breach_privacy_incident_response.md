@@ -18,6 +18,24 @@ covered_by:
 
 PII 漏洩疑いまたは breach notification 要件（規制 / 法律上の通知義務）が発火した時に、`v1_data_exfiltration` incident class の 6 phase playbook を最優先で発火し、L3 escalation（tech lead + 法務 / DPO）+ 影響テナントへの通知 + WORM アーカイブによる証跡保全 + postmortem PR merge まで、規制通知期限（GDPR 72 h / 個人情報保護法 30 日 etc.）以内に完結させる。
 
+> 朝 6 時半、Tetragon eBPF probe が本番 PostgreSQL で `SELECT * FROM pii_basic WHERE tenant_id = '*'`（全テナント横断の意図的クエリ）を検知したアラートが Mattermost `#security-incident` に届く。security 担当者（シニア級、IR commander）が携帯のアラートで目覚め、ClickHouse audit query で影響テナントの初期確認を開始する。法務 / DPO と tech lead を電話で招集しながら、actor identity の OpenBao revoke コマンドを手元で準備する。GDPR 72 時間カウントダウンが頭の中で始まっている。
+
+## ペルソナ要約
+
+主役: security 担当者（シニア級）、目的: data breach 発生時の 72h GDPR 通知期限を管理しコンプライアンス違反を防ぐ
+
+## 現状業務での痛み
+
+- breach 発生時の 72h 通知 deadline 管理が文書のみで、対応が遅延してもアラートがない
+- breach の影響範囲の特定が手動で、通知対象 PII の絞り込みに時間がかかる
+- 通知後の対処 action が追跡されず、再発防止が機能しない
+
+## k1s0 でこう変わる
+
+- data_breach.lock.yaml が 72h deadline を自動管理し、残り時間が alert としてリアルタイムで可視化される
+- PII catalog から breach 影響範囲が自動特定され、通知準備が大幅短縮される
+- breach 対処 action が Backstage ticket で追跡され、再発防止サイクルが定量的に管理される
+
 ## Trigger（発火条件）
 
 シナリオ 09（audit hash chain 改竄検知）で `v1_pii` asset が改竄経路に含まれていた時、または Falco / Tetragon が PII table への大量 SELECT / COPY を `v1_read` capability として検知した時、または外部報告（影響ユーザーからの申告 / セキュリティ研究者からの報告）があった時。
@@ -33,6 +51,24 @@ PII 漏洩疑いまたは breach notification 要件（規制 / 法律上の通�
 - 関与: data 担当者（影響範囲の DB forensic、WORM アーカイブ保全）
 - 関与: infra 担当者（NetworkPolicy による egress block、Kyverno enforcement 強化）
 - 関与: ops 担当者（SLO 監視、escalation engine 継続）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（security）| シニア | 本社 IT 室 / リモート（緊急招集）| Mattermost #security-breach / ClickHouse audit query | IR commander として L3 escalation 即時起動・影響範囲特定・breach 判断 |
+| 必須（tech lead + 法務 / DPO）| L3 | 本社 / リモート（緊急招集）| breach_notification.lock.yaml | 規制通知判断・通知期限管理・対外通知文書作成 |
+| 関与（data）| シニア〜ミドル | 本社 IT 室 / リモート | ClickHouse forensic query / WORM console | DB forensic・WORM litigation hold 設定・missing event 確認 |
+| 関与（infra）| シニア〜ミドル | 本社 IT 室 / リモート | NetworkPolicy / Kyverno audit log | egress block・Kyverno enforcement 強化 |
+
+## 個人 KPI / 達成感
+
+- 72h GDPR 通知期限の達成率を定量確認でき、breach 対応品質の達成感を得られる
+- breach 影響範囲特定時間の短縮を数値で確認でき、対応効率の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 数時間〜1 日（breach 確認 1h + 影響範囲特定 2h + 通知準備 4h + 当局報告 2h）
+- 関与人数: 4〜6 名（security 担当者・data 担当者・compliance 担当者・法務・dual reviewer）
+- コスト感: 中〜高（breach 対応は緊急対応のため工数変動が大きい）。lock.yaml で管理することで最小化
 
 ## 前提
 
@@ -57,6 +93,23 @@ PII 漏洩疑いまたは breach notification 要件（規制 / 法律上の通�
 7. **recover（phase 5）**: NetworkPolicy block を段階的に解除し、SLO 復帰 + audit_event 正常 ingest を確認する。影響テナントへの通知文書を法務と共同作成する
 8. **postmortem（phase 6）**: blameless postmortem PR を起票。必須 section（timeline / root cause / PII impact scope / mitigation / lessons learned / action items）。breach notification を行った場合は通知時刻と対象テナントを action item に記録する。postmortem PR merge が次 release の物理 prerequisite
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | security 担当者 | breach 検知 / data_breach.lock.yaml に受領時刻を記録し 72h カウントダウン開始 | `breach 検知 / 72h カウントダウン開始 / T+0` |
+| 2h | security 担当者 + data 担当者 | PII catalog で影響範囲を特定し通知対象データを確認 | `影響範囲特定完了 / 通知対象 PII 確認` |
+| 24h | security 担当者 + 法務 | GDPR 通知文書を作成し内部承認を取得 | `通知文書作成完了 / 内部承認取得` |
+| 72h | security 担当者 | 規制当局への通知を完了し lock.yaml に通知記録を追記 | `72h 以内通知完了 / lock.yaml 更新` |
+
+## 業界 9 業務との紐付け
+
+data breach は PII / business_data を扱う全業務に法的・業務継続的な影響を及ぼすが、特に breach の直接対象になりやすい業務:
+
+- **品質検査結果配信**: 検査員 ID・検査結果は PII / business_data であり、breach 時の影響範囲算定（PII record 件数・機微度）で必ず査定対象になる。RLS bypass が検査データへのアクセス経路だった場合は GDPR 通知が必要になる可能性が高い。
+- **在庫最新値**: 在庫データは insider threat の標的として business_data breach の典型的な対象であり、breach 発覚後に影響テナントへの在庫情報の開示 risk を法務と協議する必要がある。
+- **受注**: 受注データには取引先 PII / business_data が含まれており、大量 SELECT による exfiltration は最も重大な breach 類型の一つ。GDPR / 個人情報保護法の通知義務判断で最優先確認対象になる。
+
 ## 関連適合仕様 / 関連 OSS
 
 - 脅威モデル適合仕様: [../../../04_詳細設計/01_適合仕様/15_脅威モデル適合仕様.md](../../../04_詳細設計/01_適合仕様/15_脅威モデル適合仕様.md)
@@ -76,6 +129,11 @@ PII 漏洩疑いまたは breach notification 要件（規制 / 法律上の通�
 - **影響範囲特定に 72 h を超える**: GDPR の notifiable breach である可能性が高い。法務 / DPO が「影響範囲未確定」として当局に事前報告し、確定次第 補足報告する手順（GDPR Article 33.4）を踏む
 - **WORM Object Lock が Object Lock policy で変更できない（Rook+Ceph 故障）**: infra 担当者に Ceph cluster の緊急 recovery を依頼する（SLA: 2 時間）。snapshot が WORM 以外の場所（cold storage）にコピーされているか確認し、litigation hold を cold storage 側で設定する
 - **RLS bypass の root cause が CloudNativePG 本体の bug**: data 担当者と共同でパッチ適用または paired OSS（StackGres）への緊急 migration を判断する。`dry_run.lock.yaml` の `last_green_at` が 365 日以内であれば migration 経路は担保されている
+
+## 失敗パターン (anti-pattern)
+
+- deadline 管理なしの breach 対応: lock.yaml の deadline 管理なしでは 72h を超過しても気付かない
+- PII catalog なしの影響調査: 手動の PII 探索は時間がかかり 72h 通知期限に間に合わないリスクがある
 
 ## 関連参照
 

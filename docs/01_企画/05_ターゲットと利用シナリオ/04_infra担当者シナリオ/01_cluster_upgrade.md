@@ -20,6 +20,22 @@ k8s minor version の skew が 1 に達する前、または upgrade window（�
 
 > 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Argo CD UI で ApplicationSet の sync 状態を確認中に、Backstage calendar alert「k8s v1.31 upgrade window 残り 3 日」に気付く。手元には cluster_inventory.lock.yaml と OpenTofu plan 出力、Mattermost 越しに ops 担当者と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: k8s minor version upgrade を staging 先行・chaos drill・progressive delivery の安全手順で完結させる
+
+## 現状業務での痛み
+
+- cluster アップグレード手順が Confluence / Word 文書で管理されており、手順の陳腐化が本番障害まで気付かれない
+- 担当者が変わると手順の解釈に個人差が生じ、upgrade の実施品質が属人化する
+- staging での検証が不十分なまま本番 upgrade を実施し、非互換変更が本番で初めて発覚する
+
+## k1s0 でこう変わる
+
+- upgrade 手順が GitOps の IaC として管理され、OpenTofu plan で変更内容が事前に可視化される
+- Backstage TechDocs の runbook が upgrade 手順の SoT となり、誰が実施しても同一品質が保証される
+- Litmus chaos drill が staging で必須化され、非互換変更が本番 upgrade 前に検知される
+
 ## Trigger（発火条件）
 
 - k8s minor version の skew が 1 に達した時
@@ -41,6 +57,18 @@ k8s minor version の skew が 1 に達する前、または upgrade window（�
 | 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard | upgrade 中 SLO 監視 / SLO 違反時 alert |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | PR レビュー / sign-off |
 
+## 個人 KPI / 達成感
+
+- upgrade window ≤ 30 日の SLO 達成率を Backstage で可視化でき、upgrade 完了の達成感を定量的に得られる
+- staging chaos drill green → 本番 upgrade 可否ゲートで品質確認を数値で確認できる
+- cluster_inventory.lock.yaml 更新が PR merge で完了し、upgrade 記録の完全性が保証される
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜3 日（staging upgrade 4h + chaos drill 4h + 本番 progressive delivery 4h + lock.yaml 更新 1h）
+- 関与人数: 3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 中。IaC で自動化されているため手順実施コストは低いが staging 先行で確認コストが追加される
+
 ## 前提
 
 - `cluster_inventory.lock.yaml` に現行 version が記録済みであること
@@ -56,6 +84,15 @@ k8s minor version の skew が 1 に達する前、または upgrade window（�
 6. 本番 cluster への Argo CD progressive delivery（Argo Rollouts）で段階的 apply
 7. upgrade 完了後 `cluster_inventory.lock.yaml` を更新し dual reviewer sign-off
 8. upgrade window 30 日を超えないよう calendar alert（Backstage）で追跡
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | Backstage calendar alert で upgrade window 到来を確認し staging upgrade を開始 | `@infra k8s v1.32 upgrade 開始 / staging 先行 / T+0` |
+| 4h | infra 担当者 | staging で Litmus chaos drill を実行し SLO 維持を確認 | `staging chaos drill green / SLO 維持確認` |
+| 1d | infra 担当者 | 本番 cluster に Argo Rollouts progressive delivery で段階 apply | `本番 upgrade 開始 / progressive delivery 実行中` |
+| 1d+4h | infra 担当者 | upgrade 完了後 cluster_inventory.lock.yaml を更新し dual reviewer sign-off | `lock.yaml 更新 / PR #NNN / sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -86,6 +123,11 @@ k8s minor version の skew が 1 に達する前、または upgrade window（�
 **escalate 先**: ops 担当者 / Mattermost `#infra-incident`
 **SLA**: 本番 upgrade fail 時は 10 分以内通報、postmortem は 2 営業日以内
 **runbook**: Backstage runbook `k8s-upgrade-rollback`
+
+## 失敗パターン (anti-pattern)
+
+- 手順書なしの直接 kubectl upgrade: IaC を迂回した手動 upgrade は drift detection CI が検知する
+- staging スキップ: chaos drill なしの本番 upgrade は upgrade gate CI が阻止する
 
 ## 関連参照
 
