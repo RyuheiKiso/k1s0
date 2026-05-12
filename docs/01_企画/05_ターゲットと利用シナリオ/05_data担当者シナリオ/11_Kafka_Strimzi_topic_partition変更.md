@@ -18,6 +18,8 @@ covered_by:
 
 data 担当者が Strimzi KafkaTopic CRD で管理する Kafka topic の追加・partition 数変更・retention / compaction policy 変更を GitOps 経由で実施し、Apicurio Registry での schema 登録と `kafka_topic.lock.yaml` への記録を完結させる。
 
+> 朝 9 時、本社 IT 室の data 担当者（シニア級）が Perses の Kafka Consumer lag ダッシュボードを確認し、tier2 担当者から届いていた「`manufacturing.line.status.v1` topic 追加依頼」Mattermost メッセージに気付く。手元には `kafka_topic.lock.yaml` と Strimzi KafkaTopic manifest、Mattermost 越しに tier2 担当者・ops 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届いた時、または既存 topic の partition 数変更・retention policy 変更・compaction policy 変更が必要になった時。
@@ -32,6 +34,13 @@ tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届い�
 - 関与: tier2 担当者（Domain Event schema の提供 / Apicurio schema 登録の確認）
 - 関与: ops 担当者（partition 変更後の Kafka consumer lag 監視）
 - 承認: dual reviewer（data 担当者 2 名、PR author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | Perses（Kafka Consumer lag）/ `kafka_topic.lock.yaml` | topic / partition manifest 作成・Apicurio schema 登録・GitOps apply |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | Domain Event schema 提供・Apicurio 登録確認・integration test 実行 |
+| 関与（ops）| ミドル〜シニア | 本社 / リモート | Perses（Consumer lag）/ Mattermost `#ops` | partition 変更後の Consumer lag 監視 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
 
 ## 前提
 
@@ -58,6 +67,13 @@ tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届い�
    - staging で tier2 の Domain Event 送受信 integration test（Testcontainers + embedded Kafka）を実行し全 test green を確認
    - partition 変更の場合: Consumer Group の lag が変更前と同等以下であることを Perses で確認（30 分観察）
 7. `kafka_topic.lock.yaml` を更新し（topic 名 / partition 数 / retention / schema_registry_id / compaction policy）、dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: `orders.created.v1` など受注ドメインの Domain Event topic は最高スループットを持ち、partition 増加による Consumer Group のリバランスが受注処理の throughput 維持に直結する。
+- **SCADA テレメトリ**: 製造ライン稼働監視に使う SCADA テレメトリ topic は partition 設計が集計レイテンシに影響し、新規 Domain Event の topic 追加がリアルタイム監視の精度向上につながる。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -87,3 +103,4 @@ tier2 担当者から新規 Domain Event の Kafka topic 追加依頼が届い�
 - [schema migration](./01_schema_migration.md) — Domain Event の Avro schema 変更が伴う場合の expand-contract 手順
 - [Outbox / atomic 三表書込障害対応](./08_Outbox_atomic三表書込障害対応.md) — Kafka publish 経路の障害時対応
 - [データ保全適合仕様](../../../04_詳細設計/01_適合仕様/14_データ保全適合仕様.md) — 5 preservation_class の正典定義と retention policy の設計根拠
+- [読取モデル Projector 追加（tier2-13）](../02_tier2担当者シナリオ/13_読取モデル_Projector追加.md) — tier2 担当者が Projector を追加する際に本シナリオで Kafka topic 作成が前行して必要になる

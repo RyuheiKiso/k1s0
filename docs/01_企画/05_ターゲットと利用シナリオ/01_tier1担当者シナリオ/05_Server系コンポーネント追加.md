@@ -18,6 +18,8 @@ covered_by:
 
 新 Server 系コンポーネントを 5 系統（Gateway / Sidecar+Agent / Backend-for-Library / Control Plane / Operator+Controller）に正確に位置付けた上で、proto 定義・Kyverno policy・Tilt dev loop・SLO 定義を同時に整備し、dual reviewer sign-off と全言語 CI green を揃えて merge する。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「フィーチャーフラグの動的配信 Server として新 Control Plane コンポーネントが必要」という設計提案が issue に上がっているのに気付く。手元には Backstage Catalog と Tilt dev loop ダッシュボード、Mattermost 越しに dual reviewer 2 名・infra 軸担当者・ops 軸担当者がいる。
+
 ## Trigger（発火条件）
 
 5 系統（Gateway / Sidecar+Agent / Backend-for-Library / Control Plane / Operator+Controller）のいずれかに新しいコンポーネントを追加する要求が来た時。
@@ -31,6 +33,14 @@ covered_by:
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ infra 軸担当者（Kyverno policy レビュー）/ ops 軸担当者（SLO 定義連携）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | コンポーネント分類・proto 定義・Tilt dev loop 追加・SLO 定義・PR 提出 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 設計レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 設計レビュー・sign-off |
+| 関与（infra 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | Kyverno policy レビュー・最小権限原則の確認 |
+| 関与（ops 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | SLO 定義連携・Grafana dashboard 設定 |
 
 ## 前提
 
@@ -73,6 +83,13 @@ covered_by:
    - ops 軸担当者と連携して Alertmanager / Grafana dashboard を設定
 
 7. **dual reviewer sign-off と CI green**: dual reviewer（tier1 2 名）の sign-off を取得する。全言語（Rust / C# / Go / TypeScript）の CI が green であることを確認する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **ライン稼働監視**: 新 Gateway / Control Plane コンポーネントは稼働監視データのルーティング・認証・レート制限を担う基盤となり、ライン状態の可視化遅延や欠損に直結する。
+- **警報配信**: 新 Sidecar / Agent コンポーネントは警報イベントの非同期配信パイプラインを支え、警報到達の信頼性・遅延保証に影響する。
 
 ## 関連適合仕様 / 関連 OSS
 

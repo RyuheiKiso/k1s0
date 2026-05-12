@@ -18,6 +18,8 @@ covered_by:
 
 新しい security 要件 / OSS 追加 / 脅威モデル更新に伴い、IaC 宣言 → staging 先行検証 → Conftest メタ検証 → GitOps 本番適用の手順で Kyverno admission policy を安全に追加する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Kyverno UI の policy report 画面を確認中に、security 担当者から Mattermost `#infra-ops` で「hostNetwork=true を禁止する新 policy の追加要求」が届いていることに気付く。手元には infra_enforcement_catalog.lock.yaml と Kyverno ClusterPolicy の YAML テンプレート、Mattermost 越しに security 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - 新しい security 要件が生じた時
@@ -33,6 +35,12 @@ covered_by:
 - 主役: infra 担当者（シニア級）
 - 関与: security 担当者（脅威モデルレビュー）、dual reviewer
 
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Kyverno UI（policy report） | policy IaC 宣言 / staging 先行適用 / Conftest lint / 本番 GitOps 適用 |
+| 関与（security）| シニア | 本社 IT 室 / リモート | security dashboard / Mattermost `#security-ops` | 脅威モデルレビュー / policy 要件定義 / 本番適用後の violation 確認 |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | PR レビュー / infra_enforcement_catalog.lock.yaml sign-off |
+
 ## 前提
 
 - Kyverno が cluster に導入済みで GitOps（Argo CD）で管理されていること
@@ -47,6 +55,13 @@ covered_by:
 5. Conftest でポリシーのメタ検証（policy as code の lint）
 6. 本番 cluster への GitOps 適用（Argo CD）
 7. `infra_enforcement_catalog.lock.yaml` に新 policy を追記し dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: 受注業務は最多の business policy を持つため、新 Kyverno policy が受注 namespace の Pod に意図しない admission 拒否を引き起こさないことを staging で重点確認する。
+- **FA（設備操作）**: 工場操作に関わる Pod が policy 違反で起動不可になると設備制御が停止するため、FA namespace を対象とした exemption 設計を security 担当者と事前合意する。
 
 ## 関連適合仕様 / 関連 OSS
 

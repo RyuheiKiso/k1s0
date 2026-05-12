@@ -18,6 +18,8 @@ covered_by:
 
 infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom metrics）と Cluster Autoscaler の node 追加閾値を業務 SLO に合わせてチューニングし、過剰 scaling と scaling 遅延のバランスを最適化する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Perses dashboard の `keda-scaling-time` パネルを確認中に、FA 生産指示 Kafka topic の lag が昨日のピーク時に `lagThreshold` を超えても scale out に 3 分かかっていた事象を発見する。手元には KEDA の ScaledObject YAML と過去 30 日の Kafka lag グラフ、Mattermost 越しに ops 担当者・tier2 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - SLO 違反（Scaling 遅延で response time 超過）
@@ -33,6 +35,13 @@ infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom m
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（SLO 定義確認）/ tier2 担当者（Kafka consumer の SLO 確認）
 - 承認: dual reviewer（infra 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Perses dashboard（keda-scaling-time / kafka-consumer-lag）| lag 推移分析 / lagThreshold 再設定 / staging chaos test / 本番 GitOps 適用 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard（slo-compliance-rate）| SLO 定義確認 / 調整後 1 週間の SLO 監視 |
+| 関与（tier2）| ミドル | 本社 IT 室 / リモート | Kafka dashboard | Kafka consumer の SLO 確認 / lagThreshold 調整値の妥当性確認 |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | ScaledObject YAML PR レビュー / cluster_inventory.lock.yaml sign-off |
 
 ## 前提
 
@@ -52,6 +61,13 @@ infra 担当者が KEDA の scaling 指標（Kafka lag / CPU / memory / custom m
 6. 本番 cluster に適用（GitOps 経由 / `infra/keda/` 配下の ScaledObject YAML を更新）
 7. 本番適用後 1 週間 Perses で scaling 指標を監視する
 8. `cluster_inventory.lock.yaml` に調整内容を記録し dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注（ピーク）**: 受注業務は月末・キャンペーン時に API リクエストが急増するため、Cluster Autoscaler の `scale-down-delay-after-add` を受注ピークパターンに合わせて調整し、scale in が早すぎてレイテンシ劣化が発生しないようにする。
+- **SCADA（burst）**: センサーデータの定期バーストで Kafka lag が急増する SCADA consumer の `lagThreshold` を、burst 周期の実測値から適切に再設定して scale out 遅延による計測欠損を防ぐ。
 
 ## 関連適合仕様 / 関連 OSS
 

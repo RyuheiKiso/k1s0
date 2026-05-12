@@ -18,6 +18,8 @@ covered_by:
 
 新言語 / 新カテゴリの Library 追加は tier1 言語スタック登録を先行条件とし、17 カテゴリ表への Lv 割付・3 パッケージ構成配置・全言語 Testcontainers conformance test green を揃えて dual reviewer sign-off を取得する。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「Swift が tier1/tier2 言語スタックに登録され Library サポートの要求が来た」という issue が上がっていることに気付く。手元には `04_提供機能カテゴリ.md` と Backstage Catalog、Mattermost 越しに dual reviewer 2 名と要求提起元の tier2 担当者がいる。
+
 ## Trigger（発火条件）
 
 新言語（例: Swift / Kotlin）または新機能カテゴリの Library 追加要求が上がった時。
@@ -31,6 +33,13 @@ covered_by:
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ 要求提起者（tier2 担当者 or コミュニティ）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | 言語スタック登録確認・17 カテゴリ追加・conformance test 作成・snapshot 更新 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 追加内容レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 追加内容レビュー・sign-off |
+| 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | 新言語 / 新カテゴリの要求提起・動作確認協力 |
 
 ## 前提
 
@@ -68,6 +77,13 @@ covered_by:
 6. **公開 API snapshot の更新**: 新 API surface を `public_api_snapshot.lock.yaml` に追加し、snapshot 差分 CI を通じて意図した API のみが追加されていることを確認する。既存 API への影響が 0 件であることを検証する。
 
 7. **dual reviewer sign-off**: 以上の手順が完了したことを dual reviewer（tier1 2 名）が確認し sign-off する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **FA 生産指示・設備操作**: 新言語（例: Swift）の Library 追加により、iOS / macOS ベースの設備操作端末から tier1 facade を直接利用できるようになり、FA 生産指示システムの端末多様化に対応できる。
+- **在庫**: 新カテゴリ（例: AI 推論）の Library 追加は、在庫予測・需要予測機能の共通基盤整備に直結し、在庫管理精度の向上を可能にする。
 
 ## 関連適合仕様 / 関連 OSS
 

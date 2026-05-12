@@ -17,6 +17,8 @@ covered_by:
 
 tier2 担当者が新規テナント onboarding 時または業界 pack 更新時に、業務マスタデータ（設備マスタ / 品目マスタ / 拠点マスタ / BOM 等）を CSV / Excel から bulk import し、テナント別 RLS FORCE と整合を維持する。
 
+> 朝 9 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#master-import-mfg-acme-jp` で新工場の設備マスタ 200 件 CSV を受け取り、Backstage Admin API portal での import 作業を開始する。手元には import CSV・Testcontainers ローカル環境、Mattermost 越しに data 担当者と業務管理者がいる。
+
 ## Trigger（発火条件）
 
 新テナント追加時 / 業界 pack の製品カタログ更新 / マスタデータの大規模改訂が必要になった時。
@@ -32,6 +34,13 @@ tier2 担当者が新規テナント onboarding 時または業界 pack 更新�
 - 主役: tier2 担当者（中堅級）
 - 関与: data 担当者（DB 操作）/ 業務管理者（マスタ内容の確認）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Mattermost `#tier2-ops` / Backstage Admin API portal | CSV バリデーション / bulk import 実行 / RLS 確認 |
+| 関与（data）| シニア | 本社 / リモート | GitHub PR | DB 操作支援 / CloudNativePG RLS 設定確認 |
+| 関与（業務管理者）| — | 本社 | Mattermost `#master-import-<tenant>` | マスタ内容確認 / 修正版 CSV 提出 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | import 確定前レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -54,6 +63,13 @@ tier2 担当者が新規テナント onboarding 時または業界 pack 更新�
 5. import 完了後に CloudNativePG で RLS FORCE が有効であることを確認する（`EXPLAIN ANALYZE SELECT * FROM equipment WHERE tenant_id = '...'` で RLS filter が付いていることを確認）
 6. integration test（Testcontainers）で cross-tenant data leak がないことを確認する
 7. 業務管理者の内容確認 + dual reviewer sign-off を取得して import を確定する
+
+## 業界 9 業務との紐付け
+
+- **在庫**: 品目マスタ・BOM の import 完了後、在庫 aggregate が正しい品目コードで初期化される。
+- **受注**: 製品マスタの import により、受注 API で有効な品目コードとして受け付けられるようになる。
+- **FA 生産指示・設備操作**: 設備マスタの import により、生産指示で参照可能な設備 ID が確定する。
+- **計量装置・出荷指示**: 拠点マスタ・出荷先マスタの import により、出荷指示の宛先バリデーションが機能する。
 
 ## 関連適合仕様 / 関連 OSS
 

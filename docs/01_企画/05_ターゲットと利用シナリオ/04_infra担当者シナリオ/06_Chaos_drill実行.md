@@ -18,6 +18,8 @@ covered_by:
 
 topology_class / preservation_class / clock_integrity_class 別の drill cadence に従い、[Litmus chaos experiment](../../../03_概要設計/05_infra設計方針/07_Chaos工学方針.md) を GitOps 経由で実行して SLO 維持と自動復旧を確認し、結果を lock.yaml に記録する。
 
+> ランチ後 13 時、本社 IT 室の infra 担当者（シニア級）が Backstage の drill runbook カレンダーで「v1_global_replicated の 14 日 cadence 到来」を確認し、午後 drill 開始のタイミングで Litmus chaos experiment の準備を始める。手元には topology_drill.lock.yaml と Perses SLI ベースライン記録、Mattermost 越しに ops 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - drill cadence（topology_class / preservation_class / clock_integrity_class 別）の到来時
@@ -30,6 +32,12 @@ topology_class / preservation_class / clock_integrity_class 別の drill cadence
 
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（SLO 監視）、dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Backstage drill runbook カレンダー / Perses dashboard | drill 種別選択 / SLI ベースライン記録 / Litmus apply / 自動復旧確認 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard（SLO パネル）| drill 中 SLO 監視 / 閾値超過時 abort alert |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | drill 結果レビュー / lock.yaml sign-off |
 
 ## 前提
 
@@ -44,6 +52,13 @@ topology_class / preservation_class / clock_integrity_class 別の drill cadence
 5. chaos 注入停止後の自動復旧を観測（circuit breaker reset / Pod reschedule）
 6. drill 結果（green / fail / abort）を `topology_drill.lock.yaml` または該当 lock.yaml に追記
 7. dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **警報配信**: Chaos drill で警報配信 Pod が kill されても 5 topology_class の failover orchestrator により RTO 以内に自動復旧することを drill で確認し、製造ライン停止通知の continuity を保証する。
+- **FA（設備操作）**: 設備操作指示を担う Pod の Node drain / Network partition chaos で指示欠落が発生しないことを確認し、工場自動化の安全性を chaos 工学で継続的に証明する。
 
 ## 関連適合仕様 / 関連 OSS
 

@@ -18,6 +18,8 @@ covered_by:
 
 新規 OSS を 3 抽象レベルのいずれに割付けるかを評価し、AGPL/SSPL 系を物理拒否しつつ、dual reviewer sign-off + CI green + Harbor mirror 確立を merge 条件として tier1 facade の品質を守る。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、コミュニティから「Kafka から Redpanda への移行コスト評価」提案が上がっていることに気付く。手元には Backstage Catalog と buf CI ダッシュボード、Mattermost 越しに dual reviewer の tier1 担当者 2 名がいる。
+
 ## Trigger（発火条件）
 
 tier1 担当者またはコミュニティから「現行 L1+ OSS の移行 or 新カテゴリへの OSS 採用」提案が挙がった時。
@@ -31,6 +33,12 @@ tier1 担当者またはコミュニティから「現行 L1+ OSS の移行 or �
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名、同一人物不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | OSS 評価・ライセンス判定・Harbor mirror 登録・PR 提出 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | OSS 評価レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | OSS 評価レビュー・sign-off |
 
 ## 前提
 
@@ -63,6 +71,13 @@ tier1 担当者またはコミュニティから「現行 L1+ OSS の移行 or �
 6. **Harbor mirror 登録**: OSS image / package を Harbor mirror に登録し supply chain mirror 経路を確立する。cosign 署名と SBOM 生成も合わせて実施する。
 
 7. **CI 更新とグリーン確認**: 依存導入 lint に新 OSS を追加し CI green を確認する。4 言語の Library コード生成が全て通ることを検証する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA テレメトリ**: Kafka 系 OSS 採用評価はリアルタイムテレメトリ配信パイプラインの信頼性・スループットに直結し、採用判定が設備データ収集基盤全体に波及する。
+- **警報配信**: Message Broker 系 OSS の採用・移行可否が、アラート配信レイテンシと信頼到達性に直接影響する。
 
 ## 関連適合仕様 / 関連 OSS
 

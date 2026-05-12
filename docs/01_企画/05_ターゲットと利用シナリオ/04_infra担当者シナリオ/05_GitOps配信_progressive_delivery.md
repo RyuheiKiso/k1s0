@@ -18,6 +18,8 @@ covered_by:
 
 新サービス / 新 Library version のデプロイを、cosign 署名検証 → Argo Rollouts canary → Perses SLO 監視 → release_gate 記録の手順で GitOps 経由で progressive に配信し、品質を保証する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Argo CD UI で ApplicationSet の sync 状態を確認中に、tier1 Library v0.18.0 の PR が merge 済みで本番配信の準備が整っていることに気付く。手元には release_gate.lock.yaml と Argo Rollouts canary 設定、Mattermost 越しに ops 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - 新サービスのデプロイ要求が来た時
@@ -31,6 +33,12 @@ covered_by:
 
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（SLO 監視）、dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Argo CD UI / release_gate.lock.yaml | ApplicationSet 宣言 / canary strategy 設定 / cosign 検証確認 / 段階配信監視 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard（SLO パネル）| canary 段階での SLO 監視 / SLO 閾値超過時 escalation |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | release PR レビュー / release_gate.lock.yaml sign-off |
 
 ## 前提
 
@@ -47,6 +55,13 @@ covered_by:
 5. Perses dashboard で SLO（error rate / latency p99）が canary 段階で閾値内であることを確認
 6. 全 step 完了後に `release_gate.lock.yaml` に release record を追記
 7. dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: 受注業務は最も多くのリリース cadence を持つため、progressive delivery の canary 段階で受注 API の error rate / latency p99 を Perses で重点監視し、異常時は自動 rollback で業務影響を局所化する。
+- **SCADA**: IoT テレメトリ収集の Library update は大量データ処理に影響するため、canary 10% 段階でのデータ欠損がないことを確認してから次ステップに進む。
 
 ## 関連適合仕様 / 関連 OSS
 

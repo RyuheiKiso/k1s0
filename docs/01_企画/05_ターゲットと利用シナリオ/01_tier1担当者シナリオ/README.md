@@ -16,7 +16,7 @@ covered_by:
 
 ## 一文方針
 
-tier1 担当者（シニア級）が日常的に踏む 11 シナリオを 1 ファイル 1 シナリオで列挙する。Server 系 5 系統（Gateway / Sidecar+Agent / Backend-for-Library / Control Plane / Operator+Controller）/ Library 3 抽象レベル × 17 機能カテゴリ / Companion / 主要 9 適合仕様（Bidi / 移行 Pair / 観測 / 認証 / 鍵管理 / スキーマ進化 / SLO / OSS ライフサイクル / テナント容量）を tier1 facade として維持する責務を担う。
+tier1 担当者（シニア級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。Server 系 5 系統（Gateway / Sidecar+Agent / Backend-for-Library / Control Plane / Operator+Controller）/ Library 3 抽象レベル × 17 機能カテゴリ / Companion / 主要 9 適合仕様（Bidi / 移行 Pair / 観測 / 認証 / 鍵管理 / スキーマ進化 / SLO / OSS ライフサイクル / テナント容量）を tier1 facade として維持する責務を担う。
 
 ## 担当者プロフィール
 
@@ -54,6 +54,7 @@ tier1 担当者は以下の責務を横断的に担う:
 | 09 | [supply_chain障害対応](09_supply_chain障害対応.md) | Harbor / cosign / SBOM / supply chain lint で障害・違反が検出された時 | イベント駆動（障害発生時） | OSSライフサイクル適合仕様 / tier1強制機構 | [緊急] |
 | 10 | [SBOM_CVE_月次トリアージ](10_SBOM_CVE_月次トリアージ.md) | 月次 SBOM review cadence 到来または重大 CVE 公開時 | 月次 + イベント駆動 | OSS ライフサイクル適合仕様 | [周期]+[緊急] |
 | 11 | [Library_release切り](11_Library_release切り.md) | Library に十分な変更が蓄積し release milestone 達成時 | 月次〜四半期 | 検証規律適合仕様 | [計画] |
+| 14 | [proto 二層 diff PR レビュー](14_proto二層diff_PRレビュー.md) | CI の buf breaking / API snapshot 違反検出時 | 週次〜月次 | 19 検証規律適合仕様 | [計画] |
 
 ## 重要用語早見表
 

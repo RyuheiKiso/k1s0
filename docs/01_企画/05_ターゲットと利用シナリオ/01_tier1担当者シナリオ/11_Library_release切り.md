@@ -20,6 +20,8 @@ covered_by:
 
 tier1 担当者が 4 言語 Library（Rust / C# / Go / TypeScript）の SemVer release（minor / major / patch）を切り、各 package registry（crates.io mirror / NuGet Harbor mirror / pkg.go.dev / npm Harbor mirror）に publish する。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「v0.18 minor release milestone が close できる状態になった」という milestone 更新通知に気付く。手元には `public_api_snapshot.lock.yaml` と 4 言語の CI ダッシュボード、Mattermost 越しに dual reviewer 2 名と tier2 担当者がいる。
+
 ## Trigger（発火条件）
 
 Library に十分な機能追加 / バグ修正が蓄積し、release milestone が達成された時。
@@ -34,6 +36,13 @@ Library に十分な機能追加 / バグ修正が蓄積し、release milestone 
 - 主役: tier1 担当者（シニア級）
 - 関与: tier2 担当者（互換性確認）
 - 承認: dual reviewer（tier1 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | SemVer 決定・release branch 作成・version bump・cosign 署名・Harbor push |
+| 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | 互換性確認・release 後 24h フィードバック |
+| 承認（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | CHANGELOG レビュー・sign-off・release tag 確認 |
+| 承認（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | CHANGELOG レビュー・sign-off・release tag 確認 |
 
 ## 前提
 
@@ -61,6 +70,13 @@ Library に十分な機能追加 / バグ修正が蓄積し、release milestone 
 7. 内部 Harbor mirror で動作確認（tier2 / tier3 が pull できることを Testcontainers で確認）
 8. dual reviewer sign-off を取得し release tag を push する
 9. release 後 24h は tier2 / tier3 担当者からのフィードバックを監視する（Mattermost `#tier1-release`）
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: Library release は受注業務が依存する tier1 API の変更を全下流に届ける節目であり、major release での backward 非互換変更は受注処理フローの再検証を必要とする。
+- **警報配信**: Library release に含まれる bugfix や security patch は警報配信の信頼性・暗号化強度を直接改善し、patch release の迅速な展開が警報業務の継続稼働を支える。
 
 ## 関連適合仕様 / 関連 OSS
 

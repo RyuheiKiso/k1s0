@@ -20,6 +20,8 @@ covered_by:
 
 tier1 担当者が L1+ 採用 OSS の年次 dry-run を実施し、移行 toolchain（schema diff / dual-write / observability 連続性 / 業務コード移行ガイド）が green であることを物理証明として `oss_lifecycle.lock.yaml` に記録する。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が Backstage Catalog を確認し、Connect-RPC（L1+ Bidi transport）の年次 dry-run cadence が到来していることに気付く。手元には `oss_lifecycle.lock.yaml` と Jaeger v2 の trace dashboard、Mattermost 越しに dual reviewer 2 名・tier2 担当者・security 担当者がいる。
+
 ## Trigger（発火条件）
 
 L1+ OSS の年次 dry-run cadence 到来時（tier1 設計方針「L1+ 移行コミットメント: 移行 toolchain を年次 dry-run green で物理証明」が原則）
@@ -35,6 +37,14 @@ L1+ OSS の年次 dry-run cadence 到来時（tier1 設計方針「L1+ 移行コ
 - 関与: tier2 担当者（業務コード移行ガイドの確認）/ security 担当者（観測 chain の継続性確認）
 - 承認: dual reviewer（tier1 担当者 2 名、変更 PR の author 不可）
 
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | Backstage Catalog | dry-run 実施・schema diff・dual-write 検証・移行ガイド draft・lock.yaml 記録 |
+| 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | 業務コード移行ガイドのレビュー・フィードバック |
+| 関与（security 担当者）| 中堅 | 本社 IT 室 | security alert dashboard | 観測 chain の継続性確認（trace_id 途切れ検証） |
+| 承認（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | dry-run 記録レビュー・sign-off |
+| 承認（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | dry-run 記録レビュー・sign-off |
+
 ## 前提
 
 - 対象 L1+ OSS が `04_提供機能カテゴリ.md` に登録済み（[提供機能カテゴリ](../../../03_概要設計/02_tier1設計方針/04_提供機能カテゴリ.md)）
@@ -49,6 +59,13 @@ L1+ OSS の年次 dry-run cadence 到来時（tier1 設計方針「L1+ 移行コ
 5. 業務コード移行ガイドを draft する: tier2 / tier3 が「現行 OSS を假想移行先 OSS に切り替える際に変更するコード箇所」を言語別に列挙し、tier2 担当者にレビューを依頼する
 6. dry-run の全工程を `oss_lifecycle.lock.yaml` に記録する（schema diff 結果 / Testcontainers green / observability 連続性確認 / ガイド draft 完了）
 7. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA テレメトリ**: L1+ transport（Connect-RPC 等）の dry-run は SCADA テレメトリ経路の移行実現可能性を毎年物理証明するものであり、実際の EOL 時に設備データ収集が途切れないことを担保する。
+- **受注**: L1+ RDB（CloudNativePG 等）の dry-run 成功は受注データの永続化・整合性を支えるストレージ移行が実際に機能することを年次証明し、受注業務の事業継続性を裏付ける。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -74,3 +91,4 @@ L1+ OSS の年次 dry-run cadence 到来時（tier1 設計方針「L1+ 移行コ
 - [OSS ライフサイクルイベント対応](./02_OSSライフサイクルイベント対応.md) — 実際の EoL / ライセンス変更発生時の移行実施シナリオ
 - [新規 OSS 採用評価](./01_新規OSS採用評価.md) — L1+ を選定した際の初回評価シナリオ（dry-run の前提）
 - [tier1 設計方針](../../../03_概要設計/02_tier1設計方針/README.md) — L1+ 移行コミットメントの原則定義の SoT
+- [L2* conformance 維持](./13_L2star_conformance維持.md) — migration dry-run と conformance test の定期実行は同一サイクルで計画する

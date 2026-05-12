@@ -18,6 +18,8 @@ covered_by:
 
 preservation_class 別の drill cadence に従い 4 種の restore drill を staging 隔離環境で実施し、restore_window 仕様との比較によって AND-gate（全 drill green でないと 1.0.0 ship 不可）を維持する。
 
+> 月曜朝 9 時、本社 IT 室の data 担当者（シニア級）が `restore_drill.lock.yaml` を確認し、`v1_cross_region_replicated` の 30 日 drill cadence 到来を Backstage runbook 上で確認する。手元には Backstage runbook と Perses ダッシュボード、Mattermost 越しに infra 担当者・tier2 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 drill cadence（preservation_class 別: 14〜180 日）の到来時、または DR 演習の指示があった時。
@@ -32,6 +34,13 @@ drill cadence（preservation_class 別: 14〜180 日）の到来時、または 
 - 関与: infra 担当者（network 分断模擬などインフラ操作が必要な場合）
 - 関与: tier2 担当者（隔離環境での integration test 実行）
 - 関与: dual reviewer（`restore_drill.lock.yaml` sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | `restore_drill.lock.yaml` / Perses / Backstage runbook | drill 種別選択・staging restore 実施・drill 結果記録 |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | network 分断模擬・インフラ操作支援 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | 隔離環境での integration test 実行 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | `restore_drill.lock.yaml` sign-off |
 
 ## 前提
 
@@ -53,6 +62,13 @@ drill cadence（preservation_class 別: 14〜180 日）の到来時、または 
 5. drill 所要時間を計測し、対象 preservation_class の restore_window 仕様と比較する
 6. 所要時間が仕様内なら **green** とし、次のステップへ進む。仕様超過なら **fail** とし、原因調査と改善 PR を必須とする
 7. drill 結果（green / fail / 所要時間 / 原因）を `restore_drill.lock.yaml` に追記し、dual reviewer sign-off を得る
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **警報配信**: RTO 要件が最も厳しい業務の一つであり、restore_drill での cross-region failover drill 結果が直接的な警報配信の継続性保証に連動する。
+- **SCADA 連携**: SCADA テレメトリデータの restore_window が仕様内に収まることの確認は、製造ライン稼働監視の連続性維持に直結する。
 
 ## 関連適合仕様 / 関連 OSS
 

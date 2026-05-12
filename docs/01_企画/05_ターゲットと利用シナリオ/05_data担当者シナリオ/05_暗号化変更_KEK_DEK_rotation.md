@@ -18,6 +18,8 @@ covered_by:
 
 [DEK / KEK 階層](../../../04_詳細設計/01_適合仕様/05_鍵管理適合仕様.md) の定期ローテーションを 3 層暗号化の構造を崩さずに完結させ、re-encryption 100% 完了後に旧 DEK を revoke し、tier2 integration test で復号正常を確認してから dual reviewer sign-off まで到達する。
 
+> 月末の朝 10 時、本社 IT 室の data 担当者（シニア級）が `encryption_rotation.lock.yaml` を確認し、infra 担当者から年次 KEK shamir ceremony 完了の Mattermost 通知を確認する。手元には Argo CronWorkflow の管理画面と OpenBao の vault 操作端末、Mattermost 越しに infra 担当者・tier2 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 KEK / DEK の定期ローテーション、または暗号アルゴリズム（AES-256-GCM から post-quantum への移行候補）の評価が必要になった時。
@@ -32,6 +34,13 @@ KEK / DEK の定期ローテーション、または暗号アルゴリズム（A
 - 関与: infra 担当者（KEK の Shamir ceremony が先行する。infra 担当者が KEK rotation を実施してから data 担当者が DEK rotation を行う）
 - 関与: tier2 担当者（re-encrypted data の integration test 実行）
 - 関与: dual reviewer（sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | `encryption_rotation.lock.yaml` / Argo CronWorkflow | DEK rotation 実施・re-encryption 進捗管理・旧 DEK revoke |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | OpenBao 管理画面 / Argo CD | KEK shamir ceremony 実施（先行）・OpenBao 状態管理 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | re-encrypted data の integration test 実行 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
 ## 前提
 
@@ -49,6 +58,13 @@ KEK / DEK の定期ローテーション、または暗号アルゴリズム（A
 4. **旧 DEK と旧 envelope の purge**: re-encryption が 100% 完了したことを確認してから、古い DEK を OpenBao から revoke する
 5. 動作確認: application layer で re-encrypted data が正常に復号できることを tier2 integration test で確認する
 6. dual reviewer sign-off を得たうえで `encryption_rotation.lock.yaml` を完了状態に更新する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: 受注データの暗号化鍵 rotation は取引記録の機密性維持に直結し、re-encryption 完了前後で受注処理の復号が途切れないことが RTO に関わる。
+- **品質検査**: GMP 規制要件として暗号化の継続性が監査対象となるため、rotation の全フェーズが audit hash chain に記録されている必要がある。
 
 ## 関連適合仕様 / 関連 OSS
 

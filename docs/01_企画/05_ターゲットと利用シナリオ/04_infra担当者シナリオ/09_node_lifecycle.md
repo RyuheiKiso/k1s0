@@ -18,6 +18,8 @@ covered_by:
 
 infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + drain + replace）を GitOps 経由で実施し、5 topology_class の SLO と workload の継続稼働を維持する。
 
+> 深夜 3 時、自宅 on-call の infra 担当者（シニア級）が Mattermost `#infra-alert` の push 通知で「control-plane-node-02 NotReady / etcd quorum 2/3」に気付く。手元にはラップトップの Perses dashboard と cluster_inventory.lock.yaml、Mattermost 越しに ops 担当者がいる。
+
 ## Trigger（発火条件）
 
 - node pool の capacity が上限（85% 以上）に近づいた時
@@ -35,6 +37,12 @@ infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + 
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（SLO 監視）
 - 承認: dual reviewer（infra 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 自宅 on-call / 本社 IT 室 | Mattermost `#infra-alert` / Perses dashboard | NotReady 検知 / cordon + drain / OpenTofu replace / etcd quorum 回復確認 |
+| 関与（ops）| シニア | 自宅 on-call / 本社 IT 室 | Perses dashboard（SLO パネル）| node 故障中 SLO 監視 / workload 影響 alert |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | IaC PR レビュー / cluster_inventory.lock.yaml sign-off |
 
 ## 前提
 
@@ -63,6 +71,13 @@ infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + 
 6. 新 node が `Ready` になり etcd quorum が 3/3 に回復することを確認する
 7. `cluster_inventory.lock.yaml` を更新し、dual reviewer sign-off を取得する
 8. 故障原因を調査し、再発防止策を postmortem に記録する（**postmortem 期限: 2 営業日以内**）
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **ライン稼働監視（リアルタイム）**: control plane node 故障による etcd quorum 低下は全業務の API server を不安定にし、リアルタイム監視データのストリーミングが途切れるため、etcd quorum 回復を最優先 SLA として対応する。
+- **警報配信**: node NotReady 中に警報配信 Pod が再スケジュールされるまでの間、製造ライン停止アラートが欠落するリスクがあるため、drain 前に警報配信 Pod の PDB を確認し最低 1 replica の稼働を保証する。
 
 ## 関連適合仕様 / 関連 OSS
 

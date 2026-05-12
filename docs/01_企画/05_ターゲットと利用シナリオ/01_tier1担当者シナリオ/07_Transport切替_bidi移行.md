@@ -18,6 +18,8 @@ covered_by:
 
 HTTP/2 → HTTP/3 / WebTransport の standard 化追従または bidi semantics の transport 変更において、Transport Adapter Layer への新 handler 並走追加と Testcontainers conformance test による bidi 等価性検証を経て、年次 dry-run 実績を lock ファイルに記録してから dual reviewer sign-off を取得する。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が buf CI ダッシュボードを確認し、「IETF が WebTransport RFC を確定し tier1 が追従タイミングを評価する必要がある」という設計ディスカッションが上がっているのに気付く。手元には `transport_migration.lock.yaml` と Testcontainers CI ログ、Mattermost 越しに dual reviewer 2 名・infra 軸担当者・ops 軸担当者がいる。
+
 ## Trigger（発火条件）
 
 HTTP/2 → HTTP/3 / WebTransport の standard 化追従または bidi semantics の transport 変更が必要になった時。
@@ -31,6 +33,14 @@ HTTP/2 → HTTP/3 / WebTransport の standard 化追従または bidi semantics 
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ infra 軸担当者（network policy 変更連携）/ ops 軸担当者（SLO への影響評価）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | buf CI / Testcontainers CI | 移行計画確認・bidi 等価性検証・新 handler 追加・dry-run 実施 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | Transport Adapter Layer 変更レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | Transport Adapter Layer 変更レビュー・sign-off |
+| 関与（infra 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | network policy 変更・ALPN 設定レビュー |
+| 関与（ops 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | SLO 影響評価・Grafana レイテンシ監視 |
 
 ## 前提
 
@@ -65,6 +75,13 @@ HTTP/2 → HTTP/3 / WebTransport の standard 化追従または bidi semantics 
    - SLO への影響（レイテンシ・エラー率の変化）の計測
 
 6. **dual reviewer sign-off と CI green**: dual reviewer（tier1 2 名）の sign-off を取得する。全言語の CI が green であることを確認する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA テレメトリ**: bidi streaming transport の変更は SCADA 設備からのリアルタイムテレメトリ収集チャンネルに直結し、transport 移行中の全二重通信断絶が設備監視の空白時間を生む可能性がある。
+- **警報配信**: 警報は全二重（bidi）の低レイテンシ配信を必要とするため、新 transport の bidi semantics 等価性が不完全な場合に警報の到達遅延・欠落が発生するリスクがある。
 
 ## 関連適合仕様 / 関連 OSS
 

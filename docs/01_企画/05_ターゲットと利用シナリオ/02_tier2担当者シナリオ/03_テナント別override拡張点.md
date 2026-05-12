@@ -18,6 +18,8 @@ covered_by:
 
 特定テナントが業務ルール（マスタ / 決定表 / Workflow）のカスタマイズを要求した際、4 抽象化レベルの境界を守りながら tenant_id 強制注入付き拡張点 contract を定義し、上位レベルへの漏洩を dual reviewer と CI の二重防衛で阻止する。
 
+> 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Backstage Software Catalog で `mfg-acme-jp` テナントの override 要求チケットに気付く。手元には GitHub PR・Keycloak 管理コンソール、Mattermost 越しに security 担当者がいる。
+
 ## Trigger（発火条件）
 
 特定テナントが業務ルール（マスタ / 決定表 / Workflow）のカスタマイズを要求した時。
@@ -32,6 +34,11 @@ covered_by:
 
 - 主役: tier2 担当者（中堅級）
 - 承認: dual reviewer（tier2 担当者 + security 担当者、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog / Mattermost `#tier2-ops` | 拡張点 contract 定義 / tenant_id 強制注入 / contract test 実行 |
+| 承認（security 担当者）| シニア | 本社 / リモート | GitHub PR | 権限漏洩 review / sign-off |
 
 ## 前提
 
@@ -52,6 +59,12 @@ covered_by:
 4. テナント識別子（tenant_id）を拡張点インタフェースで強制注入し、成りすましを不可能化する
 5. contract test をテナント別拡張実装に対して実行し、invariants 抵触を検出する
 6. override 実装の PR に dual reviewer（tier2 担当 + security 担当）の sign-off を得てから merge する
+
+## 業界 9 業務との紐付け
+
+- **品質検査結果**: テナント固有の検査閾値 override（例: ±2% 厳格化）が品質検査結果 aggregate に反映され、テナント間で閾値が混在しない。
+- **FA 生産指示・設備操作**: テナント固有の承認フロー段数変更が生産指示 Workflow に override として適用される。
+- **受注**: テナント固有の発注承認ルール override が受注エンティティの決定表に反映される。
 
 ## 関連適合仕様 / 関連 OSS
 

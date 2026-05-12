@@ -16,7 +16,7 @@ covered_by:
 
 ## 一文方針
 
-data 担当者（シニア級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。[5 preservation_class](../../../03_概要設計/06_data設計方針/README.md) の保全・復旧・暗号化と [restore_drill AND-gate](../../../03_概要設計/06_data設計方針/07_復旧訓練方針.md) の維持、Kafka / ClickHouse の運用、DR 実 failover を含む全 19 軸の defense-in-depth 層 E（13 cross-cutting 適合仕様を含む）の永続化部分を提供する。
+data 担当者（シニア級）が日常的に踏む 15 シナリオを 1 ファイル 1 シナリオで列挙する。[5 preservation_class](../../../03_概要設計/06_data設計方針/README.md) の保全・復旧・暗号化と [restore_drill AND-gate](../../../03_概要設計/06_data設計方針/07_復旧訓練方針.md) の維持、Kafka / ClickHouse の運用、DR 実 failover を含む全 19 軸の defense-in-depth 層 E（13 cross-cutting 適合仕様を含む）の永続化部分を提供する。
 
 ## 担当者プロフィール
 
@@ -68,6 +68,7 @@ data 担当者はシニア級エンジニアを前提とし、CloudNativePG / Ka
 | 12 | [ClickHouse tiered storage 運用](12_ClickHouse_tiered_運用.md) | hot tier 容量 80% 超 / analytics クエリ性能劣化 / 新規 Projector 追加時 | 不定期（容量アラートまたは四半期レビュー） | データ保全適合仕様 | [計画]+[緊急] |
 | 13 | [archive_to_offline 復元](13_archive_to_offline復元.md) | litigation hold / 外部監査 / 障害調査のため archived data を online に戻す必要が生じた時 | 不定期（年間 0-3 件） | データ保全適合仕様 | [緊急] |
 | 14 | [DR cross-region 実 failover](14_DR_cross_region実failover.md) | primary region 喪失インシデント時（ops 担当者の DR 宣言受領時） | 非計画的（年間 0-1 件） | データ保全適合仕様 / クラスタ位相適合仕様 | [緊急] |
+| 15 | [PII DSAR / 個人情報開示請求対応](15_PII_DSAR_export対応.md) | 法務部門から GDPR DSAR / 個人情報開示請求対応依頼があった時 | 不定期（月次 0-3 件） | データ保全適合仕様 | [緊急] |
 
 ## 新規参画者向けオンボーディング
 
@@ -89,6 +90,7 @@ data 担当者はシニア級エンジニアを前提とし、CloudNativePG / Ka
 - **03（restore drill）→ 14（DR 実 failover）の前提**: drill が最後に green でなければ実 failover の RTO 保証は担保されない。drill fail を放置した状態で実 failover に臨まない。
 - **04（crypto erase）済みデータは 13（archive 復元）不可**: DEK revoke 後のデータは物理的に復元不能。erase と archive 操作の順序は `data_lifecycle.lock.yaml` で管理する。
 - **11（Kafka topic 追加）→ tier2-13（Read model Projector 追加）の順序**: Kafka topic が存在しない状態で Projector を deploy すると Consumer エラーが発生する。topic 作成後に Projector を deploy する。
+- **07（PII 専用クラスタ運用）→ 15（DSAR export）の前提**: DSAR 対応は PII 専用クラスタが正常稼働していることが前提。07 のクラスタ設定変更作業中に 15 の依頼が来た場合は、設定変更を完了させてから DSAR 対応を開始する。
 
 ## 関連参照
 

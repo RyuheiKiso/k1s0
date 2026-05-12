@@ -18,6 +18,8 @@ covered_by:
 
 infra 担当者が Longhorn block storage（PVC）の容量拡張と Rook+Ceph object storage の OSD 追加を GitOps 経由で実施し、storage 二系統分離原則と 5 preservation_class の replication 要件を維持する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Perses dashboard の `ceph-capacity` パネルを確認中に、Ceph object storage の使用率が 78% を超えたアラートが前夜に Mattermost `#infra-alert` に届いていることに気付く。手元には cluster_inventory.lock.yaml と OpenTofu の ceph_osd_count 設定ファイル、Mattermost 越しに data 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - storage 使用率が閾値（Longhorn: 80% / Ceph: 75%）を超えた時
@@ -32,6 +34,12 @@ infra 担当者が Longhorn block storage（PVC）の容量拡張と Rook+Ceph o
 - 主役: infra 担当者（シニア級）
 - 関与: data 担当者（storage 要件の確認）
 - 承認: dual reviewer（infra 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Perses dashboard（ceph-capacity / longhorn-capacity パネル）| 使用率確認 / OSD 追加 IaC 更新 / Argo CD 適用 / rebalance 監視 |
+| 関与（data）| シニア | 本社 IT 室 / リモート | CloudNativePG / Kafka dashboard | storage 要件確認 / rebalance 完了後の DB replication 確認 |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | IaC PR レビュー / cluster_inventory.lock.yaml sign-off |
 
 ## 前提
 
@@ -59,6 +67,13 @@ infra 担当者が Longhorn block storage（PVC）の容量拡張と Rook+Ceph o
 6. `cluster_inventory.lock.yaml` の Ceph capacity を更新する
 7. dual reviewer sign-off を取得する
 
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA テレメトリ（大容量）**: センサーテレメトリのオブジェクト蓄積は Ceph object storage の最大消費者であり、OSD 追加後の CRUSH map rack awareness が維持されていることを `ceph status` で確認してから SCADA namespace を再起動する。
+- **品質検査**: 品質検査ログは Longhorn block PVC に永続化されており、PVC 拡張中の data integrity が保たれていることを integration test で確認してから本番の品質検査業務に拡張後 PVC を適用する。
+
 ## 関連適合仕様 / 関連 OSS
 
 - クラスタ位相適合仕様: [../../../04_詳細設計/01_適合仕様/12_クラスタ位相適合仕様.md](../../../04_詳細設計/01_適合仕様/12_クラスタ位相適合仕様.md)
@@ -83,3 +98,4 @@ infra 担当者が Longhorn block storage（PVC）の容量拡張と Rook+Ceph o
 - [infra 担当者シナリオ index](./README.md) — infra 担当者シナリオ全体の構成
 - [node lifecycle](./09_node_lifecycle.md) — OSD 追加には新 node が必要な場合のシナリオ
 - [infra 設計方針 ストレージ方針](../../../03_概要設計/05_infra設計方針/03_ストレージ方針.md) — Longhorn / Ceph 2 系統分離の設計指針
+- [ClickHouse tiered storage 運用（data-12）](../05_data担当者シナリオ/12_ClickHouse_tiered_運用.md) — hot tier（Longhorn）容量拡張後、ClickHouse の warm tier policy を data 担当者が調整する

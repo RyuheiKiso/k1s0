@@ -18,6 +18,8 @@ covered_by:
 
 data 担当者が CloudNativePG 上の PostgreSQL minor version upgrade（例: 15.x → 16.x）を実施し、5 preservation_class の replication topology と data 整合性を維持する。
 
+> 朝 9 時、本社 IT 室の data 担当者（シニア級）が Perses の CloudNativePG dashboard を確認し、infra 担当者から届いていた「CVSS 7.5 CVE の security patch（PostgreSQL 15.6 → 15.8）適用依頼」Mattermost メッセージに気付く。手元には CloudNativePG cluster manifest と `cluster_inventory.lock.yaml`、Mattermost 越しに infra 担当者・tier2 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor version のサポートを開始した時 / security patch が必要になった時。
@@ -32,6 +34,13 @@ PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor 
 - 関与: infra 担当者（Kubernetes 側の CloudNativePG operator 更新）
 - 関与: tier2 担当者（upgrade 後の migration 動作確認）
 - 承認: dual reviewer（data 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | Perses / CloudNativePG dashboard | staging upgrade 実施・動作確認・本番 apply・lock.yaml 更新 |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | CloudNativePG operator 更新・k8s 側設定変更 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | upgrade 後の migration 動作確認・integration test 実行 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
 
 ## 前提
 
@@ -55,6 +64,13 @@ PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor 
    - `v1_zone_replicated` 以上の class は upgrade 中も replicas が利用可能な状態を維持する
    - upgrade 完了を `cluster_inventory.lock.yaml` と `preservation_class.lock.yaml` に記録する
 6. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: PostgreSQL upgrade 中の replication lag SLI 逸脱は受注処理の read 可用性に直接影響するため、rolling upgrade の各フェーズで lag 監視が最重要となる。
+- **SCADA 連携**: SCADA テレメトリの PostgreSQL 書込経路が upgrade 中も維持されることで、製造ライン状態の欠損なき記録が保証される。
 
 ## 関連適合仕様 / 関連 OSS
 

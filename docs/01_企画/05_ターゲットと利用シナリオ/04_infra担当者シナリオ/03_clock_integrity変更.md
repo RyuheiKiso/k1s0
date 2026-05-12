@@ -18,6 +18,8 @@ covered_by:
 
 データセンター / クラウドプロバイダの PTP 対応変更や leap second 戦略見直しに際して、[5 clock_integrity_class](../../../04_詳細設計/01_適合仕様/13_時刻整合適合仕様.md) すべてで HLC skew allowance と leap second smear 設定の整合性を保ちながら安全に変更を適用する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Perses dashboard の HLC skew メトリクスを確認中に、新データセンターへの移行通知メールで「PTP Grand Master 切り替え予定日 T+7 日」に気付く。手元には clock_integrity.lock.yaml と chronyd 設定ファイル、Mattermost 越しに dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - データセンター / クラウドプロバイダの PTP 対応変更が通知された時
@@ -32,6 +34,11 @@ covered_by:
 - 主役: infra 担当者（シニア級）
 - 関与: dual reviewer
 
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Perses dashboard（HLC skew メトリクス）| PTP 設定変更 / chronyd 設定更新 / integration test 実施 |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | IaC PR レビュー / clock_integrity.lock.yaml sign-off |
+
 ## 前提
 
 - 5 clock_integrity_class（PTP / NTP / HLC / leap second 戦略）が `clock_integrity.lock.yaml` に記録済みであること
@@ -44,6 +51,13 @@ covered_by:
 4. HLC（Hybrid Logical Clock）の skew allowance が新設定で維持されることを integration test で確認
 5. leap second 処理: smear 設定が全 node で統一されていることを lint で確認（混在は禁止）
 6. 変更後に `clock_integrity.lock.yaml` を更新し dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA（計測値収集）**: センサー計測値のタイムスタンプ精度が PTP 変更で劣化すると計測データの信頼性が失われるため、変更後の HLC skew が計測 SLA 以内に収まることを最優先で確認する。
+- **品質検査**: 品質記録の時刻整合性は法的要件に直結するため、clock 変更後の全ノード smear 統一を lint で証明してから本番適用する。
 
 ## 関連適合仕様 / 関連 OSS
 

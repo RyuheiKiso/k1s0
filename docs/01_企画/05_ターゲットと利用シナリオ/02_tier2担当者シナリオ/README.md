@@ -16,7 +16,7 @@ covered_by:
 
 ## 一文方針
 
-tier2 担当者（中堅級）が日常的に踏む 10 シナリオを 1 ファイル 1 シナリオで列挙する。業務資産（Domain Event / Workflow / 決定表 / 業務マスタ / DB schema）の所有と、tier3 が tier1 を迂回しない 8 層強制機構の維持が主責務。
+tier2 担当者（中堅級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。業務資産（Domain Event / Workflow / 決定表 / 業務マスタ / DB schema）の所有と、tier3 が tier1 を迂回しない 8 層強制機構の維持が主責務。
 
 ## 担当者プロフィール
 
@@ -66,6 +66,7 @@ tier2 担当者は以下の責務を横断的に担う:
 | 08 | [外部システム統合](08_外部システム統合.md) | 既存基幹システムとの新規連携が要求された時 | 年次〜不定期 | スキーマ進化適合仕様 / tier2強制機構 | [計画] |
 | 09 | [業務マスタCSV一括import](09_業務マスタCSV一括import.md) | 新テナント追加または業界 pack 更新時に業務マスタ bulk import | 月次 | テナント分離適合仕様 | [計画] |
 | 10 | [Scheduler_CronWorkflow追加](10_Scheduler_CronWorkflow追加.md) | 定期バッチ要件が tier2 に起票された時 | 月次〜四半期 | SLO 適合仕様 | [計画] |
+| 14 | [retention・crypto-shred 運用](14_retention_crypto_shred運用.md) | 業務データ retention 期限到来通知（Backstage retention calendar アラート）時 | 月次〜四半期 | データ保全適合仕様 | [周期] |
 
 ## 新規参画者向けオンボーディング
 

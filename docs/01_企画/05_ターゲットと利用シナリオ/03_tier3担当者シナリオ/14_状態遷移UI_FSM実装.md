@@ -17,6 +17,8 @@ covered_by:
 
 tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言語等価強度）と連携し、許可遷移のみ button を activate、禁止遷移は deactivate する状態遷移 UI を実装する。
 
+> 朝 9 時、本社 IT 室の tier3 担当者（ジュニア級）が GitHub PR で「受注ステータス画面に FSM 状態遷移 button を追加」の実装作業を開始する。手元には tier2 generated stub の `GET /v1/orders/{id}/state-transitions` 仕様と Playwright のデバッガ、Mattermost 越しに tier2 担当者（FSM の遷移定義確認）と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 業務フローに FSM（Finite State Machine）が必要な画面（受注ステータス / 設備稼働状態 / 検査フロー）の実装要求が来た時
@@ -30,6 +32,12 @@ tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言�
 - **主役**: tier3 担当者（ジュニア級）
 - **関与**: tier2 担当者（FSM の遷移定義確認）
 - **承認**: dual reviewer（tier3 担当者 1 名 + tier2 担当者 1 名）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier3）| ジュニア | 本社 IT 室 / リモート | GitHub PR / Playwright CI | 可能遷移 API 呼び出し / button activate/deactivate / 確認ダイアログ / BusinessConflict 対応 / E2E テスト |
+| 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | FSM 遷移定義の確認 / 状態遷移 API 仕様提供 / sign-off |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | 認可 cache 禁止 / 許可遷移 = active / 禁止遷移 = disabled / E2E 網羅 / sign-off |
 
 ## 前提
 
@@ -50,6 +58,11 @@ tier3 担当者が tier2 の状態遷移 FSM（protoc-gen-go FSM 方式 / 4 言�
 6. a11y: 現在状態と可能遷移を `aria-label` で screen reader に通知する
 7. Playwright E2E test: 各状態から可能な遷移を実行し、不可能な遷移が disabled になっていることを確認
 8. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+- **受注**: 受注の承認フロー（受注確認中 → 確定 → 製造指示中 → 完了 / キャンセル）が本シナリオの主要ユースケースであり、FSM に基づく状態遷移 UI が受注業務の整合性を保証する
+- **FA 生産指示・設備操作**: 設備稼働状態（待機 → 起動指示中 → 稼働中 → 停止指示中 → 停止）の FSM 制御において、禁止遷移を deactivate する UI が誤操作による設備事故を防止する
 
 ## 関連適合仕様 / 関連 OSS
 

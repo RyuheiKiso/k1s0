@@ -18,6 +18,8 @@ covered_by:
 
 業務要件の変更に起因する [5 preservation_class](../../../03_概要設計/06_data設計方針/README.md) の昇降格を IaC 宣言 → [restore_drill AND-gate](../../../03_概要設計/06_data設計方針/07_復旧訓練方針.md) → dual reviewer sign-off の順で完結させ、クラス変更が実績のないまま本番に反映されないことを保証する。
 
+> 朝 9 時、本社 IT 室の data 担当者（シニア級）が `preservation_class.lock.yaml` を開き、規制対応チームから前日に届いていた「医薬品 GMP データの RPO 厳格化」依頼メールに気付く。手元には OpenTofu の IaC ファイルと CloudNativePG cluster manifest、Mattermost 越しに infra 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 業務要件の変更（SLA 厳格化 / DR 要件変更）により preservation_class の昇降格が必要になった時。
@@ -31,6 +33,12 @@ covered_by:
 - 主役: data 担当者（シニア級）
 - 関与: infra 担当者（IaC / network topology 変更）
 - 関与: dual reviewer（sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | `preservation_class.lock.yaml` / CloudNativePG dashboard | class 変更宣言・staging drill 実施・lock.yaml 更新 |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | IaC / network topology 変更・replication 設定更新 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
 ## 前提
 
@@ -52,6 +60,13 @@ covered_by:
 4. 新 class の restore_drill を staging 環境で実施する。drill cadence は昇格後の新 class のサイクルに合わせる
 5. **AND-gate**: restore_drill が green であることを確認するまで、本番の preservation_class 変更を保留する
 6. AND-gate 通過後、`preservation_class.lock.yaml` を新 class の内容に更新し、dual reviewer sign-off を得る
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **FA（ファクトリーオートメーション）**: 生産ラインの制御データは DR 能力の変化が直接的な稼働停止リスクに連動するため、class 昇格による RPO 短縮の恩恵が最も大きい。
+- **受注管理**: 受注データは事業継続の最重要データであり、class 変更による replication topology の変更は受注処理の可用性 SLA に直結する。
 
 ## 関連適合仕様 / 関連 OSS
 

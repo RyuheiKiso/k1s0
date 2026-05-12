@@ -19,6 +19,8 @@ covered_by:
 
 Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれかで障害・違反が検出された際に、障害種別を即時分類し production への影響を Kyverno admission で物理遮断しながら復旧を完結させ、`supply_chain_incident.lock.yaml` に全記録を残す。
 
+> 深夜 2 時、自宅 on-call の tier1 担当者（シニア級）が Mattermost のアラート通知で起床し、Harbor mirror の cosign 検証 fail アラートを確認する。手元には Kyverno admission ログと `supply_chain_incident.lock.yaml`、Mattermost 越しに ops 軸担当者と security 軸担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれかで障害・違反が検出された時。
@@ -32,6 +34,14 @@ Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれか�
 
 - 主役: tier1 担当者（シニア級）
 - 関与: ops 軸担当者（Harbor mirror 復旧 / Kyverno policy 変更）/ security 軸担当者（cosign 検証 fail 時の postmortem 必須参加）/ dual reviewer（tier1 担当者 2 名）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 自宅 on-call / 本社 IT 室 | Mattermost アラート | 障害種別分類・対処指揮・incident log 記録・PR 提出 |
+| 関与（dual reviewer A）| シニア | リモート / 本社 IT 室 | Mattermost アラート | 対処方針確認・sign-off |
+| 関与（dual reviewer B）| シニア | リモート / 本社 IT 室 | Mattermost アラート | 対処方針確認・sign-off |
+| 関与（ops 担当者）| 中堅 | 自宅 on-call / 本社 IT 室 | Backstage Catalog | Harbor mirror 復旧・Kyverno policy 変更実施 |
+| 関与（security 担当者）| 中堅 | リモート / 本社 IT 室 | security alert dashboard | cosign 鍵確認・postmortem 参加・影響範囲調査 |
 
 ## 前提
 
@@ -81,6 +91,13 @@ Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれか�
    - 再発防止策
    - dual reviewer（tier1 2 名）の sign-off
 
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **警報配信**: cosign 未署名 image が production に混入した場合、警報配信 Pod が差し替えられ、アラート経路が改竄されるリスクがある。Kyverno による物理遮断が最前線の防護となる。
+- **FA 生産指示・設備操作**: Harbor mirror 停止中は設備制御コンポーネントの image pull が停止し、設備操作システムのデプロイ・更新が全停止する可能性がある。
+
 ## 関連適合仕様 / 関連 OSS
 
 **関連適合仕様**:
@@ -109,6 +126,17 @@ Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれか�
 - **Harbor mirror 復旧不能（長時間）**: SLA 内に復旧できない場合は DR 計画を発動し、backup registry への切替を ops 軸と連携して実施する。escalate 先: ops 担当者へ Mattermost `#tier1-incident` で報告（SLA: 障害検出後 2 時間以内に DR 計画発動）。Backstage runbook `harbor-dr-activation` を参照。
 - **cosign 鍵漏洩疑い / 確定**: 全署名済み image の信頼性が失われる。鍵ローテーション後に全 image を re-sign するまで production 展開を全停止する。security 軸が incident commander として対応を統括する。escalate 先: security 担当者へ Mattermost `#security-incident` で即時通報（SLA: 検出後 30 分以内）。Backstage runbook `supply-chain-key-rotation` を起動。postmortem は 5 営業日以内に提出。
 - **AGPL/SSPL 混入の推移的依存（自動削除困難）**: 依存グラフを解析し直接依存を削除することで推移的依存を排除する。削除できない場合は当該機能の提供を一時停止する。escalate 先: tier1 担当者 dual reviewer + security 担当者（SLA: 検出後 4 時間以内に削除または機能停止）。
+
+## Timeline
+
+| T+ | actor | action | Mattermost 投稿例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | アラート検知・障害種別宣言 | `@security-oncall cosign 検証 fail 検出 / 対象: harbor.internal/k1s0/api-gateway:v1.2.3 / Kyverno 遮断中` |
+| 5 分 | tier1 担当者 | 疑わしい image を production cluster から drain 開始 | `既存 Pod drain 実施中 / 新規展開は Kyverno により阻止済み` |
+| 15 分 | security 担当者 | SBOM 照合・影響範囲調査開始 | `SBOM 照合中 / 影響 image 候補: 3 件 / 鍵 revoke 確認待ち` |
+| 30 分 | tier1 担当者 | 署名鍵の状態確認・re-sign または鍵ローテーション判断 | `鍵 revoke なし確認 / 対象 image を re-sign 実施中 / Harbor push 完了後 Kyverno 確認予定` |
+| 60 分 | tier1 担当者 | 全 image re-sign 完了・Harbor mirror 正常確認 | `re-sign 完了 / Kyverno admission green / production 展開再開可` |
+| 1 営業日 | tier1 担当者 | postmortem 着手 | `#postmortem supply_chain_incident postmortem PR 作成済 / 根本原因: CI pipeline の cosign step skipped 条件の誤設定` |
 
 ## 関連参照
 

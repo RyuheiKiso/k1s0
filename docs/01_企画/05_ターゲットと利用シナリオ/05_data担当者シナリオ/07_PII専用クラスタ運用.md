@@ -18,6 +18,8 @@ covered_by:
 
 新規 PII 種別を [5 PII class](../../../04_詳細設計/03_クロスカッティング適合仕様/08_PII_dedicated_cluster.md) に分類し、物理隔離クラスタへの配置・RLS FORCE・envelope 暗号化・audit hash chain 記録・restore_drill を完結させたうえで security 担当者レビューを含む dual reviewer sign-off まで到達する。
 
+> 午前 10 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で security 担当者からの「生体認証データ（指紋スキャン）保存要件の追加依頼」メッセージを確認する。手元には `pii_cluster.lock.yaml` と CloudNativePG dashboard、Mattermost 越しに security 担当者・tier2 担当者・tier3 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 新規 PII 種別の追加（5 PII class への分類）、または PII 専用クラスタの設定変更が必要になった時。
@@ -33,6 +35,14 @@ covered_by:
 - 関与: tier2 担当者（RLS 設定確認 / 13 層強制機構 lint 確認）
 - 関与: tier3 担当者（localStorage / sessionStorage / IndexedDB への平文保管禁止の確認）
 - 関与: dual reviewer（sign-off。security 担当者レビューが必須条件）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | `pii_cluster.lock.yaml` / CloudNativePG dashboard | PII class 分類・RLS FORCE 適用・envelope 暗号化設定・restore_drill 実施 |
+| 関与（security）| シニア | 本社 / リモート | OpenBao 管理画面 / Mattermost `#security-ops` | PII class 分類協議・DEK KeySpace 設計・レビュー必須 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | RLS 設定確認・13 層強制機構 lint 確認 |
+| 関与（tier3）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | localStorage / sessionStorage / IndexedDB 平文保管禁止確認 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off（security 担当者レビュー必須条件） |
 
 ## 前提
 
@@ -52,6 +62,13 @@ covered_by:
 6. 監査確認: PII アクセス全件が audit hash chain に記録されていることを確認する
 7. PII cluster の restore_drill を staging で実施する（preservation_class は `v1_cross_region_replicated` 以上が必須）
 8. security 担当者レビューを必須条件として dual reviewer sign-off を得る。`pii_cluster.lock.yaml` を更新する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **品質検査**: 検査員の個人情報（指紋スキャン・顔認証）が biometric PII class として物理隔離クラスタに格納され、RLS FORCE による cross-tenant アクセス防止が GMP 準拠の証跡となる。
+- **受注管理**: 担当者の個人情報（氏名・連絡先）が individual PII class として管理され、受注処理での PII アクセスが audit hash chain に全件記録される。
 
 ## 関連適合仕様 / 関連 OSS
 

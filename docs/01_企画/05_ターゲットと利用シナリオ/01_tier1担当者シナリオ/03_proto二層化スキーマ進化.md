@@ -18,6 +18,8 @@ covered_by:
 
 External / Internal 2 層 proto 構成を維持しつつ、[Apicurio Schema Registry](../../../03_概要設計/02_tier1設計方針/04_提供機能カテゴリ.md) の compatibility check と 4 言語コード生成の全 green を merge 条件として、backward / forward 互換を tier1 facade 内部で完結させる。
 
+> 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が buf CI ダッシュボードを確認し、tier2 から来た「受注 Domain Event への配送先住所フィールド追加」要求の PR が上がっていることに気付く。手元には Apicurio Schema Registry UI と buf CI、Mattermost 越しに dual reviewer と tier2 担当者がいる。
+
 ## Trigger（発火条件）
 
 業務 API 変更で External Proto か Internal Proto の backward / forward 互換を確保する必要が生じた時。
@@ -31,6 +33,13 @@ External / Internal 2 層 proto 構成を維持しつつ、[Apicurio Schema Regi
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ tier2 担当者（下流影響の確認のみ）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | buf CI / Apicurio UI | External/Internal proto 変更・互換方針決定・lock ファイル更新・PR 提出 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | proto 差分レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | proto 差分レビュー・sign-off |
+| 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | 下流影響の確認・フィールド追加要求の提起 |
 
 ## 前提
 
@@ -62,6 +71,13 @@ External / Internal 2 層 proto 構成を維持しつつ、[Apicurio Schema Regi
 5. **4 言語コード生成の検証**: Buf の `buf generate` を 4 言語（Rust / C# / Go / TypeScript）に対して実行し、全て成功することを確認する。生成コードの型エラーも含めてコンパイルが通ることを検証する。
 
 6. **dual reviewer sign-off と lock ファイル更新**: 互換 CI green を確認後、dual reviewer（tier1 2 名）が sign-off する。`apicurio_gitops_sot.lock.yaml` に採用スキーマバージョンを記録する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: 受注 Domain Event への新フィールド追加・型変更は受注業務の契約情報伝達に直結し、非互換変更が発生すると受注処理が停止するリスクがある。
+- **SCADA テレメトリ**: 検査結果スキーマの数値精度型変更は SCADA から収集する計測値の精度に影響し、品質基準の逸脱検出に誤差が生じる可能性がある。
 
 ## 関連適合仕様 / 関連 OSS
 

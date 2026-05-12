@@ -18,6 +18,8 @@ covered_by:
 
 data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 / DEK 生成 / preservation_class 割当 / 初回 restore_drill を実施し、テナントのデータ物理隔離と保全が開始前から保証された状態を確立する。
 
+> 朝 10 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で tier2 担当者からの「`mfg-yamada-kk` テナント onboarding 開始依頼」メッセージを確認する。手元には CloudNativePG dashboard と OpenBao 管理画面、`tenant_onboarding.lock.yaml`、Mattermost 越しに infra 担当者・tier2 担当者・security 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 新規テナント契約完了後、tier2 担当者から「テナント onboarding を開始してほしい」と連絡が来た時。
@@ -33,6 +35,14 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 - 関与: tier2 担当者（tenant_id の tier2 への登録）
 - 関与: security 担当者（KEK 確認）
 - 承認: dual reviewer（data 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | CloudNativePG dashboard / Mattermost `#data-ops` | preservation_class 決定・RLS 設定・DEK 生成・restore_drill 実施 |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | Kubernetes namespace / network policy 設定 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | tenant_id の tier2 登録・cross-tenant leak test 実行 |
+| 関与（security）| シニア | 本社 / リモート | OpenBao 管理画面 | KEK 確認 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
 
 ## 前提
 
@@ -56,6 +66,13 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 6. cross-tenant data leak test を Testcontainers で実施する（`mfg-yamada-kk` のデータが他テナントから見えないことを確認）
 7. `tenant_onboarding.lock.yaml` に onboarding 完了記録を追加し、dual reviewer sign-off を取得する
 8. tier2 担当者に onboarding 完了を通知し、業務マスタ CSV bulk import シナリオへ連携する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理（新テナント）**: onboarding 完了後に新テナントが最初に開始する業務が受注処理であるケースが多く、RLS FORCE と DEK 設定が正しくなければ受注データの物理隔離が機能しない。
+- **品質検査（新テナント）**: 規制対象（医薬品 GMP / 食品 HACCP）テナントでは onboarding 時に `v1_cross_region_replicated` 以上の preservation_class と 7 年監査証跡保持が必要であり、初回 restore_drill が特に重要となる。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -87,4 +104,4 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 - [preservation_class 変更](./02_preservation_class変更.md) — onboarding 後にテナントの SLA が変更された場合のシナリオ
 - [restore drill](./03_restore_drill.md) — 初回 restore_drill の詳細手順
 - [PII 専用クラスタ運用](./07_PII専用クラスタ運用.md) — PII 対象データを含むテナントの追加設定シナリオ
-- [業務マスタ CSV 一括 import（tier2-09）](../../02_tier2担当者シナリオ/09_業務マスタCSV一括import.md) — 本シナリオ完了後に tier2 担当者が実施する次の工程
+- [業務マスタ CSV 一括 import（tier2-09）](../02_tier2担当者シナリオ/09_業務マスタCSV一括import.md) — 本シナリオ完了後に tier2 担当者が実施する次の工程

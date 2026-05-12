@@ -18,6 +18,8 @@ covered_by:
 
 CloudNativePG / Kafka / Valkey の replication lag アラートまたは split-brain 疑いを症状別に分類し、data 整合性確認と恒久対処 PR まで完結させる。
 
+> 深夜 2 時、自宅 on-call 中の data 担当者（シニア級）が PagerDuty のアラートで起床し、Perses の replication lag ダッシュボードで CloudNativePG secondary の lag が 30 秒超過していることに気付く。手元にはノート PC の Perses 画面と `kubectl` 端末、Mattermost 越しに infra 担当者と tier2 担当者がいる。
+
 ## Trigger（発火条件）
 
 CloudNativePG / Kafka / Valkey の replication lag SLI アラートが発火した時、またはネットワーク分断で split-brain の疑いが生じた時。
@@ -32,6 +34,13 @@ CloudNativePG / Kafka / Valkey の replication lag SLI アラートが発火し�
 - 関与: infra 担当者（network 分断・CRUSH map・IaC 修正）
 - 関与: tier2 担当者（Outbox relay の二重送信確認 / integration test 実行）
 - 関与: dual reviewer（恒久対処 PR の sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 自宅 on-call | Perses（replication lag）/ PagerDuty | 症状分類・lag 原因特定・split-brain 解消・恒久対処 PR 作成 |
+| 関与（infra）| シニア | 自宅 on-call / 本社 IT 室 | Argo CD / Kyverno | network 分断・CRUSH map 修正・IaC 修正支援 |
+| 関与（tier2）| ミドル〜シニア | リモート | Backstage TechDocs | Outbox relay 二重送信確認・integration test 実行 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 恒久対処 PR の sign-off |
 
 ## 前提
 
@@ -49,6 +58,13 @@ CloudNativePG / Kafka / Valkey の replication lag SLI アラートが発火し�
 5. 復旧後、data 整合性を tier2 integration test で確認する。特に Outbox relay が二重送信していないかを確認する
 6. 根本原因を特定し、IaC / network 設定 / CRUSH map を修正した恒久対処 PR を作成する
 7. 可用性 SLO 違反が発生した場合は **postmortem 期限: 2 営業日以内**（Backstage runbook `data-postmortem-template`）。dual reviewer sign-off を得る
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: replication lag 中は受注データの secondary read が stale となり write conflict リスクが最多の業務。lag 解消が最優先される。
+- **ライン稼働監視**: replication lag が継続すると監視系の集計クエリが旧データを参照し、異常検知が遅延する。lag 解消の RTO が製造ライン安全管理に直結する。
 
 ## 関連適合仕様 / 関連 OSS
 

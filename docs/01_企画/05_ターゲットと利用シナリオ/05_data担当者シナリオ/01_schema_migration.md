@@ -18,6 +18,8 @@ covered_by:
 
 tier2 の Domain Event schema / DB schema 変更を forward-only の [expand-contract pattern](../../../03_概要設計/06_data設計方針/08_マイグレーション方針.md) で安全に適用し、Apicurio Registry との整合を保ったまま dual reviewer sign-off まで完結させる。
 
+> 朝 9 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で tier2 担当者からの schema 変更依頼メッセージに気付く。手元には `schema_migration.lock.yaml` と sqlx-cli の画面、Mattermost 越しに tier2 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が必要になった時。
@@ -31,6 +33,12 @@ tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が
 - 主役: data 担当者（シニア級）
 - 関与: tier2 担当者（schema 変更要件の提示と dual-write / dual-read 実装）
 - 関与: dual reviewer（sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | Perses / Mattermost `#data-ops` | schema 変更要件確認・expand-contract 各フェーズ主導・lock.yaml 更新 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs / Argo CD | dual-write / dual-read 実装・backfill 確認 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
 ## 前提
 
@@ -51,6 +59,13 @@ tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が
 7. **cleanup phase**: 旧 column を DROP する。forward-only のため rollback はなく、事前の expand フェーズで対処済みとする
 8. Apicurio Registry の schema を同期更新し、compatibility check が green であることを確認する
 9. dual reviewer sign-off を得たうえで `schema_migration.lock.yaml` を更新する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: 受注 table への `customer_segment` フィールド追加のように、受注ドメインの schema 変更が最多。dual-write / dual-read 期間中の write 整合が受注処理の信頼性に直結する。
+- **品質検査**: 検査記録 table の schema 変更は GMP 監査要件と連動するため、expand-contract の全フェーズが GMP 準拠の証跡として lock.yaml に記録される必要がある。
 
 ## 関連適合仕様 / 関連 OSS
 

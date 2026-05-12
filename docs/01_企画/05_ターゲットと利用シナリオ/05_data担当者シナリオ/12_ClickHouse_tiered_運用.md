@@ -18,6 +18,8 @@ covered_by:
 
 data 担当者が ClickHouse Operator 管理下の ClickHouse クラスタで tiered storage の hot/warm policy 変更・MergeTree の TTL / storage policy 設定変更・圧縮戦略（zstd / lz4）調整を実施し、クエリ性能と容量コストのバランスを維持する。
 
+> 朝 9 時、本社 IT 室の data 担当者（シニア級）が Perses の `clickhouse-hot-tier-usage` ダッシュボードを開き、hot tier が 82% に達している容量アラートに気付く。手元には ClickHouse Operator の DDL ファイルと `clickhouse_storage.lock.yaml`、Mattermost 越しに ops 担当者・tier2 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または analytics クエリ性能の劣化が観測された時、または新規データソース（tier2 Projector 追加）に対応する storage policy の追加が必要になった時。
@@ -32,6 +34,13 @@ ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または
 - 関与: ops 担当者（ClickHouse クエリ性能・容量のアラート確認）
 - 関与: tier2 担当者（Read model / Projector の追加に伴う schema 要件の確認）
 - 承認: dual reviewer（data 担当者 2 名、PR author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | Perses（`clickhouse-hot-tier-usage`）/ `clickhouse_storage.lock.yaml` | TTL / storage policy / codec 変更 DDL 作成・GitOps apply・lock.yaml 更新 |
+| 関与（ops）| ミドル〜シニア | 本社 / リモート | Perses（ClickHouse 容量・クエリ性能）/ Mattermost `#ops` | アラート確認・容量監視 |
+| 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | Read model / Projector 追加に伴う schema 要件確認 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
 
 ## 前提
 
@@ -60,6 +69,13 @@ ClickHouse の hot tier 容量が閾値（例: 80%）を超えた時、または
    - hot tier 使用率が閾値以下に回帰していることを Perses で確認（24h 観察）
    - 主要 analytics クエリ（`#clickhouse-perf-regression` CI job）のレスポンスタイムが SLO 内であることを確認する
 7. `clickhouse_storage.lock.yaml` を更新（変更テーブル名 / policy / TTL / codec）し、dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **ライン稼働監視（analytics）**: ClickHouse の hot tier 容量逼迫がアラートの集計クエリに直結し、TTL policy 変更による warm 移動が監視ダッシュボードの SLO 維持に必要となる。
+- **SCADA 連携（集計）**: SCADA テレメトリの長期蓄積データが hot tier を圧迫するケースが最多であり、tiered storage の最適化が SCADA 集計クエリの性能維持に直接寄与する。
 
 ## 関連適合仕様 / 関連 OSS
 

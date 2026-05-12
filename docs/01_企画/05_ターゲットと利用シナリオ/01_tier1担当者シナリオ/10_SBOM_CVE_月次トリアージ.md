@@ -20,6 +20,8 @@ covered_by:
 
 tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、L1+ / L2* / L3 各 OSS の緊急 bump 判定と対応優先度を確定する。
 
+> 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が security alert dashboard を確認し、月次の SBOM review cadence が到来しており、OpenSSL の CVSS 9.8 CVE が未対応のまま残っていることに気付く。手元には `sbom_catalog.lock.yaml` と Grype スキャン結果、Mattermost 越しに security 担当者と dual reviewer 2 名がいる。
+
 ## Trigger（発火条件）
 
 月次の SBOM review cadence 到来、または CERT / NVD / OSV.dev から重大 CVE が公開された時。
@@ -34,6 +36,13 @@ tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、
 - 主役: tier1 担当者（シニア級）
 - 関与: security 担当者（CVE 評価の dual review）
 - 承認: dual reviewer（tier1 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | security alert dashboard | SBOM diff 取得・CVE 分類・bump PR 作成・lock.yaml 記録 |
+| 関与（security 担当者）| 中堅 | 本社 IT 室 | security alert dashboard | CVE 評価 dual review・影響範囲確認 |
+| 承認（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | lock.yaml レビュー・sign-off |
+| 承認（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | lock.yaml レビュー・sign-off |
 
 ## 前提
 
@@ -58,6 +67,13 @@ tier1 担当者が月次 SBOM レビューと CVE トリアージを実施し、
 6. トリアージ結果を `sbom_triage.lock.yaml` に記録する（CVE ID / CVSS / 対応方針 / 期限 / 担当者）
 7. security 担当者の dual review + sign-off を取得してから lock.yaml を merge
 8. CVSS 9.0 以上で対応が 24h 以内に完了しない場合は Backstage ticket を起票して進捗を追跡する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **警報配信**: 暗号化 / 認証ライブラリ（OpenSSL 等）の未対応 CVE は警報配信チャンネルの完全性を損ない、改竄や傍受のリスクを招く。緊急 bump 対応が警報配信の信頼性を直接支える。
+- **FA 生産指示・設備操作**: 設備制御 API に利用される依存ライブラリの脆弱性は、工場の制御系への不正操作経路になりうるため、最優先 CVE 対応が安全稼働の前提条件となる。
 
 ## 関連適合仕様 / 関連 OSS
 

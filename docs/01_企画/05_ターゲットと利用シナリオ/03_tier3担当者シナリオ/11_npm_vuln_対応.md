@@ -18,6 +18,8 @@ covered_by:
 
 tier3 担当者が npm audit / GitHub Dependabot が検出した脆弱性を評価し、依存 library を安全に upgrade して 13 層強制機構の supply chain 要件を維持する。
 
+> 午前 9 時、本社 IT 室の tier3 担当者（ジュニア級）が Mattermost `#tier3-dev` で「GitHub Dependabot: vite に CVSS 8.7 の CVE が公開」という通知に気付き、リリース前日の緊張感の中で影響範囲確認を開始する。手元には npm audit レポートと Harbor internal registry のコンソール、Mattermost 越しに tier1 担当者（Harbor mirror 更新）と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以上の脆弱性が検出された時 / 週次の依存チェック cadence 到来時
@@ -31,6 +33,12 @@ GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以
 - **主役**: tier3 担当者（ジュニア級）
 - **関与**: tier1 担当者（Harbor mirror 更新が必要な場合）
 - **承認**: dual reviewer（tier3 担当者 1 名 + tier2 担当者 1 名）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier3）| ジュニア | 本社 IT 室 / リモート | Mattermost `#tier3-dev` / GitHub PR | CVSS 評価 / Harbor mirror 確認 / npm update / E2E 再実行 / PR 提出 |
+| 関与（tier1）| シニア | 本社 IT 室 | Backstage Catalog | Harbor mirror に upgrade 対象バージョンを追加 / supply chain 確認 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | 全 E2E + smoke + a11y green / Web Vitals 劣化なし / sign-off |
 
 ## 前提
 
@@ -55,6 +63,12 @@ GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以
 6. Web Vitals（LCP ≤ 2.5s / INP ≤ 200ms / CLS ≤ 0.1）が劣化していないことを確認する
 7. CI での green を確認し PR を作成する
 8. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: SPA（vite ビルド）の脆弱性が生産指示画面の XSS リスクに直結するため、supply chain の安全性が FA 操作の信頼性を担う
+- **受注**: 受注 SPA の依存 library の脆弱性を放置すると受注データの改ざんリスクが生じるため、npm vuln 対応が受注業務の安全性を底支えする
+- **ライン稼働監視・進捗実績**: 監視画面を提供する SPA の supply chain 整合性が、リアルタイム表示の信頼性の前提となる
 
 ## 関連適合仕様 / 関連 OSS
 

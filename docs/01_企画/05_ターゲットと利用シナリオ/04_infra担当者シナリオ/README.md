@@ -16,7 +16,7 @@ covered_by:
 
 ## 一文方針
 
-infra 担当者（シニア級）が日常的に踏む 10 シナリオを 1 ファイル 1 シナリオで列挙する。cluster 構築 / 5 topology_class / 5 clock_integrity_class / 25+ Kyverno admission policy の維持と、全 19 軸の defense-in-depth 層 E（13 cross-cutting 適合仕様を含む）（物理 enforcement）の最終 safety net 提供が主責務。
+infra 担当者（シニア級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。cluster 構築 / 5 topology_class / 5 clock_integrity_class / 25+ Kyverno admission policy の維持と、全 19 軸の defense-in-depth 層 E（13 cross-cutting 適合仕様を含む）（物理 enforcement）の最終 safety net 提供が主責務。
 
 ## 担当者プロフィール
 
@@ -64,6 +64,10 @@ cluster 変更を制御する Kubernetes admission webhook 群。cosign 署名�
 | 08 | [secret rotation](08_secret_rotation.md) | KEK shamir 鍵の定期ローテーション / cosign 署名鍵のローテーション / OpenBao シークレット TTL 切れ / 漏洩疑い | 定期 + イベント駆動 | 鍵管理適合仕様 / KEK_shamir | [周期]+[緊急] |
 | 09 | [node_lifecycle](09_node_lifecycle.md) | node pool 容量上限到達または node 故障時 | 月次〜四半期 + イベント駆動 | クラスタ位相適合仕様 | [計画]+[緊急] |
 | 10 | [platform_upgrade](10_platform_upgrade.md) | 運用基盤 OSS の minor/major release 公開または CVE 対応時 | 四半期〜年次 | クラスタ位相適合仕様 | [計画]+[緊急] |
+| 11 | [storage 拡張 Longhorn / Ceph](11_storage拡張_Longhorn_Ceph.md) | PVC 容量逼迫アラートまたは storage class 変更が必要になった時 | 月次〜四半期 | クラスタ位相適合仕様 | [計画]+[緊急] |
+| 12 | [KEDA / ClusterAutoscaler 調整](12_KEDA_ClusterAutoscaler調整.md) | ワークロードのスケーリング挙動が SLO を満たさなくなった時 | 月次〜四半期 | クラスタ位相適合仕様 | [計画] |
+| 13 | [OpenTofu cluster replay 訓練](13_OpenTofu_cluster_replay訓練.md) | 年次 replay 訓練の cadence 到来時 | 年次 | クラスタ位相適合仕様 | [周期] |
+| 14 | [canary / progressive delivery 観察と切戻し](14_canary_progressive_観察切戻し.md) | Argo Rollouts の AnalysisRun fail または SLI 劣化検出時 | デプロイ頻度に比例（月次〜四半期に切戻し）| クラスタ位相適合仕様 | [計画]+[緊急] |
 
 ## 新規参画者向けオンボーディング
 

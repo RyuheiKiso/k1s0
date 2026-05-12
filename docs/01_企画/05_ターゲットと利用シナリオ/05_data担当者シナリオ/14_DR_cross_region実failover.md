@@ -18,6 +18,8 @@ covered_by:
 
 region 喪失インシデント発生時に、drill（シナリオ 03）とは異なる非計画的 DR failover を data 担当者が主導して実行し、`v1_cross_region_replicated` の restore_window（5 分）以内に secondary region でのサービス再開と RTO 計測・audit 記録を完結させる。
 
+> 深夜 1 時、自宅 on-call 中の data 担当者（シニア級）が PagerDuty のアラートで起床し、Mattermost `#dr-failover` で ops 担当者の DR 宣言メッセージを確認する。CloudNativePG primary cluster が 5 分以上到達不能になっていることを Perses の `cnpg-primary-role` パネルで確認する。手元にはノート PC の `kubectl` 端末と Perses、Mattermost 越しに ops 担当者・infra 担当者・tier2 担当者・security 担当者がいる。
+
 ## Trigger（発火条件）
 
 primary region の可用性が失われ、ops 担当者からの DR failover 宣言が発令された時（CloudNativePG の primary cluster が 5 分以上到達不能 / Kafka primary broker が quorum 喪失 / Istio の region ヘルスチェックが primary 全インスタンスで fail）。
@@ -34,6 +36,14 @@ primary region の可用性が失われ、ops 担当者からの DR failover 宣
 - 関与: tier2 担当者（failover 後の business tier サービス再起動確認）
 - 関与: security 担当者（failover 後の OpenBao availability 確認）
 - 承認: ops 担当者（RTO 計測の sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 自宅 on-call | Perses（`cnpg-primary-role`）/ PagerDuty / Mattermost `#dr-failover` | PostgreSQL / Kafka failover 主導・RTO 計測・audit 記録・restore_drill.lock.yaml 更新 |
+| 関与（ops）| シニア | 自宅 on-call / 本社 | Mattermost `#dr-failover` | DR 宣言発令・incident channel 管理・RTO sign-off |
+| 関与（infra）| シニア | 自宅 on-call / 本社 IT 室 | Argo CD / Istio / Kyverno | Kubernetes / Istio / DNS の traffic rerouting |
+| 関与（tier2）| ミドル〜シニア | リモート | Backstage TechDocs | failover 後のサービス再起動確認 |
+| 関与（security）| シニア | リモート | OpenBao 管理画面 | failover 後の OpenBao availability 確認 |
 
 ## 前提
 
@@ -80,6 +90,13 @@ primary region の可用性が失われ、ops 担当者からの DR failover 宣
     - failback は DR failover の逆操作だが慎重に実施する（secondary で発生した write が primary と diverge していないことを確認）
     - failback は別の PR / sign-off プロセスで管理する
 
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **警報配信**: RTO 5 分以内の failover 完了が製造ライン安全管理の警報配信継続に直結し、primary region 喪失時でも secondary region での警報 emit が途切れないことが最重要要件となる。
+- **FA（ファクトリーオートメーション）**: FA 制御データの write 経路が failover によって secondary に切り替わる際、WAL replay 完了確認と PostgreSQL promotion の RTO が FA の稼働継続に直接影響する。
+
 ## 関連適合仕様 / 関連 OSS
 
 - データ保全適合仕様: [../../../04_詳細設計/01_適合仕様/14_データ保全適合仕様.md](../../../04_詳細設計/01_適合仕様/14_データ保全適合仕様.md)
@@ -103,10 +120,21 @@ primary region の可用性が失われ、ops 担当者からの DR failover 宣
 - **audit hash chain への emit 失敗**: security / ops 担当者に即時 escalate（**SLA: 1h 以内**）。Backstage runbook `audit-chain-integrity-check` を参照。failover 完了の宣言はaudit emit が保証されるまで保留する。
 - **failback 判断での data diverge 検出**: infra 担当者 + data 担当者 + tier2 担当者でアーキテクト / tier1 担当者に設計レビューを escalate（**SLA: 48h 以内**）。Mattermost `#dr-arch-review` で相談する。
 
+## Timeline
+
+| T+ | actor | action | Mattermost 投稿例 |
+|---|---|---|---|
+| 0 | data 担当者 | PagerDuty で起床。Mattermost `#dr-failover` で DR 宣言を確認し `recovery_start_time` を記録 | `@data-oncall DR 宣言受領 / 対象: primary cluster 全停 / T+0 01:03` |
+| 2 分 | data 担当者 | secondary region の CloudNativePG replica cluster を `kubectl cnpg promote` で昇格。WAL replay 完了を確認 | `cnpg promote 完了 / pg_last_wal_receive_lsn = pg_last_wal_replay_lsn 確認済` |
+| 3 分 | data 担当者 | Strimzi Kafka の MirrorMaker 2 を active-passive 切替。consumer_group_offsets sync を確認 | `Kafka failover 完了 / MirrorMaker2 active: secondary / offset sync 確認済` |
+| 4 分 | infra 担当者 | Istio VirtualService を GitOps で更新し traffic を secondary region へ rerouting。DNS 切替完了を確認 | `pod 状態確認完了 / VirtualService apply 済 / DNS secondary 切替確認` |
+| 5 分 | data 担当者 | `recovery_complete_time` を記録し RTO を算出。audit hash chain への failover 操作 emit を確認 | `RTO = X 分 / v1_cross_region_replicated restore_window 以内 / audit emit 確認済` |
+| 1 営業日 | data 担当者 | postmortem 着手（DR 宣言から failover 完了までの timeline を詳細記録） | `#postmortem postmortem PR 作成済 / Backstage TechDocs 公開予定: 3 営業日以内` |
+
 ## 関連参照
 
 - [data 担当者シナリオ index](./README.md) — data 担当者シナリオ全体の構成と 5 preservation_class 一覧
 - [restore drill](./03_restore_drill.md) — 定期実施の DR drill シナリオ（本シナリオの訓練版）
 - [replication lag / split-brain 対応](./06_replication_lag_split_brain対応.md) — failover 前の replication 状態確認と split-brain 検出手順
-- [cluster topology drill（infra-02）](../04_infra担当者シナリオ/02_topology_drill.md) — infra 側からの DR topology 検証（data failover と組み合わせる）
+- [cluster topology drill（infra-02）](../04_infra担当者シナリオ/02_topology_drill_failover.md) — infra 側からの DR topology 検証（data failover と組み合わせる）
 - [データ保全適合仕様](../../../04_詳細設計/01_適合仕様/14_データ保全適合仕様.md) — `v1_cross_region_replicated` の restore_window と drill_cadence の正典定義

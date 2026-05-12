@@ -19,6 +19,8 @@ covered_by:
 
 tier2 担当者が CQRS の Read model projector を新規追加し、Domain Event → ClickHouse / read-replica / cache への投影を設定することで、tier3 の検索 / 集計 / 一覧画面のデータ要件を充足する。
 
+> 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#tier2-ops` で tier3 担当者からの「在庫一覧 cursor pagination 対応の read model 欲しい」という要求に気付き、GitHub PR と ClickHouse スキーマ設計を開始する。手元には Apicurio Registry UI・Testcontainers、Mattermost 越しに data 担当者と tier3 担当者がいる。
+
 ## Trigger（発火条件）
 
 tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）に必要な read model がない」または「集計値（在庫総数 / 発注金額合計 等）を表示するための専用 API が必要」という要求が来た時
@@ -33,6 +35,13 @@ tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）�
 - 主役: tier2 担当者（中堅級）
 - 関与: data 担当者（ClickHouse スキーマ設計）/ tier3 担当者（read model の要件定義）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Mattermost `#tier2-ops` / GitHub PR | projector 実装 / Read model API 追加 / Testcontainers integration test |
+| 関与（data）| シニア | 本社 / リモート | GitHub PR | ClickHouse スキーマ設計 / index・projection 最適化協議 |
+| 関与（tier3）| 中堅 | 本社 / リモート | GitHub PR / Mattermost `#tier2-ops` | read model 要件定義 / Pact contract test 作成 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -52,6 +61,12 @@ tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）�
 6. Testcontainers で integration test を実施する（投影の正確性 + テナント分離 + cursor pagination の動作）
 7. tier3 担当者に API を共有し、contract test を作成してもらう（tier3 側から tier2 の read model API を Pact でテスト）
 8. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+- **在庫**: 在庫一覧 read model（品目コード / 拠点 / 状態の 3 軸フィルタ + cursor pagination）が ClickHouse に投影され、在庫一覧画面の応答時間が 1 秒以内に収まる。
+- **受注**: 月次受注集計 projector が Temporal WorkflowResult から ClickHouse 集計テーブルに投影され、月次レポート画面のデータが自動更新される。
+- **ライン稼働監視**: ライン稼働状態の read model が Domain Event から ClickHouse に継続投影され、監視画面がリアルタイムで更新される。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -74,5 +89,6 @@ tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）�
 
 - [tier2 担当者シナリオ index](./README.md) — tier2 担当者シナリオ全体の構成と dual reviewer 規約
 - [Domain Event / Workflow / 決定表追加](./04_Domain_Event_Workflow_決定表追加.md) — projector の投影元 Domain Event 追加シナリオ
-- [tier3 シナリオ: 検索一覧 UX](../../03_tier3担当者シナリオ/12_検索一覧UX実装.md) — 本シナリオで追加した read model を消費する tier3 側実装
+- [tier3 シナリオ: 検索一覧 UX](../03_tier3担当者シナリオ/12_検索一覧UX実装.md) — 本シナリオで追加した read model を消費する tier3 側実装
 - [tier2 設計方針 読み取りモデル](../../../03_概要設計/03_tier2設計方針/15_読み取りモデル方針.md) — CQRS / Read model projector の設計指針
+- [Kafka topic・partition 変更（data-11）](../05_data担当者シナリオ/11_Kafka_Strimzi_topic_partition変更.md) — Projector が消費する Kafka topic の追加・partition 変更は data 担当者が実施する

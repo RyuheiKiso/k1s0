@@ -18,6 +18,8 @@ covered_by:
 
 .NET Framework 4.8 ERP / レガシーシステムの Companion 追加要件を役割 A（Observability / 認証コンテキスト伝播）か役割 B（Transport Negotiation Runtime）に正確に分類し、レガシー環境テストで動作確認して Harbor mirror へ発行する。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「既存の .NET Framework 4.8 ERP が新しい観測 endpoint を要求した」という issue が上がっているのに気付く。手元には Harbor NuGet proxy ダッシュボードと Backstage Catalog、Mattermost 越しに dual reviewer 2 名と .NET Framework 環境保有の tier2 担当者がいる。
+
 ## Trigger（発火条件）
 
 .NET Framework 4.8 ERP / レガシーシステムの Companion 経由観測 / transport 要件が追加された時。
@@ -31,6 +33,13 @@ covered_by:
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ .NET Framework 環境保有の tier2 担当者（動作確認協力）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | 役割分類・実装・.NET FW 4.8 テスト・NuGet push・PR 提出 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 動作確認結果レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 動作確認結果レビュー・sign-off |
+| 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | .NET Framework 4.8 テスト環境での動作確認協力 |
 
 ## 前提
 
@@ -71,6 +80,13 @@ covered_by:
    - 旧バージョンは deprecation マークを付け一定期間後に削除する
 
 6. **dual reviewer sign-off**: 動作確認結果と NuGet パッケージ発行の完了を dual reviewer（tier1 2 名）が確認し sign-off する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **FA 生産指示・設備操作**: .NET Framework 4.8 ERP と連携する設備操作システムへの Companion 提供により、FA 生産指示フローの observability とトレーサビリティが向上する。
+- **図面 review**: レガシー ERP システム（.NET Framework 4.8）から tier1 facade を通じた図面データ連携が可能となり、図面 review フローの自動化・統合が進む。
 
 ## 関連適合仕様 / 関連 OSS
 

@@ -18,6 +18,8 @@ covered_by:
 
 新業界（例: サービス業 / 医療業）の正式 pack を stub から昇格させる際、4 抽象化レベルの分類・依存方向検証・atomic 三表書込・テナント識別子強制注入・8 層強制機構への組込みを一貫して通過させる。
 
+> 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Backstage Software Catalog で「medical-pack stub」の昇格タスクに気付く。手元には GitHub PR・`industry-neutrality-linter` レポート、Mattermost 越しに tier1 担当者がいる。
+
 ## Trigger（発火条件）
 
 新業界（例: サービス業 / 医療業）の正式 pack 追加要求が来た時（v1.0.0 は製造業のみだが v2 候補として stub から昇格させる場合）。
@@ -33,6 +35,12 @@ covered_by:
 - 主役: tier2 担当者（中堅級）
 - 関与: tier1 担当者（API 整合確認）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog / Argo Workflows | 業界 pack 昇格 / 4 抽象化レベル分類 / 8 層強制機構組込み |
+| 関与（tier1）| シニア | 本社 / リモート | GitHub PR | API 整合確認 / stub conformance レビュー |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -56,6 +64,13 @@ covered_by:
    - tier2 公開 API 表面 lint の新 pack 用 policy を宣言（`policies/tier2-pack-<name>.rego`）
    - 8 層が全件 green になることを CI で確認してから merge
 8. dual reviewer sign-off + Testcontainers green（新 pack 全 API）を確認してから merge する
+
+## 業界 9 業務との紐付け
+
+- **受注**: 新業界 pack の受注エンティティが業界横断層 API 経由で受注業務に統合され、製造業 pack との共存が確立される。
+- **SCADA テレメトリ**: 業界横断層の SCADA インタフェースが新 pack でも利用可能か stub conformance CI で確認する。
+- **FA 生産指示・設備操作**: 新 pack 固有の生産指示フローが業界横断 Workflow 基盤に正しく登録されることを確認する。
+- **在庫**: 新業界 pack の品目マスタ / 在庫アグリゲートが atomic 三表書込で整合する。
 
 ## 関連適合仕様 / 関連 OSS
 

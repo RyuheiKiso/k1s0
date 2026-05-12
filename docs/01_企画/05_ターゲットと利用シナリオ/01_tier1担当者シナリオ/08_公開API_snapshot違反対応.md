@@ -18,6 +18,8 @@ covered_by:
 
 CI の公開 API snapshot 差分検査 fail を起点に、意図的変更と regression を即時に判別し、regression はrevert・意図的変更は SemVer 方針決定と backward 互換確認を経て `public_api_snapshot.lock.yaml` を更新し dual reviewer sign-off を取得する。
 
+> 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、CI の公開 API snapshot 差分検査が fail している PR が上がっていることに気付く。手元には `public_api_snapshot.lock.yaml` と各言語の CI ログ、Mattermost 越しに dual reviewer 2 名と変更 PR 作成者（tier2 担当者）がいる。
+
 ## Trigger（発火条件）
 
 CI の公開 API snapshot 差分検査が fail した時（意図しない API 表面変更）。
@@ -31,6 +33,13 @@ CI の公開 API snapshot 差分検査が fail した時（意図しない API �
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ 変更 PR 作成者（tier2 担当者の場合あり）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | 差分 fail 分析・意図的/回帰判定・revert または snapshot 更新・PR 提出 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | SemVer 方針確認・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | SemVer 方針確認・sign-off |
+| 関与（PR 作成者 / tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | 変更意図の説明・revert 対応 |
 
 ## 前提
 
@@ -70,6 +79,13 @@ CI の公開 API snapshot 差分検査が fail した時（意図しない API �
    - minor bump の場合: 追加 API が既存コードに干渉しないことを確認
 
 6. **`public_api_snapshot.lock.yaml` 更新と dual reviewer sign-off**: 確定した API surface を `public_api_snapshot.lock.yaml` に反映し、dual reviewer（tier1 2 名）が sign-off する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: 公開 API の意図外変更（snapshot 違反）は受注処理に使用する tier1 Library API を破壊し、受注業務の継続稼働を即時に阻害する可能性がある。
+- **品質検査結果**: 品質検査結果の報告 API が snapshot 違反を起こした場合、検査データの書き込み・読み出しが不整合になり、品質判定の信頼性が失われる。
 
 ## 関連適合仕様 / 関連 OSS
 

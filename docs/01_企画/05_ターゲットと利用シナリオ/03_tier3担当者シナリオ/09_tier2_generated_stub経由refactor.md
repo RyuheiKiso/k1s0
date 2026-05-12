@@ -18,6 +18,8 @@ covered_by:
 
 13 層強制機構 lint が検出した禁止 import（tier1 Library / OSS 直接 / 業務管理 API / 独自型定義）を tier2 generated stub 経由に置き換えることで、tier3 の責務境界を回復する。
 
+> 朝 9 時、自宅リモートの tier3 担当者（ジュニア級）が Jest CI の結果で「13 層強制機構 lint fail: 禁止 import `kafka-node` を検出」というエラーに気付く。手元には tier2 generated stub の TypeScript 定義と lint レポート、Mattermost 越しに tier2 担当者（新 API 追加依頼の受け手）と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 既存 tier3 実装が tier1 Library または独自 type を直接 import していることが 13 層強制機構 lint で検出された時。
@@ -30,6 +32,12 @@ covered_by:
 
 - **主役**: tier3 担当者（ジュニア級）
 - **関与**: tier2 担当者（新 API 追加依頼の受け手）/ dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier3）| ジュニア | 本社 IT 室 / リモート | Jest CI / GitHub PR | lint 違反特定 / stub 経由に置換 / 独自型定義削除 / contract test / E2E 確認 |
+| 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | stub に等価 API がない場合の新 API 追加 / stub 最新化 / sign-off |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | lint 違反 0 件 / contract test pass / E2E 退行なし / sign-off |
 
 ## 前提
 
@@ -46,6 +54,12 @@ covered_by:
 5. contract test: 置換後も tier2 API との contract が成立することを確認
 6. 全 Playwright E2E test green を確認してから旧コードを削除
 7. dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: 禁止 import を排除して tier3 の責務境界を回復することで、FA 生産指示画面が tier2 の認可制御を正しく受けるようになり、設備操作の安全性が担保される
+- **受注**: stub 経由 refactor により受注 API の contract が明確化され、受注フロー全体の型安全性と契約的整合が確立される
+- **在庫**: 在庫照会 API の直接 import を stub 経由に置き換えることで、在庫データの読み取りが tier2 の認可スコープ内に収まる
 
 ## 関連適合仕様 / 関連 OSS
 

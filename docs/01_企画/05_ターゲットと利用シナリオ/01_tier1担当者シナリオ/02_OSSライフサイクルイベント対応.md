@@ -18,6 +18,8 @@ covered_by:
 
 L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了が発生した際に、tier2 / tier3 を無改修のまま tier1 facade で透過的に移行し、dual reviewer sign-off と Testcontainers conformance test green を移行完了の客観的証跡とする。
 
+> 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、HashiCorp Vault の BUSL ライセンス変更通知が issue として上がっていることに気付く。手元には `oss_lifecycle.lock.yaml` と Backstage Catalog、Mattermost 越しに ops 軸担当者と dual reviewer 2 名がいる。
+
 ## Trigger（発火条件）
 
 L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了（EOL）が発生した時。
@@ -31,6 +33,13 @@ L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了�
 
 - 主役: tier1 担当者（シニア級）
 - 関与: dual reviewer（tier1 担当者 2 名）/ ops 軸担当者（Harbor mirror 復旧連携時）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | イベント分類・移行 toolchain 起動・dual-write 実装・旧 OSS 廃止 |
+| 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 移行 PR レビュー・sign-off |
+| 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 移行 PR レビュー・sign-off |
+| 関与（ops 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | Harbor mirror 復旧・旧 OSS mirror 廃止管理 |
 
 ## 前提
 
@@ -60,6 +69,13 @@ L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了�
 6. **旧 OSS 経路の廃止と文書更新**: 旧 OSS の endpoint を tier1 facade から削除し `04_提供機能カテゴリ.md` の Lv 割付と露出概念 allowlist を更新する。dual-write feature flag を無効化する。
 
 7. **dual reviewer sign-off とリリースノート**: 移行完了を dual reviewer（tier1 2 名）が確認し sign-off する。内部向けリリースノートに移行経緯・移行 toolchain の実績・観測した異常を記録する。
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA テレメトリ**: シークレット管理・設定配信 OSS のライフサイクルイベントは SCADA テレメトリ収集経路の認証・暗号化に直接波及し、移行中断で設備データが欠落するリスクがある。
+- **警報配信**: 依存 OSS の廃止・fork 移行期間中の dual-write 不整合が、警報メッセージの到達保証に影響を与える可能性がある。
 
 ## 関連適合仕様 / 関連 OSS
 

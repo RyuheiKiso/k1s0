@@ -18,6 +18,8 @@ covered_by:
 
 テナント offboarding による [crypto-shred / crypto-erase](../../../03_概要設計/06_data設計方針/06_ライフサイクル方針.md) と cold data の archive_to_offline を lifecycle 単一経路に従って実施し、全操作が audit hash chain に記録されていることを保証して dual reviewer sign-off まで完結させる。
 
+> 午前 10 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で法務部門からの「A 工場テナント閉鎖に伴う全データの crypto-erase 依頼」メッセージに気付く。手元には `data_lifecycle.lock.yaml` と OpenBao 管理画面、Mattermost 越しに security 担当者・infra 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 テナント offboarding（完全データ削除要求）または long-term archive の offline 移行が必要になった時。
@@ -32,6 +34,13 @@ covered_by:
 - 関与: security 担当者（DEK revoke の承認と audit 確認）
 - 関与: infra 担当者（offline media への転送経路確保）
 - 関与: dual reviewer（sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | `data_lifecycle.lock.yaml` / Mattermost `#data-ops` | crypto-erase / archive 操作主導・lifecycle lock.yaml 記録 |
+| 関与（security）| シニア | 本社 / リモート | OpenBao 管理画面 / Mattermost `#security-ops` | DEK revoke 承認・audit 確認 |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | offline media への転送経路確保 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
 ## 前提
 
@@ -50,6 +59,13 @@ covered_by:
 5. lifecycle 完了の記録を `data_lifecycle.lock.yaml` に追記する
 6. 監査確認: 削除・転送操作が audit hash chain に emit されていることを確認する。audit が欠落した offboarding は禁止とする
 7. dual reviewer sign-off を得る
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: テナント閉鎖時に受注データの crypto-erase が確実に完了することで、顧客情報漏洩リスクを排除する。audit hash chain への記録が後日の法的証跡となる。
+- **品質検査**: GMP 規制対象テナントの閉鎖時には検査記録の crypto-erase と同時に監査証跡の保全が必要であり、compliance 要件との整合が最重要となる。
 
 ## 関連適合仕様 / 関連 OSS
 

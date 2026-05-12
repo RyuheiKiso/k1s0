@@ -18,6 +18,8 @@ covered_by:
 
 infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / OpenBao / Litmus 等）を upgrade し、single OSS deep-dive 方針と GitOps 宣言的真の原則を維持する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Argo CD UI で staging cluster の ApplicationSet を確認中に、「Argo CD v2.11 公開 / ApplicationSet generator 機能追加」の upstream release note が Mattermost `#infra-ops` に流れていることに気付く。手元には cluster_inventory.lock.yaml と Helm chart の values.yaml、Mattermost 越しに ops 担当者・tier1 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - 運用基盤 OSS の minor / major release が公開され、upgrade が必要になった時
@@ -34,6 +36,13 @@ infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / Open
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（upgrade 中の SLO 監視）/ tier1 担当者（tier1 Library との互換確認）
 - 承認: dual reviewer（infra 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Argo CD UI / cluster_inventory.lock.yaml | CHANGELOG 確認 / Harbor mirror 確認 / staging 先行 upgrade / Litmus chaos drill / 本番 progressive 適用 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard（platform-availability パネル）| upgrade 中 SLO 監視 / SLO 超過時 escalation |
+| 関与（tier1）| シニア | 本社 IT 室 / リモート | Harbor mirror / tier1 Library CI | tier1 Library との互換確認 / breaking change 解析支援 |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | staging 確認結果レビュー / cluster_inventory.lock.yaml sign-off |
 
 ## 前提
 
@@ -58,6 +67,13 @@ infra 担当者が運用基盤 OSS 自身（Argo CD / Backstage / Kyverno / Open
 6. 本番 cluster への upgrade: Argo CD progressive delivery（canary 10%→50%→100%）で段階適用
 7. 本番 upgrade 完了後に `cluster_inventory.lock.yaml` を更新し、dual reviewer sign-off を取得する
 8. upgrade 後 24h は Perses で SLO を監視する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: 受注業務は Argo CD / Kyverno に最も依存した業務 namespace を持つため、platform upgrade の staging 確認で受注 namespace の ApplicationSet sync と Kyverno policy 適用を最優先に green 確認する。
+- **SCADA**: Argo CD ApplicationSet generator の仕様変更が SCADA の multi-cluster 配信設定に影響するため、staging で SCADA の IoT データ収集 pipeline が正常動作することを確認してから本番 upgrade する。
 
 ## 関連適合仕様 / 関連 OSS
 

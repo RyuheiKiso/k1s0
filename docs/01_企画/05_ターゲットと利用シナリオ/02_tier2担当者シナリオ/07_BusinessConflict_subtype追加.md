@@ -18,6 +18,8 @@ covered_by:
 
 並行編集シナリオの新 conflict subtype を追加する際、subtype 定義・Apicurio 互換検査・tier3 向け subtype-UI binding contract 宣言・PII 非含有確認・aggregate 実装・両層の test green を順守してから merge する。
 
+> 朝 9 時、本社 IT 室の tier2 担当者（中堅級）が GitHub PR で `dual_field_lost_update` subtype 追加の要求チケットを確認する。手元には Apicurio Registry UI、Mattermost 越しに tier3 担当者がいる。
+
 ## Trigger（発火条件）
 
 並行編集シナリオの新しい conflict subtype（stale_write / lost_update / supersede / concurrent_edit 以外）を追加する必要が生じた時。
@@ -33,6 +35,12 @@ covered_by:
 - 主役: tier2 担当者（中堅級）
 - 関与: tier3 担当者（subtype-UI binding 実装・Playwright E2E test）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | GitHub PR / Apicurio Registry UI | subtype 定義 / conflict 検出ロジック実装 / PII 非含有確認 |
+| 関与（tier3）| 中堅 | 本社 / リモート | GitHub PR / Mattermost `#tier2-ops` | subtype-UI binding 実装 / Playwright E2E test |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -53,6 +61,12 @@ covered_by:
    - presence indicator で競合予防（concurrent_edit）→ user choice UI
 6. Playwright E2E test（tier3 側）と integration test（tier2 側）を両方 green にしてから merge する
 7. dual reviewer sign-off を得てから merge する
+
+## 業界 9 業務との紐付け
+
+- **受注**: 受注明細の数量・納期の同時編集（`dual_field_lost_update`）が最も頻発する業務であり、新 subtype 追加の直接的な動機となる。
+- **在庫**: 在庫数量の並行更新競合が silent toast または 3-way merge UI で適切に処理されることで、在庫データの整合性が保たれる。
+- **FA 生産指示・設備操作**: 生産指示の同時変更競合が presence indicator（concurrent_edit subtype）で予防される。
 
 ## 関連適合仕様 / 関連 OSS
 

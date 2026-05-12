@@ -18,6 +18,8 @@ covered_by:
 
 [Outbox relay](../../../03_概要設計/02_tier1設計方針/01_Server系.md)（tier1 Sidecar コンポーネント）の障害または [atomic 三表書込](../../../03_概要設計/03_tier2設計方針/13_状態遷移パターン.md)（state / outbox / audit を同一 DB トランザクションで書く）の integrity 違反を症状別に分類し、audit hash chain を証跡として補償トランザクションで整合を回復し、audit 欠落があれば compliance incident として即時 escalate する。
 
+> 深夜 3 時、自宅 on-call 中の data 担当者（シニア級）が Mattermost alert で「Kafka connectivity 断絶・Outbox table 滞留 500 件超」の通知を受け取る。手元にはノート PC の Perses ダッシュボードと `kubectl` 端末、Mattermost 越しに tier2 担当者と security / ops 担当者がいる。
+
 ## Trigger（発火条件）
 
 Outbox relay の障害、または atomic 三表書込（state / outbox / audit を同一 DB トランザクション）の integrity 違反が検出された時。
@@ -32,6 +34,13 @@ Outbox relay の障害、または atomic 三表書込（state / outbox / audit 
 - 関与: tier2 担当者（Outbox relay の Sidecar 実装確認 / 補償トランザクションの実装）
 - 関与: security / ops 担当者（audit 欠落時の compliance incident 対応）
 - 関与: dual reviewer（恒久対処 PR の sign-off）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 自宅 on-call | Perses / Mattermost `#data-ops` | 症状分類・Outbox relay 復旧・三表整合確認・恒久対処 PR 作成 |
+| 関与（tier2）| ミドル〜シニア | リモート | Backstage TechDocs | Outbox relay Sidecar 実装確認・補償トランザクション実装 |
+| 関与（security / ops）| シニア | リモート | Mattermost `#compliance-incident` | audit 欠落時の compliance incident 対応 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 恒久対処 PR の sign-off |
 
 ## 前提
 
@@ -49,6 +58,13 @@ Outbox relay の障害、または atomic 三表書込（state / outbox / audit 
 5. **Kafka 重複配送の場合**: Idempotency-Key で consumer 側が de-dup できていることを確認する。at-least-once 保証の範囲内であれば正常動作とみなす
 6. 根本原因を特定し、tier2 のコード / infra 設定の恒久修正 PR を作成する
 7. audit chain に欠落があった場合は compliance incident として扱い、**postmortem 期限: 2 営業日以内**（compliance incident の場合は 1 営業日以内）。dual reviewer sign-off を得る
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注管理**: 受注ドメインの Domain Event（注文確定・在庫引当）は Outbox 経由で配信されるため、Outbox 障害は受注処理全体の Event 配信停止を意味する。滞留解消が最優先となる。
+- **警報配信**: alert emit が Outbox 経由の場合、Outbox 障害が直接的な警報配信の遅延につながるため、障害検知後の初動が製造ライン安全に直結する。
 
 ## 関連適合仕様 / 関連 OSS
 

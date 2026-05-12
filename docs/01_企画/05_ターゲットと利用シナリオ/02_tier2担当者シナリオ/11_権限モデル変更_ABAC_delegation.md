@@ -20,6 +20,8 @@ covered_by:
 
 tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Delegation 設定を実施し、最小権限原則と業務ロールの整合を維持する。
 
+> 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#tier2-ops` で「設備管理リーダー」ロール新設の申請承認通知を受け取り、Keycloak 管理コンソールと GitHub PR を開く。手元には `keycloak/realm-export.json`・OPA policy ファイル、Mattermost 越しに security 担当者と業務管理者がいる。
+
 ## Trigger（発火条件）
 
 新業務ロールの追加 / 既存ロールの権限範囲変更 / 業務担当者からの権限追加申請が承認された時
@@ -34,6 +36,12 @@ tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Dele
 - 主役: tier2 担当者（中堅級）
 - 関与: security 担当者（権限設計 review）/ 業務管理者（ロール定義の確認）
 - 承認: dual reviewer（tier2 担当者 + security 担当者、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Mattermost `#tier2-ops` / GitHub PR | Keycloak ABAC ルール追加 / OPA policy 更新 / Testcontainers 認可確認 |
+| 関与（security）| シニア | 本社 / リモート | GitHub PR / Mattermost `#security-review` | 権限設計 review / 最小権限原則確認 / sign-off |
+| 関与（業務管理者）| — | 本社 | Mattermost `#tier2-ops` | ロール定義確認 / staging 動作承認 |
 
 ## 前提
 
@@ -57,6 +65,13 @@ tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Dele
 5. security 担当者のレビューを受ける（Mattermost `#security-review` で PR を共有）
 6. dual reviewer sign-off を取得して merge する
 7. staging 環境で業務管理者に実際の動作を確認してもらい、承認を得る
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: 「設備管理リーダー」ロール追加により、設備マスタ read-write と緊急停止 API の呼び出し権限が最小権限で付与される。
+- **受注**: 取引先パートナーへの閲覧専用 Delegation（`orders:read-only` スコープ）により、受注情報への限定的な外部アクセスが安全に実現する。
+- **品質検査結果**: 検査員ロールの権限変更が品質検査結果 API の認可ポリシーに反映され、過剰アクセスが排除される。
+- **在庫**: 在庫管理ロールの権限範囲変更が在庫 API の OPA policy に反映され、deny-by-default 原則が維持される。
 
 ## 関連適合仕様 / 関連 OSS
 

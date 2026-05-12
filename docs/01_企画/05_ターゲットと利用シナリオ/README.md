@@ -76,6 +76,7 @@ covered_by:
 - [tier3 担当者シナリオ](03_tier3担当者シナリオ/README.md)
 - [infra 担当者シナリオ](04_infra担当者シナリオ/README.md)
 - [data 担当者シナリオ](05_data担当者シナリオ/README.md)
+- [security 担当者シナリオ](06_security担当者シナリオ/README.md)
 
 ## 関連参照
 - [背景と目的](../01_背景と目的/README.md)

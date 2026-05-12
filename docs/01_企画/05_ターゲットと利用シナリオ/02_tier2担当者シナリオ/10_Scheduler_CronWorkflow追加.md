@@ -17,6 +17,8 @@ covered_by:
 
 tier2 担当者が業務要件に基づいて Argo CronWorkflow + Temporal Workflow による日次 / 月次バッチ処理を新規追加し、at-least-once 保証 + 冪等性 + テナント分離を維持する。
 
+> 朝 9 時半、本社 IT 室の tier2 担当者（中堅級）が Argo Workflows UI で「在庫集計バッチ」の新規スケジュール要件チケットを確認する。手元には `batch_schedule.lock.yaml`・Temporal Workflow コード、Mattermost 越しに data 担当者と ops 担当者がいる。
+
 ## Trigger（発火条件）
 
 業務担当者から「毎晩 23:00 に在庫集計を更新してほしい」等の定期バッチ要件が tier2 に起票された時。
@@ -32,6 +34,13 @@ tier2 担当者が業務要件に基づいて Argo CronWorkflow + Temporal Workf
 - 主役: tier2 担当者（中堅級）
 - 関与: data 担当者（ClickHouse / PostgreSQL アクセス）/ ops 担当者（SLO 設定）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Argo Workflows UI / Mattermost `#tier2-ops` | CronWorkflow / Temporal Workflow 実装 / atomic 三表書込適用 |
+| 関与（data）| シニア | 本社 / リモート | GitHub PR | ClickHouse スキーマ設計 / PostgreSQL アクセス確認 |
+| 関与（ops）| 中堅 | 本社 / リモート | Perses dashboard | SLO 定義登録 / バッチ完了時刻監視設定 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -52,6 +61,12 @@ tier2 担当者が業務要件に基づいて Argo CronWorkflow + Temporal Workf
 7. Testcontainers + Argo Workflows local runner で integration test を実施する（at-least-once + 冪等性を確認）
 8. dual reviewer sign-off を取得し、GitOps 経由で staging に deploy して動作確認する
 9. 本番 deploy 後 1 週間は完了時刻とエラー率を Perses dashboard で監視する
+
+## 業界 9 業務との紐付け
+
+- **在庫**: 日次在庫集計バッチが ClickHouse read model に投影されることで、在庫一覧画面のリアルタイム性が確保される。
+- **受注**: 月次受注確定処理（`OrderCloseWorkflow`）が Temporal で定期実行されることで、受注業務のバッチ集計が自動化される。
+- **ライン稼働監視**: FA 設備 KPI（稼働率 / 不良率）の日次バッチがライン稼働監視 read model を更新する。
 
 ## 関連適合仕様 / 関連 OSS
 

@@ -18,6 +18,8 @@ covered_by:
 
 発注承認など high-risk 操作では WebAuthn step_up チャレンジを強制し、親会社 IdP federation では Keycloak token exchange で限定スコープを付与することで、tier3 が token を保持せずに高強度の認証・認可を実現する。
 
+> 午後 2 時、本社 IT 室の tier3 担当者（ジュニア級）が Playwright E2E のデバッグ中に「WebAuthn step_up チャレンジ後の承認 API 呼び出しが 401 を返す」問題に気付く。手元には BFF_auth_edge の仕様と Keycloak 管理コンソール、Mattermost 越しに tier2 担当者（認可 API）と infra 担当者（Keycloak 設定）がいる。
+
 ## Trigger（発火条件）
 
 発注承認など high-risk 操作で WebAuthn step_up が必要な場面、または親会社 IdP federation でパートナーアクセスを実装する時。
@@ -30,6 +32,13 @@ covered_by:
 
 - **主役**: tier3 担当者（ジュニア級）
 - **関与**: tier2 担当者（認可 API）/ infra 担当者（Keycloak 設定）/ dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier3）| ジュニア | 本社 IT 室 / リモート | GitHub PR / Playwright CI | step_up UI 実装 / federation login フロー / back-channel logout / E2E テスト |
+| 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | 認可 API 仕様確認 / limited scope 設計 / sign-off |
+| 関与（infra）| 中堅 | 本社 IT 室 | Backstage Catalog | Keycloak step_up / token exchange / back-channel logout 設定確認 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | token 非保持 / break-glass 混入禁止 / back-channel logout 確認 / sign-off |
 
 ## 前提
 
@@ -47,6 +56,11 @@ covered_by:
 5. break-glass は tier3 UI には表示しない（業務管理 UI = Backstage プラグイン側の機能）
 6. Playwright E2E: step_up フロー full walk / federation login フロー
 7. dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+- **受注**: 発注承認フローが high-risk 操作の典型例であり、WebAuthn step_up チャレンジにより受注承認の操作権限を多段認証で保護する
+- **FA 生産指示・設備操作**: 設備リモート操作など安全上 high-risk な操作においても step_up 認証を適用し、不正操作リスクを排除する
 
 ## 関連適合仕様 / 関連 OSS
 

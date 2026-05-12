@@ -18,6 +18,8 @@ covered_by:
 
 archive_to_offline に送出済みのデータを litigation hold 対応・監査要求・障害調査のため online に復元し、integrity 確認・audit hash chain への記録・dual reviewer sign-off を完結させてから業務利用可能な状態で提供する。
 
+> 午前 11 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で法務部門からの「監査機関より 3 年前の受注データ参照要求が届いた」メッセージを確認する。手元には `data_lifecycle.lock.yaml` と OpenBao 管理画面、Mattermost 越しに security 担当者・infra 担当者・法務 / コンプライアンス担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 法務部門からの litigation hold 通知、外部監査人からの特定期間データ参照要求、または過去データを用いた障害再現調査依頼が届いた時。
@@ -33,6 +35,14 @@ archive_to_offline に送出済みのデータを litigation hold 対応・監�
 - 関与: infra 担当者（offline media からの転送経路確保）
 - 関与: 法務 / コンプライアンス担当者（litigation hold の適法性確認）
 - 承認: dual reviewer（data 担当者 2 名、PR author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（data）| シニア | 本社 IT 室 | `data_lifecycle.lock.yaml` / Mattermost `#data-ops` | 復元要求確認・DEK alive 確認要請・転送実施・audit emit・lock.yaml 記録 |
+| 関与（security）| シニア | 本社 / リモート | OpenBao 管理画面 | DEK alive 確認・復元承認 |
+| 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | offline media からの転送経路確保 |
+| 関与（法務 / コンプライアンス）| — | 本社 | Mattermost `#legal` | litigation hold の適法性確認 |
+| 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
 
 ## 前提
 
@@ -58,6 +68,13 @@ archive_to_offline に送出済みのデータを litigation hold 対応・監�
 9. `data_lifecycle.lock.yaml` に復元操作の記録を追記する（復元日時 / 要求元 / 目的 / 提供先 / 削除予定日）
 10. dual reviewer sign-off を取得する
 11. 利用期間終了後: 復元した online copy を crypto-erase して cold tier から削除し `data_lifecycle.lock.yaml` に記録する（restore はあくまで一時的な online 化）
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（data は全業務の PostgreSQL / Kafka / ClickHouse の永続化基盤を担うため）。特に影響度が高い 2 業務:
+
+- **品質検査（GMP 監査）**: 医薬品 GMP 規制の監査要求に応じて検査記録を archive から復元するケースが最多であり、7 年保持期間の archive_to_offline データの integrity が監査に直結する。
+- **受注管理（litigation hold）**: 法的紛争時の受注データ参照要求（litigation hold）への対応が典型例であり、DEK の alive 確認と read-only 権限付与の正確な手順が法的リスク管理の根幹となる。
 
 ## 関連適合仕様 / 関連 OSS
 

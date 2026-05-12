@@ -18,6 +18,8 @@ covered_by:
 
 [5 topology_class](../../../04_詳細設計/01_適合仕様/12_クラスタ位相適合仕様.md) すべての failover drill を定期 cadence で実施し、failover orchestrator の自動切り替えと SLO 維持を確認することで、DR 対応能力を継続的に保証する。
 
+> 朝 10 時、本社 IT 室の infra 担当者（シニア級）が topology_drill.lock.yaml で drill cadence カレンダーを確認中に、v1_zone_replicated の 90 日 cadence 到来に気付く。手元には Litmus chaos experiment 設定と Perses SLO dashboard、Mattermost 越しに ops 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - drill cadence（5 topology_class の定期 drill 間隔）の到来時
@@ -31,6 +33,12 @@ covered_by:
 
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（SLO 監視）、dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | topology_drill.lock.yaml / Perses dashboard | drill cadence 確認 / Litmus 実行 / failover 動作検証 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard | drill 中 SLO 監視 / SLO 閾値超過時 alert |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | drill 結果レビュー / sign-off |
 
 ## 前提
 
@@ -46,6 +54,13 @@ covered_by:
 5. 切断解除後に元 cluster への自動 rebalance を確認
 6. drill 結果を `topology_drill.lock.yaml` に green エントリとして追記
 7. dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **警報配信**: failover 自動切り替えの RTO 要件が最も厳しく、drill で警報配信 namespace の切り替え latency が仕様値内に収まることを重点確認する。
+- **FA（設備操作）**: 工場自動化の操作指示が failover 中に欠落すると設備損傷リスクがあるため、drill で操作指示の continuity を確認する。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -69,8 +84,19 @@ covered_by:
 **SLA**: SLO 閾値超過時は 5 分以内 alert
 **runbook**: Backstage runbook 参照（topology drill 対象 class に対応する runbook）
 
+## Timeline
+
+| T+ | actor | action | Mattermost 投稿例 |
+|---|---|---|---|
+| 0 | infra 担当者 | topology drill 開始（Litmus chaos experiment apply） | `@infra-oncall v1_zone_replicated drill 開始 / 対象: prod-zone-a / T+0 10:00` |
+| 5 分 | infra 担当者 | failover orchestrator 自動切り替え動作を Perses で観測 | `failover 切り替え確認中 / SLO 監視継続` |
+| 15 分 | ops 担当者 | SLO（可用性 / RTO / RPO）が仕様値以内であることを確認 | `SLO 正常範囲 / RTO 仕様値以内 / lag 12ms` |
+| 60 分 | infra 担当者 | 切断解除 → 元 cluster への rebalance 完了を確認 | `全 pod Running / rebalance 完了 / drill green` |
+| 1 営業日 | infra 担当者 | topology_drill.lock.yaml に green エントリ追記 + postmortem 着手 | `#postmortem drill-report-zone-replicated PR 作成済` |
+
 ## 関連参照
 
 - [README.md](README.md) — infra 担当者シナリオ index
 - [06_Chaos_drill実行.md](06_Chaos_drill実行.md) — Chaos drill 実行シナリオ
 - [../../../03_概要設計/05_infra設計方針/README.md](../../../03_概要設計/05_infra設計方針/README.md) — infra 設計方針
+- [DR cross-region 実 failover（data-14）](../05_data担当者シナリオ/14_DR_cross_region実failover.md) — infra topology drill が green の状態が、data 担当者主導の DR 実 failover の前提となる

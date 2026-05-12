@@ -18,6 +18,8 @@ covered_by:
 
 ドメイン肥大化により単一 Bounded Context に複数の業務語彙が混在していると判明した際、クロスドメイン参照を Domain Event 経由に限定しながら expand-contract pattern で安全に境界を再設定する。
 
+> 朝 9 時、本社 IT 室の tier2 担当者（中堅級）が Argo Workflows UI で CI 依存グラフ分析の結果レポートを開き、`PurchaseOrder` と `Inspection` の混在を示す警告に気付く。手元には GitHub PR と CloudNativePG migration ツール、Mattermost 越しに tier1 担当者がいる。
+
 ## Trigger（発火条件）
 
 ドメインが肥大化し単一 Bounded Context に複数の業務語彙が混在していることが判明した時（レビューや CI 依存グラフ分析により発覚する場合を含む）。
@@ -33,6 +35,12 @@ covered_by:
 - 主役: tier2 担当者（中堅級）
 - 関与: tier1 担当者（contract test の型変更影響確認）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Argo Workflows UI / GitHub PR | 境界再設定 / Domain Event 移動 / DB schema expand-contract |
+| 関与（tier1）| シニア | 本社 / リモート | GitHub PR | contract test 型変更影響確認 / sign-off |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -53,6 +61,12 @@ covered_by:
 6. tier3 が参照している型の変更影響を contract test で検出し、breaking change を事前に排除する
 7. 旧コンテキストの API を deprecated 宣言し、移行期間後に SemVer に従い廃止する
 8. dual reviewer sign-off を得てから merge する
+
+## 業界 9 業務との紐付け
+
+- **受注**: 調達 Context と受注 Context の境界再設定により、受注エンティティへの意図しない変更伝播を防止する。
+- **品質検査結果**: 検査 Context を独立させることで、品質検査結果の更新が発注フローに波及しなくなる。
+- **在庫**: Context 分割後の Domain Event 経由連携により、在庫集計の整合性が Outbox relay によって保証される。
 
 ## 関連適合仕様 / 関連 OSS
 

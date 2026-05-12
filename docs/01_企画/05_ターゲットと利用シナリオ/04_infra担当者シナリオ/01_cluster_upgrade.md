@@ -18,6 +18,8 @@ covered_by:
 
 k8s minor version の skew が 1 に達する前、または upgrade window（≤ 30 日）内に、staging 先行 → chaos drill → progressive delivery の手順で安全に本番 cluster を upgrade する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Argo CD UI で ApplicationSet の sync 状態を確認中に、Backstage calendar alert「k8s v1.31 upgrade window 残り 3 日」に気付く。手元には cluster_inventory.lock.yaml と OpenTofu plan 出力、Mattermost 越しに ops 担当者と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - k8s minor version の skew が 1 に達した時
@@ -32,6 +34,12 @@ k8s minor version の skew が 1 に達する前、または upgrade window（�
 
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（SLO 監視）、dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Argo CD UI / Backstage calendar | upgrade window 確認 / staging 先行 upgrade / Argo Rollouts 段階適用 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard | upgrade 中 SLO 監視 / SLO 違反時 alert |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | PR レビュー / sign-off |
 
 ## 前提
 
@@ -48,6 +56,13 @@ k8s minor version の skew が 1 に達する前、または upgrade window（�
 6. 本番 cluster への Argo CD progressive delivery（Argo Rollouts）で段階的 apply
 7. upgrade 完了後 `cluster_inventory.lock.yaml` を更新し dual reviewer sign-off
 8. upgrade window 30 日を超えないよう calendar alert（Backstage）で追跡
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **受注**: upgrade 停止 window 中は受注システムが一時停止するため、upgrade 計画を sales 担当者に事前通知し window 設定を調整する。
+- **警報配信**: 製造ライン停止を引き起こす alert のリアルタイム配信が upgrade window 中に途絶えないよう、警報配信 namespace を最後に migration する。
 
 ## 関連適合仕様 / 関連 OSS
 

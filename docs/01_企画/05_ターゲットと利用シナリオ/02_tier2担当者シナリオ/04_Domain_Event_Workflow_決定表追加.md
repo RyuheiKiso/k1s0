@@ -18,6 +18,8 @@ covered_by:
 
 業務フロー変更に伴い新規 Domain Event / Workflow / 決定表を追加する際、Apicurio FULL_TRANSITIVE 互換検査・FSM 状態遷移追加・atomic 三表書込・Outbox relay E2E 検証を全て通過させてから merge する。
 
+> 朝 9 時半、本社 IT 室の tier2 担当者（中堅級）が GitHub PR レビュー画面で `MachineOperationStarted` イベントの追加要求を見つける。手元には Apicurio Registry UI・Temporal Workflow コード、Mattermost 越しに tier1 担当者がいる。
+
 ## Trigger（発火条件）
 
 業務フロー変更により新規 Domain Event / Workflow / 決定表の追加が必要になった時。
@@ -33,6 +35,12 @@ covered_by:
 - 主役: tier2 担当者（中堅級）
 - 関与: tier1 担当者（Outbox relay / Kafka 設定の整合確認）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | GitHub PR / Apicurio Registry UI | Domain Event schema 登録 / FSM 追加 / Workflow 実装 |
+| 関与（tier1）| シニア | 本社 / リモート | GitHub PR | Outbox relay / Kafka 設定確認 / E2E test 協働 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
 ## 前提
 
@@ -52,6 +60,12 @@ covered_by:
    - outbox が空 or 1 件のみであることを確認（二重書込みのない状態）
 6. Outbox relay（Sidecar）が新イベントを Kafka に正しく配送することを E2E test で確認する
 7. dual reviewer sign-off + Apicurio compatibility green を確認してから merge する
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: `MachineOperationStarted` / `EmergencyStopWorkflow` 等のイベントが FA 生産指示フローに直接組み込まれ、設備操作のトレーサビリティが向上する。
+- **ライン稼働監視**: 新 Domain Event が Outbox relay 経由で監視 Projector にリアルタイム配信され、ライン稼働状態が即座に更新される。
+- **警報配信**: `MachineHaltRequested` 等の緊急イベントが警報配信 Workflow のトリガーとなる。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -80,3 +94,4 @@ covered_by:
 - [tier2 担当者シナリオ index](README.md)
 - [tier2 設計方針](../../../03_概要設計/03_tier2設計方針/README.md)
 - [ドメイン分割 BoundedContext](02_ドメイン分割_BoundedContext.md)
+- [通知 UI 4 種実装（tier3-13）](../03_tier3担当者シナリオ/13_通知UI_4種実装.md) — Domain Event 追加後に tier3 担当者が通知 UI を実装するシナリオ

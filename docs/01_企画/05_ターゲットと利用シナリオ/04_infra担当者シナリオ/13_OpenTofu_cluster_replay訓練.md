@@ -18,6 +18,8 @@ covered_by:
 
 infra 担当者が OpenTofu を使って cluster 全体を隔離環境で replay（再構築）し、「不可逆性の禁止: cluster 廃棄は OpenTofu replay で再構築可能」の原則を年次で物理証明する。
 
+> 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Backstage のカレンダーで「年次 OpenTofu replay 訓練 / 本日開始」を確認し、隔離環境のセットアップを開始する。手元には本番の opentofu_replay.lock.yaml と terraform.tfstate バックアップ、Mattermost 越しに ops 担当者・data 担当者・dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 - 年次 replay 訓練の cadence 到来時（infra 設計方針「段階的 release 禁止: replay 可能であること」が原則）
@@ -31,6 +33,13 @@ infra 担当者が OpenTofu を使って cluster 全体を隔離環境で replay
 - 主役: infra 担当者（シニア級）
 - 関与: ops 担当者（replay 中の SLO 監視）/ data 担当者（data layer の replay 確認）
 - 承認: dual reviewer（infra 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（infra）| シニア | 本社 IT 室 | Backstage カレンダー / opentofu_replay.lock.yaml | state コピー / terraform plan・apply / topology drill 実施 / Kyverno・GitOps 確認 |
+| 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard | 隔離 cluster での SLO 監視 / replay 結果の観測 |
+| 関与（data）| シニア | 本社 IT 室 / リモート | CloudNativePG / Kafka dashboard | data layer（DB / Kafka）の replay 後正常稼働確認 / replication lag 確認 |
+| 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | replay 結果 PR レビュー / opentofu_replay.lock.yaml sign-off |
 
 ## 前提
 
@@ -51,6 +60,13 @@ infra 担当者が OpenTofu を使って cluster 全体を隔離環境で replay
 6. 隔離 cluster で GitOps sync が動作することを確認する（Argo CD が manifests を apply できること）
 7. replay 結果を `opentofu_replay.lock.yaml` に記録する（再構築時間 / 全 drill 結果 / 差分が 0 件であることの証拠）
 8. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（infra は全業務の k8s cluster / network / storage の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **FA（設備操作）**: FA 業務の操作指示システムは cluster の復元性に最も依存しており、replay 訓練で FA namespace の Pod 群が `terraform apply` 後に仕様通りに起動することを topology drill で検証して DR 対応能力を証明する。
+- **受注（最重要業務）**: 受注業務は事業継続の根幹であるため、replay 後の隔離 cluster で受注 API が正常応答し Kyverno policy が全適用されていることを確認し、cluster 廃棄シナリオでも受注業務を復旧できることを年次で物理証明する。
 
 ## 関連適合仕様 / 関連 OSS
 

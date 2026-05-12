@@ -20,6 +20,8 @@ covered_by:
 
 tier2 担当者（またはプラットフォーム運営者）が Emergency Override（break-glass）経路を通じて本番 DB cluster-admin 権限を取得し、緊急対応を実施した後に強制 audit emit と事後報告を行う。
 
+> 深夜 2 時、自宅 on-call の tier2 担当者（中堅級）が PagerDuty アラートで「受注 DB data corruption」通知を受け取り、Backstage runbook `break-glass-revoke` を開く。手元には OpenBao CLI・`bao token` コマンド、Mattermost 越しに security 担当者と ops 担当者がいる。
+
 ## Trigger（発火条件）
 
 通常の権限では対応できない本番 DB 緊急操作（data corruption 修正 / 重大 bug の hotfix / セキュリティインシデント対応）が必要になった時
@@ -34,6 +36,12 @@ tier2 担当者（またはプラットフォーム運営者）が Emergency Ove
 - 主役: tier2 担当者（中堅級）またはプラットフォーム運営者
 - 関与: security 担当者（emergency 承認）/ ops 担当者（on-call）
 - 承認: security 担当者の承認必須（break-glass は通常の dual reviewer とは別の承認経路）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 自宅 on-call | PagerDuty / Mattermost `#security-incident` | break-glass 手順開始 / 最小限操作 / token revoke / postmortem 提出 |
+| 関与（security）| シニア | 自宅 on-call | PagerDuty / Mattermost `#security-incident` | Emergency Override 承認 / audit trail 確認 |
+| 関与（ops）| 中堅 | 自宅 on-call | PagerDuty / Perses dashboard | on-call 調整 / 操作完了報告受領 |
 
 ## 前提
 
@@ -52,6 +60,13 @@ tier2 担当者（またはプラットフォーム運営者）が Emergency Ove
 7. audit trail を確認し、全操作が記録されていることを検証する
 8. ops 担当者と security 担当者に完了報告を行い、postmortem を 1 営業日以内に提出する
 
+## 業界 9 業務との紐付け
+
+- **受注**: 受注 DB の data corruption 修正が break-glass の最も典型的な適用場面であり、緊急対応後に受注業務が正常稼働に復帰する。
+- **FA 生産指示・設備操作**: 生産ラインに影響する重大 bug の hotfix を break-glass で実施し、FA 業務の停止時間を最小化する。
+- **警報配信**: 認可バグによる PII 漏洩インシデント対応時に break-glass で DB レベル修正を行い、警報配信経路の完全性を回復する。
+- **SCADA テレメトリ**: SCADA 連携 DB の corruption 修正により、テレメトリデータの正常取得が再開される。
+
 ## 関連適合仕様 / 関連 OSS
 
 - 関連適合仕様: [認証適合仕様](../../../04_詳細設計/01_適合仕様/04_認証適合仕様.md) / [鍵管理適合仕様](../../../04_詳細設計/01_適合仕様/05_鍵管理適合仕様.md) / [tier2 強制機構](../../../04_詳細設計/02_強制機構/02_tier2強制機構.md)
@@ -68,6 +83,16 @@ tier2 担当者（またはプラットフォーム運営者）が Emergency Ove
 
 - **break-glass token 取得後に audit chain が記録されない**: 操作を即時中断し security 担当者と ops 担当者に Mattermost `#compliance-incident` で即時通報（**SLA: 操作中断後 5 分以内**）。audit chain の修復が完了するまで break-glass 操作は禁止。
 - **緊急操作でさらなる data corruption が発生**: 操作を中断し data 担当者 + security 担当者に Mattermost `#data-incident` で即時通報（**SLA: 5 分以内**）。restore drill（data-03）を緊急実施。**postmortem 期限: 1 営業日以内**。
+
+## Timeline
+
+| T+ | actor | action | Mattermost 投稿例 |
+|---|---|---|---|
+| 0 | tier2 担当者 | on-call 招集受領 / break-glass 手順開始 | `@security-oncall break-glass 開始 / 対象: 受注 DB / T+0 02:00` |
+| 5 分 | security 担当者 | OpenBao break-glass 経路確認 / Emergency Override 承認 | `OpenBao break-glass 経路確認中 / 承認済み T+5` |
+| 15 分 | tier2 担当者 | cluster-admin 取得 / 緊急操作開始 | `cluster-admin 取得 / 操作: data corruption 修正 SQL / T+15` |
+| 60 分 | tier2 担当者 | 操作完了 / audit hash chain 確認 / break-glass token revoke | `操作完了 / audit emit 確認済 / break-glass 返却 T+60` |
+| 1 営業日 | tier2 担当者 | postmortem 着手 / Backstage TechDocs 提出 | `#postmortem postmortem PR 作成済 / 対象インシデント: 受注 DB corruption` |
 
 ## 関連参照
 

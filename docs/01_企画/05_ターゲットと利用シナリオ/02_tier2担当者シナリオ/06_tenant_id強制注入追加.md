@@ -18,6 +18,8 @@ covered_by:
 
 新 API / 新リポジトリ抽象を追加した際に tenant_id 強制注入の漏れが CI で検出された場合、lint 違反箇所を特定してラッパーを追加し、CloudNativePG RLS との整合・cross-tenant leak の Testcontainers 検証まで完遂する。
 
+> 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#tier2-ci-alert` で cross-tenant leak test fail の自動通知に気付く。手元には lint レポート・GitHub PR、Mattermost 越しに infra 担当者がいる。
+
 ## Trigger（発火条件）
 
 新 API / 新リポジトリ抽象を追加した際に tenant_id 強制注入の漏れが CI で検出された時。
@@ -34,6 +36,12 @@ covered_by:
 - 関与: infra 担当者（CloudNativePG RLS 設定の整合確認）
 - 承認: dual reviewer（tier2 担当者 2 名、変更 PR の author 不可）
 
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier2）| 中堅 | 本社 IT 室 | Mattermost `#tier2-ci-alert` / GitHub PR | lint 違反特定 / tenant_id ラッパー追加 / Testcontainers 検証 |
+| 関与（infra）| シニア | 本社 / リモート | GitHub PR | CloudNativePG RLS 設定確認 / 整合確認 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
+
 ## 前提
 
 - テナント分離適合仕様が確立済みで、tenant_id 強制注入 lint が CI に組み込まれていること
@@ -49,6 +57,13 @@ covered_by:
 5. 任意の tenant_id を引数で受け付ける成りすまし可能 API が残っていないか全 API を scan する
 6. Testcontainers integration test で cross-tenant data leak がないことを確認する
 7. dual reviewer sign-off を得てから merge する
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: tenant_id 注入の漏れを修正することで、特定テナントの生産指示が他テナントの設備 API に誤送信されるリスクを排除する。
+- **在庫**: 在庫リポジトリ抽象での tenant_id 漏れは cross-tenant 在庫参照につながるため、修正により全テナントの在庫分離が保証される。
+- **受注**: 受注 API の tenant_id 漏れ修正により、テナント間での受注データ混在を防止する。
+- **計量装置・出荷指示**: 出荷指示 API に tenant_id 注入が追加されることで、テナント別出荷データの厳密分離が実現する。
 
 ## 関連適合仕様 / 関連 OSS
 

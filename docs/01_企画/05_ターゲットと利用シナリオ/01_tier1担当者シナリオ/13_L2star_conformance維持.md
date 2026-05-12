@@ -19,6 +19,8 @@ covered_by:
 
 tier1 担当者が L2\* 採用カテゴリ（同族 OSS 2 実装）の Testcontainers conformance test を定期実行・維持し、「merge 条件として 2 実装が green」の原則が常に物理的に成立している状態を保つ。
 
+> 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が buf CI ダッシュボードを確認し、四半期定期 check の cadence が到来しており L2* の Message Broker カテゴリ（Kafka + Redpanda）の conformance test で Redpanda の特定 API タイムアウト差異が検出されていることに気付く。手元には Testcontainers CI ログと `oss_conformance_check.lock.yaml`、Mattermost 越しに dual reviewer 2 名がいる。
+
 ## Trigger（発火条件）
 
 L2\* 同族 OSS の一方でバージョン更新 / API 変更 / 非互換変更が発生した時 / conformance test が CI で fail した時 / 四半期の定期 conformance check cadence 到来時
@@ -32,6 +34,12 @@ L2\* 同族 OSS の一方でバージョン更新 / API 変更 / 非互換変更
 
 - 主役: tier1 担当者（シニア級）
 - 承認: dual reviewer（tier1 担当者 2 名、変更 PR の author 不可）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier1）| シニア | 本社 IT 室 | buf CI / Testcontainers CI | L2* カテゴリ確認・fail 特定・修正方針決定・conformance check 記録 |
+| 承認（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | conformance 修正内容レビュー・sign-off |
+| 承認（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | conformance 修正内容レビュー・sign-off |
 
 ## 前提
 
@@ -52,6 +60,13 @@ L2\* 同族 OSS の一方でバージョン更新 / API 変更 / 非互換変更
 5. 2 実装の conformance test が両方 green になることを確認する
 6. conformance check 結果を `oss_conformance_check.lock.yaml` に記録する（日付 / OSS A version / OSS B version / 結果 / 対応内容）
 7. dual reviewer sign-off を取得する
+
+## 業界 9 業務との紐付け
+
+全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
+
+- **SCADA テレメトリ**: L2* Message Broker（Kafka + Redpanda）の conformance 維持は SCADA テレメトリの配信パイプラインがどちらの実装でも同等に動作することを保証し、OSS 切替時の設備データ欠落を防ぐ。
+- **警報配信**: L2* RDB カテゴリの同族保証は警報履歴の永続化 / 検索 API が 2 実装で等価に動作することを保証し、警報配信の信頼性監査に必要な履歴完全性を支える。
 
 ## 関連適合仕様 / 関連 OSS
 
@@ -74,3 +89,4 @@ L2\* 同族 OSS の一方でバージョン更新 / API 変更 / 非互換変更
 - [tier1 担当者シナリオ index](./README.md) — tier1 担当者シナリオ全体の構成
 - [新規 OSS 採用評価](./01_新規OSS採用評価.md) — L2\* ペアを選定した際の初回評価シナリオ
 - [tier1 設計方針](../../../03_概要設計/02_tier1設計方針/README.md) — L2\* 同族保証の原則定義
+- [L1+ migration dry-run](./12_L1plus_migration_dryrun.md) — L2* conformance が green の状態を保つことが L1+ dry-run 成功の前提条件

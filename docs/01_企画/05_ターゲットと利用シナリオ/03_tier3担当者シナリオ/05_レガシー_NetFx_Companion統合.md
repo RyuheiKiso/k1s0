@@ -18,6 +18,8 @@ covered_by:
 
 .NET Framework 4.8 ERP 等のレガシーシステムを `k1s0.Library.NetFx` NuGet と Companion Transport Negotiation Runtime を通じて k1s0 に統合し、観測コンテキスト伝播と認証を確立する。
 
+> 朝 10 時、本社 IT 室の tier3 担当者（ジュニア級）が GitHub PR の integration test 結果で CLR Profiler attach の失敗ログに気付く。手元には `k1s0.Library.NetFx` の NuGet 設定と Testcontainers の出力、Mattermost 越しに tier1 Companion 担当者と infra 担当者がいる。
+
 ## Trigger（発火条件）
 
 .NET Framework 4.8 ERP 等のレガシーシステムを k1s0 に統合する tier3 実装が必要になった時。
@@ -30,6 +32,13 @@ covered_by:
 
 - **主役**: tier3 担当者（ジュニア級）
 - **関与**: tier1 Companion 担当者 / infra 担当者（8443-legacy ポート設定）/ dual reviewer
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier3）| ジュニア | 本社 IT 室 / リモート | GitHub PR / Jest CI | NetFx NuGet 組込 / CLR Profiler 設定 / integration test / PR 提出 |
+| 関与（tier1 Companion）| シニア | 本社 IT 室 | Backstage Catalog | NuGet バージョン管理 / Transport Negotiation Runtime 仕様確認 / sign-off |
+| 関与（infra）| 中堅 | 本社 IT 室 | Backstage Catalog | 8443-legacy ポート設定 / Keycloak 設定確認 |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | integration test green / OTel trace 到達 / OIDC 認証確認 / sign-off |
 
 ## 前提
 
@@ -47,6 +56,11 @@ covered_by:
 5. レガシー側の認証: Keycloak OIDC token を .NET Framework 側で取得し HTTP header に付与
 6. integration test: Testcontainers + .NET Framework 4.8 runtime で動作確認
 7. dual reviewer sign-off
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: .NET Framework 4.8 ERP からの設備リモート操作 API 呼び出しが本シナリオの典型ユースケースであり、既存 FA システムとの連携基盤を確立する
+- **受注**: レガシー ERP の受注データを k1s0 の受注業務フローに統合するための Companion 接続が本シナリオで実現される
 
 ## 関連適合仕様 / 関連 OSS
 

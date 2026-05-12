@@ -18,6 +18,8 @@ covered_by:
 
 tier3 担当者が release 前に担当業務画面の Playwright smoke test を追加・維持し、全画面の golden path が CI で自動検証される状態を保つ。
 
+> 午前 10 時、本社 IT 室の tier3 担当者（ジュニア級）がリリース前日の Playwright CI ダッシュボードで smoke test の一斉 fail を発見し、緊張した面持ちで原因確認を開始する。手元には smoke test の fail ログと tier2 generated stub の差分レポート、Mattermost 越しに tier2 担当者（API 変更確認）と dual reviewer がいる。
+
 ## Trigger（発火条件）
 
 新業務画面の追加完了時 / リリース milestone 到達時 / smoke test が CI で fail した時
@@ -31,6 +33,12 @@ tier3 担当者が release 前に担当業務画面の Playwright smoke test を
 - **主役**: tier3 担当者（ジュニア級）
 - **関与**: tier2 担当者（API 変更確認）
 - **承認**: dual reviewer（tier3 担当者 1 名 + tier2 担当者 1 名）
+
+| 役割 | 級 | 主に居る場所 | 朝最初に見る画面 | このシナリオでの主要動作 |
+|---|---|---|---|---|
+| 主役（tier3）| ジュニア | 本社 IT 室 / リモート | Playwright CI / GitHub PR | smoke test 作成・修正 / fail 原因分類 / fixture 更新 / staging 確認 |
+| 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | API 変更内容の migration guide 提供 / smoke test fail 原因確認 / sign-off |
+| 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | CI green / staging smoke pass / a11y green / sign-off |
 
 ## 前提
 
@@ -53,6 +61,13 @@ tier3 担当者が release 前に担当業務画面の Playwright smoke test を
 5. 全 smoke test が local で green になることを確認してから PR を作成する
 6. CI で smoke test + a11y test が green になることを確認する
 7. dual reviewer sign-off を取得し、staging 環境でも smoke test を実行して動作確認する
+
+## 業界 9 業務との紐付け
+
+- **FA 生産指示・設備操作**: FA 生産指示画面の smoke test が golden path（画面表示 → 指示入力 → 送信 → 結果確認）をリリースごとに自動検証し、リリース品質を保証する
+- **受注**: 受注一覧・受注入力・承認フローの smoke test が、受注業務の基本動作をリリース前に網羅的に確認する
+- **ライン稼働監視・進捗実績**: ライン監視画面の smoke test によりリアルタイム更新 UI の基本動作がリリースごとに担保される
+- **警報配信**: 警報通知 UI の smoke test が警報配信フローの golden path をリリース品質として維持する
 
 ## 関連適合仕様 / 関連 OSS
 
