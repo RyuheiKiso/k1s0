@@ -64,12 +64,27 @@ A=compile / B=lint / C=integration test / D=runtime / E=物理 / F=数学的（f
 | `/src/test/` |   |   | ● |   |   |   |
 | `/src/formal/` |   |   |   |   |   | ● |
 | `/src/_crosscutting/` | ● | ● | ● | ● | ● |   |
+| `/src/_meta/` | ● | ● |   |   |   |   |
 
 任意の単層が破れても他層が必ず止める（6 層 defense-in-depth の `src/` 射影）。
 
 ---
 
 ## src/ 19 軸射影
+
+### 19 軸 換算定義
+
+「19 軸」は `_meta/axis_registry.lock.yaml` が管理する **登録軸総数**（cap v1 = 20、現 19、残 1）であり、`src/` 物理 dir 数とは独立して定義される。
+
+| 量 | 定義 | 値 |
+|---|---|---|
+| 登録軸総数 | `axis_registry.lock.yaml` の登録件数 | **19**（cap 20、残 1） |
+| `src/` 実装軸数 | `src/` 直下 allowlist の軸 dir 数（`_meta` `_crosscutting` 除く） | **10**（tier1–formal） |
+| cross-cutting 適合仕様数 | `src/_crosscutting/` 内 `NN_<slug>/` 数 | **13** |
+
+`_meta/` と `_crosscutting/` は補助 namespace であり登録軸数にカウントしない。20 適合仕様（`docs/04_詳細設計/01_適合仕様/`）と 13 cross-cutting（`src/_crosscutting/`）は independent sets であり合算しない。登録軸 19 の内訳（primary 10 + sub-registered 9）は [`docs/00_format/conventions/numbering.md`](docs/00_format/conventions/numbering.md) を単一の真とする。
+
+---
 
 ### 射影原則
 
@@ -93,10 +108,27 @@ A=compile / B=lint / C=integration test / D=runtime / E=物理 / F=数学的（f
 ├── test/           # 18 軸 × 5 verification_class = 90 cell
 ├── formal/         # TLA+ / Stainless / Dafny / Lean 4 / Kani / CBMC 成果物
 ├── _meta/          # axis_registry.lock.yaml 生成体系（meta-axis 実装）
-└── _crosscutting/  # 13 cross-cutting 適合仕様の実装（01_http2/ ... 13_dotnet_connect_rpc/）
+└── _crosscutting/  # 13 cross-cutting 適合仕様の実装（01_http2_enforcement/ ... 13_dotnet8_connect_inhouse/）
 ```
 
 `src/` 直下に上記以外のサブディレクトリを配置することは dimension override に相当するため B 層 lint で fail する。
+
+### src/ ↔ docs/03_概要設計/ 名前対応
+
+| `src/` | `docs/03_概要設計/` |
+|---|---|
+| `tier1/` | `02_tier1設計方針/` |
+| `tier2/` | `03_tier2設計方針/` |
+| `tier3/` | `04_tier3設計方針/` |
+| `infra/` | `05_infra設計方針/` |
+| `data/` | `06_data設計方針/` |
+| `security/` | `07_security設計方針/` |
+| `ops/` | `08_ops設計方針/` |
+| `client/` | `09_client設計方針/` |
+| `test/` | `10_test設計方針/` |
+| `formal/` | `11_formal設計方針/` |
+| `_crosscutting/` | `12_クロスカッティング設計/` |
+| `_meta/` | [`docs/00_format/conventions/numbering.md`](docs/00_format/conventions/numbering.md)（axis registry 仕様）|
 
 ---
 
@@ -122,7 +154,7 @@ A=compile / B=lint / C=integration test / D=runtime / E=物理 / F=数学的（f
 1. root 直下許可ファイル allowlist 違反（想定外 `.md` / `.yaml` の散乱）→ fail
 2. root top-level directory allowlist 違反（増減）→ fail
 3. `src/` 直下サブディレクトリが 10 軸 + `_meta` + `_crosscutting` + `README.md` 以外 → fail
-4. `src/_crosscutting/` 配下が `NN_<slug>/` 形式で 01〜13 以外 → fail
+4. `src/_crosscutting/` 配下が `NN_<slug>/` 形式（`NN` = 01〜13、`<slug>` = `[a-z][a-z0-9_-]+`）以外 → fail
 5. `/img/` 直下のファイル拡張子が `.svg` / `.drawio` 以外 → fail
 
 ### `tools/lock_yaml_generator/generate_release_gate.py` — meta cell 追加
@@ -145,21 +177,7 @@ A=compile / B=lint / C=integration test / D=runtime / E=物理 / F=数学的（f
 
 ## 関連参照
 
-- [`docs/00_format/README.md`](docs/00_format/README.md) — 規約層 index（テンプレ選択 flowchart、規約変更手順）
-- [`docs/00_format/conventions/numbering.md`](docs/00_format/conventions/numbering.md) — docs/ 内部番号体系（本書では再記述しない）
-- [`docs/00_format/conventions/crosslink.md`](docs/00_format/conventions/crosslink.md) — 軸間 / フェーズ間 cross link 規約
-- [`docs/00_format/frontmatter_schema.yaml`](docs/00_format/frontmatter_schema.yaml) — frontmatter JSON Schema
-- [`docs/03_概要設計/README.md`](docs/03_概要設計/README.md) — 全 10 軸 + cross-cutting 設計方針 index
-- [`docs/03_概要設計/02_tier1設計方針/README.md`](docs/03_概要設計/02_tier1設計方針/README.md) — tier1 設計方針
-- [`docs/03_概要設計/03_tier2設計方針/README.md`](docs/03_概要設計/03_tier2設計方針/README.md) — tier2 設計方針
-- [`docs/03_概要設計/04_tier3設計方針/README.md`](docs/03_概要設計/04_tier3設計方針/README.md) — tier3 設計方針
-- [`docs/03_概要設計/05_infra設計方針/README.md`](docs/03_概要設計/05_infra設計方針/README.md) — infra 設計方針
-- [`docs/03_概要設計/06_data設計方針/README.md`](docs/03_概要設計/06_data設計方針/README.md) — data 設計方針
-- [`docs/03_概要設計/07_security設計方針/README.md`](docs/03_概要設計/07_security設計方針/README.md) — security 設計方針
-- [`docs/03_概要設計/08_ops設計方針/README.md`](docs/03_概要設計/08_ops設計方針/README.md) — ops 設計方針
-- [`docs/03_概要設計/09_client設計方針/README.md`](docs/03_概要設計/09_client設計方針/README.md) — client 設計方針
-- [`docs/03_概要設計/10_test設計方針/README.md`](docs/03_概要設計/10_test設計方針/README.md) — test 設計方針
-- [`docs/03_概要設計/11_formal設計方針/README.md`](docs/03_概要設計/11_formal設計方針/README.md) — formal 設計方針
-- [`docs/03_概要設計/12_クロスカッティング設計/README.md`](docs/03_概要設計/12_クロスカッティング設計/README.md) — 13 cross-cutting 適合仕様
+- [`docs/00_format/README.md`](docs/00_format/README.md) — 規約層 index（番号体系・crosslink 規約・frontmatter schema・linters を含む）
+- [`docs/03_概要設計/README.md`](docs/03_概要設計/README.md) — 全軸設計方針 index（軸別 README へのリンクを含む）
 - [`tools/docs_lint/run_lint.py`](tools/docs_lint/run_lint.py) — B 層 lint（root layout check を含む）
 - [`tools/lock_yaml_generator/generate_release_gate.py`](tools/lock_yaml_generator/generate_release_gate.py) — release_gate.lock.yaml 生成
