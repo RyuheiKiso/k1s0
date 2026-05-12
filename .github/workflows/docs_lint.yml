@@ -5,18 +5,26 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'src/**'
+      - 'img/**'
+      - 'ARCHITECTURE.md'
       - 'tools/docs_lint/**'
+      - 'tools/lock_yaml_generator/**'
       - '.github/workflows/docs_lint.yml'
   pull_request:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'src/**'
+      - 'img/**'
+      - 'ARCHITECTURE.md'
       - 'tools/docs_lint/**'
+      - 'tools/lock_yaml_generator/**'
       - '.github/workflows/docs_lint.yml'
 
 jobs:
   lint:
-    name: docs lint (7 check)
+    name: docs lint (8 check)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

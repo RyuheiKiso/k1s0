@@ -225,6 +225,62 @@ def check_empty_locked(path: Path, fm: dict, body: str) -> list[str]:
     return fails
 
 
+ROOT_ALLOWED_FILES = frozenset([
+    "CLAUDE.md", "README.md", "LICENSE", "ARCHITECTURE.md",
+    ".claudeignore", ".gitignore",
+])
+ROOT_ALLOWED_DIRS = frozenset([
+    ".claude", ".github", "docs", "img", "src", "tools",
+])
+SRC_ALLOWED_AXES = frozenset([
+    "tier1", "tier2", "tier3", "infra", "data",
+    "security", "ops", "client", "test", "formal",
+    "_meta", "_crosscutting",
+])
+CROSSCUTTING_SLUG_PATTERN = re.compile(r"^(0[1-9]|1[0-3])_[a-z][a-z0-9_-]+$")
+IMG_ALLOWED_EXTS = frozenset([".svg", ".drawio"])
+
+
+def check_repository_layout() -> list[str]:
+    fails = []
+
+    # root 直下許可ファイル
+    for entry in REPO_ROOT.iterdir():
+        if entry.is_file() and entry.name not in ROOT_ALLOWED_FILES:
+            fails.append(f"root: 許可外ファイル: {entry.name}")
+
+    # root top-level directory allowlist
+    for entry in REPO_ROOT.iterdir():
+        if entry.is_dir() and not entry.name.startswith(".git"):
+            if entry.name not in ROOT_ALLOWED_DIRS:
+                fails.append(f"root: 許可外ディレクトリ: {entry.name}")
+
+    # src/ 直下 sub-directory 検査
+    src_dir = REPO_ROOT / "src"
+    if src_dir.exists():
+        for entry in src_dir.iterdir():
+            if entry.is_dir() and entry.name not in SRC_ALLOWED_AXES:
+                fails.append(f"src/: 許可外サブディレクトリ: {entry.name}")
+            if entry.is_file() and entry.name != "README.md":
+                fails.append(f"src/: 許可外ファイル: {entry.name}")
+
+        # src/_crosscutting/ 配下 NN_<slug>/ 形式検査
+        crosscutting_dir = src_dir / "_crosscutting"
+        if crosscutting_dir.exists():
+            for entry in crosscutting_dir.iterdir():
+                if entry.is_dir() and not CROSSCUTTING_SLUG_PATTERN.match(entry.name):
+                    fails.append(f"src/_crosscutting/: 命名規約違反: {entry.name}")
+
+    # /img/ 直下拡張子検査
+    img_dir = REPO_ROOT / "img"
+    if img_dir.exists():
+        for entry in img_dir.iterdir():
+            if entry.is_file() and entry.suffix not in IMG_ALLOWED_EXTS:
+                fails.append(f"img/: 許可外拡張子: {entry.name}")
+
+    return fails
+
+
 def main() -> int:
     md_files = collect_md_files()
     print(f"=== docs_lint (Python): {len(md_files)} files ===")
@@ -280,16 +336,22 @@ def main() -> int:
             print(f"  FAIL: {f}")
         fails.extend(sub)
 
-    print("\n[7/7] 空セクション / TBD 残存検査 (status: locked のみ)")
+    print("\n[7/8] 空セクション / TBD 残存検査 (status: locked のみ)")
     for path, fm in items:
         sub = check_empty_locked(path, fm, body_by_path.get(path, ""))
         for f in sub:
             print(f"  FAIL: {f}")
         fails.extend(sub)
 
+    print("\n[8/8] repository layout 検査")
+    sub = check_repository_layout()
+    for f in sub:
+        print(f"  FAIL: {f}")
+    fails.extend(sub)
+
     print()
     if not fails:
-        print("=== docs_lint (Python): 7 check 全 green ===")
+        print("=== docs_lint (Python): 8 check 全 green ===")
         return 0
     print(f"=== docs_lint (Python): {len(fails)} FAIL detected ===")
     return 1
