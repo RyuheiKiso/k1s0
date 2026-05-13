@@ -44,6 +44,14 @@ covered_by:
 - **責務**: 個別業務 UI / 業務シナリオ / フォームレイアウト / 業務エラー UX / 帳票レイアウト
 - **想定人数**: 業界 pack × 業務領域 × tenant 数で増減
 
+## client 軸エンジニア
+
+### client 軸エンジニア（シニア級）
+- **必須スキル**: Tauri 2.0 / TypeScript + React / C# WPF / .NET Framework / Playwright / browser matrix / SDK codegen（Buf / ts-proto）
+- **責務**: 5 distribution_class の SDK 配布管理（v1_full_native_with_companion / v1_legacy_dotnet_framework / v1_browser_spa_typescript / v1_thick_native_via_tauri / v1_thin_business_api_only）/ SDK conformance test / browser matrix smoke / SDK inventory.lock.yaml 維持
+- **想定人数**: 2-3 名
+- **非責務**: ビジネスロジック実装（tier2）/ cluster 構築（infra）/ 脅威モデル（security）
+
 ## k1s0 作者（最高権限）
 
 ### k1s0 作者

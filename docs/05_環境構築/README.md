@@ -35,7 +35,18 @@ covered_by:
 | 番号 | フォルダ | 対象ロール |
 |---|---|---|
 | 00 | [00_k1s0作者/](00_k1s0作者/README.md) | k1s0 作者（toolchain authoring + 軸登録 governance + release 署名） |
-| 01 | [01_tier1/](01_tier1/) | tier1 軸エンジニア（Rust / Go / C# / TypeScript / proto / Buf） |
+| 01 | [01_tier1/](01_tier1/README.md) | tier1 軸エンジニア（Rust / Go / C# / TypeScript / proto / Buf） |
+| 02 | [02_tier2/](02_tier2/README.md) | tier2 軸エンジニア（4 言語 + 業界 pack / 業務資産 / 決定表） |
+| 03 | [03_tier3/](03_tier3/README.md) | tier3 軸エンジニア（TypeScript+React / WPF / WinForms / Tauri） |
+| 04 | [04_infra/](04_infra/README.md) | infra 軸エンジニア（k8s / Argo CD / Istio / Calico / OpenBao） |
+| 05 | [05_data/](05_data/README.md) | data 軸エンジニア（PostgreSQL / Kafka / ClickHouse / Apicurio / Rook+Ceph） |
+| 06 | [06_security/](06_security/README.md) | security 軸エンジニア（KEK shamir / OAuth 2.1 / OWASP / penetration testing） |
+| 07 | [07_ops/](07_ops/README.md) | ops 軸エンジニア（SRE / SLO / Argo Rollouts / Backstage / Grafana） |
+| 08 | [08_client/](08_client/README.md) | client 軸エンジニア（SDK 配布 / 5 distribution_class / browser matrix） |
+| 09 | [09_test/](09_test/README.md) | test 軸エンジニア（Pact / Playwright / Litmus / mutation / property-based） |
+| 10 | [10_formal/](10_formal/README.md) | formal 軸エンジニア（TLA+ / Apalache / Stainless / Dafny / Lean / Kani / CBMC） |
+| 11 | [11_プラットフォーム運営者/](11_プラットフォーム運営者/README.md) | プラットフォーム運営者（KEK custodian / on-call / break-glass / audit hash chain） |
+| 12 | [12_業務管理者/](12_業務管理者/README.md) | 業務管理者（tenant マスタ / 決定表 / 監査検索 / partner 連携） |
 
 ## 上位フェーズとの bind
 
