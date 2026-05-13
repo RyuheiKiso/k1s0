@@ -19,14 +19,16 @@ covered_by:
 
 ## Trivy のインストール（apt 経由）
 
-03_必須ランタイムで apt インストール済みの場合は確認のみ。
+**前提**: [03_必須ランタイム](03_必須ランタイム.md) の Trivy セクションで Aqua Security apt リポジトリの追加と `apt install trivy` を完了してからこのページを参照すること。apt リポジトリを追加せずに `apt install trivy` を実行しても "package not found" になる。
+
+インストール済み確認:
 
 ```bash
 trivy --version
 # 0.50 以上であること
 ```
 
-バイナリ直接インストールの場合:
+03_必須ランタイムの手順を実施せずにインストールする場合（バイナリ直接）:
 
 ```bash
 curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin

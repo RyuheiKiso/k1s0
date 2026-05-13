@@ -15,7 +15,7 @@ covered_by:
 
 ## 一文方針
 
-- Vite / React 19 / Storybook / Playwright / WiX Toolset / Tauri CLI を導入し、各ツールが起動することを本ページの検収とする。
+- Vite / React 19 / Storybook / Playwright / WiX Toolset v4.x / Tauri 2.0+ CLI を導入し、各ツールが起動することを本ページの検収とする。
 
 ## Vite + React 19
 

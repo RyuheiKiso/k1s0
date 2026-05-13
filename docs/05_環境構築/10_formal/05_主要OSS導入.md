@@ -15,7 +15,7 @@ covered_by:
 
 ## 一文方針
 
-- TLA+ / Apalache / Dafny / Lean 4 / Kani / CBMC / Stainless の 7 OSS をそれぞれのインストール手順に従い導入し、各コマンドが正常応答することを確認してから次のステップへ進む。
+- TLA+ / Apalache / Dafny / Lean 4 / Kani / CBMC / Stainless / P language の 8 OSS をそれぞれのインストール手順に従い導入し、各コマンドが正常応答することを確認してから次のステップへ進む。
 
 ## 1. TLA+ CLI（tlc）
 
@@ -109,6 +109,22 @@ source ~/.bashrc
 stainless-dotty --version 2>&1 | head -3
 ```
 
+## 8. P language（p）
+
+P language は非同期・並行システムのモデル化と検証を行う DSL（microsoft/P）。.NET 8 SDK 上で動作する。
+
+```bash
+dotnet tool install --global p
+p --help 2>&1 | head -3
+```
+
+グローバルツールとしてインストールされるため `~/.dotnet/tools` が PATH に含まれていること。
+
+```bash
+export PATH="$PATH:$HOME/.dotnet/tools"
+echo 'export PATH="$PATH:$HOME/.dotnet/tools"' >> ~/.bashrc
+```
+
 ## 検収コマンド
 
 ```bash
@@ -119,6 +135,7 @@ lean --version
 cargo kani --version
 cbmc --version
 stainless-dotty --version 2>&1 | head -1
+p --help 2>&1 | head -1
 ```
 
 全コマンドが正常応答すれば OSS 導入完了。

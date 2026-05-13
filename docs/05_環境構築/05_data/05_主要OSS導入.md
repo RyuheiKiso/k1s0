@@ -46,7 +46,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      CLUSTER_ID: k1s0-local-cluster
+      CLUSTER_ID: H3v5EQqrSI-xV4XQZR6Vgw  # base64-encoded UUID（KRaft 必須形式）。新規 cluster 構築時は `docker run --rm confluentinc/cp-kafka:7.6.0 kafka-storage random-uuid` で再生成すること
     ports:
       - "9092:9092"
     healthcheck:
@@ -67,7 +67,7 @@ services:
       retries: 5
 
   apicurio:
-    image: apicurio/apicurio-registry-mem:2.5.0.Final
+    image: apicurio/apicurio-registry-mem:2.5.0.Final  # 3.x 系も存在するが手元検証済みの v2 LTS を固定
     ports:
       - "8080:8080"
     healthcheck:
@@ -103,11 +103,11 @@ docker compose ps
 # PostgreSQL
 psql -h localhost -U k1s0 -d k1s0db -c "SELECT version();"
 
-# Kafka
-kafka-topics.sh --bootstrap-server localhost:9092 --list
+# Kafka（コンテナ内の CLI を経由する）
+docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 
-# ClickHouse
-clickhouse-client --host localhost --query "SELECT version()"
+# ClickHouse（コンテナ内の CLI を経由する）
+docker compose exec clickhouse clickhouse-client --query "SELECT version()"
 
 # Apicurio
 curl -s http://localhost:8080/apis/registry/v2/system/info | python3 -m json.tool

@@ -17,7 +17,7 @@ covered_by:
 
 - ops 軸エンジニアは Argo Rollouts CLI / Tekton CLI / Backstage / Grafana / Prometheus / Alertmanager / k6 を導入し、全て `--version` 応答またはローカル起動確認が取れることを本ページの検収条件とする。
 
-## Argo Rollouts CLI（argocd-rollouts）
+## Argo Rollouts kubectl Plugin（kubectl-argo-rollouts）
 
 ```bash
 curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
