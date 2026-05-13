@@ -45,7 +45,9 @@ covered_by:
 | Alertmanager routing rule の変更 | 草案のみ | ○ |
 | postmortem action item の owner 決定 | - | ○ |
 
-## .claude/ 配下のスキル（ops 軸で活用するもの）
+## 利用可能なスキル
+
+### プロジェクト固有スキル（`.claude/skills/` に配置）（ops 軸で活用するもの）
 
 | スキル名 | ops 軸での用途 |
 |---|---|

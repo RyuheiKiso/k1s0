@@ -31,12 +31,19 @@ covered_by:
 
 「至高を目指す」 = 運用コスト度外視 / 規律最大化 / 段階的リリース禁止 / dimension override 禁止 / dead spec は CI で殺す。
 
-## .claude/ 配下のスキル
+## 利用可能なスキル
+
+### プロジェクト固有スキル（`.claude/skills/` に配置）
 
 | スキル名 | 主な用途 |
 |---|---|
 | `drawio-authoring` | drawio 図の作図・検証・エクスポート規約 |
 | `figure-layer-convention` | 複数レイヤ drawio 図の記法規約 |
+
+### Claude Code システムスキル（Claude Code 組み込み、ローカル配置不要）
+
+| スキル名 | 主な用途 |
+|---|---|
 | `knowledge` | 技術学習用 Knowledge ドキュメント作成 |
 | `update-config` | Claude Code の settings.json 設定 |
 | `keybindings-help` | キーバインド設定 |

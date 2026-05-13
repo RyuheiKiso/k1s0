@@ -45,7 +45,9 @@ covered_by:
 | chaos experiment blast radius 拡大 | 草案のみ | ○ |
 | coverage matrix の cell 除外 | 草案のみ | ○ |
 
-## .claude/ 配下のスキル（test 軸で活用するもの）
+## 利用可能なスキル
+
+### プロジェクト固有スキル（`.claude/skills/` に配置）（test 軸で活用するもの）
 
 | スキル名 | test 軸での用途 |
 |---|---|

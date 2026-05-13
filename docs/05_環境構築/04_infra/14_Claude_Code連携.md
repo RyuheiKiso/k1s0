@@ -39,7 +39,9 @@ cat CLAUDE.md
 | kind cluster 設定の変更 | ○ | - |
 | IaC (Terraform/Pulumi) の草案 | ○ | plan 確認後にマージ |
 
-## .claude/ 配下のスキル（infra 軸で有用なもの）
+## 利用可能なスキル
+
+### プロジェクト固有スキル（`.claude/skills/` に配置）（infra 軸で有用なもの）
 
 | スキル名 | infra での用途 |
 |---|---|

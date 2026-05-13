@@ -22,14 +22,14 @@ covered_by:
 | extension ID | 用途 |
 |---|---|
 | `alygin.vscode-tlaplus` | TLA+ / PlusCal の syntax highlight / TLC 実行 |
-| `dafny-lang.ide-vscode` | Dafny の language server / inline verification |
+| `dafnyteam.vscode-dafny` | Dafny の language server / inline verification |
 | `leanprover.lean4` | Lean 4 の language server / infoview |
 
 インストール手順:
 
 ```bash
 code --install-extension alygin.vscode-tlaplus
-code --install-extension dafny-lang.ide-vscode
+code --install-extension dafnyteam.vscode-dafny
 code --install-extension leanprover.lean4
 ```
 

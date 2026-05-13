@@ -29,11 +29,9 @@ TLA+ Toolbox の IDE では保存時に自動 syntax check が走る。CLI 実�
 ## Dafny syntax-only check
 
 ```bash
-dafny /compile:0 Sample.dfy
-# /compile:0 はコンパイルせず検証のみ実行（syntax + verification）
+dafny verify Sample.dfy
+# Dafny 4.x の正式コマンド。/compile:0 は v3 旧構文のため使用しない。
 ```
-
-`dafny verify` と等価だが、コンパイル成果物を生成しないため高速。CI での利用を推奨する。
 
 ## Lean 4 check
 

@@ -45,7 +45,9 @@ covered_by:
 | conformance test pass 基準変更 | 草案のみ | ○ |
 | WiX インストーラ設定変更 | 草案のみ | ○ |
 
-## .claude/ 配下のスキル（client 軸で活用するもの）
+## 利用可能なスキル
+
+### プロジェクト固有スキル（`.claude/skills/` に配置）（client 軸で活用するもの）
 
 | スキル名 | client 軸での用途 |
 |---|---|

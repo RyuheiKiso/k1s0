@@ -39,7 +39,9 @@ cat CLAUDE.md
 | restore_drill の結果確定 | - | 人間が手動確認 |
 | backup ポリシーの変更 | 草案のみ | ○ |
 
-## .claude/ 配下のスキル（data 軸で有用なもの）
+## 利用可能なスキル
+
+### プロジェクト固有スキル（`.claude/skills/` に配置）（data 軸で有用なもの）
 
 | スキル名 | data での用途 |
 |---|---|
