@@ -9,6 +9,7 @@ depends_on:
   - req.team.tier_engineer_requirement
 covered_by:
   defense_in_depth_layers: [C]
+  proof_classes: []
 ---
 
 # 状態遷移 UI FSM 実装

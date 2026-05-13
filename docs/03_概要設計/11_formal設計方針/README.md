@@ -4,7 +4,7 @@ axis: formal
 phase: architecture
 kind: index
 status: draft
-depends_on:
+depends_on: []
 covered_by:
   defense_in_depth_layers: []
   proof_classes: []

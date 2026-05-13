@@ -9,6 +9,7 @@ depends_on:
   - req.team.tier_engineer_requirement
 covered_by:
   defense_in_depth_layers: [B, C]
+  proof_classes: []
 ---
 
 # 業務マスタ CSV 一括 import

@@ -1,3 +1,15 @@
+---
+id: format.meta.frontmatter_convention
+axis: meta
+phase: format
+kind: convention
+status: draft
+depends_on: []
+covered_by:
+  defense_in_depth_layers: []
+  proof_classes: []
+---
+
 # frontmatter 規約
 
 ## 一文方針

@@ -1,3 +1,15 @@
+---
+id: format.meta.docs_xref_check
+axis: meta
+phase: format
+kind: linter
+status: draft
+depends_on: []
+covered_by:
+  defense_in_depth_layers: []
+  proof_classes: []
+---
+
 # docs cross-reference 検証規約
 
 ## 一文方針

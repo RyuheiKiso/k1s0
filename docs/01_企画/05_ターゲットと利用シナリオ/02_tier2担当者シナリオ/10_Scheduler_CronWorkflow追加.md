@@ -9,6 +9,7 @@ depends_on:
   - req.team.tier_engineer_requirement
 covered_by:
   defense_in_depth_layers: [C]
+  proof_classes: []
 ---
 
 # Scheduler / CronWorkflow 追加

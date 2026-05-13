@@ -1,3 +1,15 @@
+---
+id: format.meta.crosslink_convention
+axis: meta
+phase: format
+kind: convention
+status: draft
+depends_on: []
+covered_by:
+  defense_in_depth_layers: []
+  proof_classes: []
+---
+
 # 軸間 / フェーズ間 cross link 規約
 
 ## 一文方針
