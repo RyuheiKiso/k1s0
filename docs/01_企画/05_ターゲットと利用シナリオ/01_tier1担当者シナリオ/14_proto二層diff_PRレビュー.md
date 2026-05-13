@@ -20,6 +20,24 @@ tier1 担当者が CI の `buf breaking` / API snapshot 違反検出を受けて
 
 > 朝 10 時、tier1 担当者（シニア級）が GitHub PR ダッシュボードを開くと、`buf-breaking-lint` CI ジョブが fail した tier2 担当者の Domain Event スキーマ更新 PR が赤く点灯している。手元は WSL2 terminal + VS Code、Mattermost では tier2 担当者がレビュー依頼コメントを送っている。
 
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: buf breaking 検出を起点に External/Internal 二層判定と breaking 有無を PR 上でレビューして承認 or 差し戻しを完結させる
+
+## 現状業務での痛み
+
+- buf breaking 検出後の External/Internal 二層判定を人手で毎回実施しており、判断がレビュアーごとにブレる
+- field 番号変更や型変更が「backward 互換あり」と誤判定されて merge され、downstream の stub が壊れる
+- tier1 担当者 2 名がいずれも利用不能な on-call 不在時にレビューが詰まり、tier2 の作業がブロックされる
+- External Proto が Internal 実装詳細を露出していても気付かれずに merge されるケースがある
+
+## k1s0 でこう変わる
+
+- External/Internal 二層判定の decision tree を tier1 README に明文化し、dual reviewer が同一基準で物理 apply する
+- `buf breaking` CI gate が fail した PR は dual reviewer 2 名の approve なしに merge 不可となる
+- `api_snapshot.lock.yaml` との diff 評価で breaking reason を PR comment に明記する手順が標準化される
+- dual reviewer 不在時の代替 reviewer 依頼フロー（Mattermost `#tier1-oncall`）が明文化されている
+
 ## Trigger（発火条件）
 
 tier2 / tier3 担当者が Domain Event または API の `.proto` ファイルを変更した PR を提出し、CI の `buf breaking` チェックまたは API_snapshot 違反チェックが fail または warning を返した時。
@@ -42,6 +60,19 @@ tier2 / tier3 担当者が Domain Event または API の `.proto` ファイル�
 | 関与（tier2）| 中堅 | 本社 IT 室 | Backstage Software Catalog | proto 差分の意図説明 / 修正 PR 提出 |
 | 関与（tier3）| ジュニア | 本社 / 工場 IT 室 | Backstage Docs | 変更が自分の stub に影響するか確認 |
 
+## 個人 KPI / 達成感
+
+- `buf-breaking` CI all pass 維持（unexpected breaking change 0 件）
+- `buf-generate` CI 4 言語 stub 生成 green 率
+- dual reviewer 応答時間 ≤ 24h（on-call 不在時含む）
+- breaking change 誤 approve 0 件
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（non-breaking と判定 → approve）: 1〜2h、関与 3〜4 名（主役 + tier2 担当者 + dual reviewer 2 名）
+- 平常（breaking と判定 → 修正方針指示）: 2〜4h、関与 4〜5 名（+ tier3 担当者 1 名）
+- 失敗時（major version bump 必要・移行計画作成）: +1〜2 日、関与 5〜6 名
+
 ## 前提
 
 - `buf.yaml` と `buf.gen.yaml` が tier1 レポジトリに存在し、CI で `buf breaking` が自動実行される
@@ -60,6 +91,15 @@ tier2 / tier3 担当者が Domain Event または API の `.proto` ファイル�
 5. `api_snapshot.lock.yaml` との diff 評価: External Proto 変更が snapshot 違反の場合、breaking reason を PR comment に明記し差し戻す（breaking が意図的なら major version bump と snapshot 更新が必要）
 6. 承認 or 差し戻し: non-breaking と判定した場合は tier1 担当者 2 名の dual reviewer sign-off で approve。breaking の場合は修正方針（field 番号の保持 / optional 化 / v2 namespace 追加）を PR comment で指示する
 7. approve 後: `buf generate` の CI が自動実行され、4 言語 stub が生成されることを確認する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | `buf-breaking` fail 確認・二層判定（External/Internal）| `External Proto 変更 / 削除フィールド検出 → breaking と判定` |
+| 1h | tier1 担当者 | 後方互換性評価・External/Internal 境界逸脱確認 | `backward 非互換 / v2 namespace 追加方針 / tier2 担当者に方針通知` |
+| 2〜3h | tier1 担当者 | `api_snapshot.lock.yaml` diff 評価・PR comment で修正方針明記 | `breaking reason: field 削除 / 修正: v2 namespace 追加 or reserved 宣言` |
+| 1 日 | dual reviewer A/B | approve（non-breaking）or 差し戻し確認 | `dual sign-off 完了 / buf-generate: 4 言語 stub 生成 green` |
 
 ## 業界 9 業務との紐付け
 
@@ -85,6 +125,12 @@ tier2 / tier3 担当者が Domain Event または API の `.proto` ファイル�
 - **breaking change が意図的で major version bump が必要**: tier2 担当者と調整し、External Proto の `v2` namespace 追加または `api_snapshot.lock.yaml` の update PR を別途作成（**SLA: 48h 以内**）。downstream の tier3 / Companion への移行計画を tier2 担当者が作成する
 - **4 言語 stub 生成が一部 fail**: 生成失敗言語のコンパイルエラーを確認し、proto 定義の型互換性問題を tier2 担当者にフィードバック（**SLA: 24h 以内**）
 - **tier1 担当者 2 名がいずれも利用不能（on-call 不在）**: アーキテクト / tier1 リードに Mattermost `#tier1-oncall` で代替 reviewer 依頼（**SLA: 4h 以内**）。LLM 単独 sign-off は禁止
+
+## 失敗パターン (anti-pattern)
+
+- **新 optional フィールド追加を「breaking」と誤判定して差し戻す**: 不要な修正ラウンドが発生し tier2 担当者の作業が遅延する。backward 互換性の判定ルール（追加は non-breaking / 削除・型変更は breaking）を decision tree に明文化し、誤判定を排除する。
+- **LLM 単独 sign-off を許可**: AI の判断に依存した approve が積み重なり、重大な breaking change が見落とされる。dual reviewer（tier1 担当者 2 名の人間）の approve を merge の物理前提条件とし、AI 単独 sign-off を構造的に禁止する。
+- **breaking と判定した PR を「方針は後で決める」として長期放置**: PR が数週間 open のまま tier2 の作業がブロックされ続ける。方針決定 SLA（48h 以内）を明文化し、Backstage で自動 escalate を発火させる。
 
 ## 関連参照
 

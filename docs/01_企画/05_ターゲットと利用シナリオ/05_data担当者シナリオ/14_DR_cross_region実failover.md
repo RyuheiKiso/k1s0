@@ -20,6 +20,22 @@ region 喪失インシデント発生時に、drill（シナリオ 03）とは�
 
 > 深夜 1 時、自宅 on-call 中の data 担当者（シニア級）が PagerDuty のアラートで起床し、Mattermost `#dr-failover` で ops 担当者の DR 宣言メッセージを確認する。CloudNativePG primary cluster が 5 分以上到達不能になっていることを Perses の `cnpg-primary-role` パネルで確認する。手元にはノート PC の `kubectl` 端末と Perses、Mattermost 越しに ops 担当者・infra 担当者・tier2 担当者・security 担当者がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: DR cross-region 実 failover を RTO 5 分以内で完結させ audit trail を完全記録する
+
+## 現状業務での痛み
+
+- DR failover を実際に試していないため、手順の格差が実 failover 時に長時間停止を引き起こす
+- failover 後のデータ整合性確認手順が不明確で、復旧後にデータ不整合が発覚するリスクがある
+- failover の audit trail が残らず、規制当局への証跡提出が困難
+
+## k1s0 でこう変わる
+
+- restore_drill.lock.yaml が DR failover 手順を管理し、実 failover と drill の手順が同一品質に維持される
+- CloudNativePG の promote と Kafka MirrorMaker 2 切替が手順化され、5 分以内の RTO が継続的に確認される
+- failover 操作全体が audit hash chain に記録され、規制当局への証跡提出が即時に可能になる
+
 ## Trigger（発火条件）
 
 primary region の可用性が失われ、ops 担当者からの DR failover 宣言が発令された時（CloudNativePG の primary cluster が 5 分以上到達不能 / Kafka primary broker が quorum 喪失 / Istio の region ヘルスチェックが primary 全インスタンスで fail）。
@@ -44,6 +60,17 @@ primary region の可用性が失われ、ops 担当者からの DR failover 宣
 | 関与（infra）| シニア | 自宅 on-call / 本社 IT 室 | Argo CD / Istio / Kyverno | Kubernetes / Istio / DNS の traffic rerouting |
 | 関与（tier2）| ミドル〜シニア | リモート | Backstage TechDocs | failover 後のサービス再起動確認 |
 | 関与（security）| シニア | リモート | OpenBao 管理画面 | failover 後の OpenBao availability 確認 |
+
+## 個人 KPI / 達成感
+
+- RTO ≤ 5 分の達成を restore_drill.lock.yaml で定量確認でき、DR 対応能力の達成感を得られる
+- failover 後の audit trail 完全性を確認でき、compliance 品質の向上を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 時間/failover（on-call 対応のため工数は最小化が必須）
+- 関与人数: 5〜6 名（data・ops・infra・tier2・security 担当者 + dual reviewer）
+- コスト感: 中〜高（実インシデント対応のため工数は変動）。drill により継続的に削減される
 
 ## 前提
 
@@ -130,6 +157,11 @@ primary region の可用性が失われ、ops 担当者からの DR failover 宣
 | 4 分 | infra 担当者 | Istio VirtualService を GitOps で更新し traffic を secondary region へ rerouting。DNS 切替完了を確認 | `pod 状態確認完了 / VirtualService apply 済 / DNS secondary 切替確認` |
 | 5 分 | data 担当者 | `recovery_complete_time` を記録し RTO を算出。audit hash chain への failover 操作 emit を確認 | `RTO = X 分 / v1_cross_region_replicated restore_window 以内 / audit emit 確認済` |
 | 1 営業日 | data 担当者 | postmortem 着手（DR 宣言から failover 完了までの timeline を詳細記録） | `#postmortem postmortem PR 作成済 / Backstage TechDocs 公開予定: 3 営業日以内` |
+
+## 失敗パターン (anti-pattern)
+
+- drill なし実 failover: restore_drill.lock.yaml が green でない状態での failover は手順の欠陥が実インシデントで発覚する
+- audit trail なしの failover 完了宣言: audit emit 確認前の完了宣言は compliance 違反になる
 
 ## 関連参照
 

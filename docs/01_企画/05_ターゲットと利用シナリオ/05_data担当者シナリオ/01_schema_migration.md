@@ -20,6 +20,22 @@ tier2 の Domain Event schema / DB schema 変更を forward-only の [expand-con
 
 > 朝 9 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で tier2 担当者からの schema 変更依頼メッセージに気付く。手元には `schema_migration.lock.yaml` と sqlx-cli の画面、Mattermost 越しに tier2 担当者と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: schema migration を forward-only 規約と rollback 可能設計で安全に実施する
+
+## 現状業務での痛み
+
+- rollback 不可の migration が混入しており、本番デプロイ後に問題が発覚してもロールバックできない
+- migration 手順が属人的で、担当者によって適用順序や確認手順が異なる
+- migration 後のデータ整合性確認が手動で、問題の発見が遅れる
+
+## k1s0 でこう変わる
+
+- flyway / liquibase の forward-only 規約が CI で強制され、rollback 不可 migration の混入が merge 前に検知される
+- migration 手順が schema_migration.lock.yaml で管理され、誰が実施しても同一品質が保証される
+- migration 後の自動整合性チェックが CI に組み込まれ、データ問題が即時検知される
+
 ## Trigger（発火条件）
 
 tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が必要になった時。
@@ -40,6 +56,17 @@ tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が
 | 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs / Argo CD | dual-write / dual-read 実装・backfill 確認 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
+## 個人 KPI / 達成感
+
+- rollback 不可 migration 混入 0 件が CI で定量確認でき、migration 品質向上の達成感を得られる
+- migration 所要時間の短縮を lock.yaml で確認でき、作業効率の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日（migration 設計 2h + CI validation 確認 1h + lock.yaml 更新 1h）
+- 関与人数: 2〜3 名（data 担当者・tier2 担当者・dual reviewer）
+- コスト感: 低。CI で rollback 可能性が自動検証されるため設計コストが削減される
+
 ## 前提
 
 - forward-only migration 方針が確立済み（backward-only ロールバックは禁止）
@@ -59,6 +86,15 @@ tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が
 7. **cleanup phase**: 旧 column を DROP する。forward-only のため rollback はなく、事前の expand フェーズで対処済みとする
 8. Apicurio Registry の schema を同期更新し、compatibility check が green であることを確認する
 9. dual reviewer sign-off を得たうえで `schema_migration.lock.yaml` を更新する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | schema 変更要件を確認し forward-only migration スクリプトを作成 | `migration スクリプト作成開始 / forward-only 規約確認` |
+| 2h | data 担当者 | CI の rollback 可能性チェックと整合性テストを実行 | `CI validation green / rollback 可能性確認` |
+| 4h | data 担当者 | staging で migration を適用し整合性確認後 PR 提出 | `staging migration green / PR #NNN 提出` |
+| 1d | dual reviewer | migration スクリプトと整合性チェックを確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -85,6 +121,11 @@ tier2 の Domain Event schema または DB schema（CloudNativePG）の変更が
 - **phantom write 発生**（旧スキーマで書いた後に新スキーマ移行）: rollback 不能の data 不整合。data 担当者 + tier2 担当者 + ops 担当者で Mattermost `#data-incident` に即時集合（SLA: 15 分以内）。Backstage runbook `schema-incident-response` を参照。postmortem は 3 営業日以内。
 - **backfill 中断**: 中断箇所から resume できるよう、backfill job は idempotent に実装すること。resume できない場合は data 担当者が手動で中断行を再処理する。
 - **compatibility check red**: cleanup phase を中断し、Registry の schema 定義を修正してから再実行する。
+
+## 失敗パターン (anti-pattern)
+
+- rollback 前提の migration: DROP COLUMN を直接実行する migration は CI の forward-only check が merge 阻止する
+- staging スキップの本番直接適用: migration CI gate を迂回した本番適用は lock.yaml の tracking を破る
 
 ## 関連参照
 

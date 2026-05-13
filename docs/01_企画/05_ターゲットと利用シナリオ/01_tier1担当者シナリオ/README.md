@@ -18,6 +18,22 @@ covered_by:
 
 tier1 担当者（シニア級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。Server 系 5 系統（Gateway / Sidecar+Agent / Backend-for-Library / Control Plane / Operator+Controller）/ Library 3 抽象レベル × 17 機能カテゴリ / Companion / 主要 9 適合仕様（Bidi / 移行 Pair / 観測 / 認証 / 鍵管理 / スキーマ進化 / SLO / OSS ライフサイクル / テナント容量）を tier1 facade として維持する責務を担う。
 
+## 現状業務での痛み
+
+- L1+ OSS のライセンス変更 / EoL 到来時、移行 toolchain がなければ全業務コードの書き直しが発生する
+- AGPL/SSPL 混入を人手レビューに頼ると、CI に乗る前に供給されてしまうリスクがある
+- proto スキーマの External/Internal 二層化が不徹底だと、バージョンアップのたびに tier2/3 を巻き込む breaking change が起きる
+- supply chain (Harbor / cosign / SBOM) が断絶すると、どの image が改竄されていないか判別できない
+- Library release 判断が属人化すると、CVE 混入 OSS を含んだまま release が走る
+
+## k1s0 でこう変わる
+
+- L1+ 4 primary pair の dry-run green を年次物理維持し、OSS 移行を toolchain で自動化する
+- CI の依存導入 lint が AGPL/SSPL を物理拒否し、人手レビューの穴を塞ぐ
+- External/Internal proto 二層化をスキーマ進化適合仕様で強制し、breaking change の伝播を遮断する
+- cosign + Harbor + SBOM で supply chain の改竄不可能性を物理担保し、CVE を月次トリアージする
+- `release_gate.lock.yaml` の全 cell green を物理 prerequisite として、CVE 混入 release を構造で排除する
+
 ## 担当者プロフィール
 
 - 級: シニア
@@ -54,6 +70,8 @@ tier1 担当者は以下の責務を横断的に担う:
 | 09 | [supply_chain障害対応](09_supply_chain障害対応.md) | Harbor / cosign / SBOM / supply chain lint で障害・違反が検出された時 | イベント駆動（障害発生時） | OSSライフサイクル適合仕様 / tier1強制機構 | [緊急] |
 | 10 | [SBOM_CVE_月次トリアージ](10_SBOM_CVE_月次トリアージ.md) | 月次 SBOM review cadence 到来または重大 CVE 公開時 | 月次 + イベント駆動 | OSS ライフサイクル適合仕様 | [周期]+[緊急] |
 | 11 | [Library_release切り](11_Library_release切り.md) | Library に十分な変更が蓄積し release milestone 達成時 | 月次〜四半期 | 検証規律適合仕様 | [計画] |
+| 12 | [L1plus migration dry-run](12_L1plus_migration_dryrun.md) | 年次 L1+ dry-run cadence 到来時 | 年次 | OSSライフサイクル適合仕様 / 移行Pair適合仕様 | [周期] |
+| 13 | [L2star conformance 維持](13_L2star_conformance維持.md) | conformance test fail 検出時 | イベント駆動（月次確認） | 検証規律適合仕様 | [周期]+[緊急] |
 | 14 | [proto 二層 diff PR レビュー](14_proto二層diff_PRレビュー.md) | CI の buf breaking / API snapshot 違反検出時 | 週次〜月次 | 19 検証規律適合仕様 | [計画] |
 
 ## 重要用語早見表

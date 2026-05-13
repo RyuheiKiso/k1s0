@@ -21,6 +21,24 @@ tier2 担当者が CQRS の Read model projector を新規追加し、Domain Eve
 
 > 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#tier2-ops` で tier3 担当者からの「在庫一覧 cursor pagination 対応の read model 欲しい」という要求に気付き、GitHub PR と ClickHouse スキーマ設計を開始する。手元には Apicurio Registry UI・Testcontainers、Mattermost 越しに data 担当者と tier3 担当者がいる。
 
+## ペルソナ要約
+
+主役: tier2 担当者（中堅級）、目的: CQRS の Read model projector を新規追加して Domain Event → ClickHouse への投影を設定し tier3 の検索 / 集計 / 一覧画面のデータ要件を充足する
+
+## 現状業務での痛み
+
+- tier3 からの read model 要求があるたびに RDB 直接クエリで対応し、1 秒以上かかるクエリが本番に混入する
+- read model の SLO（p99 latency）が定義されておらず、応答時間の悪化が発覚するのが本番障害後になる
+- cross-tenant 投影のチェックが手動で属人的になり、他テナントのデータが混在するリスクがある
+- tier3 との API 仕様が口頭合意のみで contract test がなく、破壊的変更が UI を壊してから気付く
+
+## k1s0 でこう変わる
+
+- ClickHouse / read-replica / Valkey キャッシュへの投影スキーマを data 担当者と協議して設計し、パフォーマンス要件を事前担保する
+- `slo_catalog.lock.yaml` に p99 latency ≤ 100ms を登録し、SLO 未達を release 保留条件として明文化する
+- projector の tenant_id フィルタと Testcontainers integration test で cross-tenant 投影 0 件を物理証明する
+- Pact contract test で tier3 からの read model API 消費を自動検証し、破壊的変更を merge 前に検出する
+
 ## Trigger（発火条件）
 
 tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）に必要な read model がない」または「集計値（在庫総数 / 発注金額合計 等）を表示するための専用 API が必要」という要求が来た時
@@ -43,6 +61,19 @@ tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）�
 | 関与（tier3）| 中堅 | 本社 / リモート | GitHub PR / Mattermost `#tier2-ops` | read model 要件定義 / Pact contract test 作成 |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
+## 個人 KPI / 達成感
+
+- Testcontainers integration test（投影正確性 + テナント分離）all green
+- read model API p99 latency ≤ 100ms（`slo_catalog.lock.yaml` 登録済み）
+- tier3 担当者の Pact contract test all green
+- dual reviewer sign-off 完了
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（ClickHouse projector 新設）: 3〜5 日（要件定義・スキーマ設計・projector 実装・API 追加・contract test）、関与 5 名（主役 + data 担当者 + tier3 担当者 + dual reviewer 2 名）
+- 平常（既存 projector への新フィールド追加）: 1〜2 日、関与 3〜4 名
+- 失敗時（cross-tenant 投影検出・SLO 未達）: 即時 API 停止 + 再実装、関与 4〜5 名（cross-tenant 時は + security 担当者）
+
 ## 前提
 
 - [読み取りモデル方針](../../../03_概要設計/03_tier2設計方針/15_読み取りモデル方針.md)（CQRS）が確立済み
@@ -61,6 +92,17 @@ tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）�
 6. Testcontainers で integration test を実施する（投影の正確性 + テナント分離 + cursor pagination の動作）
 7. tier3 担当者に API を共有し、contract test を作成してもらう（tier3 側から tier2 の read model API を Pact でテスト）
 8. dual reviewer sign-off を取得する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier2 担当者 / tier3 担当者 | read model 要件定義（フィルタ軸 / pagination 要件）| `在庫 read model: 3 軸フィルタ + cursor pagination / ClickHouse 採用` |
+| 1 日 | tier2 担当者 / data 担当者 | ClickHouse スキーマ設計・projector 実装 | `ClickHouse テーブル設計完了 / projector 実装中` |
+| 2 日 | tier2 担当者 | Read model API 追加・tenant_id フィルタ・幂等 upsert 実装 | `API 追加完了 / tenant_id フィルタ: 適用済` |
+| 3 日 | tier2 担当者 | Testcontainers integration test・SLO 登録 | `cross-tenant: 0 件 / p99: 45ms ≤ 100ms / slo_catalog 更新` |
+| 4 日 | tier3 担当者 | Pact contract test 作成・green 確認 | `Pact contract test: green` |
+| 5 日 | dual reviewer | sign-off | `dual sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -84,6 +126,12 @@ tier3 担当者から「検索一覧 UX（cursor pagination + virtual scroll）�
 
 - **cross-tenant 投影検出（他テナントのデータが混在）**: API を即時停止し security 担当者に Mattermost `#security-incident` で即時通報（**SLA: 15 分以内**）。**postmortem 期限: 2 営業日以内**。
 - **SLO 未達（p99 > 100ms）**: ClickHouse のクエリ最適化（index / projection の追加）を data 担当者と協議し再実装（**SLO 達成まで本番 release 保留**）。
+
+## 失敗パターン (anti-pattern)
+
+- **RDB 直接クエリで read model を代替**: 複雑なフィルタ・ソート・集計クエリが 1 秒以上かかる状態で本番稼働が始まり、tier3 の UX が劣化する。ClickHouse / read-replica / Valkey キャッシュへの専用投影を read model の前提条件とし、RDB 直接クエリでの代替を設計段階で禁止する。
+- **cross-tenant 投影チェックを省略**: projector が tenant_id フィルタなしで全テナントのデータを混在投影し、security incident になる。projector 実装時に tenant_id フィルタの適用と Testcontainers cross-tenant leak test の green を merge 必須条件とする。
+- **Pact contract test なしで tier3 に API を提供**: tier2 が read model API を変更した際に tier3 の UI が壊れても merge 後に発覚する。Pact contract test を tier3 担当者が作成することを read model API 追加の完了条件として明文化する。
 
 ## 関連参照
 

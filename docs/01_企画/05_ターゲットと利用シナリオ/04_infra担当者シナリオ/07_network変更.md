@@ -8,7 +8,7 @@ depends_on:
   - arch.infra.infra_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [C, D, E]
   proof_classes: []
 ---
 
@@ -19,6 +19,22 @@ covered_by:
 L3（Calico BGP）/ L4-L7（Istio service mesh）/ Edge（Envoy Gateway）の変更を IaC 宣言 → staging 先行検証 → chaos drill → GitOps 本番適用の手順で安全に実施し、既存 HTTP/2 経路と mutual TLS を維持する。
 
 > 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Argo CD UI で staging cluster の ApplicationSet を確認中に、「Envoy Gateway HTTP/3 QUIC stable サポート公開」の upstream release note を Mattermost `#infra-ops` で共有されていることに気付く。手元には現行 Calico / Istio の IaC 設定と Kubeshark トレース画面、Mattermost 越しに ops 担当者と dual reviewer がいる。
+
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: NetworkPolicy 変更を CI で検証し、意図しない疎通を merge 前に検知する
+
+## 現状業務での痛み
+
+- NetworkPolicy の意図しない疎通を CI で検証する仕組みがなく、変更後の影響が本番デプロイで初めて判明する
+- NetworkPolicy が手書き YAML で管理され、policy 間の矛盾や抜け漏れが把握できない
+- network 変更のレビューが専門知識に依存し、レビュアーによって品質が異なる
+
+## k1s0 でこう変わる
+
+- network policy validation CI が NetworkPolicy 変更を自動テストし、意図しない疎通が merge 前に検知される
+- NetworkPolicy が GitOps で管理され、全変更が PR レビューと CI validation を経る
+- policy のカバレッジマップが CI で生成され、抜け漏れを定量的に把握できる
 
 ## Trigger（発火条件）
 
@@ -43,6 +59,17 @@ L3（Calico BGP）/ L4-L7（Istio service mesh）/ Edge（Envoy Gateway）の変
 | 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard（SLO パネル）| staging / 本番適用中の SLO 監視 / トラフィック異常 alert |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | IaC PR レビュー / Kubeshark 確認結果 sign-off |
 
+## 個人 KPI / 達成感
+
+- 意図しない疎通 0 件が CI で確認でき、network security 品質向上を定量的に得られる
+- NetworkPolicy PR の review cycle 短縮を数値で確認できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（CI validation 設定 4h + 既存 policy のテスト化 4h + GitOps 移行 2h）
+- 関与人数: 3 名（infra 担当者・security 担当者・dual reviewer）
+- コスト感: 低〜中。CI 統合後は継続コストが PR ごとの自動検証のみになる
+
 ## 前提
 
 - Calico / Istio / Envoy Gateway が GitOps（Argo CD）で管理されていること
@@ -57,6 +84,15 @@ L3（Calico BGP）/ L4-L7（Istio service mesh）/ Edge（Envoy Gateway）の変
 5. Istio mTLS policy 変更: 全 service 間通信が mutual TLS であることを Istio dashboard で確認
 6. chaos drill（Network partition 実験）で変更後も failover が機能することを確認
 7. 本番適用（Argo CD GitOps）/ dual reviewer sign-off
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | 既存 NetworkPolicy を Git に移行し network policy validation CI を設定 | `NetworkPolicy GitOps 移行 / CI validation 設定完了` |
+| 4h | infra 担当者 | 既存 policy の CI validation green を確認し疎通テストを追加 | `既存 policy green / 疎通テスト追加完了` |
+| 1d | infra 担当者 | カバレッジマップ生成を CI に追加し PR 提出 | `coverage map CI 追加 / PR #NNN 提出` |
+| 1d+2h | dual reviewer + security 担当者 | CI validation と coverage map を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -88,6 +124,11 @@ L3（Calico BGP）/ L4-L7（Istio service mesh）/ Edge（Envoy Gateway）の変
 **escalate 先**: ops 担当者 / Mattermost `#infra-incident`（トラフィック異常・drill fail 時）、security 担当者（mTLS 検証失敗時）
 **SLA**: 本番影響発生時は 30 分以内に rollback 完了
 **runbook**: Backstage runbook `network-change-rollback` を参照
+
+## 失敗パターン (anti-pattern)
+
+- kubectl apply で直接 policy 変更: GitOps を迂回した変更は drift detection が検知する
+- CI validation なしの policy 追加: validation を省略した policy 変更は network gate CI が阻止する
 
 ## 関連参照
 

@@ -20,6 +20,22 @@ covered_by:
 
 > 朝 9 時、本社 IT 室の infra 担当者（シニア級）が Kyverno UI の policy report 画面を確認中に、security 担当者から Mattermost `#infra-ops` で「hostNetwork=true を禁止する新 policy の追加要求」が届いていることに気付く。手元には infra_enforcement_catalog.lock.yaml と Kyverno ClusterPolicy の YAML テンプレート、Mattermost 越しに security 担当者と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: Kyverno admission policy を GitOps で管理し policy drift を構造的に防ぐ
+
+## 現状業務での痛み
+
+- admission policy を手書き YAML で管理して policy drift が発生し、本番 cluster に意図しない policy が適用される
+- policy 変更のレビュープロセスがなく、誤った policy 設定が production に影響を与えるまで気付かれない
+- policy のカバレッジが把握できず、どのリソースに policy が適用されているかが不明確
+
+## k1s0 でこう変わる
+
+- Kyverno policy が GitOps で管理され、全変更が PR レビュー経由で審査される
+- policy dry-run が CI で必須化され、意図しない policy 変更が merge 前に検知される
+- policy カバレッジが CI で計測され、未適用リソースが定量的に把握できる
+
 ## Trigger（発火条件）
 
 - 新しい security 要件が生じた時
@@ -41,6 +57,17 @@ covered_by:
 | 関与（security）| シニア | 本社 IT 室 / リモート | security dashboard / Mattermost `#security-ops` | 脅威モデルレビュー / policy 要件定義 / 本番適用後の violation 確認 |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | PR レビュー / infra_enforcement_catalog.lock.yaml sign-off |
 
+## 個人 KPI / 達成感
+
+- policy drift 0 件が CI で確認でき、policy 管理の精度向上を定量的に得られる
+- policy PR の review cycle 短縮を数値で確認でき、チームの生産性改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（policy GitOps 移行 4h + dry-run 設定 2h + CI 統合 4h）
+- 関与人数: 2〜3 名（infra 担当者・security 担当者・dual reviewer）
+- コスト感: 低〜中。GitOps 移行は一度の作業で完了し継続コストは PR レビューのみ
+
 ## 前提
 
 - Kyverno が cluster に導入済みで GitOps（Argo CD）で管理されていること
@@ -55,6 +82,15 @@ covered_by:
 5. Conftest でポリシーのメタ検証（policy as code の lint）
 6. 本番 cluster への GitOps 適用（Argo CD）
 7. `infra_enforcement_catalog.lock.yaml` に新 policy を追記し dual reviewer sign-off
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | 既存 Kyverno policy を Git リポジトリに移行し Argo CD に登録 | `Kyverno policy GitOps 移行完了 / Argo CD 登録` |
+| 4h | infra 担当者 | policy dry-run を CI に統合し既存 policy の dry-run green を確認 | `dry-run CI 統合完了 / 既存 policy green` |
+| 1d | infra 担当者 | policy カバレッジ計測を追加し PR 提出 | `policy coverage N% / PR #NNN 提出` |
+| 1d+2h | dual reviewer + security 担当者 | GitOps 設定と policy カバレッジを確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -85,6 +121,11 @@ covered_by:
 **escalate 先**: security 担当者 / Mattermost `#infra-incident`
 **SLA: 1h 以内（拘束）**
 **runbook**: Backstage runbook `kyverno-policy-rollback` を参照
+
+## 失敗パターン (anti-pattern)
+
+- kubectl apply で直接 policy 変更: GitOps を迂回した手動 apply は drift detection が検知する
+- dry-run なしの policy 変更: dry-run を省略した policy 変更は CI gate が阻止する
 
 ## 関連参照
 

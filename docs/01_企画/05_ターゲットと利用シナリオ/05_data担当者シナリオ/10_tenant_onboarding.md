@@ -20,6 +20,22 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 
 > 朝 10 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で tier2 担当者からの「`mfg-yamada-kk` テナント onboarding 開始依頼」メッセージを確認する。手元には CloudNativePG dashboard と OpenBao 管理画面、`tenant_onboarding.lock.yaml`、Mattermost 越しに infra 担当者・tier2 担当者・security 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: テナント onboarding 時の初期データ設定を自動化し設定ミスを排除する
+
+## 現状業務での痛み
+
+- テナント onboarding 時の初期データ設定が手動で、設定ミスにより本番でテナントが正常動作しない
+- onboarding 手順が文書管理で属人化し、担当者によって設定の質が異なる
+- 初期設定の確認が手動で、ミスの発見が遅れる
+
+## k1s0 でこう変わる
+
+- tenant_onboarding.lock.yaml が初期設定テンプレートを管理し、設定ミスが CI で自動検知される
+- onboarding 手順が Backstage TechDocs の runbook に定義され、誰が実施しても同一品質が保証される
+- onboarding 後の自動 smoke test が全テナント設定を確認し、ミスが即時検知される
+
 ## Trigger（発火条件）
 
 新規テナント契約完了後、tier2 担当者から「テナント onboarding を開始してほしい」と連絡が来た時。
@@ -44,6 +60,17 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 | 関与（security）| シニア | 本社 / リモート | OpenBao 管理画面 | KEK 確認 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
 
+## 個人 KPI / 達成感
+
+- テナント onboarding 成功率 100% を達成でき、設定品質向上の達成感を得られる
+- onboarding 所要時間の短縮を数値で確認でき、運用効率の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日/テナント（設定テンプレート確認 1h + 設定適用 2h + smoke test 1h）
+- 関与人数: 2〜3 名（data 担当者・ops 担当者・dual reviewer）
+- コスト感: 低。テンプレートと runbook が整備されているため onboarding コストが最小化される
+
 ## 前提
 
 - infra 担当者が新テナント用の Kubernetes namespace と network policy を設定済み
@@ -66,6 +93,15 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 6. cross-tenant data leak test を Testcontainers で実施する（`mfg-yamada-kk` のデータが他テナントから見えないことを確認）
 7. `tenant_onboarding.lock.yaml` に onboarding 完了記録を追加し、dual reviewer sign-off を取得する
 8. tier2 担当者に onboarding 完了を通知し、業務マスタ CSV bulk import シナリオへ連携する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | tenant_onboarding.lock.yaml でテナント設定テンプレートを確認し設定を開始 | `テナント onboarding 開始 / テンプレート確認` |
+| 2h | data 担当者 | テナント初期データを適用し CI validation を実行 | `初期データ適用完了 / CI validation green` |
+| 4h | data 担当者 | onboarding smoke test を実行し全設定を確認して PR 提出 | `smoke test green / PR #NNN 提出` |
+| 1d | dual reviewer | onboarding 設定と smoke test を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -97,6 +133,11 @@ data 担当者が新規テナント onboarding 時に PostgreSQL の RLS 設定 
 - **cross-tenant data leak が検出された**: onboarding を即時中断。security 担当者に Mattermost `#security-incident` で即時通報（**SLA: 15 分以内**）。Backstage runbook `tenant-isolation-breach` を起動。本番テナントデータを一切触らせない状態を維持。**postmortem 期限: 2 営業日以内**。
 - **初回 restore_drill fail**: onboarding を保留し restore_drill が green になるまで本番 onboarding を延期。infra 担当者と協力して CloudNativePG backup 設定を修正（**SLA: 3 営業日以内**）。
 - **DEK 生成で OpenBao が応答しない**: infra 担当者に Mattermost `#infra-incident` で即時連絡（**SLA: 30 分以内**）。OpenBao の unseal 状態を確認し復旧後に onboarding を再開。
+
+## 失敗パターン (anti-pattern)
+
+- 手動設定の本番直接適用: テンプレートを使わない手動設定は onboarding CI gate が検知する
+- smoke test 省略: 設定後の確認なしで onboarding 完了とすると後から設定ミスが発覚する
 
 ## 関連参照
 

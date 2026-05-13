@@ -20,6 +20,22 @@ covered_by:
 
 > 月末の朝 10 時、本社 IT 室の data 担当者（シニア級）が `encryption_rotation.lock.yaml` を確認し、infra 担当者から年次 KEK shamir ceremony 完了の Mattermost 通知を確認する。手元には Argo CronWorkflow の管理画面と OpenBao の vault 操作端末、Mattermost 越しに infra 担当者・tier2 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: KEK / DEK rotation を定期 cadence で実施し長期残存 KEK によるリスクを排除する
+
+## 現状業務での痛み
+
+- rotation 未実施の KEK が長期残存し、鍵漏洩時の影響範囲が時間とともに拡大する
+- rotation スケジュールが文書管理で属人化し、担当者が変わると rotation が長期間未実施になる
+- rotation 後のデータ再暗号化が手動で、rotation 完了の確認に時間がかかる
+
+## k1s0 でこう変わる
+
+- rotation.lock.yaml が rotation スケジュールを管理し、期限超過が CI で自動検知される
+- OpenBao の auto-rotation が KEK の定期更新を自動実行し、属人化を排除する
+- rotation 後の DEK 再暗号化が自動実行され、rotation 完了の CI validation で全データの再暗号化を確認できる
+
 ## Trigger（発火条件）
 
 KEK / DEK の定期ローテーション、または暗号アルゴリズム（AES-256-GCM から post-quantum への移行候補）の評価が必要になった時。
@@ -42,6 +58,17 @@ KEK / DEK の定期ローテーション、または暗号アルゴリズム（A
 | 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | re-encrypted data の integration test 実行 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
+## 個人 KPI / 達成感
+
+- KEK 残存期間が rotation.lock.yaml で定量管理され、リスク削減の達成感を継続的に得られる
+- rotation 完了率 100% の達成を lock.yaml で確認でき、鍵管理品質向上を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日/rotation（OpenBao 設定確認 1h + rotation 実施 2h + 再暗号化確認 1h）
+- 関与人数: 3 名（data 担当者・security 担当者・dual reviewer）
+- コスト感: 低。OpenBao auto-rotation により継続運用コストが監視のみになる
+
 ## 前提
 
 - 3 層暗号化が確立済み: in-transit（mTLS）/ at-rest（AES-256-GCM L1+）/ application-layer envelope
@@ -58,6 +85,15 @@ KEK / DEK の定期ローテーション、または暗号アルゴリズム（A
 4. **旧 DEK と旧 envelope の purge**: re-encryption が 100% 完了したことを確認してから、古い DEK を OpenBao から revoke する
 5. 動作確認: application layer で re-encrypted data が正常に復号できることを tier2 integration test で確認する
 6. dual reviewer sign-off を得たうえで `encryption_rotation.lock.yaml` を完了状態に更新する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | rotation.lock.yaml で rotation cadence 到来を確認し OpenBao rotation を開始 | `KEK rotation 開始 / 対象: kek-XXXXXXXX / T+0` |
+| 30分 | data 担当者 | 新 KEK が生成されたことを OpenBao で確認し DEK 再暗号化を開始 | `新 KEK 生成確認 / DEK 再暗号化開始` |
+| 2h | data 担当者 | 全 DEK 再暗号化完了を CI validation で確認し lock.yaml に記録 | `再暗号化完了 / lock.yaml rotation 記録更新` |
+| 1d | dual reviewer + security 担当者 | rotation 結果と lock.yaml を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -87,6 +123,11 @@ KEK / DEK の定期ローテーション、または暗号アルゴリズム（A
 - **KEK rotation 未完了での DEK rotation 開始**: infra 担当者に KEK shamir ceremony の完了を確認してから再開する。誤って開始した場合は rotation を中止する
 - **re-encryption batch job 途中失敗**: 部分的に新 DEK で書き直されたデータと旧 DEK のデータが混在する危険。data 担当者が即座に batch job を停止し、infra 担当者と ops 担当者に Mattermost `#data-incident` で報告（**SLA: 15 分以内**）。Backstage runbook `dek-rotation-incident` を参照。**postmortem 期限: 2 営業日以内**。
 - **KEK revoke 後に復号不能な record が見つかった**: security 担当者に Mattermost `#security-incident` で即時報告（**SLA: 30 分以内**）。
+
+## 失敗パターン (anti-pattern)
+
+- rotation スケジュールの無期限延期: lock.yaml の cadence 超過は CI が ship blocker として検知する
+- DEK 再暗号化確認の省略: rotation 後に再暗号化 CI validation を省略すると古い KEK で暗号化されたデータが残存する
 
 ## 関連参照
 

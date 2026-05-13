@@ -69,6 +69,8 @@ RELEASE_GATE_CELLS = [
      "source_lock_artifact": "axis_registry.lock.yaml"},
     {"axis_id": "meta", "cell_id": "meta.docs_lint_green",
      "source_lock_artifact": "docs_lint.lock.yaml"},
+    {"axis_id": "meta", "cell_id": "meta.repository_layout_integrity",
+     "source_lock_artifact": "repository_layout.lock.yaml"},
     {"axis_id": "meta", "cell_id": "meta.release_gate_dual_signoff_complete",
      "source_lock_artifact": "release_gate.lock.yaml"},
 ]

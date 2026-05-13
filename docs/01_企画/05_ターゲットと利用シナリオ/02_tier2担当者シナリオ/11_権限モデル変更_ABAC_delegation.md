@@ -22,6 +22,24 @@ tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Dele
 
 > 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#tier2-ops` で「設備管理リーダー」ロール新設の申請承認通知を受け取り、Keycloak 管理コンソールと GitHub PR を開く。手元には `keycloak/realm-export.json`・OPA policy ファイル、Mattermost 越しに security 担当者と業務管理者がいる。
 
+## ペルソナ要約
+
+主役: tier2 担当者（中堅級）、目的: Keycloak ABAC 権限ルールの追加・変更および Delegation を最小権限原則と業務ロールの整合を維持しながら実施する
+
+## 現状業務での痛み
+
+- 新業務ロールの権限設計が業務担当者の要求を全部 OK にしがちで、必要以上の権限が付与されてしまう
+- Keycloak の設定が GitOps 管理されておらず、手動変更が追跡されないまま蓄積する
+- OPA policy の deny-by-default が崩れ、許可リスト外の API にアクセスできる状態が見落とされる
+- staging での業務管理者確認がないまま本番にロールが適用され、想定外の権限が本番ユーザーに付与される
+
+## k1s0 でこう変わる
+
+- Keycloak Realm / Client 設定を GitOps 管理（`keycloak/realm-export.json`）し、変更が全て PR に記録される
+- OPA policy を deny-by-default 許可リスト形式で宣言し、許可外 API へのアクセスを物理拒否する
+- Testcontainers + Keycloak TestContainer で許可 API = 2xx / 禁止 API = 403 の自動検証を merge 条件とする
+- security 担当者レビューと業務管理者 staging 確認を merge の物理前提条件として明文化する
+
 ## Trigger（発火条件）
 
 新業務ロールの追加 / 既存ロールの権限範囲変更 / 業務担当者からの権限追加申請が承認された時
@@ -42,6 +60,19 @@ tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Dele
 | 主役（tier2）| 中堅 | 本社 IT 室 | Mattermost `#tier2-ops` / GitHub PR | Keycloak ABAC ルール追加 / OPA policy 更新 / Testcontainers 認可確認 |
 | 関与（security）| シニア | 本社 / リモート | GitHub PR / Mattermost `#security-review` | 権限設計 review / 最小権限原則確認 / sign-off |
 | 関与（業務管理者）| — | 本社 | Mattermost `#tier2-ops` | ロール定義確認 / staging 動作承認 |
+
+## 個人 KPI / 達成感
+
+- Testcontainers 認可テスト（許可 API = 2xx / 禁止 API = 403）all green
+- security 担当者 review 完了・sign-off 取得
+- 業務管理者が staging 環境での動作確認済み
+- dual reviewer（tier2 + security）sign-off 完了
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（新ロール追加）: 1〜2 日（要件精査・Keycloak 設定・OPA policy・Testcontainers 確認・staging 確認）、関与 4〜5 名（主役 + security 担当者 + 業務管理者 + dual reviewer 2 名）
+- 平常（既存ロール権限変更）: 半日〜1 日、関与 3〜4 名
+- 失敗時（権限過剰・Delegation 設定ミス）: 即時 rollback + postmortem + security incident 対応、関与 5 名以上
 
 ## 前提
 
@@ -66,6 +97,17 @@ tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Dele
 6. dual reviewer sign-off を取得して merge する
 7. staging 環境で業務管理者に実際の動作を確認してもらい、承認を得る
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier2 担当者 | 権限要件精査・最小権限原則確認 | `設備管理リーダー 権限精査: read-write + 緊急停止 API のみ` |
+| 1 日 | tier2 担当者 | Keycloak Realm 設定・OPA policy 更新 | `realm-export.json 更新 / OPA policy: deny-by-default 維持` |
+| 1 日 | security 担当者 | Mattermost `#security-review` で PR レビュー | `security review 完了 / 過剰権限なし` |
+| 1.5 日 | tier2 担当者 | Testcontainers 認可テスト（許可 2xx / 禁止 403）| `認可テスト: all green` |
+| 2 日 | 業務管理者 | staging 環境での動作確認 | `staging 動作確認 OK / 業務管理者承認済` |
+| 2.5 日 | dual reviewer | sign-off | `dual sign-off 完了` |
+
 ## 業界 9 業務との紐付け
 
 - **FA 生産指示・設備操作**: 「設備管理リーダー」ロール追加により、設備マスタ read-write と緊急停止 API の呼び出し権限が最小権限で付与される。
@@ -89,6 +131,12 @@ tier2 担当者が Keycloak ABAC 権限ルールの追加・変更および Dele
 
 - **テストで禁止 API が 2xx を返した（権限過剰）**: 変更を即時 rollback し、security 担当者に Mattermost `#security-incident` で通報（**SLA: 30 分以内**）。**postmortem 期限: 2 営業日以内**。
 - **Delegation 設定で本来許可されていない API にアクセスできた**: security incident として security 担当者と ops 担当者に即時通報（**SLA: 15 分以内**）。
+
+## 失敗パターン (anti-pattern)
+
+- **業務担当者の要求をそのまま権限設計に反映**: 必要以上の権限が付与されて最小権限原則が崩れ、後の security audit で大規模な権限整理が必要になる。権限設計を最小権限原則に照らして必ず精査し、不必要な権限の削除を security 担当者と協議してから実装する。
+- **Keycloak 設定を GitOps 外で手動変更**: 変更記録が残らず再現性がなくなり、設定のドリフトが蓄積する。`keycloak/realm-export.json` の GitOps 管理を通じた PR ベースの変更を唯一の正規経路とし、コンソールからの直接変更を禁止する。
+- **staging での動作確認なしに本番適用**: 業務管理者が想定していた権限と実際の設定が異なり、本番で想定外のアクセス拒否または過剰アクセスが発生する。staging での業務管理者確認を merge の物理前提条件として明文化する。
 
 ## 関連参照
 

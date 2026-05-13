@@ -20,6 +20,22 @@ data 担当者が CloudNativePG 上の PostgreSQL minor version upgrade（例: 1
 
 > 朝 9 時、本社 IT 室の data 担当者（シニア級）が Perses の CloudNativePG dashboard を確認し、infra 担当者から届いていた「CVSS 7.5 CVE の security patch（PostgreSQL 15.6 → 15.8）適用依頼」Mattermost メッセージに気付く。手元には CloudNativePG cluster manifest と `cluster_inventory.lock.yaml`、Mattermost 越しに infra 担当者・tier2 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: PostgreSQL マイナーアップグレードを CloudNativePG rolling upgrade で無停止実施する
+
+## 現状業務での痛み
+
+- PostgreSQL マイナーアップグレードで手動ダウンタイムが発生し、業務影響が出るたびに事前調整が必要
+- アップグレード手順が文書管理で属人化し、担当者ごとに手順の解釈に差が生じる
+- アップグレード後の動作確認が手動で、問題の発見が遅れる
+
+## k1s0 でこう変わる
+
+- CloudNativePG の rolling upgrade が自動実行され、マイナーアップグレードが無停止で完了する
+- pg_upgrade.lock.yaml が upgrade 手順と結果を管理し、誰が実施しても同一品質が保証される
+- upgrade 後の自動整合性チェックが CI に組み込まれ、問題が即時検知される
+
 ## Trigger（発火条件）
 
 PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor version のサポートを開始した時 / security patch が必要になった時。
@@ -41,6 +57,17 @@ PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor 
 | 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | CloudNativePG operator 更新・k8s 側設定変更 |
 | 関与（tier2）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | upgrade 後の migration 動作確認・integration test 実行 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 変更 PR sign-off（data 担当者 2 名、author 不可） |
+
+## 個人 KPI / 達成感
+
+- マイナーアップグレードのダウンタイム 0 分を達成でき、無停止運用の達成感を得られる
+- upgrade 後の SLO 維持率を Perses で定量確認でき、upgrade 品質の向上を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日（upgrade 計画確認 1h + rolling upgrade 実行 2h + 動作確認 1h）
+- 関与人数: 2〜3 名（data 担当者・ops 担当者・dual reviewer）
+- コスト感: 低。CloudNativePG が rolling upgrade を自動管理するため手動作業が最小化される
 
 ## 前提
 
@@ -64,6 +91,15 @@ PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor 
    - `v1_zone_replicated` 以上の class は upgrade 中も replicas が利用可能な状態を維持する
    - upgrade 完了を `cluster_inventory.lock.yaml` と `preservation_class.lock.yaml` に記録する
 6. dual reviewer sign-off を取得する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | pg_upgrade.lock.yaml で upgrade 対象 version を確認し rolling upgrade を開始 | `PostgreSQL rolling upgrade 開始 / 対象 version 確認` |
+| 15分 | data 担当者 | CloudNativePG が各 pod を順次 upgrade し SLO 維持を Perses で確認 | `rolling upgrade 進行中 / SLO 維持確認` |
+| 30分 | data 担当者 | 全 pod upgrade 完了を確認し整合性チェックを実行 | `upgrade 完了 / 整合性チェック green` |
+| 1d | dual reviewer | upgrade 結果と lock.yaml を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -92,6 +128,11 @@ PostgreSQL minor version の EOL 到来 / CloudNativePG が新 PostgreSQL minor 
 - **replication lag が upgrade 中に SLI 閾値を超過**: 超過が 1 分以上継続する場合は upgrade を中断し CloudNativePG の rollback（旧 version に戻す）を実施。ops 担当者に Mattermost `#data-incident` で通報（**SLA: 5 分以内**）。**postmortem 期限: 3 営業日以内**。
 - **upgrade 後に migration が fail する**: tier2 担当者に Mattermost `#data-incident` で即時連絡（**SLA: 15 分以内**）。本番 upgrade を中止し staging で原因調査。migration の forward-only 原則により rollback は不可のため、修正 migration を作成（**SLA: 48h 以内**に修正 PR）。
 - **restore_drill が upgrade 後に fail**: 1.0.0 ship blocker 認定。ops 担当者に Mattermost `#data-drill-fail` で通報（**SLA: 30 分以内**）。Backstage ticket `pg-upgrade-drill-fail-<version>` を起票し、次 drill までに CloudNativePG backup 設定を修正（**SLA: 5 営業日以内**）。
+
+## 失敗パターン (anti-pattern)
+
+- 手動停止 upgrade: CloudNativePG rolling upgrade を使わず手動でクラスタを停止するとダウンタイムが発生する
+- upgrade 後確認省略: 整合性チェックなしで upgrade を完了とすると潜在問題が後から発覚する
 
 ## 関連参照
 

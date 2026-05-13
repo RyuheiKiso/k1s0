@@ -8,7 +8,7 @@ depends_on:
   - arch.tier1.tier1_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 CI の公開 API snapshot 差分検査 fail を起点に、意図的変更と regression を即時に判別し、regression はrevert・意図的変更は SemVer 方針決定と backward 互換確認を経て `public_api_snapshot.lock.yaml` を更新し dual reviewer sign-off を取得する。
 
 > 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、CI の公開 API snapshot 差分検査が fail している PR が上がっていることに気付く。手元には `public_api_snapshot.lock.yaml` と各言語の CI ログ、Mattermost 越しに dual reviewer 2 名と変更 PR 作成者（tier2 担当者）がいる。
+
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: CI の公開 API snapshot 差分検査 fail を起点に regression と意図的変更を即時判別して API 品質ゲートを守る
+
+## 現状業務での痛み
+
+- API の breaking change を PR review の人手確認のみに依存し、regression が後から発見されて下流 tier2/tier3 に影響が広がる
+- 4 言語間で SemVer 方針が一致せず、言語ごとに異なるバージョンが発行されて整合性が失われる
+- visibility 設定（pub/internal/export）の漏洩が気付かれないまま public API になり、後から回収が困難になる
+- snapshot ファイルの更新が手動で属人的になり、最新状態の反映が遅れる
+
+## k1s0 でこう変わる
+
+- CI の公開 API snapshot 差分検査が全 PR に自動実行され、意図外 API 変更を merge 前に物理検出する
+- regression（意図外変更）と意図的変更の判定フローが明文化され、対応方針のブレをなくす
+- 4 言語間で最も厳しい方針（最大 bump）に統一する規則により、言語ごとの独立 versioning を構造的に排除する
+- `cargo-semver-checks` / `apidiff` / `api-extractor` が各言語の SemVer 互換性を自動検証し、人手依存を排除する
 
 ## Trigger（発火条件）
 
@@ -40,6 +58,19 @@ CI の公開 API snapshot 差分検査が fail した時（意図しない API �
 | 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | SemVer 方針確認・sign-off |
 | 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | SemVer 方針確認・sign-off |
 | 関与（PR 作成者 / tier2）| 中堅 | 本社 IT 室 | Backstage Catalog | 変更意図の説明・revert 対応 |
+
+## 個人 KPI / 達成感
+
+- CI の公開 API snapshot 差分検査 green 率（意図した変更のみを反映）
+- regression の root cause 特定時間 ≤ 8h
+- 4 言語間 SemVer 方針の統一維持（言語ごとの独立 versioning 0 件）
+- dual reviewer 応答時間 ≤ 24h
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（regression 対処）: 0.5〜1 日（fail 分析・revert・root cause 特定・強制機構強化）、関与 3〜4 名
+- 平常（意図的変更・minor bump）: 1 日（SemVer 方針決定・backward 互換確認・snapshot 更新）、関与 3〜4 名
+- 失敗時（major bump・下流影響広範）: 2〜3 日、関与 5〜6 名（+ 影響 tier2/tier3 担当者）
 
 ## 前提
 
@@ -80,6 +111,15 @@ CI の公開 API snapshot 差分検査が fail した時（意図しない API �
 
 6. **`public_api_snapshot.lock.yaml` 更新と dual reviewer sign-off**: 確定した API surface を `public_api_snapshot.lock.yaml` に反映し、dual reviewer（tier1 2 名）が sign-off する。
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | snapshot 差分 fail レポート分析・言語 / カテゴリ特定 | `snapshot 差分 fail: Go exported symbol 意図外追加 / regression 判定` |
+| 1h | tier1 担当者 | regression → revert / 意図的 → SemVer 方針決定 | `regression 確定 / revert PR 作成 / root cause: Go pub スコープ漏洩` |
+| 2〜4h | tier1 担当者 | backward 互換確認・snapshot 更新・強制機構強化 | `Testcontainers 互換確認 green / visibility linter 強化 PR` |
+| 1 日 | dual reviewer A/B | sign-off | `dual sign-off 完了 / snapshot CI green` |
+
 ## 業界 9 業務との紐付け
 
 全 9 業務に共通基盤として影響（tier1 Library / Server は全業務の通信・認証・観測の基盤を担うため）。特に影響度が高い 2 業務:
@@ -114,6 +154,12 @@ CI の公開 API snapshot 差分検査が fail した時（意図しない API �
 - **regression の root cause 特定困難**: 変更 PR の diff を言語ごとに精査し、visibility 設定の変更を探す。tier1 内でのペアレビューを実施する。escalate 先: tier1 担当者 dual reviewer（SLA: 8 時間以内に root cause 特定）。
 - **backward 非互換変更の下流影響が広範**: major bump を決定し、旧バージョン互換 API を deprecation 期間（最低 1 マイナーバージョン）維持する。tier2 / tier3 担当者に移行計画を通知する。escalate 先: tier1 担当者 dual reviewer + 影響 tier2/tier3 担当者（SLA: 24 時間以内に移行計画通知）。
 - **4 言語間で SemVer 方針が一致しない**: 最も厳しい方針（最大 bump）に統一する。言語ごとの independent versioning は 1.0.0 では採用しない。escalate 先: tier1 担当者 dual reviewer（SLA: 5 営業日以内に方針統一）。
+
+## 失敗パターン (anti-pattern)
+
+- **snapshot 不一致のまま「今回だけ許可」で merge**: snapshot ファイルが現実と乖離し始め、以降の差分検査が意味をなさなくなる。snapshot が一致するまで CI が merge を物理阻止する運用を維持し、例外を認めない。
+- **4 言語のうち 1 言語だけ先行して SemVer bump**: 言語ごとの independent versioning が始まり、整合管理コストが指数的に増大する。最も厳しい方針（最大 bump）に全言語を統一する規則を適合仕様に明文化する。
+- **regression の root cause を特定せずに revert のみで対処**: 同種の regression が数週間後に再発する。root cause 特定と visibility linter の強化を revert とセットで実施することを必須にする。
 
 ## 関連参照
 

@@ -20,6 +20,22 @@ infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + 
 
 > 深夜 3 時、自宅 on-call の infra 担当者（シニア級）が Mattermost `#infra-alert` の push 通知で「control-plane-node-02 NotReady / etcd quorum 2/3」に気付く。手元にはラップトップの Perses dashboard と cluster_inventory.lock.yaml、Mattermost 越しに ops 担当者がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: node lifecycle 管理（drain / cordon / maintenance）を GitOps runbook で安全に実施する
+
+## 現状業務での痛み
+
+- node drain 手順が文書のみで管理され、緊急時に正しい手順で実行できるか不明確
+- drain 中の pod eviction が正しく行われているかリアルタイムで確認できない
+- maintenance 完了後の node 復帰確認が手動で、復帰漏れが SLO 影響を起こす
+
+## k1s0 でこう変わる
+
+- node lifecycle の runbook が Backstage TechDocs に定義され、手順が常に最新の状態に維持される
+- Perses が drain 中の pod eviction 状況をリアルタイム表示し、問題を即時検知できる
+- node 復帰後の health check が CI で自動実行され、復帰確認の抜け漏れがなくなる
+
 ## Trigger（発火条件）
 
 - node pool の capacity が上限（85% 以上）に近づいた時
@@ -43,6 +59,17 @@ infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + 
 | 主役（infra）| シニア | 自宅 on-call / 本社 IT 室 | Mattermost `#infra-alert` / Perses dashboard | NotReady 検知 / cordon + drain / OpenTofu replace / etcd quorum 回復確認 |
 | 関与（ops）| シニア | 自宅 on-call / 本社 IT 室 | Perses dashboard（SLO パネル）| node 故障中 SLO 監視 / workload 影響 alert |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | IaC PR レビュー / cluster_inventory.lock.yaml sign-off |
+
+## 個人 KPI / 達成感
+
+- node drain の mean time to complete が閾値以内であることを Perses で確認でき、運用効率の達成感を得られる
+- drain 中の SLO 違反 0 件を達成でき、安全な node 管理の品質を定量確認できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日（runbook 更新 2h + Perses 監視設定 2h + health check CI 設定 2h）
+- 関与人数: 2〜3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 低。runbook 整備が主な作業で自動化後は手動作業が最小化される
 
 ## 前提
 
@@ -71,6 +98,15 @@ infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + 
 6. 新 node が `Ready` になり etcd quorum が 3/3 に回復することを確認する
 7. `cluster_inventory.lock.yaml` を更新し、dual reviewer sign-off を取得する
 8. 故障原因を調査し、再発防止策を postmortem に記録する（**postmortem 期限: 2 営業日以内**）
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | node_lifecycle.lock.yaml で対象 node を確認し cordon を実行 | `@infra node cordon 実行 / 対象: node-X / T+0` |
+| 10分 | infra 担当者 | kubectl drain で pod eviction を開始し Perses で進捗を確認 | `drain 開始 / eviction 進捗 N/M pods` |
+| 30分 | infra 担当者 | 全 pod eviction 完了を確認し maintenance 作業を開始 | `drain 完了 / maintenance 開始` |
+| 2h | infra 担当者 | maintenance 完了 → uncordon → health check green を確認し lock.yaml を更新 | `node 復帰 / health check green / lock.yaml 更新` |
 
 ## 業界 9 業務との紐付け
 
@@ -104,6 +140,11 @@ infra 担当者が k8s node の追加（pool 拡張）/ 故障対応（cordon + 
 - **etcd quorum が過半数割れ（control plane 2 台以上 NotReady）**: ops 担当者 + security 担当者に Mattermost `#infra-incident` で即時通報（**SLA: 5 分以内**）。Backstage runbook `etcd-quorum-recovery` を起動。1.0.0 ship blocker 認定。**postmortem 期限: 2 営業日以内**。
 - **drain 中に PDB（PodDisruptionBudget）が drain を阻止**: PDB の設定を確認し、disruption 許容数を一時的に増やすか workload を手動でスケールダウンする。tier2 担当者に影響業務を Mattermost `#tier2-incident` で通知（**SLA: 1h 以内**）。
 - **IaC apply 後に node が Ready にならない**: OpenTofu rollback を実施し ops 担当者 + infra 担当者で Mattermost `#infra-incident` に集合（**SLA: 30 分以内**）。
+
+## 失敗パターン (anti-pattern)
+
+- PDB 無視の強制 drain: --force フラグで PDB を無視した drain は SLO 違反を引き起こす
+- drain 後の lock.yaml 未更新: 操作記録がないと次回の maintenance 時に前回状態が不明になる
 
 ## 関連参照
 

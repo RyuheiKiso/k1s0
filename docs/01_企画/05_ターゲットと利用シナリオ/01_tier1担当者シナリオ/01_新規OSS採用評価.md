@@ -8,7 +8,7 @@ depends_on:
   - arch.tier1.tier1_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 新規 OSS を 3 抽象レベルのいずれに割付けるかを評価し、AGPL/SSPL 系を物理拒否しつつ、dual reviewer sign-off + CI green + Harbor mirror 確立を merge 条件として tier1 facade の品質を守る。
 
 > 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、コミュニティから「Kafka から Redpanda への移行コスト評価」提案が上がっていることに気付く。手元には Backstage Catalog と buf CI ダッシュボード、Mattermost 越しに dual reviewer の tier1 担当者 2 名がいる。
+
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: 新規 OSS の 3 抽象レベル割付を確定し AGPL/SSPL 混入と Harbor mirror 未整備を物理拒否する
+
+## 現状業務での痛み
+
+- AGPL / SSPL 系 OSS の混入を PR review の後になって気付き、既にコードベースへの汚染が進んでいる
+- L1+ 採用時に移行計画 draft なしで採用が承認され、後工程で migration toolchain 不在が発覚する
+- Harbor mirror が整備されないまま upstream registry に直接依存し、サプライチェーンに空白地帯が残る
+- 採用評価の判断基準が担当者ごとにブレ、ライセンス / API 安定性 / コミュニティ存続性の評価が属人化している
+
+## k1s0 でこう変わる
+
+- CI の依存導入 lint が AGPL/SSPL 系 OSS を物理拒否し、merge 段階で混入を完全遮断する
+- L1+ 採用 PR に移行 toolchain draft が添付されていない場合は dual reviewer sign-off を物理拒否し、計画の存在を担保する
+- Harbor mirror 登録が supply chain lint の green 条件となり、upstream 直依存の空白地帯をなくす
+- 3 抽象レベル（L1+/L2*/L3）の判定基準が `04_提供機能カテゴリ.md` に明文化され、評価の属人化を排除する
 
 ## Trigger（発火条件）
 
@@ -39,6 +57,19 @@ tier1 担当者またはコミュニティから「現行 L1+ OSS の移行 or �
 | 主役（tier1）| シニア | 本社 IT 室 | GitHub PR list | OSS 評価・ライセンス判定・Harbor mirror 登録・PR 提出 |
 | 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | OSS 評価レビュー・sign-off |
 | 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | OSS 評価レビュー・sign-off |
+
+## 個人 KPI / 達成感
+
+- AGPL/SSPL 混入ゼロ（CI lint green 維持）
+- L1+ 採用時の移行 toolchain draft 添付率 100%
+- Harbor mirror 登録完了率（新 OSS 採用 PR の supply chain lint green 率）
+- dual reviewer 応答時間 ≤ 24h
+
+## 工数 / 関与人数 / コスト感
+
+- 初回: 1〜2 日（ライセンス調査・コミュニティ評価・移行 toolchain draft・Harbor mirror 登録・CI 更新）、関与 3 名（主役 + dual reviewer 2 名）
+- 平常（L2*/L3 採用）: 0.5 日（判定・PR 作成・sign-off）、関与 3 名
+- 失敗時（AGPL 混入発覚・Harbor 障害）: +0.5〜1 日、関与 4〜5 名（+ ops 担当者）
 
 ## 前提
 
@@ -71,6 +102,15 @@ tier1 担当者またはコミュニティから「現行 L1+ OSS の移行 or �
 6. **Harbor mirror 登録**: OSS image / package を Harbor mirror に登録し supply chain mirror 経路を確立する。cosign 署名と SBOM 生成も合わせて実施する。
 
 7. **CI 更新とグリーン確認**: 依存導入 lint に新 OSS を追加し CI green を確認する。4 言語の Library コード生成が全て通ることを検証する。
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | 採用提案 issue 確認・3 抽象レベル判定開始 | `#tier1-review OSS 採用評価開始: Redpanda / L1+ 判定中` |
+| 0.5 日 | tier1 担当者 | ライセンス・API 安定性・コミュニティ評価完了 | `ライセンス評価完了: Apache 2.0 / L1+ 採用方針で draft 作成中` |
+| 1 日 | tier1 担当者 | 移行 toolchain draft・PR 作成・Harbor mirror 登録依頼 | `PR #123 作成済 / Harbor mirror 登録: ops へ依頼 T+1` |
+| 2 日 | dual reviewer A/B | sign-off・CI green 確認 | `dual sign-off 完了 / CI green / Harbor mirror 登録済` |
 
 ## 業界 9 業務との紐付け
 
@@ -105,6 +145,12 @@ tier1 担当者またはコミュニティから「現行 L1+ OSS の移行 or �
 - **L1+ 移行 toolchain 計画未提出**: 採用 PR に移行 toolchain draft が添付されていない場合、dual reviewer が sign-off を拒否し merge 不可。escalate 先: tier1 担当者 dual reviewer（SLA: 24 時間以内に draft を提出）。
 - **Harbor mirror 登録未完了**: supply chain lint が fail し merge 阻止。mirror 経路確立まで PR は open のまま。escalate 先: ops 担当者へ Mattermost `#tier1-incident` で連絡（SLA: 4 時間以内に mirror 経路確立）。Backstage runbook `harbor-mirror-registration` を参照。
 - **Testcontainers conformance test fail（L2*）**: 2 実装のうち 1 つでも fail した場合、merge 不可。OSS の選定を見直す。escalate 先: tier1 担当者 dual reviewer（SLA: 48 時間以内に代替 OSS 選定）。
+
+## 失敗パターン (anti-pattern)
+
+- **ライセンスを後から確認**: PR がレビューを通過した後に AGPL/SSPL を発見し、大規模 revert が必要になる。ライセンス確認は評価フローの最初のステップとし、CI lint でも二重防衛する。
+- **L1+ を移行 toolchain なしで採用**: 採用時に「後で計画する」とした結果、EOL 到来時に移行手順が存在せず業務コード全書き直しになる。移行 toolchain draft は採用 PR の必須添付事項とする。
+- **Harbor mirror 登録を後回し**: upstream registry への直接依存のまま運用が始まり、supply chain lint が後から fail し続ける。Harbor mirror 登録を CI green 条件に含めることで「登録なし = merge 不可」を強制する。
 
 ## 関連参照
 

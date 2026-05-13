@@ -1,3 +1,15 @@
+---
+id: format.meta.numbering_convention
+axis: meta
+phase: format
+kind: convention
+status: draft
+depends_on: []
+covered_by:
+  defense_in_depth_layers: []
+  proof_classes: []
+---
+
 # 番号体系規約
 
 ## 一文方針

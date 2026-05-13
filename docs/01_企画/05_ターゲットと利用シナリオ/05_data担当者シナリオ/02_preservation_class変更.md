@@ -8,7 +8,7 @@ depends_on:
   - arch.data.data_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [B, C, D]
   proof_classes: []
 ---
 
@@ -19,6 +19,22 @@ covered_by:
 業務要件の変更に起因する [5 preservation_class](../../../03_概要設計/06_data設計方針/README.md) の昇降格を IaC 宣言 → [restore_drill AND-gate](../../../03_概要設計/06_data設計方針/07_復旧訓練方針.md) → dual reviewer sign-off の順で完結させ、クラス変更が実績のないまま本番に反映されないことを保証する。
 
 > 朝 9 時、本社 IT 室の data 担当者（シニア級）が `preservation_class.lock.yaml` を開き、規制対応チームから前日に届いていた「医薬品 GMP データの RPO 厳格化」依頼メールに気付く。手元には OpenTofu の IaC ファイルと CloudNativePG cluster manifest、Mattermost 越しに infra 担当者と dual reviewer がいる。
+
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: preservation_class 変更を全データストアに漏れなく反映し retention policy の抜け漏れを排除する
+
+## 現状業務での痛み
+
+- preservation_class 変更が手作業で各データストアに反映されており、抜け漏れが監査指摘になる
+- 変更対象のデータストア一覧が文書管理で、網羅性の確認に時間がかかる
+- 変更後の確認が手動で、適用漏れの発見が遅れる
+
+## k1s0 でこう変わる
+
+- preservation_class.lock.yaml が全データストアの class 設定を管理し、変更の抜け漏れが CI で自動検知される
+- 変更対象一覧が lock.yaml から自動生成されるため、網羅性確認の手間がなくなる
+- 変更後の CI validation が全ストアの class 設定を自動確認し、適用漏れを即時検知する
 
 ## Trigger（発火条件）
 
@@ -40,6 +56,17 @@ covered_by:
 | 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | IaC / network topology 変更・replication 設定更新 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
+## 個人 KPI / 達成感
+
+- preservation_class 設定の CI coverage 100% が定量確認でき、retention 管理の完全性を実感できる
+- 変更作業の所要時間短縮を数値で確認でき、運用効率の改善を達成感として得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日（lock.yaml 更新 2h + CI validation 確認 1h + 全ストア反映確認 2h）
+- 関与人数: 2〜3 名（data 担当者・compliance 担当者・dual reviewer）
+- コスト感: 低。lock.yaml が変更対象を自動列挙するため手動確認コストが最小化される
+
 ## 前提
 
 - 5 preservation_class が定義済み
@@ -60,6 +87,15 @@ covered_by:
 4. 新 class の restore_drill を staging 環境で実施する。drill cadence は昇格後の新 class のサイクルに合わせる
 5. **AND-gate**: restore_drill が green であることを確認するまで、本番の preservation_class 変更を保留する
 6. AND-gate 通過後、`preservation_class.lock.yaml` を新 class の内容に更新し、dual reviewer sign-off を得る
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | preservation_class.lock.yaml で変更対象ストアを確認し変更 PR を作成 | `lock.yaml 変更対象確認 / PR #NNN 作成` |
+| 2h | data 担当者 | 全対象ストアに class 変更を適用し CI validation を実行 | `全ストア変更適用 / CI validation green` |
+| 4h | data 担当者 | 変更後の retention 動作を staging で確認し PR を提出 | `staging 確認完了 / PR #NNN 提出` |
+| 1d | dual reviewer + compliance 担当者 | lock.yaml と全ストア設定を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -88,6 +124,11 @@ covered_by:
 - **staging で data 不整合発生**: class 変更を即時中断。data 担当者 + infra 担当者に Mattermost `#data-incident` で連絡（**SLA: 30 分以内**）。Backstage runbook `preservation-class-rollback` を参照。**postmortem 期限: 3 営業日以内**。
 - **restore_drill fail（staging で drill が restoration window 超過）**: 1.0.0 ship blocker 認定。Backstage ticket `data-drill-fail-<date>` を起票し次 drill までに改善計画提出（**SLA: 5 営業日以内**）。
 
+
+## 失敗パターン (anti-pattern)
+
+- lock.yaml を迂回した直接変更: Kafka topic や PostgreSQL tablespace を直接変更すると lock.yaml が不整合になり CI が検知する
+- 一部ストアのみ更新: lock.yaml の全ストア一括変更を省略すると coverage check が fail する
 
 ## 関連参照
 

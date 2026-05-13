@@ -8,7 +8,7 @@ depends_on:
   - arch.tier2.tier2_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 業務フロー変更に伴い新規 Domain Event / Workflow / 決定表を追加する際、Apicurio FULL_TRANSITIVE 互換検査・FSM 状態遷移追加・atomic 三表書込・Outbox relay E2E 検証を全て通過させてから merge する。
 
 > 朝 9 時半、本社 IT 室の tier2 担当者（中堅級）が GitHub PR レビュー画面で `MachineOperationStarted` イベントの追加要求を見つける。手元には Apicurio Registry UI・Temporal Workflow コード、Mattermost 越しに tier1 担当者がいる。
+
+## ペルソナ要約
+
+主役: tier2 担当者（中堅級）、目的: 新 Domain Event / Workflow / 決定表を Apicurio 互換検査・FSM 追加・atomic 三表書込・Outbox relay E2E 検証を全て通過させて merge する
+
+## 現状業務での痛み
+
+- Domain Event の schema 変更が後方互換性を破壊しているかどうかを手動確認のみに依存し、consumer 障害で気付く
+- atomic 三表書込の適用が漏れ、Outbox への二重書込みや audit 欠落が本番データの不整合として顕在化する
+- Workflow と Saga の選択基準が明確でなく、担当者ごとに実装方針が変わる
+- Outbox relay の E2E 検証がなく、Kafka topic への配送が実際に動いているか確認されないまま merge される
+
+## k1s0 でこう変わる
+
+- Apicurio FULL_TRANSITIVE compatibility check が CI gate となり、後方互換性の破壊を merge 前に物理検出する
+- atomic 三表書込の integration test（state / outbox / audit が同一 tx）が全 aggregate の merge 条件となる
+- Workflow / Saga の選択基準（LRO 要否 / choreography vs orchestration）が設計方針に明文化される
+- Outbox relay の E2E test（Sidecar → Kafka 配送）が green を merge 条件として強制する
 
 ## Trigger（発火条件）
 
@@ -42,6 +60,19 @@ covered_by:
 | 関与（tier1）| シニア | 本社 / リモート | GitHub PR | Outbox relay / Kafka 設定確認 / E2E test 協働 |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
+## 個人 KPI / 達成感
+
+- Apicurio FULL_TRANSITIVE compatibility check green
+- atomic 三表書込 integration test（3 テーブル同一 tx）green 率
+- Outbox relay E2E test green（Kafka 配送確認）
+- dual reviewer 応答時間 ≤ 24h
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（Domain Event + Workflow + 決定表 3 点セット）: 3〜5 日、関与 4〜5 名（主役 + tier1 担当者 + dual reviewer 2 名 + tier3 担当者 1 名）
+- 平常（Domain Event のみ追加）: 1 日、関与 3〜4 名
+- 失敗時（Apicurio fail / Outbox relay fail）: +1〜2 日、関与 4 名
+
 ## 前提
 
 - [atomic 三表書込](../../../03_概要設計/03_tier2設計方針/13_状態遷移パターン.md)（state / outbox / audit を同一 DB トランザクション）が全 aggregate に適用済みであること
@@ -60,6 +91,16 @@ covered_by:
    - outbox が空 or 1 件のみであることを確認（二重書込みのない状態）
 6. Outbox relay（Sidecar）が新イベントを Kafka に正しく配送することを E2E test で確認する
 7. dual reviewer sign-off + Apicurio compatibility green を確認してから merge する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier2 担当者 | schema draft・Apicurio push・FULL_TRANSITIVE check | `MachineOperationStarted schema push / compatibility check: green` |
+| 1 日 | tier2 担当者 | FSM 追加・Workflow/Saga 実装・決定表定義 | `FSM 追加完了 / Temporal Workflow 実装中` |
+| 2 日 | tier2 担当者 | atomic 三表書込 integration test・Outbox relay E2E test | `3 テーブル同一 tx: green / Outbox → Kafka 配送: green` |
+| 3 日 | tier1 担当者 | Outbox relay / Kafka 設定整合確認 | `tier1 整合確認完了` |
+| 4 日 | dual reviewer | sign-off | `dual sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -88,6 +129,12 @@ covered_by:
 - **Apicurio compatibility check fail**: schema 変更が後方互換性を破壊していると判断し設計を見直す。escalate 先: Mattermost `#tier2-ci-alert`（SLA: 24h 以内に是正 PR 提出）。runbook: Backstage `domain-event-addition-procedure`
 - **atomic 三表書込 integration test fail**: DB トランザクション設計の不備として tier2 担当者が修正する。escalate 先: Mattermost `#tier2-ci-alert`（SLA: 24h 以内に是正 PR 提出）。runbook: Backstage `domain-event-addition-procedure`
 - **Outbox relay E2E test fail**: Sidecar 設定または Kafka topic 設定を確認し tier1 担当者と連携して対処する。escalate 先: Mattermost `#tier2-ci-alert`（SLA: 24h 以内に是正 PR 提出、tier1 担当者と協働）。runbook: Backstage `domain-event-addition-procedure`
+
+## 失敗パターン (anti-pattern)
+
+- **Apicurio compatibility check なしで schema を直接更新**: 既存 consumer が新スキーマを受信できない状態になり、全 consumer での緊急対応が必要になる。schema 変更は必ず Apicurio に push して FULL_TRANSITIVE check を経由することを CI で強制する。
+- **atomic 三表書込を「後で適用」として省略**: state だけ書いて outbox を書かない実装が先行し、Outbox relay がイベントを取得できない状態が発生する。atomic 三表書込の integration test を aggregate 追加 PR の merge 条件として先行して要求する。
+- **Workflow と Saga の選択を ad hoc に決定**: 後から変更が難しい実装アーキテクチャが混在し、整合性が損なわれる。Workflow（LRO 要否）/ Saga（choreography vs orchestration）の選択基準を設計方針に明文化し、PR で選択理由の明示を必須とする。
 
 ## 関連参照
 

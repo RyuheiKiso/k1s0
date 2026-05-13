@@ -10,7 +10,7 @@
 
 [![tagline](https://img.shields.io/badge/Keep%20It%20Simple-0%20Vendor%20Lock--in-black)](#)
 [![docs](https://img.shields.io/badge/docs-japanese-blue)](docs/README.md)
-[![phase](https://img.shields.io/badge/phase-design-orange)](docs/)
+[![status](https://img.shields.io/badge/status-design-orange)](docs/)
 [![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 [![policy](https://img.shields.io/badge/policy-supreme%20path-red)](CLAUDE.md)
 
@@ -343,27 +343,7 @@ PostgreSQL（**CloudNativePG**, RLS FORCE + pgaudit）+ PgBouncer + pg_partman +
 
 ## docs/ ナビゲーション
 
-機械可読な単一の真がすべて `docs/` に固定されている。各 markdown は frontmatter（`id` / `axis` / `phase` / `depends_on` / `covered_by`）を持ち、軸間整合は build script で検証される。
-
-| Phase | ディレクトリ | 役割 |
-|---|---|---|
-| 0 | [docs/00_format/](docs/00_format/) | テンプレート / 規約 / frontmatter schema / lint 規約 |
-| 1 | [docs/01_企画/](docs/01_企画/README.md) | 背景 / 価値 / 競合 / 法務 / ターゲット / OSS 公開 / 業界 pack 戦略 / 開発体制 / 用語集 |
-| 2 | [docs/02_要件定義/](docs/02_要件定義/README.md) | スコープ / 機能要件 / 非機能要件 / 技術選定 / 開発体制 / 制約と前提 |
-| 3 | [docs/03_概要設計/](docs/03_概要設計/README.md) | 5 視点アーキテクチャ概観 + 10 軸別設計方針 + クロスカッティング 8 機構 |
-| 4 | [docs/04_詳細設計/](docs/04_詳細設計/README.md) | 20 適合仕様 + 10 強制機構 + 13 cross-cutting + 8 運用 UI + 5 lock.yaml 体系 |
-| - | [docs/90_knowledge/](docs/90_knowledge/) | 技術学習用 reference |
-
-### よく読まれる入口
-
-- **設計思想を 1 ファイルで掴む**: [03_概要設計/01_アーキテクチャ概観/](docs/03_概要設計/01_アーキテクチャ概観/README.md)
-  └─ [5 階層論](docs/03_概要設計/01_アーキテクチャ概観/01_5階層論.md) / [19 軸論](docs/03_概要設計/01_アーキテクチャ概観/02_19軸論.md) / [defense-in-depth](docs/03_概要設計/01_アーキテクチャ概観/03_defense_in_depth.md) / [5 proof_class 論](docs/03_概要設計/01_アーキテクチャ概観/04_5proof_class論.md) / [軸間依存図](docs/03_概要設計/01_アーキテクチャ概観/05_軸間依存図.md)
-- **形式検証どうするか**: [20_形式検証適合仕様](docs/04_詳細設計/01_適合仕様/20_形式検証適合仕様.md) / [11_formal 設計方針](docs/03_概要設計/11_formal設計方針/README.md)
-- **OSS をどう選ぶか / どう乗り換えるか**: [04_技術選定](docs/02_要件定義/04_技術選定/) / [08_OSS ライフサイクル適合仕様](docs/04_詳細設計/01_適合仕様/08_OSSライフサイクル適合仕様.md)
-- **クライアント状態とコンフリクト**: [11_クライアント状態適合仕様](docs/04_詳細設計/01_適合仕様/11_クライアント状態適合仕様.md)
-- **lock.yaml 体系**: [05_lock_yaml 体系](docs/04_詳細設計/05_lock_yaml体系/README.md)
-- **数学的 enforcement**: [12_クロスカッティング設計/08_数学的 enforcement](docs/03_概要設計/12_クロスカッティング設計/08_数学的enforcement.md)
-- **用語集**: [01_企画/09_用語集](docs/01_企画/09_用語集/README.md)
+ディレクトリ戦略・軸別設計方針は [`ARCHITECTURE.md`](ARCHITECTURE.md) を参照。規約層（frontmatter schema / lint / numbering 体系）は [`docs/00_format/README.md`](docs/00_format/README.md) を参照。
 
 ---
 

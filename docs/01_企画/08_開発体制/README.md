@@ -44,6 +44,23 @@ covered_by:
 - **責務**: 個別業務 UI / 業務シナリオ / フォームレイアウト / 業務エラー UX / 帳票レイアウト
 - **想定人数**: 業界 pack × 業務領域 × tenant 数で増減
 
+## client 軸エンジニア
+
+### client 軸エンジニア（シニア級）
+- **必須スキル**: Tauri 2.0 / TypeScript + React / C# WPF / .NET Framework / Playwright / browser matrix / SDK codegen（Buf / ts-proto）
+- **責務**: 5 distribution_class の SDK 配布管理（v1_full_native_with_companion / v1_legacy_dotnet_framework / v1_browser_spa_typescript / v1_thick_native_via_tauri / v1_thin_business_api_only）/ SDK conformance test / browser matrix smoke / SDK inventory.lock.yaml 維持
+- **想定人数**: 2-3 名
+- **非責務**: ビジネスロジック実装（tier2）/ cluster 構築（infra）/ 脅威モデル（security）
+
+## k1s0 作者（最高権限）
+
+### k1s0 作者
+- **必須スキル**: Python 3.12 / bash / draw.io Desktop / PyYAML / cosign / YAML schema / git / Claude Code
+- **責務**: toolchain 開発（docs_lint / lock_yaml 生成器 / drawio 作図ツール）/ 19 軸 registry governance（cap v1=20 維持）/ cosign signed tag による release 署名 / frontmatter schema evolve / CI pipeline 設計と改訂
+- **想定人数**: 1-2 名（L1+ 単一深耕による代替不可能性を許容、代替不在は 1.0.0 ship blocker にしない）
+- **非責務**: tier1-3 / infra / data / security / ops / client / test / formal の実装実務（それぞれ専任ロール）/ KEK shamir custodian（プラットフォーム運営者ロール）
+- **体制上の注意**: LLM 補助による toolchain 生成は許容するが、spec merge / schema 変更 / cosign 署名は人間 dual sign-off が必須
+
 ## 横断軸専任エンジニア
 
 ### formal 軸（メタ専任、シニア級）

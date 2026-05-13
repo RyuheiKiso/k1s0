@@ -20,6 +20,22 @@ covered_by:
 
 > 午前 10 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で security 担当者からの「生体認証データ（指紋スキャン）保存要件の追加依頼」メッセージを確認する。手元には `pii_cluster.lock.yaml` と CloudNativePG dashboard、Mattermost 越しに security 担当者・tier2 担当者・tier3 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: PII 専用クラスタを構成し一般データとの isolation を強制する
+
+## 現状業務での痛み
+
+- PII が一般テーブルと混在しており、isolation がないため PII へのアクセス制御が粗粒度になる
+- PII データの範囲が不明確で、DSAR 対応時にどのデータが対象かの特定に時間がかかる
+- PII テーブルへのアクセスログが分散しており、データアクセスの監査が困難
+
+## k1s0 でこう変わる
+
+- PII 専用クラスタへの isolation が pii_cluster.lock.yaml で強制管理され、混在が CI で物理拒否される
+- PII データの範囲が lock.yaml で明確に定義され、DSAR 対応時の対象特定が即時に可能になる
+- PII クラスタへのアクセスが audit hash chain に一元記録され、データアクセス監査が効率化される
+
 ## Trigger（発火条件）
 
 新規 PII 種別の追加（5 PII class への分類）、または PII 専用クラスタの設定変更が必要になった時。
@@ -44,6 +60,17 @@ covered_by:
 | 関与（tier3）| ミドル〜シニア | 本社 / リモート | Backstage TechDocs | localStorage / sessionStorage / IndexedDB 平文保管禁止確認 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off（security 担当者レビュー必須条件） |
 
+## 個人 KPI / 達成感
+
+- PII 混在 0 件が CI で定量確認でき、isolation 達成の達成感を得られる
+- DSAR 対応時間の短縮を数値で確認でき、compliance 対応効率の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 2〜3 日（クラスタ設計 4h + isolation 設定 4h + migration 4h + CI 統合 4h）
+- 関与人数: 3〜4 名（data 担当者・security 担当者・compliance 担当者・dual reviewer）
+- コスト感: 中〜高（初回設定）。設定後の継続コストは lock.yaml 更新のみになる
+
 ## 前提
 
 - PII 専用クラスタ（物理隔離）が `pii_cluster.lock.yaml` で管理済み
@@ -62,6 +89,15 @@ covered_by:
 6. 監査確認: PII アクセス全件が audit hash chain に記録されていることを確認する
 7. PII cluster の restore_drill を staging で実施する（preservation_class は `v1_cross_region_replicated` 以上が必須）
 8. security 担当者レビューを必須条件として dual reviewer sign-off を得る。`pii_cluster.lock.yaml` を更新する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | PII クラスタ構成を設計し pii_cluster.lock.yaml に PII テーブル一覧を登録 | `PII クラスタ設計完了 / lock.yaml 登録` |
+| 4h | data 担当者 | PII テーブルを専用クラスタに migration しアクセス isolation を設定 | `migration 完了 / isolation 設定` |
+| 1d | data 担当者 | CI の PII 混在チェックと audit trail を確認して PR 提出 | `PII 混在 0 件 / audit trail 確認 / PR #NNN` |
+| 1d+4h | dual reviewer + security 担当者 | isolation 設定と lock.yaml を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -92,6 +128,11 @@ covered_by:
 - **restore_drill fail**: security 担当者と協議し、preservation_class を下げることなく原因を修正してから再 drill を実施する。drill が green になるまで新規 PII 種別の本番投入を保留する
 - **PII data が一般クラスタに混入した疑い**: security 担当者 + ops 担当者に Mattermost `#security-incident` で即時通報（**SLA: 15 分以内**）。Backstage runbook `pii-isolation-breach` を起動。compliance incident として扱い **postmortem 期限: 2 営業日以内**。
 - **PII cluster restore_drill fail**: 1.0.0 ship blocker 認定。Backstage ticket `pii-drill-fail-<date>` を起票（**SLA: 5 営業日以内**に改善計画提出）。
+
+## 失敗パターン (anti-pattern)
+
+- PII を一般テーブルに混在保存: isolation check CI が PII カラムを検知し merge 阻止する
+- アクセスログなしの PII クラスタ: audit trail なしのアクセスは compliance check が fail する
 
 ## 関連参照
 

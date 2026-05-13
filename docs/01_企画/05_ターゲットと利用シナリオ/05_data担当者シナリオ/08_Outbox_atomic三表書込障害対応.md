@@ -20,6 +20,22 @@ covered_by:
 
 > 深夜 3 時、自宅 on-call 中の data 担当者（シニア級）が Mattermost alert で「Kafka connectivity 断絶・Outbox table 滞留 500 件超」の通知を受け取る。手元にはノート PC の Perses ダッシュボードと `kubectl` 端末、Mattermost 越しに tier2 担当者と security / ops 担当者がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: Outbox pattern の障害対応でメッセージ loss なく at-least-once delivery を保証する
+
+## 現状業務での痛み
+
+- Outbox failure でメッセージ loss が発生しても気付かれず、データ不整合が長時間放置される
+- Outbox テーブルの処理状況が不可視で、lag 膨張の検知が遅れる
+- メッセージ loss 発生時のリカバリ手順が不明確で、復旧に長時間を要する
+
+## k1s0 でこう変わる
+
+- Outbox lag メトリクスが Perses で可視化され、lag 膨張が閾値超過で自動 alert される
+- Outbox 三表書込みが atomic に実行されるため、partial failure によるメッセージ loss が構造的に不可能になる
+- Outbox リカバリ runbook が Backstage TechDocs に定義され、failure 発生時の復旧時間が短縮される
+
 ## Trigger（発火条件）
 
 Outbox relay の障害、または atomic 三表書込（state / outbox / audit を同一 DB トランザクション）の integrity 違反が検出された時。
@@ -42,6 +58,17 @@ Outbox relay の障害、または atomic 三表書込（state / outbox / audit 
 | 関与（security / ops）| シニア | リモート | Mattermost `#compliance-incident` | audit 欠落時の compliance incident 対応 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | 恒久対処 PR の sign-off |
 
+## 個人 KPI / 達成感
+
+- Outbox メッセージ loss 0 件が audit trail で定量確認でき、at-least-once delivery の達成感を得られる
+- Outbox lag の平均値改善を Perses で数値確認でき、メッセージ配信品質の向上を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（lag メトリクス設定 2h + atomic 書込み確認 4h + runbook 整備 2h）
+- 関与人数: 2〜3 名（data 担当者・tier2 担当者・dual reviewer）
+- コスト感: 低〜中。Outbox pattern が適切に実装されていれば監視設定が主な作業になる
+
 ## 前提
 
 - [atomic 三表書込](../../../03_概要設計/03_tier2設計方針/13_状態遷移パターン.md)（`state` / `outbox` / `audit` を同一 DB トランザクション）が tier2 の設計原則として確立済み
@@ -58,6 +85,15 @@ Outbox relay の障害、または atomic 三表書込（state / outbox / audit 
 5. **Kafka 重複配送の場合**: Idempotency-Key で consumer 側が de-dup できていることを確認する。at-least-once 保証の範囲内であれば正常動作とみなす
 6. 根本原因を特定し、tier2 のコード / infra 設定の恒久修正 PR を作成する
 7. audit chain に欠落があった場合は compliance incident として扱い、**postmortem 期限: 2 営業日以内**（compliance incident の場合は 1 営業日以内）。dual reviewer sign-off を得る
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | Outbox lag メトリクスを Perses に設定し alert ルールを追加 | `Outbox lag 監視設定完了 / alert ルール追加` |
+| alert 受信 | data 担当者 | lag alert を受信し Outbox テーブルのキュー状態を確認 | `lag alert 受信 / queue 状態確認` |
+| 30分 | data 担当者 | Outbox processor を再起動し lag 解消を Perses で確認 | `processor 再起動 / lag 解消確認` |
+| 1営業日 | data 担当者 | postmortem で failure 原因を分析し outbox.lock.yaml を更新 | `postmortem 完了 / lock.yaml 更新` |
 
 ## 業界 9 業務との紐付け
 
@@ -86,6 +122,11 @@ Outbox relay の障害、または atomic 三表書込（state / outbox / audit 
 - **audit chain 欠落**: compliance incident として扱い、security 担当者 + ops 担当者に Mattermost `#compliance-incident` で即時通報（SLA: 1h 以内）。postmortem は 2 営業日以内。欠落が確認された時点で当該機能を停止し、原因特定まで再開しない。
 - **補償トランザクション後も整合が取れない**: data 担当者と tier2 担当者が postmortem を実施し、atomic 三表書込の実装を根本から見直す。
 - **relay 復旧後に重複配送が多発する**: consumer の Idempotency-Key の実装を tier2 担当者が確認し、de-dup が機能していない場合は consumer を一時停止して修正する。
+
+## 失敗パターン (anti-pattern)
+
+- lag 無視の非同期 Outbox: lag 監視なしで Outbox failure を放置するとメッセージ loss が蓄積する
+- 非 atomic 書込み: Outbox テーブルと業務テーブルを別 transaction で書くと partial failure でデータ不整合が発生する
 
 ## 関連参照
 

@@ -8,7 +8,7 @@ depends_on:
   - arch.tier1.tier1_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D, E]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了が発生した際に、tier2 / tier3 を無改修のまま tier1 facade で透過的に移行し、dual reviewer sign-off と Testcontainers conformance test green を移行完了の客観的証跡とする。
 
 > 朝 9 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、HashiCorp Vault の BUSL ライセンス変更通知が issue として上がっていることに気付く。手元には `oss_lifecycle.lock.yaml` と Backstage Catalog、Mattermost 越しに ops 軸担当者と dual reviewer 2 名がいる。
+
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: L1+ 採用 OSS の EoL / ライセンス変更に対し tier2/tier3 を無改修のまま facade 内部で移行を完結させる
+
+## 現状業務での痛み
+
+- OSS の EOL 到来を事前検知できず、突然「今すぐ全コード書き直し」状態になる
+- ライセンス変更（例: BUSL への変更）が notice なく発覚し、法務確認を含む緊急対応が発生する
+- 年次 dry-run が文書ベースの確認のみで、実際に移行 toolchain が動くかが未検証のまま EOL を迎える
+- dual-write 期間中のデータ不整合を検出する仕組みがなく、移行完了判定が属人的になる
+
+## k1s0 でこう変わる
+
+- `oss_lifecycle.lock.yaml` に登録された OSS のライセンス変更・EOL 通知を CI が監視し、変更を事前検知する
+- 年次 dry-run green が移行 PR 作成の物理前提条件となり、「toolchain が動くこと」を毎年証明する
+- dual-write 期間中のデータ不整合を observability（metrics / trace）で自動検出し、属人的な判断を排除する
+- Testcontainers conformance test が「新 OSS が旧 OSS と等価に動作する」ことを客観的に証明する
 
 ## Trigger（発火条件）
 
@@ -40,6 +58,19 @@ L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了�
 | 関与（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | 移行 PR レビュー・sign-off |
 | 関与（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | 移行 PR レビュー・sign-off |
 | 関与（ops 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | Harbor mirror 復旧・旧 OSS mirror 廃止管理 |
+
+## 個人 KPI / 達成感
+
+- tier2/tier3 への変更件数 0（facade 層での完全吸収）
+- 年次 dry-run green 率（L1+ 採用 OSS 全件）
+- dual-write 期間中のデータ不整合 0 件（observability 計測）
+- 移行完了までの elapsed time ≤ 計画期間
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（ライセンス変更 AGPL 系緊急対応）: 0.5〜1 日、関与 4 名（主役 + dual reviewer 2 名 + security 担当者）
+- 平常（計画的 EOL 移行）: 1 週間（toolchain 起動〜dual-write〜廃止）、関与 4〜5 名（+ ops 担当者）
+- 失敗時（dual-write 不整合）: +1〜2 日（縮退・調査・再実施）、関与 5〜6 名
 
 ## 前提
 
@@ -69,6 +100,16 @@ L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了�
 6. **旧 OSS 経路の廃止と文書更新**: 旧 OSS の endpoint を tier1 facade から削除し `04_提供機能カテゴリ.md` の Lv 割付と露出概念 allowlist を更新する。dual-write feature flag を無効化する。
 
 7. **dual reviewer sign-off とリリースノート**: 移行完了を dual reviewer（tier1 2 名）が確認し sign-off する。内部向けリリースノートに移行経緯・移行 toolchain の実績・観測した異常を記録する。
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | イベント種別判定・影響範囲スキャン | `#tier1-lifecycle BUSL 変更検知: HashiCorp Vault / 影響スキャン開始` |
+| 1 日 | tier1 担当者 | 移行 toolchain 起動・dry-run 記録確認 | `dry-run green 確認済 / 移行 PR 作成可能` |
+| 2〜5 日 | tier1 担当者 | dual-write 実装・facade 透過提供 | `dual-write feature flag ON / tier2 無改修確認中` |
+| 5 日 | dual reviewer A/B | 移行 PR sign-off・conformance test green 確認 | `dual sign-off 完了 / conformance green` |
+| 6〜7 日 | tier1 担当者 | 旧 OSS 経路廃止・文書更新 | `旧 OSS endpoint 削除完了 / `04_提供機能カテゴリ.md` 更新済` |
 
 ## 業界 9 業務との紐付け
 
@@ -104,6 +145,12 @@ L1+ 採用 OSS でライセンス変更 / 実質的改廃 / サポート終了�
 - **ライセンス変更（AGPL/SSPL 系）**: 依存導入 lint が即時 fail し merge 阻止。OSS を依存から削除し代替を探索する。escalate 先: security 担当者へ Mattermost `#security-incident` で通報（SLA: 検出後 2 時間以内）。
 - **Testcontainers conformance test fail（新 OSS）**: 新 OSS の採用計画を見直し、代替 OSS の評価フロー（シナリオ 01）に戻る。escalate 先: tier1 担当者 dual reviewer（SLA: 48 時間以内に代替案提示）。
 - **旧 OSS の廃止期限超過**: SRE / ops 軸と連携し、廃止計画を更新する。security 軸に EOL 状況を報告する。escalate 先: ops 担当者 + security 担当者（SLA: 廃止期限 +7 日以内に計画更新）。Backstage runbook `oss-eol-escalation` を参照。
+
+## 失敗パターン (anti-pattern)
+
+- **dry-run 未実施のまま移行 PR 作成**: 移行 toolchain が実際には動かない状態で本番移行を始め、データ不整合が顕在化してから気付く。dry-run green を移行 PR の物理前提条件として CI gate で強制する。
+- **dual-write を省いて即切替**: 旧 OSS を削除してから新 OSS の問題が発覚し、rollback 不可になる。dual-write 期間を必ず設け、conformance test green を両 OSS で確認してから旧 OSS 廃止に進む。
+- **tier2/tier3 担当者に直接変更を依頼**: facade 層で吸収できているはずの変更が漏れ出し、tier2/tier3 のコードに手が入ってしまう。tier2/tier3 への変更件数 0 を KPI として監視し、facade 実装を修正する。
 
 ## 関連参照
 

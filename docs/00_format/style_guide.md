@@ -1,3 +1,15 @@
+---
+id: format.meta.style_guide
+axis: meta
+phase: format
+kind: style
+status: draft
+depends_on: []
+covered_by:
+  defense_in_depth_layers: []
+  proof_classes: []
+---
+
 # 文体・記法 style guide
 
 ## 一文方針

@@ -9,6 +9,7 @@ depends_on:
   - req.team.tier_engineer_requirement
 covered_by:
   defense_in_depth_layers: [B, C]
+  proof_classes: []
 ---
 
 # 業務マスタ CSV 一括 import
@@ -18,6 +19,24 @@ covered_by:
 tier2 担当者が新規テナント onboarding 時または業界 pack 更新時に、業務マスタデータ（設備マスタ / 品目マスタ / 拠点マスタ / BOM 等）を CSV / Excel から bulk import し、テナント別 RLS FORCE と整合を維持する。
 
 > 朝 9 時、本社 IT 室の tier2 担当者（中堅級）が Mattermost `#master-import-mfg-acme-jp` で新工場の設備マスタ 200 件 CSV を受け取り、Backstage Admin API portal での import 作業を開始する。手元には import CSV・Testcontainers ローカル環境、Mattermost 越しに data 担当者と業務管理者がいる。
+
+## ペルソナ要約
+
+主役: tier2 担当者（中堅級）、目的: 新テナント onboarding 時や大規模マスタ更新時に業務マスタ CSV を一括 import しテナント別 RLS FORCE との整合を維持する
+
+## 現状業務での痛み
+
+- バリデーションエラーの多い CSV を受け取ってから確認が始まり、業務管理者との往復で import 完了まで数日かかる
+- 直接 SQL INSERT が使われ RLS FORCE の設定確認が後回しになり、cross-tenant データアクセスが発生する
+- バッチ途中でエラーが発生しても部分 import のロールバック手段が不明確で、データが不整合状態になる
+- 業務管理者の確認プロセスが不透明で、import 確定のサインオフが取れないまま本番データが確定してしまう
+
+## k1s0 でこう変わる
+
+- Admin API エンドポイントを通じた import で RLS FORCE が常に有効な状態が保たれ、直接 SQL Insert を構造的に防止する
+- Testcontainers cross-tenant leak test が import 完了後の green を確認し、RLS の有効性を物理証明する
+- バリデーションエラーが 10% を超えた場合に import を自動中断し、業務管理者への修正依頼を標準フローとして定義する
+- dual reviewer sign-off と業務管理者の内容確認を import 確定の必須条件として明文化する
 
 ## Trigger（発火条件）
 
@@ -42,6 +61,19 @@ tier2 担当者が新規テナント onboarding 時または業界 pack 更新�
 | 関与（業務管理者）| — | 本社 | Mattermost `#master-import-<tenant>` | マスタ内容確認 / 修正版 CSV 提出 |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | import 確定前レビュー / sign-off（author 不可） |
 
+## 個人 KPI / 達成感
+
+- import 行数 = CSV 総行数（エラー行を除く）の達成率
+- Testcontainers cross-tenant leak test green（0 件）
+- RLS FORCE 有効確認（EXPLAIN ANALYZE で RLS filter 付き）
+- 業務管理者確認 + dual reviewer sign-off 取得
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（200 件程度の設備マスタ import）: 半日〜1 日（バリデーション・バッチ import・RLS 確認・Testcontainers）、関与 4 名（主役 + data 担当者 + 業務管理者 + dual reviewer 2 名）
+- 平常（100 件以下の小規模更新）: 2〜3h、関与 3 名
+- 失敗時（RLS 不整合・バリデーションエラー多数・バッチ中断）: +半日〜1 日、関与 4〜5 名（+ security 担当者）
+
 ## 前提
 
 - [テナント分離適合仕様](../../../04_詳細設計/01_適合仕様/10_テナント分離適合仕様.md)（RLS FORCE）が CloudNativePG に設定済みであること
@@ -63,6 +95,16 @@ tier2 担当者が新規テナント onboarding 時または業界 pack 更新�
 5. import 完了後に CloudNativePG で RLS FORCE が有効であることを確認する（`EXPLAIN ANALYZE SELECT * FROM equipment WHERE tenant_id = '...'` で RLS filter が付いていることを確認）
 6. integration test（Testcontainers）で cross-tenant data leak がないことを確認する
 7. 業務管理者の内容確認 + dual reviewer sign-off を取得して import を確定する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier2 担当者 | CSV 受領・スキーマ照合バリデーション | `設備マスタ CSV 200 件 受領 / バリデーション開始 / エラー: 3 件` |
+| 1h | 業務管理者 | バリデーションエラー確認・修正版 CSV 提出 | `修正版 CSV 提出 / エラー解消確認` |
+| 2h | tier2 担当者 | Admin API バッチ import 実行（1000 件単位）| `バッチ import 完了 / success_count: 197 / エラー: 0` |
+| 3h | tier2 担当者 / data 担当者 | RLS FORCE 確認・Testcontainers cross-tenant leak test | `RLS filter 確認: OK / Testcontainers: green (0 件)` |
+| 1 日 | 業務管理者 + dual reviewer | 内容確認 + sign-off | `業務管理者確認済 / dual sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -91,6 +133,12 @@ tier2 担当者が新規テナント onboarding 時または業界 pack 更新�
 - **RLS FORCE が効いておらず cross-tenant data が見えた**: import を即時中断。data 担当者 + security 担当者に Mattermost `#security-incident` で即時通報（**SLA: 15 分以内**）。Backstage runbook `rls-breach-response` を起動。**postmortem 期限: 2 営業日以内**。
 - **バッチ途中で API エラー（500 系）**: import を中断し部分的に import 済みのデータをロールバック API（`DELETE /admin/v1/master/bulk-import/{import_id}`）で削除してから原因調査。data 担当者に Mattermost `#tier2-incident` で連絡（**SLA: 30 分以内**）。
 - **バリデーションエラーが全体の 10% を超える**: import 全体を中断し業務管理者に CSV の修正を依頼（**SLA: 業務管理者が 2 営業日以内に修正版を提出**）。
+
+## 失敗パターン (anti-pattern)
+
+- **直接 SQL INSERT で import**: RLS FORCE が適用されない経路でデータが書き込まれ、cross-tenant アクセスが発生する。Admin API エンドポイント経由の import を唯一の正規経路として強制し、直接 SQL を構造的に禁止する。
+- **バリデーションエラーを無視して強行 import**: 不正データが本番マスタに混入し、downstream の受注 / 生産指示が誤ったデータを参照する。バリデーションエラーが 10% を超えた時点で import を自動中断し、業務管理者に修正依頼を送るフローを標準化する。
+- **業務管理者の確認なしに import を確定**: 担当者間の確認ミスで意図と異なるマスタが確定してしまい、修正コストが発生する。業務管理者の内容確認と dual reviewer sign-off を import 確定の物理前提条件として明文化する。
 
 ## 関連参照
 

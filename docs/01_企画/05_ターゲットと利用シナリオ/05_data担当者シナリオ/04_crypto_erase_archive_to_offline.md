@@ -20,6 +20,22 @@ covered_by:
 
 > 午前 10 時、本社 IT 室の data 担当者（シニア級）が Mattermost `#data-ops` で法務部門からの「A 工場テナント閉鎖に伴う全データの crypto-erase 依頼」メッセージに気付く。手元には `data_lifecycle.lock.yaml` と OpenBao 管理画面、Mattermost 越しに security 担当者・infra 担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: data 担当者（シニア級）、目的: crypto-erase で KEK destroy による物理削除を実施し GDPR の忘れられる権利に真に対応する
+
+## 現状業務での痛み
+
+- KEK destroy なしの logical delete で GDPR 対応を偽装しており、規制当局の監査で指摘を受けるリスクがある
+- 暗号化されていないアーカイブデータが offline ストレージに残存し、将来的な PII 漏洩リスクがある
+- crypto-erase の手順が文書管理で属人化し、削除実施の証跡が残らない
+
+## k1s0 でこう変わる
+
+- KEK destroy による crypto-erase が crypto_erase.lock.yaml で管理され、削除の物理的完全性が保証される
+- offline archive への crypto-erase が CI の compliance check で確認され、残存 PII の検知が自動化される
+- 削除実施の audit trail が audit hash chain に記録され、規制当局への証跡提出が即時に可能になる
+
 ## Trigger（発火条件）
 
 テナント offboarding（完全データ削除要求）または long-term archive の offline 移行が必要になった時。
@@ -42,6 +58,17 @@ covered_by:
 | 関与（infra）| シニア | 本社 IT 室 / リモート | Argo CD / Kyverno | offline media への転送経路確保 |
 | 承認（dual reviewer）| シニア | 本社 / リモート | Mattermost `#data-ops` | sign-off レビュー |
 
+## 個人 KPI / 達成感
+
+- crypto-erase 完了の audit trail が 100% 記録されていることを確認でき、GDPR compliance 達成の達成感を得られる
+- KEK destroy 後の復号不能確認が自動検証され、物理削除の完全性を定量的に確認できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日（KEK destroy 手順確認 1h + crypto-erase 実施 2h + audit 確認 1h）
+- 関与人数: 3〜4 名（data 担当者・security 担当者・compliance 担当者・dual reviewer）
+- コスト感: 低〜中。手順が lock.yaml で管理されており実施コストは最小化される
+
 ## 前提
 
 - lifecycle 単一経路が定義済み: `hot → warm → cold → archive_to_offline → purge`
@@ -59,6 +86,15 @@ covered_by:
 5. lifecycle 完了の記録を `data_lifecycle.lock.yaml` に追記する
 6. 監査確認: 削除・転送操作が audit hash chain に emit されていることを確認する。audit が欠落した offboarding は禁止とする
 7. dual reviewer sign-off を得る
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | data 担当者 | crypto_erase.lock.yaml で対象 KEK と影響データを確認 | `crypto-erase 対象確認 / KEK: kek-XXXXXXXX / 影響データ確認` |
+| 1h | data 担当者 | OpenBao で KEK destroy を実行し destroy 証跡を取得 | `KEK destroy 完了 / destroy 証跡取得` |
+| 2h | data 担当者 | crypto-erase 後の復号不能を確認し audit hash chain への記録を確認 | `復号不能確認 / audit emit 確認` |
+| 1d | dual reviewer + security 担当者 | crypto-erase 手順と audit trail を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -87,6 +123,11 @@ covered_by:
 - **offline 転送途中の障害**: 転送済み部分の integrity を確認したうえで、中断箇所から再開する。再開できない場合は全量を再転送する。
 - **audit chain に削除操作が記録されていない**: compliance incident として security 担当者 + ops 担当者に Mattermost `#compliance-incident` で即時通報（**SLA: 1h 以内**）。Backstage runbook `audit-chain-integrity-check` を参照。**postmortem 期限: 2 営業日以内**。
 - **offline 転送途中の障害**: 転送を中断し data 担当者 + infra 担当者で Mattermost `#data-incident` に集合（**SLA: 15 分以内**）。転送済みデータの完全性確認後に再開。
+
+## 失敗パターン (anti-pattern)
+
+- logical delete のみの GDPR 対応: KEK destroy なしの削除は compliance check が GDPR 違反を検知する
+- audit trail なしの KEK destroy: destroy 後に audit emit を確認しないと証跡が欠落し規制対応が無効になる
 
 ## 関連参照
 

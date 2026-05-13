@@ -18,6 +18,22 @@ covered_by:
 
 security 担当者（シニア級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。[5⁴ = 625 cell threat catalog](../../../03_概要設計/07_security設計方針/01_脅威モデル方針.md) の coverage 維持・[8 secret class](../../../03_概要設計/07_security設計方針/03_秘密管理方針.md) の lifecycle・[7 drill class](../../../03_概要設計/07_security設計方針/08_セキュリティ訓練方針.md) の cadence・[7 incident class × 6 phase playbook](../../../03_概要設計/07_security設計方針/07_インシデント対応方針.md) の全走を、全 19 軸の defense-in-depth 層 D / E / F（13 cross-cutting 適合仕様を含む）の cross-axis bind として提供する。
 
+## 現状業務での痛み
+
+- 脅威モデルを Excel / 文書で管理すると、新機能追加時の cell 更新漏れが気付かれないまま蓄積する
+- secret rotation の cadence を人手管理すると、rotation 未実施 secret が本番に残存する
+- インシデント対応手順が人の記憶に依存し、深夜の on-call で手順誤りが起きる
+- 監査証跡の改竄可否を保証できないと、外部監査・法的手続きで証拠能力が失われる
+- build artifact の出所保証が署名なしだと、supply chain attack を検出できない
+
+## k1s0 でこう変わる
+
+- 625 cell threat catalog を `threat_model.lock.yaml` で管理し、cell 更新漏れを CI が物理検出する
+- secret rotation cadence 超過を Kyverno が本番 deploy を物理停止し、rotation 未実施 secret を構造で排除する
+- 7 incident class × 6 phase playbook を lock yaml で実体化し、深夜対応でも手順を物理的に追跡できる
+- audit hash chain + WORM Object Lock + RFC 3161 + Sigstore Rekor の四層 immutability で改竄を物理不可能にする
+- SLSA L3+ / cosign / SBOM で build provenance を 5 class 物理 enforce し、supply chain attack を防御する
+
 ## 担当者プロフィール
 
 security 担当者はシニア級エンジニアを前提とし、脅威モデリング / KEK shamir custodian / SPIFFE-SVID / SLSA L3+ / Cosign / OpenBao の運用経験を持つ。詳細な要件は層別エンジニア要件を参照。

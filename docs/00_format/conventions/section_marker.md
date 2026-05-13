@@ -1,3 +1,15 @@
+---
+id: format.meta.section_marker_convention
+axis: meta
+phase: format
+kind: convention
+status: draft
+depends_on: []
+covered_by:
+  defense_in_depth_layers: []
+  proof_classes: []
+---
+
 # セクション記法規約（■ → ## 変換）
 
 ## 一文方針

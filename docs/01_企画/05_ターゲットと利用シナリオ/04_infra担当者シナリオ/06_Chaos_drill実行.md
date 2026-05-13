@@ -20,6 +20,22 @@ topology_class / preservation_class / clock_integrity_class 別の drill cadence
 
 > ランチ後 13 時、本社 IT 室の infra 担当者（シニア級）が Backstage の drill runbook カレンダーで「v1_global_replicated の 14 日 cadence 到来」を確認し、午後 drill 開始のタイミングで Litmus chaos experiment の準備を始める。手元には topology_drill.lock.yaml と Perses SLI ベースライン記録、Mattermost 越しに ops 担当者と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: Chaos drill を SLO メトリクス評価と組み合わせ、可観測な耐障害性検証を実施する
+
+## 現状業務での痛み
+
+- chaos drill の結果を観察するだけでメトリクス評価がなく、SLO 維持が主観的な判断になる
+- chaos experiment の設定が属人的で、担当者ごとに実施する experiment が異なる
+- drill 後のポストモーテムが形骸化し、SLO 改善につながる action item が出ない
+
+## k1s0 でこう変わる
+
+- Litmus chaos experiment が GitOps で管理され、全 drill が同一設定で実施されることが保証される
+- Perses の SLO dashboard が drill 中のメトリクスを自動記録し、SLO 維持を定量的に評価できる
+- drill 結果が chaos_drill.lock.yaml に記録され、改善 action item の追跡が可能になる
+
 ## Trigger（発火条件）
 
 - drill cadence（topology_class / preservation_class / clock_integrity_class 別）の到来時
@@ -39,6 +55,17 @@ topology_class / preservation_class / clock_integrity_class 別の drill cadence
 | 関与（ops）| シニア | 本社 IT 室 / リモート | Perses dashboard（SLO パネル）| drill 中 SLO 監視 / 閾値超過時 abort alert |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | drill 結果レビュー / lock.yaml sign-off |
 
+## 個人 KPI / 達成感
+
+- SLO 維持率が drill ごとに計測され、耐障害性向上を定量的に確認できる
+- drill 完了後の action item 消化率を追跡でき、継続的改善の達成感を得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 半日〜1 日/drill（experiment 実行 2h + SLO 評価 1h + 結果記録 1h）
+- 関与人数: 3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 低。Litmus が experiment を自動実行するため手動コストは評価と記録のみ
+
 ## 前提
 
 - Litmus chaos experiment が GitOps で管理されており staging / production の drill runbook が Backstage に登録済みであること
@@ -52,6 +79,15 @@ topology_class / preservation_class / clock_integrity_class 別の drill cadence
 5. chaos 注入停止後の自動復旧を観測（circuit breaker reset / Pod reschedule）
 6. drill 結果（green / fail / abort）を `topology_drill.lock.yaml` または該当 lock.yaml に追記
 7. dual reviewer sign-off
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | Litmus chaos experiment を apply し Perses SLO 記録を開始 | `chaos drill 開始 / SLO 記録開始 / T+0` |
+| 10分 | ops 担当者 | SLO メトリクスが仕様値以内であることを Perses でリアルタイム確認 | `SLO 正常範囲 / エラー率 0.1% 以下` |
+| 30分 | infra 担当者 | experiment 終了 / SLO 評価 / chaos_drill.lock.yaml に結果記録 | `drill 完了 / SLO 維持 / lock.yaml green エントリ追記` |
+| 1営業日 | infra 担当者 | postmortem で action item を Backstage ticket に起票 | `postmortem 完了 / action item N 件 起票` |
 
 ## 業界 9 業務との紐付け
 
@@ -82,6 +118,11 @@ topology_class / preservation_class / clock_integrity_class 別の drill cadence
 **escalate 先**: ops 担当者 + security 担当者 / Mattermost `#chaos-drill-fail`
 **SLA**: SLO 閾値超過 / drill abort は 10 分以内通報
 **runbook**: Backstage runbook `chaos-drill-abort` を参照。1.0.0 ship blocker として ticket 起票必須
+
+## 失敗パターン (anti-pattern)
+
+- 観察のみの drill: SLO 評価なしで「問題なし」と判断すると定量的な耐障害性証明にならない
+- lock.yaml 未更新: drill 後に結果を記録しないと drill cadence の追跡ができなくなる
 
 ## 関連参照
 

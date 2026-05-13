@@ -20,6 +20,22 @@ tier3 担当者が npm audit / GitHub Dependabot が検出した脆弱性を評�
 
 > 午前 9 時、本社 IT 室の tier3 担当者（ジュニア級）が Mattermost `#tier3-dev` で「GitHub Dependabot: vite に CVSS 8.7 の CVE が公開」という通知に気付き、リリース前日の緊張感の中で影響範囲確認を開始する。手元には npm audit レポートと Harbor internal registry のコンソール、Mattermost 越しに tier1 担当者（Harbor mirror 更新）と dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: tier3 担当者（ジュニア級）、目的: npm 脆弱性パッケージを k1s0 の SBOM 管理規約に従って安全に対応する
+
+## 現状業務での痛み
+
+- 脆弱性パッケージを手動で追跡しており、CVE 情報が蓄積されても優先度判断が属人的になる
+- パッケージ更新の影響範囲が把握できず、更新後のリグレッションを発見するのが遅れる
+- SBOM が存在せず、どのパッケージがどのサービスで使われているかの把握に時間がかかる
+
+## k1s0 でこう変わる
+
+- Grype / Trivy が CI で自動スキャンし、CRITICAL / HIGH CVE を検知した時点で自動 alert が発行される
+- SBOM が Backstage に登録されており、パッケージ更新の影響サービスが即時特定できる
+- Dependabot / Renovate が自動 PR を作成し、更新後の CI green で安全な更新を確認できる
+
 ## Trigger（発火条件）
 
 GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以上の脆弱性が検出された時 / 週次の依存チェック cadence 到来時
@@ -39,6 +55,17 @@ GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以
 | 主役（tier3）| ジュニア | 本社 IT 室 / リモート | Mattermost `#tier3-dev` / GitHub PR | CVSS 評価 / Harbor mirror 確認 / npm update / E2E 再実行 / PR 提出 |
 | 関与（tier1）| シニア | 本社 IT 室 | Backstage Catalog | Harbor mirror に upgrade 対象バージョンを追加 / supply chain 確認 |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 IT 室 / リモート | GitHub PR | 全 E2E + smoke + a11y green / Web Vitals 劣化なし / sign-off |
+
+## 個人 KPI / 達成感
+
+- CRITICAL CVE の対応 SLO（24h 以内）達成率を定量確認でき、セキュリティ対応の達成感を得られる
+- SBOM の coverage 率が CI で可視化され、未登録パッケージの削減を数値で確認できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 0.5〜1 日/件（CVE 確認 1h + パッケージ更新 2h + CI green 確認 1h）
+- 関与人数: 2〜3 名（tier3・security 担当者・dual reviewer）
+- コスト感: 低〜中。自動化により大量の軽微 CVE は Dependabot が自動処理する
 
 ## 前提
 
@@ -64,6 +91,15 @@ GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以
 7. CI での green を確認し PR を作成する
 8. dual reviewer sign-off を取得する
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier3 担当者 | Grype スキャン結果で CRITICAL CVE 一覧を確認し対応計画を作成 | `CRITICAL CVE N 件 / 対応計画確定` |
+| 2h | tier3 担当者 | 対象パッケージを更新し Playwright smoke test を実行 | `パッケージ更新完了 / smoke test green` |
+| 4h | tier3 担当者 | SBOM を更新し CI の CVE scan green を確認して PR 提出 | `CVE scan green / SBOM 更新 / PR #NNN 提出` |
+| 1d | dual reviewer + security 担当者 | CVE 対応と SBOM 更新を確認し sign-off | `sign-off 完了` |
+
 ## 業界 9 業務との紐付け
 
 - **FA 生産指示・設備操作**: SPA（vite ビルド）の脆弱性が生産指示画面の XSS リスクに直結するため、supply chain の安全性が FA 操作の信頼性を担う
@@ -88,6 +124,11 @@ GitHub Dependabot のアラートが発生した時 / npm audit で CVSS 7.0 以
 - **upgrade 後に E2E test / smoke test が fail**: 原因を特定し修正。CVSS 9.0 以上で 24h 以内に修正不可の場合 → tier1 担当者に Mattermost `#supply-chain-incident` で即時エスカレーション（**SLA: 1h 以内**）。Backstage runbook `critical-npm-vuln` を参照。
 - **Harbor mirror に upgrade 対象バージョンが存在しない**: tier1 担当者に Mattermost `#tier1-harbor` で Harbor mirror 更新を依頼（**SLA: tier1 担当者が 4h 以内に mirror 更新**）。それまでは脆弱性バージョンのまま運用継続（CVSS 9.0 以上の場合は機能凍結も検討）。
 - **upgrade で Web Vitals が劣化**: tier2 担当者に影響のある API との通信コストを確認。劣化許容外の場合は upgrade を見送り、alternative package の調査を実施（**SLA: 5 営業日以内**に代替案提示）。
+
+## 失敗パターン (anti-pattern)
+
+- CVE を手動スプレッドシート管理: SBOM を更新せずにパッケージを更新すると coverage CI が不整合を検知する
+- CRITICAL CVE の放置: 24h SLO を超過すると release gate が blocked になる
 
 ## 関連参照
 

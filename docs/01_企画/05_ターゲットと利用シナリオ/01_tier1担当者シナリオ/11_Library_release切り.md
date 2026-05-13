@@ -22,6 +22,24 @@ tier1 担当者が 4 言語 Library（Rust / C# / Go / TypeScript）の SemVer r
 
 > 朝 10 時、本社 IT 室の tier1 担当者（シニア級）が GitHub PR list を確認し、「v0.18 minor release milestone が close できる状態になった」という milestone 更新通知に気付く。手元には `public_api_snapshot.lock.yaml` と 4 言語の CI ダッシュボード、Mattermost 越しに dual reviewer 2 名と tier2 担当者がいる。
 
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: `release_gate.lock.yaml` 全 cell green を物理前提条件として 4 言語 Library の SemVer release を切り各レジストリに publish する
+
+## 現状業務での痛み
+
+- release 可否判断が属人的で、CVE 混入や conformance fail の状態で release が出てしまうことがある
+- release 手順書が陳腐化し、手順を省略した release がたびたび発生している
+- major release の breaking change に migration guide が付かず、tier2/tier3 担当者が自力で対応する羽目になる
+- cosign 署名のステップが抜け落ちて未署名パッケージが公開される事例が散見される
+
+## k1s0 でこう変わる
+
+- `release_gate.lock.yaml` の全 cell（conformance test / CVE / snapshot / dry-run 等）green が物理的な release 前提条件となる
+- CHANGELOG の自動生成（Conventional Commits）と breaking change への migration guide 必須付与で手順の省略を構造的に防ぐ
+- cosign 署名と Harbor push を CI の release gate に組み込み、未署名 publish を物理拒否する
+- release 後 24h フィードバック監視を Mattermost `#tier1-release` で標準化し、初動対応を迅速化する
+
 ## Trigger（発火条件）
 
 Library に十分な機能追加 / バグ修正が蓄積し、release milestone が達成された時。
@@ -43,6 +61,19 @@ Library に十分な機能追加 / バグ修正が蓄積し、release milestone 
 | 関与（tier2 担当者）| 中堅 | 本社 IT 室 | Backstage Catalog | 互換性確認・release 後 24h フィードバック |
 | 承認（dual reviewer A）| シニア | 本社 IT 室 / リモート | GitHub PR list | CHANGELOG レビュー・sign-off・release tag 確認 |
 | 承認（dual reviewer B）| シニア | 本社 IT 室 / リモート | GitHub PR list | CHANGELOG レビュー・sign-off・release tag 確認 |
+
+## 個人 KPI / 達成感
+
+- 4 言語 Harbor mirror への publish 完了（未署名 0 件）
+- Testcontainers conformance test green（release 後）
+- major release の breaking change への migration guide 添付率 100%
+- release 後 24h フィードバックでのクリティカル issue 0 件
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（minor release）: 半日〜1 日（SemVer 確定・version bump・CI green・cosign・publish）、関与 3〜4 名（主役 + dual reviewer 2 名 + tier2 担当者 1 名）
+- 平常（patch release 緊急 hotfix）: 2〜3h、関与 3 名
+- 失敗時（major release で tier2/tier3 build fail・postmortem）: +1〜2 日、関与 5 名以上
 
 ## 前提
 
@@ -70,6 +101,16 @@ Library に十分な機能追加 / バグ修正が蓄積し、release milestone 
 7. 内部 Harbor mirror で動作確認（tier2 / tier3 が pull できることを Testcontainers で確認）
 8. dual reviewer sign-off を取得し release tag を push する
 9. release 後 24h は tier2 / tier3 担当者からのフィードバックを監視する（Mattermost `#tier1-release`）
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier1 担当者 | SemVer 確定・release branch 作成・4 言語 version bump | `v0.18.0 minor / branch: release/0.18.0 / 4 言語 bump 中` |
+| 2h | tier1 担当者 | conformance test CI・CHANGELOG review・snapshot 更新 | `CI green / CHANGELOG 確認完了 / snapshot 更新済` |
+| 3h | tier1 担当者 | cosign 署名・Harbor push・内部動作確認 | `cosign signed / Harbor push 完了 / tier2 pull 確認中` |
+| 4h | dual reviewer A/B | sign-off・release tag push | `dual sign-off 完了 / tag v0.18.0 push 済` |
+| +24h | tier1 担当者 | tier2/tier3 フィードバック監視 | `#tier1-release 監視中 / issue なし` |
 
 ## 業界 9 業務との紐付け
 
@@ -102,6 +143,12 @@ Library に十分な機能追加 / バグ修正が蓄積し、release milestone 
 - **major release で tier2 / tier3 のコードが build fail**: 即座に rollback は不可（既 publish）。migration guide を補強し tier2 / tier3 担当者を Mattermost `#tier1-release` で支援（**SLA: 24h 以内**に migration guide 完成）。**postmortem 期限: 3 営業日以内**。
 - **cosign 署名失敗**: 未署名の package を registry に push しない。infra 担当者に Mattermost `#infra-incident` で Cosign 鍵確認を依頼（**SLA: 1h 以内**）。
 - **Testcontainers conformance fail（release 後）**: パッチリリース（patch bump）で修正し再 release。**postmortem 期限: 2 営業日以内**。
+
+## 失敗パターン (anti-pattern)
+
+- **CVSS 9.0 以上の未対応 CVE があるまま release**: セキュリティ上危険な状態のパッケージが公開される。月次 CVE トリアージ（シナリオ 10）の完了を release gate の必須条件とする。
+- **major release に migration guide を付けずに publish**: tier2/tier3 担当者が自力で対応できず build fail が発生し、緊急サポート対応に大量の時間を消費する。breaking change には migration guide を必ず同梱することを CI の release checklist で強制する。
+- **cosign 署名なしで register に push**: 未署名パッケージが内部 Harbor mirror に混入し、supply chain lint が fail し始める。署名なし push を Harbor の push policy で物理拒否する設定を infra 軸で担保する。
 
 ## 関連参照
 

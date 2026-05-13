@@ -20,6 +20,22 @@ KEK shamir / cosign signing key / OpenBao dynamic secret / TLS cert の定期ロ
 
 > 深夜 2 時、自宅 on-call の infra 担当者（シニア級）が Mattermost `#infra-alert` の push 通知で「OpenBao dynamic secret TTL 切れ検出 / 影響 workload: FA-consumer-pod」に気付く。手元にはスマートフォンの Mattermost と VPN 接続したラップトップの Backstage runbook 画面、Mattermost 越しに security 担当者がいる。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: secret rotation を OpenBao 自動 rotation で管理し人手管理による期限超過を排除する
+
+## 現状業務での痛み
+
+- secret expiry を人手管理しており、有効期限切れが本番障害として発覚するまで気付かれない
+- secret rotation 手順が文書管理で、担当者が変わると rotation が長期間未実施になる
+- rotation 後の secret 配布が手動で、rotation 完了の確認に時間がかかる
+
+## k1s0 でこう変わる
+
+- OpenBao の dynamic secret が rotation を自動実行し、secret の有効期限切れが構造的に発生しない
+- rotation スケジュールが rotation.lock.yaml で管理され、期限超過が CI で自動検知される
+- rotation 後の secret が Kubernetes ExternalSecret Operator で自動配布され、手動配布が不要になる
+
 ## Trigger（発火条件）
 
 - KEK shamir 鍵の定期ローテーションタイミングが到来した時
@@ -43,6 +59,17 @@ KEK shamir / cosign signing key / OpenBao dynamic secret / TLS cert の定期ロ
 | 関与（security）| シニア | 自宅 on-call / 本社 IT 室 | Mattermost `#security-incident` | 漏洩疑い時の即時 escalation 受領 / 影響範囲特定 |
 | 承認（dual reviewer）| シニア | 本社 IT 室 / リモート | Mattermost `#infra-ops` | ローテーション完了 PR レビュー / secret_rotation.lock.yaml sign-off |
 
+## 個人 KPI / 達成感
+
+- secret 有効期限切れ 0 件が rotation.lock.yaml で定量確認でき、セキュリティ品質向上を実感できる
+- rotation 自動化率の向上を数値で確認でき、運用負荷削減の達成感を得られる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（OpenBao dynamic secret 設定 4h + ExternalSecret 設定 4h + rotation.lock.yaml 設定 2h）
+- 関与人数: 3 名（infra 担当者・security 担当者・dual reviewer）
+- コスト感: 低〜中。自動化設定後は継続コストが定期確認のみになる
+
 ## 前提
 
 - [KEK shamir M-of-N ceremony](../../../04_詳細設計/03_クロスカッティング適合仕様/02_KEK_shamir_distribution.md) runbook が Backstage に登録済みであること
@@ -58,6 +85,15 @@ KEK shamir / cosign signing key / OpenBao dynamic secret / TLS cert の定期ロ
 5. TLS cert: cert-manager で自動ローテーション確認 / 手動対応が必要な場合は IaC で更新
 6. 漏洩疑い時: 即時 revoke → 全 workload 強制 restart → postmortem 必須 + security 担当者への escalation
 7. ローテーション完了を `secret_rotation.lock.yaml` に追記 + dual reviewer sign-off
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | OpenBao dynamic secret の lease TTL と rotation schedule を設定 | `OpenBao dynamic secret 設定完了 / TTL 設定確認` |
+| 4h | infra 担当者 | ExternalSecret Operator で rotation 後の自動配布を設定 | `ExternalSecret 設定完了 / 自動配布確認` |
+| 1d | infra 担当者 | rotation.lock.yaml を更新し CI の expiry check green を確認して PR 提出 | `rotation.lock.yaml 更新 / expiry check green / PR #NNN` |
+| 1d+2h | dual reviewer + security 担当者 | rotation 設定と expiry check を確認し sign-off | `sign-off 完了` |
 
 ## 業界 9 業務との紐付け
 
@@ -90,6 +126,11 @@ KEK shamir / cosign signing key / OpenBao dynamic secret / TLS cert の定期ロ
 **escalate 先**: security 担当者 / Mattermost `#security-incident`
 **SLA**: cosign 鍵漏洩疑い時は 30 分以内通報
 **runbook**: Backstage runbook `emergency-key-rotation` を参照
+
+## 失敗パターン (anti-pattern)
+
+- static secret の手動 rotation: OpenBao dynamic secret を使わず static secret を手動更新すると expiry check が drift を検知する
+- rotation スケジュール未設定: rotation.lock.yaml に schedule を記録しないと CI の cadence check が fail する
 
 ## 関連参照
 

@@ -8,7 +8,7 @@ depends_on:
   - arch.tier2.tier2_index
   - req.team.tier_engineer_requirement
 covered_by:
-  defense_in_depth_layers: []
+  defense_in_depth_layers: [A, B, C, D]
   proof_classes: []
 ---
 
@@ -19,6 +19,24 @@ covered_by:
 新業界（例: サービス業 / 医療業）の正式 pack を stub から昇格させる際、4 抽象化レベルの分類・依存方向検証・atomic 三表書込・テナント識別子強制注入・8 層強制機構への組込みを一貫して通過させる。
 
 > 朝 10 時、本社 IT 室の tier2 担当者（中堅級）が Backstage Software Catalog で「medical-pack stub」の昇格タスクに気付く。手元には GitHub PR・`industry-neutrality-linter` レポート、Mattermost 越しに tier1 担当者がいる。
+
+## ペルソナ要約
+
+主役: tier2 担当者（中堅級）、目的: 新業界 pack を 4 抽象化レベルに分類し 8 層強制機構・atomic 三表書込・テナント識別子注入を全て通過させて昇格する
+
+## 現状業務での痛み
+
+- 業界固有概念が業界横断層に混入していても CI なしでは発覚が遅く、後から大規模リファクタが発生する
+- atomic 三表書込の適用が属人的で一部 aggregate で outbox が二重書込みになっていても気付かない
+- テナント識別子強制注入の漏れが新 pack 追加時に発生し、cross-tenant データ漏洩リスクが生まれる
+- 8 層強制機構への組み込みが後工程になり、tier3 が tier2 を迂回する経路が先に生まれてしまう
+
+## k1s0 でこう変わる
+
+- 業界中立性 lint が CI で自動実行され、業界固有概念の業界横断層への混入を merge 前に物理拒否する
+- atomic 三表書込の Testcontainers integration test が全 aggregate を網羅し、二重書込みゼロを担保する
+- テナント識別子注入経路 lint が全 API に対して実行され、注入漏れを merge 前に検出する
+- 8 層強制機構への組み込みを新 pack の merge 条件として CI gate に組み込む
 
 ## Trigger（発火条件）
 
@@ -42,6 +60,19 @@ covered_by:
 | 関与（tier1）| シニア | 本社 / リモート | GitHub PR | API 整合確認 / stub conformance レビュー |
 | 承認（dual reviewer）| 中堅〜シニア | 本社 / リモート | GitHub PR | PR レビュー / sign-off（author 不可） |
 
+## 個人 KPI / 達成感
+
+- 業界中立性 lint green（`forbidden_cross_dependency` カウント = 0）
+- 全 aggregate での atomic 三表書込 integration test green 率
+- テナント識別子注入経路 lint green（全 API）
+- 8 層強制機構への組み込み完了・CI 全件 green
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（新業界 pack 昇格）: 1〜2 週間（業務語彙分類・atomic 三表書込・8 層組み込み・CI green）、関与 4〜5 名（主役 + tier1 担当者 + dual reviewer 2 名 + ops 担当者）
+- 平常（既存 pack への aggregate 追加）: 1〜3 日、関与 3〜4 名
+- 失敗時（中立性 lint fail・conformance fail）: +1〜3 日、関与 4 名
+
 ## 前提
 
 - 業界横断層（Cross-industry Lv）が確立済みであること
@@ -64,6 +95,15 @@ covered_by:
    - tier2 公開 API 表面 lint の新 pack 用 policy を宣言（`policies/tier2-pack-<name>.rego`）
    - 8 層が全件 green になることを CI で確認してから merge
 8. dual reviewer sign-off + Testcontainers green（新 pack 全 API）を確認してから merge する
+
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | tier2 担当者 | 業務語彙分類（4 Lv）・中立性 lint 実行 | `medical-pack 昇格開始 / 業務語彙分類中 / lint 実行中` |
+| 2〜3 日 | tier2 担当者 | Domain Event/Workflow/決定表/DB schema 作成 | `atomic 三表書込 integration test: green / 8 層組み込み中` |
+| 4〜5 日 | tier1 担当者 | API 整合確認・stub conformance レビュー | `stub conformance CI: green / tier1 整合確認完了` |
+| 1 週間 | dual reviewer | sign-off・CI 全件 green 確認 | `dual sign-off 完了 / 業界中立性 lint green / 8 層全件 green` |
 
 ## 業界 9 業務との紐付け
 
@@ -92,6 +132,12 @@ covered_by:
 - **逆方向依存 fail（新 pack → 業界横断層）**: 依存方向検証 CI が fail し merge を阻止。escalate 先: Mattermost `#tier2-ci-alert`（SLA: 24h 以内に是正 PR 提出）。runbook: Backstage `industry-pack-promotion-procedure`
 - **第二業界 stub conformance fail**: API 同型性が未達と判断し tier2 担当者が API 設計を見直す。escalate 先: Mattermost `#tier2-ci-alert`（SLA: 48h 以内）。runbook: Backstage `industry-pack-promotion-procedure`
 - **Testcontainers fail**: atomic 三表書込または tenant_id 注入の実装不備。escalate 先: Mattermost `#tier2-ci-alert`（SLA: 24h 以内に是正 PR 提出）。runbook: Backstage `industry-pack-promotion-procedure`
+
+## 失敗パターン (anti-pattern)
+
+- **業務語彙の分類を曖昧にしたまま昇格を進める**: 業界横断層と業界固有層の境界が不明確なまま実装が始まり、後から大規模な分類修正が発生する。4 抽象化レベルへの分類をコードを書く前に完了させ、チーム間での合意を取得してから実装に進む。
+- **atomic 三表書込を一部 aggregate で省略**: state / outbox / audit の 3 テーブルを別 tx で書くことで、イベント欠落や audit chain の穴が生まれる。integration test で「3 テーブルが必ず同一 tx で書かれること」を全 aggregate に対して assert する。
+- **8 層強制機構への組み込みを後から追加**: tier3 が tier2 を迂回する経路が先に生まれ、後から組み込もうとすると既存コードへの影響が広がる。新 pack の merge 条件として 8 層強制機構 CI 全件 green を先行して要求する。
 
 ## 関連参照
 

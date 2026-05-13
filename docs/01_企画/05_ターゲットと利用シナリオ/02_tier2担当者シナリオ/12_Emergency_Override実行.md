@@ -22,6 +22,24 @@ tier2 担当者（またはプラットフォーム運営者）が Emergency Ove
 
 > 深夜 2 時、自宅 on-call の tier2 担当者（中堅級）が PagerDuty アラートで「受注 DB data corruption」通知を受け取り、Backstage runbook `break-glass-revoke` を開く。手元には OpenBao CLI・`bao token` コマンド、Mattermost 越しに security 担当者と ops 担当者がいる。
 
+## ペルソナ要約
+
+主役: tier2 担当者（中堅級）、目的: Emergency Override（break-glass）経路で本番 DB への緊急対応を実施し全操作を audit hash chain に記録して事後報告を完遂する
+
+## 現状業務での痛み
+
+- break-glass 手順が文書化されておらず、緊急時に手順を思い出しながら対処するため対応時間が伸びる
+- 全操作の audit 記録が取れているか確認する手段がなく、コンプライアンス上の空白が生まれる
+- security 担当者の承認なしに break-glass が実行されるリスクがあり、不正操作との区別が困難になる
+- postmortem の提出が後回しになり、再発防止策が策定されないまま同種の incident が繰り返される
+
+## k1s0 でこう変わる
+
+- break-glass 手順が Backstage runbook に整備され、緊急時に手順を参照しながら対処できる
+- OpenBao の response wrapping で time-limited token を発行し、操作開始と同時に audit hash chain への emit が保証される
+- security 担当者承認を break-glass の物理前提条件として設定し、承認なしの実行を構造的に不可能にする
+- postmortem 提出期限（1 営業日以内）が Backstage で追跡され、放置を防止する
+
 ## Trigger（発火条件）
 
 通常の権限では対応できない本番 DB 緊急操作（data corruption 修正 / 重大 bug の hotfix / セキュリティインシデント対応）が必要になった時
@@ -42,6 +60,19 @@ tier2 担当者（またはプラットフォーム運営者）が Emergency Ove
 | 主役（tier2）| 中堅 | 自宅 on-call | PagerDuty / Mattermost `#security-incident` | break-glass 手順開始 / 最小限操作 / token revoke / postmortem 提出 |
 | 関与（security）| シニア | 自宅 on-call | PagerDuty / Mattermost `#security-incident` | Emergency Override 承認 / audit trail 確認 |
 | 関与（ops）| 中堅 | 自宅 on-call | PagerDuty / Perses dashboard | on-call 調整 / 操作完了報告受領 |
+
+## 個人 KPI / 達成感
+
+- 全操作が audit hash chain に記録済み（連続性確認）
+- break-glass token が操作完了後に即時 revoke 済み
+- postmortem が 1 営業日以内に Backstage TechDocs に提出済み
+- security 担当者の承認記録と audit trail が forensics 用に保全済み
+
+## 工数 / 関与人数 / コスト感
+
+- 通常: 1〜2h（承認取得・操作・audit 確認・token revoke）、関与 3 名（主役 + security 担当者 + ops 担当者）
+- 重大（鍵漏洩疑い・更なる data corruption）: 4〜8h（即時中断・postmortem・data 復元）、関与 5 名以上
+- postmortem 含む総工数: 1〜2 日
 
 ## 前提
 
@@ -93,6 +124,12 @@ tier2 担当者（またはプラットフォーム運営者）が Emergency Ove
 | 15 分 | tier2 担当者 | cluster-admin 取得 / 緊急操作開始 | `cluster-admin 取得 / 操作: data corruption 修正 SQL / T+15` |
 | 60 分 | tier2 担当者 | 操作完了 / audit hash chain 確認 / break-glass token revoke | `操作完了 / audit emit 確認済 / break-glass 返却 T+60` |
 | 1 営業日 | tier2 担当者 | postmortem 着手 / Backstage TechDocs 提出 | `#postmortem postmortem PR 作成済 / 対象インシデント: 受注 DB corruption` |
+
+## 失敗パターン (anti-pattern)
+
+- **security 担当者承認なしに break-glass を実行**: 操作の正当性が証明できず、forensics 調査時に不正操作との区別が困難になる。security 担当者承認を OpenBao response wrapping の token 発行の物理前提条件として設定し、承認なしの実行を構造的に不可能にする。
+- **操作完了後に token revoke を忘れる**: break-glass token が生き続け、最大 2 時間の窓口で不正利用のリスクが残る。token revoke を操作完了直後の必須手順として Backstage runbook に組み込み、revoke 失敗時の escalate 先を明記する。
+- **postmortem 提出を後回しにする**: 再発防止策が策定されないまま時間が経ち、同種の incident が繰り返される。postmortem 提出期限（1 営業日以内）を Backstage でトラッキングし、期限超過時に自動 escalate を発火させる。
 
 ## 関連参照
 

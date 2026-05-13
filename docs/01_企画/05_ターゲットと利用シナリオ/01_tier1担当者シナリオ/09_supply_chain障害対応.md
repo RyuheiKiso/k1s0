@@ -21,6 +21,24 @@ Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれか�
 
 > 深夜 2 時、自宅 on-call の tier1 担当者（シニア級）が Mattermost のアラート通知で起床し、Harbor mirror の cosign 検証 fail アラートを確認する。手元には Kyverno admission ログと `supply_chain_incident.lock.yaml`、Mattermost 越しに ops 軸担当者と security 軸担当者・dual reviewer がいる。
 
+## ペルソナ要約
+
+主役: tier1 担当者（シニア級）、目的: supply chain 障害（Harbor/cosign/SBOM/lint fail）を即時分類し Kyverno で production を物理遮断しながら完全復旧する
+
+## 現状業務での痛み
+
+- Harbor 障害時にサプライチェーン全体が停止し、代替経路の切り替えが属人的で時間がかかる
+- cosign 署名確認が手動で行われ、未署名 image が誤って production に展開されるリスクがある
+- SBOM 欠落に気付く仕組みがなく、脆弱性スキャンの空白が生まれる
+- AGPL/SSPL 混入の発見が PR review の後になり、依存グラフの汚染が進んでからの対処になる
+
+## k1s0 でこう変わる
+
+- Kyverno admission policy が全 production cluster で cosign 未署名 image を物理拒否し、新規展開を即時遮断する
+- supply chain lint が AGPL/SSPL 系混入を CI で物理検出し、merge 阻止を強制する
+- `supply_chain_incident.lock.yaml` に全障害の記録が蓄積され、再発防止策のトレーサビリティを確保する
+- Harbor 復旧の runbook が Backstage に登録され、属人的な対処手順をなくす
+
 ## Trigger（発火条件）
 
 Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれかで障害・違反が検出された時。
@@ -42,6 +60,19 @@ Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれか�
 | 関与（dual reviewer B）| シニア | リモート / 本社 IT 室 | Mattermost アラート | 対処方針確認・sign-off |
 | 関与（ops 担当者）| 中堅 | 自宅 on-call / 本社 IT 室 | Backstage Catalog | Harbor mirror 復旧・Kyverno policy 変更実施 |
 | 関与（security 担当者）| 中堅 | リモート / 本社 IT 室 | security alert dashboard | cosign 鍵確認・postmortem 参加・影響範囲調査 |
+
+## 個人 KPI / 達成感
+
+- Kyverno による cosign 未署名 image の拒否が継続して有効（0 件の未署名 image 展開）
+- AGPL/SSPL 混入ゼロ（依存導入 lint green 維持）
+- Harbor 復旧 SLA 達成率（障害検出後 2h 以内）
+- supply chain 障害の incident 記録完備率 100%
+
+## 工数 / 関与人数 / コスト感
+
+- 初回（Harbor 到達不可）: 1〜2h（切り替え・復旧・再 push）、関与 4 名（主役 + dual reviewer 2 名 + ops 担当者）
+- 平常（cosign 検証 fail 対応）: 1〜2h（drain・re-sign または鍵ローテーション）、関与 5 名（+ security 担当者）
+- 失敗時（鍵漏洩疑い）: 4〜8h（全 image re-sign・鍵ローテーション・postmortem）、関与 6 名以上
 
 ## 前提
 
@@ -137,6 +168,12 @@ Harbor mirror / cosign 署名 / SBOM 生成 / supply chain lint のいずれか�
 | 30 分 | tier1 担当者 | 署名鍵の状態確認・re-sign または鍵ローテーション判断 | `鍵 revoke なし確認 / 対象 image を re-sign 実施中 / Harbor push 完了後 Kyverno 確認予定` |
 | 60 分 | tier1 担当者 | 全 image re-sign 完了・Harbor mirror 正常確認 | `re-sign 完了 / Kyverno admission green / production 展開再開可` |
 | 1 営業日 | tier1 担当者 | postmortem 着手 | `#postmortem supply_chain_incident postmortem PR 作成済 / 根本原因: CI pipeline の cosign step skipped 条件の誤設定` |
+
+## 失敗パターン (anti-pattern)
+
+- **Harbor 復旧中に Kyverno の fallback 許可を全 namespace に開く**: 最小化すべき許可スコープが全体に広がり、未署名 image が広範に展開される可能性が生まれる。許可スコープを特定 namespace / 特定 image に限定し、復旧後は即時閉じることを runbook に明示する。
+- **cosign 鍵漏洩を「可能性あり」のまま運用継続**: 全署名済み image の信頼性が失われた状態で本番稼働が続く。鍵漏洩疑いが発生した時点で production 展開を全停止し、鍵ローテーション後に全 image を re-sign するまで再開しない。
+- **SBOM 欠落の quarantine タグを付けずに放置**: SBOM が存在しない image が脆弱性スキャンの対象外になり、CVE の空白地帯が生まれる。SBOM 欠落 image には即時 quarantine タグを付け、再生成 green を確認してから解除するフローを徹底する。
 
 ## 関連参照
 

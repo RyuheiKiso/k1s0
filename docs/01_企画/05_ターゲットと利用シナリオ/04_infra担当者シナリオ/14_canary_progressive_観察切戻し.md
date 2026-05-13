@@ -20,6 +20,22 @@ infra 担当者が Argo Rollouts による canary progressive delivery の SLI �
 
 > 火曜昼 14 時、infra 担当者（シニア級）が Perses の Argo Rollouts ダッシュボードを定期確認していると、受注サービス `v1.3.2` の canary weight が 20% に達した時点でエラーレートが 0.3%→1.2% に跳ね上がっているのに気付く。自動分析が `fail` を返す前に、Mattermost `#infra-rollout` で tier2 担当者にトラフィック分析を依頼しながら手動 abort のスタンバイに入る。
 
+## ペルソナ要約
+
+主役: infra 担当者（シニア級）、目的: カナリア切り戻しを Argo Rollouts の自動・手動ゲートで安全かつ迅速に実施する
+
+## 現状業務での痛み
+
+- カナリア切り戻し手順が不明確で、エラー率上昇時に手順を探す時間がインシデント影響を拡大させる
+- 手動切り戻しのタイミング判断が担当者の主観に依存し、切り戻し遅延が SLO 違反を引き起こす
+- 切り戻し後の原因分析が属人的で、同じ問題が繰り返し発生する
+
+## k1s0 でこう変わる
+
+- Argo Rollouts の analysis run がエラー率を自動評価し、閾値超過で即時自動切り戻しを実施する
+- 切り戻し手順が Backstage runbook に定義され、誰でも同一手順で緊急切り戻しを実行できる
+- 切り戻し後の postmortem が Backstage ticket で追跡され、再発防止 action item が管理される
+
 ## Trigger（発火条件）
 
 Argo Rollouts の canary analysis が fail を返した時（自動 rollback トリガー）、または infra 担当者が Perses dashboard で SLI 劣化を検出し手動 abort を判断した時。
@@ -40,6 +56,17 @@ Argo Rollouts の canary analysis が fail を返した時（自動 rollback ト
 | 主役（infra）| シニア | 本社 IT 室 / 自宅 on-call | Perses の Argo Rollouts ダッシュボード | SLI 観察 / abort 発動 / rollback 確認 |
 | 関与（ops）| シニア | 本社 / リモート | Mattermost `#infra-rollout` + PagerDuty | アラート通報 / incident 管理 |
 | 関与（tier2）| 中堅 | 本社 IT 室 | GitHub PR / Backstage Docs | 新バージョンの変更点説明 / 原因調査 |
+
+## 個人 KPI / 達成感
+
+- mean time to rollback が閾値以内であることを Perses で定量確認でき、インシデント対応品質の達成感を得られる
+- 自動切り戻し成功率の向上を数値で確認でき、リリース安全性の改善を実感できる
+
+## 工数 / 関与人数 / コスト感
+
+- 工数: 1〜2 日（Argo Rollouts 切り戻し設定 4h + runbook 整備 2h + analysis run テスト 4h）
+- 関与人数: 3 名（infra 担当者・ops 担当者・dual reviewer）
+- コスト感: 低〜中。設定後は自動化で継続コストが最小化される
 
 ## 前提
 
@@ -68,6 +95,15 @@ Argo Rollouts の canary analysis が fail を返した時（自動 rollback ト
 8. Argo CD の GitOps commit 履歴で rollback 操作が記録されていることを確認する
 9. dual reviewer sign-off を取得する
 
+## Timeline
+
+| T+ | actor | action | 通知例 |
+|---|---|---|---|
+| 0 | infra 担当者 | Argo Rollouts analysis run でエラー率監視を設定し staging でテスト | `analysis run 設定完了 / staging テスト実行` |
+| 5分 | Argo Rollouts | エラー率閾値超過を検知し自動切り戻しを開始 | `自動切り戻し開始 / エラー率 N% 検知` |
+| 10分 | infra 担当者 | 切り戻し完了を Perses で確認し postmortem ticket を起票 | `切り戻し完了 / postmortem ticket #NNN 起票` |
+| 1営業日 | infra 担当者 | postmortem で root cause と action item を確定し lock.yaml を更新 | `postmortem 完了 / action item N 件` |
+
 ## 業界 9 業務との紐付け
 
 - **受注管理**: 受注サービスの新バージョン canary 配信で最もリスクが高い業務。エラーレート上昇が注文受付の停止に直結するため、canary weight の段階移行は受注数の低い時間帯（例: 深夜〜早朝）に実施することが推奨される
@@ -93,6 +129,11 @@ Argo Rollouts の canary analysis が fail を返した時（自動 rollback ト
 - **自動 rollback が 5 分以内に完了しない**: Argo Rollouts の `Rollout` CRD の状態を確認し、stuck している場合は `kubectl argo rollouts undo <rollout-name>` で強制ロールバック（**SLA: 5 分以内**）。ops 担当者に Mattermost `#infra-incident` で通報
 - **rollback 後も stable 版のエラーレートが高い**: stable 版の問題の可能性があるため ops 担当者と共に前バージョンまで rollback するか判断（**SLA: 15 分以内**）。P1 incident として扱う
 - **AnalysisRun fail の原因が不明**: tier2 担当者に 48h 以内の原因調査 PR を依頼（**SLA: 48h 以内**）。分析結果を Backstage TechDocs に postmortem として記録する
+
+## 失敗パターン (anti-pattern)
+
+- analysis run なしの手動監視: エラー率監視を人手で行うと切り戻しタイミングが遅延し SLO 違反になる
+- postmortem の省略: 切り戻し後の分析なしでは同一問題が再発する
 
 ## 関連参照
 

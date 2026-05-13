@@ -5,115 +5,121 @@ cells:
 - axis_id: formal
   cell_id: formal.all_critical_verified
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177368+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735871+00:00'
   source_lock_artifact: proof_status.lock.yaml
   source_field_path: skeleton
 - axis_id: formal
   cell_id: formal.proof_matrix_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177393+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735881+00:00'
   source_lock_artifact: proof_matrix.lock.yaml
   source_field_path: skeleton
 - axis_id: formal
   cell_id: formal.dual_review_completeness_100pct
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177394+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735882+00:00'
   source_lock_artifact: proof_review.lock.yaml
   source_field_path: skeleton
 - axis_id: tier1
   cell_id: tier1.bidi_conformance_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177397+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735884+00:00'
   source_lock_artifact: capabilities.lock.yaml
   source_field_path: skeleton
 - axis_id: tier1
   cell_id: tier1.slo_compliance_quarterly_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177398+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735885+00:00'
   source_lock_artifact: instruments.lock.yaml
   source_field_path: skeleton
 - axis_id: tier1
   cell_id: tier1.oss_lifecycle_drill_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177399+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735886+00:00'
   source_lock_artifact: oss_inventory.lock.yaml
   source_field_path: skeleton
 - axis_id: tier2
   cell_id: tier2.tenant_isolation_drill_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177400+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735887+00:00'
   source_lock_artifact: migration.lock.yaml
   source_field_path: skeleton
 - axis_id: tier3
   cell_id: tier3.client_state_conformance_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177401+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735887+00:00'
   source_lock_artifact: conflict_tree.lock.yaml
   source_field_path: skeleton
 - axis_id: client
   cell_id: client.sdk_distribution_5class_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177402+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735888+00:00'
   source_lock_artifact: sdk_conformance.lock.yaml
   source_field_path: skeleton
 - axis_id: infra
   cell_id: infra.topology_class_drill_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177402+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735889+00:00'
   source_lock_artifact: topology_class.lock.yaml
   source_field_path: skeleton
 - axis_id: infra
   cell_id: infra.clock_integrity_drill_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177403+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735889+00:00'
   source_lock_artifact: clock_causality_proof.lock.yaml
   source_field_path: skeleton
 - axis_id: data
   cell_id: data.preservation_class_drill_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177404+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735890+00:00'
   source_lock_artifact: preservation_substrates.lock.yaml
   source_field_path: skeleton
 - axis_id: security
   cell_id: security.threat_model_coverage_100pct
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177405+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735891+00:00'
   source_lock_artifact: threat_model.lock.yaml
   source_field_path: skeleton
 - axis_id: security
   cell_id: security.build_provenance_slsa_l3plus
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177406+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735892+00:00'
   source_lock_artifact: artifact_inventory.lock.yaml
   source_field_path: skeleton
 - axis_id: ops
   cell_id: ops.loop_closure_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177406+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735892+00:00'
   source_lock_artifact: ops_loop.lock.yaml
   source_field_path: skeleton
 - axis_id: test
   cell_id: test.coverage_matrix_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177407+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735893+00:00'
   source_lock_artifact: coverage_matrix.lock.yaml
   source_field_path: skeleton
 - axis_id: meta
   cell_id: meta.axis_registry_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177408+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735894+00:00'
   source_lock_artifact: axis_registry.lock.yaml
   source_field_path: skeleton
 - axis_id: meta
   cell_id: meta.docs_lint_green
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177409+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735895+00:00'
   source_lock_artifact: docs_lint.lock.yaml
+  source_field_path: skeleton
+- axis_id: meta
+  cell_id: meta.repository_layout_integrity
+  status: red
+  last_evaluated_at: '2026-05-12T22:38:07.735895+00:00'
+  source_lock_artifact: repository_layout.lock.yaml
   source_field_path: skeleton
 - axis_id: meta
   cell_id: meta.release_gate_dual_signoff_complete
   status: red
-  last_evaluated_at: '2026-05-10T12:59:58.177409+00:00'
+  last_evaluated_at: '2026-05-12T22:38:07.735896+00:00'
   source_lock_artifact: release_gate.lock.yaml
   source_field_path: skeleton
 red_cells:
@@ -135,6 +141,7 @@ red_cells:
 - test.coverage_matrix_complete
 - meta.axis_registry_complete
 - meta.docs_lint_green
+- meta.repository_layout_integrity
 - meta.release_gate_dual_signoff_complete
 cosign_signature_pointers: []
-generated_at: '2026-05-10T12:59:58.177412+00:00'
+generated_at: '2026-05-12T22:38:07.735898+00:00'

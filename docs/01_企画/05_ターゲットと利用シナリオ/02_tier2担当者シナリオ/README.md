@@ -18,6 +18,22 @@ covered_by:
 
 tier2 担当者（中堅級）が日常的に踏む 14 シナリオを 1 ファイル 1 シナリオで列挙する。業務資産（Domain Event / Workflow / 決定表 / 業務マスタ / DB schema）の所有と、tier3 が tier1 を迂回しない 8 層強制機構の維持が主責務。
 
+## 現状業務での痛み
+
+- 業界固有概念が業界横断層に漏洩し、第二業界 pack 追加のたびに既存ロジックの大規模改修が必要になる
+- テナント識別子の伝播を手作業に頼ると、テナント分離違反 (RLS FORCE 抜け) が本番で発覚する
+- BusinessConflict (並行編集 / 競合書き込み) のハンドリングが実装者任せで、subtype ごとに UX が統一されない
+- atomic 三表書込 (state + outbox + audit) が守られないと、audit 欠落や outbox 失配が起きても検知不能になる
+- 業界規制違反を手動 review に頼ると、命名禁則 / 依存方向の違反が CI 外で蓄積する
+
+## k1s0 でこう変わる
+
+- 業界中立性 3 種の機械検査 (命名禁則 / 依存方向 / 第二業界 stub conformance) で業界固有概念の漏洩を物理拒否する
+- tenant_id 強制注入を 8 層強制機構が物理 enforce し、テナント分離違反の経路を構造でゼロにする
+- BusinessConflict 4 subtype (stale_write / lost_update / supersede / concurrent_edit) の UI 分岐を 1:1 固定し、処理を tier2 が集中所有する
+- atomic 三表書込 P1-P4 を CI で物理 enforce し、audit 欠落を構造的に不可能化する
+- 業界中立性 lint が CI で自動実行し、依存方向違反を merge 前に物理拒否する
+
 ## 担当者プロフィール
 
 - 級: 中堅
@@ -66,6 +82,9 @@ tier2 担当者は以下の責務を横断的に担う:
 | 08 | [外部システム統合](08_外部システム統合.md) | 既存基幹システムとの新規連携が要求された時 | 年次〜不定期 | スキーマ進化適合仕様 / tier2強制機構 | [計画] |
 | 09 | [業務マスタCSV一括import](09_業務マスタCSV一括import.md) | 新テナント追加または業界 pack 更新時に業務マスタ bulk import | 月次 | テナント分離適合仕様 | [計画] |
 | 10 | [Scheduler_CronWorkflow追加](10_Scheduler_CronWorkflow追加.md) | 定期バッチ要件が tier2 に起票された時 | 月次〜四半期 | SLO 適合仕様 | [計画] |
+| 11 | [権限モデル変更_ABAC_delegation](11_権限モデル変更_ABAC_delegation.md) | ABAC 権限モデル変更または委任権限追加要求が来た時 | 四半期〜年次 | テナント分離適合仕様 / tier2強制機構 | [計画] |
+| 12 | [Emergency_Override実行](12_Emergency_Override実行.md) | break-glass または緊急 override 実行要求が発生した時 | イベント駆動（緊急時） | 認証適合仕様 / tier2強制機構 | [緊急] |
+| 13 | [読取モデル_Projector追加](13_読取モデル_Projector追加.md) | 新規 Read Model Projector 追加要求が来た時 | 月次〜四半期 | スキーマ進化適合仕様 / データ保全適合仕様 | [計画] |
 | 14 | [retention・crypto-shred 運用](14_retention_crypto_shred運用.md) | 業務データ retention 期限到来通知（Backstage retention calendar アラート）時 | 月次〜四半期 | データ保全適合仕様 | [周期] |
 
 ## 新規参画者向けオンボーディング
