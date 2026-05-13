@@ -36,8 +36,10 @@ Yubikey の PIV スロット管理ツール。pip で導入する。
 
 ```bash
 sudo apt update
-sudo apt install -y python3-pip swig libpcsclite-dev
+sudo apt install -y python3-pip swig libpcsclite-dev pcscd
 pip install yubikey-manager
+# pcscd（スマートカードデーモン）を起動しないと Yubikey が認識されない
+sudo systemctl enable --now pcscd
 ykman --version
 ```
 

@@ -60,16 +60,16 @@ git tag -s v1.0.0 -m "v1.0.0"
 cosign sign-blob --key cosign.key <release artifact> --output-signature <artifact>.sig
 ```
 
-tag 打鍵前に必ず `release_gate.lock.yaml` の `and_gate` を確認する。
+tag 打鍵前に必ず `release_gate.lock.yaml` の `release_gate_status` を確認する。
 
 ```bash
 python3 -c "
 import yaml
 with open('tools/lock_yaml_generator/samples/release_gate.lock.yaml') as f:
     data = yaml.safe_load(f)
-gate = data.get('release_gate', {}).get('and_gate', 'unknown')
-print('AND-gate:', gate)
-assert gate == 'green', 'AND-gate is not green. Release blocked.'
+gate = data.get('release_gate_status', 'unknown')
+print('release_gate_status:', gate)
+assert gate == 'green', 'release_gate_status is not green. Release blocked.'
 "
 ```
 

@@ -36,7 +36,7 @@ tlc -help 2>&1 | head -3
 Apalache は TLA+ の bounded model checker（型付き）。Java 21 で動作する。
 
 ```bash
-APALACHE_VER="0.46.0"
+APALACHE_VER="0.46.0"  # 最新版は https://github.com/apalache-mc/apalache/releases で確認すること
 curl -L "https://github.com/apalache-mc/apalache/releases/download/v${APALACHE_VER}/apalache-${APALACHE_VER}.zip" \
   -o /tmp/apalache.zip
 unzip /tmp/apalache.zip -d ~/tools/
@@ -106,24 +106,25 @@ curl -L "https://github.com/epfl-lara/stainless/releases/download/v${STAINLESS_V
 unzip /tmp/stainless.zip -d ~/tools/stainless/
 echo "export PATH=\$PATH:~/tools/stainless/bin" >> ~/.bashrc
 source ~/.bashrc
-stainless-dotty --version 2>&1 | head -3
+stainless-scalac-standalone --version 2>&1 | head -3
 ```
 
 ## 8. P language（p）
 
-P language は非同期・並行システムのモデル化と検証を行う DSL（microsoft/P）。.NET 8 SDK 上で動作する。
+P language は非同期・並行システムのモデル化と検証を行う DSL（microsoft/P）。GitHub Releases からバイナリを取得する。
 
 ```bash
-dotnet tool install --global p
+P_VER="$(curl -s https://api.github.com/repos/p-org/P/releases/latest | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'])")"
+curl -L "https://github.com/p-org/P/releases/download/${P_VER}/linux-x64.zip" \
+  -o /tmp/p-lang.zip
+unzip /tmp/p-lang.zip -d ~/tools/p-lang/
+chmod +x ~/tools/p-lang/p
+echo "export PATH=\$PATH:~/tools/p-lang" >> ~/.bashrc
+source ~/.bashrc
 p --help 2>&1 | head -3
 ```
 
-グローバルツールとしてインストールされるため `~/.dotnet/tools` が PATH に含まれていること。
-
-```bash
-export PATH="$PATH:$HOME/.dotnet/tools"
-echo 'export PATH="$PATH:$HOME/.dotnet/tools"' >> ~/.bashrc
-```
+GitHub Releases のアセット名はリリースごとに変わる可能性がある。最新バイナリは https://github.com/p-org/P/releases で確認すること。
 
 ## 検収コマンド
 
@@ -134,7 +135,7 @@ dafny --version
 lean --version
 cargo kani --version
 cbmc --version
-stainless-dotty --version 2>&1 | head -1
+stainless-scalac-standalone --version 2>&1 | head -1
 p --help 2>&1 | head -1
 ```
 
