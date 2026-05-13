@@ -28,7 +28,7 @@ properties:
     description: |
       <phase_short>.<axis>.<slug> 形式。配置パスから機械的に導出可能であること。
       不一致は CI fail。
-    pattern: "^(plan|req|arch|detail|format)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+    pattern: "^(plan|req|arch|detail|format|env)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
 
   axis:
     type: string
@@ -57,6 +57,7 @@ properties:
       - detail
       - cross_cutting
       - format
+      - env_setup
 
   kind:
     type: string
@@ -98,7 +99,7 @@ properties:
       dangling 参照は CI fail。
     items:
       type: string
-      pattern: "^(plan|req|arch|detail|format)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+      pattern: "^(plan|req|arch|detail|format|env)\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
     uniqueItems: true
 
   covered_by:

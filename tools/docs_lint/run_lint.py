@@ -43,6 +43,7 @@ PHASE_PREFIX_BY_PATH = {
     "02_要件定義": "req",
     "03_概要設計": "arch",
     "04_詳細設計": "detail",
+    "05_環境構築": "env",
 }
 FORBIDDEN_EXPRESSIONS = [
     re.compile(r"Phase\s*\d+\s*で.*Phase\s*\d+\s*で追記"),

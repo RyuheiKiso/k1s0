@@ -17,7 +17,7 @@
   - 例: `docs/04_詳細設計/01_適合仕様/20_形式検証適合仕様.md` → `id: detail.formal.formal_conformance`
   - 例: `docs/03_概要設計/11_formal設計方針/05_時相安全性方針.md` → `id: arch.formal.temporal_safety_policy`
   - 例: `docs/02_要件定義/04_技術選定/01_OSS採用一覧.md` → `id: req.overview.oss_catalog`
-- `phase_short` enum: `plan` / `req` / `arch` / `detail` / `format`（00_format 配下）
+- `phase_short` enum: `plan` / `req` / `arch` / `detail` / `format`（00_format 配下）/ `env`（05_環境構築 配下）
 - `axis` enum: `tier1` / `tier2` / `tier3` / `infra` / `data` / `security` / `ops` / `client` / `test` / `formal` / `meta` / `overview`
 - 不一致は CI fail。手書きを許容しない。
 
@@ -26,9 +26,10 @@
 - meta = 軸登録 / 19 軸論など軸自体の管掌、overview = 直下 4 ファイル等の cross-cutting 概論。
 
 ### `phase`
-- enum: `plan` / `requirement` / `architecture` / `detail` / `cross_cutting` / `format`
+- enum: `plan` / `requirement` / `architecture` / `detail` / `cross_cutting` / `format` / `env_setup`
 - `cross_cutting` は `04_詳細設計/03_クロスカッティング適合仕様/` および `03_概要設計/12_クロスカッティング設計/` 配下のみ。
 - `format` は `00_format/` 配下のみ。
+- `env_setup` は `05_環境構築/` 配下のみ。id 先頭は `env`。
 
 ### `kind`
 - enum:

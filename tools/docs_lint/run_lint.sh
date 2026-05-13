@@ -84,6 +84,7 @@ while IFS= read -r -d '' f; do
     */02_要件定義/*) expected_phase="req" ;;
     */03_概要設計/*) expected_phase="arch" ;;
     */04_詳細設計/*) expected_phase="detail" ;;
+    */05_環境構築/*) expected_phase="env" ;;
   esac
   if [ -n "$expected_phase" ] && [ "$prefix" != "$expected_phase" ]; then
     echo "  FAIL: $f id prefix '$prefix' != expected '$expected_phase'"
