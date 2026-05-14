@@ -1,0 +1,112 @@
+<mxfile host="Claude-Generated">
+  <diagram name="k1s0 安全保証" id="page-1">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="pg2_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_title" value="k1s0 の安全保証の仕組み ─ IT 担当者向け詳しい版" style="text;html=1;fontFamily=Helvetica;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="16" width="1400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ① atomic 三表書込 -->
+        <mxCell id="pg2_3t_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="10" y="66" width="1580" height="350" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_3t_hdr" value="① atomic 三表書込（データ整合性の仕組み）" style="text;html=1;fontFamily=Helvetica;fontSize=14;fontStyle=1;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="20" y="74" width="800" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_3t_note" value="業務データを変更するとき、3 か所のテーブルに同一トランザクション（atomic）で同時に書き込む。部分的な書き込み失敗は物理的に起きない。" style="text;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="20" y="100" width="1560" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- 4 コンポーネント -->
+        <mxCell id="pg2_state" value="① 業務記録の保管庫&lt;br&gt;（中身: PostgreSQL）&lt;br&gt;&lt;br&gt;業務の現在状態を保管。&lt;br&gt;行レベルセキュリティ（RLS）で&lt;br&gt;テナントをまたいだアクセス禁止。&lt;br&gt;pgaudit で全アクセスを記録" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="20" y="130" width="340" height="174" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_outbox" value="② 変更通知の配信&lt;br&gt;（中身: Kafka / Debezium CDC）&lt;br&gt;&lt;br&gt;変更を CDC でキャプチャし配信。&lt;br&gt;重複リクエストは 24 時間以内に&lt;br&gt;自動検出・無視する&lt;br&gt;（Idempotency-Key TTL）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="400" y="130" width="360" height="174" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_audit" value="③ 改ざん不可の監査ログ&lt;br&gt;（中身: ClickHouse + 外部公証）&lt;br&gt;&lt;br&gt;hash chain で改竄不能。&lt;br&gt;誰が・いつ・何を変更したかを&lt;br&gt;永久保存する。&lt;br&gt;RFC 3161 タイムスタンプで封印" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="810" y="130" width="360" height="174" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_hash" value="④ 監査鎖を外部公証で封印&lt;br&gt;（中身: RFC 3161 / Sigstore Rekor）&lt;br&gt;&lt;br&gt;外部公証サービスに記録し、&lt;br&gt;システム外からも検証可能。&lt;br&gt;組織内外を問わず&lt;br&gt;改竄が証明可能になる" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="130" width="350" height="174" as="geometry" />
+        </mxCell>
+
+        <!-- 3 つの矢印（ラベルなし） -->
+        <mxCell id="pg2_arr12" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="217" as="sourcePoint" />
+            <mxPoint x="400" y="217" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pg2_arr23" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="760" y="217" as="sourcePoint" />
+            <mxPoint x="810" y="217" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pg2_arr34" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1170" y="217" as="sourcePoint" />
+            <mxPoint x="1220" y="217" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- データ衝突帯 -->
+        <mxCell id="pg2_conflict" value="データ衝突が起きたとき k1s0 が自動判別する 4 種のケース:&lt;br&gt;stale_write（古いデータで上書き）/ lost_update（自分の変更が他人に上書きされた）/ supersede（他人の編集を採用）/ concurrent_edit（同時編集）&lt;br&gt;いずれのケースも画面が自動判別し、業務担当者に適切な選択肢を提示する" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="20" y="312" width="1560" height="98" as="geometry" />
+        </mxCell>
+
+        <!-- ② Defense-in-depth 6 層 -->
+        <mxCell id="pg2_dd_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="10" y="428" width="1580" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_dd_hdr" value="② Defense-in-depth 6 層（文章・運用ルールに頼らない物理的強制）" style="text;html=1;fontFamily=Helvetica;fontSize=14;fontStyle=1;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="20" y="436" width="1100" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_dd_note" value="文章や運用ルールに頼らない。6 層すべてで物理的に強制する。1 層が破れても他の層が必ず止める。" style="text;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="20" y="462" width="1560" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- 6 層 -->
+        <mxCell id="pg2_lay_a" value="A: コード生成時点で弾く&lt;br&gt;&lt;br&gt;型システムで不正な状態を表現不可能にする。コンパイルが通れば型不変条件は保証される。&lt;br&gt;&lt;br&gt;（中身: Rust phantom type / TS branded type / Go typestate / protoc + Buf）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="20" y="492" width="257" height="486" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lay_b" value="B: 規約違反を自動拒否&lt;br&gt;&lt;br&gt;禁止依存・API drift・業界固有語の混入を CI で即拒否。push 前に自動検出する。&lt;br&gt;&lt;br&gt;（中身: cargo-deny / ESLint plugin-boundaries / Roslyn analyzer）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="281" y="492" width="257" height="486" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lay_c" value="C: 結合点の動作を自動検証&lt;br&gt;&lt;br&gt;実際の DB / Kafka を使った統合テスト。カオス障害・境界テストも自動化。&lt;br&gt;&lt;br&gt;（中身: Pact / Testcontainers / Litmus chaos drill / Toxiproxy / AFL++）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="542" y="492" width="257" height="486" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lay_d" value="D: 実行中も常に監視&lt;br&gt;&lt;br&gt;行レベルアクセス制御。重複リクエスト自動排除。障害時の自動遮断。JWTを毎リクエスト検証。&lt;br&gt;&lt;br&gt;（中身: PostgreSQL RLS / Idempotency-Key / circuit breaker / Keycloak + DPoP）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="803" y="492" width="257" height="486" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lay_e" value="E: 署名のないコードは動かない&lt;br&gt;&lt;br&gt;未署名コードを Kubernetes が物理ブロック。暗号鍵は HSM が管理し漏洩不可能。&lt;br&gt;&lt;br&gt;（中身: Kyverno / Cosign / HSM PKCS#11 / Sigstore Rekor / Harbor）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1064" y="492" width="257" height="486" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lay_f" value="F: 数学的に証明する&lt;br&gt;&lt;br&gt;TLA+ / Lean 4 などで仕様を形式証明。人間の見落としを数理的に排除する。&lt;br&gt;&lt;br&gt;（中身: TLA+ + Apalache / Dafny / Lean 4 + mathlib / Kani / CBMC）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=top;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="1325" y="492" width="255" height="486" as="geometry" />
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="pg2_legend_box" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=14;fontStyle=1;fontColor=#333333;verticalAlign=top;align=left;spacingTop=6;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="10" y="1000" width="478" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lc_data" value="■ データ整合性（データ層）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1028" width="226" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lc_infra" value="■ 安全保証機構（インフラ層）" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="252" y="1028" width="226" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="pg2_lref" value="全体構造を見たい人へ: 同階層の システム構成図_詳しい版.svg&lt;br&gt;初心者向け: 同階層の システム構成図_初心者用.svg" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="510" y="1010" width="1070" height="70" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

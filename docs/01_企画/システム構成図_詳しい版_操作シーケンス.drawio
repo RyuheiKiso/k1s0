@@ -1,0 +1,318 @@
+<mxfile host="Claude-Generated">
+  <diagram name="操作シーケンス" id="page-1">
+    <mxGraphModel dx="2000" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2650" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="seq_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="2650" height="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="seq_title" value="検査結果登録の流れ ─ IT 担当者向け詳しい版（ユースケース: 製造業・検査結果の登録）" style="text;html=1;fontFamily=Helvetica;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="18" width="2450" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- ライフラインヘッダ（14 本） -->
+        <mxCell id="h1" value="担当者の画面&lt;br&gt;（tier3 アプリ）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="10" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="通信の入り口&lt;br&gt;（Envoy）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="195" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="本人確認&lt;br&gt;（Keycloak OIDC）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h4" value="番人&lt;br&gt;（Kyverno admission）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="565" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h5" value="基盤サーバ&lt;br&gt;（tier1 Rust Server）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="750" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h6" value="業務ロジック&lt;br&gt;（tier2 ドメインサービス）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="935" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h7" value="業務ルール判定&lt;br&gt;（ZEN Engine）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h8" value="承認ワークフロー&lt;br&gt;（Temporal）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1305" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h9" value="サービス ID 認証&lt;br&gt;（SPIRE / SPIFFE）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1480" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h10" value="業務記録の保管庫&lt;br&gt;（PostgreSQL）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1655" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h11" value="変更通知の配信&lt;br&gt;（Kafka + Debezium）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1830" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h12" value="監査ログ（改ざん不可）&lt;br&gt;（ClickHouse）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="2005" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h13" value="外部公証&lt;br&gt;（Sigstore Rekor）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="2180" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="h14" value="観測・トレーシング&lt;br&gt;（OTel Collector）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="2355" y="80" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ライフライン縦線（14 本） -->
+        <mxCell id="ll1" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="95" y="150" as="sourcePoint"/><mxPoint x="95" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll2" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="280" y="150" as="sourcePoint"/><mxPoint x="280" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll3" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="465" y="150" as="sourcePoint"/><mxPoint x="465" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll4" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="650" y="150" as="sourcePoint"/><mxPoint x="650" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll5" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="150" as="sourcePoint"/><mxPoint x="835" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll6" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1020" y="150" as="sourcePoint"/><mxPoint x="1020" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll7" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1205" y="150" as="sourcePoint"/><mxPoint x="1205" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll8" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1390" y="150" as="sourcePoint"/><mxPoint x="1390" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll9" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1565" y="150" as="sourcePoint"/><mxPoint x="1565" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll10" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1740" y="150" as="sourcePoint"/><mxPoint x="1740" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll11" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1915" y="150" as="sourcePoint"/><mxPoint x="1915" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll12" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="2090" y="150" as="sourcePoint"/><mxPoint x="2090" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll13" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="2265" y="150" as="sourcePoint"/><mxPoint x="2265" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="ll14" value="" style="endArrow=none;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="2440" y="150" as="sourcePoint"/><mxPoint x="2440" y="1120" as="targetPoint"/></mxGeometry>
+        </mxCell>
+
+        <!-- 活性化ボックス（ライフライン中心から左右に配置して縦線との交差を回避） -->
+        <mxCell id="act_envoy" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="268" y="185" width="12" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="act_keycloak" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="479" y="225" width="12" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="act_kyverno" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="664" y="295" width="12" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="act_zen" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1219" y="455" width="12" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="act_spire" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1579" y="745" width="12" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="act_t1_tx" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="823" y="810" width="12" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- メッセージ矢印 -->
+        <mxCell id="a1" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="95" y="185" as="sourcePoint"/><mxPoint x="280" y="185" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a2" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="280" y="225" as="sourcePoint"/><mxPoint x="465" y="225" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a3" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="465" y="260" as="sourcePoint"/><mxPoint x="280" y="260" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a4" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="280" y="295" as="sourcePoint"/><mxPoint x="650" y="295" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a5" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="650" y="330" as="sourcePoint"/><mxPoint x="280" y="330" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a6" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="280" y="365" as="sourcePoint"/><mxPoint x="835" y="365" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a7" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="415" as="sourcePoint"/><mxPoint x="1020" y="415" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑦-b tier2 → ZEN Engine -->
+        <mxCell id="a7b" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1020" y="455" as="sourcePoint"/><mxPoint x="1205" y="455" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑦-c ZEN Engine → tier2 -->
+        <mxCell id="a7c" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1205" y="490" as="sourcePoint"/><mxPoint x="1020" y="490" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑧ tier2 → Temporal -->
+        <mxCell id="a8" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1020" y="530" as="sourcePoint"/><mxPoint x="1390" y="530" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑨ Temporal → tier2 -->
+        <mxCell id="a9" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1390" y="660" as="sourcePoint"/><mxPoint x="1020" y="660" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑩ tier2 → tier1 -->
+        <mxCell id="a10" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1020" y="705" as="sourcePoint"/><mxPoint x="835" y="705" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑩-b tier1 → SPIRE -->
+        <mxCell id="a10b" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="745" as="sourcePoint"/><mxPoint x="1565" y="745" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑩-c SPIRE → tier1 -->
+        <mxCell id="a10c" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1565" y="780" as="sourcePoint"/><mxPoint x="835" y="780" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑪-a tier1 → PostgreSQL -->
+        <mxCell id="a11a" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#9673a6;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="820" as="sourcePoint"/><mxPoint x="1740" y="820" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑪-b tier1 → Kafka -->
+        <mxCell id="a11b" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#9673a6;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="845" as="sourcePoint"/><mxPoint x="1915" y="845" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑪-c tier1 → ClickHouse -->
+        <mxCell id="a11c" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#9673a6;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="870" as="sourcePoint"/><mxPoint x="2090" y="870" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑫ PostgreSQL → Kafka（CDC） -->
+        <mxCell id="a12" value="" style="endArrow=classic;endFill=0;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="1740" y="940" as="sourcePoint"/><mxPoint x="1915" y="940" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑬ tier1 → Envoy → 画面 -->
+        <mxCell id="a13a" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="990" as="sourcePoint"/><mxPoint x="280" y="990" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <mxCell id="a13b" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="280" y="1010" as="sourcePoint"/><mxPoint x="95" y="1010" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- OTel: tier1 → OTel Collector（代表・非同期破線） -->
+        <mxCell id="a_otel" value="" style="endArrow=classic;endFill=0;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="835" y="1045" as="sourcePoint"/><mxPoint x="2440" y="1045" as="targetPoint"/></mxGeometry>
+        </mxCell>
+        <!-- ⑭ ClickHouse → Sigstore -->
+        <mxCell id="a14" value="" style="endArrow=classic;endFill=0;html=1;strokeColor=#666666;strokeWidth=1;edgeStyle=none;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="2090" y="1080" as="sourcePoint"/><mxPoint x="2265" y="1080" as="targetPoint"/></mxGeometry>
+        </mxCell>
+
+        <!-- メッセージラベル（独立テキストセル） -->
+        <mxCell id="lbl1" value="① 検査結果を送信（HTTPS POST / JWT Bearer トークン）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="168" width="510" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl2" value="② JWT トークンの検証を依頼（OIDC introspection）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="475" y="208" width="490" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl3" value="③ 検証 OK（ユーザ / テナント / ロール 確認済み）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="243" width="470" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl4" value="④ admission ポリシーチェックを依頼" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="660" y="278" width="370" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl5" value="⑤ ポリシー OK（ルール適合確認済み）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="290" y="313" width="380" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl6" value="⑥ 検証済み転送（本人確認 + ルール適合 確認済み）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="845" y="348" width="510" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl7" value="⑦ 業務処理依頼（検査ロットの有効性・重複チェック）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="398" width="500" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl7b" value="⑦-b 合否ルール判定を依頼（製造業 pack 業務ルール評価）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="438" width="540" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl7c" value="⑦-c 判定結果を返す（合格 / 不合格）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="473" width="380" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl8" value="⑧ 承認ワークフロー開始（検査結果の承認依頼 / 合格時）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="513" width="560" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="async_note" value="Temporal が上位者の承認待ち状態へ&lt;br&gt;（上位者が別の画面操作で承認 ─ 非同期）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="558" width="410" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl9" value="⑨ 承認完了を通知（ワークフロー完了イベント）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="643" width="480" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl10" value="⑩ 業務記録の保存を依頼（tier1 Library の保存 API）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="845" y="688" width="490" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl10b" value="⑩-b SVID（mTLS 証明書）確認を要求" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1575" y="728" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl10c" value="⑩-c SVID 提供（有効期限内確認済み）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="845" y="763" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_lbl" value="同一 TX（atomic）:" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;align=right;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="645" y="818" width="168" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl11a" value="⑪-a 業務記録を書込（State / mTLS）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1750" y="803" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl11b" value="⑪-b 変更通知を書込（Outbox / mTLS）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1925" y="828" width="400" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl11c" value="⑪-c 監査ログを書込（Audit / mTLS）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="853" width="380" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="commit_lbl" value="COMMIT 完了: 3 表が同時に確定（atomic — 部分失敗は物理的に起きない）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="848" y="885" width="900" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl12" value="⑫ 変更通知を自動配信（Debezium CDC / 非同期）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1925" y="923" width="490" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl13" value="⑬ 登録完了レスポンス（Envoy 経由 / HTTP 200 OK）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="105" y="973" width="490" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_otel" value="分散トレースを送信（OTLP / 非同期）※全コンポーネントが OTel Collector に OTLP でトレースを送信する" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="845" y="1028" width="800" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl14" value="⑭ 監査ログを外部公証（hash chain 封印 / 非同期）" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="1063" width="480" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- エラーケース注記 -->
+        <mxCell id="err1" value="Keycloak が認証失敗: ③ で拒否 → 画面にエラー（401 Unauthorized）— DB 書込ゼロ" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1150" width="950" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="err2" value="Kyverno がポリシー違反を検出: ⑤ で拒否 → 画面にエラー（403 Forbidden）— DB 書込ゼロ" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1197" width="950" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="err3" value="ZEN Engine が不合格判定: ⑦-c で業務ルール違反 → Temporal ワークフロー開始せずエラー返却" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1244" width="950" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="err4" value="重複リクエスト: 24 時間以内の同じ操作は自動検出・無視（Idempotency-Key TTL）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1271" width="950" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend_box" value="凡例" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Helvetica;fontSize=14;fontStyle=1;fontColor=#333333;verticalAlign=top;align=left;spacingTop=6;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="1150" width="500" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="lc_hdr" value="■ コンポーネントの色" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontStyle=1;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1402" y="1175" width="220" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lc_app" value="■ 人・業務ロジック（アプリ層）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1402" y="1201" width="476" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lc_net" value="■ 通信・認証・番人（ネットワーク層）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1402" y="1229" width="476" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lc_data" value="■ データ保管（データ層）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1402" y="1257" width="228" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lc_infra" value="■ 基盤・外部（インフラ層）" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;align=left;spacingLeft=8;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1636" y="1257" width="228" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="lref" value="全体構造: システム構成図_詳しい版.svg" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1402" y="1288" width="476" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
