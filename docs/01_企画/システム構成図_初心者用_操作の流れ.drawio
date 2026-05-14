@@ -1,0 +1,170 @@
+<mxfile host="Claude-Generated">
+  <diagram name="ボタンを 1 回押したら何が起きる？" id="page-1">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="p2_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_title" value="ボタンを 1 回押したら何が起きる？ ─ 初心者用" style="text;html=1;fontFamily=Helvetica;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="16" width="1400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ステップヘッダ（黒文字、灰背景） -->
+        <mxCell id="p2_step1" value="① 入力" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fontStyle=1;fillColor=#f5f5f5;strokeColor=#333333;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="180" y="64" width="254" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_step2" value="② チェック（番人）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fontStyle=1;fillColor=#f5f5f5;strokeColor=#333333;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="448" y="64" width="254" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_step3" value="③ 承認" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fontStyle=1;fillColor=#f5f5f5;strokeColor=#333333;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="716" y="64" width="254" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_step4" value="④ 記録" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fontStyle=1;fillColor=#f5f5f5;strokeColor=#333333;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="984" y="64" width="254" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_step5" value="⑤ 確認（監査）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fontStyle=1;fillColor=#f5f5f5;strokeColor=#333333;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1252" y="64" width="254" height="34" as="geometry" />
+        </mxCell>
+
+        <!-- レーン背景 -->
+        <mxCell id="p2_app_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="10" y="106" width="1580" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_net_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="10" y="291" width="1580" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_infra_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="10" y="441" width="1580" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_data_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="10" y="626" width="1580" height="165" as="geometry" />
+        </mxCell>
+
+        <!-- レーンラベル -->
+        <mxCell id="p2_app_label" value="人と画面&lt;br&gt;（アプリ層）" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontStyle=1;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="15" y="106" width="155" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_net_label" value="通信の入り口&lt;br&gt;（ネットワーク層）" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontStyle=1;fontColor=#333333;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="15" y="291" width="155" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_infra_label" value="動かす土台&lt;br&gt;（インフラ層）" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontStyle=1;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="15" y="441" width="155" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_data_label" value="記録の保管庫&lt;br&gt;（データ層）" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontStyle=1;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=middle;align=center;" vertex="1" parent="1">
+          <mxGeometry x="15" y="626" width="155" height="165" as="geometry" />
+        </mxCell>
+
+        <!-- アプリ層セル -->
+        <mxCell id="p2_s1_app" value="担当者が画面でデータを入力&lt;br&gt;&lt;br&gt;例: 検査結果・生産指示" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="185" y="114" width="244" height="159" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s3_app" value="上位者が画面で&lt;br&gt;承認ボタンを押す" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="721" y="114" width="244" height="159" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s5_app" value="監査人が&lt;br&gt;過去の記録を確認する" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#fff2cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1257" y="114" width="244" height="159" as="geometry" />
+        </mxCell>
+
+        <!-- ネット層セル -->
+        <mxCell id="p2_s1_net" value="通信の入り口に届く&lt;br&gt;（暗号化）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="185" y="299" width="244" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- インフラ層セル -->
+        <mxCell id="p2_s2_infra" value="番人がルールをチェック&lt;br&gt;ルール違反なら「拒否」&lt;br&gt;で止める" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="453" y="449" width="244" height="159" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s3_infra" value="業務ロジックが&lt;br&gt;処理する" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="721" y="449" width="244" height="159" as="geometry" />
+        </mxCell>
+
+        <!-- データ層セル（3 行縦並び） -->
+        <mxCell id="p2_s4_data1" value="業務記録（中身: PostgreSQL）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="989" y="634" width="244" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s4_data2" value="変更の流れ（中身: Kafka）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="989" y="684" width="244" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_s4_data3" value="監査ログ（中身: Object Lock）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=13;fontColor=#333333;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="989" y="734" width="244" height="44" as="geometry" />
+        </mxCell>
+
+        <!-- 水平フロー矢印 -->
+        <mxCell id="p2_arr_h12" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="429" y="36" as="sourcePoint" />
+            <mxPoint x="448" y="36" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_arr_h23" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="697" y="36" as="sourcePoint" />
+            <mxPoint x="716" y="36" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_arr_h34" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="965" y="36" as="sourcePoint" />
+            <mxPoint x="984" y="36" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_arr_h45" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1233" y="36" as="sourcePoint" />
+            <mxPoint x="1252" y="36" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 縦矢印: アプリ①→ネット① -->
+        <mxCell id="p2_arr_v1_app_net" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="307" y="273" as="sourcePoint" />
+            <mxPoint x="307" y="299" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <!-- 折れ線: ネット①→インフラ② -->
+        <mxCell id="p2_arr_v2_net_infra" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="307" y="419" as="sourcePoint" />
+            <mxPoint x="575" y="449" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="307" y="434" />
+              <mxPoint x="575" y="434" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <!-- 折れ線: インフラ③→データ④ -->
+        <mxCell id="p2_arr_v3_infra_data" value="" style="endArrow=classic;endFill=1;html=1;strokeColor=#333333;strokeWidth=2;edgeStyle=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="843" y="608" as="sourcePoint" />
+            <mxPoint x="1111" y="634" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="843" y="620" />
+              <mxPoint x="1111" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p2_lbl_infra_data" value="3 か所に同時保存" style="text;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="853" y="606" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- 補助注釈 -->
+        <mxCell id="p2_note1" value="もし入力途中に失敗しても → 自動でやり直せる（中身: Outbox パターン + 補償トランザクション）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="808" width="770" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_note2" value="もし通信が一時的に切れても → データは消えず自動で再送される（中身: at-least-once 配信）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="20" y="858" width="770" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_note3" value="⑤ 確認（監査）: 監査人は ④ の監査ログをいつでも読み取れる ─ 記録は変更・削除不可（中身: Object Lock / WORM）" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="1257" y="286" width="323" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_ref_note" value="← 同階層の システム構成図_初心者用.svg（全体図）と合わせてご覧ください" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#333333;strokeColor=#666666;fillColor=#f5f5f5;" vertex="1" parent="1">
+          <mxGeometry x="820" y="833" width="760" height="44" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
