@@ -18,7 +18,7 @@ covered_by:
 - 本フォルダは ops 軸（13 軸 + meta + security の上位 meta-layer）の概要設計を集約する。ops は新規物理機構を持ち込まず、5 階層 + security の 14 軸 grid から発信される全 operational signal が必ず運用 loop（detect → respond → resolve → learn → prevent）の closure に到達することを cross-axis に assert する meta-layer。
 
 ## 至高路線における立ち位置
-- ops は 15 軸目として 00_軸登録適合仕様 の meta-registry に entry 登録される（cap v1=20 中 18 / 20、残 2 余地）。
+- ops は canonical axis 07 として 17_運用ループ を所有し 00_軸登録適合仕様 の meta-registry に entry 登録される（cap v1=20 中 19 / 20、残 1 スロット）。
 - 13 軸 + security が「層別 × 機能別 × 脅威別」軸であるのに対し、ops は「signal 別 × phase 別 × 時間軸」軸として直交方向に位置する。
 - 「page が増えると on-call が疲弊する」を理由に operational signal coverage を縮小しない。疲弊は fatigue_budget metric で表現、coverage 自体は省略しない。
 - 「postmortem の merge を待っていると速度が落ちる」を理由に postmortem ship blocker を緩めない。loop closure 不能の蓄積は長期的に壊滅的。

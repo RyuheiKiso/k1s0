@@ -11,6 +11,7 @@ depends_on:
   - arch.security.pii_protection_policy
   - detail.data.preservation_conformance
   - detail.data.data_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [D, E]
   proof_classes:

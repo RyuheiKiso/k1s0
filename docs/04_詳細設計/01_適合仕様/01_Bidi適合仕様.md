@@ -9,6 +9,7 @@ depends_on:
   - arch.tier1.server_systems
   - detail.tier1.tier1_enforcement
   - detail.infra.clock_integrity_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

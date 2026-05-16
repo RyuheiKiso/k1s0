@@ -8,6 +8,7 @@ depends_on:
   - arch.tier2.tier2_index
   - detail.tier2.tier2_enforcement
   - detail.client.sdk_distribution_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D]
   proof_classes:

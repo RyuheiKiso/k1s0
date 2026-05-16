@@ -10,6 +10,7 @@ depends_on:
   - detail.ops.ops_loop_conformance
   - detail.ops.ops_enforcement
   - detail.security.audit_ingest_gap_monitor
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, D, E]
   proof_classes: []

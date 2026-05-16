@@ -8,6 +8,7 @@ depends_on:
   - detail.tier1.key_management_conformance
   - detail.data.preservation_conformance
   - detail.security.threat_model_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

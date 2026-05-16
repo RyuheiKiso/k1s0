@@ -8,6 +8,7 @@ depends_on:
   - arch.tier1.server_systems
   - detail.tier1.bidi_conformance
   - detail.tier1.tenant_capacity_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, D, E]
   proof_classes:

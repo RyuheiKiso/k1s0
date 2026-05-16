@@ -10,6 +10,7 @@ depends_on:
   - detail.tier1.slo_conformance
   - detail.tier1.tenant_capacity_conformance
   - detail.ops.ops_loop_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, C, D, E]
   proof_classes:

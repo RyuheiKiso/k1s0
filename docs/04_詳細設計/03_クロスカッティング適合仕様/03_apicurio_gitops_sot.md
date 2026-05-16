@@ -8,6 +8,7 @@ depends_on:
   - detail.tier1.schema_evolution_conformance
   - detail.tier1.oss_lifecycle_conformance
   - detail.data.preservation_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

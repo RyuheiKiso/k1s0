@@ -8,6 +8,7 @@ depends_on:
   - arch.client.observability_auto_instrumentation_policy
   - detail.client.sdk_distribution_conformance
   - detail.infra.clock_integrity_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, C, D, E]
   proof_classes:

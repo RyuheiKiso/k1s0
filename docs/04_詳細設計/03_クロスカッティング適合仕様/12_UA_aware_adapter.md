@@ -7,6 +7,7 @@ status: draft
 depends_on:
   - arch.client.transport_adaptation_policy
   - detail.client.sdk_distribution_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, C, D]
   proof_classes:

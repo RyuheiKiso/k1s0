@@ -19,7 +19,7 @@ covered_by:
 - 本フォルダは security 軸（13 軸 + meta-spec の上位に立つ「直交 invariant」管掌 layer）の概要設計を集約する。security は新規物理機構を持ち込まず、5 階層 × 13 軸 grid の defense-in-depth 層 D / E に登場する全 block 機構（RLS FORCE / Kyverno admission / mTLS / cosign verify / cryptographic erasure 等）を脅威モデル下で cross-axis に bind することで「漏れなく重複なく組み合わさっていること」を機械検証する meta-layer として位置づく。
 
 ## 至高路線における立ち位置
-- security は 14 軸目（脅威モデル）+ 17 軸目（build_provenance）の双方を所有する directory として 00_軸登録適合仕様 の meta-registry に entry 登録される（cap v1=20 中 18 / 20、残 2 余地。infra は infra01 topology 15 軸目候補 + 18 軸目 clock_integrity（08_infra/16）の双方を所有）。
+- security は canonical axis 06 として 15_脅威モデル / 16_build_provenance の 2 spec を所有し 00_軸登録適合仕様 の meta-registry に entry 登録される。infra は canonical axis 04 として 12_クラスタ位相 / 13_時刻整合 の 2 spec を所有する（cap v1=20 中 19 / 20、残 1 スロット）。
 - 13 軸が「層別 × 機能別」軸であるのに対し、security は「脅威別 × 軸横断」軸として直交方向に位置する。脅威モデル class（actor / capability / surface / asset / mitigation）を class 軸として持ち、各 class が複数軸に mitigation を要求する fan-out 構造を持つ。
 - security 自身は新規物理機構を持ち込まない。例外は監査 SoR の immutability と SBOM/SLSA など本質的に cross-cut な道具立てのみ。
 - 「現実には起こりにくいから登録しない」「mitigation が高コストだから緩める」判断は採らない。脅威の重みは coverage 内で SLO や budget で表現するが、登録自体は省略しない。

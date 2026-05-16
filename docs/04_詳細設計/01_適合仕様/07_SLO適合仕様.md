@@ -10,6 +10,7 @@ depends_on:
   - detail.tier1.tier1_enforcement
   - detail.data.preservation_conformance
   - detail.ops.ops_loop_conformance
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

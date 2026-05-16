@@ -9,6 +9,7 @@ depends_on:
   - arch.security.incident_response_policy
   - detail.security.threat_model_conformance
   - detail.security.security_enforcement
+  - detail.meta.axis_registry_conformance
 covered_by:
   defense_in_depth_layers: [B, C, D, E]
   proof_classes: []
