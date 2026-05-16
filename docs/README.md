@@ -25,7 +25,10 @@ covered_by:
 | 4 | [04_詳細設計/](04_詳細設計/README.md) | 適合仕様 / 強制機構 / クロス適合仕様 / 運用 UI 開発者体験 / lock.yaml 体系 |
 | 5 | [05_環境構築/](05_環境構築/README.md) | 役割別環境構築手順（k1s0 作者 / tier1 / …）|
 
-## 19 軸 matrix
+## 19 軸 matrix（10 主要軸 + meta の行。cross-cutting 8 クラスタは cross-cutting 列に集約）
+
+> **19 軸の構成**: 10 主要軸 + 9 cross-cutting/meta 軸（axis_registry cap v1=20 / 使用 19 / 残 1）。
+> 下表は 10 主要軸 + meta-axis を行とし、cross-cutting 適合仕様（13 件 / 8 クラスタ）を right column に対応付ける。
 
 | 軸 | 概要設計 | 詳細設計（適合仕様） | cross-cutting |
 |---|---|---|---|

@@ -8,7 +8,7 @@ depends_on:
   - arch.overview.architecture_index
   - arch.overview.nineteen_axis_theory
 covered_by:
-  defense_in_depth_layers: [A, B, C, D, E]
+  defense_in_depth_layers: [A, B, C, D, E, F]
   proof_classes:
     - v1_program_correctness_proof
 ---

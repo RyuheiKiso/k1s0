@@ -119,7 +119,9 @@ properties:
         uniqueItems: true
       proof_classes:
         type: array
-        description: formal 関連時のみ列挙、空配列 [] 許容。
+        description: |
+          formal 関連時のみ列挙、空配列 [] 許容。
+          5 proof_class（19 軸 × 5 = 95 cell matrix）— 04_5proof_class論.md が権威。
         items:
           type: string
           enum:
@@ -128,7 +130,6 @@ properties:
             - v1_refinement_proof
             - v1_program_correctness_proof
             - v1_runtime_modelcheck_proof
-            - v1_property_axiom_proof
         uniqueItems: true
 
   lock_artifacts:

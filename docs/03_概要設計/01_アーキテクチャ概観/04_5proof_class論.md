@@ -54,8 +54,18 @@ covered_by:
 - **典型 obligation**: Rust 実装の memory safety / concurrency safety / overflow / kernel module / eBPF / HSM driver / PTP daemon
 - **cell 数**: 14 cell
 
-## 95 cell coverage（19 + 12 + 35 + 19 + 14 + 9 cross-cutting / meta = 108）
-v1 で 95 cell（19 + 12 + 35 + 19 + 14）+ cross-cutting / meta cell の coverage を `proof_inventory.lock.yaml` で固定。各 cell は次のいずれかの状態:
+## 95 cell coverage
+95 cell = **19 軸 × 5 proof_class の matrix cell 数**（19 × 5 = 95）。
+
+各 proof_class の対象 obligation 件数（軸横断合計）は次の通り:
+- temporal_safety_proof: 19 件
+- temporal_liveness_proof: 12 件
+- refinement_proof: 35 件（refinement pair の数が多い）
+- program_correctness_proof: 19 件
+- runtime_modelcheck_proof: 14 件
+合計 obligation 件数: 99 件（複数 obligation が 1 cell に束ねられる場合あり）
+
+これに cross-cutting / meta の追加 cell が加わり、`proof_inventory.lock.yaml` で全 coverage を固定する。各 cell は次のいずれかの状態:
 - **verified**: proof artifact が CI で green、reviewer dual sign-off 済
 - **accepted_with_assumption**: assumption.lock.yaml に明示登録された assumption の下で verified
 - **counter_example_open**: counter-example が close_due_at 内（high=14d / medium=30d / low=90d）
