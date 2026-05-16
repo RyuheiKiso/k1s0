@@ -1,5 +1,0 @@
-schema_version: v1
-entries:
-  - obligation_id: "tier1.v1_temporal_safety_proof.bidi_transport"
-    status: "unverified"
-    severity: high
