@@ -1,6 +1,6 @@
 ---
-id: detail.client.companion_otel_extension
-axis: client
+id: detail.cross_edge.companion_otel_extension
+axis: cross_edge
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -13,6 +13,9 @@ covered_by:
   defense_in_depth_layers: [B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
+related_axes:
+  - client
+  - infra
 ---
 
 # .NET Framework Companion OTel 拡張（v1）

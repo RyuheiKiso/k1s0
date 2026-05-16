@@ -38,7 +38,7 @@ depends_on:
 - 含めないもの:
   - 同一フェーズ内の隣接ドキュメント（同じ親フォルダ配下）
   - README.md 等の index ドキュメント
-  - 90_knowledge への参照（後述の別経路）
+  - 90_archive への参照（後述の別経路）
 
 ### 本文内 link（読者向け、必須伴走）
 
@@ -60,10 +60,10 @@ depends_on:
 
 ## 知識層への参照
 
-### `docs/90_knowledge/` への参照
-- 知識層は技術前提の reference として参照可。`depends_on` には含めず、本文 link のみ。
+### `docs/90_archive/` への参照
+- archive 層は過去構想スタックの参考資料であり、本流の OSS 選定は反映していない。`depends_on` には含めず、本文 link のみ（必要な場合）。
   ```markdown
-  詳細は [Kyverno admission policy](../../90_knowledge/tool/kyverno.md) を参照。
+  詳細は [Kyverno admission policy](../../90_archive/tool/kyverno.md) を参照。
   ```
 
 ## 軸間 link の典型パターン

@@ -47,7 +47,7 @@ npm install -g textlint
 textlint --config docs/00_format/linters/textlint.config.mjs 'docs/01_企画/**/*.md'
 ```
 
-textlint はターゲットが `docs/01_企画/**` ～ `docs/00_format/**` であり、`docs/90_knowledge/**` と `*.tpl` は除外される。日本語の禁止表現（prh rules）を検査する。
+textlint はターゲットが `docs/01_企画/**` ～ `docs/00_format/**` であり、`docs/90_archive/**` と `*.tpl` は除外される。日本語の禁止表現（prh rules）を検査する。
 
 ## CI 配線の作者責務
 

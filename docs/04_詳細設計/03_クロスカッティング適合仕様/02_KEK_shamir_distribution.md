@@ -1,6 +1,6 @@
 ---
-id: detail.tier1.kek_shamir_distribution
-axis: tier1
+id: detail.cross_kek.kek_shamir_distribution
+axis: cross_kek
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -14,6 +14,11 @@ covered_by:
   proof_classes:
     - v1_temporal_safety_proof
     - v1_program_correctness_proof
+related_axes:
+  - tier1
+  - data
+  - security
+  - infra
 ---
 
 # KEK Shamir Secret Sharing 分散保管 適合仕様（v1）

@@ -58,7 +58,7 @@ Python 版は bash 版の 7 check に加え以下を追加する。
 ## EXCLUDE_PATTERNS の確認
 
 ```
-docs/90_knowledge/ → 除外
+docs/90_archive/ → 除外
 docs/00_format/    → 除外
 docs/README.md     → 除外（frontmatter 不要）
 ```

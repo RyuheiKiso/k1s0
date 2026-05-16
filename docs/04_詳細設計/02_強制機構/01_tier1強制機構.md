@@ -21,7 +21,6 @@ covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
     - v1_program_correctness_proof
-    - v1_property_axiom_proof
 ---
 
 # tier1 強制機構

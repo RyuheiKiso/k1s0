@@ -52,12 +52,12 @@ PyYAML 未インストールの場合、run_lint.py は `ERROR: PyYAML required.
 ## EXCLUDE_PATTERNS の確認
 
 ```
-docs/90_knowledge/ → 除外
+docs/90_archive/ → 除外
 docs/00_format/    → 除外
 docs/README.md     → 除外（frontmatter 不要）
 ```
 
-これらは lint 対象外であるため、90_knowledge や 00_format 配下に新規ドキュメントを置いても frontmatter なしで許容される。
+これらは lint 対象外であるため、90_archive や 00_format 配下に新規ドキュメントを置いても frontmatter なしで許容される。
 
 ## よくある FAIL と対処
 

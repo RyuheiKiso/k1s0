@@ -7,7 +7,7 @@ status: draft
 depends_on:
   - arch.tier3.tier3_index
   - arch.tier3.auth_multi_tenant
-  - detail.tier3.bff_auth_edge
+  - detail.cross_bff.bff_auth_edge
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:

@@ -42,7 +42,7 @@ lock_artifacts:
 ### 層 B: lint（policy / 規約 check）
 
 #### Conftest custom rule（Rego）
-- coverage_matrix の 80 cell 完備、欠損 cell ゼロ
+- coverage_matrix の 90 cell 完備、欠損 cell ゼロ
 - cell の last_green_at が cadence_days 以内
 - cell の owner_4axis 4 軸完備
 - properties.yaml の全 property_id が test code に annotated

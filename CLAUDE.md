@@ -10,6 +10,8 @@
 
 全フェーズを単一実装者が直列で完遂する。各 Phase の exit criteria は `release_gate.lock.yaml` の対応 cell が green になること。
 
+> **dual sign-off 規約**: 単一実装者という体制を維持しつつ、各 Phase の release_gate cell green 化には「human author（実装者本人の cosign signature）× 1 + (ai_static_analysis evidence | cosign_history evidence) × 1」の二重 sign を物理要件とする。LLM 単独 sign-off は禁止（formal 整合 8 の規律を保つ）。詳細は [dual_signoff 体系](docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md) を参照。
+
 | Phase | 名称 | 主要 deliverable | 前提 |
 |---|---|---|---|
 | P0 | Tooling | `tools/lock_yaml_generator/` — generate_release_gate.py を含む生成器群を実装 | なし |

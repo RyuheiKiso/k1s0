@@ -1,6 +1,6 @@
 ---
-id: detail.data.pii_dedicated_cluster
-axis: data
+id: detail.cross_pii.pii_dedicated_cluster
+axis: cross_pii
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -16,6 +16,10 @@ covered_by:
   defense_in_depth_layers: [D, E]
   proof_classes:
     - v1_program_correctness_proof
+related_axes:
+  - data
+  - security
+  - infra
 ---
 
 # PII 専用 PostgreSQL クラスタ（v1）

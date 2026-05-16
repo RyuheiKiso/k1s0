@@ -52,7 +52,7 @@ covered_by:
 - [04_詳細設計/05_lock_yaml体系/](04_詳細設計/05_lock_yaml体系/README.md): proof_artifact / counter_example / release_gate / artifact_lock 命名規約 / immutable archive
 
 ## 補助
-- [90_knowledge/](90_knowledge/): 技術学習用 reference
+- [90_archive/](90_archive/): 過去の構想スタック (Dapr / Istio Ambient / k3s 等) の参考資料。本流の OSS 選定は反映していない。本流は [02_要件定義/04_技術選定/01_OSS採用一覧.md](02_要件定義/04_技術選定/01_OSS採用一覧.md) を参照。
 
 ## 用語
 - [01_企画/09_用語集/](01_企画/09_用語集/README.md): 19 軸 / 5 階層論 / L1+ / 業界 pack / 4 layer state / BusinessConflict subtype / KEK shamir / atomic 三表書込 / proof_class 等の主要術語

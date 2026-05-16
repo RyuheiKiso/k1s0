@@ -13,7 +13,6 @@ depends_on:
 covered_by:
   defense_in_depth_layers: [A, B, C, D, E]
   proof_classes:
-    - v1_property_axiom_proof
     - v1_temporal_safety_proof
     - v1_program_correctness_proof
 lock_artifacts:

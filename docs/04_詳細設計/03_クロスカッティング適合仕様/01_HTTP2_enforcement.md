@@ -1,6 +1,6 @@
 ---
-id: detail.tier1.http2_enforcement
-axis: tier1
+id: detail.cross_http2.http2_enforcement
+axis: cross_http2
 phase: cross_cutting
 kind: cross_cut_spec
 status: draft
@@ -13,6 +13,11 @@ covered_by:
   defense_in_depth_layers: [A, B, D, E]
   proof_classes:
     - v1_program_correctness_proof
+related_axes:
+  - tier1
+  - tier3
+  - client
+  - infra
 ---
 
 # tier1 ingress HTTP/2 強制（v1）

@@ -89,3 +89,12 @@ covered_by:
 - **追加**: 既存番号の末尾に追加。途中の欠番を埋め直さない。
 - **削除**: 物理削除はせず、frontmatter `status: deleted` で論理削除する経路を持つ（Phase 5 で lint 規約として確定）。
 - **リネーム**: 番号 / ファイル名のリネームは禁止。意味が変わった場合は新番号で新規作成し、旧 file は `status: deprecated` に変更（Phase 5）。
+
+## archive 領域の番号規約
+
+`docs/90_archive/` 配下のフォルダ / ファイル番号は本流の安定 ID 規約から除外される。
+
+- 新規 archive 追加時は本流の番号体系を侵さず、archive 内で独立に連番管理する
+- `status: archived` frontmatter を必須とする
+- lint の対象外（`EXCLUDE_PATTERNS` に `90_archive` を追加済み）
+- `00_format/` の lint 設定は `90_archive` を除外対象として設定済み

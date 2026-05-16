@@ -32,7 +32,7 @@ properties:
 
   axis:
     type: string
-    description: 19 軸 + meta + overview の enum。
+    description: 19 軸 (10 主要軸 + 8 cross-cutting cluster + 1 meta) + overview の enum。
     enum:
       - tier1
       - tier2
@@ -44,6 +44,14 @@ properties:
       - client
       - test
       - formal
+      - cross_http2
+      - cross_kek
+      - cross_schema
+      - cross_fsm
+      - cross_slo
+      - cross_bff
+      - cross_pii
+      - cross_edge
       - meta
       - overview
 
@@ -86,11 +94,13 @@ properties:
   status:
     type: string
     description: |
-      draft = WIP、locked = 1.0.0 ship blocker 対象。
+      draft = WIP、locked = 1.0.0 ship blocker 対象、archived = 本流 OSS stack と drift した過去構想の保存のみ。
       locked のドキュメントは TBD / 未定 / TODO / あとで書く / 後述 が残存していたら CI fail。
+      archived は lint の forbidden 表現 / 空セクション check を除外、frontmatter required fields は維持。
     enum:
       - draft
       - locked
+      - archived
 
   depends_on:
     type: array
@@ -138,6 +148,37 @@ properties:
     items:
       type: string
       pattern: "^[a-z][a-z0-9_]*\\.lock\\.yaml$"
+    uniqueItems: true
+
+  related_axes:
+    type: array
+    description: |
+      cross_* spec が論理的に依存する従来 10 軸の宣言。
+      depends_on は spec 単位の参照、related_axes は軸単位の補助 link。
+      cross_* 以外の spec でも関連軸を宣言する場合に使用可。
+    items:
+      type: string
+      enum:
+        - tier1
+        - tier2
+        - tier3
+        - infra
+        - data
+        - security
+        - ops
+        - client
+        - test
+        - formal
+        - cross_http2
+        - cross_kek
+        - cross_schema
+        - cross_fsm
+        - cross_slo
+        - cross_bff
+        - cross_pii
+        - cross_edge
+        - meta
+        - overview
     uniqueItems: true
 
 # ============================================================

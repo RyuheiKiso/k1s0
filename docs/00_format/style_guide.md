@@ -134,7 +134,7 @@ covered_by:
 
 - 規約は `conventions/crosslink.md`。
 - 外部 URL は本文中に bare URL で書かず、必ず `[表示文言](URL)` 形式。
-- 90_knowledge への参照は `conventions/crosslink.md` 末尾参照。
+- 90_archive への参照は `conventions/crosslink.md` 末尾参照。
 
 ## 画像
 

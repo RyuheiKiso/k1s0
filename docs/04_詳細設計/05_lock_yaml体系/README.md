@@ -85,6 +85,12 @@ covered_by:
 | 01 | [proof_artifact 体系](01_proof_artifact体系.md) | formal 軸の proof artifact lifecycle 全体 |
 | 02 | [counter_example 体系](02_counter_example体系.md) | counter-example の triage / closure / regression bind |
 | 03 | [release_gate 体系](03_release_gate体系.md) | 1.0.0 ship blocker の AND-gate 構造 |
+| 04 | [artifact_lock 命名規約](04_artifact_lock命名規約.md) | lock.yaml ファイル命名・バージョニング規約 |
+| 05 | [immutable archive 体系](05_immutable_archive体系.md) | Object Lock retention / hash chain / cosign 規律 |
+| 06 | [dual signoff 体系](05_dual_signoff体系.md) | dual_review.lock.yaml のスキーマと dual signoff CI 8 cell |
+| 07 | [proof_matrix 体系](06_proof_matrix体系.md) | proof_matrix.lock.yaml 95 cell スキーマ、cell_state enum、close_kind enum |
+| 08 | [verification_matrix 体系](07_verification_matrix体系.md) | coverage_matrix.lock.yaml 90 cell スキーマ、drill_state enum |
+| 09 | [assumption 体系](08_assumption体系.md) | assumption.lock.yaml TTL/cap 体系、軸別 cap 表 |
 
 ## 共通規律
 

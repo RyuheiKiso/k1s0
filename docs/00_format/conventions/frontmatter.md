@@ -30,12 +30,14 @@ covered_by:
   - 例: `docs/03_概要設計/11_formal設計方針/05_時相安全性方針.md` → `id: arch.formal.temporal_safety_policy`
   - 例: `docs/02_要件定義/04_技術選定/01_OSS採用一覧.md` → `id: req.overview.oss_catalog`
 - `phase_short` enum: `plan` / `req` / `arch` / `detail` / `format`（00_format 配下）/ `env`（05_環境構築 配下）
-- `axis` enum: `tier1` / `tier2` / `tier3` / `infra` / `data` / `security` / `ops` / `client` / `test` / `formal` / `meta` / `overview`
+- `axis` enum: `tier1` / `tier2` / `tier3` / `infra` / `data` / `security` / `ops` / `client` / `test` / `formal` / `cross_http2` / `cross_kek` / `cross_schema` / `cross_fsm` / `cross_slo` / `cross_bff` / `cross_pii` / `cross_edge` / `meta` / `overview`
+- cross_* spec の id 導出規則: `detail.cross_<sub>.<slug>` 形式（例: `detail.cross_http2.http2_enforcement`）
 - 不一致は CI fail。手書きを許容しない。
 
 ### `axis`
-- enum: `tier1` / `tier2` / `tier3` / `infra` / `data` / `security` / `ops` / `client` / `test` / `formal` / `meta` / `overview`
+- enum: `tier1` / `tier2` / `tier3` / `infra` / `data` / `security` / `ops` / `client` / `test` / `formal` / `cross_http2` / `cross_kek` / `cross_schema` / `cross_fsm` / `cross_slo` / `cross_bff` / `cross_pii` / `cross_edge` / `meta` / `overview`
 - meta = 軸登録 / 19 軸論など軸自体の管掌、overview = 直下 4 ファイル等の cross-cutting 概論。
+- cross_http2 〜 cross_edge は `04_詳細設計/03_クロスカッティング適合仕様/` 配下の 13 spec を 8 cluster に canonical bind する軸。それ以外の spec には原則 cross_* を使用しない。
 
 ### `phase`
 - enum: `plan` / `requirement` / `architecture` / `detail` / `cross_cutting` / `format` / `env_setup`
@@ -66,9 +68,10 @@ covered_by:
   - `glossary`（用語集）
 
 ### `status`
-- enum: `draft` / `locked`
+- enum: `draft` / `locked` / `archived`
 - `locked` の意味: 1.0.0 ship blocker 対象。`TBD` / `未定` / `あとで書く` / `TODO` / `後述` の禁止表現が残存していれば CI fail。
 - `draft` は WIP 段階。lint 規約は緩和されるが、release branch には ship できない。
+- `archived` の意味: 本流 OSS stack と drift した過去構想の保存。lint の forbidden 表現 / 空セクション check を除外、frontmatter required fields は維持。本文冒頭に「> NOTE: 本ドキュメントは v1 採用 OSS と drift しているため archive 化された。」ヘッダブロック必須。
 
 ### `depends_on`
 - 同一 repo 内の他 `.md` の `id` の配列。空配列 `[]` 許容。
@@ -89,15 +92,22 @@ covered_by:
   - D: runtime（admission webhook / drill / circuit breaker）
   - E: 物理（cosign / Kyverno / Object Lock / SBOM）
   - F: 数学的（proof certificate / TLA+ / Lean 等）
-- 6 proof_class の対応:
+- 5 proof_class の対応（SoT: `docs/00_format/frontmatter_schema.yaml` の `proof_classes` enum 5 値）:
   - `v1_temporal_safety_proof`
   - `v1_temporal_liveness_proof`
   - `v1_refinement_proof`
   - `v1_program_correctness_proof`
   - `v1_runtime_modelcheck_proof`
-  - `v1_property_axiom_proof`
+- **注意**: `v1_property_axiom_proof` は存在しない。これは test 軸 `verification_class` の `v1_property_axiom`（corpus での確率的 property 検証）と混同した誤記であり、formal 軸の proof_class ではない。不変量 / contract / DSL 論理の proof には `v1_program_correctness_proof` を使用する。
 
 ## optional field
+
+### `related_axes`
+- 当 spec が論理的に依存する axis の配列（軸単位の補助 link）。
+- `depends_on` は spec 単位の参照、`related_axes` は軸単位の参照。両者は直交して使用可。
+- 主に cross_* spec が、関係する従来 10 軸を宣言するために使用する。
+- cross_* 以外の spec でも軸間依存を明示する場合に使用可。
+- 例: `related_axes: [tier1, data, security, infra]`
 
 ### `lock_artifacts`
 - 当ドキュメントが宣言する `*.lock.yaml` の名前配列。
@@ -137,7 +147,6 @@ covered_by:
     - v1_refinement_proof
     - v1_program_correctness_proof
     - v1_runtime_modelcheck_proof
-    - v1_property_axiom_proof
 lock_artifacts:
   - proof_inventory.lock.yaml
   - proof_status.lock.yaml

@@ -63,7 +63,7 @@ covered_by:
 - refinement_proof: 35 件（refinement pair の数が多い）
 - program_correctness_proof: 19 件
 - runtime_modelcheck_proof: 14 件
-合計 obligation 件数: 99 件（複数 obligation が 1 cell に束ねられる場合あり）
+合計 obligation 件数: 19+12+35+19+14 = 99 obligation（1 cell に複数 obligation が集約される場合あり。cell 数自体は 19 軸 × 5 proof_class = 95 で固定）
 
 これに cross-cutting / meta の追加 cell が加わり、`proof_inventory.lock.yaml` で全 coverage を固定する。各 cell は次のいずれかの状態:
 - **verified**: proof artifact が CI で green、reviewer dual sign-off 済
@@ -76,9 +76,8 @@ covered_by:
 - `regression_corpus.lock.yaml`（test 軸）への双方向 lock
 
 ## proof reviewer dual sign-off
-- reviewer pool: core team 4 名 + domain expert 各 2 名
+- reviewer pool（v1 単一実装者体制）: single human author × 1 + AI reviewer kind 4 種（Claude Opus / Claude Sonnet / GPT-4 / Gemini）を ai_static_analysis evidence の供給源として併用 + cosign_history evidence（過去 3 件以上の predecessor 必須）。LLM 単独 sign-off 禁止（human 1 必須）、ai_static_analysis evidence は最大 4 model の cross-check を許容。詳細は dual_signoff 体系 (docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md) を参照。
 - cosign signature 物理 enforce
-- LLM 補助 reviewer は最大 1 名（人間 1 名以上必須）
 
 ## 5 enforcement orchestrator
 - `tlaplus_apalache_pipeline`

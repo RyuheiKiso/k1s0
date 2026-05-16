@@ -123,7 +123,7 @@ export default {
   // 除外（知識層は textlint 対象外）
   // ----------------------------------------------------------
   ignore: [
-    "docs/90_knowledge/**",
+    "docs/90_archive/**",
     "docs/00_format/templates/*.tpl",
   ],
 };

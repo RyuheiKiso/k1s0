@@ -28,7 +28,7 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
 EXCLUDE_PATTERNS = [
-    "/90_knowledge/",
+    "/90_archive/",
     "/00_format/",
 ]
 EXCLUDE_FILES = [

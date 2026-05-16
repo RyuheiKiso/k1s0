@@ -1,0 +1,62 @@
+# dual_review.lock.yaml の JSON Schema draft 2020-12 互換
+# 詳細規約は docs/04_詳細設計/05_lock_yaml体系/05_dual_signoff体系.md を参照
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://k1s0.local/schemas/docs/dual_review.yaml"
+title: "k1s0 dual review lock"
+type: object
+additionalProperties: false
+
+required:
+  - subject_digest
+  - reviewers
+  - cooldown_check
+
+properties:
+  subject_digest:
+    type: string
+    pattern: "^sha256:[a-f0-9]{64}$"
+    description: 署名対象成果物の SHA-256 ダイジェスト
+
+  reviewers:
+    type: array
+    minItems: 2
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - signer_id
+        - reviewer_kind
+        - signed_at
+        - cosign_signature_uri
+      properties:
+        signer_id:
+          type: string
+          description: GitHub handle (human) or AI model ID (ai_static_analysis)
+        reviewer_kind:
+          type: string
+          enum: [human, ai_static_analysis, cosign_history]
+        signed_at:
+          type: string
+          format: date-time
+        cosign_signature_uri:
+          type: string
+        ai_evidence_uri:
+          type: string
+          description: kind=ai_static_analysis 時のみ必須
+        cosign_history_uri:
+          type: string
+          description: kind=cosign_history 時のみ必須
+
+  cooldown_check:
+    type: object
+    additionalProperties: false
+    required:
+      - ai_evidence_diff_sha256
+    properties:
+      last_sign_by_same_author:
+        type: [string, "null"]
+        description: 直前 sign の ai_evidence sha256（reuse check 用）
+      ai_evidence_diff_sha256:
+        type: string
+        description: 今回 ai_evidence の sha256

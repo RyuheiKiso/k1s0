@@ -1,0 +1,41 @@
+# lock.yaml の依存 DAG。topological sort 順で evaluate_cell が評価される。
+# format: <lock_name>: depends_on: [<lock_name>, ...]
+axis_registry.lock.yaml:
+  depends_on: []
+cross_cutting_registry.lock.yaml:
+  depends_on:
+    - axis_registry.lock.yaml
+proof_inventory.lock.yaml:
+  depends_on:
+    - axis_registry.lock.yaml
+assumption.lock.yaml:
+  depends_on:
+    - proof_inventory.lock.yaml
+proof_status.lock.yaml:
+  depends_on:
+    - proof_inventory.lock.yaml
+    - assumption.lock.yaml
+proof_review.lock.yaml:
+  depends_on:
+    - proof_status.lock.yaml
+dual_review.lock.yaml:
+  depends_on:
+    - proof_review.lock.yaml
+coverage_matrix.lock.yaml:
+  depends_on:
+    - axis_registry.lock.yaml
+regression_corpus.lock.yaml:
+  depends_on:
+    - coverage_matrix.lock.yaml
+counter_example.lock.yaml:
+  depends_on:
+    - proof_inventory.lock.yaml
+release_gate.lock.yaml:
+  depends_on:
+    - proof_review.lock.yaml
+    - dual_review.lock.yaml
+    - coverage_matrix.lock.yaml
+    - regression_corpus.lock.yaml
+    - assumption.lock.yaml
+    - counter_example.lock.yaml
+    - cross_cutting_registry.lock.yaml
