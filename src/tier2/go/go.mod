@@ -8,5 +8,19 @@ go 1.23.0
 toolchain go1.23.4
 
 // 直接依存関係
-// github.com/google/uuid: UUID 生成（tenant_id / actor_id に使用する）
-require github.com/google/uuid v1.6.0
+require (
+	// github.com/google/uuid: UUID 生成（tenant_id / actor_id に使用する）
+	github.com/google/uuid v1.6.0
+	// github.com/jackc/pgx/v5: PostgreSQL クライアント（実 transaction に使用する）
+	// stdlib サブパッケージを使って database/sql 互換インターフェースを提供する
+	github.com/jackc/pgx/v5 v5.7.2
+)
+
+require (
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
+)

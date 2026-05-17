@@ -1,8 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "mMhdFSqaYXQ=",
+  "dgSpecHash": "CjF54Pkyn9c=",
   "success": true,
   "projectFilePath": "/home/ryuhei_kiso/github/remake/k1s0/src/tier2/csharp/k1s0.Tier2.TenantContext.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/ryuhei_kiso/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "/home/ryuhei_kiso/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "/home/ryuhei_kiso/.nuget/packages/npgsql/8.0.5/npgsql.8.0.5.nupkg.sha512"
+  ],
   "logs": []
 }

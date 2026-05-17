@@ -73,3 +73,6 @@ base64 = { workspace = true }
 [dev-dependencies]
 # reqwest: 統合テスト用 HTTP クライアント（HTTP/2 + rustls-tls で pkg-config 不要）
 reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+# axum-test: axum ルーターを in-process で HTTP テストするためのフレームワーク（Testcontainers 不要）
+# axum 0.8 と互換性のある v20 系を使用する（v15 は axum 0.7 に依存するため不適）
+axum-test = "20"

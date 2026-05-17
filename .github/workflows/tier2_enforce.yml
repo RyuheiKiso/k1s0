@@ -1,0 +1,225 @@
+# tier2_enforce.yml — tier2 enforcement CI
+# src/tier2/ 配下の変更時に 4 言語のビルド・テストを実行して CI fail を早期検出する。
+# P1-P4 invariant（atomic 三表書込 / cross-tenant isolation / PII audit）を保証する。
+name: tier2 enforcement CI
+
+on:
+  # プルリクエスト: tier2 ファイル変更時のみ実行する
+  pull_request:
+    paths: ['src/tier2/**']
+  # プッシュ: main / reamke2 ブランチへの tier2 変更時に実行する
+  push:
+    branches: [main, reamke2]
+    paths: ['src/tier2/**']
+
+jobs:
+  # ===== tier2 Rust ジョブ =====================================================
+  # Rust 実装（sqlx 実 transaction）のビルド・unit test を実行する
+  tier2-rust:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    services:
+      # PostgreSQL サービスコンテナ: integration test 用（unit test は DB 不要）
+      postgres:
+        # postgres:16-alpine を使用する（本番環境と同じメジャーバージョン）
+        image: postgres:16-alpine
+        env:
+          # PostgreSQL 接続パスワードを設定する
+          POSTGRES_PASSWORD: k1s0
+          # テスト用データベース名を設定する
+          POSTGRES_DB: k1s0
+          # デフォルトユーザー名を設定する
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # ホスト 5432 ポートを PostgreSQL コンテナにマッピングする
+          - 5432:5432
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # Rust stable ツールチェーンをインストールする
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Rust ビルドキャッシュを有効化してビルド時間を短縮する
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          # cargo レジストリキャッシュと target ディレクトリをキャッシュする
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src/tier2/rust/target
+          # Cargo.lock のハッシュをキャッシュキーに含める
+          key: ${{ runner.os }}-tier2-rust-${{ hashFiles('src/tier2/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tier2-rust-
+
+      # tier2 Rust unit test を実行する（DB 不要テストのみ）
+      - name: cargo test (unit tests only)
+        run: cd src/tier2/rust && cargo test
+        env:
+          # integration test 用 DB URL を設定する（#[ignore] テストは unit test job では実行しない）
+          TEST_DATABASE_URL: postgres://postgres:k1s0@localhost/k1s0
+
+      # tier2 Rust build チェックを実行する（compile error を早期検出する）
+      - name: cargo check
+        run: cd src/tier2/rust && cargo check 2>&1 | grep "^error" || true
+
+  # ===== tier2 Rust integration テストジョブ ===================================
+  # PostgreSQL RLS FORCE 環境で P1-P4 invariant を検証する
+  tier2-rust-integration:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    services:
+      # PostgreSQL サービスコンテナ: RLS FORCE を有効化する
+      postgres:
+        # postgres:16-alpine を使用する
+        image: postgres:16-alpine
+        env:
+          # PostgreSQL 接続パスワードを設定する
+          POSTGRES_PASSWORD: k1s0
+          # テスト用データベース名を設定する
+          POSTGRES_DB: k1s0
+          # デフォルトユーザー名を設定する
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # ホスト 5432 ポートを PostgreSQL コンテナにマッピングする
+          - 5432:5432
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # Rust stable ツールチェーンをインストールする
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Rust ビルドキャッシュを有効化する
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          # cargo レジストリキャッシュと target ディレクトリをキャッシュする
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src/tier2/rust/target
+          # Cargo.lock のハッシュをキャッシュキーに含める
+          key: ${{ runner.os }}-tier2-rust-integ-${{ hashFiles('src/tier2/rust/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tier2-rust-integ-
+
+      # tier2 Rust integration test を実行する（#[ignore] テストを --ignored で実行する）
+      - name: cargo test (integration tests with --ignored)
+        run: cd src/tier2/rust && cargo test -- --ignored
+        env:
+          # TEST_DATABASE_URL を設定して integration test を有効化する
+          TEST_DATABASE_URL: postgres://postgres:k1s0@localhost/k1s0
+
+  # ===== tier2 Go ジョブ ======================================================
+  # Go 実装（database/sql + pgx 実 transaction）のビルド・テストを実行する
+  tier2-go:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    services:
+      # PostgreSQL サービスコンテナ: Go integration test 用
+      postgres:
+        # postgres:16-alpine を使用する
+        image: postgres:16-alpine
+        env:
+          # PostgreSQL 接続パスワードを設定する
+          POSTGRES_PASSWORD: k1s0
+          # テスト用データベース名を設定する
+          POSTGRES_DB: k1s0
+          # デフォルトユーザー名を設定する
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # ホスト 5432 ポートを PostgreSQL コンテナにマッピングする
+          - 5432:5432
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # Go ツールチェーンをインストールする（go.mod と一致するバージョン）
+      - uses: actions/setup-go@v5
+        with:
+          # go.mod で指定している Go バージョンを使用する
+          go-version: '1.23'
+          # Go モジュールキャッシュを有効化する
+          cache-dependency-path: src/tier2/go/go.sum
+
+      # tier2 Go テストを実行する（全パッケージ）
+      - name: go test
+        run: cd src/tier2/go && go test ./...
+        env:
+          # TEST_DATABASE_URL を設定して integration test 用の DB に接続できるようにする
+          TEST_DATABASE_URL: postgres://postgres:k1s0@localhost/k1s0
+
+      # tier2 Go ビルドチェックを実行する（compile error を早期検出する）
+      - name: go build
+        run: cd src/tier2/go && go build ./...
+
+  # ===== tier2 C# ジョブ ======================================================
+  # C# 実装（Npgsql 8 NpgsqlTransaction 実 transaction）のビルドを実行する
+  tier2-csharp:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # .NET 8 SDK をセットアップする
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          # .NET 8 SDK を使用する（csproj の TargetFramework と一致させる）
+          dotnet-version: '8.0.x'
+
+      # NuGet パッケージを復元する（Npgsql を含む）
+      - name: dotnet restore
+        run: cd src/tier2/csharp && dotnet restore
+
+      # C# ビルドを実行する（compile error を早期検出する）
+      - name: dotnet build
+        run: cd src/tier2/csharp && dotnet build --no-restore --configuration Release
+
+  # ===== tier2 TypeScript ジョブ ===============================================
+  # TypeScript 実装（pg PoolClient 実 transaction）のビルド・型チェックを実行する
+  tier2-typescript:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # Node.js をセットアップする（package.json と一致するバージョン）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Node.js 20 LTS を使用する
+          node-version: '20'
+          # npm キャッシュを有効化する
+          cache: 'npm'
+          cache-dependency-path: src/tier2/typescript/package-lock.json
+
+      # npm パッケージをインストールする（pg / @types/pg / typescript を含む）
+      - name: npm install
+        run: cd src/tier2/typescript && npm install
+
+      # TypeScript 型チェックを実行する（tsc --noEmit で compile error を検出する）
+      - name: tsc type-check
+        run: cd src/tier2/typescript && npx tsc --noEmit

@@ -332,4 +332,124 @@ mod tests {
         // NOTIFY_SILENT_TOAST が含まれることを確認する
         assert!(result.actions.iter().any(|a| matches!(a, ReducerAction::NotifySilentToast { .. })));
     }
+
+    // ==========================================================
+    // Phase O 追加: 4 言語等価強度検証（Rust 側）
+    // ==========================================================
+
+    #[test]
+    // Phase O: server_truth_advance で OL rollback → next_state.optimistic_local_key が None になることを確認する
+    // Rust reducer は action-based 設計: server_truth_version の更新は UpdateServerTruth action で委譲する
+    fn test_phase_o_server_truth_advance_rollbacks_optimistic() {
+        // OL が存在する state を用意する
+        let mut state = ClientState::new();
+        state.optimistic_local_key = Some("idem-phase-o".to_string());
+        // server_truth_version を None に設定する（未初期化）
+        state.server_truth_version = None;
+        // version=42 の server_truth_advance event を発行する
+        let event = ConflictEvent::ServerTruthAdvance { new_version: 42 };
+        let result = reduce(&state, &event);
+        // OL が None になることを確認する（rollback）
+        assert!(result.next_state.optimistic_local_key.is_none(), "OL は rollback で None になること");
+        // ROLLBACK_OPTIMISTIC action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::RollbackOptimistic)),
+            "RollbackOptimistic が含まれること"
+        );
+        // UPDATE_SERVER_TRUTH(42) action が含まれることを確認する（state 更新は action で委譲する）
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::UpdateServerTruth { version: 42 })),
+            "UpdateServerTruth(42) が含まれること"
+        );
+        // RE_EVALUATE_PENDING_QUEUE action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::ReEvaluatePendingQueue)),
+            "ReEvaluatePendingQueue が含まれること"
+        );
+    }
+
+    #[test]
+    // Phase O: purge で全 layer が初期化されることを確認する
+    fn test_phase_o_purge_clears_all_layers() {
+        // 全 layer に値が入った state を用意する
+        let mut state = ClientState::new();
+        state.server_truth_version = Some(99);
+        state.optimistic_local_key = Some("idem-purge-o".to_string());
+        state.pending_queue_keys = vec!["idem-pq-1".to_string(), "idem-pq-2".to_string()];
+        state.queue_held = true;
+        // Logout purge で全 layer が初期化されることを確認する
+        let result = reduce_purge(&state, PurgeReason::Logout);
+        // server_truth_version が None にリセットされることを確認する
+        assert!(result.next_state.server_truth_version.is_none(), "server_truth_version が None になること");
+        // optimistic_local_key が None にリセットされることを確認する
+        assert!(result.next_state.optimistic_local_key.is_none(), "optimistic_local_key が None になること");
+        // pending_queue_keys が空にリセットされることを確認する
+        assert!(result.next_state.pending_queue_keys.is_empty(), "pending_queue_keys が空になること");
+        // queue_held が false にリセットされることを確認する
+        assert!(!result.next_state.queue_held, "queue_held が false になること");
+        // PURGE_ALL_LAYERS action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::PurgeAllLayers { reason: PurgeReason::Logout })),
+            "PurgeAllLayers(Logout) が含まれること"
+        );
+    }
+
+    #[test]
+    // Phase O: lost_update で 3way merge UI + HoldQueue が返ることを確認する
+    fn test_phase_o_lost_update_3way_merge() {
+        // 初期 state で lost_update conflict を受け取る
+        let state = ClientState::new();
+        // business_conflict_received(lost_update) event を発行する
+        let event = ConflictEvent::BusinessConflictReceived {
+            subtype: BusinessConflictSubtype::LostUpdate,
+            aggregate_id: "agg-lu-001".to_string(),
+        };
+        let result = reduce(&state, &event);
+        // QueueHeld が true になることを確認する
+        assert!(result.next_state.queue_held, "QueueHeld が true になること");
+        // Present3WayMergeUi action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::Present3WayMergeUi)),
+            "Present3WayMergeUi が含まれること"
+        );
+        // HoldQueue action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::HoldQueue)),
+            "HoldQueue が含まれること"
+        );
+    }
+
+    #[test]
+    // Phase O: pending_queue_resume で PQ ありの場合 SendQueueInOrder が返ることを確認する
+    fn test_phase_o_pending_queue_resume_sends_in_order() {
+        // PQ に entry がある state を用意する
+        let mut state = ClientState::new();
+        state.pending_queue_keys = vec!["idem-a".to_string(), "idem-b".to_string()];
+        // pending_queue_resume event を発行する
+        let event = ConflictEvent::PendingQueueResume;
+        let result = reduce(&state, &event);
+        // SendQueueInOrder action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::SendQueueInOrder)),
+            "SendQueueInOrder が含まれること"
+        );
+    }
+
+    #[test]
+    // Phase O: concurrent_edit で UpdatePresence action が返ることを確認する
+    fn test_phase_o_concurrent_edit_updates_presence() {
+        // 初期 state で concurrent_edit を受け取る
+        let state = ClientState::new();
+        // business_conflict_received(concurrent_edit) event を発行する
+        let event = ConflictEvent::BusinessConflictReceived {
+            subtype: BusinessConflictSubtype::ConcurrentEdit,
+            aggregate_id: "agg-ce-001".to_string(),
+        };
+        let result = reduce(&state, &event);
+        // UpdatePresence action が含まれることを確認する
+        assert!(
+            result.actions.iter().any(|a| matches!(a, ReducerAction::UpdatePresence { .. })),
+            "UpdatePresence が含まれること"
+        );
+    }
 }

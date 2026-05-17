@@ -12,6 +12,8 @@
 
 // TenantContext を import する（4 言語等価強度の型を共有する）
 import { TenantContext } from "./tenantContext.js";
+// pg PoolClient を import する（実 transaction を実行する接続クライアント）
+import type { PoolClient } from "pg";
 
 /**
  * 書込対象テーブルクラス（10_テナント分離適合仕様.md の 4 class と一致する）
@@ -97,7 +99,7 @@ export class OutboxInsertFailedError extends Error {
 
 /**
  * atomic 三表書込の実行エンジン
- * postgres.js の Transaction を受け取る execute メソッドを持つ
+ * pg.PoolClient を受け取る execute メソッドを持つ
  * TenantContext を使って GUC 注入と tenant_id 検証を行う
  */
 // AtomicTripleWrite クラス定義
@@ -135,8 +137,8 @@ export class AtomicTripleWrite {
   }
 
   /**
-   * P1: 三表書込に必要な SQL 文字列を生成する
-   * BEGIN 〜 COMMIT の間に state_change / outbox / audit_event の 3 INSERT を含む
+   * P1: 三表書込に必要な SQL 文字列を生成する（デバッグ・テスト用）
+   * 実際の DB 実行は execute() が pg.PoolClient 経由で行う
    */
   // buildTripleWriteSql メソッド（SQL 生成のみ、実際の DB 実行は execute() が担う）
   buildTripleWriteSql(change: StateChange): string {
@@ -174,35 +176,116 @@ export class AtomicTripleWrite {
   }
 
   /**
-   * P1-P4: atomic 三表書込を実行する非同期メソッド（型シグネチャのみ、実 txn は TODO）
-   * TODO: postgres.js 統合時に sql Transaction を第 2 引数に追加する
-   * P1: BEGIN 〜 COMMIT の中で state_change / outbox / audit_event の 3 INSERT を実行する
-   * P2: outbox INSERT が失敗した場合は txn を rollback して OutboxInsertFailedError をスローする
-   * P3: tenant_id が GUC と一致しない場合は即座に reject して TenantIdMismatchError をスローする
+   * P1-P4: atomic 三表書込を実行する非同期メソッド（pg.PoolClient を使用する）
+   * client: 呼び出し元が BEGIN した pg.PoolClient を受け取る
+   * 呼び出し元は Ok 返却後に client.query('COMMIT') を呼ぶ。例外時は ROLLBACK を呼ぶ。
+   * P1: state_change / outbox / audit_event の 3 INSERT を同一 txn で実行する
+   * P2: outbox INSERT が失敗した場合は OutboxInsertFailedError をスローし、呼び出し元が ROLLBACK する
+   * P3: tenant_id が GUC と一致しない場合は即座に TenantIdMismatchError をスローする
    * P4: pii_segregated テーブルへのアクセスは audit_event に記録してから txn を実行する
    */
-  // execute メソッド（P1-P4 の型シグネチャ）
-  async execute(change: StateChange): Promise<TripleWriteResult> {
+  // execute メソッド（P1-P4 の実 transaction 実行）
+  async execute(change: StateChange, client: PoolClient): Promise<TripleWriteResult> {
     // P3: tenant_id 一致を事前検証する（GUC と aggregate 行の tenant_id が一致しない場合は即座にエラー）
     this.verifyTenantId(change);
     // P4: pii_segregated の場合は audit_event への記録が必須であることを確認する
     void this.verifyPiiAuditRequired(change);
-    // P1: 三表書込 SQL を生成する（実際の txn 実行は TODO）
-    // TODO: postgres.js の sql<...>`...` を使って 3 INSERT + SET LOCAL を同一 txn で実行する
-    void this.buildTripleWriteSql(change);
-    // P2: outbox INSERT が失敗した場合は rollback のためのエラーをスローする
-    // TODO: postgres.js の txn.unsafe(sql) の失敗を OutboxInsertFailedError にマッピングする
-    // 現時点では成功結果を構築して返す（実 DB 実行なし）
+
+    // P3: SET LOCAL で 4 GUC を txn スコープに注入する（RLS FORCE が参照する）
+    const setGucSql = this.#context.toSetLocalSql();
+    // SET LOCAL GUC を client で実行する（transaction スコープのみ有効）
+    await client.query(setGucSql);
+
+    // outbox エントリの ID を生成する（P1 の atomic 三表書込で使用する）
     const outboxId = crypto.randomUUID();
-    // audit_event の ID を生成する
+    // audit_event の ID を生成する（domain_event と audit_event で共有する）
     const auditEventId = crypto.randomUUID();
-    // 書込完了日時を ISO 8601 形式で記録する
+    // 書込完了日時を ISO 8601 形式で記録する（3 INSERT で統一した timestamp を使用する）
     const committedAt = new Date().toISOString();
-    // TripleWriteResult を返す（実 txn 統合前の型シグネチャ確認用）
+
+    // P1: k1s0.domain_event テーブルに INSERT する（aggregate 状態変更の永続化）
+    // current_setting('app.tenant_id')::uuid を使って RLS FORCE の tenant_id を注入する
+    await client.query(
+      // parameterized query でバインドする（SQL injection を物理的に防ぐ）
+      `INSERT INTO k1s0.domain_event
+         (id, aggregate_id, tenant_id, event_kind, payload, version, created_at)
+       VALUES
+         ($1, $2, current_setting('app.tenant_id')::uuid, 'StateChange', $3::jsonb, $4, $5)`,
+      [
+        // audit_event_id を domain_event の主キーとして使用する
+        auditEventId,
+        // 変更対象の aggregate ID をバインドする
+        change.aggregateId,
+        // ペイロードを jsonb 文字列としてバインドする
+        change.payload,
+        // aggregate バージョンをバインドする（楽観的ロックに使用する）
+        change.version,
+        // 書込完了日時をバインドする
+        committedAt,
+      ],
+    );
+
+    // P1: k1s0.outbox テーブルに INSERT する（Debezium CDC 経由で Kafka に転送される）
+    // P2: この INSERT が失敗した場合は OutboxInsertFailedError をスローし、呼び出し元が ROLLBACK する
+    try {
+      // parameterized query で outbox INSERT を実行する
+      await client.query(
+        `INSERT INTO k1s0.outbox
+           (id, aggregate_id, tenant_id, event_kind, payload, created_at)
+         VALUES
+           ($1, $2, current_setting('app.tenant_id')::uuid, 'OutboxRelay', $3::jsonb, $4)`,
+        [
+          // outbox エントリの ID をバインドする
+          outboxId,
+          // 変更対象の aggregate ID をバインドする
+          change.aggregateId,
+          // ペイロードを jsonb 文字列としてバインドする（PII は redact 済みのみ含む）
+          change.payload,
+          // 書込完了日時をバインドする
+          committedAt,
+        ],
+      );
+    } catch (err) {
+      // P2: outbox INSERT 失敗は OutboxInsertFailedError にマッピングして rollback を促す
+      throw new OutboxInsertFailedError(
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
+    // P1+P4: k1s0.audit_event テーブルに INSERT する（全操作を監査記録する）
+    // P4: pii_segregated は pgaudit も併用するが、アプリ層からも必ず audit_event を書く
+    await client.query(
+      // parameterized query で audit_event INSERT を実行する
+      `INSERT INTO k1s0.audit_event
+         (id, aggregate_id, tenant_id, actor_id, purpose, table_class, payload, created_at)
+       VALUES
+         ($1, $2, current_setting('app.tenant_id')::uuid,
+          current_setting('app.actor_id'),
+          current_setting('app.purpose'),
+          $3, $4::jsonb, $5)`,
+      [
+        // audit_event の ID をバインドする（domain_event と同じ ID で結びつける）
+        auditEventId,
+        // 変更対象の aggregate ID をバインドする
+        change.aggregateId,
+        // テーブルクラスを文字列としてバインドする
+        change.tableClass,
+        // ペイロードを jsonb 文字列としてバインドする
+        change.payload,
+        // 書込完了日時をバインドする
+        committedAt,
+      ],
+    );
+
+    // 三表書込の結果を返す（呼び出し元が COMMIT を呼ぶことで確定する）
     return {
+      // 書込んだ aggregate ID を返す
       aggregateId: change.aggregateId,
+      // 書込んだ outbox エントリの ID を返す
       outboxId,
+      // 書込んだ audit_event の ID を返す
       auditEventId,
+      // 書込完了日時を返す
       committedAt,
     };
   }

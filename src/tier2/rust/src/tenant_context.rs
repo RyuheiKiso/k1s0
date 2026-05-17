@@ -7,9 +7,6 @@
 use uuid::Uuid;
 // シリアライズライブラリ（TenantContext の JSON 変換に使用する）
 use serde::{Deserialize, Serialize};
-// エラーハンドリングライブラリ
-use anyhow::Result;
-
 // PostgreSQL session GUC の目的値（app.purpose フィールドの許容値）
 // 10_テナント分離適合仕様.md の purpose enum と完全整合する
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -336,6 +336,104 @@ async fn health_handler() -> Json<HealthResponse> {
     })
 }
 
+// #[cfg(test)] mod tests — bfl unit テストモジュール
+// 04_認証適合仕様.md §v1 auth_class セット（5 class）の正常系・異常系を検証する。
+// axum のルーターをインスタンス化して直接ハンドラー関数を呼び出す unit テストとして実装する。
+#[cfg(test)]
+mod tests {
+    // super: このモジュールの親スコープ（main.rs 全体）をインポートする
+    use super::*;
+    // axum の JSON 型を unit テスト内で使用するためにインポートする
+    use axum::Json;
+
+    // test_health_response_contains_all_auth_classes は health_handler が
+    // 5 auth_class 全て（v1_human_session / v1_workload_jwt / v1_device_attest /
+    // v1_federated_exchange / v1_emergency_step_up）を返すことを検証する。
+    // 04_認証適合仕様.md §v1 auth_class セット定義との一致を保証する。
+    #[test]
+    fn test_health_response_contains_all_auth_classes() {
+        // health_handler を同期呼び出しする（axum::Json を直接アンラップする）
+        // tokio ランタイムが不要なため #[test] で実施する
+        let Json(resp) = tokio::runtime::Runtime::new()
+            .expect("tokio ランタイム起動に失敗した")
+            .block_on(health_handler());
+        // status が "healthy" であることを確認する
+        assert_eq!(resp.status, "healthy", "health status が 'healthy' でなければならない");
+        // service 名が "k1s0-tier1-bfl" であることを確認する
+        assert_eq!(resp.service, "k1s0-tier1-bfl", "service が 'k1s0-tier1-bfl' でなければならない");
+        // supported_auth_classes の要素数が 5 であることを確認する
+        assert_eq!(
+            resp.supported_auth_classes.len(),
+            5,
+            "supported_auth_classes は 5 要素でなければならない（実際: {}）",
+            resp.supported_auth_classes.len()
+        );
+        // 5 class が全て含まれていることを確認する（順序不問）
+        let expected_classes = [
+            "v1_human_session",
+            "v1_workload_jwt",
+            "v1_device_attest",
+            "v1_federated_exchange",
+            "v1_emergency_step_up",
+        ];
+        // 期待する各 auth_class が supported_auth_classes に含まれるかを確認する
+        for cls in &expected_classes {
+            assert!(
+                resp.supported_auth_classes.contains(&cls.to_string()),
+                "supported_auth_classes に '{}' が含まれなければならない",
+                cls
+            );
+        }
+    }
+
+    // test_verify_handler_unknown_class_returns_warning は verify_token_handler に
+    // 未知の auth_class_hint を送信した場合に warnings に "unknown auth_class" が
+    // 含まれることを検証する。
+    // 04_認証適合仕様.md §auth_class_hint fallback 動作を確認する。
+    #[tokio::test]
+    async fn test_verify_handler_unknown_class_returns_warning() {
+        // 未知の auth_class_hint を含む VerifyTokenRequest を構築する
+        let req = VerifyTokenRequest {
+            // 検証対象の dummy token（未知 class のため検証失敗は想定内）
+            bearer_token: "dummy-token-for-unknown-class".to_string(),
+            // 存在しない auth_class_hint を指定する
+            auth_class_hint: Some("v99_nonexistent_class".to_string()),
+            // tenant_id は検証に使用しない（ダミー値を設定する）
+            tenant_id: "test-tenant".to_string(),
+            // DPoP token は不要（None を設定する）
+            dpop_token: None,
+            // request_method は不要（None を設定する）
+            request_method: None,
+            // request_uri は不要（None を設定する）
+            request_uri: None,
+        };
+        // verify_token_handler を呼び出して VerifyResponse を取得する
+        let Json(resp) = verify_token_handler(Json(req)).await;
+        // warnings が空でないことを確認する（unknown class は warning を返す）
+        assert!(
+            !resp.warnings.is_empty(),
+            "unknown auth_class の場合は warnings が空でなければならない"
+        );
+        // warnings の少なくとも 1 つに "unknown auth_class" が含まれることを確認する
+        let has_unknown_class_warning = resp.warnings.iter().any(|w| {
+            // "unknown auth_class" という文字列を含むかを確認する
+            w.contains("unknown auth_class")
+        });
+        assert!(
+            has_unknown_class_warning,
+            "warnings に 'unknown auth_class' が含まれなければならない（実際: {:?}）",
+            resp.warnings
+        );
+        // guc_setters が 6 要素であることを確認する（auth_class / subject_id / etc.）
+        assert_eq!(
+            resp.guc_setters.len(),
+            6,
+            "guc_setters は 6 要素でなければならない（実際: {}）",
+            resp.guc_setters.len()
+        );
+    }
+}
+
 // アプリケーションエントリポイント
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

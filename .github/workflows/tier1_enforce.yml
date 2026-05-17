@@ -1,0 +1,116 @@
+# tier1_enforce.yml — tier1 enforcement CI
+# src/tier1/ 配下の変更時に Rust・Go のビルド・テストを実行して CI fail を早期検出する。
+# 01_Bidi適合仕様.md / 04_認証適合仕様.md に基づく全エンドポイントの conformance を保証する。
+name: tier1 enforcement CI
+
+on:
+  # プルリクエスト: tier1 ファイル変更時のみ実行する
+  pull_request:
+    paths: ['src/tier1/**']
+  # プッシュ: main / reamke2 ブランチへの tier1 変更時に実行する
+  push:
+    branches: [main, reamke2]
+    paths: ['src/tier1/**']
+
+jobs:
+  # ===== tier1 Rust ジョブ =====================================================
+  # gateway / bfl / sidecar / control_plane の Rust クレートをビルド・テストする
+  tier1-rust:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # Rust stable ツールチェーンをインストールする
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # Rust ビルドキャッシュを有効化してビルド時間を短縮する
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          # cargo レジストリキャッシュと target ディレクトリをキャッシュする
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src/tier1/server/target
+          # Cargo.lock のハッシュをキャッシュキーに含める
+          key: ${{ runner.os }}-tier1-rust-${{ hashFiles('src/tier1/server/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tier1-rust-
+
+      # buf CLI をインストールする（proto lint + codegen に使用する）
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          # buf バージョンを固定する（バージョンドリフトを防ぐ）
+          version: '1.47.2'
+
+      # buf lint + generate を実行する（proto 整合を強制する）
+      - name: buf lint + generate
+        # schema ディレクトリで buf コマンドを実行する
+        run: |
+          # buf.work.yaml が存在する場合のみ実行する（schema が存在しない場合はスキップ）
+          if [ -f src/tier1/schema/buf.work.yaml ]; then
+            cd src/tier1/schema && buf lint && buf generate
+          else
+            echo "WARN: src/tier1/schema/buf.work.yaml が存在しないため buf lint をスキップする"
+          fi
+
+      # cargo check で全クレートの型チェックを実行する
+      - name: cargo check (all crates)
+        run: cd src/tier1/server && cargo check --workspace
+
+      # cargo test で gateway クレートのテストを実行する
+      # conformance_e2e.rs の in-process integration test を含む
+      - name: cargo test (gateway unit + integration)
+        run: cd src/tier1/server && cargo test -p k1s0-tier1-gateway
+
+      # cargo test で bfl クレートの unit テストを実行する
+      - name: cargo test (bfl unit)
+        run: cd src/tier1/server && cargo test -p k1s0-tier1-bfl
+
+  # ===== tier1 Go ジョブ =======================================================
+  # operator と library/go のビルド・テストを実行する
+  tier1-go:
+    # ubuntu-latest ランナーを使用する
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリをチェックアウトする
+      - uses: actions/checkout@v4
+
+      # Go 1.23 をセットアップする（operator と library/go の要件）
+      - uses: actions/setup-go@v5
+        with:
+          # Go バージョンを固定する（tier1 CLAUDE.md §言語スタック要件）
+          go-version: '1.23'
+
+      # Go モジュールキャッシュを有効化してダウンロード時間を短縮する
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          # Go モジュールキャッシュをキャッシュする
+          path: ~/go/pkg/mod
+          # go.sum のハッシュをキャッシュキーに含める
+          key: ${{ runner.os }}-tier1-go-${{ hashFiles('src/tier1/operator/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-tier1-go-
+
+      # operator のビルドを実行する（controller-runtime / kubebuilder 依存）
+      - name: go build operator
+        run: cd src/tier1/operator && go build ./...
+
+      # operator の unit テストを実行する
+      - name: go test operator
+        run: cd src/tier1/operator && go test ./...
+
+      # library/go のビルドを実行する（4 言語等価実装の Go 側）
+      - name: go build library
+        # library/go が存在する場合のみ実行する（ディレクトリ不在はスキップ）
+        run: |
+          if [ -d src/tier1/library/go ]; then
+            cd src/tier1/library/go && go build ./...
+          else
+            echo "WARN: src/tier1/library/go が存在しないためスキップする"
+          fi

@@ -19,6 +19,18 @@
     <Version>0.1.0</Version>
     <!-- 説明 -->
     <Description>k1s0 tier3 4 layer client state（C# 等価強度実装）</Description>
+    <!-- MSTest テストランナーを有効にする -->
+    <IsTestProject>true</IsTestProject>
   </PropertyGroup>
+
+  <!-- MSTest フレームワーク参照を追加する -->
+  <ItemGroup>
+    <!-- MSTest テストフレームワーク -->
+    <PackageReference Include="MSTest.TestFramework" Version="3.5.2" />
+    <!-- MSTest テストアダプター（dotnet test で実行するため） -->
+    <PackageReference Include="MSTest.TestAdapter" Version="3.5.2" />
+    <!-- Microsoft.NET.Test.Sdk（テストホスト） -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+  </ItemGroup>
 
 </Project>

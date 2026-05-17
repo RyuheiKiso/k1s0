@@ -1,0 +1,25 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          "@k1s0/tier1-*"
+        ],
+        "paths": [
+          {
+            "name": "@k1s0/tier1",
+            "message": "tier2 から tier1 OSS の直接 import 禁止（tier2 SDK 経由必須）"
+          }
+        ]
+      }
+    ],
+    "no-console": "warn",
+    "eqeqeq": ["error", "always"]
+  }
+}
