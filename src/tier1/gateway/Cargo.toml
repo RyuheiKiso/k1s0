@@ -1,0 +1,36 @@
+# k1s0 tier1 gateway: HTTP/2 ALPN h2 サーバー + Bidi handshake state machine
+[package]
+# パッケージ名: k1s0-tier1-gateway
+name = "k1s0-tier1-gateway"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# axum: HTTP/2 対応 Web フレームワーク
+axum = { workspace = true }
+# tokio: 非同期 I/O ランタイム
+tokio = { workspace = true }
+# tower: ミドルウェアレイヤリング
+tower = { workspace = true }
+# tower-http: HTTP 特化ミドルウェア
+tower-http = { workspace = true }
+# serde: シリアライズフレームワーク
+serde = { workspace = true }
+# serde_json: JSON ライブラリ
+serde_json = { workspace = true }
+# tracing: 構造化ロギング
+tracing = { workspace = true }
+# tracing-subscriber: ロギングサブスクライバー
+tracing-subscriber = { workspace = true }
+# anyhow: エラーハンドリング
+anyhow = { workspace = true }
+# uuid: UUID 生成（セッション・ハンドシェイク ID に使用する）
+uuid = { workspace = true }
+# chrono: 日時ライブラリ（conformance テスト実行日時に使用する）
+chrono = { workspace = true }
+
+[dev-dependencies]
+# reqwest: 統合テスト用 HTTP クライアント（HTTP/2 + rustls-tls で pkg-config 不要）
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }

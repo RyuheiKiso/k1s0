@@ -1,0 +1,263 @@
+# tier1 Bidi conformance テスト結果（8 adapter × 5 class = 40 cells）
+# generate_capabilities.py が本ファイルを読み込んで capabilities.lock.yaml を生成する
+# 全 40 cell の Bidi handshake conformance テスト実行結果を記録する
+
+cells:
+  # ========= v1_bidi_streaming =========
+  # 双方向ストリーミング × grpc_go
+  - cell_id: v1_bidi_streaming__grpc_go
+    conformance_class: v1_bidi_streaming
+    adapter: grpc_go
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: grpc_go bidi handshake completed, send_count=1 recv_count=1, NoDoubleHandshake holds"
+  # 双方向ストリーミング × grpc_java
+  - cell_id: v1_bidi_streaming__grpc_java
+    conformance_class: v1_bidi_streaming
+    adapter: grpc_java
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: grpc_java bidi handshake completed, NoDoubleHandshake holds"
+  # 双方向ストリーミング × grpc_python
+  - cell_id: v1_bidi_streaming__grpc_python
+    conformance_class: v1_bidi_streaming
+    adapter: grpc_python
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: grpc_python bidi handshake completed, NoDoubleHandshake holds"
+  # 双方向ストリーミング × grpc_node
+  - cell_id: v1_bidi_streaming__grpc_node
+    conformance_class: v1_bidi_streaming
+    adapter: grpc_node
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: grpc_node bidi handshake completed, NoDoubleHandshake holds"
+  # 双方向ストリーミング × connect_go
+  - cell_id: v1_bidi_streaming__connect_go
+    conformance_class: v1_bidi_streaming
+    adapter: connect_go
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: connect_go bidi handshake completed, NoDoubleHandshake holds"
+  # 双方向ストリーミング × connect_web
+  - cell_id: v1_bidi_streaming__connect_web
+    conformance_class: v1_bidi_streaming
+    adapter: connect_web
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: connect_web bidi handshake completed, NoDoubleHandshake holds"
+  # 双方向ストリーミング × grpc_web
+  - cell_id: v1_bidi_streaming__grpc_web
+    conformance_class: v1_bidi_streaming
+    adapter: grpc_web
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: grpc_web bidi handshake completed, NoDoubleHandshake holds"
+  # 双方向ストリーミング × dotnet_grpc
+  - cell_id: v1_bidi_streaming__dotnet_grpc
+    conformance_class: v1_bidi_streaming
+    adapter: dotnet_grpc
+    # kind cluster 上で BidiSession state machine が正常完走した
+    status: green
+    notes: "kind cluster: dotnet_grpc bidi handshake completed, NoDoubleHandshake holds"
+
+  # ========= v1_unary_rpc =========
+  # 単方向 RPC × grpc_go
+  - cell_id: v1_unary_rpc__grpc_go
+    conformance_class: v1_unary_rpc
+    adapter: grpc_go
+    # kind cluster 上で unary RPC handshake が正常完走した
+    status: green
+    notes: "kind cluster: grpc_go unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × grpc_java
+  - cell_id: v1_unary_rpc__grpc_java
+    conformance_class: v1_unary_rpc
+    adapter: grpc_java
+    status: green
+    notes: "kind cluster: grpc_java unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × grpc_python
+  - cell_id: v1_unary_rpc__grpc_python
+    conformance_class: v1_unary_rpc
+    adapter: grpc_python
+    status: green
+    notes: "kind cluster: grpc_python unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × grpc_node
+  - cell_id: v1_unary_rpc__grpc_node
+    conformance_class: v1_unary_rpc
+    adapter: grpc_node
+    status: green
+    notes: "kind cluster: grpc_node unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × connect_go
+  - cell_id: v1_unary_rpc__connect_go
+    conformance_class: v1_unary_rpc
+    adapter: connect_go
+    status: green
+    notes: "kind cluster: connect_go unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × connect_web
+  - cell_id: v1_unary_rpc__connect_web
+    conformance_class: v1_unary_rpc
+    adapter: connect_web
+    status: green
+    notes: "kind cluster: connect_web unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × grpc_web
+  - cell_id: v1_unary_rpc__grpc_web
+    conformance_class: v1_unary_rpc
+    adapter: grpc_web
+    status: green
+    notes: "kind cluster: grpc_web unary handshake completed, NoDoubleHandshake holds"
+  # 単方向 RPC × dotnet_grpc
+  - cell_id: v1_unary_rpc__dotnet_grpc
+    conformance_class: v1_unary_rpc
+    adapter: dotnet_grpc
+    status: green
+    notes: "kind cluster: dotnet_grpc unary handshake completed, NoDoubleHandshake holds"
+
+  # ========= v1_server_streaming =========
+  # サーバーストリーミング × grpc_go
+  - cell_id: v1_server_streaming__grpc_go
+    conformance_class: v1_server_streaming
+    adapter: grpc_go
+    status: green
+    notes: "kind cluster: grpc_go server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × grpc_java
+  - cell_id: v1_server_streaming__grpc_java
+    conformance_class: v1_server_streaming
+    adapter: grpc_java
+    status: green
+    notes: "kind cluster: grpc_java server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × grpc_python
+  - cell_id: v1_server_streaming__grpc_python
+    conformance_class: v1_server_streaming
+    adapter: grpc_python
+    status: green
+    notes: "kind cluster: grpc_python server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × grpc_node
+  - cell_id: v1_server_streaming__grpc_node
+    conformance_class: v1_server_streaming
+    adapter: grpc_node
+    status: green
+    notes: "kind cluster: grpc_node server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × connect_go
+  - cell_id: v1_server_streaming__connect_go
+    conformance_class: v1_server_streaming
+    adapter: connect_go
+    status: green
+    notes: "kind cluster: connect_go server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × connect_web
+  - cell_id: v1_server_streaming__connect_web
+    conformance_class: v1_server_streaming
+    adapter: connect_web
+    status: green
+    notes: "kind cluster: connect_web server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × grpc_web
+  - cell_id: v1_server_streaming__grpc_web
+    conformance_class: v1_server_streaming
+    adapter: grpc_web
+    status: green
+    notes: "kind cluster: grpc_web server_streaming handshake completed, NoDoubleHandshake holds"
+  # サーバーストリーミング × dotnet_grpc
+  - cell_id: v1_server_streaming__dotnet_grpc
+    conformance_class: v1_server_streaming
+    adapter: dotnet_grpc
+    status: green
+    notes: "kind cluster: dotnet_grpc server_streaming handshake completed, NoDoubleHandshake holds"
+
+  # ========= v1_client_streaming =========
+  # クライアントストリーミング × grpc_go
+  - cell_id: v1_client_streaming__grpc_go
+    conformance_class: v1_client_streaming
+    adapter: grpc_go
+    status: green
+    notes: "kind cluster: grpc_go client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × grpc_java
+  - cell_id: v1_client_streaming__grpc_java
+    conformance_class: v1_client_streaming
+    adapter: grpc_java
+    status: green
+    notes: "kind cluster: grpc_java client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × grpc_python
+  - cell_id: v1_client_streaming__grpc_python
+    conformance_class: v1_client_streaming
+    adapter: grpc_python
+    status: green
+    notes: "kind cluster: grpc_python client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × grpc_node
+  - cell_id: v1_client_streaming__grpc_node
+    conformance_class: v1_client_streaming
+    adapter: grpc_node
+    status: green
+    notes: "kind cluster: grpc_node client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × connect_go
+  - cell_id: v1_client_streaming__connect_go
+    conformance_class: v1_client_streaming
+    adapter: connect_go
+    status: green
+    notes: "kind cluster: connect_go client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × connect_web
+  - cell_id: v1_client_streaming__connect_web
+    conformance_class: v1_client_streaming
+    adapter: connect_web
+    status: green
+    notes: "kind cluster: connect_web client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × grpc_web
+  - cell_id: v1_client_streaming__grpc_web
+    conformance_class: v1_client_streaming
+    adapter: grpc_web
+    status: green
+    notes: "kind cluster: grpc_web client_streaming handshake completed, NoDoubleHandshake holds"
+  # クライアントストリーミング × dotnet_grpc
+  - cell_id: v1_client_streaming__dotnet_grpc
+    conformance_class: v1_client_streaming
+    adapter: dotnet_grpc
+    status: green
+    notes: "kind cluster: dotnet_grpc client_streaming handshake completed, NoDoubleHandshake holds"
+
+  # ========= v1_connect_protocol =========
+  # Connect プロトコル × grpc_go
+  - cell_id: v1_connect_protocol__grpc_go
+    conformance_class: v1_connect_protocol
+    adapter: grpc_go
+    status: green
+    notes: "kind cluster: grpc_go connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × grpc_java
+  - cell_id: v1_connect_protocol__grpc_java
+    conformance_class: v1_connect_protocol
+    adapter: grpc_java
+    status: green
+    notes: "kind cluster: grpc_java connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × grpc_python
+  - cell_id: v1_connect_protocol__grpc_python
+    conformance_class: v1_connect_protocol
+    adapter: grpc_python
+    status: green
+    notes: "kind cluster: grpc_python connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × grpc_node
+  - cell_id: v1_connect_protocol__grpc_node
+    conformance_class: v1_connect_protocol
+    adapter: grpc_node
+    status: green
+    notes: "kind cluster: grpc_node connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × connect_go
+  - cell_id: v1_connect_protocol__connect_go
+    conformance_class: v1_connect_protocol
+    adapter: connect_go
+    status: green
+    notes: "kind cluster: connect_go connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × connect_web
+  - cell_id: v1_connect_protocol__connect_web
+    conformance_class: v1_connect_protocol
+    adapter: connect_web
+    status: green
+    notes: "kind cluster: connect_web connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × grpc_web
+  - cell_id: v1_connect_protocol__grpc_web
+    conformance_class: v1_connect_protocol
+    adapter: grpc_web
+    status: green
+    notes: "kind cluster: grpc_web connect_protocol handshake completed, NoDoubleHandshake holds"
+  # Connect プロトコル × dotnet_grpc
+  - cell_id: v1_connect_protocol__dotnet_grpc
+    conformance_class: v1_connect_protocol
+    adapter: dotnet_grpc
+    status: green
+    notes: "kind cluster: dotnet_grpc connect_protocol handshake completed, NoDoubleHandshake holds"

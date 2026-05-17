@@ -1,0 +1,8 @@
+// k1s0 tier1 Go workspace: operator モジュールを管理する
+go 1.23.0
+
+// operator モジュールをワークスペースに含める
+use (
+	// Tier1Service CRD Reconciler（controller-runtime 使用）
+	./operator
+)

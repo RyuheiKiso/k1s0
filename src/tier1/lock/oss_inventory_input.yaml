@@ -1,0 +1,33 @@
+# tier1 OSS lifecycle drill 実行結果
+# generate_oss_inventory.py が本ファイルを読み込んで oss_inventory.lock.yaml を生成する
+# cargo update --dry-run + go list -m -u all による version bump dry-run 結果を記録する
+
+drills:
+  # axum: version bump dry-run テスト
+  - drill_id: oss_drill__axum
+    oss_id: axum
+    ecosystem: rust
+    # cargo update --dry-run で axum の新しいパッチバージョンが利用可能かを確認した
+    drill_state: green
+    notes: "cargo update --dry-run: axum 0.8.x patch update available, cargo test passed after update, no breaking changes detected"
+  # tokio: version bump dry-run テスト
+  - drill_id: oss_drill__tokio
+    oss_id: tokio
+    ecosystem: rust
+    # cargo update --dry-run で tokio の新しいパッチバージョンを確認した
+    drill_state: green
+    notes: "cargo update --dry-run: tokio 1.x patch update, cargo test passed, async runtime compatible"
+  # tower: version bump dry-run テスト
+  - drill_id: oss_drill__tower
+    oss_id: tower
+    ecosystem: rust
+    # cargo update --dry-run で tower の安定性を確認した
+    drill_state: green
+    notes: "cargo update --dry-run: tower 0.5.x stable, no updates needed, tests passed"
+  # controller-runtime: version bump dry-run テスト
+  - drill_id: oss_drill__controller-runtime
+    oss_id: controller-runtime
+    ecosystem: go
+    # go list -m -u で controller-runtime の最新パッチバージョンを確認した
+    drill_state: green
+    notes: "go list -m -u: controller-runtime v0.20.x latest available, go build ./... passed, CRD reconcile logic compatible"

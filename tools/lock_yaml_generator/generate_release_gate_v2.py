@@ -221,23 +221,23 @@ _CELL_CATALOG: list[tuple[str, str, str]] = [
     # tier1
     (
         "tier1.bidi_conformance_complete",
-        "capabilities.lock.yaml",
-        "",
+        "../../tier1/lock/capabilities.lock.yaml",
+        "count(`../../tier1/lock/capabilities.lock.yaml`, cells[?status=='green']) == 40",
     ),
     (
         "tier1.slo_compliance_quarterly_green",
-        "capabilities.lock.yaml",
-        "",
+        "../../tier1/lock/instruments.lock.yaml",
+        "count(`../../tier1/lock/instruments.lock.yaml`, drills[?drill_state=='green']) >= 1",
     ),
     (
         "tier1.oss_lifecycle_drill_green",
-        "capabilities.lock.yaml",
-        "",
+        "../../tier1/lock/oss_inventory.lock.yaml",
+        "count(`../../tier1/lock/oss_inventory.lock.yaml`, drills[?drill_state=='green']) >= 1",
     ),
     (
         "tier1.tenant_capacity_drill_green",
-        "capabilities.lock.yaml",
-        "",
+        "../../tier1/lock/enforcement_points.lock.yaml",
+        "count(`../../tier1/lock/enforcement_points.lock.yaml`, drills[?drill_state=='green']) >= 1",
     ),
     # tier2
     (

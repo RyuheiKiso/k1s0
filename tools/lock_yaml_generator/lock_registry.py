@@ -40,6 +40,10 @@ TOPO_ORDER: list[str] = [
     "failover_drill",
     "restore_drill",
     "capabilities",
+    "instruments",
+    "oss_inventory",
+    "enforcement_points",
+    "idp_capabilities",
     "artifact_inventory",
     "release_gate",
 ]
@@ -71,6 +75,10 @@ def get_generator(name: str) -> type | None:
         "failover_drill": ("tools.lock_yaml_generator.generate_failover_drill", "FailoverDrillGenerator"),
         "restore_drill": ("tools.lock_yaml_generator.generate_restore_drill", "RestoreDrillGenerator"),
         "capabilities": ("tools.lock_yaml_generator.generate_capabilities", "CapabilitiesGenerator"),
+        "instruments": ("tools.lock_yaml_generator.generate_instruments", "InstrumentsGenerator"),
+        "oss_inventory": ("tools.lock_yaml_generator.generate_oss_inventory", "OssInventoryGenerator"),
+        "enforcement_points": ("tools.lock_yaml_generator.generate_enforcement_points", "EnforcementPointsGenerator"),
+        "idp_capabilities": ("tools.lock_yaml_generator.generate_idp_capabilities", "IdpCapabilitiesGenerator"),
         "artifact_inventory": ("tools.lock_yaml_generator.generate_artifact_inventory", "ArtifactInventoryGenerator"),
         "release_gate": ("tools.lock_yaml_generator.generate_release_gate_v2", "ReleaseGateV2Generator"),
     }

@@ -1,0 +1,24 @@
+# k1s0 tier1 sidecar: Outbox リレーサイドカー
+[package]
+# パッケージ名: k1s0-tier1-sidecar
+name = "k1s0-tier1-sidecar"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[dependencies]
+# tokio: 非同期 I/O ランタイム
+tokio = { workspace = true }
+# axum: ヘルスチェックエンドポイント用 HTTP サーバー
+axum = { workspace = true }
+# serde: シリアライズフレームワーク
+serde = { workspace = true }
+# serde_json: JSON ライブラリ
+serde_json = { workspace = true }
+# tracing: 構造化ロギング
+tracing = { workspace = true }
+# tracing-subscriber: ロギングサブスクライバー
+tracing-subscriber = { workspace = true }
+# anyhow: エラーハンドリング
+anyhow = { workspace = true }
