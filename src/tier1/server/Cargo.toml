@@ -15,8 +15,8 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-# axum: 高性能 Rust Web フレームワーク（HTTP/2 対応）
-axum = { version = "0.8", features = ["http2"] }
+# axum: 高性能 Rust Web フレームワーク（HTTP/2 対応）— 各 crate で features を指定するため base のみ
+axum = { version = "0.8" }
 # tokio: 非同期 I/O ランタイム（全機能を有効化する）
 tokio = { version = "1", features = ["full"] }
 # tower: ミドルウェア・レイヤリング用 HTTP ユーティリティ
@@ -37,3 +37,15 @@ anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
 # chrono: 日時ライブラリ（タイムスタンプ管理に使用する）
 chrono = { version = "0.4", features = ["serde"] }
+# bytes: ゼロコピーバイト操作
+bytes = "1"
+# zeroize: 機密データのゼロクリア（KeyHandle / AuthContext の drop 時）
+zeroize = { version = "1", features = ["derive"] }
+# hmac: HMAC 計算（webhook HMAC-SHA256 署名に使用する）
+hmac = "0.12"
+# sha2: SHA-2 ハッシュ関数（HMAC-SHA256 に使用する）
+sha2 = "0.10"
+# hex: バイト列を hex 文字列に変換する
+hex = "0.4"
+# futures-util: 非同期ストリームユーティリティ（SSE ストリームに使用する）
+futures-util = "0.3"

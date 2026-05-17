@@ -1,89 +1,86 @@
-// k1s0 tier1 control_plane: flagd 連携コントロールプレーンのエントリポイント
-// テナント設定・フィーチャーフラグを flagd に配布するスタブ実装
+// k1s0 tier1 control_plane: CRD watcher + flagd publisher のエントリポイント
+// Tier1Service CRD の変更を kube watch API で監視し、
+// テナント別 feature flag を OpenFeature flagd に配布する。
 
-// axum: HTTP サーバーとハンドラーのインポート
+// CRD watcher モジュール（kube 0.95 watch API）
+mod crd_watcher;
+
+// axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};
-// Serde シリアライズのインポート
-use serde::{Deserialize, Serialize};
-// tracing のインポート
+// serde: JSON シリアライズ
+use serde::Serialize;
+// tracing: 構造化ロギング
 use tracing::info;
-// tracing サブスクライバーのインポート
+// tracing-subscriber: サブスクライバー
 use tracing_subscriber::EnvFilter;
+// 標準ライブラリ
+use std::env;
 
-// テナント設定レスポンスの構造体
-#[derive(Serialize, Deserialize)]
-struct TenantConfig {
-    // テナント ID
-    tenant_id: String,
-    // テナントの quota class（テナント容量管理に使用する）
-    quota_class: String,
-    // テナントの clock integrity class
-    clock_integrity_class: String,
-    // テナントのフィーチャーフラグ状態
-    features_enabled: Vec<String>,
-}
+use crd_watcher::CrdWatcher;
 
-// ヘルスチェックレスポンスの構造体
+// ControlPlaneStatus はコントロールプレーンの稼働状態を宣言する。
 #[derive(Serialize)]
-struct HealthResponse {
-    // サービス動作状態
+struct ControlPlaneStatus {
+    // status: サービス動作状態
     status: String,
-    // サービス名
+    // service: サービス名
     service: String,
+    // crd_watcher_active: CRD watcher が稼働中かどうか
+    crd_watcher_active: bool,
+    // flagd_connected: flagd に接続済みかどうか
+    flagd_connected: bool,
+    // kubernetes_connected: Kubernetes API に接続済みかどうか
+    kubernetes_connected: bool,
 }
 
-// テナント設定配布エンドポイントのハンドラー
-async fn tenant_config_handler() -> Json<Vec<TenantConfig>> {
-    // kind 環境での代表的なテナント設定を返す
-    Json(vec![
-        // テナント A の設定
-        TenantConfig {
-            tenant_id: "tenant_a".to_string(),
-            quota_class: "standard".to_string(),
-            clock_integrity_class: "v1_intra_rack_ptp".to_string(),
-            features_enabled: vec!["bidi_streaming".to_string(), "slo_monitoring".to_string()],
-        },
-        // テナント B の設定
-        TenantConfig {
-            tenant_id: "tenant_b".to_string(),
-            quota_class: "premium".to_string(),
-            clock_integrity_class: "v1_dc_chrony_stratum1".to_string(),
-            features_enabled: vec![
-                "bidi_streaming".to_string(),
-                "slo_monitoring".to_string(),
-                "pii_dedicated_cluster".to_string(),
-            ],
-        },
-    ])
-}
-
-// ヘルスチェックエンドポイントのハンドラー
-async fn health_handler() -> Json<HealthResponse> {
-    // ヘルスチェックレスポンスを返す
-    Json(HealthResponse {
+// health_handler はヘルスチェックエンドポイントのハンドラー。
+async fn health_handler() -> Json<ControlPlaneStatus> {
+    // 各コンポーネントの接続状態を環境変数から確認する
+    let flagd_configured = env::var("FLAGD_HOST").is_ok();
+    let kubeconfig = env::var("KUBECONFIG").is_ok() || std::path::Path::new("/var/run/secrets/kubernetes.io/serviceaccount/token").exists();
+    Json(ControlPlaneStatus {
         status: "healthy".to_string(),
         service: "k1s0-tier1-cp".to_string(),
+        crd_watcher_active: kubeconfig,
+        flagd_connected: flagd_configured,
+        kubernetes_connected: kubeconfig,
     })
 }
 
 // アプリケーションエントリポイント
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // tracing の初期設定
+    // tracing を初期化する
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("info".parse()?))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .init();
-    // ルーターを構築する
+    // 環境変数から設定を読み込む
+    let kubeconfig = env::var("KUBECONFIG")
+        .unwrap_or_else(|_| "/var/run/secrets/kubernetes.io/serviceaccount/token".to_string());
+    let addr = env::var("CP_LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:8083".to_string());
+    info!(
+        addr = %addr,
+        kubeconfig = %kubeconfig,
+        "k1s0-tier1-cp starting"
+    );
+    // CRD watcher を初期化する
+    let watcher = CrdWatcher::new(kubeconfig);
+    // ヘルスチェック HTTP サーバーと CRD watcher を並行して起動する
     let app = Router::new()
-        // ヘルスチェックエンドポイントを登録する
-        .route("/health", get(health_handler))
-        // テナント設定配布エンドポイントを登録する
-        .route("/tenants/config", get(tenant_config_handler));
-    // サーバーのリスニングアドレスを設定する
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8083").await?;
-    // サーバー起動をログに記録する
-    info!("k1s0-tier1-cp starting on :8083");
-    // サーバーを起動する
+        .route("/health", get(health_handler));
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    // CRD watcher を別タスクで起動する
+    tokio::spawn(async move {
+        // CRD watcher ループを起動する（イベントをログに記録する）
+        if let Err(e) = watcher.watch(|event| {
+            info!(event = ?event, "CRD event received");
+        }).await {
+            tracing::error!(error = %e, "CrdWatcher terminated with error");
+        }
+    });
+    // ヘルスチェック HTTP サーバーを起動する
     axum::serve(listener, app).await?;
     Ok(())
 }

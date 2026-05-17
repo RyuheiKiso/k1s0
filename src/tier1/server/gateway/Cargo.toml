@@ -8,8 +8,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# axum: HTTP/2 対応 Web フレームワーク
-axum = { workspace = true }
+# axum: HTTP/2 対応 Web フレームワーク（http2 + sse feature を有効化）
+axum = { workspace = true, features = ["http2", "macros", "json"] }
 # tokio: 非同期 I/O ランタイム
 tokio = { workspace = true }
 # tower: ミドルウェアレイヤリング
@@ -30,6 +30,18 @@ anyhow = { workspace = true }
 uuid = { workspace = true }
 # chrono: 日時ライブラリ（conformance テスト実行日時に使用する）
 chrono = { workspace = true }
+# bytes: ゼロコピーバイト操作
+bytes = { workspace = true }
+# zeroize: KeyHandle drop 時のゼロクリア
+zeroize = { workspace = true }
+# hmac: webhook HMAC-SHA256 署名
+hmac = { workspace = true }
+# sha2: SHA-256 ハッシュ
+sha2 = { workspace = true }
+# hex: hex エンコード
+hex = { workspace = true }
+# futures-util: SSE ストリームユーティリティ
+futures-util = { workspace = true }
 # opentelemetry: OTel SDK コア（spec 03 観測 - W3C traceparent 伝搬）
 opentelemetry = { version = "0.27", features = ["trace"] }
 # opentelemetry_sdk: OTel SDK ランタイム実装

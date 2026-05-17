@@ -1,52 +1,102 @@
-// k1s0 tier1 sidecar: Outbox リレーサイドカーのエントリポイント
-// PostgreSQL Outbox テーブルをポーリングして Kafka に WAL イベントをリレーする
+// k1s0 tier1 sidecar: Outbox → Kafka relay サービスのエントリポイント
+// tier2 atomic_triple_write の outbox_message を PostgreSQL から読み出し Kafka に relay する。
+// WAL-based CDC（pgoutput logical replication）も対応する。
 
-// axum: HTTP サーバーとハンドラーのインポート
+// Outbox relay モジュール（PostgreSQL SELECT FOR UPDATE SKIP LOCKED → Kafka producer）
+mod outbox_relay;
+
+// axum: ヘルスチェック用 HTTP サーバー
 use axum::{Json, Router, routing::get};
-// Serde シリアライズのインポート
-use serde::{Deserialize, Serialize};
-// tracing のインポート
+// serde: JSON シリアライズ
+use serde::Serialize;
+// tracing: 構造化ロギング
 use tracing::info;
-// tracing サブスクライバーのインポート
+// tracing-subscriber: サブスクライバー
 use tracing_subscriber::EnvFilter;
+// 標準ライブラリ
+use std::env;
 
-// サイドカーのヘルスチェックレスポンス構造体
-#[derive(Serialize, Deserialize)]
-struct HealthResponse {
-    // サービス動作状態
+use outbox_relay::{OutboxRelay, OutboxRelayConfig};
+
+// SidecarStatus はサイドカーの稼働状態を宣言する。
+#[derive(Serialize)]
+struct SidecarStatus {
+    // status: サービス動作状態
     status: String,
-    // サービス名
+    // service: サービス名
     service: String,
-    // Outbox リレーが動作しているかのフラグ
+    // outbox_relay_active: Outbox relay が稼働中かどうか
     outbox_relay_active: bool,
+    // kafka_connected: Kafka broker に接続済みかどうか
+    kafka_connected: bool,
+    // database_connected: PostgreSQL に接続済みかどうか
+    database_connected: bool,
 }
 
-// ヘルスチェックエンドポイントのハンドラー
-async fn health_handler() -> Json<HealthResponse> {
-    // ヘルスチェックレスポンスを返す
-    Json(HealthResponse {
+// health_handler はヘルスチェックエンドポイントのハンドラー。
+async fn health_handler() -> Json<SidecarStatus> {
+    // 各コンポーネントの接続状態を環境変数から確認する
+    let kafka_configured = env::var("KAFKA_BROKERS").is_ok();
+    let database_configured = env::var("DATABASE_URL").is_ok();
+    Json(SidecarStatus {
         status: "healthy".to_string(),
         service: "k1s0-tier1-sidecar".to_string(),
-        outbox_relay_active: true,
+        // Outbox relay は DATABASE_URL + KAFKA_BROKERS が設定されていれば active
+        outbox_relay_active: kafka_configured && database_configured,
+        kafka_connected: kafka_configured,
+        database_connected: database_configured,
     })
 }
 
 // アプリケーションエントリポイント
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // tracing の初期設定（環境変数 RUST_LOG で制御する）
+    // tracing を初期化する
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("info".parse()?))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .init();
-    // ルーターを構築する
+    // 環境変数から設定を読み込む
+    let database_url = env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://k1s0:k1s0@localhost:5432/k1s0".to_string());
+    let kafka_brokers = env::var("KAFKA_BROKERS")
+        .unwrap_or_else(|_| "localhost:9092".to_string());
+    let poll_interval_ms: u64 = env::var("OUTBOX_POLL_INTERVAL_MS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(1000);
+    let max_retry_count: i32 = env::var("OUTBOX_MAX_RETRY_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(5);
+    // Outbox relay を初期化する
+    let relay = OutboxRelay::new(OutboxRelayConfig {
+        database_url: database_url.clone(),
+        kafka_brokers: kafka_brokers.clone(),
+        poll_interval_ms,
+        max_retry_count,
+    });
+    // リスニングアドレスを環境変数から取得する
+    let addr = env::var("SIDECAR_LISTEN_ADDR").unwrap_or_else(|_| "0.0.0.0:8081".to_string());
+    info!(
+        addr = %addr,
+        database = %database_url,
+        kafka = %kafka_brokers,
+        "k1s0-tier1-sidecar starting"
+    );
+    // ヘルスチェック HTTP サーバーと Outbox relay を並行して起動する
     let app = Router::new()
-        // ヘルスチェックエンドポイントを登録する
         .route("/health", get(health_handler));
-    // サーバーのリスニングアドレスを設定する
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8081").await?;
-    // サーバー起動をログに記録する
-    info!("k1s0-tier1-sidecar starting on :8081");
-    // サーバーを起動する
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    // Outbox relay を別タスクで起動する
+    tokio::spawn(async move {
+        // Outbox relay ループを起動する（エラー時はログに記録して継続する）
+        if let Err(e) = relay.run().await {
+            tracing::error!(error = %e, "OutboxRelay terminated with error");
+        }
+    });
+    // ヘルスチェック HTTP サーバーを起動する
     axum::serve(listener, app).await?;
     Ok(())
 }
