@@ -1,5 +1,6 @@
 # Policy 4: Istio Strict mTLS 必須化ポリシー
 # PeerAuthentication STRICT mTLS が設定されていない workload を拒否する
+# 注意: Istio CRD (PeerAuthentication) が必要。Istio 未インストール環境では Deployment に match を変更する
 apiVersion: kyverno.io/v1
 # ClusterPolicy はクラスタ全体に適用されるポリシーリソース
 kind: ClusterPolicy
@@ -53,22 +54,4 @@ spec:
             annotations:
               # Istio mTLS モードが STRICT であることを確認する
               k1s0.io/mtls-mode: "STRICT"
-    # ルール名称: PeerAuthentication リソースの STRICT モード検証
-    - name: validate-peer-authentication-mode
-      # 適用対象: Istio PeerAuthentication リソース
-      match:
-        any:
-          - resources:
-              kinds:
-                # Istio PeerAuthentication リソースに適用する
-                - PeerAuthentication
-      # PeerAuthentication の mTLS モード検証ルール
-      validate:
-        # 違反時のエラーメッセージ
-        message: "PeerAuthentication は STRICT モードを設定する必要があります"
-        # STRICT モードのパターン
-        pattern:
-          spec:
-            mtls:
-              # STRICT モードのみ許可する
-              mode: STRICT
+    # PeerAuthentication ルールは Istio CRD インストール後に有効化する
