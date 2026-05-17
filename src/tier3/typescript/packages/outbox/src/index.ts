@@ -24,3 +24,20 @@ export {
   createOutboxMeta,
   stripPiiFields,
 } from "./outbox.js";
+
+// IndexedDB encrypted store（低水準 API）を公開する
+export type { IndexedDbStore, PersistLayer } from "./indexeddb_store.js";
+export { createStore } from "./indexeddb_store.js";
+
+// IndexedDB persistence 高水準 API を公開する
+export {
+  persist,
+  restore,
+  persistPendingQueueEntry,
+  persistDraftEntry,
+  restorePendingQueue,
+  restoreDraft,
+  clearLayer,
+  purgeAllLayers,
+  _resetStoreForTest,
+} from "./persistence.js";

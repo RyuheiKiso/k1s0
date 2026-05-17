@@ -1,6 +1,11 @@
-// k1s0 tier3 CRDT 型（tier3 内部閉込め）
+// k1s0 tier3 CRDT パッケージ公開エントリポイント
 // cross-cutting spec は不要。collaborative editing 用の基本 CRDT 型を提供する
-// LWW-Register と G-Set の骨格を実装する
+// LWW-Register / G-Set / VectorClock + CRDT 収束法則プロパティ検証を提供する
+
+// CRDT 収束法則プロパティ検証の全エクスポート（fast-check と組み合わせて使用する）
+export { isCommutative, isAssociative, isIdempotent, checkCRDTConvergence } from "./properties";
+// 適用関数・等価判定関数の型エクスポート
+export type { ApplyFn, EqualityFn } from "./properties";
 
 // LWW-Register（Last Write Wins Register）
 // HLC タイムスタンプに基づいて最新値を保持する

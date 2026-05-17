@@ -50,3 +50,9 @@ export interface LogoutBroadcastEvent {
   // ログアウト対象 session の hash（個人情報を含まない）
   readonly sessionHash: string;
 }
+
+// BFF クライアント（check / logout を提供する）を公開する
+export { BffClient, BffNetworkError, defaultBffClient } from "./bff_client.js";
+
+// DPoP proof 生成を公開する（RFC 9449 準拠）
+export { generateDpopKey, createDpopProof } from "./dpop.js";

@@ -1,7 +1,17 @@
-// k1s0 tier3 i18n locale loader
+// k1s0 tier3 i18n パッケージ公開エントリポイント
+// locale loader / ICU parser / dict loader / 設定を一括 re-export する
 // v1.0.0 locale: ja-JP / en-US
 // 未定義 key は CI fail（整合 7 の物理根拠）
 // Intl.NumberFormat / Intl.DateTimeFormat / ISO 4217 を使用する
+
+// ICU メッセージパーサーの全エクスポート（{varName} 置換 / plural 対応）
+export { parseICUMessage } from "./icu_parser";
+// ICU 変数マップの型エクスポート（ICUVars）
+export type { ICUVars } from "./icu_parser";
+// 辞書ローダーの全エクスポート（dynamic import / cache / dictGet）
+export { loadDict, clearDictCache, dictGet } from "./dict_loader";
+// 辞書ローダーの型エクスポート（DictLocale / TranslationDict）
+export type { DictLocale, TranslationDict } from "./dict_loader";
 
 // サポート locale 一覧（v1 は ja-JP / en-US のみ）
 export const SUPPORTED_LOCALES = ["ja-JP", "en-US"] as const;
