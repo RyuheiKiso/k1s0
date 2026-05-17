@@ -262,7 +262,7 @@ def check_repository_layout() -> list[str]:
         for entry in src_dir.iterdir():
             if entry.is_dir() and entry.name not in SRC_ALLOWED_AXES:
                 fails.append(f"src/: 許可外サブディレクトリ: {entry.name}")
-            if entry.is_file() and entry.name != "README.md":
+            if entry.is_file() and entry.name not in {"README.md", "CLAUDE.md"}:
                 fails.append(f"src/: 許可外ファイル: {entry.name}")
 
         # src/_crosscutting/ 配下 NN_<slug>/ 形式検査
