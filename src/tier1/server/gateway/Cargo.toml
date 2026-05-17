@@ -50,8 +50,22 @@ opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 # tracing-opentelemetry: tracing と OTel のブリッジ
 tracing-opentelemetry = "0.28"
-# tonic: gRPC クライアント（OTLP gRPC transport に使用する）
-tonic = "0.12"
+# tonic: gRPC フレームワーク（server + transport features — grpc_native adapter + OTel に使用する）
+tonic = { workspace = true }
+# prost: protobuf ランタイム（tonic proto 生成型に使用する）
+prost = { workspace = true }
+# prost-types: protobuf well-known types（Timestamp 等）
+prost-types = { workspace = true }
+# tokio-stream: gRPC bidi streaming 用 Stream ラッパー
+tokio-stream = { workspace = true }
+# async-stream: async generator マクロ（Stream 実装に使用する）
+async-stream = { workspace = true }
+# rskafka: pure Rust Kafka クライアント（messaging_bridge adapter に使用する）
+rskafka = { workspace = true }
+# governor: token bucket rate limiter（テナント容量適合仕様 09 の library_token_bucket に使用する）
+governor = { workspace = true }
+# reqwest: HTTP クライアント（OpenBao Transit API 呼び出しに使用する — Phase F で追加予定）
+# reqwest = { workspace = true }
 
 [dev-dependencies]
 # reqwest: 統合テスト用 HTTP クライアント（HTTP/2 + rustls-tls で pkg-config 不要）

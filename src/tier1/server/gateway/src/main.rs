@@ -136,6 +136,20 @@ fn build_router() -> Router {
         .route("/negotiate", get(negotiate_handler))
         // KeyHandle デモエンドポイント（spec 05 鍵管理の API 型保証デモ）
         .route("/kek/demo", get(key_handle_demo_handler))
+        // adapter 1: grpc_native — gRPC over HTTP/2（/grpc/...）
+        .nest("/grpc", adapters::grpc_native::router())
+        // adapter 2: connect_bidi — Connect-RPC bidi（/connect/...）
+        .nest("/connect", adapters::connect_bidi::router())
+        // adapter 3: web_transport — WebTransport H/3 check + fallback（/webtransport/...）
+        .nest("/webtransport", adapters::web_transport::router())
+        // adapter 4: paired_post_sse — POST↔SSE pair（/post-sse/...）
+        .nest("/post-sse", adapters::paired_post_sse::router())
+        // adapter 5: sse_paired — EventSource SSE（/sse-stream/...）
+        .nest("/sse-stream", adapters::sse_paired::router())
+        // adapter 6: long_poll — fetch long-poll（/long-poll/...）
+        .nest("/long-poll", adapters::long_poll::router())
+        // adapter 7: messaging_bridge — Kafka idempotent producer（/kafka/...）
+        .nest("/kafka", adapters::messaging_bridge::router())
 }
 
 // アプリケーションエントリポイント

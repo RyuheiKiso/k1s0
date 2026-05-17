@@ -49,3 +49,27 @@ sha2 = "0.10"
 hex = "0.4"
 # futures-util: 非同期ストリームユーティリティ（SSE ストリームに使用する）
 futures-util = "0.3"
+# tonic: gRPC フレームワーク（server + transport features — grpc_native adapter と OTel transport に使用する）
+tonic = { version = "0.12", features = ["transport"] }
+# tokio-stream: tokio Stream ラッパー（gRPC bidi streaming に使用する）
+tokio-stream = "0.1"
+# async-stream: async generator マクロ（Stream 実装に使用する）
+async-stream = "0.3"
+# prost: protobuf ランタイム（tonic の proto 生成型に使用する）
+prost = "0.13"
+# prost-types: protobuf well-known types（Timestamp 等）
+prost-types = "0.13"
+# rskafka: pure Rust Kafka クライアント（C ライブラリ不要; TLS feature 無しで tcp direct 接続）
+# NOTE: TLS 対応は SASL_PLAINTEXT (SCRAM/PLAIN) または mTLS proxy (envoy) 経由で実現する
+rskafka = { version = "0.5", default-features = false }
+# governor: rate limiting / token bucket（テナント容量適合仕様 09 の library_token_bucket に使用する）
+governor = { version = "0.6", features = ["std", "quanta"] }
+# reqwest: HTTP クライアント（OpenBao Transit API / JWKS 取得 — Phase C/F で bfl/key_handle に追加する）
+# reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls"] }
+# jsonwebtoken: JWT 検証（RS256 / ES256 / HS256 / JWKS リモート取得に使用する）
+jsonwebtoken = "9"
+# web_transport は QUIC/HTTP3 が必要。pure Rust の quinn crate を使用する。
+# NOTE: Zig CC 環境では C ライブラリのビルドに制約があるため wtransport は一時無効化。
+#       production 環境では envoy HTTP/3 proxy で代替する。
+# wtransport = { version = "0.5", features = ["self-signed"] }
+# quinn = "0.11"
