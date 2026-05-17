@@ -5,15 +5,25 @@ drills:
 - drill_id: restore__v1_local_only
   preservation_class: v1_local_only
   drill_state: pending
+  pitr_target_timestamp: '2026-05-17T00:00:00Z'
+  last_drill_at: null
 - drill_id: restore__v1_zone_redundant
   preservation_class: v1_zone_redundant
   drill_state: pending
+  pitr_target_timestamp: '2026-05-17T00:00:00Z'
+  last_drill_at: null
 - drill_id: restore__v1_cross_region
   preservation_class: v1_cross_region
   drill_state: pending
+  pitr_target_timestamp: '2026-05-17T00:00:00Z'
+  last_drill_at: null
 - drill_id: restore__v1_cross_region_with_archive
   preservation_class: v1_cross_region_with_archive
   drill_state: pending
+  pitr_target_timestamp: '2026-05-17T00:00:00Z'
+  last_drill_at: null
 - drill_id: restore__v1_global_replicated
   preservation_class: v1_global_replicated
   drill_state: pending
+  pitr_target_timestamp: '2026-05-17T00:00:00Z'
+  last_drill_at: null

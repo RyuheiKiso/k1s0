@@ -1,0 +1,135 @@
+# k1s0 Tilt ローカル開発設定ファイル
+# Tilt でコンテナイメージのホットリロードと Kubernetes リソースの同期を管理する
+
+# ============================================================
+# 設定定数: 開発環境の基本設定値を宣言する
+# ============================================================
+# 対象 kind クラスタ名を定義する（Tilt が接続するクラスタを指定する）
+TARGET_CLUSTER = "kind-k1s0-target"
+# k1s0 Helm chart のパスを定義する（リポジトリルートからの相対パス）
+HELM_CHART_PATH = "../../helm/k1s0"
+# Tilt の最大同時ビルド数を定義する（CPU 負荷を制御する）
+MAX_PARALLEL_UPDATES = 3
+
+# ============================================================
+# Tilt 設定: 基本動作オプションを設定する
+# ============================================================
+# Tilt バージョンを制約する（0.33.0 以上を要求する）
+version_settings(constraint=">=0.33.0")
+
+# Kubernetes クラスタの接続先を kind クラスタに固定する
+allow_k8s_contexts(TARGET_CLUSTER)
+
+# 最大同時更新数を設定する（リソース競合を防ぐ）
+update_settings(max_parallel_updates=MAX_PARALLEL_UPDATES)
+
+# ============================================================
+# イメージビルド設定: tier1 サービスのホットリロードを設定する
+# ============================================================
+# tier1 transport server のイメージビルド設定（Rust axum）
+docker_build(
+    # Tilt 管理下に置くイメージ名（kind クラスタに直接ロードされる）
+    "ghcr.io/k1s0/tier1-transport",
+    # ビルドコンテキスト（tier1 ソースディレクトリを指定する）
+    context="../../../tier1",
+    # Dockerfile のパスを指定する
+    dockerfile="../../../tier1/Dockerfile",
+    # ホットリロード対象のファイル変更を監視する設定
+    live_update=[
+        # src/ 配下の変更を Pod 内に同期する
+        sync("../../../tier1/src", "/app/src"),
+        # コードが変更されたら cargo build を再実行する
+        run("cargo build --release", trigger=["../../../tier1/src"]),
+    ],
+)
+
+# ============================================================
+# Helm release デプロイ設定: k1s0 operator bundle を管理する
+# ============================================================
+# k1s0 Helm chart を Tilt でデプロイする設定
+k8s_resource(
+    # Helm release のリソース名
+    "k1s0-operators",
+    # Helm chart のパスを指定する
+    new_name="k1s0-operators",
+)
+
+# Helm chart を Tilt で管理してデプロイする
+k8s_yaml(
+    helm(
+        # デプロイする Helm chart のパスを指定する
+        HELM_CHART_PATH,
+        # Helm release の名前を指定する
+        name="k1s0",
+        # デプロイ先の Namespace を指定する
+        namespace="default",
+        # 開発環境用の values を上書きする
+        set=[
+            # ClickHouse はローカル開発では無効化する
+            "clickhouse.enabled=false",
+            # HA モードはローカルでは無効化してリソースを節約する
+            "openbao.ha.enabled=false",
+        ],
+    )
+)
+
+# ============================================================
+# ローカルリソース: eBPF ビルドとテストを Tilt から実行する
+# ============================================================
+# eBPF プログラムのビルドを Tilt ローカルリソースとして定義する
+local_resource(
+    # リソース名を定義する
+    "ebpf-build",
+    # make コマンドで eBPF プログラムをビルドする
+    cmd="make -C ../../ebpf all",
+    # eBPF ソースファイルの変更を監視してリビルドする
+    deps=["../../ebpf/clock_skew_probe.bpf.c", "../../ebpf/Makefile"],
+    # ビルドボタンのラベルを設定する
+    labels=["ebpf"],
+)
+
+# topology drill のテストを Tilt ローカルリソースとして定義する
+local_resource(
+    # リソース名を定義する
+    "topology-drill",
+    # drill.sh を実行してフェイルオーバードリルを実施する
+    cmd="bash ../../topology/drill.sh",
+    # 手動トリガーのみ実行する（自動実行は無効化する）
+    auto_init=False,
+    # ドリルボタンのラベルを設定する
+    labels=["drill"],
+    # ドリル実行前の依存リソースを指定する
+    resource_deps=["k1s0-operators"],
+)
+
+# clock_integrity drill のテストを Tilt ローカルリソースとして定義する
+local_resource(
+    # リソース名を定義する
+    "clock-drill",
+    # clock drill を実行して時刻ずれ検知を検証する
+    cmd="bash ../../clock_integrity/drill.sh",
+    # 手動トリガーのみ実行する
+    auto_init=False,
+    labels=["drill"],
+    resource_deps=["k1s0-operators"],
+)
+
+# ============================================================
+# ポートフォワード設定: 開発時のアクセスポートを定義する
+# ============================================================
+# Argo CD UI へのポートフォワードを設定する
+k8s_resource(
+    "argocd-server",
+    # ローカルの 8088 ポートを Argo CD の 443 ポートに転送する
+    port_forwards="8088:443",
+    # Argo CD のリソースラベルを設定する
+    labels=["gitops"],
+)
+
+# Grafana ダッシュボードへのポートフォワードを設定する
+k8s_resource(
+    "grafana",
+    # ローカルの 3000 ポートを Grafana の 3000 ポートに転送する
+    port_forwards="3000:3000",
+    labels=["observability"],
+)

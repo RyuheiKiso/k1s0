@@ -1,0 +1,48 @@
+# k1s0 Tauri コンパニオン Sidecar の Cargo.toml: Tauri 2.x 依存関係を定義する
+[package]
+# パッケージ名: k1s0-companion-sidecar
+name = "k1s0-companion-sidecar"
+# バージョン: 0.1.0
+version = "0.1.0"
+# Rust エディション: 2021 を使用する
+edition = "2021"
+
+[lib]
+# ライブラリクレート名: k1s0_companion_sidecar
+name = "k1s0_companion_sidecar"
+# CDylib と Rlib の両方を生成する
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# tauri: Tauri 2.x フレームワーク (デスクトップアプリ構築)
+tauri = { version = "2", features = ["native-tls-vendored", "protocol-asset"] }
+# serde: データシリアライズ/デシリアライズフレームワーク
+serde = { version = "1", features = ["derive"] }
+# serde_json: JSON シリアライズ/デシリアライズライブラリ
+serde_json = "1"
+# tokio: 非同期 I/O ランタイム
+tokio = { version = "1", features = ["full"] }
+# serialport: シリアルポート通信ライブラリ
+serialport = "4"
+# tracing: 構造化ロギングフレームワーク
+tracing = "0.1"
+# tracing-subscriber: tracing のサブスクライバー実装
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# anyhow: エラーハンドリングライブラリ
+anyhow = "1"
+# uuid: UUID 生成ライブラリ
+uuid = { version = "1", features = ["v4"] }
+
+[build-dependencies]
+# tauri-build: Tauri ビルドスクリプト補助ライブラリ
+tauri-build = { version = "2", features = [] }
+
+[profile.release]
+# リリースビルドでパニック時にアボートする
+panic = "abort"
+# コード生成単位を 1 にして最適化を強化する
+codegen-units = 1
+# リンク時最適化を有効化する
+lto = true
+# ストリップ: デバッグシンボルを除去してバイナリサイズを削減する
+strip = true

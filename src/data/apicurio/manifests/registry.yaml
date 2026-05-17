@@ -1,0 +1,135 @@
+# Apicurio Registry v2.6 Kubernetes マニフェスト
+# PostgreSQL バックエンドを使用してスキーマを永続化する Schema Registry
+---
+# Apicurio Registry 用の Namespace を作成する
+apiVersion: v1
+kind: Namespace
+metadata:
+  # apicurio 専用の名前空間（他のコンポーネントとの干渉を防ぐ）
+  name: apicurio
+---
+# Apicurio Registry を 2 レプリカで配置する Deployment リソース
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Deployment 名（kubectl コマンドで識別するための名称）
+  name: apicurio-registry
+  # apicurio 専用 namespace に配置する
+  namespace: apicurio
+  labels:
+    # アプリケーションラベル（Service・PodMonitor が selector に使用する）
+    app: apicurio-registry
+    # バージョンラベル（カナリアデプロイ等のルーティングに使用）
+    version: 2.6.8.Final
+spec:
+  # 2 レプリカで可用性を確保する（1 レプリカ停止時もサービス継続）
+  replicas: 2
+  selector:
+    matchLabels:
+      # Deployment が管理する Pod を識別するラベルセレクター
+      app: apicurio-registry
+  template:
+    metadata:
+      labels:
+        # Pod のラベル（Service セレクターと一致させる必要がある）
+        app: apicurio-registry
+        # バージョンラベル（Istio 等のトラフィック制御に使用）
+        version: 2.6.8.Final
+    spec:
+      containers:
+        - # コンテナ名（kubectl exec やログ参照時に使用）
+          name: apicurio-registry
+          # Apicurio Registry 2.6.8.Final の公式イメージ
+          image: quay.io/apicurio/apicurio-registry:2.6.8.Final
+          # イメージプル戦略: ローカルキャッシュを優先してネットワーク負荷を削減
+          imagePullPolicy: IfNotPresent
+          ports:
+            - # HTTP API ポート（スキーマ登録・取得の REST API）
+              containerPort: 8080
+              # Kubernetes Service が参照するポート名
+              name: http
+          env:
+            - # JDBC URL: CloudNativePG の RW エンドポイントに接続する
+              name: QUARKUS_DATASOURCE_JDBC_URL
+              # k1s0-main-rw は CloudNativePG が管理する primary への Service
+              value: "jdbc:postgresql://k1s0-main-rw.k1s0-data/apicurio"
+            - # データベースユーザー名: apicurio 専用アカウントを使用
+              name: QUARKUS_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  # apicurio 接続情報を格納した Secret
+                  name: apicurio-db-creds
+                  # Secret 内のユーザー名キー
+                  key: username
+            - # データベースパスワード: Secret から参照して平文を避ける
+              name: QUARKUS_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # apicurio 接続情報を格納した Secret
+                  name: apicurio-db-creds
+                  # Secret 内のパスワードキー
+                  key: password
+            - # ストレージタイプ: SQL (PostgreSQL) を使用する
+              name: REGISTRY_STORAGE
+              # PostgreSQL バックエンドを指定（メモリ・Kafka は非推奨）
+              value: "sql"
+            - # ログレベル: INFO で運用ログを適切な詳細度に設定
+              name: QUARKUS_LOG_LEVEL
+              value: "INFO"
+            - # アプリケーション固有のログレベル設定
+              name: QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL
+              value: "INFO"
+            - # HTTP サーバーのタイムアウト設定（秒）
+              name: QUARKUS_HTTP_READ_TIMEOUT
+              value: "30S"
+          resources:
+            requests:
+              # CPU 要求: 通常負荷を処理できる最低限のリソース
+              cpu: "250m"
+              # メモリ要求: JVM ヒープの初期サイズを考慮した値
+              memory: "512Mi"
+            limits:
+              # CPU 上限: スパイク時も他ワークロードへの影響を抑制
+              cpu: "1"
+              # メモリ上限: JVM が OOM にならない安全マージンを確保
+              memory: "1Gi"
+          livenessProbe:
+            # Quarkus の health エンドポイントで生存確認
+            httpGet:
+              path: /health/live
+              port: 8080
+            # 起動完了まで待機する初期遅延（秒）
+            initialDelaySeconds: 30
+            # 生存確認の間隔（秒）
+            periodSeconds: 10
+          readinessProbe:
+            # Quarkus の ready エンドポイントでトラフィック受け入れ可否を確認
+            httpGet:
+              path: /health/ready
+              port: 8080
+            # 起動完了まで待機する初期遅延（秒）
+            initialDelaySeconds: 15
+            # 準備確認の間隔（秒）
+            periodSeconds: 5
+---
+# Apicurio Registry を Kubernetes クラスタ内に公開する Service
+apiVersion: v1
+kind: Service
+metadata:
+  # Service 名（他サービスが DNS で参照する名前）
+  name: apicurio-registry
+  # apicurio 専用 namespace に配置する
+  namespace: apicurio
+spec:
+  selector:
+    # Deployment の Pod を選択するラベルセレクター
+    app: apicurio-registry
+  ports:
+    - # HTTP ポートの公開設定
+      name: http
+      # Service が受け付けるポート番号
+      port: 8080
+      # Pod 内のコンテナポートに転送する
+      targetPort: http
+  # ClusterIP: クラスタ内部からのみアクセス可能（外部公開しない）
+  type: ClusterIP

@@ -1,0 +1,50 @@
+# Policy 19: readOnlyRootFilesystem 必須化ポリシー
+# container の securityContext.readOnlyRootFilesystem が false の場合を拒否する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: readOnlyRootFilesystem の要求
+  name: require-readonly-root-fs
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.readonly_root_filesystem
+    # ポリシーの説明
+    policies.kyverno.io/description: "readOnlyRootFilesystem: false のコンテナを reject する"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: readOnlyRootFilesystem の確認
+    - name: check-readonly-root-filesystem
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+                # cert-manager namespace を除外
+                - cert-manager
+      # readOnlyRootFilesystem の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "全コンテナは readOnlyRootFilesystem: true を設定する必要があります。書き込みが必要な場合は emptyDir volume を使用してください"
+        # 全コンテナの readOnlyRootFilesystem を確認するパターン
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  # readOnlyRootFilesystem を true に設定する必要がある
+                  readOnlyRootFilesystem: true

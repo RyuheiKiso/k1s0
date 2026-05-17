@@ -1,0 +1,58 @@
+{
+  "type": "record",
+  "name": "AuditEvent",
+  "namespace": "io.k1s0.data.audit",
+  "doc": "監査イベントスキーマ。WORM ストアへの追記と Kafka ストリームへの配信で使用する。",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "監査イベントの一意識別子。UUID v4 形式。"
+    },
+    {
+      "name": "event_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "監査イベントの記録時刻。マイクロ秒単位の UNIX タイムスタンプ。"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "doc": "テナント識別子。UUID 形式。監査ログのテナント分離に使用する。"
+    },
+    {
+      "name": "event_kind",
+      "type": "string",
+      "doc": "監査イベント種別。例: 'row_inserted', 'login_success', 'role_granted'。"
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "doc": "操作を行ったユーザーまたはサービスの識別子。"
+    },
+    {
+      "name": "resource",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "操作対象のリソース識別子。テーブル名・集約 ID 等。"
+    },
+    {
+      "name": "payload",
+      "type": "string",
+      "doc": "監査イベントの詳細データ。JSON 文字列形式。"
+    },
+    {
+      "name": "previous_hash",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "前の監査イベントのハッシュ値。hash chain の接続に使用する。"
+    },
+    {
+      "name": "current_hash",
+      "type": "string",
+      "doc": "このイベントのハッシュ値。previous_hash + event_id + event_kind + payload の SHA-256。"
+    }
+  ]
+}

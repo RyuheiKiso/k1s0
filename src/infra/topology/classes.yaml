@@ -1,0 +1,51 @@
+# 5 つの topology_class 定義（クラスタの冗長構成クラスを宣言する）
+# 各クラスは cluster_inventory.yaml と failover_drill.yaml で参照される
+topology_classes:
+  # 単一 AZ 構成（開発・ローカル kind 環境で使用する）
+  - class_id: v1_single_zone
+    # クラスの説明文（人間が読む用途）
+    description: 単一 AZ 構成（開発環境用）
+    # フェイルオーバー時の対応方法
+    failover_target: manual_migration
+    # フェイルオーバーがサービス品質に与える影響
+    slo_impact: pod_restart_required
+    # 対象クラスタが準拠すべき SLO 目標値
+    availability_target: "99.0%"
+    # ノード数の下限（このクラスに分類されるための条件）
+    min_nodes: 1
+
+  # 複数 AZ にまたがる単一クラスタ（ゾーン障害に自動対応する）
+  - class_id: v1_multi_zone_per_cluster
+    description: 複数 AZ にまたがる単一クラスタ
+    failover_target: automatic_zone_rebalance
+    slo_impact: minimal_disruption
+    availability_target: "99.9%"
+    # 複数 AZ を使用するため最低 3 ノード必要
+    min_nodes: 3
+
+  # アクティブ/パッシブ DR 構成（RTO 15 分以内を保証する）
+  - class_id: v1_active_passive_dr
+    description: アクティブ/パッシブ DR 構成
+    failover_target: manual_dr_activation
+    slo_impact: rto_15min
+    availability_target: "99.5%"
+    # プライマリとセカンダリで計 6 ノード以上必要
+    min_nodes: 6
+
+  # マルチリージョン アクティブ/パッシブ（自動リージョン切り替えを実施する）
+  - class_id: v1_multi_region_active_passive
+    description: マルチリージョン アクティブ/パッシブ
+    failover_target: automatic_region_failover
+    slo_impact: rto_5min
+    availability_target: "99.95%"
+    # 各リージョンに最低 3 ノード × 2 リージョン
+    min_nodes: 6
+
+  # マルチリージョン アクティブ/アクティブ（ダウンタイムゼロを実現する）
+  - class_id: v1_multi_region_active_active
+    description: マルチリージョン アクティブ/アクティブ
+    failover_target: none_auto_routing
+    slo_impact: zero_downtime
+    availability_target: "99.99%"
+    # 全リージョンで同時にトラフィックを処理するため最低 9 ノード
+    min_nodes: 9

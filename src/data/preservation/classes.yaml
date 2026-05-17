@@ -1,0 +1,173 @@
+# preservation_class 定義: 5 クラスのデータ保全分類
+# 各クラスは restore drill・バックアップ戦略・RPO/RTO 目標を定義する
+---
+# preservation_class 定義の ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # preservation class 設定の ConfigMap 名
+  name: preservation-class-definitions
+  # data namespace に配置する
+  namespace: k1s0-data
+  labels:
+    # preservation class 設定であることを示すラベル
+    k1s0.io/config-type: preservation-class
+data:
+  # 5 つの preservation class 定義（YAML 文字列として格納）
+  classes_definition: |
+    preservation_classes:
+
+      # ============================================================
+      # v1_local_only: ローカル単一ゾーン保全
+      # 最も低コスト・低冗長性のクラス（開発・テスト環境向け）
+      # ============================================================
+      - class_id: v1_local_only
+        class_name: v1_local_only
+        display_name: "ローカル単一ゾーン保全"
+        description: "単一ノード・単一ゾーン内でのデータ保全。ゾーン障害でデータ損失の可能性あり。"
+        rpo_target_minutes: 60
+        rto_target_minutes: 120
+        backup_strategy:
+          # バックアップ先: ローカルファイルシステム（S3 不使用）
+          destination: local_filesystem
+          # バックアップ頻度: 日次
+          frequency: daily
+          # 保持期間: 7 日間
+          retention_days: 7
+        replication:
+          # レプリケーションなし（単一コピー）
+          replicas: 1
+          # ゾーン分散なし
+          cross_zone: false
+          # リージョン複製なし
+          cross_region: false
+        applicable_to:
+          # 開発環境のデータに適用
+          - development
+          - non_production_scratch
+
+      # ============================================================
+      # v1_zone_redundant: マルチゾーン冗長保全
+      # ゾーン障害耐性を持つ標準的な保全クラス（本番環境のデフォルト）
+      # ============================================================
+      - class_id: v1_zone_redundant
+        class_name: v1_zone_redundant
+        display_name: "マルチゾーン冗長保全"
+        description: "複数ゾーンにデータを分散。単一ゾーン障害でもデータ損失なし。"
+        rpo_target_minutes: 5
+        rto_target_minutes: 30
+        backup_strategy:
+          # バックアップ先: S3 互換オブジェクトストレージ（Ceph RGW）
+          destination: s3_object_store
+          # バックアップ頻度: 時間次
+          frequency: hourly
+          # 保持期間: 30 日間
+          retention_days: 30
+        replication:
+          # 3 レプリカ（primary + 2 standby）
+          replicas: 3
+          # ゾーン間分散を有効化
+          cross_zone: true
+          # リージョン複製なし
+          cross_region: false
+        applicable_to:
+          # 本番環境の標準データに適用
+          - production_standard
+          - staging
+
+      # ============================================================
+      # v1_cross_region: クロスリージョン保全
+      # リージョン障害耐性を持つ高可用性クラス（重要データ向け）
+      # ============================================================
+      - class_id: v1_cross_region
+        class_name: v1_cross_region
+        display_name: "クロスリージョン保全"
+        description: "複数リージョンにデータを複製。リージョン全体の障害でもデータ損失なし。"
+        rpo_target_minutes: 1
+        rto_target_minutes: 15
+        backup_strategy:
+          # バックアップ先: 複数リージョンの S3 互換ストレージ
+          destination: s3_multi_region
+          # バックアップ頻度: 連続（WAL ストリーミング）
+          frequency: continuous_wal
+          # 保持期間: 30 日間
+          retention_days: 30
+        replication:
+          # 3 レプリカ
+          replicas: 3
+          # ゾーン間分散を有効化
+          cross_zone: true
+          # リージョン複製を有効化
+          cross_region: true
+        applicable_to:
+          # 財務・契約データなど重要な本番データに適用
+          - production_critical
+          - financial_data
+
+      # ============================================================
+      # v1_cross_region_with_archive: クロスリージョン + 長期アーカイブ
+      # 規制要件に対応する長期保全クラス（監査・コンプライアンス向け）
+      # ============================================================
+      - class_id: v1_cross_region_with_archive
+        class_name: v1_cross_region_with_archive
+        display_name: "クロスリージョン + 長期アーカイブ保全"
+        description: "クロスリージョン複製に加えて長期アーカイブを実施。法的要件・コンプライアンスに対応。"
+        rpo_target_minutes: 1
+        rto_target_minutes: 60
+        backup_strategy:
+          # バックアップ先: 複数リージョン + コールドアーカイブストレージ
+          destination: s3_multi_region_with_glacier
+          # バックアップ頻度: 連続（WAL ストリーミング）
+          frequency: continuous_wal
+          # 保持期間: 365 日間（規制要件の最低ライン）
+          retention_days: 365
+        replication:
+          # 3 レプリカ
+          replicas: 3
+          # ゾーン間分散を有効化
+          cross_zone: true
+          # リージョン複製を有効化
+          cross_region: true
+        archive:
+          # コールドアーカイブを有効化（Glacier 互換ストレージに移行）
+          enabled: true
+          # アーカイブ移行のタイミング（日数）
+          transition_days: 30
+          # アーカイブの保持期間（年数）
+          retention_years: 7
+        applicable_to:
+          # 監査ログ・法的証拠データに適用
+          - audit_data
+          - compliance_records
+
+      # ============================================================
+      # v1_global_replicated: グローバル複製保全
+      # 最高レベルの可用性と耐障害性（SLA 99.999% 相当）
+      # ============================================================
+      - class_id: v1_global_replicated
+        class_name: v1_global_replicated
+        display_name: "グローバル複製保全"
+        description: "複数リージョン・複数クラウドプロバイダーにデータを複製。最高レベルの可用性を実現。"
+        rpo_target_minutes: 0
+        rto_target_minutes: 5
+        backup_strategy:
+          # バックアップ先: グローバル分散オブジェクトストレージ
+          destination: s3_global_multi_cloud
+          # バックアップ頻度: 同期複製（RPO = 0 を目指す）
+          frequency: synchronous_replication
+          # 保持期間: 90 日間
+          retention_days: 90
+        replication:
+          # 5 レプリカ（複数リージョンに分散）
+          replicas: 5
+          # ゾーン間分散を有効化
+          cross_zone: true
+          # リージョン複製を有効化
+          cross_region: true
+          # マルチクラウド複製を有効化（ベンダーロックイン防止）
+          multi_cloud: true
+        applicable_to:
+          # 最高重要度の本番データに適用（PII・暗号鍵管理等）
+          - production_highest_criticality
+          - pii_data
+          - encryption_keys

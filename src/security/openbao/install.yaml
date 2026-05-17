@@ -1,0 +1,63 @@
+# OpenBao v2.0 シークレット管理システム install manifest
+# OpenBao は HashiCorp Vault の OSS fork で、k1s0 のシークレット管理に使用する
+apiVersion: v1
+# Namespace リソース定義
+kind: Namespace
+metadata:
+  # OpenBao が動作する専用 namespace
+  name: openbao
+  labels:
+    # k1s0 管理対象であることを示すラベル
+    k1s0.io/managed-by: k1s0-security
+  annotations:
+    # この namespace が準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.openbao_install
+---
+# OpenBao のバージョンと install コマンドを管理する ConfigMap
+apiVersion: v1
+# ConfigMap リソース定義
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: OpenBao のバージョン情報と install コマンド
+  name: openbao-version
+  # openbao namespace に配置する
+  namespace: openbao
+  labels:
+    # k1s0 管理対象であることを示すラベル
+    k1s0.io/managed-by: k1s0-security
+  annotations:
+    # この ConfigMap が準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.openbao_install
+data:
+  # インストールする OpenBao のバージョン番号
+  version: "v2.0.0"
+  # 使用する Helm chart のバージョン番号
+  helm_chart_version: "0.3.0"
+  # Helm リポジトリを追加するためのコマンド
+  repo_add_command: "helm repo add openbao https://openbao.github.io/openbao-helm"
+  # Helm リポジトリを更新するためのコマンド
+  repo_update_command: "helm repo update"
+  # OpenBao を HA モードで install するための Helm コマンド
+  install_command: |
+    helm install openbao openbao/openbao \
+      -n openbao \
+      --version 0.3.0 \
+      --set server.ha.enabled=true \
+      --set server.ha.replicas=3 \
+      --set server.ha.raft.enabled=true \
+      --set server.ha.raft.setNodeId=true \
+      --set server.auditStorage.enabled=true \
+      --set server.dataStorage.enabled=true \
+      --set server.dataStorage.size=10Gi \
+      --set injector.enabled=true \
+      --set csi.enabled=true
+  # OpenBao の初期化コマンド（init 後に unseal keys を OpenBao auto-unseal で管理する）
+  init_command: "bao operator init -key-shares=5 -key-threshold=3"
+  # Transit auto-unseal の設定説明
+  auto_unseal_note: "Transit auto-unseal は別の OpenBao クラスタまたは HSM で設定する"
+  # audit log の保存先
+  audit_log_storage: "openbao-audit-pvc (k1s0-encrypted StorageClass)"
+  # HA モードのレプリカ数
+  ha_replicas: "3"
+  # Raft ストレージの使用フラグ
+  raft_storage_enabled: "true"

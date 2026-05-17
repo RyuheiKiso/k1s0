@@ -1,0 +1,137 @@
+# Rook+Ceph クラスター定義: k1s0 の分散オブジェクトストレージ基盤
+# zone-aware CRUSH マップ + Object Lock Compliance mode で WORM バックアップを実現する
+---
+# CephCluster カスタムリソース（Rook Operator が管理）
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  # Ceph クラスター名（Rook が管理する識別子）
+  name: k1s0-ceph
+  # rook-ceph 専用 namespace（Rook の標準的な配置先）
+  namespace: rook-ceph
+spec:
+  # Rook がデータを配置するホストパス（Ceph コンテナがマウントする）
+  dataDirHostPath: /var/lib/rook
+  # Mon デーモンの設定（Ceph クラスターのコーディネーター）
+  mon:
+    # Mon 数: 3 で過半数 quorum を実現（1 ノード障害を許容）
+    count: 3
+    # 複数 Mon を同一ノードに配置することを禁止（冗長性を確保）
+    allowMultiplePerNode: false
+  # Ceph バージョン: Reef (v18) は最新の LTS 安定版
+  cephVersion:
+    # Ceph Reef の公式イメージ（Object Lock Compliance mode を完全サポート）
+    image: quay.io/ceph/ceph:v18.2.0
+    # セキュリティポリシー: 特権コンテナの使用を許可（Ceph に必要）
+    allowUnsupported: false
+  # Ceph ダッシュボードの設定
+  dashboard:
+    # ダッシュボードを有効化（クラスター状態の可視化に使用）
+    enabled: true
+    # SSL を有効化してダッシュボードの通信を暗号化
+    ssl: true
+  # モニタリング設定
+  monitoring:
+    # Prometheus メトリクスエンドポイントを有効化
+    enabled: true
+    # Prometheus PodMonitor を自動作成する
+    createPrometheusRules: true
+  # ネットワーク設定
+  network:
+    # Multus ネットワーク: クラスター内通信を専用 NIC に分離
+    provider: multus
+    selectors:
+      # パブリックネットワーク（クライアント通信用）
+      public: rook-ceph/public
+      # クラスターネットワーク（OSD 間レプリケーション用）
+      cluster: rook-ceph/cluster
+  # ストレージ設定
+  storage:
+    # 全ノードの自動検出を無効化（ホワイトリスト制御で誤使用を防ぐ）
+    useAllNodes: false
+    # 全デバイスの自動検出を無効化（指定したデバイスのみ使用）
+    useAllDevices: false
+    # CRUSH ルールセット: zone-aware でデータをゾーン間に分散
+    config:
+      # CRUSH マップのルートバケット（ゾーン対応のカスタム CRUSH マップ）
+      crushRoot: "default"
+      # CRUSH ロールアルゴリズム: straw2（均等分散に最適化）
+      crushAlgorithm: "straw2"
+    # 利用するノードとデバイスの明示的なリスト
+    nodes:
+      - # Zone A のワーカーノード
+        name: worker-0
+        # Zone A の OSD デバイス（専用ブロックデバイスを使用）
+        devices:
+          - name: sdb
+        # OSD デバイスの設定
+        config:
+          # OSD の DB デバイス（メタデータ高速化のために SSD を指定）
+          deviceClass: ssd
+      - # Zone B のワーカーノード
+        name: worker-1
+        # Zone B の OSD デバイス
+        devices:
+          - name: sdb
+        config:
+          # OSD の DB デバイスクラス
+          deviceClass: ssd
+      - # Zone C のワーカーノード
+        name: worker-2
+        # Zone C の OSD デバイス
+        devices:
+          - name: sdb
+        config:
+          # OSD の DB デバイスクラス
+          deviceClass: ssd
+      - # 追加容量用ワーカーノード（Zone A 拡張）
+        name: worker-3
+        # 大容量 HDD デバイス（コールドデータのアーカイブ用）
+        devices:
+          - name: sdc
+        config:
+          # HDD デバイスクラス（SSD と分離してコスト効率化）
+          deviceClass: hdd
+      - # 追加容量用ワーカーノード（Zone B 拡張）
+        name: worker-4
+        # 大容量 HDD デバイス
+        devices:
+          - name: sdc
+        config:
+          # HDD デバイスクラス
+          deviceClass: hdd
+  # placement 設定: OSD をゾーン間に分散するアフィニティルール
+  placement:
+    osd:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                # Ceph OSD 専用ノードラベルを持つノードにのみ配置
+                - key: k1s0.io/role
+                  operator: In
+                  values:
+                    - ceph-osd
+      # ゾーン分散: 同一ゾーンへの OSD 集中を防ぐ（data 耐障害性を最大化）
+      topologySpreadConstraints:
+        - maxSkew: 1
+          # ゾーンキー（ノードのゾーンラベル）でスキュー計算
+          topologyKey: topology.kubernetes.io/zone
+          # 分散制約を強制する（スキューが maxSkew を超えたら配置しない）
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              # OSD Pod のラベルで対象を絞り込む
+              app: rook-ceph-osd
+  # クリーンアップポリシー（誤削除防止）
+  cleanupPolicy:
+    # クラスター削除時の確認文字列（この文字列を明示しないと削除できない）
+    confirmation: ""
+    # Sanitize: OSD のデータを安全消去する方法
+    sanitizeDisks:
+      # 消去アルゴリズム: quick（ゼロ埋め）
+      method: quick
+      # ゼロ埋めのバイト数（1MB 分のブロックを対象）
+      dataSource: zero
+      # イテレーション数: 1 回で十分なゼロ埋めを実行
+      iteration: 1

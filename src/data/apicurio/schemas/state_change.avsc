@@ -1,0 +1,63 @@
+{
+  "type": "record",
+  "name": "StateChange",
+  "namespace": "io.k1s0.data.state",
+  "doc": "集約の状態変化を表すドメインイベントスキーマ。イベントソーシングにおける状態遷移を記録する。",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "doc": "イベントの一意識別子。UUID v4 形式で生成する。"
+    },
+    {
+      "name": "event_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-micros"
+      },
+      "doc": "イベント発生時刻。マイクロ秒単位の UNIX タイムスタンプ。"
+    },
+    {
+      "name": "tenant_id",
+      "type": "string",
+      "doc": "テナント識別子。UUID 形式。RLS での分離に使用する。"
+    },
+    {
+      "name": "aggregate_id",
+      "type": "string",
+      "doc": "状態が変化した集約の識別子。UUID 形式。"
+    },
+    {
+      "name": "aggregate_type",
+      "type": "string",
+      "doc": "集約の型名。例: 'Order', 'Payment', 'Inventory'。"
+    },
+    {
+      "name": "previous_version",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "変化前の集約バージョン。初回イベントの場合は null。"
+    },
+    {
+      "name": "current_version",
+      "type": "long",
+      "doc": "変化後の集約バージョン。楽観的ロックの検証に使用する。"
+    },
+    {
+      "name": "change_kind",
+      "type": "string",
+      "doc": "状態変化の種別。例: 'created', 'updated', 'deleted'。"
+    },
+    {
+      "name": "state_snapshot",
+      "type": "string",
+      "doc": "変化後の集約状態スナップショット。JSON 文字列形式。"
+    },
+    {
+      "name": "correlation_id",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "リクエスト追跡用の相関識別子。分散トレーシングに使用する。"
+    }
+  ]
+}

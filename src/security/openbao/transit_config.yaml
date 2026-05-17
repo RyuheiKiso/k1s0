@@ -1,0 +1,123 @@
+# OpenBao Transit secret engine 設定
+# Transit エンジンを有効化し、8 つのシークレットクラスのキーを設定する
+# 各キーは異なる TTL と用途を持つ
+apiVersion: v1
+# ConfigMap リソース定義（Transit エンジンの設定を管理する）
+kind: ConfigMap
+metadata:
+  # ConfigMap 名称: OpenBao Transit エンジン設定
+  name: openbao-transit-config
+  # openbao namespace に配置する
+  namespace: openbao
+  annotations:
+    # この ConfigMap が準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.openbao_transit_configuration
+data:
+  # Transit エンジン設定スクリプト（bao コマンドで実行する）
+  setup_script: |
+    #!/bin/sh
+    # Transit secret engine を有効化する
+    bao secrets enable -path=transit transit
+
+    # 8 つのシークレットクラスのキーを作成する
+
+    # short_lived: セッション以外の短期トークン用（TTL: 24h）
+    bao write transit/keys/short_lived_key \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=24h
+
+    # session: ユーザーセッション用（TTL: 8h）
+    bao write transit/keys/session_key \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=8h
+
+    # ephemeral: 一時的な暗号化用（TTL: 1h）
+    bao write transit/keys/ephemeral_key \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=1h
+
+    # transit_kek: Transit キー暗号化キー（TTL: 90d）
+    bao write transit/keys/transit_kek \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=2160h
+
+    # long_term: 長期データ暗号化用（TTL: 365d）
+    bao write transit/keys/long_term_key \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=8760h
+
+    # archive: アーカイブデータ用（TTL: 7300d = 20年）
+    bao write transit/keys/archive_key \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=175200h
+
+    # audit: 監査ログ暗号化用（TTL: 3650d = 10年）
+    bao write transit/keys/audit_key \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=87600h
+
+    # pii_kek: PII データ暗号化キー（TTL: 90d）
+    bao write transit/keys/pii_kek \
+      type=aes256-gcm96 \
+      allow_plaintext_backup=false \
+      exportable=false \
+      auto_rotate_period=2160h
+
+  # 8 つのシークレットクラスの定義
+  secret_classes: |
+    # シークレットクラス一覧
+    secret_classes:
+      # 短期トークン用クラス（24時間で自動ローテーション）
+      - class_id: short_lived
+        key_name: short_lived_key
+        ttl: 24h
+        use_case: "セッション以外の短期アクセストークン"
+      # ユーザーセッション用クラス（8時間で自動ローテーション）
+      - class_id: session
+        key_name: session_key
+        ttl: 8h
+        use_case: "ユーザーセッショントークン"
+      # 一時暗号化用クラス（1時間で自動ローテーション）
+      - class_id: ephemeral
+        key_name: ephemeral_key
+        ttl: 1h
+        use_case: "一時的なデータ暗号化"
+      # Transit KEK クラス（90日で自動ローテーション）
+      - class_id: transit_kek
+        key_name: transit_kek
+        ttl: 90d
+        use_case: "Transit キー暗号化キー"
+      # 長期データ暗号化クラス（365日で自動ローテーション）
+      - class_id: long_term
+        key_name: long_term_key
+        ttl: 365d
+        use_case: "長期保存データの暗号化"
+      # アーカイブデータクラス（7300日で自動ローテーション）
+      - class_id: archive
+        key_name: archive_key
+        ttl: 7300d
+        use_case: "アーカイブデータの暗号化（20年保持）"
+      # 監査ログ暗号化クラス（3650日で自動ローテーション）
+      - class_id: audit
+        key_name: audit_key
+        ttl: 3650d
+        use_case: "監査ログの暗号化（10年保持）"
+      # PII KEK クラス（90日で自動ローテーション）
+      - class_id: pii_kek
+        key_name: pii_kek
+        ttl: 90d
+        use_case: "PII データ暗号化キー"

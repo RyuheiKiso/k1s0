@@ -1,0 +1,73 @@
+# Policy 18: hostNetwork/hostPID 使用禁止ポリシー
+# spec.hostNetwork: true または spec.hostPID: true を設定した Pod を拒否する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: hostNetwork/hostPID の使用禁止
+  name: block-host-network-host-pid
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.security.host_namespace_isolation
+    # ポリシーの説明
+    policies.kyverno.io/description: "hostNetwork: true または hostPID: true の Pod を reject する"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを有効化して既存リソースも検証する
+  background: true
+  rules:
+    # ルール名称: hostNetwork の禁止
+    - name: block-host-network
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+      # hostNetwork の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "hostNetwork: true は使用できません。Pod network isolation を使用してください"
+        # hostNetwork が false であることを確認するパターン
+        pattern:
+          spec:
+            # hostNetwork は false または未設定でなければならない
+            hostNetwork: false
+    # ルール名称: hostPID の禁止
+    - name: block-host-pid
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+      # hostPID の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "hostPID: true は使用できません。プロセス分離を維持してください"
+        # hostPID が false であることを確認するパターン
+        pattern:
+          spec:
+            # hostPID は false または未設定でなければならない
+            hostPID: false

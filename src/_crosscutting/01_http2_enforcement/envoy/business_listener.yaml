@@ -1,0 +1,70 @@
+# k1s0 業務リスナー設定: HTTP/2 および HTTP/3 のみを受け付けるリスナー定義
+# Envoy Gateway の Gateway リソースとして定義し、HTTP/1.1 は受け付けない
+apiVersion: gateway.networking.k8s.io/v1
+# リソース種別: Gateway
+kind: Gateway
+metadata:
+  # Gateway 名称: k1s0 業務用ゲートウェイ
+  name: k1s0-gateway
+  # Namespace: k1s0-system に配置する
+  namespace: k1s0-system
+spec:
+  # Envoy Gateway クラスを使用してリスナーを構築する
+  gatewayClassName: envoy
+  # リスナー定義リスト: 業務 HTTP/2 用リスナーを宣言する
+  listeners:
+    # リスナー名称: http2-business (HTTP/2 専用業務リスナー)
+    - name: http2-business
+      # プロトコル: HTTPS を使用し TLS 終端を Gateway 側で行う
+      protocol: HTTPS
+      # ポート: 標準 HTTPS ポート 443 で受信する
+      port: 443
+      # TLS 設定: TLS 終端モードを Terminate に設定する
+      tls:
+        # TLS 終端モード: Gateway で TLS を終端する
+        mode: Terminate
+        # 証明書参照: k1s0-tls シークレットを参照する
+        certificateRefs:
+          # 証明書シークレット名: k1s0-tls
+          - name: k1s0-tls
+      # 許可ルート: 同一 Namespace からのルートのみ受け付ける
+      allowedRoutes:
+        namespaces:
+          # 同一 Namespace のルートのみを許可する
+          from: Same
+---
+# k1s0 業務ルート設定: HTTP/2 のみを受け付けるルーティングルール
+# HTTPRoute リソースとして業務エンドポイントへのルーティングを定義する
+apiVersion: gateway.networking.k8s.io/v1
+# リソース種別: HTTPRoute
+kind: HTTPRoute
+metadata:
+  # HTTPRoute 名称: k1s0 業務ルート
+  name: k1s0-business-route
+  # Namespace: k1s0-system に配置する
+  namespace: k1s0-system
+  # アノテーション: HTTP バージョンを明示的に 2 に設定する
+  annotations:
+    # HTTP バージョン強制アノテーション: HTTP/2 のみを許可することを明示する
+    k1s0.io/http-version: "2"
+spec:
+  # 親参照: k1s0-gateway に紐付けるルートとして定義する
+  parentRefs:
+    # 参照する Gateway 名称: k1s0-gateway
+    - name: k1s0-gateway
+  # ルールリスト: パスプレフィックスマッチングでバックエンドに転送する
+  rules:
+    # マッチ条件: 全パスを対象とするルールを定義する
+    - matches:
+        # パスマッチ: PathPrefix 型でルートパス "/" を対象とする
+        - path:
+            # マッチ型: PathPrefix (前方一致)
+            type: PathPrefix
+            # マッチ値: 全パス "/" を対象とする
+            value: /
+      # バックエンド参照: tier1-server サービスへ転送する
+      backendRefs:
+        # バックエンドサービス名: tier1-server
+        - name: tier1-server
+          # バックエンドポート: 8080 で tier1-server に接続する
+          port: 8080

@@ -1,0 +1,102 @@
+# PII クラスター: AES-256-GCM エンベロープ暗号化 + OpenBao Transit KEK 設定
+# DEK（データ暗号化キー）を OpenBao Transit で管理するエンベロープ暗号化の設定
+---
+# OpenBao Transit バックエンドのマウントポイントと KEK 設定を格納する ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # エンベロープ暗号化設定の ConfigMap 名
+  name: pii-encryption-config
+  # PII 専用 namespace に配置する
+  namespace: pii-cluster
+  labels:
+    # PII 暗号化設定であることを示すラベル
+    k1s0.io/config-type: pii-encryption
+    # セキュリティティアラベル（最高レベルのセキュリティ設定）
+    k1s0.io/security-tier: critical
+data:
+  # OpenBao Transit マウントポイント（KEK が配置されているパス）
+  openbao_transit_mount: "transit"
+  # PII 列の暗号化に使用する KEK 名（OpenBao Transit のキー名）
+  pii_kek_name: "k1s0-pii-kek-v1"
+  # KEK のアルゴリズム: aes256-gcm96（AES-256-GCM: NIST 推奨の認証付き暗号化）
+  pii_kek_algorithm: "aes256-gcm96"
+  # DEK の長さ: 32 バイト（AES-256 に対応）
+  dek_length_bytes: "32"
+  # DEK のローテーション間隔: 90 日ごとに新しい DEK を生成
+  dek_rotation_interval_days: "90"
+  # KEK のローテーション間隔: 365 日ごとに新しい KEK バージョンを生成
+  kek_rotation_interval_days: "365"
+  # OpenBao の API エンドポイント URL（クラスター内部 DNS で参照）
+  openbao_addr: "http://openbao.security.svc.cluster.local:8200"
+  # OpenBao Kubernetes 認証のロール名（PII クラスターへのアクセス権限を持つロール）
+  openbao_k8s_auth_role: "k1s0-pii-cluster"
+  # OpenBao Kubernetes 認証のパス（Kubernetes SA トークンで認証する）
+  openbao_k8s_auth_path: "auth/kubernetes"
+  # 暗号化対象の列定義（JSON 形式でアプリケーションが参照する）
+  encrypted_columns_config: |
+    # PII 列の暗号化定義: テーブル名・列名・KEK 参照を定義する
+    encrypted_columns:
+      # pii_data テーブルの email 列: メールアドレスを AES-256-GCM で暗号化
+      - table: k1s0_pii.pii_data
+        column: email
+        kek_reference: k1s0-pii-kek-v1
+        # 暗号化アルゴリズム: AES-256-GCM（認証付き暗号化で改ざん検知も可能）
+        algorithm: aes256-gcm96
+        # DEK はフィールドごとに独立して生成（列ごとの独立した暗号化）
+        dek_scope: per_row
+      # pii_data テーブルの phone_number 列: 電話番号を暗号化
+      - table: k1s0_pii.pii_data
+        column: phone_number
+        kek_reference: k1s0-pii-kek-v1
+        # 暗号化アルゴリズム（email と同一の KEK を使用）
+        algorithm: aes256-gcm96
+        # 行ごとに独立した DEK を使用（クロス列相関分析を防止）
+        dek_scope: per_row
+      # pii_data テーブルの full_name 列: 氏名を暗号化
+      - table: k1s0_pii.pii_data
+        column: full_name
+        kek_reference: k1s0-pii-kek-v1
+        # 暗号化アルゴリズム
+        algorithm: aes256-gcm96
+        # 行ごとに独立した DEK を使用
+        dek_scope: per_row
+      # pii_data テーブルの address 列: 住所を暗号化
+      - table: k1s0_pii.pii_data
+        column: address
+        kek_reference: k1s0-pii-kek-v1
+        # 暗号化アルゴリズム
+        algorithm: aes256-gcm96
+        # 行ごとに独立した DEK を使用
+        dek_scope: per_row
+---
+# OpenBao Transit KEK 作成の初期設定を記録する ConfigMap
+# 実際の KEK 作成は OpenBao の初期化スクリプトが実行する（Secret に格納しない）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # KEK 初期設定の ConfigMap 名
+  name: pii-kek-bootstrap-config
+  # PII 専用 namespace に配置する
+  namespace: pii-cluster
+  labels:
+    # KEK ブートストラップ設定であることを示すラベル
+    k1s0.io/config-type: kek-bootstrap
+data:
+  # OpenBao Transit KEK 作成コマンドのテンプレート（Secret を含まない設定情報のみ）
+  kek_setup_commands: |
+    # OpenBao Transit バックエンドが未マウントの場合はマウントする
+    # コマンド: bao secrets enable -path=transit transit
+    transit_mount_path: transit
+    # PII 専用 KEK を作成するコマンドのパラメーター
+    kek_creation:
+      # KEK 名（pii-encryption-config.pii_kek_name と一致させる）
+      name: k1s0-pii-kek-v1
+      # キータイプ: aes256-gcm96（OpenBao Transit の AES-256-GCM 実装）
+      type: aes256-gcm96
+      # エクスポート禁止: KEK の生の鍵材料をAPIで取得できないようにする
+      exportable: "false"
+      # 自動ローテーション周期: 365 日（セキュリティポリシーに準拠）
+      auto_rotate_period: "8760h"
+      # 最小デクリプションバージョン: ローテーション後も古いバージョンで復号可能
+      min_decryption_version: "1"

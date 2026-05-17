@@ -1,0 +1,51 @@
+# Apicurio Registry 互換性ルール設定
+# スキーマ進化における後方互換性・前方互換性のルールを定義する ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # 互換性ルール設定の ConfigMap 名
+  name: apicurio-compatibility-rules
+  # apicurio 専用 namespace に配置する
+  namespace: apicurio
+  labels:
+    # アプリケーションラベル（Apicurio Registry の設定として識別）
+    app: apicurio-registry
+    # 設定種別ラベル（互換性ルール設定であることを示す）
+    k1s0.io/config-type: schema-compatibility
+data:
+  # グローバルデフォルト互換性レベル
+  # BACKWARD: 新スキーマが旧スキーマのデータを読める（デフォルト）
+  global_default_compatibility: "BACKWARD"
+  # スキーマ別の互換性ルール定義（YAML 文字列として格納）
+  schema_compatibility_rules: |
+    # domain_event スキーマ: 後方互換性（コンシューマーの無停止アップグレード）
+    - subject: "io.k1s0.data.domain.DomainEvent"
+      compatibility_level: BACKWARD
+      rationale: "コンシューマーが旧バージョンのデータを読み続けられる後方互換性が必要"
+    # state_change スキーマ: 後方互換性（状態遷移ログの一貫性保証）
+    - subject: "io.k1s0.data.state.StateChange"
+      compatibility_level: BACKWARD
+      rationale: "集約状態の巻き戻しに旧スキーマのデータを参照する必要がある"
+    # audit_event スキーマ: 完全互換性（監査ログは前後どちら向きも互換が必要）
+    - subject: "io.k1s0.data.audit.AuditEvent"
+      compatibility_level: FULL
+      rationale: "監査ログは規制要件上、新旧どちらのスキーマでも読み書きできる必要がある"
+    # outbox_message スキーマ: 後方互換性（Debezium CDC は旧形式も処理する）
+    - subject: "io.k1s0.data.outbox.OutboxMessage"
+      compatibility_level: BACKWARD
+      rationale: "Debezium が処理中のメッセージは旧スキーマで記録されている場合がある"
+    # pii_redacted_event スキーマ: 後方互換性（削除済み PII イベントの継続参照）
+    - subject: "io.k1s0.data.pii.PiiRedactedEvent"
+      compatibility_level: BACKWARD
+      rationale: "GDPR 対応レポートが旧バージョンの削除記録を参照できる必要がある"
+  # Buf breaking ルール設定（protobuf スキーマ用）
+  buf_breaking_rules: |
+    # フィールド削除禁止（後方互換性を破るため）
+    - rule: FIELD_NO_DELETE
+      severity: error
+    # フィールドの型変更禁止（デシリアライズ失敗を引き起こすため）
+    - rule: FIELD_SAME_TYPE
+      severity: error
+    # フィールド番号変更禁止（バイナリエンコーディングを破壊するため）
+    - rule: FIELD_SAME_NUMBER
+      severity: error

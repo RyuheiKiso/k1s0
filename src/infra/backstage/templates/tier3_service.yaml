@@ -1,0 +1,167 @@
+# Backstage software template: tier3 サービスの scaffold テンプレートを定義する
+# tier3 は k1s0 アーキテクチャのクライアント層（SPA/Desktop/Legacy を提供する層）
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  # テンプレートの一意識別子
+  name: k1s0-tier3-service
+  # Backstage UI に表示されるタイトル
+  title: k1s0 Tier3 Client (SPA / Desktop / Legacy)
+  # テンプレートの用途説明（Backstage UI に表示される）
+  description: >
+    k1s0 tier3 クライアントの scaffold テンプレート。
+    TypeScript + React SPA / Rust + Tauri Desktop / .NET Framework Legacy の
+    3 種類のクライアントタイプを生成する。tier2 SDK 経由でのみ tier1 にアクセスする。
+  # テンプレートのタグ（検索・フィルタリング用）
+  tags:
+    - tier3
+    - frontend
+    - client
+    - react
+    - tauri
+    - k1s0
+spec:
+  # テンプレートのオーナー
+  owner: k1s0-infra-team
+  # テンプレートのタイプ
+  type: website
+  # ============================================================
+  # ユーザ入力パラメータ: テンプレート適用時に入力が必要な項目
+  # ============================================================
+  parameters:
+    # 基本情報グループ: クライアントの識別情報を入力する
+    - title: 基本情報
+      required:
+        - component_name
+        - owner
+        - client_type
+      properties:
+        # コンポーネント名（kebab-case で入力する）
+        component_name:
+          title: コンポーネント名
+          type: string
+          description: クライアントの名前（kebab-case、例 admin-portal）
+          pattern: "^[a-z][a-z0-9-]*$"
+          ui:autofocus: true
+        # オーナーチーム
+        owner:
+          title: オーナー
+          type: string
+          description: このクライアントを管理するチーム名
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+        # クライアントタイプの選択
+        client_type:
+          title: クライアントタイプ
+          type: string
+          description: tier3 クライアントのタイプを選択する
+          enum:
+            - spa
+            - desktop
+            - legacy
+          enumNames:
+            - SPA（TypeScript + React）
+            - Desktop（Rust + Tauri）
+            - Legacy（.NET Framework 4.6.2+）
+    # SPA 固有設定グループ: SPA を選択した場合に表示される追加設定
+    - title: SPA 設定
+      if:
+        properties:
+          client_type:
+            const: spa
+      properties:
+        # React バージョンの選択
+        react_version:
+          title: React バージョン
+          type: string
+          description: 使用する React のバージョンを選択する
+          default: "18"
+          enum: ["18", "19"]
+        # State 管理ライブラリの選択
+        state_management:
+          title: State 管理
+          type: string
+          description: フロントエンドの State 管理ライブラリを選択する
+          enum:
+            - zustand
+            - jotai
+            - redux-toolkit
+          default: zustand
+    # Desktop 固有設定グループ: Desktop を選択した場合に表示される追加設定
+    - title: Desktop 設定
+      if:
+        properties:
+          client_type:
+            const: desktop
+      properties:
+        # 対象プラットフォームの選択
+        target_platform:
+          title: 対象プラットフォーム
+          type: array
+          description: デスクトップアプリのビルド対象 OS を選択する
+          items:
+            type: string
+            enum:
+              - windows
+              - macos
+              - linux
+          default:
+            - windows
+    # tier2 依存設定: 使用する tier2 SDK を指定する
+    - title: tier2 依存設定
+      required:
+        - tier2_sdk
+      properties:
+        # 依存する tier2 SDK コンポーネント名
+        tier2_sdk:
+          title: tier2 SDK
+          type: string
+          description: このクライアントが使用する tier2 SDK コンポーネント名
+  # ============================================================
+  # scaffold ステップ: テンプレートファイルを生成する処理
+  # ============================================================
+  steps:
+    # リポジトリテンプレートから新しいクライアントを生成する
+    - id: fetch-base
+      name: テンプレートファイルを取得する
+      action: fetch:template
+      input:
+        # tier3 クライアントのベーステンプレートを参照する
+        url: https://github.com/k1s0/templates/tree/main/tier3/${{ parameters.client_type }}
+        values:
+          # テンプレート変数にユーザ入力を渡す
+          name: ${{ parameters.component_name }}
+          owner: ${{ parameters.owner }}
+          client_type: ${{ parameters.client_type }}
+          tier2_sdk: ${{ parameters.tier2_sdk }}
+
+    # GitHub に新しいリポジトリを作成してコードをプッシュする
+    - id: publish
+      name: GitHub リポジトリを作成してコードを公開する
+      action: publish:github
+      input:
+        repoUrl: github.com?repo=${{ parameters.component_name }}&owner=k1s0
+        description: k1s0 tier3 client - ${{ parameters.component_name }}
+        defaultBranch: main
+        repoVisibility: private
+
+    # Backstage カタログに新しいコンポーネントを登録する
+    - id: register
+      name: Backstage カタログに登録する
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  # ============================================================
+  # 出力: scaffold 完了後にユーザに表示するリンク
+  # ============================================================
+  output:
+    links:
+      - title: リポジトリを開く
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Backstage カタログで確認する
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

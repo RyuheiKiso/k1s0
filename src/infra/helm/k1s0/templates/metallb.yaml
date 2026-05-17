@@ -1,0 +1,91 @@
+# MetalLB LoadBalancer と IPAddressPool の HelmRelease を定義する
+# kind クラスタ上でベアメタル向け LoadBalancer を実現する
+{{- if .Values.metallb.enabled }}
+---
+# MetalLB 公式 Helm リポジトリ参照を定義する
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  # MetalLB Helm リポジトリの参照名
+  name: metallb
+  # Flux GitOps 管理 Namespace に配置する
+  namespace: flux-system
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # MetalLB 公式 Helm リポジトリ URL
+  url: https://metallb.github.io/metallb
+  # リポジトリキャッシュ更新間隔
+  interval: 1h
+---
+# MetalLB の HelmRelease を定義する
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  # HelmRelease リソースの名前
+  name: metallb
+  # MetalLB をデプロイする専用 Namespace
+  namespace: {{ .Values.metallb.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # Helm chart をポーリングする間隔
+  interval: 5m
+  chart:
+    spec:
+      # 使用する chart 名
+      chart: metallb
+      # デプロイするバージョン
+      version: {{ .Values.metallb.version | quote }}
+      # 参照する HelmRepository
+      sourceRef:
+        kind: HelmRepository
+        name: metallb
+        namespace: flux-system
+  # Helm values で詳細設定を上書きする
+  values:
+    # speaker（BGP/ARP アドバタイズ）の設定
+    speaker:
+      # L2 advertisement を有効化する
+      frr:
+        enabled: false
+    # controller（IP 割り当て管理）の設定
+    controller:
+      # controller の log level
+      logLevel: info
+---
+# MetalLB の L2Advertisement を定義する（ARP/NDP アドバタイズ設定）
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  # L2 アドバタイズ設定の名前
+  name: k1s0-l2advertisement
+  # MetalLB が管理する Namespace に配置する
+  namespace: {{ .Values.metallb.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # 使用する IPAddressPool を参照する
+  ipAddressPools:
+    - k1s0-ippool
+---
+# MetalLB の IPAddressPool を定義する（LoadBalancer に割り当てる IP 範囲）
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  # IP アドレスプールの名前
+  name: k1s0-ippool
+  # MetalLB が管理する Namespace に配置する
+  namespace: {{ .Values.metallb.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # kind 環境の Docker ネットワークに対応した IP 範囲
+  addresses:
+    {{- range .Values.metallb.ipPool.addresses }}
+    # 割り当て可能な IP アドレス範囲を指定する
+    - {{ . }}
+    {{- end }}
+  # 自動 IP 割り当てを許可する
+  autoAssign: true
+{{- end }}

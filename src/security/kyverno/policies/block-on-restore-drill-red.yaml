@@ -1,0 +1,54 @@
+# Policy 13: リストアドリル中 deploy 拒否ポリシー
+# ConfigMap k1s0-drill-status の restore_drill_status が "red" のとき deploy を拒否する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: リストアドリル中の deploy 阻止
+  name: block-on-restore-drill-red
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.data.restore_drill_gate
+    # ポリシーの説明
+    policies.kyverno.io/description: "restore_drill_status が red のとき deploy を reject する"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを無効化（admission 時のみ検証）
+  background: false
+  rules:
+    # ルール名称: リストアドリル状態の確認
+    - name: check-restore-drill-status
+      # 適用対象: Pod/Deployment/StatefulSet リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+                # Deployment リソースに適用する
+                - Deployment
+                # StatefulSet リソースに適用する
+                - StatefulSet
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+      # リストアドリル状態の検証ルール（ConfigMap から状態を参照する）
+      validate:
+        # 違反時のエラーメッセージ
+        message: "リストアドリル実行中（red）は deploy できません。ドリル完了後に再試行してください"
+        # ConfigMap のドリル状態を参照して検証する
+        deny:
+          conditions:
+            all:
+              # k1s0-drill-status ConfigMap の restore_drill_status が red か確認する
+              - key: "{{ configmap('k1s0-drill-status', 'kube-system').data.restore_drill_status }}"
+                # red 状態の場合は拒否する
+                operator: Equals
+                value: "red"

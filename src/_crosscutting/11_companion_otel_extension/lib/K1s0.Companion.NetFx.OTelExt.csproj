@@ -1,0 +1,57 @@
+<!-- k1s0 コンパニオン .NET Framework OTel 拡張のプロジェクトファイル -->
+<!-- .NET Framework 4.6.2 以降で動作する OpenTelemetry 拡張ライブラリを定義する -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- プロジェクト基本設定 -->
+  <PropertyGroup>
+    <!-- ターゲットフレームワーク: .NET Framework 4.6.2 以降 -->
+    <TargetFramework>net462</TargetFramework>
+    <!-- アセンブリ名: K1s0.Companion.NetFx.OTelExt -->
+    <AssemblyName>K1s0.Companion.NetFx.OTelExt</AssemblyName>
+    <!-- ルート名前空間: K1s0.Companion.NetFx.OTelExt -->
+    <RootNamespace>K1s0.Companion.NetFx.OTelExt</RootNamespace>
+    <!-- NuGet パッケージ ID -->
+    <PackageId>K1s0.Companion.NetFx.OTelExt</PackageId>
+    <!-- バージョン: 0.1.0 -->
+    <Version>0.1.0</Version>
+    <!-- 作者情報 -->
+    <Authors>k1s0</Authors>
+    <!-- 説明: .NET Framework 4.6.2+ 向け OpenTelemetry 拡張ライブラリ -->
+    <Description>k1s0 コンパニオン .NET Framework 4.6.2+ 向け OTel 4 スタック拡張</Description>
+    <!-- C# バージョン: 8.0 を使用する -->
+    <LangVersion>8.0</LangVersion>
+    <!-- nullable 参照型を有効化する -->
+    <Nullable>enable</Nullable>
+    <!-- ImplicitUsings を無効化する (.NET Framework 互換のため) -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- ドキュメント XML ファイルを生成する -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- NuGet パッケージ依存関係 -->
+  <ItemGroup>
+    <!-- OpenTelemetry コア: OTel の中心ライブラリ -->
+    <PackageReference Include="OpenTelemetry" Version="1.9.0" />
+    <!-- OpenTelemetry API: OTel API 定義 -->
+    <PackageReference Include="OpenTelemetry.Api" Version="1.9.0" />
+    <!-- OpenTelemetry Exporter OTLP: OTLP プロトコルで OTel データを送信する -->
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+    <!-- OpenTelemetry HttpWebRequest 計装: HttpWebRequest のトレースを自動計装する -->
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
+    <!-- DiagnosticSource: .NET の診断イベントライブラリ -->
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
+    <!-- WCF クライアント計装: WCF クライアントのトレースを計装する -->
+    <PackageReference Include="OpenTelemetry.Contrib.Instrumentation.Wcf" Version="1.0.0-rc.14" />
+  </ItemGroup>
+
+  <!-- アセンブリ情報 -->
+  <PropertyGroup>
+    <!-- パッケージ発行を許可する -->
+    <IsPackable>true</IsPackable>
+    <!-- パッケージタグ: 検索用タグを設定する -->
+    <PackageTags>opentelemetry;dotnet-framework;wcf;httpclient</PackageTags>
+    <!-- パッケージライセンス: MIT ライセンス -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

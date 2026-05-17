@@ -1,0 +1,57 @@
+# Policy 14: エラーバジェットフリーズ中 deploy 拒否ポリシー
+# ConfigMap k1s0-slo-status の error_budget_freeze が "true" のとき deploy を拒否する
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: エラーバジェットフリーズ中の deploy 阻止
+  name: block-on-error-budget-freeze
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.ops.error_budget_gate
+    # ポリシーの説明
+    policies.kyverno.io/description: "error_budget_freeze が true のとき deploy を reject する"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを無効化（admission 時のみ検証）
+  background: false
+  rules:
+    # ルール名称: エラーバジェットフリーズ状態の確認
+    - name: check-error-budget-freeze
+      # 適用対象: Pod/Deployment/StatefulSet リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+                # Deployment リソースに適用する
+                - Deployment
+                # StatefulSet リソースに適用する
+                - StatefulSet
+      # 除外対象: slo-exempt annotation があるリソースおよび system namespace を除外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+              annotations:
+                # SLO 除外 annotation が設定されたリソースは enforcement 対象外とする
+                k1s0.io/slo-exempt: "true"
+      # エラーバジェットフリーズ状態の検証ルール（ConfigMap から状態を参照する）
+      validate:
+        # 違反時のエラーメッセージ
+        message: "エラーバジェットフリーズ中は deploy できません。SLO 回復後に再試行するか k1s0.io/slo-exempt: 'true' annotation を付与してください"
+        # ConfigMap のフリーズ状態を参照して検証する
+        deny:
+          conditions:
+            all:
+              # k1s0-slo-status ConfigMap の error_budget_freeze が true か確認する
+              - key: "{{ configmap('k1s0-slo-status', 'kube-system').data.error_budget_freeze }}"
+                # true 状態の場合は拒否する
+                operator: Equals
+                value: "true"

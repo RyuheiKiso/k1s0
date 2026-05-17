@@ -1,0 +1,120 @@
+# k1s0 監査取り込みギャップモニターの Deployment 定義
+# 監査イベントの hash chain 改竄検知と ingest gap 監視を行うモニターをデプロイする
+apiVersion: apps/v1
+# リソース種別: Deployment
+kind: Deployment
+metadata:
+  # Deployment 名称: k1s0-audit-gap-monitor
+  name: k1s0-audit-gap-monitor
+  # Namespace: k1s0-system に配置する
+  namespace: k1s0-system
+  # ラベル: 監査モニターコンポーネントを識別するラベルを設定する
+  labels:
+    # アプリ名ラベル: k1s0-audit-gap-monitor
+    app: k1s0-audit-gap-monitor
+    # コンポーネント種別ラベル: audit-monitor
+    component: audit-monitor
+spec:
+  # レプリカ数: 1 レプリカで起動する (シングルトンモニター)
+  replicas: 1
+  # セレクタ: Deployment が管理する Pod を識別するセレクタを設定する
+  selector:
+    matchLabels:
+      # アプリ名ラベルでマッチングする
+      app: k1s0-audit-gap-monitor
+  # Pod テンプレート: Deployment が作成する Pod の仕様を定義する
+  template:
+    metadata:
+      # Pod ラベル: セレクタと一致するラベルを設定する
+      labels:
+        # アプリ名ラベル: k1s0-audit-gap-monitor
+        app: k1s0-audit-gap-monitor
+      # アノテーション: Prometheus スクレイピング設定を追加する
+      annotations:
+        # Prometheus スクレイピング有効化: true に設定する
+        prometheus.io/scrape: "true"
+        # Prometheus スクレイピングポート: 9090 を指定する
+        prometheus.io/port: "9090"
+        # Prometheus スクレイピングパス: /metrics を指定する
+        prometheus.io/path: "/metrics"
+    spec:
+      # セキュリティコンテキスト: Pod レベルのセキュリティ設定
+      securityContext:
+        # 非 root ユーザーで実行することを要求する
+        runAsNonRoot: true
+        # UID 65534 (nobody) で実行する
+        runAsUser: 65534
+      # コンテナ定義: 監査モニターコンテナを定義する
+      containers:
+        # コンテナ名称: monitor
+        - name: monitor
+          # コンテナイメージ: k1s0 監査モニターイメージを使用する
+          image: ghcr.io/k1s0/k1s0-audit-gap-monitor:latest
+          # コンテナポート: 監査モニターがリッスンするポートを公開する
+          ports:
+            # メトリクスポート: 9090 で Prometheus メトリクスを提供する
+            - containerPort: 9090
+              # ポート名称: metrics
+              name: metrics
+          # 環境変数: 監査モニターの動作設定を環境変数で注入する
+          env:
+            # ハートビート間隔: 300 秒 (5 分) に設定する
+            - name: HEARTBEAT_INTERVAL_SECS
+              value: "300"
+            # リッスンアドレス: 全インターフェイスの 9090 ポート
+            - name: LISTEN_ADDR
+              value: "0.0.0.0:9090"
+          # リソース制限: 監査モニターのリソース使用量を制限する
+          resources:
+            requests:
+              # CPU 要求量: 50m
+              cpu: 50m
+              # メモリ要求量: 64Mi
+              memory: 64Mi
+            limits:
+              # CPU 制限量: 200m
+              cpu: 200m
+              # メモリ制限量: 128Mi
+              memory: 128Mi
+          # ヘルスチェック設定: 監査モニターの稼働状態を確認する
+          livenessProbe:
+            # HTTP GET でヘルスチェックを実行する
+            httpGet:
+              # ヘルスチェックエンドポイント: /health
+              path: /health
+              # ヘルスチェックポート: 9090
+              port: 9090
+            # 初期遅延: 10 秒後にヘルスチェックを開始する
+            initialDelaySeconds: 10
+            # ヘルスチェック間隔: 30 秒ごとに確認する
+            periodSeconds: 30
+---
+# k1s0 監査取り込みギャップモニターの Service 定義
+# Prometheus スクレイピング用の Service を定義する
+apiVersion: v1
+# リソース種別: Service
+kind: Service
+metadata:
+  # Service 名称: k1s0-audit-gap-monitor
+  name: k1s0-audit-gap-monitor
+  # Namespace: k1s0-system に配置する
+  namespace: k1s0-system
+  # ラベル: モニターサービスを識別するラベルを設定する
+  labels:
+    # アプリ名ラベル: k1s0-audit-gap-monitor
+    app: k1s0-audit-gap-monitor
+spec:
+  # セレクタ: k1s0-audit-gap-monitor アプリラベルを持つ Pod を対象とする
+  selector:
+    # アプリ名ラベルでターゲットを選択する
+    app: k1s0-audit-gap-monitor
+  # ポート: Service が公開するポートを定義する
+  ports:
+    # メトリクスポート: 9090 → 9090 にマッピングする
+    - name: metrics
+      # Service のポート番号
+      port: 9090
+      # コンテナのターゲットポート番号
+      targetPort: 9090
+  # サービスタイプ: ClusterIP (クラスター内部からのみアクセス可能)
+  type: ClusterIP

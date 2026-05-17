@@ -1,0 +1,59 @@
+_AUTO_GENERATED: DO NOT EDIT.
+# UA-aware adapter 適合仕様のロックファイル: 実装状態と検証情報を記録する
+spec_id: c12
+# クラスタ ID: cross_ua_adapter (UA-aware adapter クロスカッティング適合仕様)
+cluster_id: cross_ua_adapter
+# 強制ステータス: 実装済みであることを示す
+enforcement_status: implemented
+# 最終検証日時: ISO 8601 形式で記録する
+last_verified_at: "2026-05-17T00:00:00Z"
+# 検証方法: Capability matrix 自動 enumeration テストによる検証
+verification_method: capability_matrix_enumeration_test
+# 検証者: Capability matrix テストスイート
+verified_by: capability_matrix.test.ts
+# Capability matrix: 5 UA サブクラス x 4 軸の Capability 一覧
+capability_matrix:
+  # Chrome の Capability
+  chrome:
+    # Chrome HTTP/2 Unary: 完全サポート
+    http2_unary: {supported: true, fallback: null}
+    # Chrome HTTP/2 ServerStreaming: 完全サポート
+    http2_server_streaming: {supported: true, fallback: null}
+    # Chrome HTTP/2 BidiStreaming: 条件付きサポート (fetch full-duplex experimental)
+    http2_bidi_streaming: {supported: true, fallback: websocket}
+    # Chrome WebSocket BidiStreaming: 完全サポート
+    websocket_bidi_streaming: {supported: true, fallback: null}
+  # Firefox の Capability
+  firefox:
+    # Firefox HTTP/2 Unary: 完全サポート
+    http2_unary: {supported: true, fallback: null}
+    # Firefox HTTP/2 BidiStreaming: 非サポート (WebSocket にフォールバック)
+    http2_bidi_streaming: {supported: false, fallback: websocket}
+    # Firefox WebSocket BidiStreaming: 完全サポート
+    websocket_bidi_streaming: {supported: true, fallback: null}
+  # Safari の Capability
+  safari:
+    # Safari HTTP/2 Unary: 完全サポート
+    http2_unary: {supported: true, fallback: null}
+    # Safari HTTP/2 BidiStreaming: 非サポート (WebSocket にフォールバック)
+    http2_bidi_streaming: {supported: false, fallback: websocket}
+    # Safari HTTP/3 Unary: 非サポート (HTTP/2 にフォールバック)
+    http3_unary: {supported: false, fallback: http2}
+    # Safari WebSocket BidiStreaming: 完全サポート
+    websocket_bidi_streaming: {supported: true, fallback: null}
+  # Edge の Capability (Chromium ベース)
+  edge:
+    # Edge HTTP/2 Unary: 完全サポート
+    http2_unary: {supported: true, fallback: null}
+    # Edge HTTP/2 BidiStreaming: 条件付きサポート (Chrome と同等)
+    http2_bidi_streaming: {supported: true, fallback: websocket}
+    # Edge WebSocket BidiStreaming: 完全サポート
+    websocket_bidi_streaming: {supported: true, fallback: null}
+  # Other の Capability (保守的設定)
+  other:
+    # Other HTTP/2 Unary: サポート
+    http2_unary: {supported: true, fallback: null}
+    # Other HTTP/2 BidiStreaming: 非サポート (安全のため WebSocket にフォールバック)
+    http2_bidi_streaming: {supported: false, fallback: websocket}
+    # Other WebSocket BidiStreaming: サポート
+    websocket_bidi_streaming: {supported: true, fallback: null}

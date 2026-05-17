@@ -1,0 +1,34 @@
+_AUTO_GENERATED: DO NOT EDIT.
+# SLO 4 層保護適合仕様のロックファイル: 実装状態と検証情報を記録する
+spec_id: c05
+# クラスタ ID: cross_slo_protection (SLO 保護クロスカッティング適合仕様)
+cluster_id: cross_slo_protection
+# 強制ステータス: 実装済みであることを示す
+enforcement_status: implemented
+# 最終検証日時: ISO 8601 形式で記録する
+last_verified_at: "2026-05-17T00:00:00Z"
+# 検証方法: 4 層保護統合テストによる検証
+verification_method: four_tier_integration_test
+# 検証者: 4 層保護テストスクリプト
+verified_by: four_tier_protection_test.sh
+# 4 層保護設定: 各層の設定を記録する
+protection_layers:
+  # 第 1 層: Envoy ローカルレートリミット (1000 req/s)
+  tier1_rate_limit:
+    type: envoy_local_rate_limit
+    requests_per_second: 1000
+  # 第 2 層: KEDA 自動スケール (Kafka ラグ 100 / Prometheus キュー 50)
+  tier2_autoscale:
+    type: keda_scaled_object
+    min_replicas: 2
+    max_replicas: 50
+  # 第 3 層: PgBouncer 接続プール (max_client_conn=1000)
+  tier3_connection_pool:
+    type: pgbouncer
+    max_client_conn: 1000
+    pool_mode: transaction
+  # 第 4 層: Kafka クォータ (producer 5MB/s, consumer 10MB/s)
+  tier4_kafka_quota:
+    type: strimzi_kafka_quota
+    producer_byte_rate: 5242880
+    consumer_byte_rate: 10485760

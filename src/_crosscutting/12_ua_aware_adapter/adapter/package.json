@@ -1,0 +1,41 @@
+{
+  "name": "@k1s0/ua-aware-adapter",
+  "version": "0.1.0",
+  "description": "k1s0 UA-aware adapter: Connect-RPC の UA 別 fetch full-duplex 実装差を吸収する",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "connect-rpc",
+    "user-agent",
+    "adapter",
+    "bidi-streaming",
+    "http2",
+    "websocket"
+  ],
+  "author": "k1s0",
+  "license": "MIT",
+  "dependencies": {
+    "@connectrpc/connect": "^1.4.0",
+    "@connectrpc/connect-web": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "typescript": "^5.4.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  }
+}

@@ -1,0 +1,58 @@
+# _AUTO_GENERATED: このファイルは build_policies.py によって自動生成されました
+# 手動編集は次回生成時に上書きされます
+# 生成日時: 2026-05-17T09:45:56.957981+00:00
+# 生成コマンド: python3 src/security/kyverno/generator/build_policies.py
+
+# topology-class annotation 必須化ポリシー（自動生成）
+# 許可値は src/infra/topology/classes.yaml から自動的に生成される
+apiVersion: kyverno.io/v1
+# ClusterPolicy はクラスタ全体に適用されるポリシーリソース
+kind: ClusterPolicy
+metadata:
+  # ポリシー名称: topology-class annotation の要求（自動生成版）
+  name: require-topology-class-annotation
+  annotations:
+    # このポリシーが準拠する enforcement 仕様
+    k1s0.io/enforcement-spec: detail.infra.cluster_topology_conformance
+    # 自動生成されたことを示す annotation
+    k1s0.io/auto-generated: "true"
+    # 生成元ファイルを示す annotation
+    k1s0.io/generated-from: src/infra/topology/classes.yaml
+    # ポリシーの説明
+    policies.kyverno.io/description: "k1s0.io/topology-class annotation がない workload を reject する（自動生成）"
+spec:
+  # Enforce モード: 違反リソースの作成を拒否する
+  validationFailureAction: Enforce
+  # バックグラウンドスキャンを無効化（admission 時のみ検証）
+  background: false
+  rules:
+    # ルール名称: topology-class annotation の確認
+    - name: check-topology-class
+      # 適用対象: Pod リソース
+      match:
+        any:
+          - resources:
+              kinds:
+                # Pod リソースに適用する
+                - Pod
+      # 除外対象: system namespace は enforcement 対象外
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                # Kyverno 自身の namespace を除外
+                - kyverno
+                # Kubernetes システム namespace を除外
+                - kube-system
+                # cert-manager namespace を除外
+                - cert-manager
+      # topology-class annotation の検証ルール
+      validate:
+        # 違反時のエラーメッセージ
+        message: "k1s0.io/topology-class annotation は必須です。許可値: v1_single_zone|v1_multi_zone_per_cluster|v1_active_passive_dr|v1_multi_region_active_passive|v1_multi_region_active_active"
+        # 許可された topology class 値のパターン（自動生成）
+        pattern:
+          metadata:
+            annotations:
+              # topology class は定義された値のいずれかである必要がある
+              k1s0.io/topology-class: "v1_single_zone|v1_multi_zone_per_cluster|v1_active_passive_dr|v1_multi_region_active_passive|v1_multi_region_active_active"

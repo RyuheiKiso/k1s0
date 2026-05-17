@@ -1,0 +1,64 @@
+# CloudNativePG operator の HelmRelease を定義する
+# PostgreSQL クラスタのライフサイクルを Kubernetes ネイティブに管理する
+{{- if .Values.cloudnativePg.enabled }}
+---
+# CloudNativePG 公式 Helm リポジトリ参照を定義する
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  # CloudNativePG Helm リポジトリの参照名
+  name: cloudnative-pg
+  # Flux GitOps 管理 Namespace に配置する
+  namespace: flux-system
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # CloudNativePG 公式 Helm リポジトリ URL
+  url: https://cloudnative-pg.github.io/charts
+  # リポジトリキャッシュ更新間隔
+  interval: 1h
+---
+# CloudNativePG operator の HelmRelease を定義する
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  # HelmRelease リソースの名前
+  name: cloudnative-pg
+  # operator をデプロイする専用 Namespace
+  namespace: {{ .Values.cloudnativePg.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+spec:
+  # Helm chart をポーリングする間隔
+  interval: 5m
+  chart:
+    spec:
+      # 使用する chart 名
+      chart: cloudnative-pg
+      # デプロイするバージョン
+      version: {{ .Values.cloudnativePg.version | quote }}
+      # 参照する HelmRepository
+      sourceRef:
+        kind: HelmRepository
+        name: cloudnative-pg
+        namespace: flux-system
+  # Helm values で詳細設定を上書きする
+  values:
+    # operator レプリカ数（1 が推奨）
+    replicaCount: {{ .Values.cloudnativePg.replicaCount }}
+    # operator の image 設定
+    image:
+      repository: {{ .Values.cloudnativePg.image.repository }}
+      pullPolicy: {{ .Values.cloudnativePg.image.pullPolicy }}
+    # pgaudit プラグインを有効化して全クエリを監査ログに記録する
+    config:
+      data:
+        INHERITED_ANNOTATIONS: "k1s0.io/*"
+    # Pod のセキュリティコンテキスト設定
+    podSecurityContext:
+      # non-root ユーザで動作させる
+      runAsNonRoot: true
+      # seccomp プロファイルを適用する
+      seccompProfile:
+        type: RuntimeDefault
+{{- end }}

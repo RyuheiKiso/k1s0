@@ -1,0 +1,29 @@
+_AUTO_GENERATED: DO NOT EDIT.
+# BFF 認証エッジ適合仕様のロックファイル: 実装状態と検証情報を記録する
+spec_id: c06
+# クラスタ ID: cross_bff_auth (BFF 認証エッジクロスカッティング適合仕様)
+cluster_id: cross_bff_auth
+# 強制ステータス: 実装済みであることを示す
+enforcement_status: implemented
+# 最終検証日時: ISO 8601 形式で記録する
+last_verified_at: "2026-05-17T00:00:00Z"
+# 検証方法: BFF 隔離テストによる検証
+verification_method: bff_isolation_test
+# 検証者: BFF 隔離テストスクリプト
+verified_by: bff_isolation_test.sh
+# セキュリティ機能: 実装されたセキュリティ機能を記録する
+security_features:
+  # httpOnly Cookie: JavaScript からのアクセスを防ぐ
+  httponly_cookie: true
+  # SameSite=Strict: CSRF 攻撃を防ぐ SameSite 属性
+  samesite_strict: true
+  # CSRF トークン: X-CSRF-Token ヘッダーによる CSRF 保護
+  csrf_token: true
+  # PKCE フロー: Proof Key for Code Exchange を使用する
+  pkce_flow: true
+  # バックチャネルログアウト: IdP からのログアウト通知を処理する
+  backchannel_logout: true
+  # Authorization 中継: Bearer トークンをバックエンドに中継する
+  authorization_relay: true
+  # CORS 設定: 許可オリジンを制限する
+  cors_configured: true

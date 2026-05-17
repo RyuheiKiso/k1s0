@@ -1,0 +1,143 @@
+# Debezium PostgreSQL CDC コネクター設定
+# Strimzi KafkaConnector CR として定義し、PostgreSQL の WAL を監視して変更を Kafka に配信する
+---
+# Strimzi が管理する KafkaConnect クラスター（Debezium コネクターのランタイム）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  # KafkaConnect クラスター名
+  name: k1s0-debezium-connect
+  # kafka-system namespace に配置してインフラコンポーネントを集約する
+  namespace: kafka-system
+  annotations:
+    # strimzi.io/use-connector-resources: KafkaConnector CR でコネクターを管理することを宣言
+    strimzi.io/use-connector-resources: "true"
+spec:
+  # Debezium PostgreSQL コネクターを含む公式イメージ
+  image: quay.io/debezium/connect:2.7.3.Final
+  # KafkaConnect ワーカーの数（高可用性のため 2 以上を推奨）
+  replicas: 2
+  # 接続先 Kafka クラスターの bootstrap address
+  bootstrapServers: k1s0-kafka-kafka-bootstrap.kafka-system.svc.cluster.local:9093
+  tls:
+    trustedCertificates:
+      - # Kafka クラスターの TLS 証明書 Secret（Strimzi が自動生成）
+        secretName: k1s0-kafka-cluster-ca-cert
+        # Secret 内の CA 証明書キー名
+        certificate: ca.crt
+  authentication:
+    # TLS クライアント証明書認証（KafkaUser CR で管理される証明書を使用）
+    type: tls
+    certificateAndKey:
+      # KafkaConnect ワーカー用の証明書 Secret
+      secretName: k1s0-debezium-connect-user
+      # 証明書キー名
+      certificate: user.crt
+      # 秘密鍵キー名
+      key: user.key
+  config:
+    # コネクターオフセット保存トピック（コネクターの再開位置を記録）
+    config.storage.topic: connect-configs
+    # コネクター設定保存トピック（コネクターの設定を永続化）
+    offset.storage.topic: connect-offsets
+    # コネクターステータス保存トピック（コネクターの状態を記録）
+    status.storage.topic: connect-status
+    # 各管理トピックのレプリケーション係数（broker 数と同一に設定）
+    config.storage.replication.factor: 3
+    # オフセットトピックのレプリケーション係数
+    offset.storage.replication.factor: 3
+    # ステータストピックのレプリケーション係数
+    status.storage.replication.factor: 3
+---
+# Debezium PostgreSQL CDC コネクターの実際の定義
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  # コネクター名（Kafka Connect REST API で識別するための名前）
+  name: k1s0-postgresql-cdc
+  # KafkaConnect クラスターが配置された namespace
+  namespace: kafka-system
+  labels:
+    # このコネクターが属する KafkaConnect クラスターを指定するラベル
+    strimzi.io/cluster: k1s0-debezium-connect
+spec:
+  # Debezium PostgreSQL Source コネクタープラグインクラス
+  class: io.debezium.connector.postgresql.PostgresConnector
+  # コネクターの最大タスク数（並列処理度合い）
+  tasksMax: 1
+  config:
+    # ============================================================
+    # 接続設定
+    # ============================================================
+
+    # PostgreSQL ホスト: CloudNativePG の RW エンドポイント（primary に接続）
+    database.hostname: k1s0-main-rw.k1s0-data.svc.cluster.local
+    # PostgreSQL ポート番号
+    database.port: "5432"
+    # Debezium 専用の PostgreSQL ユーザー（レプリケーション権限が必要）
+    database.user: "${file:/opt/kafka/external-configuration/debezium-creds/username}"
+    # データベースパスワードを Secret ファイルから参照（平文をコンフィグに書かない）
+    database.password: "${file:/opt/kafka/external-configuration/debezium-creds/password}"
+    # 監視対象のデータベース名
+    database.dbname: k1s0
+    # コネクターの一意名（Kafka トピック名のプレフィックスとして使用）
+    database.server.name: k1s0_main
+
+    # ============================================================
+    # レプリケーションスロット設定
+    # ============================================================
+
+    # 論理レプリケーションスロット名（PostgreSQL に作成される）
+    slot.name: debezium_k1s0_cdc
+    # レプリケーション出力プラグイン: pgoutput（PostgreSQL 10+ 標準）
+    plugin.name: pgoutput
+    # パブリケーション名（PostgreSQL の CREATE PUBLICATION で作成）
+    publication.name: debezium_k1s0_publication
+    # パブリケーション自動作成（初回接続時に CREATE PUBLICATION を実行）
+    publication.autocreate.mode: filtered
+
+    # ============================================================
+    # 監視対象テーブルの設定
+    # ============================================================
+
+    # 監視対象テーブルのリスト（スキーマ名.テーブル名 形式）
+    table.include.list: "k1s0.domain_event,k1s0.state_store,k1s0.outbox_message,k1s0.audit_event"
+    # 監視対象外の列（PII・機密データを Kafka に送信しない）
+    column.exclude.list: "k1s0.outbox_message.payload"
+
+    # ============================================================
+    # Kafka トピック設定
+    # ============================================================
+
+    # トピック名のプレフィックス（{prefix}.{schema}.{table} 形式）
+    topic.prefix: cdc
+    # トピックの自動作成設定（Strimzi TopicOperator が管理するため false）
+    topic.creation.enable: false
+
+    # ============================================================
+    # スキーマ Registry 設定
+    # ============================================================
+
+    # メッセージキーのコンバーター（Avro シリアライゼーション）
+    key.converter: io.confluent.kafka.serializers.KafkaAvroSerializer
+    # メッセージ値のコンバーター（Avro シリアライゼーション）
+    value.converter: io.confluent.kafka.serializers.KafkaAvroSerializer
+    # Apicurio Registry の URL（Avro スキーマの登録・取得に使用）
+    key.converter.schema.registry.url: "http://apicurio-registry.apicurio.svc.cluster.local:8080/apis/ccompat/v6"
+    # 値コンバーターの Schema Registry URL
+    value.converter.schema.registry.url: "http://apicurio-registry.apicurio.svc.cluster.local:8080/apis/ccompat/v6"
+
+    # ============================================================
+    # CDC 動作設定
+    # ============================================================
+
+    # 初期スナップショットモード: 既存データのスナップショットを最初に取得
+    snapshot.mode: initial
+    # スナップショット分離レベル: 一貫性のある読み取りを保証
+    snapshot.isolation.mode: read_committed
+    # 削除イベントの後にトゥームストーンメッセージを送信（Kafka ログコンパクション対応）
+    tombstones.on.delete: true
+    # ハートビートの送信間隔（ミリ秒）: 変更がない場合でも WAL の進行を確認
+    heartbeat.interval.ms: 10000
+    # トランザクション境界を保持してメッセージを配信（at-most-once 防止）
+    provide.transaction.metadata: true

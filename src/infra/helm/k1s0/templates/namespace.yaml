@@ -1,0 +1,92 @@
+# k1s0 プラットフォームで使用する全 Kubernetes Namespace を宣言する
+# 各 operator は専用 Namespace にデプロイし、責務を分離する
+---
+# Kyverno admission policy エンジン用 Namespace
+{{- if .Values.kyverno.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  # Namespace 名は values.yaml で一元管理する
+  name: {{ .Values.kyverno.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    # この Namespace の用途識別ラベル
+    app.kubernetes.io/component: policy-engine
+{{- end }}
+---
+# CloudNativePG operator 用 Namespace
+{{- if .Values.cloudnativePg.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.cloudnativePg.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database-operator
+{{- end }}
+---
+# Strimzi Kafka operator 用 Namespace
+{{- if .Values.strimzi.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.strimzi.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: messaging-operator
+{{- end }}
+---
+# Apicurio Registry 用 Namespace
+{{- if .Values.apicurio.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.apicurio.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: schema-registry
+{{- end }}
+---
+# OpenBao シークレット管理 用 Namespace
+{{- if .Values.openbao.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.openbao.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: secret-management
+{{- end }}
+---
+# Harbor コンテナレジストリ 用 Namespace
+{{- if .Values.harbor.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.harbor.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: container-registry
+{{- end }}
+---
+# MetalLB LoadBalancer 用 Namespace
+{{- if .Values.metallb.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.metallb.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: load-balancer
+{{- end }}
+---
+# cert-manager TLS 証明書管理 用 Namespace
+{{- if .Values.certManager.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.certManager.namespace }}
+  labels:
+    {{- include "k1s0.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tls-management
+{{- end }}
