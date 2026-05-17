@@ -44,7 +44,7 @@ OSS 受領者は `README.md` で価値を把握 → 本書で物理層を把握 
 | `/src/` | 実装コード（19 軸射影） | 設計文書（→ `docs/`） | 本書「src/ 19 軸射影」章 |
 | `/tools/` | CI / build / lint スクリプト実体 | プロダクト logic / 設計文書 | 各 tool 配下 `README.md` |
 
-**root 直下許可ファイル**: `CLAUDE.md` / `README.md` / `LICENSE` / `ARCHITECTURE.md` / `.claudeignore` / `.gitignore` のみ。その他 `.md` / `.yaml` の root 散乱は `tools/docs_lint/` による B 層 lint で fail する。
+**root 直下許可ファイル**: `CLAUDE.md` / `README.md` / `LICENSE` / `ARCHITECTURE.md` / `.claudeignore` / `.gitignore` / `Makefile` / `pyproject.toml` / `requirements.txt` / `uv.lock`。その他 `.md` / `.yaml` の root 散乱は `tools/docs_lint/` による B 層 lint で fail する。`Makefile` は build 基盤 entry point として root 直下を必須とする（convention）。`pyproject.toml` / `uv.lock` は Python tooling deps 管理用。
 
 ---
 

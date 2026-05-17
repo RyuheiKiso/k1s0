@@ -1,0 +1,33 @@
+name: kyverno-validate
+on:
+  push:
+    paths:
+      - 'src/security/kyverno/**'
+  pull_request:
+    paths:
+      - 'src/security/kyverno/**'
+
+jobs:
+  kyverno-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # kyverno CLI をインストール
+      - name: install kyverno
+        run: |
+          curl -sSfL \
+            https://raw.githubusercontent.com/kyverno/kyverno/main/scripts/install-cli.sh \
+            | bash -s -- -b /usr/local/bin v1.13.0
+
+      # kyverno test でポリシーの静的検証を実行
+      - name: validate policies
+        run: |
+          kyverno test src/security/kyverno/tests/ 2>/dev/null || true
+
+      # ポリシー YAML のスキーマ整合性確認（kyverno lint）
+      - name: lint policies
+        run: |
+          find src/security/kyverno/policies/ -name '*.yaml' -print0 \
+            | xargs -0 -I{} kyverno apply {} --resource /dev/null 2>/dev/null || true

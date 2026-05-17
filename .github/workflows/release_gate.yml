@@ -1,0 +1,55 @@
+name: release-gate
+on:
+  push:
+    branches: [main]
+  # 毎日 UTC 0:00 に定期実行
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  gate-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      # release_gate.lock.yaml を再生成
+      - name: generate release_gate
+        run: |
+          uv run \
+            --with pyyaml \
+            --with jsonschema \
+            --with click \
+            --with rich \
+            --no-project \
+            python -m tools.lock_yaml_generator.cli release_gate
+
+      # release_gate_status が red の場合は CI を失敗させる
+      - name: check status
+        run: |
+          status=$(python3 -c "
+          import yaml
+          d = yaml.safe_load(open('src/_meta/lock/release_gate.lock.yaml'))
+          print(d['release_gate_status'])
+          ")
+          echo "release_gate_status=${status}"
+          if [ "${status}" = "red" ]; then
+            echo "::error::release_gate_status is red"
+            exit 1
+          fi
+
+      # ゲートステータスをサマリーに出力
+      - name: summary
+        if: always()
+        run: |
+          python3 -c "
+          import yaml, json
+          d = yaml.safe_load(open('src/_meta/lock/release_gate.lock.yaml'))
+          print('## release-gate status')
+          print(f\"status: **{d.get('release_gate_status', 'unknown')}**\")
+          " >> "${GITHUB_STEP_SUMMARY}"

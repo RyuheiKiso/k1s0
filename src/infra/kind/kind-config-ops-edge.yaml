@@ -1,0 +1,22 @@
+# k1s0-ops-edge クラスタ設定（ops 監視・エッジ用セカンダリ）
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: k1s0-ops-edge
+nodes:
+  # コントロールプレーン
+  - role: control-plane
+    image: kindest/node:v1.31.4
+    extraPortMappings:
+      # HTTP トラフィック（target クラスタと被らないよう 9080 を使用）
+      - containerPort: 80
+        hostPort: 9080
+        protocol: TCP
+  # ワーカー
+  - role: worker
+    image: kindest/node:v1.31.4
+networking:
+  # CNI は Cilium を別途インストールするため無効化
+  disableDefaultCNI: true
+  # target クラスタと重ならないサブネット
+  podSubnet: "10.245.0.0/16"
+  serviceSubnet: "10.97.0.0/16"
